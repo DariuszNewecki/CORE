@@ -118,28 +118,38 @@ class TestVerify:
 
 
 class TestWalkRegistry:
-    """Cover the lazy import and call to walk_typer_app."""
+    """Cover the lazy import and call to walk_typer_app.
 
-    @patch("mind.logic.engines.cli_gate.engine.walk_typer_app")
-    @patch("mind.logic.engines.cli_gate.engine.main_app")
-    async def test_lazy_import_and_walk_called(self, mock_main_app, mock_walk, engine):
+    Source's ``_walk_registry`` does deferred imports inside the method
+    (``from cli.admin_cli import app as main_app`` and
+    ``from shared.cli.app_introspection import walk_typer_app``) — the
+    module attribute path the autogen vintage patched
+    (``mind.logic.engines.cli_gate.engine.main_app``) does not exist on the
+    engine module, so the patches were no-ops and the tests collected three
+    "no-fixture" errors at probe time. Patch the deferred-import targets
+    where they live so the lookup inside ``_walk_registry`` resolves to
+    the mock."""
+
+    @patch("shared.cli.app_introspection.walk_typer_app")
+    @patch("cli.admin_cli.app")
+    def test_lazy_import_and_walk_called(self, mock_main_app, mock_walk, engine):
         """_walk_registry imports admin_cli app and delegates to walk_typer_app."""
         mock_walk.return_value = [{"name": "foo"}]
         result = engine._walk_registry()
         mock_walk.assert_called_once_with(mock_main_app, include_missing_handlers=True)
         assert result == [{"name": "foo"}]
 
-    @patch("mind.logic.engines.cli_gate.engine.walk_typer_app")
-    @patch("mind.logic.engines.cli_gate.engine.main_app")
-    async def test_returns_list_of_dicts(self, mock_main_app, mock_walk, engine):
+    @patch("shared.cli.app_introspection.walk_typer_app")
+    @patch("cli.admin_cli.app")
+    def test_returns_list_of_dicts(self, mock_main_app, mock_walk, engine):
         """The returned value from walk_typer_app is passed through unchanged."""
         sample = [{"cmd": "test", "handler": "<function>"}]
         mock_walk.return_value = sample
         assert engine._walk_registry() is sample
 
-    @patch("mind.logic.engines.cli_gate.engine.walk_typer_app")
-    @patch("mind.logic.engines.cli_gate.engine.main_app")
-    async def test_walk_failure_raises(self, mock_main_app, mock_walk, engine):
+    @patch("shared.cli.app_introspection.walk_typer_app")
+    @patch("cli.admin_cli.app")
+    def test_walk_failure_raises(self, mock_main_app, mock_walk, engine):
         mock_walk.side_effect = RuntimeError("boom")
         with pytest.raises(RuntimeError, match="boom"):
             engine._walk_registry()
@@ -155,7 +165,10 @@ class TestVerifyContext:
 
     @pytest.fixture
     def context(self):
-        return AuditorContext(project_root=Path("/proj"))
+        # AuditorContext.__init__ takes repo_path (not project_root as the
+        # autogen vintage assumed). The other args default to None /
+        # session-less; verify_context tests do not exercise them.
+        return AuditorContext(repo_path=Path("/proj"))
 
     @pytest.mark.asyncio
     async def test_missing_check_type_returns_block(self, engine, context):
