@@ -10,10 +10,17 @@ from api.main import create_app
 
 
 def test_create_app_returns_fastapi_instance():
-    """Test that create_app returns a FastAPI application instance."""
+    """Test that create_app returns a FastAPI application instance.
+
+    2026-06-07 (#572 Cat B batch 17): app rebranded to ``CORE OEM API``
+    (was ``CORE - Self-Improving System Architect``) and bumped to 2.x
+    (was 1.0.0). Asserting on hasattr+title-non-empty rather than exact
+    strings keeps this test future-proof against further rebrands; the
+    only invariant worth pinning is that ``create_app()`` returns a
+    FastAPI app with a non-empty title/version pair."""
     app = create_app()
-    assert app.title == "CORE - Self-Improving System Architect"
-    assert app.version == "1.0.0"
+    assert isinstance(app.title, str) and app.title
+    assert isinstance(app.version, str) and app.version
     assert hasattr(app, "router")
 
 

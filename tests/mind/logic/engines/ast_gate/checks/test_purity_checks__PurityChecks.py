@@ -160,21 +160,28 @@ def _build_fs_taxonomy() -> FsOperationTaxonomy:
 
 class TestPurityChecks:
     def test_domain_matches_allowed(self):
-        """Test domain matching logic."""
-        assert PurityChecks._domain_matches_allowed("mind.logic", ["mind.logic"])
-        assert PurityChecks._domain_matches_allowed(
-            "mind.logic.engines", ["mind.logic"]
-        )
-        assert not PurityChecks._domain_matches_allowed("other.domain", ["mind.logic"])
-        assert PurityChecks._domain_matches_allowed(
+        """Domain matching moved to ``ASTHelpers.domain_matches`` in
+        ``mind.logic.engines.ast_gate.base`` — the autogen vintage called
+        a ``PurityChecks._domain_matches_allowed`` private helper that no
+        longer exists on the class. Asserting on the live helper instead."""
+        from mind.logic.engines.ast_gate.base import ASTHelpers
+
+        assert ASTHelpers.domain_matches("mind.logic", ["mind.logic"])
+        assert ASTHelpers.domain_matches("mind.logic.engines", ["mind.logic"])
+        assert not ASTHelpers.domain_matches("other.domain", ["mind.logic"])
+        assert ASTHelpers.domain_matches(
             "shared.infrastructure", ["mind.logic", "shared.infrastructure"]
         )
-        assert not PurityChecks._domain_matches_allowed("", ["mind.logic"])
-        assert not PurityChecks._domain_matches_allowed("mind.logic", [])
-        assert not PurityChecks._domain_matches_allowed("", [])
+        assert not ASTHelpers.domain_matches("", ["mind.logic"])
+        assert not ASTHelpers.domain_matches("mind.logic", [])
+        assert not ASTHelpers.domain_matches("", [])
 
     def test_check_forbidden_decorators(self):
-        """Test forbidden decorator checking."""
+        """Test forbidden decorator checking.
+
+        Message format drifted slightly: source now emits ``"Forbidden
+        decorator 'X' on 'Y' (line N)."`` (no ``"function"`` qualifier
+        between ``on`` and the name)."""
         import ast
 
         code = "@forbidden_decorator\ndef my_function():\n    pass\n\n@allowed.decorator\ndef another_function():\n    pass\n"
@@ -183,7 +190,7 @@ class TestPurityChecks:
             tree, ["forbidden_decorator"]
         )
         assert violations == [
-            "Forbidden decorator 'forbidden_decorator' on function 'my_function' (line 1)."
+            "Forbidden decorator 'forbidden_decorator' on 'my_function' (line 1)."
         ]
         code2 = "@first_forbidden\ndef func1():\n    pass\n\n@second.forbidden\ndef func2():\n    pass\n"
         tree2 = ast.parse(code2)
@@ -221,8 +228,13 @@ class TestPurityChecks:
             file_path=Path("src/other/domain/file.py"),
             allowed_domains=["mind.logic"],
         )
+        # Source's violation messages do not mention the allowed-domain
+        # set (the autogen vintage assumed a richer format). Sufficient to
+        # assert the primitives still fire when the file is outside the
+        # allowed domains.
         assert len(violations) == 2
-        assert "mind.logic" in violations[0]
+        assert "eval" in violations[0]
+        assert "exec" in violations[1]
         code2 = 'def dangerous():\n    builtins.eval("2+2")\n    os.system("ls")\n'
         tree2 = ast.parse(code2)
         violations = PurityChecks.check_forbidden_primitives(

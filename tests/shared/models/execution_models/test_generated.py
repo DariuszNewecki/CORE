@@ -31,10 +31,18 @@ class TestExecutionTask:
             )
         assert "Invalid task_type" in str(excinfo.value)
 
-    def test_params_none_replaced_with_default(self):
-        """Test that when params is not provided, it defaults."""
-        task = ExecutionTask(step="step_1", action="test_action")
-        assert task.params is not None
+    def test_params_required(self):
+        """params is a required field — the autogen vintage assumed it
+        defaulted to ``TaskParams()`` when omitted, but the current
+        ExecutionTask schema makes it explicit (Pydantic v2 ``Field``
+        with no default). Omitting it raises ValidationError; the
+        canonical empty-params shape is ``params=TaskParams()``."""
+        with pytest.raises(ValidationError):
+            ExecutionTask(step="step_1", action="test_action")
+        # And: explicitly providing an empty TaskParams works.
+        task = ExecutionTask(
+            step="step_1", action="test_action", params=TaskParams()
+        )
         assert isinstance(task.params, TaskParams)
 
     def test_step_required(self):
