@@ -51,6 +51,15 @@ class ActionLogger:
             "event_type": event_type,
             "details": details,
         }
+        # SANCTUARY (#506 Option 3, 2026-06-07): pathlib variable-receiver
+        # write — `self.log_path.open("a")` is detection-inert in the
+        # no_direct_writes check (taxonomy declares pathlib `open` as
+        # qualified-only to avoid colliding with builtin/tarfile/gzip forms;
+        # variable receivers fall back to bare attr name, not caught). This
+        # site is accepted by name because the logger needs append-mode
+        # write semantics and FileHandler has no append primitive. Adding
+        # one would require routing through ActionExecutor, which the
+        # action-logger writes about — circular dependency.
         try:
             with self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry) + "\n")

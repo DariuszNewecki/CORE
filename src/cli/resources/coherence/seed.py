@@ -208,10 +208,16 @@ async def export_command(
     file_handler = FileHandler(str(repo_root))
     file_handler.ensure_dir(str(output.parent.relative_to(repo_root)))
     written = 0
-    # NOTE: streaming `output.open("w")` below is the #506 variable-receiver
-    # gap (silent in current taxonomy). The mkdir above is routed through
-    # FileHandler so the check no longer fires; the streaming write is
-    # enumerated in #506, not laundered as sanctuary here.
+    # SANCTUARY (#506 Option 3, 2026-06-07): pathlib variable-receiver
+    # write — `output.open("w")` is detection-inert in the no_direct_writes
+    # check (taxonomy declares pathlib `open` as qualified-only; variable
+    # receivers fall back to bare attr name). This site is accepted by
+    # name because streaming JSONL export of paginated qdrant results to a
+    # CLI-specified path needs the open-and-iterate shape; FileHandler's
+    # write_runtime_text would require materializing the full collection
+    # in memory before writing. The `mkdir` above is routed through
+    # FileHandler so the directory creation is governed; only the
+    # streaming write is the sanctuary site.
     with output.open("w", encoding="utf-8") as fh:
         for record in records:
             fh.write(
