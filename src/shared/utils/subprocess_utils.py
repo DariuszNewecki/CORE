@@ -122,3 +122,23 @@ def list_all_processes(format_spec: str) -> str:
     logger.debug("Sync Exec: %s", " ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout
+
+
+# ID: 3797bae4-956b-4af1-9b67-c626709244d9
+async def run_vulture(
+    target: str, repo_root: Path | str, confidence: int = 80
+) -> SubprocessResult:
+    """Run ``vulture <target> --min-confidence <confidence>`` and return the result.
+
+    Sanctuary entry point for vulture invocations, mirroring run_systemctl
+    and list_all_processes. Issue #585: the prior implementation called
+    asyncio.create_subprocess_exec directly from src/mind/logic/engines/
+    workflow_gate/checks/dead_code.py, which placed subprocess semantics
+    inside the Mind layer (architecture.layers.no_mind_execution +
+    governance.dangerous_execution_primitives). Routing through this
+    sanctuary confines the dangerous-primitive surface to shared/utils/
+    (already exempted under the governance rule) and leaves dead_code.py
+    free of subprocess imports.
+    """
+    cmd = ["vulture", target, "--min-confidence", str(confidence)]
+    return await run_command_async(cmd, cwd=repo_root)
