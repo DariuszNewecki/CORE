@@ -293,9 +293,14 @@ async def test_suggest_io_optimization():
 
 @pytest.mark.asyncio
 async def test_phase_property():
-    """Test that PerformanceEvaluator has correct phase."""
+    """Test that PerformanceEvaluator has correct phase.
+
+    ComponentPhase lives in shared.component_primitive (the constitutional
+    component primitives module); body.evaluators.performance_evaluator
+    does not re-export it. Tests should import from the canonical home.
+    """
     evaluator = PerformanceEvaluator()
-    from body.evaluators.performance_evaluator import ComponentPhase
+    from shared.component_primitive import ComponentPhase
 
     assert evaluator.phase == ComponentPhase.AUDIT
 
