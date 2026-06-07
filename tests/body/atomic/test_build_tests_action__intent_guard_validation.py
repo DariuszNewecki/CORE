@@ -30,9 +30,15 @@ from shared.models.constitutional_validation import ConstitutionalValidationResu
 
 
 # ID: ade13ae0-29d5-49c7-a11a-1a7b667bb082
-def test_validate_returns_empty_for_test_file_pattern_id() -> None:
-    """``test_file`` has no per-pattern validator; the dispatch must return
-    an empty list and NOT raise AttributeError.
+def test_validate_test_file_with_no_imports_returns_no_violations() -> None:
+    """``test_file`` validator only inspects import statements. Code with
+    zero imports cannot violate either of the two import rules, so the
+    dispatch returns an empty list.
+
+    Pre-#574 this test asserted the deliberate-no-op behavior of pattern_id
+    ``test_file``. Post-#574 the validator exists; this test confirms it
+    still returns empty on an import-free input (regression coverage that
+    we did not introduce false positives).
     """
     out = PatternValidators.validate(
         code="def test_x():\n    assert True\n",
@@ -140,6 +146,80 @@ def test_intent_guard_clean_pass_returns_none() -> None:
         _FakeIntentGuardClean(),  # type: ignore[arg-type]
         generated_code="def test_x():\n    pass\n",
         test_file="tests/test_x.py",
+        start=0.0,
+    )
+    assert result is None
+
+
+# ---- Part C: end-to-end through real PatternValidators (issue #574) ------
+
+
+class _FakeIntentGuardWithRealPatternValidator:
+    """Stand-in IntentGuard that runs the real ``PatternValidators`` dispatch
+    for the supplied pattern_id. Lets us verify the build.tests helper
+    integrates with the new ``test_file`` validator end-to-end without
+    instantiating a full IntentGuard (which is heavy — loads all of
+    ``.intent/``).
+
+    The real validator's import-resolution logic runs against the live
+    Python path inside the test process — that is the property we want to
+    exercise (a hallucinated module would not resolve here either).
+    """
+
+    def validate_generated_code(
+        self,
+        *,
+        code: str,
+        pattern_id: str,
+        component_type: str,
+        target_path: str,
+        **_: Any,
+    ) -> ConstitutionalValidationResult:
+        result = ConstitutionalValidationResult(is_valid=True, source="fake-real")
+        for v in PatternValidators.validate(
+            code, pattern_id, component_type, target_path
+        ):
+            result.add_violation(v)
+        return result
+
+
+# ID: cb681293-e3b7-42ba-90a3-bec5c993d026
+def test_hallucinated_imports_through_real_validator_returns_failure() -> None:
+    """End-to-end with the real ``PatternValidators.validate_test_file_pattern``:
+    a hallucinated module in generated test code surfaces as
+    ``ActionResult(ok=False)`` with the rule_name preserved through the
+    helper's violations payload. Closes #574.
+    """
+    result = _run_intent_guard_check(
+        _FakeIntentGuardWithRealPatternValidator(),  # type: ignore[arg-type]
+        generated_code="from shared.domain.engine import EngineResult\n",
+        test_file="tests/test_generated.py",
+        start=0.0,
+    )
+    assert result is not None, "hallucinated import must be surfaced"
+    assert result.ok is False
+    assert result.data["error"] == "intent_guard_violations"
+    violations = result.data["violations"]
+    assert len(violations) == 1
+    assert violations[0]["rule_name"] == "code.imports.generated_must_resolve"
+    assert violations[0]["severity"] == "error"
+
+
+# ID: 05948855-aeaa-4eaa-aed2-376fa2afc6e7
+def test_clean_imports_through_real_validator_returns_none() -> None:
+    """End-to-end with the real validator: a code sample whose every import
+    resolves cleanly produces no violations and the helper returns None
+    so build.tests proceeds to write.
+    """
+    result = _run_intent_guard_check(
+        _FakeIntentGuardWithRealPatternValidator(),  # type: ignore[arg-type]
+        generated_code=(
+            "from __future__ import annotations\n"
+            "import pytest\n"
+            "from shared.path_resolver import PathResolver\n"
+            "def test_x():\n    assert True\n"
+        ),
+        test_file="tests/test_generated.py",
         start=0.0,
     )
     assert result is None

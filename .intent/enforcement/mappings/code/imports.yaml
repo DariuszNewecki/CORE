@@ -30,3 +30,34 @@ mappings:
     scope:
       applies_to: ["src/**/*.py"]
       excludes: ["tests/**"]
+
+  # LAW: Generated code MUST have every import resolve to an existing module
+  # Enforcement: write-time, via PatternValidators.validate_test_file_pattern.
+  # The audit engine pipeline does NOT dispatch this rule — enforcement happens
+  # inside build.tests before the generated file is written to disk (issue #574).
+  # passive_gate is the canonical declared-but-not-audit-dispatched engine.
+  code.imports.generated_must_resolve:
+    engine: passive_gate
+    params:
+      note: >
+        Declarative rule. Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        The audit engine pipeline does not resolve this rule because the check requires the
+        in-memory generated code, not a committed file.
+    scope:
+      applies_to: ["tests/**/test_generated.py"]
+
+  # LAW: Generated code MUST use absolute imports — no relative imports
+  # Same enforcement surface as generated_must_resolve. Both rules fire from the
+  # same write-time validator dispatched by pattern_id="test_file".
+  code.imports.generated_no_relative:
+    engine: passive_gate
+    params:
+      note: >
+        Declarative rule. Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern.
+        The CoderAgent prompt in build_tests_action.py directs the LLM to use only
+        context-grounded imports; this rule makes that enforceable rather than aspirational.
+    scope:
+      applies_to: ["tests/**/test_generated.py"]

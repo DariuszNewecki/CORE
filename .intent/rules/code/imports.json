@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.code.imports",
         "title": "Import Integrity Rules",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -25,6 +25,22 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "Module restructuring creates stale import paths that are invisible to formatters and sorters. The dev-sync workflow MUST verify import resolution after any refactoring operation, not merely sort or format existing imports."
+        },
+        {
+            "id": "code.imports.generated_must_resolve",
+            "statement": "Generated code (e.g. autogen test files written by build.tests) MUST have every import statement resolve to an existing module on the Python path. Hallucinated module references — a known failure mode of LLM-authored code — are forbidden and MUST be rejected before the generated file is written to disk.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "build.tests is classified safe in .intent/enforcement/config/action_risk.yaml and auto-approves via risk_classification.safe_auto_approval; the governor never sees the generated code before it lands. The write-time IntentGuard validator is the only quality gate between LLM output and commit. A structural pattern check is necessary but not sufficient: LLM hallucination of namespaces (e.g. shared.domain.engine when shared.domain does not exist) passes a pure pattern check and only fails at pytest collection. Import resolution at write time eliminates that class of failure (issue #574). Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern."
+        },
+        {
+            "id": "code.imports.generated_no_relative",
+            "statement": "Generated code (e.g. autogen test files written by build.tests) MUST use absolute imports. Relative imports (from .foo import bar, from ..pkg import baz) are forbidden in generated code and MUST be rejected before the generated file is written to disk.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Generated test modules live at predictable test-tree locations whose relative-import position is fragile under file relocations and Python path conventions. Absolute imports are unambiguous and survive future test-file reorganization. The build_tests_action goal string at src/body/atomic/build_tests_action.py already directs the LLM to ground imports in provided context evidence; this rule enforces what the prompt asks (issue #574) rather than leaving it aspirational. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern."
         }
     ]
 }
