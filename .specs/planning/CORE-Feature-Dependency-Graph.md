@@ -3,7 +3,7 @@
 **Status:** Authoritative (visualization of `CORE-Features.md` + ADR-084 D8)
 **Location:** `.specs/planning/CORE-Feature-Dependency-Graph.md`
 **Audience:** Internal — sequencing, commercial planning, sprint scoping
-**Last updated:** 2026-06-04 (post-F-10/F-40/F-48 ship coherence pass; Track column drops ship-state per §5)
+**Last updated:** 2026-06-07 (F-41 + F-42 + F-43 extension-interfaces trio all shipped 2026-06-05/06 — see `CORE-Operational-Completeness.md` §6 for closure detail; openRoadmap subgraph re-labelled accordingly. All five ADR-085 5+3 feature commitments now closed; no commercial feature has a remaining open-side dependency gate.)
 
 ---
 
@@ -39,7 +39,7 @@ graph TD
     F48["F-48 Open library<br/>distribution #527"]
   end
 
-  subgraph openRoadmap ["Open roadmap — prerequisites for commercial"]
+  subgraph openRoadmap ["Open extension interfaces — shipping (plugin-interface trio)"]
     F41["F-41 Artifact registry #415"]
     F42["F-42 Pluggable sensor #416"]
     F43["F-43 Pluggable action #417"]
@@ -113,11 +113,11 @@ Edge legend: solid arrow = hard dependency (`blocked by`); dashed arrow = soft d
 
 The graph makes the open/commercial sequencing constraint structural rather than aspirational. Four observations follow directly from the picture:
 
-**A. Most commercial features now have all-shipping open dependencies.** With F-10, F-40, and F-48 all shipped (2026-06-02), the commercial features F-20, F-34, F-44, F-45, F-47, and the F-31–F-36 runtime-fork cluster are no longer dependency-blocked. Only F-37 and F-46 (both blocked by F-43) still wait on a roadmap item. ADR-083 designated F-44 as the first-SKU candidate when F-44 was uniquely unblocked; that uniqueness no longer holds, but ADR-083's strategic argument for sequencing the rule-pack SKU first remains.
+**A. All commercial features now have all-shipping open dependencies.** With F-10, F-40, F-48 (all 2026-06-02), F-27 (2026-06-03), and F-41 + F-42 + F-43 (2026-06-05/06) all shipped, no commercial feature has a roadmap-item dependency. F-37 and F-46 — previously blocked on F-43 — are now unblocked. ADR-083 designated F-44 as the first-SKU candidate when F-44 was uniquely unblocked; that uniqueness no longer holds, but ADR-083's strategic argument for sequencing the rule-pack SKU first remains. The remaining constraint on commercial work is ADR-085 D1 (capacity gate pending three quality goals #561 / #562 / #563), not dependency structure.
 
 **B. F-40 unblocked four commercial features at once.** Shipping F-40 (2026-06-02) released F-20, F-34, F-45, and F-47 simultaneously to commercial work. ADR-084 D3 codified the elevation from "Embedded tier preparation" (Tiers paper §3.5 pre-ADR-084) to single-largest commercial unblocker.
 
-**C. F-43 unblocks two commercial features.** Plus the plugin shape becomes available to third-party authors at the same moment, which is the F-41/F-42/F-43 trio's stated purpose. The trio is now the last remaining open-side dependency gate for any commercial feature.
+**C. F-43 ships (2026-06-06) — F-37 and F-46 unblocked.** Plus the plugin shape becomes available to third-party authors at the same moment, which is the F-41/F-42/F-43 trio's stated purpose. With the trio shipped, no open-side dependency gate remains for any commercial feature; the open/commercial sequencing constraint is now purely an ADR-085 D1 capacity gate, not a dependency one.
 
 **D. F-48 shipped (2026-06-02) — runtime-fork cluster no longer gated.** Open library distribution (PyPI + Docker registry, issue #527) was the shared open-infrastructure prerequisite for all five runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36); that gate is now lifted. *Previously this was a planning gap (the graph had to invent a "PYPI" pseudo-node); ADR-084 §Consequences flagged it for filing.*
 
