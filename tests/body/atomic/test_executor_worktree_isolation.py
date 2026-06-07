@@ -54,11 +54,21 @@ def _make_context(repo: Path) -> CoreContext:
 
 def _bare_executor(repo: Path) -> tuple[ActionExecutor, CoreContext]:
     """Construct an ActionExecutor without running the registry-priming
-    __init__ — these tests only exercise the new sandbox methods."""
+    __init__ — these tests only exercise the SandboxLifecycle accessor.
+
+    Post-refactor ActionExecutor delegates the sandbox decision and the
+    write propagation to a SandboxLifecycle instance held at self._sandbox
+    (see src/body/atomic/sandbox_lifecycle.py). The bare construction
+    bypasses __init__'s assignment, so the SandboxLifecycle is wired in
+    here.
+    """
+    from body.atomic.sandbox_lifecycle import SandboxLifecycle
+
     executor = ActionExecutor.__new__(ActionExecutor)
     ctx = _make_context(repo)
     executor.core_context = ctx
     executor.registry = MagicMock()
+    executor._sandbox = SandboxLifecycle(ctx)
     return executor, ctx
 
 
@@ -113,7 +123,7 @@ def test_sandboxes_when_sha_write_and_impact_match(repo: Path) -> None:
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition(ActionImpact.WRITE_CODE)
 
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     try:
@@ -131,7 +141,7 @@ def test_sandboxes_when_sha_write_and_impact_match(repo: Path) -> None:
 def test_passthrough_when_pre_execution_sha_is_none(repo: Path) -> None:
     executor, ctx = _bare_executor(repo)
     defn = _make_definition()
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=None
     )
     assert scoped_ctx is ctx
@@ -142,7 +152,7 @@ def test_passthrough_when_write_is_false(repo: Path) -> None:
     executor, ctx = _bare_executor(repo)
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=False, pre_execution_sha=sha
     )
     assert scoped_ctx is ctx
@@ -153,7 +163,7 @@ def test_passthrough_when_impact_is_read_only(repo: Path) -> None:
     executor, ctx = _bare_executor(repo)
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition(ActionImpact.READ_ONLY)
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     assert scoped_ctx is ctx
@@ -165,7 +175,7 @@ def test_passthrough_when_impact_is_write_data(repo: Path) -> None:
     executor, ctx = _bare_executor(repo)
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition(ActionImpact.WRITE_DATA)
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     assert scoped_ctx is ctx
@@ -180,7 +190,7 @@ def test_clean_propagation_copies_sandbox_writes_to_main(repo: Path) -> None:
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
 
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     try:
@@ -191,7 +201,7 @@ def test_clean_propagation_copies_sandbox_writes_to_main(repo: Path) -> None:
         ).read_text() == "# action wrote this\n"
         assert (repo / "scope.py").read_text() == "# original\n"
 
-        executor._propagate_sandbox_changes(scoped_git)
+        executor._sandbox.propagate_changes(scoped_git)
 
         # Main now reflects sandbox content
         assert (repo / "scope.py").read_text() == "# action wrote this\n"
@@ -209,7 +219,7 @@ def test_propagation_refuses_when_main_has_concurrent_edit_on_target(
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
 
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     try:
@@ -226,7 +236,7 @@ def test_propagation_refuses_when_main_has_concurrent_edit_on_target(
         assert (repo / "scope.py").read_text() == "# GOVERNOR EDIT\n"
 
         with pytest.raises(RuntimeError, match=r"ADR-071 D2\.2"):
-            executor._propagate_sandbox_changes(scoped_git)
+            executor._sandbox.propagate_changes(scoped_git)
 
         # Governor's edit survives the refused propagation
         assert (repo / "scope.py").read_text() == "# GOVERNOR EDIT\n"
@@ -246,7 +256,7 @@ def test_propagation_proceeds_when_governor_edits_a_different_file(repo: Path) -
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
 
-    scoped_ctx, scoped_git = executor._build_execution_context(
+    scoped_ctx, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     try:
@@ -254,7 +264,7 @@ def test_propagation_proceeds_when_governor_edits_a_different_file(repo: Path) -
         (repo / "other.py").write_text("# GOVERNOR EDIT TO OTHER\n")
 
         asyncio.run(defn.executor(write=True, core_context=scoped_ctx))
-        executor._propagate_sandbox_changes(scoped_git)
+        executor._sandbox.propagate_changes(scoped_git)
 
         # Worker's file propagated; governor's file untouched
         assert (repo / "scope.py").read_text() == "# action wrote this\n"
@@ -268,12 +278,12 @@ def test_propagation_no_op_when_sandbox_made_no_changes(repo: Path) -> None:
     executor, ctx = _bare_executor(repo)
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
-    _, scoped_git = executor._build_execution_context(
+    _, scoped_git = executor._sandbox.build_execution_context(
         defn, write=True, pre_execution_sha=sha
     )
     try:
         # No action invocation — sandbox stays clean
-        executor._propagate_sandbox_changes(scoped_git)
+        executor._sandbox.propagate_changes(scoped_git)
         assert (repo / "scope.py").read_text() == "# original\n"
     finally:
         if scoped_git is not None:

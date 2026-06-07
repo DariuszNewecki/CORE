@@ -17,8 +17,11 @@ def test_create_app():
 
     # Assert basic app configuration
     assert isinstance(app, FastAPI)
-    assert app.title == "CORE - Self-Improving System Architect"
-    assert app.version == "1.0.0"
+    # Title rebrand landed with F-40 (OEM API surface, ADR-087).
+    assert app.title == "CORE OEM API"
+    # Version is resolved dynamically from core-runtime PyPI metadata
+    # (or a "0.0.0+source-tree" dev marker); just assert non-empty string.
+    assert isinstance(app.version, str) and app.version
 
     # Assert routers are included
     routes_with_prefix = [route for route in app.routes if hasattr(route, "path")]

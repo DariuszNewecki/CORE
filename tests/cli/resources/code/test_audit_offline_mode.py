@@ -283,9 +283,12 @@ async def test_offline_github_annotations_emits_workflow_commands(
                 output_format="github-annotations",
             )
     out = capsys.readouterr().out
-    assert "::error " in out
-    assert "r.high" in out
-    assert "::notice " in out
+    # The github-annotations format uses severity as the workflow-command
+    # title slot (`::error title=<severity>::`), not the rule_id — the rule_id
+    # is not part of the line by design (F-10.2 format spec). Assert on the
+    # severity title + the rendered message text instead.
+    assert "::error title=high::block this" in out
+    assert "::notice title=low::fyi" in out
     assert "::notice title=CORE audit summary::" in out
     assert "verdict=FAIL" in out
     assert exc_info.value.exit_code == EXIT_FINDINGS
