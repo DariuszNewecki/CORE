@@ -54,6 +54,11 @@ ITAM
 !.specs/commercial/.gitkeep
 
 # -----------------------------------------------------------------------------
+# Exploratory CORE-NG candidate spec — not binding for current CORE
+# -----------------------------------------------------------------------------
+.specs/core-ng/
+
+# -----------------------------------------------------------------------------
 # Runtime state — fully owned by CORE, never versioned
 #   Exception: var/prompts/ is governance content (LLM prompt templates are
 #   authored intent, not runtime output), tracked since #296.
