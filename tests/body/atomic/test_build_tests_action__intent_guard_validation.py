@@ -50,17 +50,23 @@ def test_validate_test_file_with_no_imports_returns_no_violations() -> None:
 
 
 # ID: d9cb337f-1e50-45ab-bdce-716c6f1da845
-def test_validate_dispatches_to_inspect_pattern_validator() -> None:
-    """Sanity check: the dispatch routes ``inspect`` to
-    ``validate_inspect_pattern`` and surfaces its violations.
+def test_validate_unknown_pattern_id_returns_empty_list() -> None:
+    """An unknown ``pattern_id`` falls through to the deliberate "no validator
+    applies" empty-list branch — not an exception, not a fabricated violation.
+
+    Pre-deletion this test asserted that ``"inspect"`` dispatched to a
+    legacy hardcoded validator. The legacy inspect/action/check/run
+    validators were dead code (zero production callers) and were removed;
+    this test now exercises the fallthrough branch with a synthetic unknown
+    pattern_id to keep regression coverage on the dispatch infrastructure.
     """
     out = PatternValidators.validate(
-        code="def cmd(--write):\n    pass\n",
-        pattern_id="inspect",
+        code="def cmd():\n    pass\n",
+        pattern_id="not_a_registered_pattern",
         component_type="cli",
         target_path="src/cli/cmd.py",
     )
-    assert any(getattr(v, "rule_name", "") == "inspect_pattern_violation" for v in out)
+    assert out == []
 
 
 # ---- Part B: build.tests fail-loud helper --------------------------------
