@@ -35,8 +35,8 @@ from typing import Any
 _FindingKey = tuple[str, str | None, int | None]
 
 
-# ID: 2fe62cb6-c99f-447b-a66e-49a017f99a23
 @dataclass(frozen=True)
+# ID: f14de83d-7abf-470a-b0c4-cba003b9a634
 class FindingRef:
     """Lightweight reference to a single audit finding."""
 
