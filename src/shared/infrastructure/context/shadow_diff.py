@@ -23,8 +23,8 @@ from dataclasses import dataclass
 from typing import Any
 
 
-# ID: cf4bff12-f57d-4da1-8e46-bcd5ca2fcb79
 @dataclass(frozen=True)
+# ID: cf4bff12-f57d-4da1-8e46-bcd5ca2fcb79
 class SymbolRef:
     """Lightweight reference to a symbol in either graph."""
 
@@ -34,8 +34,8 @@ class SymbolRef:
     kind: str  # "FunctionDef" / "AsyncFunctionDef" / "ClassDef"
 
 
-# ID: 97a6552d-16b9-40d9-88a5-47105c8fb06b
 @dataclass(frozen=True)
+# ID: 97a6552d-16b9-40d9-88a5-47105c8fb06b
 class SignatureDelta:
     """A symbol whose parameter list changed between disk and shadow."""
 
@@ -46,8 +46,8 @@ class SignatureDelta:
     shadow_parameters: tuple[Any, ...]
 
 
-# ID: 2a2099fa-79b5-43bd-a914-902f89458e7c
 @dataclass(frozen=True)
+# ID: 2a2099fa-79b5-43bd-a914-902f89458e7c
 class OrphanedCaller:
     """A symbol in the shadow graph that calls a name the shadow no longer defines.
 
