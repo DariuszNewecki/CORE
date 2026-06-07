@@ -129,9 +129,10 @@ def test_ActionResult():
     result = ActionResult(action_id="test", ok=True, data={}, duration_sec=-1.0)
     assert result.duration_sec == -1.0
 
-    # Test 16: Test MAX_DATA_SIZE_BYTES constant
-    assert hasattr(ActionResult, "MAX_DATA_SIZE_BYTES")
-    assert ActionResult.MAX_DATA_SIZE_BYTES == 5 * 1024 * 1024
+    # Test 16: data size limit is now governed via operational_config.yaml
+    # (load_operational_config().action.max_data_size_bytes), not a class constant.
+    # The previous MAX_DATA_SIZE_BYTES class attribute was retired; the dynamic
+    # limit is exercised by Test 9 above.
 
     # Test 17: Test that data within size limit works
     small_data = {"small": "data"}

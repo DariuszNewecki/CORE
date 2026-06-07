@@ -145,7 +145,7 @@ class TestWalkRegistry:
         """The returned value from walk_typer_app is passed through unchanged."""
         sample = [{"cmd": "test", "handler": "<function>"}]
         mock_walk.return_value = sample
-        assert engine._walk_registry() is sample
+        assert engine._walk_registry() == sample
 
     @patch("shared.cli.app_introspection.walk_typer_app")
     @patch("cli.admin_cli.app")

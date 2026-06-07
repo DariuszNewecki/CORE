@@ -56,6 +56,10 @@ def _minimal_valid_declaration() -> dict[str, Any]:
         "mandate": {
             "responsibility": "A test responsibility sentence with no conjunctions.",
             "phase": "audit",
+            "scope": {
+                "artifact_type": ["python"],
+                "rule_namespace": "test.dummy",
+            },
         },
         "implementation": {
             "module": "will.workers.dummy",
