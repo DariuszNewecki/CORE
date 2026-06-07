@@ -64,8 +64,8 @@ _STRUCTURAL_EXCLUDES: frozenset[str] = frozenset(
 )
 
 
-# ID: bb4e8509-b838-483f-af29-516d42e5aa59
 @contextmanager
+# ID: 0da05ad1-788b-44fe-8b2f-1875f5319771
 def materialize_workspace_for_audit(
     workspace: LimbWorkspace,
     repo_root: Path,
