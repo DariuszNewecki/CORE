@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 # Register all sub-modules (neurons) — import order triggers @app.command decorators
-from . import refactor, stability, strategic_audit, sync, test
+from . import refactor, smell_test, stability, strategic_audit, sync, test
 
 # Import the centralized app from the hub
 from .hub import app
