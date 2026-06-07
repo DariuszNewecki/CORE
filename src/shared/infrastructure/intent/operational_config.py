@@ -179,6 +179,13 @@ class BlackboardConfig:
         "coherence.repo_artifacts.drift",
     )
     sweep_batch_max: int = 500
+    # #568: count-based retention for slow-callback telemetry. Time-based
+    # TTL over-prunes well-behaved workers (rare emitters lose their entire
+    # window) while leaving hot emitters with hundreds of rows. Keep the
+    # last N samples per subject instead. The default of 100 sits well
+    # above WorkerClassificationConfig.cycle_window (5) and the consumer
+    # sample_cap (cycle_window * 4 = 20), with investigation headroom.
+    telemetry_keep_last_per_worker: int = 100
 
 
 @dataclass(frozen=True)
@@ -764,6 +771,9 @@ def _load_blackboard(raw: dict[str, Any]) -> BlackboardConfig:
             ),
         ),
         sweep_batch_max=_get_int(sec, "sweep_batch_max", 500),
+        telemetry_keep_last_per_worker=_get_int(
+            sec, "telemetry_keep_last_per_worker", 100
+        ),
     )
 
 

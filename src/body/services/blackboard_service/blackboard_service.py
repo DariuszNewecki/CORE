@@ -492,6 +492,76 @@ class BlackboardService:
                 )
                 return result.rowcount or 0
 
+    # ID: 6ca715c7-53db-47bd-ba68-8986fce5fc83
+    async def sweep_telemetry_keep_last_n_per_subject(
+        self,
+        subject_prefixes: tuple[str, ...],
+        keep_last: int,
+        batch_max: int,
+    ) -> int:
+        """
+        Issue #568 — count-based retention for slow-callback telemetry.
+
+        Time-based TTL is the wrong shape for telemetry that fires on slow
+        callbacks: well-behaved (rare-emitting) workers have their entire
+        window pruned away while hot emitters still leave hundreds of rows.
+        This sweep partitions rows by subject (each
+        ``loop_hold.sample::<worker_stem>`` is its own ordered sequence),
+        keeps the most recent *keep_last* per subject, and DELETEs the rest.
+
+        Partitioning by subject (not worker_uuid) lets the worker name carry
+        the grouping; a single worker with a stable UUID across restarts
+        still keeps its full history, and a worker that gets re-UUID'd
+        retains its emission stream because the subject stays stable.
+
+        The *batch_max* cap is a constitutional rail per
+        ``feedback_destructive_autonomous_needs_rails_first``. PostgreSQL's
+        DELETE…LIMIT limitation is sidestepped by selecting through a
+        bounded subquery against a CTE.
+
+        Returns the count of rows actually deleted. Empty *subject_prefixes*
+        or *keep_last* <= 0 is a no-op (returns 0) — fail-closed.
+        """
+        if not subject_prefixes or keep_last <= 0:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        WITH ranked AS (
+                            SELECT id,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY subject
+                                    ORDER BY created_at DESC
+                                ) AS rn
+                            FROM core.blackboard_entries
+                            WHERE subject LIKE ANY(
+                                ARRAY(
+                                    SELECT p || '%%'
+                                    FROM unnest(cast(:prefixes as text[])) AS p
+                                )
+                            )
+                        )
+                        DELETE FROM core.blackboard_entries
+                        WHERE id IN (
+                            SELECT id FROM ranked
+                            WHERE rn > :keep_last
+                            LIMIT :batch_max
+                        )
+                        """
+                    ),
+                    {
+                        "prefixes": list(subject_prefixes),
+                        "keep_last": int(keep_last),
+                        "batch_max": int(batch_max),
+                    },
+                )
+                return result.rowcount or 0
+
     # ID: 8a5f3d6c-2b9e-4f17-c0d8-9e4a1b6f3c8e
     async def sweep_delegate_open_findings(
         self,
