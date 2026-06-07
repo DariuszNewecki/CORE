@@ -26,3 +26,21 @@ mappings:
       excludes:
         - "tests/**"
         - "src/shared/infrastructure/intent/**"
+        # Non-discovery carve-outs surfaced by #566 triage (#586):
+        # The rule's own statement exempts "non-discovery file walks (test
+        # runners, config loaders, build tooling)". The three entries below
+        # are concrete instances — each walks a narrow subset of a registered
+        # artifact_type for a non-discovery purpose. Removing a carve-out
+        # entry requires either (a) demonstrating the file IS performing
+        # artifact discovery, or (b) refactoring it to route through the
+        # registry. Until then the explicit exclusion is the honest signal.
+        #
+        # Config loader: loads enforcement mappings (intent_yaml subset)
+        # into a cache for the rule extractor.
+        - "src/mind/governance/enforcement_loader.py"
+        # Service: reads policy JSONs (intent_json subset) to compute
+        # rule-coverage statistics, not to discover policies.
+        - "src/mind/governance/policy_coverage_service.py"
+        # Coherence check: reads ADR markdown (spec_markdown subset) to
+        # extract Relates: cross-references for reconciliation analysis.
+        - "src/mind/coherence/checks/r1_scoped.py"

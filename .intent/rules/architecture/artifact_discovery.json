@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.artifact_discovery",
         "title": "Artifact Discovery Through the Registry",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -13,10 +13,10 @@
         {
             "id": "architecture.artifact_discovery_through_registry",
             "statement": "Components performing artifact-class discovery — sensors, validators, crawlers, or any pipeline that walks the repository looking for governed artifacts — MUST consult the artifact_type registry via IntentRepository.list_artifact_types() or IntentRepository.get_artifact_type(id). Hardcoded extension-based globs (rglob('*.py'), glob('.intent/**/*.yaml'), or equivalent) for discovery purposes are forbidden. Non-discovery file walks (test runners, config loaders, build tooling) are out of scope.",
-            "enforcement": "reporting",
+            "enforcement": "blocking",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "ADR-090 D4 migrated three CORE pipelines (AuditViolationSensor, MetaValidator, CoherenceChecker) from implicit conventions to the artifact_type registry. The risk this rule mitigates is re-emergence: a new sensor or validator added later that hardcodes its discovery scope re-introduces exactly the drift the registry exists to prevent (see ADR-090 §Consequences §Risks; crawl_scopes.yaml-vs-orchestrator.py drift documented in gate 3 closure as the precedent). Enforcement promoted from advisory to reporting in #566 once the ast_gate ArtifactDiscoveryCheck shipped — three gates (location, carve-out, registry-consultation bypass) keep precision tight; broad src/**/*.py scope is filtered to the four artifact-pipeline prefixes (will/workers, mind/governance, mind/coherence, body/services/crawl_service) inside the check. Promotion to blocking will follow the ADR-091 D2 ramp once one clean live audit cycle confirms zero violations."
+            "rationale": "ADR-090 D4 migrated three CORE pipelines (AuditViolationSensor, MetaValidator, CoherenceChecker) from implicit conventions to the artifact_type registry. The risk this rule mitigates is re-emergence: a new sensor or validator added later that hardcodes its discovery scope re-introduces exactly the drift the registry exists to prevent (see ADR-090 §Consequences §Risks; crawl_scopes.yaml-vs-orchestrator.py drift documented in gate 3 closure as the precedent). Enforcement progressed advisory (F-41 closure #415) → reporting (#566 check ship, commit 4db8457c) → blocking (#586 triage closure, this commit). The reporting ramp surfaced three candidates whose recon confirmed they fit the rule's own 'non-discovery file walks' carve-out (config loader, coverage-stats service, ADR cross-reference reader); they are pinned in the mapping's scope.excludes with inline rationale. Long-term, if narrower artifact_type subtypes are introduced (e.g. enforcement_mapping as a subtype of intent_yaml), the carve-outs can be retired by refactoring each file to consult the subtype-specific discovery — but that work is gated on a separate ADR, not on this rule's enforcement tier."
         }
     ]
 }
