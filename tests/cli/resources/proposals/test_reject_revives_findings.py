@@ -55,10 +55,11 @@ def _prime_service_registry() -> None:
 
 async def _ensure_blackboard_table(session: AsyncSession) -> None:
     """Create core.blackboard_entries if it is missing in the test DB.
-    Production schema declares an FK on worker_uuid → worker_registry
-    that the SQLAlchemy model omits; create_all therefore creates the
-    table without that constraint — the worker_uuid here is synthetic
-    and need not refer to worker_registry.
+
+    The live test DB enforces an FK on worker_uuid → worker_registry
+    plus a CHECK on resolution_mechanism per ADR-091 D2 Revision B. Both
+    constraints exist regardless of what create_all reproduces; seed
+    helpers below cover the FK side.
     """
     await session.execute(text("CREATE SCHEMA IF NOT EXISTS core"))
     conn = await session.connection()
@@ -67,6 +68,26 @@ async def _ensure_blackboard_table(session: AsyncSession) -> None:
         checkfirst=True,
     )
     await session.commit()
+
+
+async def _ensure_worker_registry_row(
+    session: AsyncSession, worker_uuid: uuid.UUID
+) -> None:
+    """Seed a worker_registry row so blackboard_entries.worker_uuid FK is satisfied."""
+    await session.execute(
+        text(
+            """
+            INSERT INTO core.worker_registry
+                (worker_uuid, worker_name, worker_class, phase)
+            VALUES (:worker_uuid, :worker_name, 'sensing', 'audit')
+            ON CONFLICT (worker_uuid) DO NOTHING
+            """
+        ),
+        {
+            "worker_uuid": worker_uuid,
+            "worker_name": f"test_reject_revives_{str(worker_uuid)[:8]}",
+        },
+    )
 
 
 def _approved_proposal(proposal_id: str) -> AutonomousProposal:
@@ -89,7 +110,7 @@ def _approved_proposal(proposal_id: str) -> AutonomousProposal:
         created_at=datetime.now(UTC),
         approved_by="test-approver",
         approved_at=datetime.now(UTC),
-        approval_authority="human.cli_operator",
+        approval_authority="principal.governor",
     )
 
 
@@ -118,16 +139,19 @@ async def test_reject_proposal_revives_deferred_findings(
     # carries this proposal's id (mirrors the §7 transition done by
     # ViolationRemediatorWorker._defer_to_proposal).
     db_session.add(_approved_proposal(proposal_id))
+    await _ensure_worker_registry_row(db_session, synthetic_worker_uuid)
     await db_session.execute(
         text(
             """
             INSERT INTO core.blackboard_entries
                 (id, worker_uuid, entry_type, phase, status, subject,
-                 payload, claimed_by, claimed_at, resolved_at)
+                 payload, resolution_mechanism,
+                 claimed_by, claimed_at, resolved_at)
             VALUES
                 (:id, :worker_uuid, 'finding', 'parse', 'deferred_to_proposal',
                  'audit.violation::workflow.ruff_format_check',
-                 cast(:payload as jsonb), :worker_uuid, now(), now())
+                 cast(:payload as jsonb), 'reaudit',
+                 :worker_uuid, now(), now())
             """
         ),
         {

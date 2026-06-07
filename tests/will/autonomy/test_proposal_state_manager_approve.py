@@ -121,7 +121,7 @@ async def test_approve_rejects_unknown_authority(db_session: AsyncSession) -> No
             )
         msg = str(excinfo.value)
         assert "risk_classification.safe_auto_approval" in msg
-        assert "human.cli_operator" in msg
+        assert "principal.governor" in msg
 
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
@@ -141,7 +141,7 @@ async def test_approve_unknown_uuid_raises_not_found(
         await ProposalStateManager(db_session).approve(
             bogus_id,
             approved_by="cli_admin",
-            approval_authority="human.cli_operator",
+            approval_authority="principal.governor",
         )
     assert bogus_id in str(excinfo.value)
 
