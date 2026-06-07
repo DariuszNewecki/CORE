@@ -1,5 +1,17 @@
 # tests/body/cli/commands/test_fix_code_style__fix_headers_internal.py
 
+"""
+2026-06-07 (#572 Cat B batch 15): ``fix_headers_internal`` is now decorated
+with ``@atomic_action``. Direct calls raise GovernanceBypassError
+("Action 'fix.headers' was called directly. All actions MUST be routed
+through ActionExecutor.execute()"). Tests now invoke the undecorated
+function via ``fix_headers_internal.__wrapped__(...)`` — the decorator's
+own ``functools.wraps`` chain preserves the original async callable on
+``__wrapped__``. This keeps the existing monkeypatch + _FakeActionExecutor
+pattern intact (the inner ``_run_header_fix_cycle`` still constructs
+``ActionExecutor(context)``, which the monkeypatch retargets to the fake).
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,6 +21,11 @@ import pytest
 
 from body.self_healing.header_service import fix_headers_internal
 from shared.action_types import ActionResult
+
+
+# Unwrap the @atomic_action decorator so tests can drive the implementation
+# directly without tripping the GovernanceBypassError guard.
+_fix_headers_impl = fix_headers_internal.__wrapped__
 
 
 class _FakeActionExecutor:
@@ -51,7 +68,7 @@ async def test_fix_headers_replaces_wrong_header(tmp_path, monkeypatch):
     file_path.parent.mkdir(parents=True)
     file_path.write_text("# src/features/test.py\nprint('ok')\n", encoding="utf-8")
 
-    result = await fix_headers_internal(_make_context(tmp_path), write=True)
+    result = await _fix_headers_impl(_make_context(tmp_path), write=True)
 
     assert result.ok
     assert result.data["total_files_scanned"] == 1
@@ -78,7 +95,7 @@ async def test_fix_headers_inserts_missing_header(tmp_path, monkeypatch):
     original = "print('hello')\n"
     file_path.write_text(original, encoding="utf-8")
 
-    result = await fix_headers_internal(_make_context(tmp_path), write=True)
+    result = await _fix_headers_impl(_make_context(tmp_path), write=True)
 
     assert result.ok
     assert result.data["files_changed"] == 1
@@ -99,7 +116,7 @@ async def test_fix_headers_keeps_correct_header_unchanged(tmp_path, monkeypatch)
     content = "# src/will/test_generation/strategy_link.py\nVALUE = 1\n"
     file_path.write_text(content, encoding="utf-8")
 
-    result = await fix_headers_internal(_make_context(tmp_path), write=True)
+    result = await _fix_headers_impl(_make_context(tmp_path), write=True)
 
     assert result.ok
     assert result.data["files_changed"] == 0
@@ -124,7 +141,7 @@ async def test_fix_headers_does_not_touch_non_src_files(tmp_path, monkeypatch):
     outside_content = "print('outside')\n"
     outside_file.write_text(outside_content, encoding="utf-8")
 
-    result = await fix_headers_internal(_make_context(tmp_path), write=True)
+    result = await _fix_headers_impl(_make_context(tmp_path), write=True)
 
     assert result.ok
     assert result.data["total_files_scanned"] == 1
@@ -142,8 +159,8 @@ async def test_fix_headers_is_idempotent(tmp_path, monkeypatch):
     file_path.parent.mkdir(parents=True)
     file_path.write_text("", encoding="utf-8")
 
-    first = await fix_headers_internal(_make_context(tmp_path), write=True)
-    second = await fix_headers_internal(_make_context(tmp_path), write=True)
+    first = await _fix_headers_impl(_make_context(tmp_path), write=True)
+    second = await _fix_headers_impl(_make_context(tmp_path), write=True)
 
     assert first.ok
     assert first.data["files_changed"] == 1
