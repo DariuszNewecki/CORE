@@ -1,141 +1,44 @@
-from typing import Any
+"""Tests for AuditViolationSensor.
+
+2026-06-07 (#572 Cat B batch 19): the autogen vintage of this file was
+entirely speculative — it defined a local ``class AuditViolationSensor:
+pass`` placeholder (instead of importing the real worker), wired up
+mock factory functions that returned classes with no actual methods,
+asserted on call_count attributes that would have raised AttributeError
+on the placeholder mocks, and used MagicMock without importing it
+(NameError on the only test). The file was effectively dead — nothing
+referenced the real ``will.workers.audit_violation_sensor`` symbol.
+
+Replaced with a minimal smoke test against the real class. The worker
+takes ``(core_context, declaration_name, rule_namespace,
+dry_run=True)`` and inherits from the Worker base. A deeper behavioural
+test belongs in an integration suite where the blackboard / consequence
+log services and a real session provider are available; the smoke test
+pins the import surface and the constructor signature without taking
+on integration-level setup.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import Mock
+
+from will.workers.audit_violation_sensor import AuditViolationSensor
 
 
-class AuditViolationSensor:
-    # Existing class definition from src/will/workers/audit_violation_sensor.py
-    pass
+def test_audit_violation_sensor_constructs_with_required_args():
+    """AuditViolationSensor.__init__ requires
+    (core_context, declaration_name, rule_namespace) — the optional
+    ``dry_run`` defaults to True so destructive runs are opt-in.
 
-
-def mock_normalize_audit_findings(
-    core_context, rule_namespace, rule_ids
-) -> list[dict[str, Any]]:
-    """
-    Mock function to simulate the normalization of audit findings.
-    """
-    return [
-        {
-            "rule_id": "R1",
-            "file_path": "/path/to/file1.txt",
-            "line_number": 42,
-            "message": "Error message 1",
-        },
-        {
-            "rule_id": "R2",
-            "file_path": "/path/to/file2.txt",
-            "line_number": 78,
-            "message": "Error message 2",
-        },
-    ]
-
-
-def mock_filter_actionable_violations(violations) -> list[dict[str, Any]]:
-    """
-    Mock function to simulate filtering actionable violations.
-    """
-    return [
-        {
-            "rule_id": "R1",
-            "file_path": "/path/to/file1.txt",
-            "line_number": 42,
-            "message": "Error message 1",
-        }
-    ]
-
-
-def mock_find_cause_for_file(file_path, lookback_seconds) -> dict[str, Any]:
-    """
-    Mock function to simulate finding a cause for a file.
-    """
-    return {"causing_proposal_id": "P1", "causing_commit_sha": "C1"}
-
-
-async def test_audit_violation_sensor_run_complete():
-    sensor = AuditViolationSensor()
-    core_context = mock_core_context()  # Assume this function is defined elsewhere
-    rule_namespace = "example_ns"
-
-    # Mocking the methods to simulate behavior
-    sensor.normalize_audit_findings = mock_normalize_audit_findings
-    sensor.filter_actionable_violations = mock_filter_actionable_violations
-
-    # Call the method that we want to test
-    await sensor.run(core_context, rule_namespace)
-
-    # Assert expected outcomes
-    expected_payload = {
-        "rule_namespace": "example_ns",
-        "rule_ids_resolved": 2,
-        "violations_found": 2,
-        "filtered_unactionable": 0,
-        "posted": 2,
-        "skipped_duplicates": 0,
-        "dry_run": False,
-        "message": (
-            "Run complete. 2 findings posted, "
-            "0 duplicates skipped, "
-            "0 unactionable filtered."
-        ),
-    }
-
-    # Add assertions to test the expected outcomes
-    assert (
-        core_context.registry.get_blackboard_service().fetch_active_finding_subjects_by_prefix.call_count
-        == 1
+    ``declaration_name`` is looked up against
+    ``.intent/workers/<name>.yaml`` at construction time, so it must be
+    a name that has a real declaration on disk. ``audit_violation_sensor``
+    is the worker's own canonical name and is the only declaration
+    guaranteed to exist for this worker class."""
+    ctx = Mock()
+    sensor = AuditViolationSensor(
+        core_context=ctx,
+        declaration_name="audit_violation_sensor",
+        rule_namespace="example_ns",
     )
-    assert (
-        core_context.registry.get_consequence_log_service().find_cause_for_file.call_count
-        == 2
-    )
-
-
-def mock_core_context() -> Any:
-    """
-    Mock function to simulate the core context object.
-    """
-
-    # This is a simplified mock of what a core context might look like
-    class CoreContext:
-        def __init__(self, registry):
-            self.registry = registry
-
-    # Create an instance of the registry and return it with a blackboard service
-    registry = MockRegistry()
-    blackboard_service = MagicMock()
-    registry.get_blackboard_service.return_value = blackboard_service
-    return CoreContext(registry)
-
-
-class MockRegistry:
-    pass
-
-
-def mock_get_consequence_log_service() -> Any:
-    """
-    Mock function to simulate the consequence log service.
-    """
-
-    class ConsequenceLogService:
-        def find_cause_for_file(self, file_path, lookback_seconds):
-            # Simulate finding a cause for a file
-            return {"causing_proposal_id": "P1", "causing_commit_sha": "C1"}
-
-    return ConsequenceLogService()
-
-
-def mock_get_blackboard_service() -> Any:
-    """
-    Mock function to simulate the blackboard service.
-    """
-
-    class BlackboardService:
-        def fetch_active_finding_subjects_by_prefix(self, prefix):
-            # Simulate fetching finding subjects by prefix
-            return {"_FINDING_SUBJECT::example_ns::/path/to/file1.txt": None}
-
-    return BlackboardService()
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()
+    assert sensor.declaration_name == "audit_violation_sensor"
