@@ -136,36 +136,27 @@ class Settings(BaseSettings):
     )
 
     def __init__(self, **values: Any) -> None:
-        # ============================================================
-        # 1. PRE-FLIGHT DETECTION (Mirror Check)
-        # ============================================================
-        # Check if we are being run by pytest.
-        # This is the "Sovereign Fix" for the backwards prefix problem.
         is_testing = (
             "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None
         )
 
         if is_testing:
-            # Force the environment to TEST immediately
             os.environ["CORE_ENV"] = "TEST"
 
-        # ============================================================
-        # 2. FILE LOADING SEQUENCE
-        # ============================================================
-        # Load root .env
-        load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
+        # Skip .env under pytest: load_dotenv(override=True) would otherwise
+        # overwrite the CORE_ENV=TEST signal set above and route the
+        # environment-specific load below back to .env (the dev file),
+        # leaving the suite pointed at the production DB. See #592.
+        if not is_testing:
+            load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
 
-        # Pydantic handles CORE_ENV population here
         super().__init__(**values)
 
-        # Load environment-specific file (e.g., .env.test)
         env_file_name = self._get_env_file_name(self.CORE_ENV)
         env_path = REPO_ROOT / env_file_name
 
         if env_path.exists():
-            # Override with specialized settings (this makes .env.test win)
             load_dotenv(dotenv_path=env_path, override=True)
-            # Re-run init to pick up specific vars from .env.test
             super().__init__(**values)
 
     def _get_env_file_name(self, core_env: str) -> str:

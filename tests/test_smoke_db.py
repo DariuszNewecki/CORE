@@ -9,16 +9,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.skip(
-    reason=(
-        "Tracked at GH #592. pytest-dotenv's .env.test override is not "
-        "taking effect under `poetry run pytest` — DATABASE_URL reads as "
-        "the production `core` DB, not `core_test`. This assertion was "
-        "designed to catch that exact misconfiguration. Unskip when "
-        "#592 lands. The sibling schema-tables test below stays active "
-        "as it has no DB-URL safety predicate."
-    )
-)
 @pytest.mark.asyncio
 async def test_smoke_db_session_fixture_provides_asyncsession(
     db_session: AsyncSession,
