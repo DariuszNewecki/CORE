@@ -81,11 +81,11 @@ async def _insert_synthetic_claimed_entry(
             """
             insert into core.blackboard_entries
                 (id, worker_uuid, entry_type, phase, status, subject, payload,
-                 claimed_by, claimed_at)
+                 resolution_mechanism, claimed_by, claimed_at)
             values
                 (cast(:id as uuid), :worker_uuid, 'finding', 'audit',
                  'claimed', 'test.d8.synthetic', cast('{}' as jsonb),
-                 :claimed_by, now())
+                 'human', :claimed_by, now())
             """
         ),
         {
