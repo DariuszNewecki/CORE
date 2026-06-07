@@ -51,8 +51,19 @@ logger = getLogger(__name__)
 
 
 _ENGINE_ID = "runtime_gate"
-_CONTEXT_CHECK_TYPES = frozenset({"worker_process_classification"})
+_CONTEXT_CHECK_TYPES = frozenset(
+    {"worker_process_classification", "worker_max_interval_within_observed"}
+)
 _RULE_ID = "runtime.worker_process_classification"
+_RULE_ID_MAX_INTERVAL = "runtime.worker_max_interval_within_observed"
+
+# Issue #516 audit parameters. The 1.1 multiplier accommodates measurement
+# jitter without papering over drift; the 10-sample minimum prevents
+# warm-up-window alarms after daemon restart; the 24h window balances
+# evidence sufficiency against tracking workload changes.
+_MAX_INTERVAL_MULTIPLIER = 1.1
+_MAX_INTERVAL_MIN_SAMPLES = 10
+_MAX_INTERVAL_LOOKBACK_HOURS = 24
 
 
 # ID: 9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
@@ -99,6 +110,8 @@ class RuntimeGateEngine(BaseEngine):
         check_type = params.get("check_type")
         if check_type == "worker_process_classification":
             return await _check_worker_process_classification(context)
+        if check_type == "worker_max_interval_within_observed":
+            return await _check_worker_max_interval_within_observed(context)
         return [
             AuditFinding(
                 check_id=f"{self.engine_id}.{check_type or 'missing'}.error",
@@ -261,5 +274,149 @@ async def _check_worker_process_classification(
                     },
                 )
             )
+
+    return findings
+
+
+# ID: 09fd7163-5c4b-4bcb-bf68-79357f7c66c5
+async def _check_worker_max_interval_within_observed(
+    context: AuditorContext,
+) -> list[AuditFinding]:
+    """Issue #516 — configured-vs-observed max_interval drift detector.
+
+    For each active worker declared in .intent/workers/<stem>.yaml with a
+    `schedule.max_interval` and an `identity.uuid`:
+
+    1. Aggregate the last 24h of `worker.heartbeat` blackboard entries
+       for that uuid via SQL window function (LAG over created_at).
+    2. Skip silently if fewer than 10 inter-heartbeat samples are
+       available — insufficient evidence to compare.
+    3. Compute observed p95 inter-heartbeat gap from the SQL aggregation.
+    4. Emit a reporting finding when p95 exceeds
+       `max_interval x 1.1` — accommodates measurement jitter without
+       papering over genuine drift.
+
+    Each finding includes the configured value, the observed p95, the
+    sample count, and a concrete bump suggestion so the operator can
+    update the YAML in one read.
+    """
+    workers_dir = context.repo_path / ".intent" / "workers"
+    if not workers_dir.is_dir():
+        return []
+
+    workers: dict[str, dict[str, Any]] = {}
+    for yaml_file in sorted(workers_dir.glob("*.yaml")):
+        try:
+            decl = yaml.safe_load(yaml_file.read_text()) or {}
+        except Exception:
+            continue
+        if decl.get("metadata", {}).get("status") != "active":
+            continue
+        uuid_str = decl.get("identity", {}).get("uuid")
+        # schedule.max_interval is nested under `mandate.schedule` in the
+        # worker schema (META/worker.schema.json) — not at top level.
+        max_interval_raw = (
+            decl.get("mandate", {}).get("schedule", {}).get("max_interval")
+        )
+        if not uuid_str or max_interval_raw is None:
+            continue
+        try:
+            max_interval = int(max_interval_raw)
+        except (TypeError, ValueError):
+            continue
+        if max_interval <= 0:
+            continue
+        workers[yaml_file.stem] = {
+            "uuid": uuid_str,
+            "max_interval": max_interval,
+        }
+
+    if not workers:
+        return []
+
+    session = getattr(context, "db_session", None)
+    if session is None:
+        logger.debug(
+            "runtime_gate.worker_max_interval_within_observed: db_session "
+            "not injected — check deferred to next audit cycle."
+        )
+        return []
+
+    findings: list[AuditFinding] = []
+    for stem, w in workers.items():
+        # Window function over heartbeats: gap to previous heartbeat per
+        # worker_uuid over the lookback window. PERCENTILE_CONT yields the
+        # continuous p95 in seconds. COUNT excludes the first row (its
+        # gap is NULL by definition).
+        r = await session.execute(
+            text(
+                """
+                WITH gaps AS (
+                  SELECT
+                    EXTRACT(
+                      EPOCH FROM (
+                        created_at - LAG(created_at) OVER (ORDER BY created_at)
+                      )
+                    ) AS gap
+                  FROM core.blackboard_entries
+                  WHERE subject = 'worker.heartbeat'
+                    AND worker_uuid = cast(:worker_uuid as uuid)
+                    AND created_at > NOW() - (:hours * INTERVAL '1 hour')
+                )
+                SELECT
+                  COUNT(*) FILTER (WHERE gap IS NOT NULL) AS samples,
+                  PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY gap) AS p95
+                FROM gaps
+                """
+            ),
+            {
+                "worker_uuid": w["uuid"],
+                "hours": _MAX_INTERVAL_LOOKBACK_HOURS,
+            },
+        )
+        row = r.first()
+        if row is None or row.samples is None:
+            continue
+        samples = int(row.samples)
+        if samples < _MAX_INTERVAL_MIN_SAMPLES:
+            continue
+        if row.p95 is None:
+            continue
+
+        p95_gap = float(row.p95)
+        threshold = w["max_interval"] * _MAX_INTERVAL_MULTIPLIER
+
+        if p95_gap <= threshold:
+            continue
+
+        # Bump target: smallest integer comfortably above observed p95.
+        # Round up to the next 60s to keep the YAML value tidy.
+        suggested = int((p95_gap // 60 + 1) * 60)
+
+        findings.append(
+            AuditFinding(
+                check_id=_RULE_ID_MAX_INTERVAL,
+                severity=AuditSeverity.MEDIUM,
+                message=(
+                    f"worker '{stem}' configured max_interval="
+                    f"{w['max_interval']}s but observed p95 cycle gap "
+                    f"{p95_gap:.1f}s over the last {samples} heartbeats "
+                    f"(threshold {threshold:.1f}s = configured x "
+                    f"{_MAX_INTERVAL_MULTIPLIER}). Bump max_interval to "
+                    f"≥{suggested}s in .intent/workers/{stem}.yaml or "
+                    f"investigate why the worker's cycle has grown."
+                ),
+                file_path=f".intent/workers/{stem}.yaml",
+                context={
+                    "stem": stem,
+                    "configured_max_interval_sec": w["max_interval"],
+                    "observed_p95_gap_sec": round(p95_gap, 2),
+                    "samples": samples,
+                    "lookback_hours": _MAX_INTERVAL_LOOKBACK_HOURS,
+                    "multiplier": _MAX_INTERVAL_MULTIPLIER,
+                    "suggested_max_interval_sec": suggested,
+                },
+            )
+        )
 
     return findings

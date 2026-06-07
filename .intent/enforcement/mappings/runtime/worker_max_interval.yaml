@@ -1,0 +1,25 @@
+# .intent/enforcement/mappings/runtime/worker_max_interval.yaml
+#
+# Issue #516 — invariant audit ADR-041 didn't ship: configured-vs-observed
+# drift in .intent/workers/<stem>.yaml schedule.max_interval.
+#
+# Aggregates worker.heartbeat blackboard entries per worker_uuid over a
+# 24h window, computes p95 inter-heartbeat gap, fires a finding when
+# observed p95 exceeds configured max_interval × 1.1. Workers with <10
+# samples in the window are skipped silently.
+#
+# Engine: runtime_gate (the existing runtime telemetry engine; siblings
+# the runtime.worker_process_classification check at ADR-081 D7).
+# Dispatches context-level — single SQL aggregation per audit, not
+# per-file. applies_to anchors on worker.schema.json (the governance
+# artefact that defines max_interval); this fires the check once per
+# audit cycle.
+
+mappings:
+  runtime.worker_max_interval_within_observed:
+    engine: runtime_gate
+    params:
+      check_type: worker_max_interval_within_observed
+    scope:
+      applies_to:
+        - ".intent/META/worker.schema.json"
