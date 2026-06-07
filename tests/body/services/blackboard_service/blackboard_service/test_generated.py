@@ -1,4 +1,17 @@
-"""Tests for BlackboardService."""
+"""Tests for BlackboardService.
+
+2026-06-07 (#572 Cat B batch 13):
+- Import path corrected. The autogen vintage imported BlackboardService
+  from the inner module ``body.services.blackboard_service.blackboard_service``
+  which exposes only the base class. The aggregated, query+claim+proposal-
+  enabled BlackboardService lives at the package root
+  (``body.services.blackboard_service``) via a multiple-inheritance
+  facade in __init__.py.
+- test_resolve_dry_run_entries_for_namespace_zero completed: the autogen
+  output was truncated at ``mock_se`` mid-statement (NameError at probe
+  time). Restored the standard mock-session aenter pattern and added the
+  rowcount assertion.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from body.services.blackboard_service.blackboard_service import BlackboardService
+from body.services.blackboard_service import BlackboardService
 
 
 class TestBlackboardService:
@@ -94,10 +107,16 @@ class TestBlackboardService:
         mock_result = MagicMock()
         mock_result.rowcount = 0
         mock_session.execute = AsyncMock(return_value=mock_result)
+        # Source uses ``async with session.begin():`` inside the session;
+        # both context managers need __aenter__/__aexit__ on the same mock.
         mock_session.begin = MagicMock()
-        mock_session.begin.return_value.__aenter__.return_value = mock_session
+        mock_session.begin.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.begin.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
             "body.services.service_registry.ServiceRegistry.session"
         ) as mock_session_factory:
-            mock_session_factory.return_value.__aenter__.return_value = mock_se
+            mock_session_factory.return_value.__aenter__.return_value = mock_session
+            mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=None)
+            result = await service.resolve_dry_run_entries_for_namespace("test")
+            assert result == 0

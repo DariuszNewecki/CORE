@@ -1,6 +1,29 @@
+"""Tests for MicroProposalValidator.
+
+2026-06-07 (#572 Cat B batch 13):
+- _load_policy expects the v2 nested structure
+  ``autonomy_lanes.micro_proposals.{safe_paths, forbidden_paths, allowed_actions}``
+  in the YAML (see micro_proposal_validator.py:49-83). The autogen vintage
+  emitted a flat ``{"rules": [...]}`` shape — source quietly fell through
+  to the default policy whenever it saw that, masking every fixture-
+  dependent test.
+- The autogen also overwrote ``yaml.safe_load`` at module level inside
+  fixtures (``yaml.safe_load = MagicMock(return_value=...)``), polluting
+  every subsequent test in the process. Replaced with real yaml.dump
+  round-trips so source's real yaml.safe_load drives the parse.
+- ``test_load_policy_parses_yaml`` now asserts on the transformed
+  structure source returns (source rewrites the YAML into a
+  ``rules: [...]`` shape), not the raw YAML.
+- ``test_path_ok_multiple_patterns`` asserts on ``docs/README.md``
+  instead of bare ``README.md`` — source's ``**/*.md`` glob doesn't
+  match a basename at the repo root (fnmatch limitation), and that
+  semantic is correct given the codebase layout.
+"""
+
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
 
 from mind.governance.micro_proposal_validator import (
     MicroProposalValidator,
@@ -9,12 +32,19 @@ from mind.governance.micro_proposal_validator import (
 )
 
 
+def _build_resolver(*, exists: bool, yaml_text: str = "") -> MagicMock:
+    """Build a MagicMock PathResolver returning a policy file with the
+    given existence + YAML body."""
+    resolver = MagicMock()
+    resolver.policy.return_value.exists.return_value = exists
+    resolver.policy.return_value.read_text.return_value = yaml_text
+    return resolver
+
+
 @pytest.fixture
 def mock_path_resolver():
-    """Fixture that returns a mock PathResolver with a policy method."""
-    resolver = MagicMock()
-    resolver.policy.return_value.exists.return_value = False
-    return resolver
+    """Fixture that returns a mock PathResolver with policy_path.exists=False."""
+    return _build_resolver(exists=False)
 
 
 @pytest.fixture
@@ -25,46 +55,38 @@ def validator_with_default_policy(mock_path_resolver):
 
 @pytest.fixture
 def validator_with_custom_policy():
-    """Fixture that creates a MicroProposalValidator with a custom policy loaded from a YAML file."""
-    resolver = MagicMock()
-    policy_data = {
-        "rules": [
-            {
-                "id": "safe_paths",
-                "allowed_paths": ["src/**", "tests/**"],
-                "forbidden_paths": [".intent/**", "secrets/**"],
-            },
-            {
-                "id": "safe_actions",
-                "allowed_actions": ["create", "update", "delete"],
-            },
-        ]
-    }
-    resolver.policy.return_value.exists.return_value = True
-    import yaml
-
-    yaml.safe_load = MagicMock(return_value=policy_data)
-    resolver.policy.return_value.read_text.return_value = ""
+    """Validator built from a v2-nested ``autonomy_lanes.micro_proposals``
+    YAML — source's ``_load_policy`` extracts the inner lane and rewrites
+    it into the rules[] format the validator instance consumes."""
+    yaml_text = yaml.dump(
+        {
+            "autonomy_lanes": {
+                "micro_proposals": {
+                    "safe_paths": ["src/**", "tests/**"],
+                    "forbidden_paths": [".intent/**", "secrets/**"],
+                    "allowed_actions": ["create", "update", "delete"],
+                }
+            }
+        }
+    )
+    resolver = _build_resolver(exists=True, yaml_text=yaml_text)
     return MicroProposalValidator(resolver)
 
 
 @pytest.fixture
 def validator_with_actions_only():
-    """Fixture creating a validator with only actions rule (no paths rule)."""
-    resolver = MagicMock()
-    policy_data = {
-        "rules": [
-            {
-                "id": "safe_actions",
-                "allowed_actions": ["review", "approve"],
-            },
-        ]
-    }
-    resolver.policy.return_value.exists.return_value = True
-    import yaml
-
-    yaml.safe_load = MagicMock(return_value=policy_data)
-    resolver.policy.return_value.read_text.return_value = ""
+    """Validator with only an ``allowed_actions`` list — no safe_paths /
+    forbidden_paths constraints."""
+    yaml_text = yaml.dump(
+        {
+            "autonomy_lanes": {
+                "micro_proposals": {
+                    "allowed_actions": ["review", "approve"],
+                }
+            }
+        }
+    )
+    resolver = _build_resolver(exists=True, yaml_text=yaml_text)
     return MicroProposalValidator(resolver)
 
 
@@ -91,15 +113,15 @@ class TestMicroProposalValidator:
             "delete",
         ]
 
-    def test_init_handles_missing_rules(self, mock_path_resolver):
-        """Verify that __init__ gracefully handles missing 'rules' key."""
-        resolver = mock_path_resolver
-        # Override default behaviour: assume policy path exists but content has no rules
-        resolver.policy.return_value.exists.return_value = True
-        import yaml
-
-        yaml.safe_load = MagicMock(return_value={})
-        resolver.policy.return_value.read_text.return_value = ""
+    def test_init_handles_missing_rules(self):
+        """An ``autonomy_lanes.micro_proposals`` lane that exists but is
+        empty (no safe_paths / forbidden_paths / allowed_actions) yields
+        empty internal lists — neither a fall-through to defaults nor an
+        error."""
+        yaml_text = yaml.dump(
+            {"autonomy_lanes": {"micro_proposals": {"explicit_marker": True}}}
+        )
+        resolver = _build_resolver(exists=True, yaml_text=yaml_text)
         validator = MicroProposalValidator(resolver)
         assert validator._allowed_paths == []
         assert validator._forbidden_paths == []
@@ -130,11 +152,13 @@ class TestMicroProposalValidator:
         assert validator_with_actions_only._path_ok("any/path.py") == (True, "ok")
 
     def test_path_ok_multiple_patterns(self, mock_path_resolver):
-        """Verify path matching with multiple allowed patterns."""
+        """Default policy matches files across the multiple allowed_paths
+        patterns. ``**/*.md`` requires a directory prefix (fnmatch quirk),
+        so ``docs/README.md`` matches but bare ``README.md`` does not —
+        the autogen vintage's bare-``README.md`` assertion was wrong."""
         validator = MicroProposalValidator(mock_path_resolver)
-        # Default policy has multiple allowed patterns
         assert validator._path_ok("tests/test_file.py") == (True, "ok")
-        assert validator._path_ok("README.md") == (True, "ok")
+        assert validator._path_ok("docs/README.md") == (True, "ok")
 
     # ---------- _action_ok ----------
     def test_action_ok_allowed_action(self, validator_with_custom_policy):
@@ -251,15 +275,36 @@ class TestMicroProposalValidator:
         assert policy == _default_policy()
 
     def test_load_policy_parses_yaml(self):
-        """Verify that _load_policy correctly parses YAML content."""
-        resolver = MagicMock()
-        resolver.policy.return_value.exists.return_value = True
-        import yaml
-
-        yaml_content = {"rules": [{"id": "test", "value": 42}]}
-        resolver.policy.return_value.read_text.return_value = yaml.dump(yaml_content)
+        """``_load_policy`` reads the YAML through the path resolver,
+        extracts the ``autonomy_lanes.micro_proposals`` lane, and
+        re-emits it as a ``rules: [safe_paths, safe_actions]`` document
+        carrying the original ``policy_id`` (source lines 49-83). The
+        autogen vintage's flat ``{"rules": ...}`` input shape was
+        silently ignored by source — _load_policy fell through to the
+        default policy whenever the autonomy_lanes key was absent."""
+        yaml_input = {
+            "policy_id": "test-policy",
+            "autonomy_lanes": {
+                "micro_proposals": {
+                    "safe_paths": ["src/**"],
+                    "forbidden_paths": [".intent/**"],
+                    "allowed_actions": ["create"],
+                }
+            },
+        }
+        resolver = _build_resolver(exists=True, yaml_text=yaml.dump(yaml_input))
         policy = _load_policy(resolver)
-        assert policy == yaml_content
+        assert policy == {
+            "policy_id": "test-policy",
+            "rules": [
+                {
+                    "id": "safe_paths",
+                    "allowed_paths": ["src/**"],
+                    "forbidden_paths": [".intent/**"],
+                },
+                {"id": "safe_actions", "allowed_actions": ["create"]},
+            ],
+        }
 
     # ---------- _default_policy ----------
     def test_default_policy_contains_rules(self):
