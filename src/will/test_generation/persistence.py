@@ -65,11 +65,17 @@ class TestPersistenceService:
             rel_target = self._calculate_mirrored_path(original_file, symbol_name)
 
             stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            # #589 Tier 3: dropped the ``Status: verified_in_sandbox`` line.
+            # Sandbox-verified is true *at write time*, but source drift turns
+            # that into a stale claim months later — every autogen file in
+            # #572's 20-batch drain carried this line while the file was
+            # broken. The commit that introduces the file is the canonical
+            # verification record; the header should carry only facts that
+            # stay true (provenance + generation timestamp).
             header = (
-                '"""AUTO-GENERATED TEST (PROMOTED)\n'
+                '"""AUTO-GENERATED TEST\n'
                 f"- Source: {original_file}\n"
                 f"- Symbol: {symbol_name}\n"
-                "- Status: verified_in_sandbox\n"
                 f"- Generated: {stamp}\n"
                 '"""\n\n'
             )
@@ -148,12 +154,14 @@ class TestPersistenceService:
             # Promote passing tests
             rel_target = self._calculate_mirrored_path(original_file, symbol_name)
             stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            # #589 Tier 3: dropped the ``Status:`` count and ``Passing tests:``
+            # list — both are write-time snapshots that decay with source
+            # drift. Git history of the file is the canonical record of
+            # which tests survived which sandbox runs.
             header = (
-                '"""AUTO-GENERATED TEST (PARTIAL SUCCESS)\n'
+                '"""AUTO-GENERATED TEST (partial-success extraction)\n'
                 f"- Source: {original_file}\n"
                 f"- Symbol: {symbol_name}\n"
-                f"- Status: {len(passing_test_names)} tests passed, some failed\n"
-                f"- Passing tests: {', '.join(passing_test_names)}\n"
                 f"- Generated: {stamp}\n"
                 '"""\n\n'
             )

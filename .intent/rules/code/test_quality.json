@@ -1,0 +1,54 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.tests",
+        "title": "Generated Test Quality Rules",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "execution",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "code.tests.no_magicmock_on_await",
+            "statement": "Generated test code MUST use AsyncMock (not MagicMock) for any mock whose attribute is later awaited. await on a plain MagicMock raises TypeError at runtime; the static check rejects the wrong-type mock setup before the file lands.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Across #572's 20-batch drain this pattern was the most common autogen runtime failure (~8 files). MagicMock returns a child MagicMock on call, and `await MagicMock()` raises TypeError: object MagicMock can't be used in 'await' expression. The fix is mechanical (swap MagicMock for AsyncMock at the awaited attribute) and detectable purely from the AST — no LLM judgment required. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_magicmock_on_await."
+        },
+        {
+            "id": "code.tests.no_imported_symbol_redeclared",
+            "statement": "Generated test code MUST NOT redeclare an imported symbol at module scope. A top-level class Foo or def Foo whose name matches an imported name shadows the import (Python scoping) and silently switches the test to exercising a local stub instead of the real symbol.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Observed in #572 batches 19/20 as the 'speculative stub' pattern: when the generator's source-context budget is exhausted, it emits a local placeholder for the symbol it can't introspect. Tests against the placeholder pass trivially and add fake coverage. The rule's structural check (imported names ∩ top-level def/class names) catches the shape independent of test contents. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared."
+        },
+        {
+            "id": "code.tests.no_placeholder_test_body",
+            "statement": "Every function named test_X in generated test code MUST contain at least one observable assertion: an `assert` statement, a `pytest.raises(...)` context, or a mock `.assert_*(...)` call. Placeholder bodies with no assertion pass trivially and provide false confidence.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Observed in #572 batch 20 (crawl_service stub) where every test was a method invocation followed by a `# add assertions to verify` comment. The autogen header on the same file claimed `Status: verified_in_sandbox` — a header lie that would be caught by this rule before write. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_placeholder_test_body."
+        },
+        {
+            "id": "code.tests.no_global_module_mutation",
+            "statement": "Generated test code MUST NOT mutate the attributes of imported modules at module scope or inside a fixture body. Test isolation requires that any mutation be scoped to a `with patch(...)` context manager or `monkeypatch.setattr(...)` call, both of which restore state on teardown.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Observed in #572 batch 13 (micro_proposal_validator) where a fixture did `yaml.safe_load = MagicMock(...)` at module-level. The mutation persisted across every subsequent test in the process, silently changing the behavior of unrelated tests. Properly-scoped patches (via monkeypatch or the patch context manager) are not flagged. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_global_module_mutation."
+        },
+        {
+            "id": "code.tests.no_unresolved_free_names",
+            "statement": "Every free name (ast.Name in Load context) referenced in generated test code MUST be either imported, defined at module scope, locally bound (parameter, assignment, with/for/except target), or a Python builtin. Free names with no binding source produce NameError at test collection.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "execution",
+            "rationale": "Observed in #572 batch 19 (audit_violation_sensor) where the autogen used `MagicMock` without importing it (`from unittest.mock import MagicMock`). The LLM's training prior treats `MagicMock` as ambient and the test would NameError at collection. A static NameError simulation catches the omission. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_unresolved_free_names."
+        }
+    ]
+}
