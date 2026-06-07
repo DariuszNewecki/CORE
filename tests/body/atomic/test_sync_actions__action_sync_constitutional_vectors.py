@@ -18,9 +18,9 @@ from shared.governance_token import authorize_execution
 async def test_action_sync_constitutional_vectors_dry_run():
     """Test dry-run mode returns skipped ActionResult."""
     mock_context = Mock()
-    with authorize_execution("sync.vectors.constitution"):
+    with authorize_execution("sync.vectors_constitution"):
         result = await action_sync_constitutional_vectors(mock_context, write=False)
-    assert result.action_id == "sync.vectors.constitution"
+    assert result.action_id == "sync.vectors_constitution"
     assert result.ok
     assert result.data["dry_run"]
     assert result.data["status"] == "skipped"
@@ -35,9 +35,9 @@ async def test_action_sync_constitutional_vectors_no_cognitive_service():
     mock_context.cognitive_service = None
     mock_context.registry = Mock()
     mock_context.registry.get_cognitive_service = AsyncMock(return_value=None)
-    with authorize_execution("sync.vectors.constitution"):
+    with authorize_execution("sync.vectors_constitution"):
         result = await action_sync_constitutional_vectors(mock_context, write=True)
-    assert result.action_id == "sync.vectors.constitution"
+    assert result.action_id == "sync.vectors_constitution"
     assert result.ok
     assert result.data["status"] == "skipped"
     assert result.data["reason"] == "cognitive_service_unavailable"
@@ -53,9 +53,9 @@ async def test_action_sync_constitutional_vectors_embedding_service_unavailable(
         side_effect=RuntimeError("Service down")
     )
     mock_context.cognitive_service = mock_cognitive
-    with authorize_execution("sync.vectors.constitution"):
+    with authorize_execution("sync.vectors_constitution"):
         result = await action_sync_constitutional_vectors(mock_context, write=True)
-    assert result.action_id == "sync.vectors.constitution"
+    assert result.action_id == "sync.vectors_constitution"
     assert result.ok
     assert result.data["status"] == "skipped"
     assert result.data["reason"].startswith("embedding_service_unavailable")
@@ -75,9 +75,9 @@ async def test_action_sync_constitutional_vectors_exception_handling():
         "body.atomic.sync_actions.sync_actions.ConstitutionalAdapter",
         return_value=mock_adapter,
     ):
-        with authorize_execution("sync.vectors.constitution"):
+        with authorize_execution("sync.vectors_constitution"):
             result = await action_sync_constitutional_vectors(mock_context, write=True)
-    assert result.action_id == "sync.vectors.constitution"
+    assert result.action_id == "sync.vectors_constitution"
     assert not result.ok
     assert "error" in result.data
     assert "Test error" in result.data["error"]

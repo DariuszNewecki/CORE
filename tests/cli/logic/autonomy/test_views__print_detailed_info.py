@@ -5,10 +5,18 @@ raising ``TypeError: Logger.info() missing 1 required positional argument:
 'msg'`` whenever a proposal carried a RiskAssessment — i.e. effectively
 every real proposal. The bug aborted the show command before any record
 was rendered.
+
+2026-06-07 (#572 Cat B batch 16): ``print_detailed_info(p: dict)`` consumes
+a dict, not a ``Proposal`` dataclass — the real CLI call site
+(cli/resources/proposals/manage.py:27) hands it the JSON-decoded body of
+the API response. The autogen vintage passed a ``Proposal`` dataclass
+instance, which is not subscriptable. Tests now ``dataclasses.asdict``
+the Proposal before calling, matching the CLI's actual contract.
 """
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import UTC, datetime
 
 from cli.logic.autonomy.views import print_detailed_info
@@ -51,7 +59,7 @@ def _proposal_with_risk() -> Proposal:
 def test_print_detailed_info_does_not_crash_on_proposal_with_risk():
     """The exact path that hit views.py:66 — proposal carries RiskAssessment
     with risk_factors, so the bare logger.info() separator was reached."""
-    print_detailed_info(_proposal_with_risk())
+    print_detailed_info(asdict(_proposal_with_risk()))
 
 
 def test_print_detailed_info_does_not_crash_when_risk_is_none():
@@ -59,12 +67,21 @@ def test_print_detailed_info_does_not_crash_when_risk_is_none():
     p = _proposal_with_risk()
     p.risk = None
     p.approval_required = False
-    print_detailed_info(p)
+    print_detailed_info(asdict(p))
 
 
 def test_print_detailed_info_does_not_crash_on_completed_execution():
-    """Exercise the completed-execution branch (started+completed timestamps)."""
+    """Exercise the completed-execution branch (started+completed timestamps).
+
+    Source computes duration via ``datetime.fromisoformat(completed) -
+    datetime.fromisoformat(started)``, which requires the timestamps to be
+    ISO-string-typed at the dict surface (the CLI's real API path serialises
+    them on the wire). We mirror that here by ``isoformat()``-ing the
+    datetime fields after the asdict round-trip."""
     p = _proposal_with_risk()
     p.execution_started_at = datetime(2026, 5, 3, 16, 7, 0, tzinfo=UTC)
     p.execution_completed_at = datetime(2026, 5, 3, 16, 7, 30, tzinfo=UTC)
-    print_detailed_info(p)
+    payload = asdict(p)
+    payload["execution_started_at"] = p.execution_started_at.isoformat()
+    payload["execution_completed_at"] = p.execution_completed_at.isoformat()
+    print_detailed_info(payload)

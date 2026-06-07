@@ -1,88 +1,50 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
 - Source: src/mind/governance/auditor.py
 - Symbol: ConstitutionalAuditor
-- Status: 3 tests passed, some failed
-- Passing tests: test_init_creates_directories, test_write_findings_returns_path, test_write_audit_evidence_returns_path
 - Generated: 2026-01-11 01:48:04
+- 2026-06-07 (#572 Cat B batch 16):
+
+  All three original tests asserted on an API that no longer exists on
+  ``ConstitutionalAuditor``:
+    * ``self.fs`` — a FileHandler attribute the class used to expose
+    * ``_write_findings(...)`` — a persistence method
+    * ``_write_audit_evidence(...)`` — a persistence method
+    * Module-level ``FileHandler``, ``REPORTS_DIR``, ``FINDINGS_FILENAME``,
+      ``AUDIT_EVIDENCE_DIR``, ``AUDIT_EVIDENCE_FILENAME``, ``_repo_rel``,
+      ``_utc_now_iso`` — none of these are exported by the current
+      ``mind.governance.auditor`` module.
+
+  The current ``ConstitutionalAuditor`` is leaner: source's own
+  docstring states "Returns structured data for the Body layer to report
+  or persist." The persistence side moved out of the Mind layer and the
+  artifact-writing primitives went with it. The only public method is
+  ``run_full_audit_async``; the only documented behaviour on __init__ is
+  storing ``self.context``.
+
+  Replaced the obsolete tests with two shape tests that exercise the
+  current contract. Filed as deferred-coverage note for #572 (no
+  separate issue — the persistence path lives on the Body side now and
+  has its own surfaces to test).
 """
 
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from mind.governance.auditor import ConstitutionalAuditor
 
 
 class TestConstitutionalAuditor:
-    def test_init_creates_directories(self):
-        """Test that __init__ creates required report directories."""
+    def test_init_stores_context(self):
+        """__init__ binds the AuditorContext to ``self.context`` and does
+        nothing else — directory provisioning happens elsewhere now."""
         mock_context = Mock()
-        mock_fs = Mock()
-        with patch("mind.governance.auditor.FileHandler", return_value=mock_fs):
-            auditor = ConstitutionalAuditor(mock_context)
-            assert auditor.context == mock_context
-            assert auditor.fs == mock_fs
-            mock_fs.ensure_dir.assert_any_call("reports")
-            mock_fs.ensure_dir.assert_any_call("reports/audit")
-
-    def test_write_findings_returns_path(self):
-        """Test _write_findings writes findings and returns path."""
-        mock_context = Mock()
-        mock_fs = Mock()
         auditor = ConstitutionalAuditor(mock_context)
-        auditor.fs = mock_fs
-        mock_finding = Mock()
-        mock_finding.as_dict = Mock(return_value={"test": "data"})
-        findings = [mock_finding]
-        with (
-            patch("mind.governance.auditor.REPORTS_DIR", Path("/test/reports")),
-            patch("mind.governance.auditor.FINDINGS_FILENAME", "findings.json"),
-            patch(
-                "mind.governance.auditor._repo_rel",
-                return_value="reports/findings.json",
-            ),
-        ):
-            result = auditor._write_findings(findings)
-            assert isinstance(result, Path)
-            assert str(result) == "/test/reports/findings.json"
-            mock_fs.write_runtime_json.assert_called_once_with(
-                "reports/findings.json", [{"test": "data"}]
-            )
+        assert auditor.context is mock_context
 
-    def test_write_audit_evidence_returns_path(self):
-        """Test _write_audit_evidence writes evidence and returns path."""
-        mock_context = Mock()
-        mock_fs = Mock()
-        auditor = ConstitutionalAuditor(mock_context)
-        auditor.fs = mock_fs
-        executed_rules = {"rule1", "rule2"}
-        findings_path = Path("/test/findings.json")
-        processed_findings_path = Path("/test/processed.json")
-        with (
-            patch("mind.governance.auditor.AUDIT_EVIDENCE_DIR", Path("/test/audit")),
-            patch("mind.governance.auditor.AUDIT_EVIDENCE_FILENAME", "evidence.json"),
-            patch(
-                "mind.governance.auditor._repo_rel", side_effect=lambda x: str(x.name)
-            ),
-            patch(
-                "mind.governance.auditor._utc_now_iso",
-                return_value="2024-01-01T00:00:00Z",
-            ),
-        ):
-            result = auditor._write_audit_evidence(
-                executed_rules=executed_rules,
-                findings_path=findings_path,
-                processed_findings_path=processed_findings_path,
-                passed=True,
-            )
-            assert isinstance(result, Path)
-            assert str(result) == "/test/audit/evidence.json"
-            mock_fs.write_runtime_json.assert_called_once()
-            call_args = mock_fs.write_runtime_json.call_args[0]
-            assert call_args[0] == "evidence.json"
-            payload = call_args[1]
-            assert payload["schema_version"] == "0.2.0"
-            assert payload["generated_at_utc"] == "2024-01-01T00:00:00Z"
-            assert payload["passed"]
-            assert payload["executed_rules"] == ["rule1", "rule2"]
-            assert payload["artifacts"]["findings"] == "findings.json"
-            assert payload["artifacts"]["processed_findings"] == "processed.json"
+    def test_public_surface_is_run_full_audit_async_only(self):
+        """The class deliberately exposes only ``run_full_audit_async``.
+        Anchoring this in a test makes any accidental re-introduction of
+        ``self.fs`` / ``_write_findings`` / ``_write_audit_evidence`` (the
+        autogen-era persistence surface that source intentionally stripped)
+        visible immediately."""
+        public = {n for n in dir(ConstitutionalAuditor) if not n.startswith("_")}
+        assert public == {"run_full_audit_async"}
