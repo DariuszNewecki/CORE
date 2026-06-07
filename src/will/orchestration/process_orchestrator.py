@@ -31,24 +31,26 @@ Usage:
     )
 
 V2.3-REBIRTH SCAFFOLD (2026-06-07):
-This orchestrator is named by two constitutional papers as load-bearing for
-the V2 Adaptive Workflow Pattern and the V2.3 Limb operational model:
+Named by two constitutional papers as load-bearing for the V2 Adaptive
+Workflow Pattern and the V2.3 Limb operational model:
 `CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 declares it the constitutional
 Orchestrator pattern; `CORE-The-Octopus-UNIX-Synthesis.md` §6 maps it to the
-"Pipe coordination" substrate for the Limb. Its `run_adaptive()` method's
-auto-discover dispatch is unbuilt — `_resolve_component(next_suggested)` is
-missing, so when a component returns a `next_suggested` hint the loop logs
-`"Cannot auto-discover next component"` and returns instead of dispatching.
-The orchestrator has no live call sites today; live V2 paths use direct
-component composition (see `will/test_generation/`, `will/self_healing/`).
-Activation tracked at GH #590.
+"Pipe coordination" substrate for the Limb. GH #590 closure 1 landed:
+`run_adaptive()` now dispatches a component result's `next_suggested` hint
+through `_resolve_component(name)`, which combines `discover_components`
+(class lookup across `body.analyzers`, `body.evaluators`, `will.strategists`)
+with a small per-component DI map mirroring the `ServiceRegistry.get_service`
+pattern for services needing `repo_path`. Closure 2 (a concrete Limb command
+consuming this dispatch end-to-end) remains deferred: hand-composition is
+still the live V2 path (see `will/test_generation/`, `will/self_healing/`).
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from shared.component_primitive import Component, ComponentResult
+from shared.component_primitive import Component, ComponentResult, discover_components
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
@@ -56,6 +58,16 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 _CFG_EXEC = load_operational_config().execution
+
+_COMPONENT_PACKAGES = (
+    "body.analyzers",
+    "body.evaluators",
+    "will.strategists",
+)
+"Canonical V2 component packages walked by `_resolve_component`."
+
+_COMPONENTS_NEEDING_REPO_ROOT = frozenset({"constitutionalevaluator"})
+"Components whose __init__ requires repo_root injection — mirrors `ServiceRegistry.get_service` line-233 pattern."
 
 
 # ID: df9c497f-3746-40e3-b42e-620bf1c07842
@@ -70,12 +82,24 @@ class ProcessOrchestrator:
     - Provides evaluation points between steps
     """
 
-    def __init__(self):
-        """Initialize orchestrator with empty state."""
+    def __init__(self, repo_root: Path | None = None):
+        """
+        Initialize orchestrator with empty state.
+
+        Args:
+            repo_root: Optional repo root, threaded into auto-dispatched
+                components whose ctor requires it (see
+                `_COMPONENTS_NEEDING_REPO_ROOT`). When `run_adaptive` would
+                need to dispatch such a component without `repo_root` bound,
+                it logs and returns the last result rather than constructing
+                with a wrong root.
+        """
         self.session_state: dict[str, Any] = {}
         "Accumulated metadata from all components"
         self.execution_history: list[ComponentResult] = []
         "Record of all component executions"
+        self.repo_root = repo_root
+        self._component_cache: dict[str, type[Component]] | None = None
 
     # ID: c275895d-4a3b-491b-b7ee-748fe595507e
     async def run_sequence(
@@ -197,12 +221,52 @@ class ProcessOrchestrator:
             if not result.next_suggested:
                 logger.info("No next component suggested, workflow complete")
                 return result
-            logger.warning(
-                "Cannot auto-discover next component: %s", result.next_suggested
-            )
-            return result
+            try:
+                current_component = self._resolve_component(result.next_suggested)
+            except (ValueError, TypeError) as exc:
+                logger.warning(
+                    "Cannot auto-discover next component %r: %s",
+                    result.next_suggested,
+                    exc,
+                )
+                return result
+            current_inputs = {}
         logger.warning("Reached max_steps (%s), stopping", max_steps)
         return result
+
+    # ID: 5b21f4d3-8e7c-4a91-b16f-9d2e8a4c7b3e
+    def _resolve_component(self, name: str) -> Component:
+        """
+        Construct a fresh component instance by name.
+
+        Used by `run_adaptive()` to materialize a component referenced by
+        another component's `next_suggested` hint. Construction handles
+        per-component DI via a small allowlist (`_COMPONENTS_NEEDING_REPO_ROOT`);
+        names not requiring DI are constructed bare. Raises `ValueError` if
+        the name doesn't resolve to a discoverable component, or if the
+        component requires DI that the orchestrator wasn't primed with.
+
+        Closure 1 of GH #590.
+        """
+        if self._component_cache is None:
+            cache: dict[str, type[Component]] = {}
+            for pkg in _COMPONENT_PACKAGES:
+                cache.update(discover_components(pkg))
+            self._component_cache = cache
+        cls = self._component_cache.get(name)
+        if cls is None:
+            raise ValueError(
+                f"Component {name!r} not found in V2 packages "
+                f"({', '.join(_COMPONENT_PACKAGES)})"
+            )
+        if name in _COMPONENTS_NEEDING_REPO_ROOT:
+            if self.repo_root is None:
+                raise ValueError(
+                    f"Component {name!r} requires repo_root; "
+                    f"pass it to ProcessOrchestrator(repo_root=...)"
+                )
+            return cls(repo_root=self.repo_root)
+        return cls()
 
     # ID: ddbd6436-f139-43bc-80c2-0387e8bdba8b
     def get_workflow_summary(self) -> dict[str, Any]:

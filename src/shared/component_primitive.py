@@ -179,6 +179,13 @@ def discover_components(package_name: str) -> dict[str, type[Component]]:
 
     This enables dynamic discovery without file-based registries.
 
+    Component identity is derived statically — no instances are constructed —
+    so components with non-trivial __init__ signatures (e.g. those requiring
+    DI'd repo_root) are discovered exactly like zero-arg components. A
+    subclass may expose a class-level `component_id` attribute to override
+    the default; otherwise the class name lowercased is used (matching the
+    Component.component_id property default).
+
     Args:
         package_name: Python package to search (e.g., 'body.analyzers')
 
@@ -199,18 +206,39 @@ def discover_components(package_name: str) -> dict[str, type[Component]]:
     except ImportError as e:
         logger.warning("Could not import package %s: %s", package_name, e)
         return {}
-    components = {}
+    components: dict[str, type[Component]] = {}
     for _, module_name, _ in pkgutil.walk_packages(
         package.__path__, package.__name__ + "."
     ):
         try:
             module = importlib.import_module(module_name)
-            for name, obj in inspect.getmembers(module, inspect.isclass):
-                if issubclass(obj, Component) and obj is not Component:
-                    instance = obj()
-                    components[instance.component_id] = obj
-                    logger.debug("Discovered component: %s", instance.component_id)
         except Exception as e:
-            logger.debug("Could not inspect module %s: %s", module_name, e)
+            logger.debug("Could not import module %s: %s", module_name, e)
             continue
+        for _name, obj in inspect.getmembers(module, inspect.isclass):
+            if not (issubclass(obj, Component) and obj is not Component):
+                continue
+            cid = _static_component_id(obj)
+            if cid is None:
+                continue
+            components[cid] = obj
+            logger.debug("Discovered component: %s", cid)
     return components
+
+
+def _static_component_id(cls: type[Component]) -> str | None:
+    """
+    Read a component's id without constructing an instance.
+
+    Returns a class-level `component_id` attribute when one is defined as a
+    plain string; otherwise falls back to `cls.__name__.lower()` (matching
+    the default `Component.component_id` property). Returns None only if the
+    class name itself is empty (shouldn't happen for real classes).
+    """
+    import inspect
+
+    raw = inspect.getattr_static(cls, "component_id", None)
+    if isinstance(raw, str) and raw:
+        return raw
+    name = cls.__name__
+    return name.lower() if name else None

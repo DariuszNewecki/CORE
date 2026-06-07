@@ -13,13 +13,13 @@ This component determines WHICH validation checks are needed, not HOW to execute
 Decision factors: file path, operation type, risk tier, historical compliance.
 
 V2.3-REBIRTH SCAFFOLD (2026-06-07):
-This strategist is part of the V2 Component-pattern scaffolding awaiting a
-concrete Limb consumer per `CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 and
-`CORE-The-Octopus-UNIX-Synthesis.md` §6. It has no live call sites today;
-the `next_suggested="constitutional_evaluator"` hint it emits points at an
-auto-discover dispatch path (`ProcessOrchestrator.run_adaptive()`) that is
-unbuilt. Hand-composition is the live V2 path (see `will/test_generation/`,
-`will/self_healing/`). Activation tracked at GH #590.
+Part of the V2 Component-pattern scaffolding awaiting a concrete Limb
+consumer per `CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 and
+`CORE-The-Octopus-UNIX-Synthesis.md` §6. GH #590 closure 1 landed:
+`ProcessOrchestrator.run_adaptive()` now dispatches the `next_suggested`
+hint emitted below through `_resolve_component`. Closure 2 (the concrete
+Limb command end-to-end) remains deferred; hand-composition is the live
+V2 path today (see `will/test_generation/`, `will/self_healing/`).
 """
 
 from __future__ import annotations
@@ -146,7 +146,7 @@ class ValidationStrategist(BaseStrategist):
                 "enforcement_level": enforcement_level,
                 "risk_tier": risk_tier,
             },
-            next_suggested="constitutional_evaluator",
+            next_suggested="constitutionalevaluator",
             metadata={
                 "operation_type": operation_type,
                 "file_path": file_path,
