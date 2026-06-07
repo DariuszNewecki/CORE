@@ -1,0 +1,28 @@
+# .intent/enforcement/mappings/architecture/artifact_discovery.yaml
+#
+# Enforcement mapping for the architecture.artifact_discovery_through_registry
+# rule (ADR-090 §Verification gate 9; issue #566).
+#
+# The check itself is per-file (AST-walked by ast_gate.ArtifactDiscoveryCheck)
+# and lives at src/mind/logic/engines/ast_gate/checks/artifact_discovery_check.py.
+# The check function self-filters by file location to the artifact-pipeline
+# prefixes (will/workers, mind/governance, mind/coherence,
+# body/services/crawl_service) — out-of-scope files short-circuit to empty
+# violations without further inspection. Broad scope here is therefore
+# safe: ast_gate visits every src/**/*.py file once, the check rejects
+# files outside the pipeline directories at the cost of a single AST walk.
+
+mappings:
+  # LAW: artifact-pipeline components MUST consult the artifact_type registry
+  # via IntentRepository — not hardcoded extension-based globs.
+  # Enforcement: per-file AST check via ast_gate; ramp posture below.
+  architecture.artifact_discovery_through_registry:
+    engine: ast_gate
+    params:
+      check_type: artifact_discovery_through_registry
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**"
+        - "src/shared/infrastructure/intent/**"

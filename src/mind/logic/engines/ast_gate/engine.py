@@ -19,6 +19,9 @@ from mind.logic.engines.ast_gate.checks import (
     PurityChecks,
     SchemaConformanceChecks,
 )
+from mind.logic.engines.ast_gate.checks.artifact_discovery_check import (
+    ArtifactDiscoveryCheck,
+)
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import (
     ProtectedNamespaceAccessCheck,
@@ -92,6 +95,7 @@ class ASTGateEngine(BaseEngine):
             "logic_conservation",
             "logger_not_presentation",
             "protected_namespace_access",
+            "artifact_discovery_through_registry",
             "import_order",
             "module_header",
             "schema_conformance",
@@ -213,6 +217,14 @@ class ASTGateEngine(BaseEngine):
         elif check_type == "protected_namespace_access":
             violations.extend(
                 ProtectedNamespaceAccessCheck.check_protected_namespace_access(
+                    tree=tree,
+                    file_path=file_path,
+                )
+            )
+
+        elif check_type == "artifact_discovery_through_registry":
+            violations.extend(
+                ArtifactDiscoveryCheck.check_artifact_discovery_through_registry(
                     tree=tree,
                     file_path=file_path,
                 )
