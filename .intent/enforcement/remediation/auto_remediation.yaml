@@ -16,10 +16,13 @@
 #   >= 0.50  → all_deterministic mode (requires handler to be confirmed working)
 #   < 0.50   → NOT dispatched; handler stub must be implemented first
 #
-# RISK LEVELS:
-#   low    → single-file, deterministic, fully reversible
-#   medium → multi-step, deterministic but affects logic flow
-#   high   → structural changes, requires LLM or A3 loop
+# RISK CLASSIFICATION:
+#   The authoritative source for action risk is
+#   .intent/enforcement/config/action_risk.yaml (impact_level: safe / moderate
+#   / dangerous), consumed by ActionRegistry and used by
+#   will/autonomy/proposal.py::Proposal.compute_risk(). Per-entry `risk:`
+#   fields were removed in #582 — they were never read by the classifier and
+#   the attached `fix_risk` value in audit_analyzer was dead data.
 #
 # HANDLER STATUS KEY:
 #   ACTIVE   → action confirmed in atomic action registry
@@ -61,7 +64,6 @@ mappings:
   style.import_order:
     action: fix.imports
     confidence: 0.92
-    risk: low
     description: >
       Sort imports in a single file using ruff (isort-compatible).
     status: ACTIVE
@@ -69,7 +71,6 @@ mappings:
   linkage.duplicate_ids:
     action: fix.duplicate_ids
     confidence: 0.90
-    risk: low
     description: >
       Regenerate fresh UUIDs for any duplicate # ID: comment tags. Safe: only
       rewrites comment lines, never touches logic.
@@ -78,7 +79,6 @@ mappings:
   purity.no_todo_placeholders:
     action: fix.placeholders
     confidence: 0.92
-    risk: low
     description: >
       Replace forbidden placeholder strings (TODO, FIXME, TBD, etc.).
       Deterministic regex — no reasoning required.
@@ -87,7 +87,6 @@ mappings:
   linkage.assign_ids:
     action: fix.ids
     confidence: 0.91
-    risk: low
     description: >
       Insert # ID: UUID comment above public functions and methods that lack
       one. Pure AST, no LLM, fully deterministic.
@@ -96,7 +95,6 @@ mappings:
   logic.logging.standard_only:
     action: fix.logging
     confidence: 0.92
-    risk: low
     description: >
       Replace print() and console.print() with logger calls. Deterministic AST
       transformation, no reasoning required.
@@ -105,7 +103,6 @@ mappings:
   architecture.channels.logic_no_terminal_rendering:
     action: fix.logging
     confidence: 0.90
-    risk: low
     description: >
       Terminal rendering (Rich, print) in logic layer must be replaced with
       logger calls. Deterministic AST fix.
@@ -114,7 +111,6 @@ mappings:
   purity.stable_id_anchor:
     action: fix.ids
     confidence: 0.91
-    risk: low
     description: >
       Insert missing stable ID anchors on public symbols.
     status: ACTIVE
@@ -122,7 +118,6 @@ mappings:
   layout.src_module_header:
     action: fix.headers
     confidence: 0.91
-    risk: low
     description: >
       Add or correct module header comments in src/ files.
     status: ACTIVE
@@ -130,7 +125,6 @@ mappings:
   style.formatter_required:
     action: fix.format
     confidence: 0.92
-    risk: low
     description: >
       Format file with ruff-format. Deterministic, fully reversible.
     status: ACTIVE
@@ -138,7 +132,6 @@ mappings:
   workflow.ruff_format_check:
     action: fix.format
     confidence: 0.92
-    risk: low
     description: >
       File would be reformatted by ruff format. Deterministic, fully reversible.
       Same handler as style.formatter_required — two rule IDs, one action.
@@ -147,7 +140,6 @@ mappings:
   purity.docstrings.required:
     action: fix.docstrings
     confidence: 0.90
-    risk: low
     description: >
       Add missing docstrings to public functions and classes.
     status: ACTIVE
@@ -155,7 +147,6 @@ mappings:
   atomic_actions.must_return_action_result:
     action: fix.atomic_actions
     confidence: 0.90
-    risk: low
     description: >
       Atomic actions missing ActionResult return type are fixed.
     status: ACTIVE
@@ -169,7 +160,6 @@ mappings:
   modularity.needs_split:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D1: modularity family is architectural-judgment, not autonomous
       remediation. Even mechanical-split candidates can be facades the filter
@@ -180,7 +170,6 @@ mappings:
   ai.cognitive_role.no_hardcoded_string:
     action: remediate.cognitive_role
     confidence: 0.85
-    risk: high
     description: >
       Hardcoded cognitive role string replaced with a governed constant from
       the cognitive_roles registry. LLM-assisted rewrite via CoderAgent.
@@ -196,7 +185,6 @@ mappings:
   test.missing:
     flow: flow.build_tests
     confidence: 0.85
-    risk: high
     description: >
       Source file has no corresponding test file. Dispatches flow.build_tests
       which runs: build.tests (CoderAgent generates test), then fix.imports,
@@ -207,7 +195,6 @@ mappings:
   test.failure:
     flow: flow.build_tests
     confidence: 0.85
-    risk: high
     description: >
       Existing test file has failures. Dispatches flow.build_tests to regenerate
       the test file, then apply fix.imports, fix.headers, fix.format as optional
@@ -225,7 +212,6 @@ mappings:
   modularity.class_too_large:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-007 + ADR-095 D1: class-level refactors are architectural
       judgment — non-automatable. The action: field is a placeholder
@@ -236,7 +222,6 @@ mappings:
   architecture.channels.logger_not_presentation:
     action: fix.logging
     confidence: 0.40
-    risk: moderate
     description: >
       Logger used for presentation output — Rich objects or strings
       containing Rich markup passed to logger.* calls. Correct
@@ -255,7 +240,6 @@ mappings:
   architecture.api.must_route_through_will:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -264,7 +248,6 @@ mappings:
   architecture.api.no_body_bypass:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -273,7 +256,6 @@ mappings:
   architecture.api.no_direct_database_access:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -282,7 +264,6 @@ mappings:
   architecture.body.no_rule_evaluation:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -291,7 +272,6 @@ mappings:
   architecture.channels.cli_rendering_allowed:
     action: fix.logging
     confidence: 0.40
-    risk: moderate
     description: >
       Channel/presentation boundary. Manual migration required when
       violated (precedent: #371 hand migration).
@@ -300,7 +280,6 @@ mappings:
   architecture.intent.gateway_is_shared_infrastructure:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -309,7 +288,6 @@ mappings:
   architecture.intent.no_legacy_root_assumptions:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -320,7 +298,6 @@ mappings:
     # under #490 (ADR-077 cleanup, 2026-06-01).
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -329,7 +306,6 @@ mappings:
   architecture.layer_exclusivity:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -338,7 +314,6 @@ mappings:
   architecture.layers.no_body_to_will:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -347,7 +322,6 @@ mappings:
   architecture.layers.no_mind_execution:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -356,7 +330,6 @@ mappings:
   architecture.mind.execution_signal:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -365,7 +338,6 @@ mappings:
   architecture.mind.no_database_access:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -374,7 +346,6 @@ mappings:
   architecture.mind.no_execution_semantics:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D6 sibling case: llm_gate rule producing yes/no verdicts on
       Mind layer execution semantics. Mixed precision (true on real LLM
@@ -387,7 +358,6 @@ mappings:
   architecture.mind.no_filesystem_writes:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -396,7 +366,6 @@ mappings:
   architecture.mind.no_will_invocation:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -405,7 +374,6 @@ mappings:
   architecture.shared.no_strategic_decisions:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -414,7 +382,6 @@ mappings:
   architecture.will.must_delegate_to_body:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -423,7 +390,6 @@ mappings:
   architecture.will.no_direct_database_access:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -432,7 +398,6 @@ mappings:
   architecture.will.no_filesystem_operations:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -441,7 +406,6 @@ mappings:
   autonomy.reasoning.policy_alignment:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -450,7 +414,6 @@ mappings:
   autonomy.tracing.mandatory:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -459,7 +422,6 @@ mappings:
   cli.command.behavior_classification:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -468,7 +430,6 @@ mappings:
   cli.command.canonical_naming:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -477,7 +438,6 @@ mappings:
   cli.command.dangerous_marking:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -486,7 +446,6 @@ mappings:
   cli.command.layer_assignment:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -495,7 +454,6 @@ mappings:
   cli.command.metadata_required:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -504,7 +462,6 @@ mappings:
   cli.help_required:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -513,7 +470,6 @@ mappings:
   cli.standard_verbs:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -522,7 +478,6 @@ mappings:
   data.integrity.vector_sync:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       sync.vectors_code has plausible semantic but no remediates=
       declaration and cardinality mismatch (per-symbol findings vs
@@ -533,7 +488,6 @@ mappings:
   governance.artifact_mutation.traceable:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -542,7 +496,6 @@ mappings:
   governance.dangerous_execution_primitives:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -551,7 +504,6 @@ mappings:
   infrastructure.constitutional_documentation:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -560,7 +512,6 @@ mappings:
   infrastructure.no_business_logic:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -569,7 +520,6 @@ mappings:
   infrastructure.no_strategic_decisions:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -578,7 +528,6 @@ mappings:
   infrastructure.service_registry.no_conditional_loading:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -587,7 +536,6 @@ mappings:
   purity.logic_conservation:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Structural/boundary rule with no automatable fixer. Human review
       required.
@@ -596,7 +544,6 @@ mappings:
   purity.no_ast_duplication:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D2: duplication detection routed to a file-splitter was a
       cross-namespace misrouting. Architectural-judgment: a real dedup
@@ -606,7 +553,6 @@ mappings:
   purity.no_dead_code:
     action: fix.vulture_heal
     confidence: 0.40
-    risk: high
     description: >
       fix.vulture_heal exists but filters by
       check_id='workflow.dead_code_check' (a non-existent rule), not
@@ -618,7 +564,6 @@ mappings:
   purity.no_orphan_files:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D2: orphan resolution routed to a file-splitter was a
       cross-namespace misrouting. Architectural-judgment: remove vs
@@ -628,7 +573,6 @@ mappings:
   purity.no_semantic_duplication:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D2: semantic duplication detection routed to a file-splitter
       was a cross-namespace misrouting. Architectural-judgment: a real
@@ -638,7 +582,6 @@ mappings:
   governance.remediation.all_rules_mapped:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Meta-governance: an active reporting rule has no
       auto_remediation.yaml entry — the invariant established by
@@ -650,7 +593,6 @@ mappings:
   governance.namespace.classification_complete:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       A file under .intent/ or .specs/ has no entry in
       .intent/governance/namespace_manifest.yaml — the
@@ -669,7 +611,6 @@ mappings:
   governance.fs_operations.completeness:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       The filesystem-operation taxonomy at
       .intent/taxonomies/filesystem_operations.yaml is out of
@@ -695,7 +636,6 @@ mappings:
   governance.quarantine.namespace_has_drainer:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       Meta-governance: a subject namespace has rows in awaiting_reaudit
       but no drainer is registered in
@@ -711,7 +651,6 @@ mappings:
   coherence.violation_executor.blast_bound:
     action: fix.modularity
     confidence: 0.40
-    risk: moderate
     description: >
       2026-05-24 hardening sweep Session 2 / blast-bound principle.
       ViolationExecutorWorker reached its per-cycle files-rewritten cap
@@ -729,7 +668,6 @@ mappings:
   coherence.repo_artifacts.drift:
     action: fix.modularity
     confidence: 0.40
-    risk: moderate
     description: >
       ADR-070 D8 writer-as-sensor: orphan rows in core.repo_artifacts
       (rows whose file_path no longer exists on disk) are detected
@@ -760,7 +698,6 @@ mappings:
   modularity.needs_refactor:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-095 D1: mixed-discipline files require architectural judgment;
       no autonomous remediation. action: field is placeholder to satisfy
@@ -770,7 +707,6 @@ mappings:
   architecture.path_access.no_hardcoded_runtime_dirs:
     action: fix.path_resolver
     confidence: 0.85
-    risk: high
     description: >
       Hardcoded runtime directory name in path construction. Route through
       PathResolver or FileHandler. Deterministic AST rewrite — each site
@@ -781,7 +717,6 @@ mappings:
   architecture.constitution_read_only:
     action: fix.layer_violation
     confidence: 0.40
-    risk: high
     description: >
       PENDING: Structural refactor requiring human review.
     status: PENDING
@@ -789,7 +724,6 @@ mappings:
   code.imports.no_stale_namespace:
     action: fix.imports
     confidence: 0.55
-    risk: high
     description: >
       PENDING: Dangerous without full import graph resolver.
     status: PENDING
@@ -797,7 +731,6 @@ mappings:
   architecture.mind.no_body_invocation:
     action: fix.layer_violation
     confidence: 0.40
-    risk: high
     description: >
       PENDING: Structural refactor requiring human review.
     status: PENDING
@@ -805,7 +738,6 @@ mappings:
   governance.mutation_surface.filehandler_required:
     action: fix.layer_violation
     confidence: 0.40
-    risk: high
     description: >
       PENDING: AST rewrite requiring context on surrounding logic.
     status: PENDING
@@ -821,7 +753,6 @@ mappings:
   governance.logic_mutation.governed:
     action: fix.layer_violation
     confidence: 0.40
-    risk: high
     description: >
       PENDING: AST rewrite requiring context on surrounding logic.
       Same remediation as governance.mutation_surface.filehandler_required.
@@ -830,7 +761,6 @@ mappings:
   data.contracts.action_definition_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -839,7 +769,6 @@ mappings:
   data.contracts.action_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -848,7 +777,6 @@ mappings:
   data.contracts.agent_decision_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -857,7 +785,6 @@ mappings:
   data.contracts.audit_finding_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -866,7 +793,6 @@ mappings:
   data.contracts.auto_fixable_pattern_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -875,7 +801,6 @@ mappings:
   data.contracts.blackboard_entry_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -884,7 +809,6 @@ mappings:
   data.contracts.check_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -893,7 +817,6 @@ mappings:
   data.contracts.constitutional_validation_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -902,7 +825,6 @@ mappings:
   data.contracts.constitutional_violation_payload_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -911,7 +833,6 @@ mappings:
   data.contracts.context_build_request_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -920,7 +841,6 @@ mappings:
   data.contracts.context_packet_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -929,7 +849,6 @@ mappings:
   data.contracts.detailed_plan_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -938,7 +857,6 @@ mappings:
   data.contracts.detailed_plan_step_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -947,7 +865,6 @@ mappings:
   data.contracts.drift_report_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -956,7 +873,6 @@ mappings:
   data.contracts.embedding_payload_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -965,7 +881,6 @@ mappings:
   data.contracts.execution_task_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -974,7 +889,6 @@ mappings:
   data.contracts.finding_nucleus_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -983,7 +897,6 @@ mappings:
   data.contracts.fix_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -992,7 +905,6 @@ mappings:
   data.contracts.flow_definition_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1001,7 +913,6 @@ mappings:
   data.contracts.flow_step_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1010,7 +921,6 @@ mappings:
   data.contracts.governance_decision_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1019,7 +929,6 @@ mappings:
   data.contracts.pattern_violation_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1028,7 +937,6 @@ mappings:
   data.contracts.phase_workflow_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1037,7 +945,6 @@ mappings:
   data.contracts.policy_evaluation_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1046,7 +953,6 @@ mappings:
   data.contracts.prompt_model_manifest_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1055,7 +961,6 @@ mappings:
   data.contracts.proposal_action_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1064,7 +969,6 @@ mappings:
   data.contracts.proposal_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1073,7 +977,6 @@ mappings:
   data.contracts.proposal_scope_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1082,7 +985,6 @@ mappings:
   data.contracts.refusal_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1091,7 +993,6 @@ mappings:
   data.contracts.remediation_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1100,7 +1001,6 @@ mappings:
   data.contracts.repo_census_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1109,7 +1009,6 @@ mappings:
   data.contracts.risk_assessment_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1118,7 +1017,6 @@ mappings:
   data.contracts.task_structure_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1127,7 +1025,6 @@ mappings:
   data.contracts.validation_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1136,7 +1033,6 @@ mappings:
   data.contracts.vectorizable_item_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1145,7 +1041,6 @@ mappings:
   data.contracts.violation_report_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1154,7 +1049,6 @@ mappings:
   data.contracts.worker_declaration_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1163,7 +1057,6 @@ mappings:
   data.contracts.workflow_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
-    risk: moderate
     description: >
       Pydantic model conformance check under ADR-056 wave work. Fixer
       to be built.
@@ -1172,7 +1065,6 @@ mappings:
   infrastructure.no_bare_except:
     action: fix.bare_except
     confidence: 0.40
-    risk: low
     description: >
       Ruff BLE001 has the detection; deterministic except-clause fixer
       to be built.
@@ -1181,7 +1073,6 @@ mappings:
   modernization.legacy_signal:
     action: fix.legacy_remove
     confidence: 0.40
-    risk: moderate
     description: >
       Legacy-pattern flag. Removal/migration fixer to be built per
       modernization roadmap.
@@ -1190,7 +1081,6 @@ mappings:
   governance.taxonomy.operational_capabilities_decorator_backing:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       A capability id in .intent/taxonomies/operational_capabilities.yaml
       has no matching @atomic_action decoration in src/ — a phantom that
@@ -1206,7 +1096,6 @@ mappings:
   governance.taxonomy.sensor_supported_by_declaration:
     action: fix.modularity
     confidence: 0.40
-    risk: high
     description: >
       ADR-091 D4: sensor↔artifact_type symmetry rule. Every sensor worker
       declared in .intent/workers/ must be listed under at least one
@@ -1227,7 +1116,6 @@ mappings:
   purity.tempfile_default_dir:
     action: fix.tempfile_dir
     confidence: 0.60
-    risk: low
     description: >
       Mechanical AST rewrite: add `dir=str(<repo_root> / "var" / "tmp")`
       kwarg to tempfile.{TemporaryDirectory,NamedTemporaryFile,mkdtemp,

@@ -73,8 +73,15 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
     so callers can construct the appropriate ProposalAction without
     re-discriminating.
     Returns a dict of
-      {check_id: {action, flow, ref_id, ref_kind, confidence, risk, description, status}}.
+      {check_id: {action, flow, ref_id, ref_kind, confidence, description, status}}.
     Fails gracefully — returns empty dict if file missing or malformed.
+
+    Note (#582): the per-entry `risk:` field in auto_remediation.yaml was
+    removed; the authoritative source for action risk is
+    .intent/enforcement/config/action_risk.yaml (impact_level), consumed by
+    ActionRegistry and used by Proposal.compute_risk(). Prior versions of
+    this loader read `risk:` and attached it as `fix_risk` to findings —
+    grep confirmed nothing downstream consumed that field.
     """
     map_path = path_resolver.remediation_map_path
 
@@ -137,7 +144,6 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
             "ref_id": ref_id,
             "ref_kind": ref_kind,
             "confidence": float(entry.get("confidence", 0.0)),
-            "risk": entry.get("risk", "medium"),
             "description": entry.get("description", ""),
             "status": entry.get("status", "ACTIVE"),
         }
@@ -295,7 +301,6 @@ class AuditAnalyzer:
                         **finding,
                         "fix_action": action,
                         "fix_confidence": entry["confidence"],
-                        "fix_risk": entry["risk"],
                         "fix_description": entry["description"],
                     }
                 )
