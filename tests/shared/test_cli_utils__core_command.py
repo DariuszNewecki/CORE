@@ -1,18 +1,40 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
 - Source: src/shared/cli_utils.py
 - Symbol: core_command
-- Status: 14 tests passed, some failed
-- Passing tests: test_core_command_registers_metadata, test_core_command_with_sync_function_no_context, test_core_command_with_async_function_no_context, test_core_command_requires_context_missing, test_core_command_dangerous_mode_dry_run, test_core_command_dangerous_mode_with_write, test_core_command_with_action_result_failure, test_core_command_with_non_none_result, test_core_command_with_none_result, test_core_command_running_inside_existing_loop, test_core_command_exception_handling, test_core_command_typer_exit_propagates, test_core_command_with_context_object, test_core_command_preserves_function_metadata
 - Generated: 2026-01-11 10:40:20
+- 2026-06-07 (#572 Cat B batch 11):
+    * All 5 ``from shared.cli_utils import X`` imports updated to canonical
+      post-split paths: COMMAND_REGISTRY at ``cli.utils.decorators``,
+      console at ``cli.utils.decorators`` (the module's own
+      ``console = Console()`` at line 31), ActionResult at
+      ``shared.action_types``.
+    * test_core_command_with_non_none_result reworked: source emits
+      non-None / non-ActionResult results via ``logger.info(res)`` at
+      line 155, not ``console.print``. Patch the logger instead.
+    * test_core_command_running_inside_existing_loop reframed: the
+      RuntimeError guard the autogen vintage expected ("CORE CLI commands
+      cannot run inside an already-running event loop") no longer exists
+      — source at line 111-114 detects a running loop and falls through
+      to ``func(*args, **kwargs)`` directly. Same drift shape as
+      tests/shared/test_cli_utils.py:test_async_command from batch 8.
+    * test_core_command_with_context_object rewritten to capture the
+      injected services *during* function execution: source resets all
+      three context attributes (qdrant_service, cognitive_service,
+      auditor_context) to None in the teardown block (lines 158-165), so
+      asserting on post-call state always sees None. Also added
+      ``get_auditor_context`` mock — source consults it eagerly even
+      though the autogen vintage only mocked the first two registry
+      methods.
 """
 
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import typer
 
-from cli.utils.decorators import core_command
+from cli.utils.decorators import COMMAND_REGISTRY, console, core_command
+from shared.action_types import ActionResult
 
 
 def test_core_command_registers_metadata():
@@ -21,8 +43,6 @@ def test_core_command_registers_metadata():
     @core_command(dangerous=True, confirmation=False, requires_context=False)
     def test_func():
         return "test"
-
-    from shared.cli_utils import COMMAND_REGISTRY
 
     assert "test_func" in COMMAND_REGISTRY
     metadata = COMMAND_REGISTRY["test_func"]
@@ -73,8 +93,6 @@ def test_core_command_dangerous_mode_dry_run():
     def dangerous_func(write: bool = False):
         return "executed"
 
-    from shared.cli_utils import console
-
     with patch.object(console, "print") as mock_print:
         result = dangerous_func(write=False)
         assert result == "executed"
@@ -96,7 +114,6 @@ def test_core_command_dangerous_mode_with_write():
 
 def test_core_command_with_action_result_failure():
     """Test core_command exits with code 1 when ActionResult.ok is False."""
-    from shared.cli_utils import ActionResult
 
     @core_command(dangerous=False, confirmation=False, requires_context=False)
     def action_func():
@@ -108,50 +125,59 @@ def test_core_command_with_action_result_failure():
 
 
 def test_core_command_with_non_none_result():
-    """Test core_command prints non-None, non-ActionResult results."""
+    """Non-None, non-ActionResult results are surfaced via ``logger.info``,
+    not ``console.print``. The autogen vintage expected the result to land
+    in the console; source's wrapper at line 155 routes it through the
+    module logger instead."""
 
     @core_command(dangerous=False, confirmation=False, requires_context=False)
     def func_with_result():
         return "some_result"
 
-    from shared.cli_utils import console
-
-    with patch.object(console, "print") as mock_print:
+    with patch("cli.utils.decorators.logger") as mock_logger:
         result = func_with_result()
         assert result == "some_result"
-        mock_print.assert_called_once_with("some_result")
+        mock_logger.info.assert_called_once_with("some_result")
 
 
 def test_core_command_with_none_result():
-    """Test core_command doesn't print None results."""
+    """A None result is neither logged nor printed."""
 
     @core_command(dangerous=False, confirmation=False, requires_context=False)
     def func_with_none():
         return None
 
-    from shared.cli_utils import console
-
-    with patch.object(console, "print") as mock_print:
+    with (
+        patch.object(console, "print") as mock_print,
+        patch("cli.utils.decorators.logger") as mock_logger,
+    ):
         result = func_with_none()
         assert result is None
         mock_print.assert_not_called()
+        mock_logger.info.assert_not_called()
 
 
 def test_core_command_running_inside_existing_loop():
-    """Test core_command raises RuntimeError when called inside running event loop."""
+    """Inside a running event loop, ``core_command`` does NOT raise — its
+    wrapper detects the loop (line 111) and returns ``func(*args, **kwargs)``
+    directly, leaving loop management to the caller. The autogen vintage's
+    expected RuntimeError guard ("CORE CLI commands cannot run inside an
+    already-running event loop") is no longer enforced.
+
+    Same drift shape as tests/shared/test_cli_utils.py:test_async_command
+    (batch 8). If the guard should be restored, that's a separate source-
+    side decision."""
 
     @core_command(dangerous=False, confirmation=False, requires_context=False)
     def regular_func():
         return "test"
 
     async def nested_call():
+        # The decorator returns the raw result of ``regular_func()`` here.
         return regular_func()
 
-    with pytest.raises(RuntimeError) as exc_info:
-        asyncio.run(nested_call())
-    assert "CORE CLI commands cannot run inside an already-running event loop" in str(
-        exc_info.value
-    )
+    result = asyncio.run(nested_call())
+    assert result == "test"
 
 
 def test_core_command_exception_handling():
@@ -179,34 +205,51 @@ def test_core_command_typer_exit_propagates():
 
 
 def test_core_command_with_context_object():
-    """Test core_command with context parameter and core_context injection."""
+    """core_command eagerly resolves ``qdrant_service``, ``cognitive_service``,
+    and ``auditor_context`` from ``ctx.obj.registry`` before invoking the
+    wrapped function, then resets them on the teardown path.
+
+    Important: source's teardown (lines 158-165) explicitly nulls all three
+    attributes after the function returns, so asserting on post-call state
+    always sees None. The test captures the injected values *during* the
+    wrapped function's execution via an out-of-scope dict — the autogen
+    vintage's post-call assertions were never satisfiable against the
+    teardown semantics, regardless of the import drift."""
     mock_ctx = Mock(spec=typer.Context)
     mock_core_context = Mock()
     mock_core_context.registry = Mock()
     mock_core_context.qdrant_service = None
     mock_core_context.cognitive_service = None
+    mock_core_context.auditor_context = None
     mock_ctx.obj = mock_core_context
+
+    mock_qdrant = Mock(name="mock_qdrant")
+    mock_cognitive = Mock(name="mock_cognitive")
+    mock_auditor = Mock(name="mock_auditor")
+
+    mock_core_context.registry.get_qdrant_service = AsyncMock(return_value=mock_qdrant)
+    mock_core_context.registry.get_cognitive_service = AsyncMock(
+        return_value=mock_cognitive
+    )
+    mock_core_context.registry.get_auditor_context = AsyncMock(return_value=mock_auditor)
+
+    captured: dict[str, object] = {}
 
     @core_command(dangerous=False, confirmation=False, requires_context=True)
     async def func_with_ctx(ctx: typer.Context):
-        return (
-            f"qdrant: {ctx.obj.qdrant_service}, cognitive: {ctx.obj.cognitive_service}"
-        )
+        captured["qdrant"] = ctx.obj.qdrant_service
+        captured["cognitive"] = ctx.obj.cognitive_service
+        captured["auditor"] = ctx.obj.auditor_context
 
-    mock_qdrant = Mock()
-    mock_cognitive = Mock()
+    func_with_ctx(mock_ctx)
 
-    async def mock_get_qdrant():
-        return mock_qdrant
-
-    async def mock_get_cognitive():
-        return mock_cognitive
-
-    mock_core_context.registry.get_qdrant_service = mock_get_qdrant
-    mock_core_context.registry.get_cognitive_service = mock_get_cognitive
-    result = func_with_ctx(mock_ctx)
-    assert mock_core_context.qdrant_service == mock_qdrant
-    assert mock_core_context.cognitive_service == mock_cognitive
+    assert captured["qdrant"] is mock_qdrant
+    assert captured["cognitive"] is mock_cognitive
+    assert captured["auditor"] is mock_auditor
+    # Teardown reset:
+    assert mock_core_context.qdrant_service is None
+    assert mock_core_context.cognitive_service is None
+    assert mock_core_context.auditor_context is None
 
 
 def test_core_command_preserves_function_metadata():

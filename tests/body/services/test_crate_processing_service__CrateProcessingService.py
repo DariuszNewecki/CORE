@@ -1,14 +1,21 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
 - Source: src/body/services/crate_processing_service.py
 - Symbol: CrateProcessingService
-- Status: 7 tests passed, some failed
-- Passing tests: test_validate_crate_by_id_crate_not_found, test_validate_crate_by_id_invalid_manifest_structure, test_validate_crate_by_id_valid_manifest_canary_passes, test_apply_and_finalize_crate_success, test_to_repo_rel_with_relative_path, test_to_repo_rel_with_outside_path, test_write_result_manifest
 - Generated: 2026-01-11 03:09:13
+- 2026-06-07 (#572 Cat B batch 11): CrateProcessingService.__init__ now
+  takes core_context. Replaced the 7 bare CrateProcessingService() calls
+  with a ``service`` fixture wrapping a MagicMock-backed CoreContext.
+  The tests override service.inbox_path, ._fh, .accepted_path, .repo_root,
+  ._to_repo_rel, ._run_canary_validation per-case, so the fixture only
+  needs to satisfy the __init__ side-effect chain (git_service.repo_path,
+  file_handler) without crashing.
 """
+
+from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import yaml
@@ -16,10 +23,22 @@ import yaml
 from body.services.crate_processing_service import CrateProcessingService
 
 
+@pytest.fixture
+def service():
+    """CrateProcessingService backed by a minimal MagicMock CoreContext.
+    Construction triggers heavy setup (PathResolver, intent repo schema
+    load, canary executor); the tests override every consumed attribute
+    after construction, so the only requirement is that __init__ runs to
+    completion."""
+    ctx = MagicMock()
+    ctx.git_service.repo_path = Path("/opt/dev/CORE")
+    ctx.file_handler = MagicMock()
+    return CrateProcessingService(ctx)
+
+
 @pytest.mark.asyncio
-async def test_validate_crate_by_id_crate_not_found():
+async def test_validate_crate_by_id_crate_not_found(service):
     """Test validation when crate ID doesn't exist in inbox."""
-    service = CrateProcessingService()
     with tempfile.TemporaryDirectory() as tmpdir:
         service.inbox_path = Path(tmpdir)
         result, findings = await service.validate_crate_by_id("non_existent_crate")
@@ -30,31 +49,25 @@ async def test_validate_crate_by_id_crate_not_found():
 
 
 @pytest.mark.asyncio
-async def test_validate_crate_by_id_invalid_manifest_structure():
+async def test_validate_crate_by_id_invalid_manifest_structure(service):
     """Test validation when manifest has invalid structure (fails JSON schema)."""
-    service = CrateProcessingService()
     with tempfile.TemporaryDirectory() as tmpdir:
         crate_id = "test_crate_123"
         crate_path = Path(tmpdir) / crate_id
         crate_path.mkdir()
         manifest_path = crate_path / "manifest.yaml"
         manifest_path.write_text("", encoding="utf-8")
-        original_inbox = service.inbox_path
         service.inbox_path = Path(tmpdir)
-        try:
-            result, findings = await service.validate_crate_by_id(crate_id)
-            assert not result
-            assert len(findings) == 1
-            assert findings[0].check_id == "infra.crate_invalid"
-            assert "manifest.yaml" == findings[0].file_path
-        finally:
-            service.inbox_path = original_inbox
+        result, findings = await service.validate_crate_by_id(crate_id)
+        assert not result
+        assert len(findings) == 1
+        assert findings[0].check_id == "infra.crate_invalid"
+        assert "manifest.yaml" == findings[0].file_path
 
 
 @pytest.mark.asyncio
-async def test_validate_crate_by_id_valid_manifest_canary_passes():
+async def test_validate_crate_by_id_valid_manifest_canary_passes(service):
     """Test validation with valid manifest where canary trial passes."""
-    service = CrateProcessingService()
     with tempfile.TemporaryDirectory() as tmpdir:
         crate_id = "valid_crate_456"
         crate_path = Path(tmpdir) / crate_id
@@ -66,23 +79,16 @@ async def test_validate_crate_by_id_valid_manifest_canary_passes():
         async def mock_run_canary_validation(crate):
             return (True, [])
 
-        original_inbox = service.inbox_path
         service.inbox_path = Path(tmpdir)
-        original_method = service._run_canary_validation
         service._run_canary_validation = mock_run_canary_validation
-        try:
-            result, findings = await service.validate_crate_by_id(crate_id)
-            assert result
-            assert findings == []
-        finally:
-            service.inbox_path = original_inbox
-            service._run_canary_validation = original_method
+        result, findings = await service.validate_crate_by_id(crate_id)
+        assert result
+        assert findings == []
 
 
 @pytest.mark.asyncio
-async def test_apply_and_finalize_crate_success():
+async def test_apply_and_finalize_crate_success(service):
     """Test applying and finalizing an accepted crate."""
-    service = CrateProcessingService()
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
         crate_id = "crate_to_apply"
@@ -99,40 +105,36 @@ async def test_apply_and_finalize_crate_success():
         accepted.mkdir()
         mock_fh = Mock()
         service._fh = mock_fh
-        original_inbox = service.inbox_path
-        original_accepted = service.accepted_path
         service.inbox_path = inbox
         service.accepted_path = accepted
-        try:
-            await service.apply_and_finalize_crate(crate_id)
-            assert mock_fh.write_runtime_text.call_count >= 1
-            mock_fh.move_tree.assert_called_once()
-        finally:
-            service.inbox_path = original_inbox
-            service.accepted_path = original_accepted
+        await service.apply_and_finalize_crate(crate_id)
+        assert mock_fh.write_runtime_text.call_count >= 1
+        # Source's apply_and_finalize uses copy_tree + remove_tree to move
+        # the crate (atomic semantics on top of FileHandler primitives); the
+        # autogen vintage asserted a single ``move_tree`` call against an
+        # earlier API. Track the equivalent copy+remove pair.
+        mock_fh.copy_tree.assert_called_once()
+        mock_fh.remove_tree.assert_called_once()
 
 
-def test_to_repo_rel_with_relative_path():
+def test_to_repo_rel_with_relative_path(service):
     """Test _to_repo_rel with path inside repo root."""
-    service = CrateProcessingService()
     service.repo_root = Path("/fake/repo/root")
     test_path = Path("/fake/repo/root/some/subdirectory")
     result = service._to_repo_rel(test_path)
     assert result == "some/subdirectory"
 
 
-def test_to_repo_rel_with_outside_path():
+def test_to_repo_rel_with_outside_path(service):
     """Test _to_repo_rel with path outside repo root."""
-    service = CrateProcessingService()
     service.repo_root = Path("/fake/repo/root")
     test_path = Path("/completely/different/path")
     result = service._to_repo_rel(test_path)
     assert result == "/completely/different/path"
 
 
-def test_write_result_manifest():
+def test_write_result_manifest(service):
     """Test _write_result_manifest creates proper result.yaml."""
-    service = CrateProcessingService()
     with tempfile.TemporaryDirectory() as tmpdir:
         crate_path = Path(tmpdir) / "test_crate"
         crate_path.mkdir()
