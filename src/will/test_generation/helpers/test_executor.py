@@ -15,6 +15,7 @@ from shared.infrastructure.intent.operational_config import load_operational_con
 from shared.logger import getLogger
 from will.test_generation.artifacts import TestGenArtifactStore
 from will.test_generation.helpers.context_extractor import ContextExtractor
+from will.test_generation.introspection_facts import build_introspection_facts
 from will.test_generation.llm_output import PythonOutputNormalizer
 from will.test_generation.persistence import TestPersistenceService
 from will.test_generation.prompt_engine import ConstitutionalTestPromptBuilder
@@ -117,6 +118,17 @@ class TestExecutor:
                     "error": "Could not extract symbol code from ContextPackage",
                 }
 
+            # #589: build live introspection facts the LLM cannot
+            # hallucinate around. Fail-soft — any introspection failure
+            # surfaces as introspection_error in the facts dict, and the
+            # prompt-side skips the GROUND TRUTH section rather than
+            # blocking test-gen entirely.
+            introspection_facts = build_introspection_facts(
+                file_path=file_path,
+                symbol_name=symbol_name,
+                symbol_code=symbol_code,
+            )
+
             # Build prompt
             prompt = self.prompt_engine.build(
                 symbol_name=symbol_name,
@@ -128,6 +140,7 @@ class TestExecutor:
                 complexity=complexity,
                 has_db_harness=has_db_harness,
                 context_packet=context_packet,
+                introspection_facts=introspection_facts,
             )
 
             self.artifacts.write_prompt(self.session_dir, symbol_name, prompt)

@@ -30,6 +30,7 @@ class ConstitutionalTestPromptBuilder:
         complexity: str,
         has_db_harness: bool,
         context_packet: dict[str, Any],
+        introspection_facts: dict[str, Any] | None = None,
     ) -> str:
         import_path = context_packet.get("problem", {}).get("target_module", "unknown")
 
@@ -115,9 +116,88 @@ class ConstitutionalTestPromptBuilder:
         parts.append("```")
         parts.append("")
 
+        # #589: GROUND TRUTH section — facts pulled from a live import +
+        # AST walk of the target. The LLM cannot hallucinate around these
+        # without contradicting introspection it can see in the prompt.
+        self._append_ground_truth(parts, symbol_name, introspection_facts)
+
         parts.append("## OUTPUT REQUIREMENTS")
         parts.append("- Include 'import pytest' and the specific module import.")
         parts.append("- Include a comment explaining the detected return type.")
         parts.append("- Return ONLY the Python test code. No fences. No prose.")
 
         return "\n".join(parts)
+
+    # ID: 3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a
+    def _append_ground_truth(
+        self,
+        parts: list[str],
+        symbol_name: str,
+        facts: dict[str, Any] | None,
+    ) -> None:
+        """Emit a ``## GROUND TRUTH`` section derived from live introspection.
+
+        Skipped entirely when ``facts`` is None or carries an
+        ``introspection_error`` — the rest of the prompt (TARGET CODE,
+        CRITICAL RULES, etc.) still drives generation; we just don't add
+        introspection-derived constraints we can't ground.
+        """
+        if not facts:
+            return
+        if facts.get("introspection_error"):
+            return
+
+        signature = facts.get("signature", "")
+        kind = facts.get("kind", "unknown")
+        public_attrs = facts.get("public_attrs", [])
+        awaited = facts.get("awaited_call_sites", [])
+        decorators = facts.get("decorators", [])
+        has_gov = facts.get("has_governance_decorator", False)
+        is_async = facts.get("is_async", False)
+
+        parts.append(
+            "## GROUND TRUTH (live introspection of the target — do NOT contradict)"
+        )
+        if signature:
+            parts.append(f"- Signature: `{symbol_name}{signature}`")
+        parts.append(f"- Kind: {kind}{' (async)' if is_async else ''}")
+        if kind == "class" and public_attrs:
+            # Cap the list so very large public surfaces don't dominate
+            # the prompt budget; the most-likely-to-be-tested members
+            # are at the top of dir() in alphabetical order.
+            head = public_attrs[:30]
+            tail = (
+                f" (+ {len(public_attrs) - 30} more)" if len(public_attrs) > 30 else ""
+            )
+            parts.append(f"- Public attributes / methods: {head}{tail}")
+        if awaited:
+            head = awaited[:15]
+            tail = f" (+ {len(awaited) - 15} more)" if len(awaited) > 15 else ""
+            parts.append(f"- Awaited call sites in source body: {head}{tail}")
+        if decorators:
+            parts.append(f"- Decorators on target: {decorators[:5]}")
+        parts.append("")
+        parts.append("### Hard constraints derived from GROUND TRUTH")
+        parts.append(
+            "- DO NOT assert on attributes or methods absent from the public-attributes list above."
+        )
+        parts.append(
+            "- The constructor / function MUST be called with arguments matching the Signature above (do not omit required args)."
+        )
+        if awaited:
+            parts.append(
+                "- Every awaited call site listed above that your test exercises MUST be backed by an AsyncMock "
+                "(not MagicMock — `await MagicMock()` raises TypeError). Patch each at the exact attribute path shown."
+            )
+        if has_gov:
+            parts.append(
+                f"- {symbol_name} carries a governance decorator (@atomic_action / @core_command). "
+                "Direct calls raise GovernanceBypassError. Call `{symbol_name}.__wrapped__(...)` "
+                "or route through ActionExecutor.execute(...), NOT the decorated symbol directly."
+            )
+        if is_async:
+            parts.append(
+                "- Target is async. Test functions that call it MUST be `async def test_...` "
+                "with `@pytest.mark.asyncio`, and use `await`."
+            )
+        parts.append("")
