@@ -11,10 +11,19 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+# Pattern for "Line N:" or "(line N)" embedded in engine violation messages —
+# the common pre-#548 shape (e.g. f"Line {node.lineno}: Forbidden primitive...").
+# Used by extract_line_number as the regex fallback when no structured
+# line key is present in the violation's details.
+_EMBEDDED_LINE_RE = re.compile(r"\b[Ll]ine\s+(\d+)\b")
 
 
 @dataclass
@@ -63,6 +72,50 @@ def normalize_violation(v: str | dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if isinstance(v, dict):
         return str(v.get("message", "")), dict(v.get("details") or {})
     return v, {}
+
+
+# ID: ef871f89-7261-4682-8f9f-159cab03ac73
+def extract_line_number(
+    message: str, details: Mapping[str, Any] | None = None
+) -> int | None:
+    """Extract the violation's line number for ``AuditFinding.line_number``.
+
+    Closes the asymmetry described in #548: many engines know the line
+    number of a violation (most parse the file via AST) but embed it in
+    the human-readable message string instead of populating the structured
+    ``AuditFinding.line_number`` field, so GitHub inline annotations
+    default to line 1 of the file rather than landing at the violation.
+
+    Preference order:
+
+    1. ``details["line_number"]`` — the canonical structured key.
+    2. ``details["line"]`` — common short alias used by sensors that
+       pre-date the canonical key.
+    3. Regex fallback: the first ``"Line N"`` / ``"line N"`` match in
+       ``message``. This handles the legacy pattern uniformly across
+       engines without requiring per-engine updates.
+
+    Returns ``None`` if no extraction succeeds; consumers pass that
+    through to ``AuditFinding.line_number=None`` (the field's documented
+    "no line info available" sentinel).
+    """
+    if details:
+        for key in ("line_number", "line"):
+            value = details.get(key)
+            if isinstance(value, int) and value > 0:
+                return value
+            if isinstance(value, str) and value.isdigit():
+                line = int(value)
+                if line > 0:
+                    return line
+
+    match = _EMBEDDED_LINE_RE.search(message)
+    if match:
+        line = int(match.group(1))
+        if line > 0:
+            return line
+
+    return None
 
 
 # ID: 185ac493-d859-4a19-a7bd-e85fd2239af7

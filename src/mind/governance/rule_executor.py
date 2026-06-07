@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from mind.logic.engines.base import normalize_violation
+from mind.logic.engines.base import extract_line_number, normalize_violation
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -224,12 +224,18 @@ async def execute_rule(
                     # AuditFinding.context, which as_dict() aliases back
                     # to "details" in the JSON report.
                     msg, details = normalize_violation(v)
+                    # #548: extract the line number from structured details
+                    # or from a "Line N" pattern in the message so GitHub
+                    # inline annotations land at the actual violation line
+                    # rather than the file-level fallback.
+                    line_number = extract_line_number(msg, details)
                     findings.append(
                         AuditFinding(
                             check_id=rule.rule_id,
                             severity=severity,
                             message=msg,
                             file_path=str(file_path.relative_to(context.repo_path)),
+                            line_number=line_number,
                             context=details,
                         )
                     )
