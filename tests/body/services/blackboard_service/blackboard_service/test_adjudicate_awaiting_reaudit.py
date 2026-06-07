@@ -46,6 +46,26 @@ async def _ensure_blackboard_table(session: AsyncSession) -> None:
     await session.commit()
 
 
+async def _ensure_worker_registry_row(
+    session: AsyncSession, worker_uuid: uuid.UUID
+) -> None:
+    """Insert a worker_registry row so blackboard_entries.worker_uuid FK is satisfied."""
+    await session.execute(
+        text(
+            """
+            INSERT INTO core.worker_registry
+                (worker_uuid, worker_name, worker_class, phase)
+            VALUES (:worker_uuid, :worker_name, 'sensing', 'audit')
+            ON CONFLICT (worker_uuid) DO NOTHING
+            """
+        ),
+        {
+            "worker_uuid": worker_uuid,
+            "worker_name": f"test_worker_{str(worker_uuid)[:8]}",
+        },
+    )
+
+
 async def _seed_quarantined_finding(
     session: AsyncSession,
     *,
@@ -55,21 +75,29 @@ async def _seed_quarantined_finding(
     rule: str,
     file_path: str,
 ) -> None:
-    """Insert a finding directly in 'awaiting_reaudit' state."""
+    """Insert a finding directly in 'awaiting_reaudit' state.
+
+    Seeds the worker_registry FK row first; the awaiting_reaudit status
+    requires resolution_mechanism='reaudit' per the closed-set CHECK constraint
+    (architecture.blackboard.reaudit_requires_reaudit_mechanism).
+    """
+    await _ensure_worker_registry_row(session, worker_uuid)
     payload = {
         "rule": rule,
         "file_path": file_path,
-        "message": "synthetic — adjudication test",
+        "message": "synthetic - adjudication test",
     }
     await session.execute(
         text(
             """
             INSERT INTO core.blackboard_entries
                 (id, worker_uuid, entry_type, phase, status, subject,
-                 payload, claimed_by, claimed_at, resolved_at)
+                 payload, resolution_mechanism,
+                 claimed_by, claimed_at, resolved_at)
             VALUES
                 (:id, :worker_uuid, 'finding', 'parse', 'awaiting_reaudit',
-                 :subject, cast(:payload as jsonb), NULL, NULL, NULL)
+                 :subject, cast(:payload as jsonb), 'reaudit',
+                 NULL, NULL, NULL)
             """
         ),
         {
@@ -123,8 +151,9 @@ async def test_adjudicate_releases_present_and_resolves_absent(
     try:
         service = BlackboardService()
         result = await service.adjudicate_awaiting_reaudit_findings(
-            rule_namespace=namespace,
+            subject_prefix=f"audit.violation::{namespace}",
             current_violation_subjects={subject_held},
+            resolved_by="audit_violation_sensor",
         )
 
         assert result["released_subjects"] == [subject_held], (
@@ -195,8 +224,9 @@ async def test_adjudicate_returns_empty_when_queue_is_empty(
 
     service = BlackboardService()
     result = await service.adjudicate_awaiting_reaudit_findings(
-        rule_namespace=namespace,
+        subject_prefix=f"audit.violation::{namespace}",
         current_violation_subjects=set(),
+        resolved_by="audit_violation_sensor",
     )
 
     assert result["released_subjects"] == []
@@ -232,8 +262,9 @@ async def test_adjudicate_only_touches_matching_namespace(
     try:
         service = BlackboardService()
         result = await service.adjudicate_awaiting_reaudit_findings(
-            rule_namespace=ns_target,
+            subject_prefix=f"audit.violation::{ns_target}",
             current_violation_subjects=set(),
+            resolved_by="audit_violation_sensor",
         )
 
         assert result["released_subjects"] == []
