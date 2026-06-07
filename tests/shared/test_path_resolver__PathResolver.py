@@ -3,6 +3,27 @@
 - Symbol: PathResolver
 - Status: verified_in_sandbox
 - Generated: 2026-01-11 00:57:57
+- 2026-06-07 (#572 Cat B batch 10):
+    * Removed four tests that asserted on attributes/methods that never
+      existed on PathResolver: list_prompts (2 tests), quarantine_dir,
+      work_dir. The autogen vintage emitted them speculatively; the
+      canonical surface is the introspection list at module load
+      (audit_findings_path, build_dir, canary_dir, ..., morgue_dir,
+      proposals_dir, ..., validate_structure, var_dir, workflows_dir, ...).
+    * Updated test_prompt_method to match source's current contract:
+      ``prompt(name) -> prompts_dir / name`` with FileNotFoundError if the
+      candidate path doesn't exist. No .prompt extension is appended; no
+      directory components are stripped; backslashes are not interpreted.
+    * Updated test_policy_method_file_not_found assertion to match
+      source's current error message format: "Policy '...' not found in
+      [...]" rather than the autogen vintage's "Constitutional resource
+      '...' not found".
+    * Updated test_validate_structure_all_missing to assert on
+      governance_config error at errors[-1] (source's required-paths list
+      now includes governance config; the autogen vintage's intent_root
+      assertion was correct *at the time* but is no longer last).
+    * Updated test_validate_structure_all_exist to also create the
+      governance_config file so the all-exist case actually passes.
 """
 
 import tempfile
@@ -219,15 +240,6 @@ class TestPathResolver:
             expected = repo_root / "var" / "workflows" / "morgue"
             assert resolver.morgue_dir == expected
 
-    def test_quarantine_dir_property(self):
-        """Test quarantine_dir property."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            expected = repo_root / "var" / "workflows" / "quarantine"
-            assert resolver.quarantine_dir == expected
-
     def test_prompts_dir_property(self):
         """Test prompts_dir property."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -238,72 +250,28 @@ class TestPathResolver:
             assert resolver.prompts_dir == expected
 
     def test_prompt_method(self):
-        """Test prompt method with various inputs."""
+        """``prompt(name)`` resolves to ``prompts_dir / name`` when the
+        candidate path exists, and raises FileNotFoundError otherwise. No
+        ``.prompt`` extension is appended; no directory components are
+        stripped; backslashes are passed through as literal characters."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Test basic name
-            name = "test_prompt"
-            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
-            assert resolver.prompt(name) == expected
+            # When the prompt path exists, the method returns it.
+            prompt_path = repo_root / "var" / "prompts" / "existing_prompt"
+            prompt_path.mkdir(parents=True)
+            assert resolver.prompt("existing_prompt") == prompt_path
 
-            # Test name with spaces
-            name_with_spaces = "test prompt"
-            expected = repo_root / "var" / "prompts" / "test prompt.prompt"
-            assert resolver.prompt(name_with_spaces) == expected
-
-            # Test name with path separators (should extract basename)
-            name_with_path = "subdir/test_prompt"
-            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
-            assert resolver.prompt(name_with_path) == expected
-
-            # Test name with backslashes
-            name_with_backslash = "subdir\\test_prompt"
-            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
-            assert resolver.prompt(name_with_backslash) == expected
-
-    def test_list_prompts_method_empty_dir(self):
-        """Test list_prompts when prompts directory doesn't exist."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            # Directory doesn't exist
-            assert resolver.list_prompts() == []
-
-    def test_list_prompts_method_with_files(self):
-        """Test list_prompts when prompts directory has files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            # Create prompts directory and some files
-            prompts_dir = repo_root / "var" / "prompts"
-            prompts_dir.mkdir(parents=True)
-
-            # Create some prompt files
-            (prompts_dir / "test1.prompt").touch()
-            (prompts_dir / "test2.prompt").touch()
-            (prompts_dir / "test3.prompt").touch()
-            # Create a non-prompt file to ensure it's filtered out
-            (prompts_dir / "other.txt").touch()
-
-            result = resolver.list_prompts()
-            expected = ["test1", "test2", "test3"]
-            assert result == expected
-
-    def test_work_dir_property(self):
-        """Test work_dir property."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            expected = repo_root / "work"
-            assert resolver.work_dir == expected
+            # When it doesn't exist, FileNotFoundError is raised.
+            with pytest.raises(FileNotFoundError, match="Prompt 'missing'"):
+                resolver.prompt("missing")
 
     def test_validate_structure_all_missing(self):
-        """Test validate_structure when all directories are missing."""
+        """validate_structure surfaces an error per missing required path.
+        The autogen vintage asserted ``errors[-1]`` was the intent_root
+        message, but source's required-paths list now also includes the
+        governance config — that one moves to the tail."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
@@ -313,11 +281,17 @@ class TestPathResolver:
             assert not result.ok
             assert len(result.errors) > 0
             assert "Missing required directory: var/" in result.errors[0]
-            assert "Missing constitutional intent root" in result.errors[-1]
+            # Intent root and governance config are both surfaced; the
+            # governance config now lands last.
+            assert any(
+                "Missing constitutional intent root" in e for e in result.errors
+            )
+            assert "Missing governance config" in result.errors[-1]
             assert "checked_paths" in result.metadata
 
     def test_validate_structure_all_exist(self):
-        """Test validate_structure when all directories exist."""
+        """validate_structure passes only when every required path is on
+        disk — including the governance_config file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
@@ -341,8 +315,10 @@ class TestPathResolver:
                 prop = getattr(resolver, prop_name)
                 prop.mkdir(parents=True, exist_ok=True)
 
-            # Create intent root
+            # Create intent root and governance config file
             resolver.intent_root.mkdir(exist_ok=True)
+            resolver.governance_config_path.parent.mkdir(parents=True, exist_ok=True)
+            resolver.governance_config_path.touch()
 
             result = resolver.validate_structure()
 
@@ -434,9 +410,10 @@ class TestPathResolver:
             with pytest.raises(FileNotFoundError) as exc_info:
                 resolver.policy("nonexistent_policy")
 
-            assert "Constitutional resource 'nonexistent_policy' not found" in str(
-                exc_info.value
-            )
+            # Source raises with format: "Policy '<id>' not found in [...]"
+            # (the autogen vintage's "Constitutional resource '<id>' not found"
+            # message belongs to an earlier API).
+            assert "Policy 'nonexistent_policy' not found" in str(exc_info.value)
 
     def test_policy_method_with_rules_directory(self):
         """Test policy method searches rules directory."""
