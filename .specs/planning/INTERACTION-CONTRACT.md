@@ -107,7 +107,7 @@ When the governor amends the contract mid-session, the amendment takes effect im
 
 This document does not specify:
 - Session bookends (see SESSION-PROTOCOL.md).
-- Coding workflow inside `src/` (see CLAUDE.md and the standing context-build rule in CORE-A3-plan.md).
+- Coding workflow inside `src/` (see CLAUDE.md and SESSION-PROTOCOL.md §3 Step 2 for context-read conventions).
 - The tooling inventory and preference order (see SESSION-PROTOCOL.md §3 Step 2).
 - Lens-specific reasoning conventions — each lens carries its own conventions; the architect adopts them when the lens is named.
 - Conversational tone — this is a technical contract, not a style guide.

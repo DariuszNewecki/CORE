@@ -21,7 +21,8 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.specs/META/` | Schemas governing `.specs/` and `.intent/` documents | Updated when conventions change |
 | `.specs/state/` | Investigations and historical snapshots cited by ADRs or papers | Append-only; dated artifacts |
 | `.specs/commercial/` | Private commercial material (e.g. tech-rep onboarding) | Gitignored; not published |
-| `.specs/planning/CORE-A3-plan.md` | Strategic roadmap — gates, phases, bands, ADR index | Updated when an A3 gate, phase, band, or ADR table entry changes |
+| `.specs/planning/CORE-Operational-Completeness.md` | Operational tracker — ADR-085 5+3 gate (post-A3) | Updated per its §4 rules when a 5+3 feature ships or quality goal advances |
+| `.specs/planning/archive/CORE-A3-plan.md` | Historical — A3 milestone closure record (A3 closed 2026-05-12; archived 2026-06-07) | Frozen content; ADR index in this file ends at ADR-076 |
 | `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
 | `.specs/planning/INTERACTION-CONTRACT.md` | Operating contract between governor and architect | Loaded at session-open Step 1; revised when the contract itself changes |
 | `.intent/` | Runtime governance — constitution, rules, enforcement, workers | Updated as governance evolves |
@@ -128,14 +129,14 @@ Four steps. Most are one-line actions.
 
 **Step 2 — Issues updated.** Close any issues resolved by this session's commits. Confirm labels still accurate on open issues.
 
-**Step 3 — A3 plan maintenance.** If this session changed something the A3 plan tracks, edit `CORE-A3-plan.md`. Triggers and edits:
-- An ADR landed → add a row to "Architectural Decisions Made."
-- A gate status shifted on G1–G4 → update the Status column in "A3 Gates."
-- A phase advanced → update the marker (⬜ / 🔄 / ✅) in "A3 Phases."
-- A band closed → update its line in "Bands."
-- Any of the above → bump "Last updated."
+**Step 3 — Operational tracker maintenance.** A3 is closed (2026-05-12). Post-A3 operational tracking lives in `CORE-Operational-Completeness.md` (ADR-085 5+3). If this session changed something the tracker tracks, edit it per its §4 update rules:
+- A 5+3 feature shipped → update §2.1 Current status + §6 Activity log.
+- A quality goal advanced → update §2.2 first-met date + §6 Activity log.
+- All eight items satisfied → surface to governor for the explicit D5 constraint-relaxation act (see §4 of the tracker).
 
-If nothing the A3 plan tracks changed this session, skip this step. Routine issue closures and commits do not require A3 plan edits — those are reconstructible from Git and GitHub.
+ADR landings are recorded in `.intent/CHANGELOG.md` and `.specs/decisions/` is the canonical ADR record — no separate ADR index is maintained in `planning/`. The archived `CORE-A3-plan.md` ADR index is frozen at ADR-076 (2026-05-29).
+
+If nothing the operational tracker tracks changed this session, skip this step. Routine issue closures and commits do not require tracker edits — those are reconstructible from Git and GitHub.
 
 **Step 4 — Release if warranted.** If a band closed or a major capability milestone landed, cut a GitHub Release with the relevant tag (`vN.N.N` per existing convention). Band closure is the canonical trigger. Release notes are the canonical session summary for bands that ship.
 
@@ -182,7 +183,7 @@ This document does not specify:
 - The interaction contract between governor and architect during active work — see `.specs/planning/INTERACTION-CONTRACT.md`.
 - Coding or designing workflows beyond the session-open/session-close bookends.
 - Issue-label semantics (see the label catalog on GitHub; each label carries its own description).
-- Band definitions or strategic scope (see `CORE-A3-plan.md`).
+- Band definitions or strategic scope (see `archive/CORE-A3-plan.md` for the historical band record; post-A3 scope lives in `CORE-Operational-Completeness.md`).
 
 ---
 

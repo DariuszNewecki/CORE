@@ -1,7 +1,7 @@
 # Data Contracts Inventory
 
 **Path:** `.specs/planning/data-contracts-inventory.md`
-**Date:** 2026-05-17 (status overlay refreshed 2026-05-24)
+**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07 — no Wave 2/3 progress in the interim, see Status section)
 **Status:** Planning artifact — not constitutional
 **Authority:** ADR-056
 
@@ -22,13 +22,19 @@ rule authoring, and mapping authoring across three waves.
 
 Wave 1 has landed substantially. The `.intent/enforcement/contracts/`
 directory currently holds **40 contract files**. The authoritative status
-record is the ADR-056 row in `CORE-A3-plan.md §Architectural Decisions
-Made`; per that record, D1, D2, D3, D5, D6, D7 are complete (2026-05-18),
-and Wave 1 Session 3 (2026-05-19) added ProposalConsequence,
+record is the ADR-056 row in the (now-archived) `archive/CORE-A3-plan.md
+§Architectural Decisions Made`, frozen at 2026-05-19 Wave 1 Session 3;
+per that record, D1, D2, D3, D5, D6, D7 are complete (2026-05-18), and
+Wave 1 Session 3 (2026-05-19) added ProposalConsequence,
 ConstitutionalViolationPayload, and WorkerDeclaration as dataclass +
 contract + governance rule + enforcement mapping triples. D4 (Proposal
 state-conditional contract with `allOf`/`if`/`then` per `ProposalStatus`)
 is the residual Wave 1 follow-up tracked as #367.
+
+**Staleness note (2026-06-07):** no Wave 2 or Wave 3 progress between
+2026-05-24 and 2026-06-07. Full ADR-056 implementation
+(D5→D6→Wave 1→Wave 2→Wave 3) is tracked at #366. The Wave 1/2/3 tables
+below reflect the same status as 2026-05-24.
 
 **Status convention in the tables below:** ✅ in the **Notes** column
 means a contract file exists at `.intent/enforcement/contracts/<name>.json`.
