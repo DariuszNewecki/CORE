@@ -175,7 +175,7 @@ class TestGovernanceClaimsService:
 
     @pytest.mark.asyncio
     async def test_upsert_claims_creates_point_structs_and_returns_count(
-        self, service, mock_qdrant, mock_qdrant
+        self, service, mock_qdrant
     ):
         """upsert_claims should create PointStructs and return the count written."""
         mock_qdrant.client.upsert = AsyncMock()

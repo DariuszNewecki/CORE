@@ -3,9 +3,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from mind.governance.audit_context import AuditorContext
+from mind.logic.engines.base import EngineResult
 from mind.logic.engines.cli_gate.engine import CliGateEngine
-from shared.audit.model import AuditFinding, AuditorContext
-from shared.engine.model import EngineResult
+from shared.models import AuditFinding
 
 
 # ---------------------------------------------------------------------------

@@ -2,11 +2,39 @@
 - Source: src/body/services/crate_creation_service.py
 - Symbol: CrateCreationService
 - Status: 11 tests passed, some failed
-- Passing tests: test_create_intent_crate_success, test_create_intent_crate_custom_type, test_create_intent_crate_empty_payload, test_create_intent_crate_path_validation_failure, test_create_intent_crate_exception_handling, test_validate_payload_paths_valid, test_validate_payload_paths_forbidden_roots, test_validate_payload_paths_traversal, test_generate_crate_id_format, test_to_repo_rel_relative, test_create_intent_crate_manifest_content
 - Generated: 2026-01-11 03:12:44
+- 2026-06-07 (#572 Cat B batch 6): added missing ``service`` fixture. The
+  autogen vintage promised tests against a ``service`` fixture but never
+  emitted the fixture itself — every test errored at collection with
+  "no-fixture:service". Minimal MagicMock-backed CoreContext is enough for
+  the methods exercised below (``validate_payload_paths``,
+  ``_generate_crate_id``, ``_to_repo_rel``); the other tests listed in
+  the autogen header (create_intent_crate/*) require the real file_handler
+  + filesystem fixtures and are not present in this file.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
+
+from body.services.crate_creation_service import CrateCreationService
+
+
+@pytest.fixture
+def service():
+    """Construct CrateCreationService with a minimal mock CoreContext.
+
+    The methods tested below only touch ``self.repo_path`` (set from
+    ``core_context.git_service.repo_path``); ``file_handler`` is not
+    invoked by any of these tests but is stored unconditionally during
+    __init__, so a bare MagicMock satisfies it."""
+    core_context = MagicMock()
+    core_context.git_service.repo_path = Path("/opt/dev/CORE")
+    core_context.file_handler = MagicMock()
+    return CrateCreationService(core_context)
 
 
 class TestCrateCreationService:

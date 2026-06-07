@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from mind.logic.engines.cli_gate.checks.no_layer_exposure import NoLayerExposureCheck
-from mind.logic.engines.cli_gate.models import AuditSeverity
+from shared.models import AuditSeverity
 
 
 @pytest.fixture

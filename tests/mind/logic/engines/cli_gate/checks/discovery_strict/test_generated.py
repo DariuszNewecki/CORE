@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -8,8 +9,8 @@ from mind.logic.engines.cli_gate.checks.discovery_strict import (
     _handler_suppresses_import,
     _node_imports_cli,
 )
-from shared.audit.model import AuditSeverity
-from shared.pathing.path_resolver import PathResolver
+from shared.models import AuditSeverity
+from shared.path_resolver import PathResolver
 
 
 class TestDiscoveryStrictCheck:
@@ -392,7 +393,6 @@ class TestNodeImportsCli:
         code = "importlib.import_module('os')"
         tree = ast.parse(code)
         node = tree.body[0]
-        target_file = tmp_path / "loader.py"
         assert _node_imports_cli(node) is False
 
     def test_nested_cli_import_in_function(self) -> None:

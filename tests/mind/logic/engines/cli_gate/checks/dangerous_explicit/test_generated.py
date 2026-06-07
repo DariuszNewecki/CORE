@@ -1,7 +1,7 @@
 import pytest
 
-from mind.logic.engines.cli_gate.audit_severity import AuditSeverity
 from mind.logic.engines.cli_gate.checks.dangerous_explicit import DangerousExplicitCheck
+from shared.models import AuditSeverity
 
 
 class TestDangerousExplicitCheck:
