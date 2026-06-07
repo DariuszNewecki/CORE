@@ -13,9 +13,15 @@ from body.governance.key_management_service import KeyManagementError
 
 
 def test_key_management_error_inheritance():
-    """Test that KeyManagementError is a subclass of RuntimeError."""
+    """KeyManagementError is now a CoreError subclass (CoreException at
+    root), not RuntimeError as the autogen vintage assumed. MRO is
+    ``KeyManagementError -> CoreError -> CoreException -> Exception``.
+    Test pins the current CoreException-tree heritage."""
+    from shared.exceptions import CoreException
+
     error = KeyManagementError("Test error")
-    assert isinstance(error, RuntimeError)
+    assert isinstance(error, CoreException)
+    assert isinstance(error, Exception)
 
 
 def test_key_management_error_message():

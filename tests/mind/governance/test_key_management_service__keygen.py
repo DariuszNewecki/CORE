@@ -1,36 +1,47 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
-- Source: src/mind/governance/key_management_service.py
+- Source: src/body/governance/key_management_service.py
 - Symbol: keygen
-- Status: 1 tests passed, some failed
-- Passing tests: test_keygen_raises_error_on_existing_key_without_overwrite
 - Generated: 2026-01-11 01:39:19
+- 2026-06-07 (#572 Cat B batch 18): ``keygen`` no longer reads
+  ``module.settings.REPO_PATH`` / ``KEY_STORAGE_DIR`` — its signature is
+  now ``keygen(identity, *, path_resolver, file_service,
+  allow_overwrite=False)`` and storage is derived from the injected
+  ``path_resolver``. The autogen vintage mutated a module-level
+  ``settings`` that no longer exists on the module. Test rewritten to
+  inject mocks for the two DI parameters.
 """
 
-from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from body.governance.key_management_service import keygen
+from body.governance.key_management_service import KeyManagementError, keygen
 
 
 def test_keygen_raises_error_on_existing_key_without_overwrite(tmp_path):
-    """Test that keygen raises KeyManagementError if key exists and allow_overwrite is False."""
-    identity = "test_identity"
-    repo_path = tmp_path / "repo"
-    key_dir = repo_path / ".intent" / "keys"
-    key_file = key_dir / "private.key"
-    key_file.parent.mkdir(parents=True, exist_ok=True)
-    key_file.touch()
-    import body.governance.key_management_service as module
+    """keygen raises KeyManagementError when the target key file already
+    exists and allow_overwrite is False.
 
-    original_repo_path = module.settings.REPO_PATH
-    original_key_dir = module.settings.KEY_STORAGE_DIR
-    try:
-        module.settings.REPO_PATH = Path(repo_path)
-        module.settings.KEY_STORAGE_DIR = Path(key_dir)
-        with pytest.raises(Exception) as exc_info:
-            keygen(identity, allow_overwrite=False)
-        assert "already exists" in str(exc_info.value)
-    finally:
-        module.settings.REPO_PATH = original_repo_path
-        module.settings.KEY_STORAGE_DIR = original_key_dir
+    Source builds the key path as ``<repo_root>/<intent_root rel to
+    repo>/keys/private.key`` (key_management_service.py:48-53). Both
+    ``path_resolver.repo_root`` and ``path_resolver.intent_root`` must be
+    set on the mock so the relative-to computation succeeds."""
+    repo_path = tmp_path / "repo"
+    intent_root = repo_path / ".intent"
+    key_dir = intent_root / "keys"
+    key_dir.mkdir(parents=True, exist_ok=True)
+    (key_dir / "private.key").touch()
+
+    path_resolver = MagicMock()
+    path_resolver.repo_root = repo_path
+    path_resolver.intent_root = intent_root
+    file_service = MagicMock()
+
+    with pytest.raises(KeyManagementError) as exc_info:
+        keygen(
+            "test_identity",
+            path_resolver=path_resolver,
+            file_service=file_service,
+            allow_overwrite=False,
+        )
+    assert "already exists" in str(exc_info.value)

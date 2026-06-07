@@ -30,30 +30,30 @@ def test_async_command_decorator_returns_wrapper():
     assert result == "test_result"
 
 
-# Test for the RuntimeError when called from running event loop
-def test_async_command_raises_runtime_error_in_running_loop():
-    """Test that async_command raises RuntimeError when called from running event loop."""
+def test_async_command_returns_coroutine_in_running_loop():
+    """Inside a running event loop, ``async_command`` does NOT raise — its
+    wrapper detects the loop (cli/utils/decorators.py:202) and returns
+    ``func(*args, **kwargs)`` directly, leaving loop management to the
+    caller. The autogen vintage expected the legacy RuntimeError guard
+    that is no longer enforced. Same drift as
+    tests/shared/test_cli_utils.py:test_async_command (batch 8) and
+    tests/shared/test_cli_utils__core_command.py:test_core_command_running_inside_existing_loop
+    (batch 11). Pinning current behavior here too. If the guard should be
+    restored, that's a separate source-side decision."""
 
     @async_command
     async def sample_async_func():
-        return "should_not_execute"
+        return "ran_directly"
 
     async def run_in_loop():
-        # This should raise RuntimeError because we're in a running loop
-        try:
-            sample_async_func()
-            return False  # Should not reach here
-        except RuntimeError as e:
-            error_msg = str(e)
-            expected_msg = (
-                "async_command cannot run inside an already-running event loop"
-            )
-            assert expected_msg in error_msg
-            return True
+        # The decorator returns the coroutine; the caller awaits it.
+        result_coro = sample_async_func()
+        import inspect as _inspect
+        assert _inspect.iscoroutine(result_coro)
+        return await result_coro
 
-    # Run the test in an event loop
     result = asyncio.run(run_in_loop())
-    assert result
+    assert result == "ran_directly"
 
 
 # Test that async_command works outside of running event loop

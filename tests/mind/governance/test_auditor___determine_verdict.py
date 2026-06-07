@@ -21,8 +21,14 @@ from mind.governance.constitutional_auditor_dynamic import run_dynamic_rules
 from shared.models import AuditFinding, AuditSeverity
 
 
+# 2026-06-07 (#572 batch 18): AuditSeverity enum members are INFO / LOW /
+# MEDIUM / HIGH / BLOCK — no ``ERROR`` member. Source's _determine_verdict
+# constructs ``fail_sevs = {AuditSeverity[name] for name in
+# policy["fail_severities"]}`` (auditor.py:163), so the autogen vintage's
+# ``"ERROR"`` literal raised KeyError. ``BLOCK`` is the canonical blocking
+# severity used by the rule engines.
 _BASE_POLICY = {
-    "fail_severities": ["ERROR"],
+    "fail_severities": ["BLOCK"],
     "ignored_finding_types": ["ENFORCEMENT_FAILURE"],
     "degraded_on": ["any_crashed_rules", "stats_error"],
 }

@@ -193,8 +193,13 @@ class TestIterScopeFiles:
 class TestHealFile:
     @pytest.fixture
     def mock_context(self):
-        ctx = Mock(spec=["git_service", "cognitive_service"])
+        # 2026-06-07 (#572 batch 18): added ``file_handler`` to the spec
+        # list — source's _heal_file writes via
+        # ``context.file_handler.write_runtime_text(...)`` (line 247) in
+        # the non-dry-run path.
+        ctx = Mock(spec=["git_service", "cognitive_service", "file_handler"])
         ctx.git_service.repo_path = "/fake/repo"
+        ctx.file_handler = Mock()
         return ctx
 
     @pytest.fixture
@@ -229,22 +234,31 @@ class TestHealFile:
     async def test_inserts_docstring_for_undocumented(
         self, mock_context, mock_prompt_model, tmp_path
     ):
+        """Source's _heal_file calls ``await prompt_model.invoke(context=...,
+        client=writer_client, user_id=...)`` (line 177), not
+        ``prompt_model.generate(...)`` as the autogen vintage assumed.
+        Patch the correct method on the prompt model — and return the raw
+        generated docstring text directly (source consumes the return value
+        as a string, not as a wrapped choices structure)."""
         mock_context.git_service.repo_path = str(tmp_path)
         file_path = tmp_path / "module.py"
         file_path.write_text("def foo():\n    pass")
         writer_client = AsyncMock()
-        writer_client.generate.return_value = AsyncMock()
-        writer_client.generate.return_value.choices = [
-            Mock(message=Mock(content='"""Generated doc."""'))
-        ]
         with patch.object(
-            mock_prompt_model, "generate", new_callable=AsyncMock
-        ) as mock_generate:
-            mock_generate.return_value = Mock(
-                choices=[Mock(message=Mock(content='"""Generated doc."""'))]
-            )
+            mock_prompt_model, "invoke", new_callable=AsyncMock
+        ) as mock_invoke:
+            mock_invoke.return_value = '"""Generated doc."""'
+            # _heal_file signature is (context, normalized, dry_run, prompt_model,
+            # writer_client) — the autogen vintage passed True for the 3rd arg
+            # thinking it meant "write mode", but it's the dry_run flag. Pass
+            # False so the docstring actually lands and the return reflects
+            # the inserted count.
             result = await _heal_file(
-                mock_context, "module.py", True, mock_prompt_model, writer_client
+                mock_context,
+                "module.py",
+                False,
+                mock_prompt_model,
+                writer_client,
             )
             assert result == 1
 
