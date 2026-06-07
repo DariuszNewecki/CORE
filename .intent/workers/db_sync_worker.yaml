@@ -26,7 +26,11 @@ mandate:
       - knowledge
       - compliance
   schedule:
-    max_interval: 300
+    # Bumped 300 -> 360 per #516's first-cycle finding (observed p95=330.2s
+    # over 24h, n=293). The 300s threshold sat within measurement jitter
+    # of the worker's actual cycle and was a worker.silent false-positive
+    # source. 360 leaves comfortable headroom over observed reality.
+    max_interval: 360
 
 implementation:
   module: will.workers.db_sync_worker

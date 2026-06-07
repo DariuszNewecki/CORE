@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.runtime.worker_max_interval",
         "title": "Worker max_interval Within Observed Cycle Reality",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -12,8 +12,8 @@
     "rules": [
         {
             "id": "runtime.worker_max_interval_within_observed",
-            "statement": "Every active worker's configured `schedule.max_interval` in .intent/workers/<stem>.yaml MUST accommodate the worker's observed cycle reality. The audit aggregates `worker.heartbeat` rows from core.blackboard_entries over a 24h window, computes the p95 gap between consecutive heartbeats per worker_uuid, and fires a finding when observed p95 exceeds configured max_interval × 1.1. Workers with fewer than 10 heartbeat samples in the window are skipped silently — insufficient evidence to make the comparison. The finding includes the configured value, the observed p95, and the bump target so the operator can update the YAML in one read.",
-            "enforcement": "reporting",
+            "statement": "Every active worker's configured `schedule.max_interval` in .intent/workers/<stem>.yaml MUST accommodate the worker's observed cycle reality. The audit aggregates `worker.heartbeat` rows from core.blackboard_entries over a 24h window, computes the p95 gap between consecutive heartbeats per worker_uuid, and fires a finding when observed p95 exceeds configured max_interval x 1.1. Workers with fewer than 10 heartbeat samples in the window are skipped silently — insufficient evidence to make the comparison. The finding includes the configured value, the observed p95, and the bump target so the operator can update the YAML in one read.",
+            "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
             "rationale": "ADR-041 implemented per-worker liveness thresholds via schedule.max_interval, but never validated that configured values match observed cycle reality. As workloads grew, configured-vs-observed drift accumulated silently and surfaced as worker.silent false-positive findings — 9,125 in a 7-day window (62% of all abandons) at the time #516 was filed. The 600s default doesn't fit any of the 10 active workers it's assigned to: average gaps already exceed the threshold. Manual bumps (today's commit 329919d4) don't solve the recurrence problem: values will drift out of fit again as work grows. This rule is the missing invariant ADR-041 should have enforced. The 1.1 multiplier accommodates measurement jitter without papering over drift; the 10-sample minimum prevents alarms during daemon-restart warm-up windows. Configured-vs-observed gap audit runs at reporting until each currently-unfit worker has had its YAML bumped; promotion to blocking follows the ADR-091 D2 ramp once a clean cycle confirms zero violations."
