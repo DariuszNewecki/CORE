@@ -9,18 +9,17 @@ Constitutional Alignment:
 - Validates component contract compliance
 
 V2.3-REBIRTH SCAFFOLD (2026-06-07):
-These tests describe the intended V2 contract (richer than the live source
-implements — compliance_score, remediation_available, governance_boundaries
-scope, suggested_fix field, metadata population). The source is V2 scaffold
-awaiting a concrete Limb consumer per `CORE-V2-Adaptive-Workflow-Pattern.md`
-§5.5 and `CORE-The-Octopus-UNIX-Synthesis.md` §6; auto-discover dispatch via
-`ProcessOrchestrator.run_adaptive()` is unbuilt. Module is skipped here so
-the failing tests do not poison #572's trust surface; tests remain as
-executable spec for when V2.3 lands. Activation tracked at GH #590; verdict
-recorded on #587.
+GH #590 closures 3+4 landed: `repo_root` is DI'd via `__init__` and the
+result contract (compliance_score, remediation_available, per-violation
+suggested_fix, governance_boundaries scope, metadata) matches the spec
+asserted below. Tests are now an executable contract guarding the shape
+the eventual Limb consumer (GH #590 closures 1+2: auto-discover dispatch
++ a concrete Limb command) will bind to.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
@@ -28,21 +27,14 @@ from body.evaluators.constitutional_evaluator import ConstitutionalEvaluator
 from shared.component_primitive import ComponentPhase
 
 
-pytestmark = pytest.mark.skip(
-    reason=(
-        "V2.3-REBIRTH scaffold (GH #590). Tests describe V2 Limb-pattern "
-        "contract richer than current source; auto-discover dispatch is "
-        "unbuilt per V2 Adaptive-Workflow paper §5.5 + Octopus paper §6. "
-        "Activated when GH #590 lands."
-    )
-)
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 # ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
 @pytest.fixture
 def evaluator():
-    """Fixture providing ConstitutionalEvaluator instance."""
-    return ConstitutionalEvaluator()
+    """Fixture providing ConstitutionalEvaluator instance bound to the live repo root."""
+    return ConstitutionalEvaluator(repo_root=_REPO_ROOT)
 
 
 # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
