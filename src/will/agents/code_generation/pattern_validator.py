@@ -245,10 +245,14 @@ class PatternValidator:
         """
         Validate generated code against pattern requirements.
         """
-        # Purity check: Pure/Stateless/Test patterns only need syntax validation.
-        # IntentGuard treats `test_file` as the deliberate no-validator case
-        # (see body/governance/intent_pattern_validators.py); aligned here.
-        if pattern_id in ("pure_function", "stateless_utility", "test_file"):
+        # Purity check: pure_function and stateless_utility have no per-pattern
+        # validator on the body side and only need syntax validation here. Note:
+        # test_file USED to short-circuit too, but post-#574 (7404ace5) the body
+        # side has a real validator (PatternValidators.validate_test_file_pattern
+        # — import resolution + absolute-import discipline). Short-circuiting
+        # test_file from this code path bypassed that gate (issue #583); the
+        # delegation below is now the canonical path for test_file.
+        if pattern_id in ("pure_function", "stateless_utility"):
             try:
                 ast.parse(code)
                 return (True, [])
