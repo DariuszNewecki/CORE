@@ -57,7 +57,7 @@ def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
     description="Format code with ruff format and ruff check",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    remediates=["style.formatter_required"],
+    remediates=["style.formatter_required", "workflow.ruff_format_check"],
 )
 @atomic_action(
     action_id="fix.format",
@@ -207,7 +207,10 @@ async def action_fix_duplicate_ids(
     description="Replace print statements with proper logging",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    remediates=["logic.logging.standard_only"],
+    remediates=[
+        "logic.logging.standard_only",
+        "architecture.channels.logic_no_terminal_rendering",
+    ],
 )
 @atomic_action(
     action_id="fix.logging",
@@ -257,7 +260,7 @@ async def action_fix_logging(
     description="Replace FUTURE/PENDING placeholders",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    remediates=["caps.no_placeholder_text"],
+    remediates=["purity.no_todo_placeholders"],
 )
 @atomic_action(
     action_id="fix.placeholders",
@@ -403,7 +406,7 @@ async def action_fix_placeholders(
     description="Fix atomic actions pattern violations",
     category=ActionCategory.FIX,
     policies=["rules/architecture/atomic_actions"],
-    remediates=["architecture.atomic_actions.must_return_action_result"],
+    remediates=["atomic_actions.must_return_action_result"],
 )
 @atomic_action(
     action_id="fix.atomic_actions",
