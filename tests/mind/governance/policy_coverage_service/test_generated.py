@@ -2,10 +2,21 @@
 Tests for :mod:`~mind.governance.policy_coverage_service`.
 
 Covers the public interface: ``PolicyCoverageReport`` and
-``PolicyCoverageService``.  All symbols referenced here exist in the
-target source file shown in the architectural context.  No symbols from
-other modules are imported without being explicitly present in the
-available dependency section.
+``PolicyCoverageService``.
+
+2026-06-07 (#572 Cat B batch 12):
+- Policy/standards JSON files updated to source's v2 format. Source's
+  ``_discover_rules_via_intent`` (file_path:84) reads:
+    {"id": "<policy_id>", "rules": [{"id": "<rule_id>", "enforcement":
+        "<lvl>", "check": {"engine": {...}}}, ...]}
+  The autogen vintage emitted a flat-per-file shape with ``rule_id`` at
+  the top level; source rejects those files silently (they yield zero
+  rules). ``has_engine`` is now derived from ``check.engine`` presence,
+  not a top-level ``engine`` key.
+- Summary key drift: source emits ``rules_total``, ``rules_enforced``,
+  ``rules_implementable``, ``rules_declared_only``, ``uncovered_error_rules``;
+  the autogen vintage asserted on ``enforced`` / ``implementable`` /
+  ``declared_only``. Assertions updated.
 """
 
 import json
@@ -100,7 +111,7 @@ class TestPolicyCoverageReport:
 
 
 # ---------------------------------------------------------------------------
-# PolicyCoverageService – construction / initialisation
+# PolicyCoverageService - construction / initialisation
 # ---------------------------------------------------------------------------
 
 
@@ -176,13 +187,16 @@ class TestDiscoverRulesViaIntent:
     def test_policy_without_engine_json(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
-        """A rule JSON that lacks an 'engine' key should set ``has_engine`` to False."""
+        """A rule without a ``check.engine`` section has ``has_engine=False``."""
         policy_dir = tmp_path / ".intent" / "policies" / "test_policy"
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r001.json"
         rule_file.write_text(
             json.dumps(
-                {"rule_id": "R001", "enforcement": "mandatory", "policy_id": "P001"}
+                {
+                    "id": "P001",
+                    "rules": [{"id": "R001", "enforcement": "mandatory"}],
+                }
             )
         )
 
@@ -199,17 +213,21 @@ class TestDiscoverRulesViaIntent:
     def test_policy_with_engine_json(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
-        """When engine section present, ``has_engine`` becomes True."""
+        """When ``check.engine`` is present, ``has_engine`` becomes True."""
         policy_dir = tmp_path / ".intent" / "standards" / "my_std"
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "s002.json"
         rule_file.write_text(
             json.dumps(
                 {
-                    "rule_id": "S002",
-                    "enforcement": "advisory",
-                    "policy_id": "STD01",
-                    "engine": {"type": "regex", "pattern": ".*"},
+                    "id": "STD01",
+                    "rules": [
+                        {
+                            "id": "S002",
+                            "enforcement": "advisory",
+                            "check": {"engine": "regex"},
+                        }
+                    ],
                 }
             )
         )
@@ -233,13 +251,19 @@ class TestDiscoverRulesViaIntent:
         pol_file = tmp_path / ".intent" / "policies" / "pol" / "p01.json"
         pol_file.write_text(
             json.dumps(
-                {"rule_id": "P01", "enforcement": "mandatory", "policy_id": "POL"}
+                {
+                    "id": "POL",
+                    "rules": [{"id": "P01", "enforcement": "mandatory"}],
+                }
             )
         )
         std_file = tmp_path / ".intent" / "standards" / "std" / "s01.json"
         std_file.write_text(
             json.dumps(
-                {"rule_id": "S01", "enforcement": "advisory", "policy_id": "STD"}
+                {
+                    "id": "STD",
+                    "rules": [{"id": "S01", "enforcement": "advisory"}],
+                }
             )
         )
 
@@ -319,17 +343,21 @@ class TestRun:
         ev_file = audit_dir / "latest_audit.json"
         ev_file.write_text(json.dumps({"executed_rules": ["R001"]}))
 
-        # Arrange intent: rule declarations
+        # Arrange intent: rule declarations (v2 nested format)
         policy_dir = tmp_path / ".intent" / "policies" / "pol"
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r001.json"
         rule_file.write_text(
             json.dumps(
                 {
-                    "rule_id": "R001",
-                    "enforcement": "mandatory",
-                    "policy_id": "P001",
-                    "engine": {},
+                    "id": "P001",
+                    "rules": [
+                        {
+                            "id": "R001",
+                            "enforcement": "mandatory",
+                            "check": {"engine": "any"},
+                        }
+                    ],
                 }
             )
         )
@@ -343,7 +371,7 @@ class TestRun:
 
         assert isinstance(report, PolicyCoverageReport)
         assert report.repo_root == str(tmp_path)
-        assert report.summary.get("enforced", 0) == 1
+        assert report.summary["rules_enforced"] == 1
 
     def test_implementable_rule_has_engine_but_not_executed(
         self, tmp_path: Path, mock_path_resolver: MagicMock
@@ -360,10 +388,14 @@ class TestRun:
         rule_file.write_text(
             json.dumps(
                 {
-                    "rule_id": "R002",
-                    "enforcement": "mandatory",
-                    "policy_id": "P002",
-                    "engine": {"type": "x"},
+                    "id": "P002",
+                    "rules": [
+                        {
+                            "id": "R002",
+                            "enforcement": "mandatory",
+                            "check": {"engine": "x"},
+                        }
+                    ],
                 }
             )
         )
@@ -375,8 +407,8 @@ class TestRun:
         svc = PolicyCoverageService(path_resolver=mock_path_resolver)
         report = svc.run()
 
-        assert report.summary.get("implementable", 0) == 1
-        assert report.summary.get("enforced", 0) == 0
+        assert report.summary["rules_implementable"] == 1
+        assert report.summary["rules_enforced"] == 0
 
     def test_declared_only_rule_has_no_engine_and_not_executed(
         self, tmp_path: Path, mock_path_resolver: MagicMock
@@ -392,7 +424,10 @@ class TestRun:
         rule_file = policy_dir / "r003.json"
         rule_file.write_text(
             json.dumps(
-                {"rule_id": "R003", "enforcement": "mandatory", "policy_id": "P003"}
+                {
+                    "id": "P003",
+                    "rules": [{"id": "R003", "enforcement": "mandatory"}],
+                }
             )
         )
 
@@ -403,7 +438,7 @@ class TestRun:
         svc = PolicyCoverageService(path_resolver=mock_path_resolver)
         report = svc.run()
 
-        assert report.summary.get("declared_only", 0) == 1
+        assert report.summary["rules_declared_only"] == 1
 
     def test_exit_code_nonzero_when_uncovered_errors_exist(
         self, tmp_path: Path, mock_path_resolver: MagicMock
@@ -420,10 +455,14 @@ class TestRun:
         rule_file.write_text(
             json.dumps(
                 {
-                    "rule_id": "R004",
-                    "enforcement": "error",
-                    "policy_id": "P004",
-                    "engine": {},
+                    "id": "P004",
+                    "rules": [
+                        {
+                            "id": "R004",
+                            "enforcement": "error",
+                            "check": {"engine": "any"},
+                        }
+                    ],
                 }
             )
         )
