@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.governance.remediation",
         "title": "Remediation Map Completeness",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -17,6 +17,14 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "ADR-066. Without a remediation-map entry, ViolationRemediatorWorker silently skips findings via the release_unmappable path; findings age to abandoned within one TTL cycle; blackboard_query_service.py:103 excludes abandoned from the active set by design; the sensor re-emits the finding on the next cycle; the loop runs indefinitely. Peak observed: 4,282 abandoned findings for a single rule (architecture.cli.api_only) in a 48h window. The ADR-038 circuit-breaker does not fire because no proposals are ever created. Scope is reporting rules only — blocking rules are caught at IntentGuard before they reach the audit board and follow a different lifecycle. A DELEGATE or PENDING entry is sufficient to satisfy the invariant; the entry's existence is what closes the loop."
+        },
+        {
+            "id": "governance.remediation.active_routing_claimed_by_action",
+            "statement": "Every entry in .intent/enforcement/remediation/auto_remediation.yaml with status: ACTIVE and an action: field MUST be matched by that action's @register_action(remediates=[…]) declaration claiming the routed rule_id. Entries with status: DELEGATE or status: PENDING are exempt — they exist as placeholders satisfying the ADR-066 mapping invariant, not as autonomous-remediation claims. Entries using flow: instead of action: are exempt — flows do not declare a remediates list.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-095 D5 reset fix.modularity.remediates=[] because the modularity family is architectural-judgment, not autonomous remediation. Three modularity routings in auto_remediation.yaml flipped to DELEGATE/PENDING in the same change. Before that, an ACTIVE routing pointed to an action whose remediates list didn't claim the rule, and the autonomous loop dispatched anyway — proposal 3703c54a was the triage case that surfaced the gap (issue #580). The naive 'every routing must match remediates' framing misfires post-ADR-095: it would flag every legitimate DELEGATE/PENDING placeholder. Restricting the check to ACTIVE entries with action: fields is the load-bearing distinction. This rule is the inverse direction of governance.remediation.all_rules_mapped (this file): that one ensures every reporting rule has SOME entry; this one ensures every ACTIVE entry is honored by its action. Ramp posture: ships at enforcement: reporting per the ADR-091 D2 precedent (verify on one clean audit cycle before promotion). Four pre-existing ACTIVE entries — architecture.channels.logic_no_terminal_rendering → fix.logging, atomic_actions.must_return_action_result → fix.atomic_actions, purity.no_todo_placeholders → fix.placeholders, workflow.ruff_format_check → fix.format — were surfaced at rule-ship time and require per-site governor decision (claim the rule in the action's remediates list, or flip the entry to DELEGATE) before promotion."
         }
     ]
 }

@@ -22,6 +22,7 @@ before the YAML load so the engine never tries to parse Markdown as YAML.
 
 from __future__ import annotations
 
+import ast
 import builtins
 import importlib
 import inspect
@@ -84,6 +85,7 @@ _VOCABULARY_CHECK_TYPES = frozenset(
 _GOVERNANCE_CHECK_TYPES = frozenset(
     {
         "all_rules_mapped",
+        "active_routing_claimed_by_action",
         "namespace_has_drainer",
         "namespace_manifest_completeness",
         "fs_operations_completeness",
@@ -92,6 +94,7 @@ _GOVERNANCE_CHECK_TYPES = frozenset(
 
 _AUTO_REMEDIATION_REL = ".intent/enforcement/remediation/auto_remediation.yaml"
 _RULES_DIR_REL = ".intent/rules"
+_BODY_ATOMIC_REL = "src/body/atomic"
 _DRAINER_REGISTRY_REL = ".intent/enforcement/quarantine/drainer_registry.yaml"
 _NAMESPACE_MANIFEST_REL = ".intent/governance/namespace_manifest.yaml"
 _NAMESPACE_GOVERNED_ROOTS = (".intent", ".specs")
@@ -479,6 +482,143 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
         for rid in sorted(unmapped)
     ]
     return _vocab_result(check, violations)
+
+
+def _extract_register_action_remediates(
+    atomic_dir: Path,
+) -> dict[str, set[str]]:
+    """Walk src/body/atomic/**/*.py AST-only and extract
+    ``{action_id → set(remediates)}`` from every ``@register_action(...)`` call.
+
+    Mind-layer clean: reads source as text, parses with ast, does not import
+    body code. Matches decorator calls where ``func`` is the bare name
+    ``register_action`` (the canonical import shape in body/atomic/*.py).
+    Aliased imports (``register_action as ra``) would not be matched and
+    would surface as a missing action — that is an acceptable false-loud
+    signal (no such alias exists in the tree at the time of writing).
+    """
+    out: dict[str, set[str]] = {}
+    for py in sorted(atomic_dir.rglob("*.py")):
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for deco in node.decorator_list:
+                if not isinstance(deco, ast.Call):
+                    continue
+                if not (
+                    isinstance(deco.func, ast.Name)
+                    and deco.func.id == "register_action"
+                ):
+                    continue
+                action_id: str | None = None
+                remediates: set[str] = set()
+                for kw in deco.keywords:
+                    if kw.arg == "action_id" and isinstance(kw.value, ast.Constant):
+                        if isinstance(kw.value.value, str):
+                            action_id = kw.value.value
+                    elif kw.arg == "remediates" and isinstance(kw.value, ast.List):
+                        for elt in kw.value.elts:
+                            if isinstance(elt, ast.Constant) and isinstance(
+                                elt.value, str
+                            ):
+                                remediates.add(elt.value)
+                if action_id is None:
+                    continue
+                # Merge with any prior collection — a single action_id may
+                # appear in multiple files only if there is a registration
+                # bug (already caught by atomic_actions rules); union here
+                # is defensive but does not mask the duplication.
+                out.setdefault(action_id, set()).update(remediates)
+    return out
+
+
+# ID: 4b0a3793-7764-49ee-8b4c-792bfac236e9
+def _check_active_routing_claimed_by_action(
+    repo_root: Path, check: str
+) -> EngineResult:
+    """Verify every ACTIVE auto_remediation.yaml entry's action declares the rule.
+
+    For each entry under ``mappings:`` with ``status: ACTIVE`` and an
+    ``action:`` field (flow: entries are exempt — see rule statement),
+    verify the action's ``@register_action(remediates=[…])`` declaration
+    in src/body/atomic/**/*.py claims the routed rule_id.
+
+    Pairs with ``governance.remediation.all_rules_mapped``: that rule
+    ensures every reporting rule has SOME entry; this rule ensures every
+    ACTIVE entry is honored by its action (issue #580, ADR-095 D5).
+    """
+    map_file = repo_root / _AUTO_REMEDIATION_REL
+    atomic_dir = repo_root / _BODY_ATOMIC_REL
+
+    if not map_file.exists():
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: auto_remediation.yaml missing at {map_file}",
+            violations=[f"Configuration error: {_AUTO_REMEDIATION_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+    if not atomic_dir.is_dir():
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: atomic dir missing at {atomic_dir}",
+            violations=[f"Configuration error: {_BODY_ATOMIC_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+
+    try:
+        doc = yaml.safe_load(map_file.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: cannot load auto_remediation.yaml: {exc}",
+            violations=[f"Parse error: {exc}"],
+            engine_id=_ENGINE_ID,
+        )
+
+    mappings = (doc or {}).get("mappings") if isinstance(doc, dict) else None
+    if not isinstance(mappings, dict):
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: auto_remediation.yaml has no mappings: dict",
+            violations=[
+                "Structural error: top-level 'mappings:' is missing or not a mapping"
+            ],
+            engine_id=_ENGINE_ID,
+        )
+
+    remediates_by_action = _extract_register_action_remediates(atomic_dir)
+
+    violations: list[str] = []
+    for rule_id, entry in mappings.items():
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("status") != "ACTIVE":
+            continue
+        action_id = entry.get("action")
+        if not isinstance(action_id, str) or not action_id:
+            # flow: entries (or malformed entries with neither) are exempt
+            continue
+        claimed = remediates_by_action.get(action_id)
+        if claimed is None:
+            violations.append(
+                f"ACTIVE entry '{rule_id}' routes to action '{action_id}', "
+                f"but no @register_action(action_id='{action_id}', ...) declaration "
+                f"was found in {_BODY_ATOMIC_REL}/."
+            )
+            continue
+        if rule_id not in claimed:
+            violations.append(
+                f"ACTIVE entry '{rule_id}' routes to action '{action_id}', "
+                f"but '{action_id}'s @register_action(remediates=[…]) does not "
+                f"claim '{rule_id}'. Either add '{rule_id}' to the action's "
+                f"remediates list, or flip the entry to status: DELEGATE / PENDING."
+            )
+
+    return _vocab_result(check, sorted(violations))
 
 
 # ID: 5b8c2d1e-7a4f-4609-bc3a-d8e9f0a1b234
@@ -1059,6 +1199,8 @@ class ArtifactGateEngine(BaseEngine):
 
         if check_type == "all_rules_mapped":
             return _check_all_rules_mapped(repo_root, check_type)
+        if check_type == "active_routing_claimed_by_action":
+            return _check_active_routing_claimed_by_action(repo_root, check_type)
         if check_type == "namespace_has_drainer":
             return await _check_namespace_has_drainer(repo_root, check_type, params)
         if check_type == "namespace_manifest_completeness":
@@ -1129,6 +1271,8 @@ class ArtifactGateEngine(BaseEngine):
         elif check_type in _GOVERNANCE_CHECK_TYPES:
             if check_type == "all_rules_mapped":
                 result = _check_all_rules_mapped(repo_root, check_type)
+            elif check_type == "active_routing_claimed_by_action":
+                result = _check_active_routing_claimed_by_action(repo_root, check_type)
             elif check_type == "namespace_has_drainer":
                 merged_params = {**params, "_context": context}
                 result = await _check_namespace_has_drainer(

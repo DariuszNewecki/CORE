@@ -27,3 +27,18 @@ mappings:
       applies_to:
         - ".intent/enforcement/remediation/auto_remediation.yaml"
         - ".intent/rules/**/*.json"
+
+  # RULE: governance.remediation.active_routing_claimed_by_action
+  # Verifies that every ACTIVE auto_remediation.yaml entry routing a
+  # rule_id to an action_id is honored by that action's
+  # @register_action(remediates=[…]) declaration. DELEGATE / PENDING
+  # entries and flow: entries are exempt — see the rule statement for
+  # the load-bearing distinction (issue #580 + ADR-095 D5).
+  governance.remediation.active_routing_claimed_by_action:
+    engine: artifact_gate
+    params:
+      check_type: active_routing_claimed_by_action
+    scope:
+      applies_to:
+        - ".intent/enforcement/remediation/auto_remediation.yaml"
+        - "src/body/atomic/**/*.py"
