@@ -62,17 +62,22 @@ class ASTGateEngine(BaseEngine):
             self._fs_taxonomy = load_filesystem_operations()
         return self._fs_taxonomy
 
+    # Every check_type listed here MUST have a matching dispatch clause in
+    # ``verify()``. The unknown-check_type guard at the end of verify()
+    # surfaces any drift between this set and the dispatch chain — keep
+    # them aligned. Three aliases (``decorator_args``,
+    # ``write_defaults_false``, ``required_calls``) route through the
+    # ``generic_primitive`` harness with ``selector`` + ``requirement``
+    # params; the rest are first-class entries with their own clauses.
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "generic_primitive",
             "runtime_import_boundary",
-            "linter_compliance",
             "restrict_event_loop_creation",
             "no_import_time_async_singletons",
             "no_module_level_async_engine",
             "no_task_return_from_sync_cli",
             "no_print_statements",
-            "cli_async_helpers_private",
             "test_file_naming",
             "max_file_lines",
             "max_function_length",
@@ -159,6 +164,26 @@ class ASTGateEngine(BaseEngine):
                     params.get("allowed_domains"),
                 )
             )
+
+        elif check_type == "forbidden_assignments":
+            # data.ssot.database_primacy: flag module-level constants that
+            # belong in the database SSOT (LLM_MODELS, AGENT_ROLES, ...).
+            violations.extend(
+                PurityChecks.check_forbidden_assignments(
+                    tree, params.get("targets", [])
+                )
+            )
+
+        elif check_type == "required_decorator":
+            # Wired here for the first time; the check exists on
+            # PurityChecks but had no dispatcher before #588.
+            decorator = params.get("required_decorator") or params.get("decorator")
+            if decorator:
+                violations.extend(
+                    PurityChecks.check_required_decorator(
+                        tree, decorator=decorator, file_path=file_path
+                    )
+                )
 
         elif check_type == "forbidden_decorators":
             violations.extend(
@@ -326,6 +351,22 @@ class ASTGateEngine(BaseEngine):
                     f"Line 1: Missing or incorrect module header. "
                     f"Expected '# src/<path>', got: {first_line!r}"
                 )
+
+        else:
+            # #588: unknown check_type guard. Pre-#588, an unrecognised
+            # name (typo in a rule's params, drift between
+            # _SUPPORTED_CHECK_TYPES and the dispatch chain, or a
+            # cross-engine name like ``linter_compliance`` that belongs
+            # on workflow_gate) silently fell through to the generic
+            # completion return below with zero violations — invisibly
+            # passing every audit. Hard-fail the dispatch instead so the
+            # drift becomes visible at the verdict.
+            return EngineResult(
+                ok=False,
+                message=f"Logic Error: Unknown check_type {check_type!r}",
+                violations=[],
+                engine_id=self.engine_id,
+            )
 
         # 4. FINAL VERDICT
         return EngineResult(

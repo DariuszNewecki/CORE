@@ -154,6 +154,45 @@ class PurityChecks:
         return violations
 
     @staticmethod
+    # ID: 7e1c4d2a-9b6f-4a3e-8c5d-1f2e3a4b5c6d
+    def check_forbidden_assignments(tree: ast.AST, targets: list[str]) -> list[str]:
+        """Flag module-level assignments to forbidden names.
+
+        Used by ``data.ssot.database_primacy`` (governance.yaml) to catch
+        hardcoded operational vocabularies (LLM_MODELS, AGENT_ROLES,
+        SYSTEM_DOMAINS, ...) that should live in the database SSOT
+        instead of as module-level Python constants.
+
+        Matches:
+          - ``NAME = ...`` (ast.Assign with a single Name target)
+          - ``NAME: T = ...`` (ast.AnnAssign with a Name target)
+          - Multiple-assignment targets where any target is a forbidden Name
+            (e.g. ``LLM_MODELS = AGENT_ROLES = {...}``)
+        """
+        forbidden_set = {t.strip() for t in targets if t.strip()}
+        if not forbidden_set:
+            return []
+
+        violations: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in forbidden_set:
+                        violations.append(
+                            f"Line {ASTHelpers.lineno(node)}: Forbidden "
+                            f"assignment to '{target.id}' — operational "
+                            f"vocabulary must live in the database SSOT."
+                        )
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                if node.target.id in forbidden_set:
+                    violations.append(
+                        f"Line {ASTHelpers.lineno(node)}: Forbidden "
+                        f"assignment to '{node.target.id}' — operational "
+                        f"vocabulary must live in the database SSOT."
+                    )
+        return violations
+
+    @staticmethod
     # ID: 5425f58f-517d-4f2e-b0db-1c4638565b73
     def check_no_print_statements(tree: ast.AST) -> list[str]:
         """Enforces standard logging over print()."""

@@ -11,12 +11,19 @@
     * per-check_type message assertions updated to the current canonical
       'AST Check complete: {check_type}' format (was 'AST Gate: Compliant'
       / 'AST Gate: Violations found' in the autogen vintage)
-    * test_verify_unknown_check_type / _empty_check_type / _forbidden_assignments
-      / _write_defaults_false_violation / _decorator_args pin source's
-      current (degenerate) behavior: the unknown / unmapped paths now
-      silently fall through to ok=True with zero violations. See #588 for
-      the source-side gap analysis (missing dispatch + missing final else
-      guard in verify())
+    * test_verify_unknown_check_type / _empty_check_type updated for
+      #588's unknown-check_type guard: source now returns ok=False with a
+      "Logic Error: Unknown check_type ..." message instead of silently
+      completing.
+    * test_verify_forbidden_assignments updated for #588's dispatch wiring
+      — source now flags assignments to forbidden target names (the
+      data.ssot.database_primacy rule in governance.yaml depends on this).
+    * test_verify_write_defaults_false_violation / _decorator_args still
+      pin the generic-primitive alias semantics: source dispatches them
+      through the generic harness, which needs explicit selector +
+      requirement params. The flat-params shape this test passes still
+      yields no violations — that's the alias-without-explicit-params
+      behavior, not a missing dispatch.
 """
 
 from __future__ import annotations
@@ -53,28 +60,29 @@ def tmp_py_file():
 
 @pytest.mark.asyncio
 async def test_verify_unknown_check_type(path_resolver, tmp_py_file):
-    """An unknown check_type silently completes with ok=True (no dispatch
-    clause matches, falls through to the generic completion return). See
-    #588 — the verify() method lacks a final else-guard that would flag
-    unrecognised check_types."""
+    """An unknown check_type is now caught by the #588 final-else guard
+    and returned as a Logic Error verdict. Pre-#588 source silently fell
+    through to a generic "AST Check complete" passing verdict — a
+    typo'd check_type or a name belonging to a different engine would
+    invisibly audit-PASS forever."""
     engine = ASTGateEngine(path_resolver=path_resolver)
     tmp_py_file.write_text("print('test')")
     result = await engine.verify(tmp_py_file, {"check_type": "unknown_check"})
-    assert result.ok
-    assert result.message == "AST Check complete: unknown_check"
+    assert not result.ok
+    assert result.message == "Logic Error: Unknown check_type 'unknown_check'"
     assert result.violations == []
     assert result.engine_id == "ast_gate"
 
 
 @pytest.mark.asyncio
 async def test_verify_empty_check_type(path_resolver, tmp_py_file):
-    """An empty check_type matches no dispatch clause; same fall-through as
-    test_verify_unknown_check_type. See #588."""
+    """An empty check_type matches no dispatch clause; same #588 guard
+    fires as for any unknown name."""
     engine = ASTGateEngine(path_resolver=path_resolver)
     tmp_py_file.write_text("print('test')")
     result = await engine.verify(tmp_py_file, {"check_type": ""})
-    assert result.ok
-    assert result.message == "AST Check complete: "
+    assert not result.ok
+    assert result.message == "Logic Error: Unknown check_type ''"
     assert result.violations == []
     assert result.engine_id == "ast_gate"
 
@@ -121,18 +129,36 @@ async def test_verify_no_print_statements_violation(path_resolver, tmp_py_file):
 
 @pytest.mark.asyncio
 async def test_verify_forbidden_assignments(path_resolver, tmp_py_file):
-    """forbidden_assignments is enumerated in _SUPPORTED_CHECK_TYPES (engine.py
-    line 84) but has no matching dispatch clause — the fall-through returns
-    ok=True with zero violations regardless of input. Pinning current
-    (broken) behavior; see #588 for the source-side bug."""
+    """forbidden_assignments now flags module-level assignments to
+    target names listed in the rule's ``targets`` param. The
+    data.ssot.database_primacy rule in governance.yaml uses this to
+    catch hardcoded operational vocabularies (LLM_MODELS, AGENT_ROLES,
+    SYSTEM_DOMAINS, ...) — see #588 for the source-side fix that wired
+    the dispatch."""
     engine = ASTGateEngine(path_resolver=path_resolver)
     tmp_py_file.write_text("SECRET_KEY = 'abc123'")
     result = await engine.verify(
         tmp_py_file,
         {"check_type": "forbidden_assignments", "targets": ["SECRET_KEY", "API_KEY"]},
     )
-    assert result.ok
+    assert not result.ok
     assert result.message == "AST Check complete: forbidden_assignments"
+    assert len(result.violations) == 1
+    assert "SECRET_KEY" in result.violations[0]
+    assert result.engine_id == "ast_gate"
+
+
+@pytest.mark.asyncio
+async def test_verify_forbidden_assignments_clean(path_resolver, tmp_py_file):
+    """forbidden_assignments returns clean when the file's module-level
+    assignments don't match the forbidden target list."""
+    engine = ASTGateEngine(path_resolver=path_resolver)
+    tmp_py_file.write_text("ALLOWED_NAME = 'fine'\n")
+    result = await engine.verify(
+        tmp_py_file,
+        {"check_type": "forbidden_assignments", "targets": ["LLM_MODELS"]},
+    )
+    assert result.ok
     assert result.violations == []
     assert result.engine_id == "ast_gate"
 
