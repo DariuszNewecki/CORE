@@ -1,22 +1,33 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
 - Source: src/mind/logic/engines/workflow_gate/engine.py
 - Symbol: WorkflowGateEngine
-- Status: 7 tests passed, some failed
-- Passing tests: test_verify_missing_check_type, test_verify_invalid_check_type, test_verify_with_none_file_path, test_verify_exception_handling, test_verify_context_successful_check, test_verify_successful_check, test_verify_with_violations
 - Generated: 2026-01-11 02:27:52
+- 2026-06-07 (#572 Cat B batch 9): WorkflowGateEngine.__init__ now takes
+  path_resolver. Added a module-level path_resolver fixture and threaded
+  it through every construction site.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 from mind.logic.engines.workflow_gate.engine import WorkflowGateEngine
 
 
+@pytest.fixture
+def path_resolver():
+    """Bare MagicMock — the engine's verify() methods exercised below do not
+    consult ``self._paths`` on the dispatch paths tested here."""
+    return MagicMock()
+
+
 @pytest.mark.asyncio
-async def test_verify_missing_check_type():
+async def test_verify_missing_check_type(path_resolver):
     """Test verify with missing check_type parameter."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     file_path = Path("/some/file.txt")
     params = {}
     result = await engine.verify(file_path, params)
@@ -27,9 +38,9 @@ async def test_verify_missing_check_type():
 
 
 @pytest.mark.asyncio
-async def test_verify_invalid_check_type():
+async def test_verify_invalid_check_type(path_resolver):
     """Test verify with unsupported check_type."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     file_path = Path("/some/file.txt")
     params = {"check_type": "invalid_check"}
     result = await engine.verify(file_path, params)
@@ -40,18 +51,18 @@ async def test_verify_invalid_check_type():
 
 
 @pytest.mark.asyncio
-async def test_verify_with_none_file_path():
+async def test_verify_with_none_file_path(path_resolver):
     """Test verify with None file_path."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     params = {"check_type": "test_verification"}
     result = await engine.verify(None, params)
     assert result.engine_id == "workflow_gate"
 
 
 @pytest.mark.asyncio
-async def test_verify_exception_handling():
+async def test_verify_exception_handling(path_resolver):
     """Test that verify handles exceptions from check logic."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     file_path = Path("/some/file.txt")
     original_checks = engine._checks.copy()
 
@@ -75,9 +86,9 @@ async def test_verify_exception_handling():
 
 
 @pytest.mark.asyncio
-async def test_verify_context_successful_check():
+async def test_verify_context_successful_check(path_resolver):
     """Test verify_context with a successful check (no violations)."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     context = None
     original_checks = engine._checks.copy()
 
@@ -97,9 +108,9 @@ async def test_verify_context_successful_check():
 
 
 @pytest.mark.asyncio
-async def test_verify_successful_check():
+async def test_verify_successful_check(path_resolver):
     """Test verify with a successful check (no violations)."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     file_path = Path("/some/file.txt")
     original_checks = engine._checks.copy()
 
@@ -122,9 +133,9 @@ async def test_verify_successful_check():
 
 
 @pytest.mark.asyncio
-async def test_verify_with_violations():
+async def test_verify_with_violations(path_resolver):
     """Test verify with check that returns violations."""
-    engine = WorkflowGateEngine()
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
     file_path = Path("/some/file.txt")
     original_checks = engine._checks.copy()
 
