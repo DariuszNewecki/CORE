@@ -13,19 +13,7 @@ import asyncio
 import json
 from pathlib import Path
 
-import pytest
-
 from mind.logic.engines.artifact_gate import ArtifactGateEngine
-
-
-_ENGINE_SINGLETON_REASON = (
-    "Tracked at GH #591. artifact_gate._check_all_rules_mapped accepts "
-    "repo_root as a parameter but uses get_intent_repository() singleton "
-    "for the actual rules + map loads (artifact_gate.py:442-447,450). Tests "
-    "that build a synthetic .intent/ tree at tmp_path are silently ignored "
-    "— the engine reads the live repository instead. Unskip when #591 "
-    "lands."
-)
 
 
 def _build_repo(
@@ -96,7 +84,6 @@ def test_all_mapped_passes(tmp_path: Path) -> None:
     assert result.ok, f"expected pass, got violations: {result.violations}"
 
 
-@pytest.mark.skip(reason=_ENGINE_SINGLETON_REASON)
 def test_unmapped_reporting_rule_fails(tmp_path: Path) -> None:
     repo = _build_repo(
         tmp_path,
@@ -139,7 +126,6 @@ def test_inactive_document_excluded_from_scope(tmp_path: Path) -> None:
     assert result.ok
 
 
-@pytest.mark.skip(reason=_ENGINE_SINGLETON_REASON)
 def test_multiple_unmapped_all_reported(tmp_path: Path) -> None:
     repo = _build_repo(
         tmp_path,

@@ -26,6 +26,7 @@ import ast
 import builtins
 import importlib
 import inspect
+import json
 import re
 import sys
 from pathlib import Path
@@ -420,6 +421,12 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
     ADR-066: rules with no remediation-map entry produce a silent
     abandoned-finding re-emission loop. Scope is reporting rules only
     — blocking rules fire pre-commit and do not enter the audit loop.
+
+    Reads from the passed repo_root directly rather than via the
+    `get_intent_repository()` singleton (#591). The singleton is bound to
+    the live process repo, so synthetic test fixtures at tmp_path and OEM
+    consumer forks could not exercise the check against their own .intent/
+    tree. Direct filesystem walk via `repo_root` honours the parameter.
     """
     map_file = repo_root / _AUTO_REMEDIATION_REL
     rules_dir = repo_root / _RULES_DIR_REL
@@ -439,22 +446,15 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
             engine_id=_ENGINE_ID,
         )
 
-    repo = get_intent_repository()
     mapped_ids: set[str] = set(
-        _MAPPING_KEY_RE.findall(
-            repo.load_text(_AUTO_REMEDIATION_REL.removeprefix(".intent/"))
-        )
+        _MAPPING_KEY_RE.findall(map_file.read_text(encoding="utf-8"))
     )
 
     unmapped: list[str] = []
-    for ref in sorted(repo.list_policies(), key=lambda r: r.policy_id):
-        if not ref.policy_id.startswith("rules/"):
-            continue
-        if ref.path.suffix != ".json":
-            continue
+    for rule_path in sorted(rules_dir.rglob("*.json")):
         try:
-            doc = repo.load_document(ref.path)
-        except GovernanceError:
+            doc = json.loads(rule_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
             # Defensive: a malformed rule document is a separate failure mode,
             # not this rule's concern. Skip silently — other validators flag it.
             continue
