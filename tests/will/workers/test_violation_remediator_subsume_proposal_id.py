@@ -36,10 +36,11 @@ def _prime_service_registry() -> None:
 async def _ensure_blackboard_table(session: AsyncSession) -> None:
     """Create core.blackboard_entries if it is missing in the test DB.
 
-    The production schema includes an FK on worker_uuid that the SQLAlchemy
-    model does not declare; create_all therefore creates the table without
-    that constraint, which is what this test wants — the worker_uuid here
-    is synthetic and need not refer to worker_registry.
+    The live test DB enforces FK on worker_uuid → worker_registry plus a
+    CHECK on resolution_mechanism (ADR-091 D2 Revision B). Both constraints
+    exist regardless of what create_all reproduces; see
+    _ensure_worker_registry_row and the resolution_mechanism column on the
+    INSERT below.
     """
     await session.execute(text("CREATE SCHEMA IF NOT EXISTS core"))
     conn = await session.connection()
@@ -48,6 +49,26 @@ async def _ensure_blackboard_table(session: AsyncSession) -> None:
         checkfirst=True,
     )
     await session.commit()
+
+
+async def _ensure_worker_registry_row(
+    session: AsyncSession, worker_uuid: uuid.UUID
+) -> None:
+    """Seed a worker_registry row to satisfy blackboard_entries FK."""
+    await session.execute(
+        text(
+            """
+            INSERT INTO core.worker_registry
+                (worker_uuid, worker_name, worker_class, phase)
+            VALUES (:worker_uuid, :worker_name, 'sensing', 'audit')
+            ON CONFLICT (worker_uuid) DO NOTHING
+            """
+        ),
+        {
+            "worker_uuid": worker_uuid,
+            "worker_name": f"test_subsume_{str(worker_uuid)[:8]}",
+        },
+    )
 
 
 async def test_resolve_entries_records_subsuming_proposal_id(
@@ -78,15 +99,18 @@ async def test_resolve_entries_records_subsuming_proposal_id(
         "rule": "workflow.ruff_format_check",
     }
 
+    await _ensure_worker_registry_row(db_session, worker_uuid)
+
     insert_sql = text(
         """
         INSERT INTO core.blackboard_entries
             (id, worker_uuid, entry_type, phase, status, subject, payload,
-             claimed_by, claimed_at)
+             resolution_mechanism, claimed_by, claimed_at)
         VALUES
             (:id, :worker_uuid, 'finding', :phase, 'claimed',
              'audit.violation::workflow.ruff_format_check',
-             cast(:payload as jsonb), :worker_uuid, now())
+             cast(:payload as jsonb), 'reaudit',
+             :worker_uuid, now())
         """
     )
 

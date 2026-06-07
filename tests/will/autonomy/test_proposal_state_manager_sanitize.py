@@ -21,6 +21,10 @@ from will.autonomy.proposal_state_manager import ProposalStateManager
 
 
 def _draft_row(proposal_id: str) -> AutonomousProposal:
+    # approval_authority pre-set on the draft so mark_completed's transition
+    # to 'completed' satisfies the approval_authority_required_when_approved
+    # CHECK; mark_failed does not require it (status='failed' is outside the
+    # constraint's enforced status set).
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="sanitize() unit test",
@@ -29,6 +33,7 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
         scope={"files": [], "modules": [], "symbols": [], "policies": []},
         constitutional_constraints={},
         approval_required=False,
+        approval_authority="risk_classification.safe_auto_approval",
         created_at=datetime.now(UTC),
     )
 
