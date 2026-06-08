@@ -10,6 +10,7 @@ Covers:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from sqlalchemy import text
@@ -23,6 +24,63 @@ from shared.workers.schedule import load_worker_schedule_state
 logger = getLogger(__name__)
 
 _CFG = load_operational_config().health_log
+
+# F-19 convergence CTE (#563). Single source of truth — also imported by
+# `src/cli/resources/runtime/health.py` for the live dashboard panel so the
+# persisted time series in `core.system_health_log.payload` and the live
+# dashboard agree on counts.
+#
+# Counts are by DISTINCT subject, not row, so the per-cycle recycling firehose
+# does not amplify flow. `abandoned` is split per memory
+# `reference_blackboard_abandoned_two_semantics` (governor decision 2026-06-04,
+# Option A on #563):
+#   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
+#     *.cycle_error, *.scope_collision::*, loop_hold.sample::*,
+#     coherence.violation_executor.blast_bound) folds into `resolved` as
+#     resolved-by-policy.
+#   - Type B (python::* audit-violation rows abandoned by violation_executor)
+#     goes to `stuck` — the real "daemon cannot self-heal" signal.
+#
+# total_open counts `'open'` plus `'indeterminate'` with
+# `resolution_mechanism = 'reaudit'` (post-ADR-091 D2 the reaudit queue lives in
+# the `indeterminate` status + resolution_mechanism field, not the retired
+# `'awaiting_reaudit'` status name).
+F19_CONVERGENCE_SQL = """
+WITH window_data AS (
+    SELECT
+        subject,
+        MIN(created_at) AS first_seen,
+        BOOL_OR(status = 'resolved' AND resolved_at >= :cutoff) AS resolved_in_window,
+        BOOL_OR(status = 'abandoned' AND resolved_at >= :cutoff) AS abandoned_in_window,
+        BOOL_OR(
+            status = 'open'
+            OR (status = 'indeterminate' AND resolution_mechanism = 'reaudit')
+        ) AS is_open,
+        MAX(CASE
+            WHEN subject LIKE 'worker.silent::%' THEN 'type_a'
+            WHEN subject = 'worker.error' THEN 'type_a'
+            WHEN subject LIKE '%.cycle_error' THEN 'type_a'
+            WHEN subject LIKE '%.scope_collision::%' THEN 'type_a'
+            WHEN subject LIKE 'loop_hold.sample::%' THEN 'type_a'
+            WHEN subject = 'coherence.violation_executor.blast_bound' THEN 'type_a'
+            ELSE 'type_b'
+        END) AS classification
+    FROM core.blackboard_entries
+    WHERE entry_type = 'finding'
+    GROUP BY subject
+)
+SELECT
+    COUNT(*) FILTER (WHERE first_seen >= :cutoff) AS created_24h,
+    COUNT(*) FILTER (
+        WHERE resolved_in_window
+           OR (abandoned_in_window AND classification = 'type_a')
+    ) AS resolved_24h,
+    COUNT(*) FILTER (
+        WHERE abandoned_in_window AND classification = 'type_b'
+    ) AS stuck_24h,
+    COUNT(*) FILTER (WHERE is_open) AS total_open
+FROM window_data
+"""
 
 
 # ID: 1c26b39c-f6d2-4bee-a65c-bb24071ea25c
@@ -51,30 +109,25 @@ class HealthLogService:
           - ObserverWorker._count_silent_workers
           - ObserverWorker._count_orphaned_symbols
         """
-        from datetime import UTC, datetime
+        from datetime import UTC, datetime, timedelta
 
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
-            # Exclusion list, not inclusion: open_findings counts everything
-            # that is NOT terminal/parked. 'awaiting_reaudit' (ADR-045) is
-            # intentionally absent from the exclusion list — those rows
-            # represent unresolved work awaiting sensor adjudication, and
-            # should remain visible in the trajectory.
-            # F-19 Finding #4 (#563): COUNT(DISTINCT subject) — the per-cycle
-            # row-recycling firehose otherwise inflates this 2x+ vs reality.
+            # F-19 (#563): "still-open work" is `'open'` plus `'indeterminate'`
+            # with `resolution_mechanism = 'reaudit'` — the post-ADR-091 D2
+            # reaudit queue. The retired `'awaiting_reaudit'` status name no
+            # longer exists in the schema. COUNT(DISTINCT subject) so the
+            # per-cycle row-recycling firehose does not amplify (#4).
             r = await session.execute(
                 text(
                     """
                     SELECT COUNT(DISTINCT subject) FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
-                      AND status NOT IN (
-                          'resolved',
-                          'abandoned',
-                          'suppressed',
-                          'dry_run_complete',
-                          'deferred_to_proposal',
-                          'indeterminate'
+                      AND (
+                          status = 'open'
+                          OR (status = 'indeterminate'
+                              AND resolution_mechanism = 'reaudit')
                       )
                     """
                 )
@@ -85,13 +138,10 @@ class HealthLogService:
                 text(
                     """
                     SELECT COUNT(*) FROM core.blackboard_entries
-                    WHERE status NOT IN (
-                          'resolved',
-                          'abandoned',
-                          'suppressed',
-                          'dry_run_complete',
-                          'deferred_to_proposal',
-                          'indeterminate'
+                    WHERE (
+                          status = 'open'
+                          OR (status = 'indeterminate'
+                              AND resolution_mechanism = 'reaudit')
                       )
                       AND created_at < now() - make_interval(secs => :threshold)
                     """
@@ -99,6 +149,21 @@ class HealthLogService:
                 {"threshold": stale_threshold_seconds},
             )
             stale_entries: int = r.scalar() or 0
+
+            # F-19 flow rates (#563): persist `created_24h`, `resolved_24h`,
+            # `stuck_24h`, `total_open` into the time series so the 30-day
+            # sustained-window quality goal is observable from
+            # `core.system_health_log.payload`, not only reconstructable from
+            # the live dashboard.
+            cutoff_24h = datetime.now(UTC) - timedelta(hours=24)
+            r = await session.execute(text(F19_CONVERGENCE_SQL), {"cutoff": cutoff_24h})
+            row = r.fetchone()
+            flow_24h: dict[str, int] = {
+                "created": row.created_24h if row else 0,
+                "resolved": row.resolved_24h if row else 0,
+                "stuck": row.stuck_24h if row else 0,
+                "total_open": row.total_open if row else 0,
+            }
 
             # silent_workers per ADR-041 D2/D3: per-worker thresholds from
             # the shared schedule loader, plus orphan-skip. Same canonical
@@ -133,6 +198,7 @@ class HealthLogService:
             "stale_entries": stale_entries,
             "silent_workers": silent_workers,
             "orphaned_symbols": orphaned_symbols,
+            "flow_24h": flow_24h,
             "observed_at": datetime.now(UTC).isoformat(),
         }
 
@@ -164,6 +230,6 @@ class HealthLogService:
                         "stale_entries": state["stale_entries"],
                         "silent_workers": state["silent_workers"],
                         "orphaned_symbols": state["orphaned_symbols"],
-                        "payload": "{}",
+                        "payload": json.dumps({"flow_24h": state.get("flow_24h", {})}),
                     },
                 )

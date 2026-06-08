@@ -30,6 +30,7 @@ from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import text
 
+from body.services.health_log_service import F19_CONVERGENCE_SQL
 from body.services.worker_registry_service import WorkerRegistryService
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
@@ -376,67 +377,14 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
 
     # --- Panel 1: Convergence Direction ---
-    # F-19 honest convergence (#563): counts are by DISTINCT subject, not row,
-    # so the per-cycle recycling firehose doesn't amplify flow.
-    # `abandoned` is split per memory `reference_blackboard_abandoned_two_semantics`
-    # (governor decision 2026-06-04, Option A on #563):
-    #   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
-    #     *.cycle_error, *.scope_collision::*, loop_hold.sample::*,
-    #     coherence.violation_executor.blast_bound) folds into `resolved` as
-    #     resolved-by-policy. The loop_hold.sample::* class was added
-    #     2026-06-06: it is the ADR-081 D7 worker_process_classification
-    #     telemetry stream (operational_config.telemetry_subject_prefixes;
-    #     emitted by runtime_gate.py:188) — explicitly sensor-by-design, not
-    #     stuck remediation. Without this class it accounted for ~96% of
-    #     Panel 4's "abandoned" headline (8,437 rows / 25 distinct subjects
-    #     recycling ~337x/subject). The coherence.violation_executor.blast_bound
-    #     class was added 2026-06-06 as a sibling fix: per ADR-070 D8 the
-    #     writer-as-sensor pattern posts an OPEN finding every cycle the
-    #     per-cycle cap fires (audit-trail record per its rule body), not a
-    #     stuck-remediation signal. Without this class, a chronically
-    #     saturated cap accumulated ~100 OPEN rows of one subject and
-    #     dominated the inbox under "Delegate (indeterminate)."
-    #   - Type B (python::* audit-violation rows abandoned by violation_executor) goes to
-    #     `stuck` — the real "daemon cannot self-heal" signal, kept outside both
-    #     created and resolved.
-    # total_open counts both 'open' and 'awaiting_reaudit' (ADR-045):
-    # the quarantine queue is unresolved work pending sensor adjudication,
-    # not terminal state.
+    # F-19 honest convergence (#563). The CTE lives in
+    # `body.services.health_log_service.F19_CONVERGENCE_SQL` as the single
+    # source of truth — also used by `ObserverWorker` to persist the same
+    # counts into `core.system_health_log.payload` so the live dashboard and
+    # the 30-day time series agree.
     row = (
         await session.execute(
-            text("""
-            WITH window_data AS (
-                SELECT
-                    subject,
-                    MIN(created_at) AS first_seen,
-                    BOOL_OR(status = 'resolved' AND resolved_at >= :cutoff) AS resolved_in_window,
-                    BOOL_OR(status = 'abandoned' AND resolved_at >= :cutoff) AS abandoned_in_window,
-                    BOOL_OR(status IN ('open', 'awaiting_reaudit')) AS is_open,
-                    MAX(CASE
-                        WHEN subject LIKE 'worker.silent::%' THEN 'type_a'
-                        WHEN subject = 'worker.error' THEN 'type_a'
-                        WHEN subject LIKE '%.cycle_error' THEN 'type_a'
-                        WHEN subject LIKE '%.scope_collision::%' THEN 'type_a'
-                        WHEN subject LIKE 'loop_hold.sample::%' THEN 'type_a'
-                        WHEN subject = 'coherence.violation_executor.blast_bound' THEN 'type_a'
-                        ELSE 'type_b'
-                    END) AS classification
-                FROM core.blackboard_entries
-                WHERE entry_type = 'finding'
-                GROUP BY subject
-            )
-            SELECT
-                COUNT(*) FILTER (WHERE first_seen >= :cutoff) AS created_24h,
-                COUNT(*) FILTER (
-                    WHERE resolved_in_window
-                       OR (abandoned_in_window AND classification = 'type_a')
-                ) AS resolved_24h,
-                COUNT(*) FILTER (
-                    WHERE abandoned_in_window AND classification = 'type_b'
-                ) AS stuck_24h,
-                COUNT(*) FILTER (WHERE is_open) AS total_open
-            FROM window_data
-            """),
+            text(F19_CONVERGENCE_SQL),
             {"cutoff": cutoff_24h},
         )
     ).fetchone()
