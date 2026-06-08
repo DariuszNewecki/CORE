@@ -242,6 +242,27 @@ class FileHandler:
         abs_path.unlink(missing_ok=True)
         return FileOpResult("success", "File removed", rel_path)
 
+    # ID: ab634226-9e62-4748-9fd5-d3e6c68d2a7a
+    def create_symlink(self, rel_path: str, target: str | Path) -> FileOpResult:
+        """Create a symlink at ``rel_path`` (repo-relative) pointing at ``target``.
+
+        Routes symlink creation through the single FS write channel
+        (ADR-097 D4) so the audit chokepoint sees it. ``target`` may be any
+        path on the filesystem; only the symlink location is repo-relative.
+        Target-class is resolved from ``rel_path`` per ADR-097 D2 — the
+        typical caller (shadow tree materialization) lands under
+        ``var/tmp/`` which classifies as ``ephemeral-scratch``.
+        """
+        rel_path = rel_path.strip().removeprefix("./")
+        target_class = resolve_target_class(rel_path)
+        self._guard_paths(
+            [rel_path],
+            target_classes={rel_path: target_class},
+        )
+        abs_path = self._resolve_repo_path(rel_path)
+        abs_path.symlink_to(target)
+        return FileOpResult("success", "Symlink created", rel_path)
+
     # ID: 443bb5d6-306d-4d03-ab69-762cc14b1eb3
     def remove_tree(self, rel_dir: str) -> FileOpResult:
         rel_dir = rel_dir.strip().removeprefix("./").strip("/")
