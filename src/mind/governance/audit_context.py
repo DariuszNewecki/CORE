@@ -412,32 +412,18 @@ class AuditorContext:
                     self._file_list_cache.append(p)
                     self._rel_path_map[p] = rel_posix
 
-        exclude_patterns = set(exclude_list)
+        # #593 fix: delegate exclude matching to _include_matches so the
+        # include and exclude sides agree on `**` zero-directory semantics.
+        # The previous bespoke logic used `endswith("/" + suffix)` literally
+        # against suffixes that still contained glob metacharacters (e.g.
+        # `"*.py"`), so exclude patterns of the shape `prefix/**/*.py`
+        # silently failed and the sensor kept re-emitting findings on
+        # excluded files. The matcher at module scope already handles
+        # `**/` and `/**` zero-directory expansion correctly.
+        exclude_patterns = {pat.replace("\\", "/") for pat in exclude_list}
 
         def _is_excluded(rel_posix: str) -> bool:
-            for pat in exclude_patterns:
-                pat = pat.replace("\\", "/")
-                if "**" not in pat:
-                    if fnmatch.fnmatch(rel_posix, pat):
-                        return True
-                    continue
-                parts = pat.split("**")
-                if not any(parts):
-                    return True
-                if parts[0]:
-                    prefix = parts[0].rstrip("/")
-                    if not (rel_posix.startswith(prefix + "/") or rel_posix == prefix):
-                        continue
-                if parts[-1] and parts[-1] not in ("", "/"):
-                    suffix = parts[-1].lstrip("/")
-                    if not (rel_posix.endswith("/" + suffix) or rel_posix == suffix):
-                        continue
-                mid_parts = [p.strip("/") for p in parts[1:-1] if p.strip("/")]
-                if mid_parts:
-                    if not all(mp in rel_posix for mp in mid_parts):
-                        continue
-                return True
-            return False
+            return any(_include_matches(rel_posix, pat) for pat in exclude_patterns)
 
         matched: set[Path] = set()
         for inc_pattern in include_list:

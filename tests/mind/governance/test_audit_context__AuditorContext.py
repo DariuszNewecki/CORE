@@ -29,7 +29,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mind.governance.audit_context import AuditorContext
+from mind.governance.audit_context import AuditorContext, _include_matches
 
 
 def test_auditor_context_initialization():
@@ -124,3 +124,35 @@ def test_load_governance_resources_failure():
         resources = context._load_governance_resources()
         assert resources == {}
         mock_logger.error.assert_called()
+
+
+@pytest.mark.parametrize(
+    "rel_posix, pattern, expected",
+    [
+        # #593 regression: `prefix/**/*.py` exclude must match files inside
+        # nested subdirectories. The pre-fix `_is_excluded` used literal
+        # `endswith("/*.py")` against the suffix and silently failed to
+        # match — the audit sensor re-emitted findings on excluded files.
+        ("src/mind/coherence/checks/specgap.py", "src/mind/coherence/**/*.py", True),
+        ("src/mind/coherence/checks/vocabulary.py", "src/mind/coherence/**/*.py", True),
+        # Zero-intermediate-directory case explicitly preserved by
+        # `_include_matches`'s `**/` collapse fallback.
+        ("src/mind/coherence/checker.py", "src/mind/coherence/**/*.py", True),
+        # Sibling tree must remain unaffected.
+        ("src/cli/commands/daemon.py", "src/mind/coherence/**/*.py", False),
+        # Bare-path exclude regression guard.
+        ("src/cli/commands/daemon.py", "src/cli/commands/daemon.py", True),
+        # Trailing-`**` prefix exclude.
+        (
+            "src/shared/infrastructure/intent/loader.py",
+            "src/shared/infrastructure/intent/**",
+            True,
+        ),
+    ],
+)
+def test_include_matches_handles_double_star_globs(rel_posix, pattern, expected):
+    """`_include_matches` is the single source of truth for include AND
+    exclude scope matching after #593. The exclude path of `get_files`
+    delegates here; this test pins the matcher behaviour that the audit
+    sensor relies on."""
+    assert _include_matches(rel_posix, pattern) is expected
