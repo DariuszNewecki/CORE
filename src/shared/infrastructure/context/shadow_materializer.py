@@ -136,7 +136,9 @@ def _materialize_top_level(
         if entry.name == "var":
             _materialize_var_dir(entry, shadow_root / "var", repo_root, file_handler)
             continue
-        (shadow_root / entry.name).symlink_to(entry)
+        file_handler.create_symlink(
+            str((shadow_root / entry.name).relative_to(repo_root)), entry
+        )
 
 
 def _materialize_var_dir(
@@ -155,7 +157,9 @@ def _materialize_var_dir(
     for child in real_var.iterdir():
         if child.name == "tmp":
             continue
-        (shadow_var / child.name).symlink_to(child)
+        file_handler.create_symlink(
+            str((shadow_var / child.name).relative_to(repo_root)), child
+        )
 
 
 def _materialize_src_tree(
@@ -192,7 +196,7 @@ def _materialize_src_tree(
             continue
         shadow_file = shadow_root / rel
         file_handler.ensure_dir(str(shadow_file.parent.relative_to(repo_root)))
-        shadow_file.symlink_to(real_file)
+        file_handler.create_symlink(str(shadow_file.relative_to(repo_root)), real_file)
 
 
 def _overlay_non_src_crate_files(
