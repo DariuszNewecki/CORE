@@ -238,3 +238,35 @@ replaced. The predicate framework was rejected in favour of an
 operational stop/start protocol (immediate) and a worktree sandbox
 (architectural). The incident context and gap analysis are preserved
 unchanged as they remain the accurate historical record.*
+
+---
+
+### Note 2026-06-08 — D2.2 `write_validated_bytes` carveout retired by ADR-097 step 6
+
+The named `FileHandler.write_validated_bytes` surface introduced for
+D2.2 sandbox propagation (described above in the D2.2 narrative) has
+been retired. Sandbox propagation now routes through the unified
+`FileHandler.write` channel established by ADR-097 D4. The retirement
+is principled rather than mechanical: the bypass was an *optimization*
+(skip duplicate validation that the sandboxed action had already
+passed), not a *semantic requirement*. On bytes-identical propagation
+against unchanged `.intent/` state, IntentGuard's repo-source tier is
+idempotent — re-validation passes cleanly.
+
+The D2.2 safety properties survive:
+- Path-escape protection moves from the (deleted) `write_validated_bytes`
+  body to `FileHandler._resolve_repo_path`, which the unified `write`
+  channel calls before any filesystem write.
+- The loud-failure conflict check in `SandboxLifecycle.propagate_changes`
+  is unchanged.
+- The single-trust-boundary invariant (only `ActionExecutor` reaches
+  the propagation path) is unchanged.
+
+What dissolves: the `governance.chokepoint.write_validated_bytes_sole_caller`
+audit rule planned by ADR-079 D8 has no remaining surface to guard. ADR-079
+D8 itself is superseded by this retirement; see ADR-097's 2026-06-08 step-6
+Note for the realized shape and the cross-ADR follow-up.
+
+The D2.2 narrative text above is preserved as-written per
+[[append-only-adr-closure-marker]] — readers consulting D2.2 should follow
+this Note for the realized surface.

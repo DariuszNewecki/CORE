@@ -121,10 +121,10 @@ class RemediationEvidenceWriter:
         }
 
         rel_path = str(evidence_path.relative_to(self.repo_root))
-        self.file_handler.write_runtime_json(rel_path, evidence)
+        self.file_handler.write_json(rel_path, evidence)
 
         rel_latest = str(latest_path.relative_to(self.repo_root))
-        self.file_handler.write_runtime_json(rel_latest, evidence)
+        self.file_handler.write_json(rel_latest, evidence)
 
         logger.info("Evidence written to: %s", evidence_path)
         return evidence_path

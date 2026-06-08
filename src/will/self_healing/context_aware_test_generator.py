@@ -287,11 +287,11 @@ class ContextAwareTestGenerator:
         error_file_rel = f"work/testing/failures/test_{symbol_name}_{ts}.error.txt"
 
         try:
-            result = self.file_handler.write_runtime_text(test_file_rel, test_code)
+            result = self.file_handler.write(test_file_rel, test_code)
             if result.status != "success":
                 raise RuntimeError(f"Governance rejected write: {result.message}")
 
-            result = self.file_handler.write_runtime_text(error_file_rel, error)
+            result = self.file_handler.write(error_file_rel, error)
             if result.status != "success":
                 raise RuntimeError(f"Governance rejected write: {result.message}")
         except Exception as exc:

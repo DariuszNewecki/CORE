@@ -135,6 +135,6 @@ Generate comprehensive test cases."""
             timestamp = int(time.time())
             filename = f"{name}_{timestamp}.txt"
             artifact_rel = f"work/testing/debug/{filename}"
-            self.file_handler.write_runtime_text(artifact_rel, content)
+            self.file_handler.write(artifact_rel, content)
         except Exception:
             pass

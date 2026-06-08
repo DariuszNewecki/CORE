@@ -336,11 +336,11 @@ async def run_sync_audit(
 
     timestamp_str = finished_at.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    file_service.write_file(findings_file, json.dumps(processed_findings, indent=2))
-    file_service.write_file(
+    file_service.write(findings_file, json.dumps(processed_findings, indent=2))
+    file_service.write(
         ignored_md, build_auto_ignored_markdown(timestamp_str, ignored_data)
     )
-    file_service.write_runtime_json(
+    file_service.write_json(
         ignored_json, {"generated_at": timestamp_str, "items": ignored_data}
     )
 
@@ -352,7 +352,7 @@ async def run_sync_audit(
         "executed_rules": common_payload["executed_rule_ids"],
         "verdict": verdict_str,
     }
-    file_service.write_file(evidence_file, json.dumps(evidence, indent=2))
+    file_service.write(evidence_file, json.dumps(evidence, indent=2))
 
     logger.info(
         "audit_runner: sync %s completed verdict=%s findings=%d blocking=%d "

@@ -7,12 +7,15 @@ step of ADR-097 (Migration step 4) — any behavior change relative
 to these tests is a regression and must be intentional.
 
 Coverage axes:
-- Methods: write_runtime_text/_bytes/_json, write_validated_bytes,
-  add_pending_write, ensure_dir, remove_file, remove_tree, copy_tree.
+- Methods: write_runtime_text/_bytes/_json, add_pending_write,
+  ensure_dir, remove_file, remove_tree, copy_tree.
   copy_repo_snapshot is intentionally not exercised here — it
   requires a snapshottable repo shape that would dominate this
   matrix; its behavior is downstream of shutil.copytree which is
-  well-pinned by Python's own tests.
+  well-pinned by Python's own tests. ADR-097 step 6 retired
+  write_validated_bytes — its semantics fold into the unified
+  `write` channel under repo-source-tier idempotent re-validation,
+  so this matrix no longer pins a bypass cell.
 - Target classes: repo-source (src/, tests/), runtime-output
   (reports/, var/cache/), ephemeral-scratch (var/tmp/), and
   governed-artifact (.intent/, .specs/) where reachable post-guard.
@@ -20,17 +23,14 @@ Coverage axes:
   post-guard behavior only; guard semantics belong in the
   IntentGuard regression suite.
 
-Two known quirks documented in-place because they are the load-bearing
-behaviors ADR-097 step 4 changes:
-- _ensure_id_anchors triggers on substring 'src/' in rel_path, not on
-  resolved target class. So a write to var/tmp/.../src/foo.py gets ID
-  anchors injected mid-flight. ADR-097 D2 names this the substring
-  bug; step 4 removes it. The current behavior is pinned here as
-  test_substring_bug_pins_current_id_anchor_behavior so the dispatch
-  flip can be detected by a deliberate flip of that one assertion.
-- write_validated_bytes bypasses _guard_paths entirely (ADR-071 D2.2).
-  Step 6 of ADR-097's migration retires this method; the bypass is
-  pinned here so the retirement transition is explicit.
+Known load-bearing quirk pinned here:
+- _ensure_id_anchors used to trigger on substring 'src/' in rel_path,
+  not on resolved target class — so a write to var/tmp/.../src/foo.py
+  got ID anchors injected mid-flight. ADR-097 D2 names this the
+  substring bug; step 4 removed it. The post-flip behavior is pinned
+  here as test_substring_bug_pins_current_id_anchor_behavior so a
+  regression that re-introduces substring-based dispatch is detected
+  by a deliberate flip of that one assertion.
 """
 
 from __future__ import annotations
@@ -331,30 +331,6 @@ def test_write_runtime_bytes_returns_success(
     """Return shape: 'Wrote runtime bytes' / rel_path."""
     result = fh.write_runtime_bytes("reports/b.bin", b"x")
     assert result == FileOpResult("success", "Wrote runtime bytes", "reports/b.bin")
-
-
-# ---------------------------------------------------------------------------
-# write_validated_bytes — IntentGuard bypass (ADR-071 D2.2)
-# ---------------------------------------------------------------------------
-
-
-def test_write_validated_bytes_bypasses_guard(
-    repo_root: Path,
-) -> None:
-    """write_validated_bytes does NOT call _guard_paths.
-
-    Confirmed by constructing a FileHandler WITHOUT stubbing _guard_paths
-    (so a real guard call would raise) and observing the write succeeds.
-    Note: the IntentGuard hard invariant on .intent/ writes is NOT
-    bypassed because that invariant runs inside _resolve_repo_path's
-    escape boundary check + the guard's own check; this test uses a
-    benign path so neither barrier interferes.
-    """
-    handler = FileHandler(str(repo_root))
-    result = handler.write_validated_bytes("reports/sandbox.bin", b"validated")
-    assert result.status == "success"
-    assert result.message == "Wrote validated bytes"
-    assert (repo_root / "reports" / "sandbox.bin").read_bytes() == b"validated"
 
 
 # ---------------------------------------------------------------------------

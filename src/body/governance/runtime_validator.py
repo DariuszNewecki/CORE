@@ -95,9 +95,7 @@ class RuntimeValidatorService:
 
                 # 3. Apply the Candidate Code
                 rel_target = Path(file_path_str).as_posix().lstrip("./")
-                # Use get_file_handler() escape hatch to write the proposed code
-                file_handler = fs.get_file_handler()
-                file_handler.write_runtime_text(rel_target, new_code_content)
+                fs.write(rel_target, new_code_content)
 
                 # 4. Construct "The Airlock" (Sanitized Environment)
                 safe_env = os.environ.copy()
@@ -181,4 +179,4 @@ def _copy_repo_tree(
             continue
 
         if src_path.is_file():
-            file_service.write_runtime_bytes(rel, src_path.read_bytes())
+            file_service.write(rel, src_path.read_bytes())

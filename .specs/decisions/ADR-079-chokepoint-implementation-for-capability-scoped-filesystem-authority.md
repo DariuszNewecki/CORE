@@ -381,3 +381,38 @@ Deferred to implementation. At implementation (per migration stage):
 - `src/shared/infrastructure/storage/file_handler.py` — the FileHandler whose `_guard_paths` D3 extends.
 - `.intent/taxonomies/operational_capabilities.yaml` — the live capability-authorization surface; consumed by D5.
 - `.intent/taxonomies/filesystem_operations.yaml` (declared by ADR-077) — the call-name → op-class vocabulary; **not** consumed by this ADR's chokepoint (D3 inlines the FileHandler-method mapping), but is the audit-time perimeter check's source per ADR-077.
+
+---
+
+## Notes
+
+### Note 2026-06-08 — D8 superseded by ADR-097 step 6 (`write_validated_bytes` retired)
+
+D8 picked option (b) — *"Keep `write_validated_bytes` as the sanctioned bypass, documented as the chokepoint's single legitimate bypass"* — and explicitly named option (a) as the rejected alternative on the grounds that *"re-validating in main is redundant and adds a second decision surface where the first one already passed."*
+
+ADR-097 step 6 implementation showed the second half of that rationale was load-bearing only for *latency*, not for *semantics*. The validation rules IntentGuard runs at the repo-source tier (AST / glob / regex on path + content) are idempotent on bytes-identical re-application against unchanged `.intent/` state — the sandbox-validated content passes the second pass cleanly. The "second decision surface" is not a second decision; it is the same decision, re-run. Latency cost is bounded (O(modified files) per `execute()`, sub-second in normal cases).
+
+With that observation, the choice between (a) and (b) flips:
+
+- (a) — Route propagation through the unified `FileHandler.write` channel. The content classifies as `repo-source` via ADR-097 D2; bytes content takes the bytes branch (no `ast.parse`, no ID-anchor injection); IntentGuard runs at the repo-source tier and passes idempotently. The "re-establishing capability identity" concern D8 raised against (a) is moot: ADR-097's dispatch is path-derived (D2: "callers do not pass it"), so no identity replay is needed at the call site.
+- (b) — The named bypass and the planned sole-caller audit rule. Now retired.
+
+**Realized shape.** `FileHandler.write_validated_bytes` no longer exists (removed in ADR-097 step 6). `body/atomic/sandbox_lifecycle.py:propagate_changes` calls `file_handler.write(rel, src.read_bytes())` directly. The chokepoint perimeter no longer has a legitimate hole — the "audit-time-bounded" hole D8 named is closed by removing the surface rather than by an audit-time backstop on it.
+
+**What this Note retires from D8 and from this ADR's downstream references:**
+
+- The "Keep" decision in D8 itself. The text remains in place for historical record; readers should follow this Note for the realized shape.
+- The planned `governance.chokepoint.write_validated_bytes_sole_caller` audit rule (declared "Not yet authored" in the State table at line 287). No surface exists for it to guard; it will not be authored.
+- Verification item #19 (line 359): *"`governance.chokepoint.write_validated_bytes_sole_caller` produces zero findings — the only call site is `body/atomic/executor.py:_propagate_sandbox_changes`."* Verification trivially holds with no rule and no method — but readers consulting this ADR's verification list should treat #19 as retired rather than as a passing check.
+- The Consequences bullet (line 314) describing the bypass as "a single legitimate hole in the chokepoint perimeter." The hole is closed; the perimeter is now hole-free with respect to sandbox propagation.
+- The D3 table cell for `write_validated_bytes` (line 92). The method is gone; the cell describes a method that no longer exists. Future drafters should treat the D3 table as a snapshot of the pre-retirement surface.
+
+**What survives unchanged:**
+
+- D2.2's safety properties (loud-failure conflict check, single-trust-boundary, path-escape protection) — preserved by routing through `FileHandler.write` which calls `_resolve_repo_path` before any write.
+- The capability identity propagation (D2) and op-class derivation (D3) of every *other* FileHandler method — those continue to consume `_executor_token` and the FileHandler-method → op-class mapping as before.
+- The audit-time perimeter sourced from `.intent/taxonomies/filesystem_operations.yaml` (ADR-077) — unaffected by the surface removal here.
+
+**Cross-references.** ADR-097 has a corresponding 2026-06-08 Note recording that its own D4/step-6 framing ("ephemeral-scratch target class") was wrong; the realized shape is "repo-source tier idempotent re-validation." ADR-071 D2.2 has a 2026-06-08 closure marker recording the dissolution of the named carveout into the unified channel.
+
+D8's original text is preserved as-written per [[append-only-amendments-under-review]] — readers should follow this Note for the realized shape and ignore the planned audit rule.

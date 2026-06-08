@@ -124,7 +124,7 @@ class RemediationService:
 
                 # Execute: Write updated file via FileHandler (constitutional)
                 if updated_content != current_content:
-                    write_result = self.file_handler.write_file(
+                    write_result = self.file_handler.write(
                         str(file_path), updated_content
                     )
 
@@ -193,7 +193,7 @@ class RemediationService:
 
             # Execute: Write if changed
             if updated_content != current_content:
-                write_result = self.file_handler.write_file(file_path, updated_content)
+                write_result = self.file_handler.write(file_path, updated_content)
 
                 if write_result.status == "success":
                     logger.info("Fixed header in: %s", file_path)

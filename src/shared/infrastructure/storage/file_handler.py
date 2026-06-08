@@ -128,10 +128,12 @@ class FileHandler:
         of target class — the transforms are text-only.
 
         Existing public methods (write_runtime_text, write_runtime_bytes,
-        write_runtime_json, write_validated_bytes, ensure_dir,
-        remove_file/_tree, copy_tree, copy_repo_snapshot) remain
-        unchanged in step 3 — they are migrated to delegate through
-        this entry in step 4 of the ADR-097 Migration.
+        write_runtime_json, ensure_dir, remove_file/_tree, copy_tree,
+        copy_repo_snapshot) delegate through this entry per ADR-097
+        Migration step 4. `write_validated_bytes` was retired in step
+        6 — sandbox propagation now routes through `write` and accepts
+        the idempotent re-validation at the repo-source tier rather
+        than carving out a named bypass.
         """
         rel_path = rel_path.strip().removeprefix("./")
         # Target-class boundaries are constitutional (ADR-097 D2) — read
@@ -199,22 +201,6 @@ class FileHandler:
         """
         result = self.write(rel_path, content)
         return FileOpResult(result.status, "Wrote runtime bytes", result.detail)
-
-    # ID: d21ce0ee-5d6c-4030-b294-3cd33715c41a
-    def write_validated_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
-        """Atomic byte-write that bypasses IntentGuard.
-
-        Used by ActionExecutor's worktree-sandbox propagation step
-        (ADR-071 D2.2): the content was already governance-validated by
-        the action that produced it inside the sandbox, so re-running
-        IntentGuard here would duplicate work. Path-escape protection
-        is still enforced via _resolve_repo_path. NOT a general write
-        surface — actions must use write_runtime_text / _bytes.
-        """
-        rel_path = rel_path.strip().removeprefix("./")
-        abs_path = self._resolve_repo_path(rel_path)
-        self._atomic_write_bytes(abs_path, content)
-        return FileOpResult("success", "Wrote validated bytes", rel_path)
 
     # ID: 9e9e41dc-9dc2-451b-940f-15199f23d548
     def write_runtime_json(self, rel_path: str, payload: Any) -> FileOpResult:

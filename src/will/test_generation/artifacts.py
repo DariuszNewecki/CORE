@@ -42,13 +42,13 @@ class TestGenArtifactStore:
     # ID: b7e7ee4f-051c-47a4-a4e0-5cc27f52435d
     def write_prompt(self, session_dir: str, symbol: str, prompt: str) -> str:
         path = f"{session_dir}/{symbol}_prompt.txt"
-        self._fh.write_runtime_text(path, prompt)
+        self._fh.write(path, prompt)
         return path
 
     # ID: 84565676-b712-4233-b75e-a9e15440e302
     def write_response(self, session_dir: str, symbol: str, response: str) -> str:
         path = f"{session_dir}/{symbol}_response.txt"
-        self._fh.write_runtime_text(path, response)
+        self._fh.write(path, response)
         return path
 
     # ID: 9eacbc1c-47de-4559-b019-36b6ad679793
@@ -57,13 +57,13 @@ class TestGenArtifactStore:
     ) -> str:
         path = f"{session_dir}/{symbol}_normalized.py"
         header = f"# Normalization: {method}\n"
-        self._fh.write_runtime_text(path, header + code)
+        self._fh.write(path, header + code)
         return path
 
     # ID: 2b26fa57-3566-4bde-b9b5-661a95caf2d2
     def write_generated(self, session_dir: str, symbol: str, code: str) -> str:
         path = f"{session_dir}/{symbol}_generated.py"
-        self._fh.write_runtime_text(path, code)
+        self._fh.write(path, code)
         return path
 
     # ID: 567ebd95-72f6-4109-8f6b-a4c45b1479ed
@@ -78,7 +78,7 @@ class TestGenArtifactStore:
             "normalization": normalization,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-        self._fh.write_runtime_text(path, json.dumps(payload, indent=2))
+        self._fh.write(path, json.dumps(payload, indent=2))
         return path
 
     # ID: 1320761a-226a-4029-ac11-e8adf3ca628e
@@ -92,11 +92,11 @@ class TestGenArtifactStore:
             "error": error,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-        self._fh.write_runtime_text(path, json.dumps(payload, indent=2))
+        self._fh.write(path, json.dumps(payload, indent=2))
         return path
 
     # ID: 537c3dc7-ed51-440f-ad35-9a199001d21a
     def write_summary(self, session_dir: str, summary: dict[str, Any]) -> str:
         path = f"{session_dir}/SUMMARY.json"
-        self._fh.write_runtime_text(path, json.dumps(summary, indent=2))
+        self._fh.write(path, json.dumps(summary, indent=2))
         return path

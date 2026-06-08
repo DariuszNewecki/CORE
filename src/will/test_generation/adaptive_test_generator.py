@@ -43,8 +43,8 @@ class AdaptiveTestGenerator:
         repo_path = context.git_service.repo_path
 
         # Primitives
-        self.file_handler = FileService(str(repo_path))
-        self.artifacts = TestGenArtifactStore(self.file_handler)
+        self.file_service = FileService(str(repo_path))
+        self.artifacts = TestGenArtifactStore(self.file_service)
         self.session_dir = self.artifacts.start_session().session_dir
 
         # Phases & Sub-Orchestrators
@@ -57,8 +57,8 @@ class AdaptiveTestGenerator:
             session_dir=self.session_dir,
             normalizer=PythonOutputNormalizer(),
             validator=GeneratedTestValidator(),
-            sandbox=PytestSandboxRunner(self.file_handler, str(repo_path)),
-            persistence=TestPersistenceService(self.file_handler),
+            sandbox=PytestSandboxRunner(self.file_service, str(repo_path)),
+            persistence=TestPersistenceService(self.file_service),
             prompt_engine=ConstitutionalTestPromptBuilder(),
         )
 

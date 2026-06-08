@@ -71,7 +71,7 @@ def keygen(
 
     # 2. Persist via Governed Mutation Surface (Body Execution)
     file_service.ensure_dir(rel_key_dir)
-    file_service.write_runtime_bytes(rel_private_key_path, pem_private)
+    file_service.write(rel_private_key_path, pem_private)
 
     # Set strict Unix permissions
     if abs_private_key_path.exists():

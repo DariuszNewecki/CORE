@@ -49,7 +49,7 @@ class BaselineManager:
     def _save(self):
         """Persist registry to disk."""
         rel_path = str(self.registry_path.relative_to(self.repo_root))
-        self.file_handler.write_file(rel_path, self.registry.model_dump_json(indent=2))
+        self.file_handler.write(rel_path, self.registry.model_dump_json(indent=2))
 
     # ID: cdc3462e-f8b5-4ac6-9dcb-53f15de55528
     def set_baseline(

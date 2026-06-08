@@ -107,13 +107,13 @@ class PytestSandboxRunner:
                     for rel_path, content in crate.items():
                         dst = sandbox_root / rel_path
                         rel_to_repo = str(dst.relative_to(self._repo_root))
-                        self._fh.write_file(rel_to_repo, content)
+                        self._fh.write(rel_to_repo, content)
 
                 # 2. WRITE THE TEST
                 # We place the test in a location that mimics the repo structure
                 # to help relative imports work if necessary
                 test_file_path = sandbox_root / f"test_{symbol_name}_sandbox.py"
-                self._fh.write_file(
+                self._fh.write(
                     str(test_file_path.relative_to(self._repo_root)),
                     code,
                 )

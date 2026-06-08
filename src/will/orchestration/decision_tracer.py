@@ -189,7 +189,7 @@ class DecisionTracer:
             indent=2,
         )
 
-        self.file_service.write_file(rel_path, content)
+        self.file_service.write(rel_path, content)
         logger.debug("Decision trace file saved: %s", rel_path)
 
         if self._paths and hasattr(self._paths, "repo_root"):

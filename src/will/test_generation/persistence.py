@@ -82,7 +82,7 @@ class TestPersistenceService:
 
             target_dir = str(Path(rel_target).parent)
             self._fh.ensure_dir(target_dir)
-            self._fh.write_runtime_text(rel_target, header + test_code)
+            self._fh.write(rel_target, header + test_code)
 
             logger.info("Test promoted to mirrored path: %s", rel_target)
             return PersistResult(ok=True, path=rel_target, error="", tests_saved=1)
@@ -168,7 +168,7 @@ class TestPersistenceService:
 
             target_dir = str(Path(rel_target).parent)
             self._fh.ensure_dir(target_dir)
-            self._fh.write_runtime_text(rel_target, header + passing_code)
+            self._fh.write(rel_target, header + passing_code)
 
             # Also save full code (with failures) to morgue for analysis
             self._persist_to_morgue(
@@ -220,7 +220,7 @@ class TestPersistenceService:
             )
 
             self._fh.ensure_dir(morgue_dir)
-            self._fh.write_runtime_text(rel_target, header + test_code)
+            self._fh.write(rel_target, header + test_code)
 
             logger.warning("Test routed to morgue: %s", rel_target)
             return PersistResult(ok=True, path=rel_target, error=status, tests_saved=0)

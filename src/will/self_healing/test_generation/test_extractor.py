@@ -43,7 +43,7 @@ class TestExtractor:
                     if original:
                         new_content = content.replace(original, new_code, 1)
                         rel_path = str(file_path.relative_to(self.repo_root))
-                        self.file_handler.write_runtime_text(rel_path, new_content)
+                        self.file_handler.write(rel_path, new_content)
                         return True
             return False
         except Exception:

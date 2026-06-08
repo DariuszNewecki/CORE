@@ -138,7 +138,7 @@ async def heal_dead_code(
 
         if write:
             try:
-                file_handler.write_runtime_text(file_path_str, updated_code)
+                file_handler.write(file_path_str, updated_code)
                 logger.info("Healed: %s (line %s)", file_path_str, line_number)
                 healed += 1
             except Exception as e:

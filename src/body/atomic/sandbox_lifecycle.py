@@ -16,8 +16,10 @@ constructs one SandboxLifecycle and delegates two call sites to it.
 
 LAYER: body/atomic — execution-infrastructure helper. No LLM, no rule
 evaluation. Reads from CoreContext (git_service, file_handler); writes
-only through FileHandler.write_validated_bytes (ADR-021 commit_paths
-boundary preserved).
+only through the unified FileHandler.write channel (ADR-097 step 6,
+which retired the previous write_validated_bytes carveout — the
+sandbox-already-validated content survives a second pass through the
+repo-source IntentGuard tier idempotently).
 """
 
 from __future__ import annotations
@@ -54,7 +56,7 @@ class SandboxLifecycle:
 
     - `propagate_changes` — after a successful sandboxed run, copy the
       worktree's modified/untracked files back to the main tree through
-      `FileHandler.write_validated_bytes`, with a conflict check that
+      the unified `FileHandler.write` channel, with a conflict check that
       refuses to overwrite uncommitted main-tree changes (loud-failure
       contract).
 
@@ -243,7 +245,7 @@ class SandboxLifecycle:
                     rel,
                 )
                 continue
-            file_handler.write_validated_bytes(rel, src.read_bytes())
+            file_handler.write(rel, src.read_bytes())
             copied += 1
 
         logger.info(

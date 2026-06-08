@@ -75,7 +75,7 @@ class _WatcherState:
                 "required": violation.required_coverage,
             },
         }
-        fh.write_runtime_json(self.path, state)
+        fh.write_json(self.path, state)
 
 
 # ID: c75a7281-9bb9-4c03-8dcf-2eb38c36f9a8

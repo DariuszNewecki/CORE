@@ -202,3 +202,22 @@ Step 1 followed the sibling pattern as actually used in ADR-077 / ADR-078:
 D2's original text is preserved as-written per [[append-only-amendments-under-review]] — readers consulting future drafters should follow this Note for the realized shape. No new `.intent/META/target_class_boundaries.schema.json` file exists; the enum-extension in `enums.json` is the contract.
 
 Subsequent steps (2–7) of the Migration section remain as drafted.
+
+### Note 2026-06-08 (post-acceptance, step 6 implementation) — target-class framing of `write_validated_bytes` retirement was wrong
+
+D4 (Deprecation path) and Migration step 6 both say: *"`write_validated_bytes` specifically retires: its semantics (skip-validation for sandbox-propagated content) become `ephemeral-scratch` target-class behavior under the new dispatch, with no caller-side opt-in needed."*
+
+Step 6 reconnaissance against the realized D2 dispatch showed this framing was wrong. D2 (as realized in `resolve_target_class` and pinned in `intent_guard.check_transaction`) classifies target class by the *resolved repo-relative path*, not by the call's semantic intent. The sandbox propagation target is the *production tree* (`src/foo.py`, `tests/test_bar.py`) — it classifies as `repo-source`, never as `ephemeral-scratch`. The ADR's step-6 wording confused the *origin* of the bytes (a worktree sandbox under `var/tmp/`) with the *destination* of the write (the main tree's `src/`).
+
+The retirement is still correct, but the mechanism is different:
+
+- `write_validated_bytes` was an *optimization* — it skipped duplicate IntentGuard validation that the sandboxed action had already passed — not a *semantic requirement*. The validation rules are AST/glob/regex on path + content; on bytes-identical re-application against the same `.intent/` state, they pass again.
+- The migration is therefore: `sandbox_lifecycle.py` calls `file_handler.write(rel, src.read_bytes())` directly. The unified `write` resolves the target as `repo-source`, skips source-shape transforms (bytes content takes the bytes branch — `ast.parse` and `_ensure_id_anchors` are str-only), and runs IntentGuard at the repo-source tier. The second IntentGuard pass is idempotent and adds bounded latency (O(modified files) per execute()), not a behavioral change.
+- The named exception named in ADR-071 D2.2 dissolves not into `ephemeral-scratch` but into "we accept idempotent re-validation at the repo-source tier for sandbox propagation." The single-channel property holds; no new target class or caller-side opt-in is needed.
+
+D4 and step-6 original text are preserved as-written per [[append-only-amendments-under-review]] — readers should follow this Note for the realized shape.
+
+Carry-on items (not landed in step 6, surfaced for follow-up):
+
+- ADR-079 D8 ("Keep `write_validated_bytes` as the sanctioned bypass") and the planned audit rule `governance.chokepoint.write_validated_bytes_sole_caller` are superseded by this retirement. ADR-079's D8 text and audit-rule references need either an append-only supersession Note or, if D8 is the only block on a fuller ADR-079 closure, a closure marker. Filed for the next session's `.specs/` sweep.
+- The latency cost of the second IntentGuard pass on sandbox propagation has not been measured. Action propagation runs are typically O(1–10) files; the pass is path/content-based with no LLM hop. The cost is expected to be sub-second; no benchmark filed.

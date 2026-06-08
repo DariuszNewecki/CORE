@@ -126,7 +126,7 @@ class ArtifactSaver:
         artifact_filename = self._generate_artifact_filename(step, step_number)
         artifact_rel_path = f"{work_dir_rel}/{artifact_filename}"
 
-        self.file_service.write_file(artifact_rel_path, code)
+        self.file_service.write(artifact_rel_path, code)
 
         # Update step info
         target_path = params.get("file_path", f"unknown_{step_number}")
@@ -161,7 +161,7 @@ class ArtifactSaver:
         report_rel_path = f"{work_dir_rel}/generation_report.json"
         report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
 
-        self.file_service.write_file(report_rel_path, report_json)
+        self.file_service.write(report_rel_path, report_json)
 
     @staticmethod
     def _log_summary(report_data: dict, work_dir_rel: str) -> None:

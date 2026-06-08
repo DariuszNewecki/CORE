@@ -36,7 +36,7 @@ class TestExecutor:
         file_handler.ensure_dir(parent_rel)
 
         # Write test file via governed channel
-        result = file_handler.write_runtime_text(test_file, code)
+        result = file_handler.write(test_file, code)
         if result.status != "success":
             raise RuntimeError(f"Governance rejected write: {result.message}")
 

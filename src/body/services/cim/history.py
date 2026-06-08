@@ -54,7 +54,7 @@ class CensusHistory:
             return snapshot_path
 
         rel_path = str(snapshot_path.relative_to(self.repo_root))
-        self.file_handler.write_file(rel_path, census.model_dump_json(indent=2))
+        self.file_handler.write(rel_path, census.model_dump_json(indent=2))
         logger.info("Saved snapshot: %s", snapshot_path)
 
         return snapshot_path
