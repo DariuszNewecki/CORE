@@ -47,6 +47,7 @@ from shared.infrastructure.context.shadow_materializer import (
 )
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge_graph_service import KnowledgeGraphBuilder
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.path_utils import get_repo_root
 
 from .hub import app
@@ -135,7 +136,10 @@ async def smell_test_command(
         )
 
     with console.status("[cyan]Materializing shadow tempdir…"):
-        with materialize_workspace_for_audit(workspace, repo_root) as shadow_root:
+        file_handler = FileHandler(str(repo_root))
+        with materialize_workspace_for_audit(
+            workspace, repo_root, file_handler
+        ) as shadow_root:
             console.print(f"  [dim]shadow at[/dim]   {shadow_root}")
             with console.status("[cyan]Running shadow audit (static cohort)…"):
                 shadow_result = await run_shadow_audit(

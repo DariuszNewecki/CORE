@@ -42,6 +42,7 @@ from shared.logger import getLogger
 
 if TYPE_CHECKING:
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 
 logger = getLogger(__name__)
@@ -69,12 +70,19 @@ _STRUCTURAL_EXCLUDES: frozenset[str] = frozenset(
 def materialize_workspace_for_audit(
     workspace: LimbWorkspace,
     repo_root: Path,
+    file_handler: FileHandler,
 ) -> Iterator[Path]:
     """Context manager yielding a Path to a shadow tempdir audit can walk.
 
     Args:
         workspace: A LimbWorkspace whose crate carries the proposed changes.
         repo_root: The real repo root the audit would otherwise walk.
+        file_handler: The single filesystem write channel (ADR-097 D1).
+            Required so directory creation and crate file writes route
+            through the chokepoint. The shadow tempdir lives under
+            ``var/tmp/`` so every routed write classifies as
+            ``ephemeral-scratch`` per ADR-097 D2 — the per-class tier
+            bypasses policy rules without per-file excludes.
 
     Yields:
         Path to the shadow tempdir. Pass this as `repo_path` to
@@ -85,8 +93,11 @@ def materialize_workspace_for_audit(
     The tempdir and all its symlinks/files are removed on context exit.
     """
     repo_root = Path(repo_root).resolve()
+    # Ensure var/tmp/ exists so tempfile can create the shadow tempdir
+    # inside it. Routed through FileHandler so no direct Path.mkdir call
+    # appears in this source (governance.mutation_surface.filehandler_required).
+    file_handler.ensure_dir("var/tmp")
     tmp_parent = repo_root / "var" / "tmp"
-    tmp_parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(
         prefix="core-shadow-", dir=str(tmp_parent)
@@ -94,9 +105,9 @@ def materialize_workspace_for_audit(
         shadow_root = Path(raw_tmp)
         crate = workspace.get_crate_content()
 
-        _materialize_top_level(repo_root, shadow_root)
-        _materialize_src_tree(repo_root, shadow_root, crate)
-        _overlay_non_src_crate_files(shadow_root, crate)
+        _materialize_top_level(repo_root, shadow_root, file_handler)
+        _materialize_src_tree(repo_root, shadow_root, crate, file_handler)
+        _overlay_non_src_crate_files(shadow_root, crate, repo_root, file_handler)
 
         logger.info(
             "Shadow materialized at %s (crate=%d files)", shadow_root, len(crate)
@@ -104,7 +115,11 @@ def materialize_workspace_for_audit(
         yield shadow_root
 
 
-def _materialize_top_level(repo_root: Path, shadow_root: Path) -> None:
+def _materialize_top_level(
+    repo_root: Path,
+    shadow_root: Path,
+    file_handler: FileHandler,
+) -> None:
     """Symlink every top-level repo entry into the shadow, except src/ and excludes.
 
     src/ is handled separately by _materialize_src_tree (per-file symlinks
@@ -119,19 +134,24 @@ def _materialize_top_level(repo_root: Path, shadow_root: Path) -> None:
         if entry.name == "src":
             continue
         if entry.name == "var":
-            _materialize_var_dir(entry, shadow_root / "var")
+            _materialize_var_dir(entry, shadow_root / "var", repo_root, file_handler)
             continue
         (shadow_root / entry.name).symlink_to(entry)
 
 
-def _materialize_var_dir(real_var: Path, shadow_var: Path) -> None:
+def _materialize_var_dir(
+    real_var: Path,
+    shadow_var: Path,
+    repo_root: Path,
+    file_handler: FileHandler,
+) -> None:
     """Build var/ as a real dir, symlink children, skip var/tmp/.
 
     The shadow tempdir itself lives under var/tmp/, so symlinking var/tmp/
     into the shadow would re-enter the shadow when the audit walker rglobs
     var/. Skipping it severs the cycle.
     """
-    shadow_var.mkdir()
+    file_handler.ensure_dir(str(shadow_var.relative_to(repo_root)))
     for child in real_var.iterdir():
         if child.name == "tmp":
             continue
@@ -142,6 +162,7 @@ def _materialize_src_tree(
     repo_root: Path,
     shadow_root: Path,
     crate: dict[str, str],
+    file_handler: FileHandler,
 ) -> None:
     """Per-file symlink the src/ tree, with crate-path files left empty for overlay.
 
@@ -154,7 +175,7 @@ def _materialize_src_tree(
     if not real_src.exists():
         return
     shadow_src = shadow_root / "src"
-    shadow_src.mkdir()
+    file_handler.ensure_dir(str(shadow_src.relative_to(repo_root)))
 
     crate_paths = set(crate.keys())
 
@@ -170,11 +191,16 @@ def _materialize_src_tree(
         if rel_posix in crate_paths:
             continue
         shadow_file = shadow_root / rel
-        shadow_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler.ensure_dir(str(shadow_file.parent.relative_to(repo_root)))
         shadow_file.symlink_to(real_file)
 
 
-def _overlay_non_src_crate_files(shadow_root: Path, crate: dict[str, str]) -> None:
+def _overlay_non_src_crate_files(
+    shadow_root: Path,
+    crate: dict[str, str],
+    repo_root: Path,
+    file_handler: FileHandler,
+) -> None:
     """Write every crate file as a real file in the shadow.
 
     Handles two cases together:
@@ -188,14 +214,22 @@ def _overlay_non_src_crate_files(shadow_root: Path, crate: dict[str, str]) -> No
     crate paths under directory-symlinked subtrees (.intent/, tests/, var/
     children, etc.) are refused. Extend _materialize_src_tree-style
     per-file materialization to additional subtrees before crating into them.
+
+    Writes route through ``file_handler.write`` (ADR-097 step 5). Target
+    paths land under ``var/tmp/core-shadow-<uuid>/`` → ``ephemeral-scratch``
+    class → no source-shape transforms, no ID-anchor injection on the
+    crate-overlaid src/ files, no policy-rule evaluation.
     """
     for rel_path, content in crate.items():
         dst = shadow_root / rel_path
         _guard_no_symlink_ancestor(shadow_root, dst, rel_path)
-        dst.parent.mkdir(parents=True, exist_ok=True)
         if dst.is_symlink() or dst.exists():
             dst.unlink()
-        dst.write_text(content, encoding="utf-8")
+        # file_handler.write resolves target_class internally; the
+        # path under var/tmp/ classifies as ephemeral-scratch.
+        # Parent-dir creation is handled by FileHandler internally,
+        # so no separate ensure_dir is needed here.
+        file_handler.write(str(dst.relative_to(repo_root)), content)
 
 
 def _guard_no_symlink_ancestor(shadow_root: Path, dst: Path, rel_path: str) -> None:

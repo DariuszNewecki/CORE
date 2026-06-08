@@ -94,21 +94,29 @@ class PytestSandboxRunner:
             sandbox_root = Path(tmp_dir)
 
             try:
-                # 1. MATERIALIZATION: Replicate necessary context
-                # If we have a workspace, dump its virtual files
+                # 1. MATERIALIZATION: Replicate necessary context.
+                # Writes route through FileService → FileHandler.write
+                # (ADR-097 step 5). The sandbox lives under var/tmp/, so
+                # every materialized path classifies as ephemeral-scratch
+                # via target_class_boundaries.yaml: no source-shape
+                # transforms, no ID-anchor injection, no syntax gate, no
+                # policy-rule evaluation. Parent-dir creation is handled
+                # by FileHandler internally.
                 if workspace:
                     crate = workspace.get_crate_content()
                     for rel_path, content in crate.items():
-                        # Determine dest path in sandbox
                         dst = sandbox_root / rel_path
-                        dst.parent.mkdir(parents=True, exist_ok=True)
-                        dst.write_text(content, encoding="utf-8")
+                        rel_to_repo = str(dst.relative_to(self._repo_root))
+                        self._fh.write_file(rel_to_repo, content)
 
                 # 2. WRITE THE TEST
                 # We place the test in a location that mimics the repo structure
                 # to help relative imports work if necessary
                 test_file_path = sandbox_root / f"test_{symbol_name}_sandbox.py"
-                test_file_path.write_text(code, encoding="utf-8")
+                self._fh.write_file(
+                    str(test_file_path.relative_to(self._repo_root)),
+                    code,
+                )
 
                 # 3. CONFIGURE ENVIRONMENT
                 # We append sandbox_root to PYTHONPATH so imports find the materialized files first

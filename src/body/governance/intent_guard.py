@@ -220,6 +220,7 @@ class IntentGuard:
         op_classes: Mapping[str, str] | None = None,
         calling_capability: str | None = None,
         current_mode: str | None = None,
+        target_classes: Mapping[str, str] | None = None,
     ) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
@@ -247,6 +248,23 @@ class IntentGuard:
         ``is_valid`` or the returned ``violations`` list in this stage —
         log-only observability. Stage 3+ promotes the tier to blocking
         per-capability per the D10 migration sequence.
+
+        ADR-097 step 2 (additive): ``target_classes`` is an optional
+        per-path map (``path -> target_class``) that selects the D3
+        behavior tier. When omitted, every path falls through to the
+        existing repo-source behavior (hard invariant + policy rules) —
+        byte-identical to pre-ADR-097 callers. When supplied:
+
+        - ``repo-source`` / ``runtime-output`` / ``governed-artifact``
+          → existing behavior (hard invariant + policy rules). The
+          governed-artifact API-mediated tier is reserved for step 6;
+          today these paths hit the .intent/ hard invariant and the
+          ordinary policy rules just like repo-source paths.
+        - ``ephemeral-scratch`` → policy/invariant evaluation is
+          skipped. Capability tier still runs (ADR-079 stage 1, log
+          only). This is the structural sanctuary that lets
+          shadow_materializer / sandbox writes pass the chokepoint
+          without per-file excludes.
         """
         projection = load_vocabulary_projection(self.repo_path)
         if isinstance(projection, VocabularyProjectionError):
@@ -288,6 +306,17 @@ class IntentGuard:
                 capability=calling_capability,
                 mode=current_mode,
             )
+
+            # ADR-097 step 2: target-class dispatch.
+            # ephemeral-scratch skips the rest of per-path evaluation:
+            # the path is by-construction non-committal (under var/tmp/),
+            # so no hard invariant or policy rule should fire on it. The
+            # capability tier already ran above. When target_classes is
+            # not supplied, this resolves to None and the existing
+            # repo-source-equivalent flow runs (backwards-compatible).
+            target_class = self._resolve_target_class_for_path(path_str, target_classes)
+            if target_class == "ephemeral-scratch":
+                continue
 
             # 1. HARD INVARIANT: Absolute block on .intent writes
             if self._is_under_intent(abs_path):
@@ -400,6 +429,23 @@ class IntentGuard:
             return True
         except ValueError:
             return False
+
+    def _resolve_target_class_for_path(
+        self,
+        path_str: str,
+        target_classes: Mapping[str, str] | None,
+    ) -> str | None:
+        """Return the ADR-097 D2 target_class for a path, or None to defer to default behavior.
+
+        When the caller passes ``target_classes``, the supplied value
+        wins. When omitted (every pre-ADR-097 caller), this returns
+        None and the per-path loop falls through to the existing
+        repo-source-equivalent flow. ADR-097 step 4 makes FileHandler
+        the first caller that supplies the map.
+        """
+        if target_classes is not None and path_str in target_classes:
+            return target_classes[path_str]
+        return None
 
     def _check_against_rules(
         self, path_str: str, abs_path: Path, impact: str | None = None

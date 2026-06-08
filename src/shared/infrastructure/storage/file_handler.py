@@ -9,7 +9,7 @@ import ast
 import json
 import shutil
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,6 +19,7 @@ from mind.governance.violation_report import ConstitutionalViolationError
 from shared.config import settings
 from shared.governance_token import current_capability
 from shared.infrastructure.intent.operational_mode import current_mode
+from shared.infrastructure.intent.target_class import resolve_target_class
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.common_knowledge import ensure_trailing_newline
@@ -95,6 +96,77 @@ class FileHandler:
     # Mutation APIs
     # ---------------------------------------------------------------------
 
+    # ID: 6f4d8a72-9c31-4e85-b297-1a3e9f5d6b08
+    def write(
+        self,
+        rel_path: str,
+        content: str | bytes,
+        *,
+        impact: str | None = None,
+    ) -> FileOpResult:
+        """Single-channel filesystem write (ADR-097 D4).
+
+        Resolves the target class from ``rel_path`` and applies the
+        ADR-097 D3 behavior matrix:
+
+        - ``repo-source`` (src/, tests/, top-level repo files): syntax
+          check on .py; ``# ID:`` anchor injection for new public defs;
+          trailing newline; IntentGuard repo-source tier.
+        - ``runtime-output`` (reports/, var/cache/, var/logs/,
+          var/workflows/): no source-shape transforms; trailing
+          newline for text; IntentGuard runtime tier.
+        - ``ephemeral-scratch`` (var/tmp/): no source-shape transforms,
+          no schema/syntax gates; trailing newline for text; IntentGuard
+          ephemeral tier (capability-checked, policy rules bypassed).
+        - ``governed-artifact`` (.intent/, .specs/): no source-shape
+          transforms (the META/API path runs validation upstream of
+          this call in step 6); IntentGuard governed-artifact tier,
+          which today is the hard invariant block on .intent/ writes.
+
+        ``content`` may be ``str`` (text path) or ``bytes`` (bytes
+        path). Bytes content skips source-shape transforms regardless
+        of target class — the transforms are text-only.
+
+        Existing public methods (write_runtime_text, write_runtime_bytes,
+        write_runtime_json, write_validated_bytes, ensure_dir,
+        remove_file/_tree, copy_tree, copy_repo_snapshot) remain
+        unchanged in step 3 — they are migrated to delegate through
+        this entry in step 4 of the ADR-097 Migration.
+        """
+        rel_path = rel_path.strip().removeprefix("./")
+        # Target-class boundaries are constitutional (ADR-097 D2) — read
+        # from the canonical CORE install (resolve_default_repo_path)
+        # rather than from this FileHandler's repo_path, which in a
+        # consumer-repo deployment is the user's project root and may
+        # not carry CORE's .intent/ tree.
+        target_class = resolve_target_class(rel_path)
+
+        self._guard_paths(
+            [rel_path],
+            impact=impact,
+            target_classes={rel_path: target_class},
+        )
+
+        abs_path = self._resolve_repo_path(rel_path)
+        if isinstance(content, str):
+            # Source-shape transforms apply only to repo-source paths.
+            if rel_path.endswith(".py") and target_class == "repo-source":
+                try:
+                    ast.parse(content)
+                except SyntaxError as e:
+                    logger.error(
+                        "Refusing to write invalid Python to %s: %s", rel_path, e
+                    )
+                    raise ValueError(
+                        f"Syntax Error in generated code for {rel_path}: {e}"
+                    )
+                content = self._ensure_id_anchors(content)
+            content = ensure_trailing_newline(content)
+            self._atomic_write_text(abs_path, content)
+        else:
+            self._atomic_write_bytes(abs_path, content)
+        return FileOpResult("success", "Wrote file", rel_path)
+
     # ID: dea4534e-f63a-4b02-81fc-67cb12bf8fb8
     def write_runtime_text(
         self,
@@ -102,38 +174,31 @@ class FileHandler:
         content: str,
         impact: str | None = None,
     ) -> FileOpResult:
-        rel_path = rel_path.strip().removeprefix("./")
+        """Thin wrapper over the unified ``write`` entry (ADR-097 step 4).
 
-        # 1. THE GUARD: Constitutional boundary check (Path access)
-        self._guard_paths([rel_path], impact=impact)
+        Behavior is now derived from the resolved target class instead
+        of from the substring ``"src/"`` in ``rel_path``. The substring
+        bug — a path like ``var/tmp/.../src/foo.py`` getting ID anchor
+        injection mid-flight — is structurally foreclosed because that
+        path classifies as ``ephemeral-scratch`` and the ID anchor
+        injection only fires for ``repo-source``.
 
-        # 2. THE IRON HAND: Syntax Gate (Structural Integrity)
-        if rel_path.endswith(".py"):
-            try:
-                ast.parse(content)
-            except SyntaxError as e:
-                logger.error("Refusing to write invalid Python to %s: %s", rel_path, e)
-                raise ValueError(f"Syntax Error in generated code for {rel_path}: {e}")
-
-            # 3. THE PAPERWORK: Metadata finalization
-            # (Note: Uniqueness check is DELEGATED to Feature layer Step 2)
-            if "src/" in rel_path:
-                content = self._ensure_id_anchors(content)
-
-        content = ensure_trailing_newline(content)
-
-        # 4. THE EXECUTION: Atomic write
-        abs_path = self._resolve_repo_path(rel_path)
-        self._atomic_write_text(abs_path, content)
-        return FileOpResult("success", "Wrote runtime text", rel_path)
+        The return shape preserves the legacy ``message`` for callers
+        that inspect ``FileOpResult.message`` directly.
+        """
+        result = self.write(rel_path, content, impact=impact)
+        return FileOpResult(result.status, "Wrote runtime text", result.detail)
 
     # ID: 9170fbe6-887f-4793-9e54-e1124b568dad
     def write_runtime_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
-        rel_path = rel_path.strip().removeprefix("./")
-        self._guard_paths([rel_path])
-        abs_path = self._resolve_repo_path(rel_path)
-        self._atomic_write_bytes(abs_path, content)
-        return FileOpResult("success", "Wrote runtime bytes", rel_path)
+        """Thin wrapper over the unified ``write`` entry (ADR-097 step 4).
+
+        Bytes content skips source-shape transforms in ``write`` regardless
+        of target class, so this wrapper's behavior is identical to its
+        pre-flip form.
+        """
+        result = self.write(rel_path, content)
+        return FileOpResult(result.status, "Wrote runtime bytes", result.detail)
 
     # ID: d21ce0ee-5d6c-4030-b294-3cd33715c41a
     def write_validated_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
@@ -153,11 +218,17 @@ class FileHandler:
 
     # ID: 9e9e41dc-9dc2-451b-940f-15199f23d548
     def write_runtime_json(self, rel_path: str, payload: Any) -> FileOpResult:
-        rel_path = rel_path.strip().removeprefix("./")
-        self._guard_paths([rel_path])
-        abs_path = self._resolve_repo_path(rel_path)
-        self._atomic_write_text(abs_path, json.dumps(payload, indent=2))
-        return FileOpResult("success", "Wrote runtime json", rel_path)
+        """Thin wrapper over the unified ``write`` entry (ADR-097 step 4).
+
+        Behavior change from pre-flip: the JSON output now gains a
+        trailing newline via ``write``'s text-path ``ensure_trailing_newline``
+        normalization. The pre-flip form wrote ``json.dumps(...)``
+        verbatim, ending mid-brace. The new behavior is POSIX-friendly
+        and diff-minimal; it matches every other text-write through
+        FileHandler.
+        """
+        result = self.write(rel_path, json.dumps(payload, indent=2))
+        return FileOpResult(result.status, "Wrote runtime json", result.detail)
 
     # ID: 84aa153b-1651-4ca8-abf3-f15a57fe6b80
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
@@ -255,6 +326,7 @@ class FileHandler:
         rel_paths: list[str],
         impact: str | None = None,
         op_class: str = "write",
+        target_classes: Mapping[str, str] | None = None,
     ) -> None:
         """Run a transaction's paths through IntentGuard, raising on rejection.
 
@@ -292,6 +364,7 @@ class FileHandler:
             op_classes=op_classes,
             calling_capability=calling_capability,
             current_mode=mode,
+            target_classes=target_classes,
         )
         if result.is_valid:
             return
