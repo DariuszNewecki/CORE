@@ -224,7 +224,7 @@ def _overlay_non_src_crate_files(
         dst = shadow_root / rel_path
         _guard_no_symlink_ancestor(shadow_root, dst, rel_path)
         if dst.is_symlink() or dst.exists():
-            dst.unlink()
+            file_handler.remove_file(str(dst.relative_to(repo_root)))
         # file_handler.write resolves target_class internally; the
         # path under var/tmp/ classifies as ephemeral-scratch.
         # Parent-dir creation is handled by FileHandler internally,
