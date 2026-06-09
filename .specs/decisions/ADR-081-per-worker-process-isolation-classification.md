@@ -221,3 +221,15 @@ The change-set lands in three sealable steps. Each step's audit posture is obser
 - Paper `CORE-Workers-and-Governance-Model.md` §3.1 — workers as constitutional officers; the declaration as the sole source of standing. This ADR extends what the declaration governs to include the runtime-process-isolation profile.
 - Commit `f55c83f9` — singleton PID lock + `core-admin daemon up/down/restart/status` wrappers. The lock pattern extends per-stem (D4); the wrapper scope expands to the N+1 service set (D6).
 - Memory [[feedback_event_loop_starvation_diagnostic]] — the diagnostic discipline this ADR encodes structurally (compare cross-worker p50; starvation signature is whole-distribution skew; fix is process isolation, not max_interval bumps).
+
+---
+
+## Note — 2026-06-09 — D2(2) carve-out scope correction (re #596)
+
+D2(2)'s categorical exclusion of `*_embedder` workers from `requires_dedicated_process: true` is scoped to the embed call's network-await shape, not to embedder workers as a whole. Where an embedder has additional sync CPU stretches outside the embed call — harvest, parse, chunking, or other prologue work without `await` points — D2(1)'s empirical gate applies regardless of category. **D2(1) is load-bearing where it disagrees with D2(2)'s categorical framing.**
+
+Empirical case: `governance_embedder` crosses D2(1)'s 5s gate on ~70% of cycles via `GovernanceClaimHarvester.harvest()` in `run()` (a sync ~400-file walk between heartbeat and the first post-heartbeat `await`). D7 fires `escalation_required` on it under its own measurements. The embed call itself is properly async per D2(2); the prologue is what trips the gate.
+
+Whether to flip `governance_embedder` to `true` or to add cooperative yields to its harvest is a separate operational decision not foreclosed by this Note.
+
+Per [[feedback_append_only_adr_closure_marker]]: this Note is appended-only; the body of D2(2) is unchanged so the original framing remains readable. New classifications should read D2(2) alongside this Note.

@@ -56,3 +56,9 @@ implementation:
   module: will.workers.violation_executor
   class: ViolationExecutorWorker
   requires_core_context: true
+  # ADR-081 D2(1) — flipped to dedicated per loop-hold telemetry: sustained
+  # p50=7.8s, p95=28.2s, max=33.5s post-db_sync flip, 20-of-20 samples over
+  # the 5s gate. Pre-flip the worker looked episodic only because db_sync
+  # starvation throttled its cycles; with db_sync isolated, true sustained
+  # perpetrator profile is visible. Companion to db_sync_worker flip (#596 thread).
+  requires_dedicated_process: true

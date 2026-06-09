@@ -36,3 +36,7 @@ implementation:
   module: will.workers.db_sync_worker
   class: DbSyncWorker
   requires_core_context: true
+  # ADR-081 D2(1) — flipped to dedicated per loop-hold telemetry: sustained
+  # p50=9.9s, max=50.5s on the shared core-daemon, well over D2(1)'s 5s gate.
+  # D7 fires escalation_required on this worker today (#596 thread).
+  requires_dedicated_process: true
