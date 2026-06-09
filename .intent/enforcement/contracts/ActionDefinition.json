@@ -4,11 +4,11 @@
     "metadata": {
         "id": "contracts.action_definition",
         "title": "ActionDefinition — atomic action constitutional metadata",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Constitutional metadata for a registered atomic action (src/body/atomic/registry.py). ActionDefinition is the runtime declaration for every AtomicAction; its action_id, category, and impact_level drive the autonomy gate. impact_level is a bare str (not enum) with empty string default — it is overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008); a missing entry in that YAML raises ConstitutionalError at startup. executor is a Python Callable (runtime-only, not JSON-serializable); it is included in properties to suppress false-positive undeclared-field findings from the AST gate. Governed vocabulary: action_category enum in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
+    "description": "Constitutional metadata for a registered atomic action (src/body/atomic/registry.py). ActionDefinition is the runtime declaration for every AtomicAction; its action_id, category, and impact_level drive the autonomy gate. impact_level is a bare str (not enum) with empty string default — it is overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008); a missing entry in that YAML raises ConstitutionalError at startup. executor is a Python Callable (runtime-only, not JSON-serializable); it is included in properties to suppress false-positive undeclared-field findings from the AST gate. Governed vocabulary: action_category enum in .intent/META/enums.json (ADR-056 D5). Version 1.1.0: artifact_type added per ADR-091 D6 item 3 / ADR-092 D1 — the F-41 registry-coupling field carried on every action declaration. Authority: ADR-056 Wave 2 Session 1.",
     "governed_classes": [
         "ActionDefinition"
     ],
@@ -55,6 +55,10 @@
         "remediates": {
             "type": "array",
             "description": "Rule IDs this action is capable of remediating. Used by RemediatorWorker for remediation map lookup. Default empty list."
+        },
+        "artifact_type": {
+            "type": "array",
+            "description": "F-41 artifact_type IDs this action mutates (ADR-091 D6 item 3, ADR-092 D1). Default empty tuple. Overlaid at ActionExecutor init from .intent/taxonomies/operational_capabilities.yaml via ActionRegistry.apply_artifact_type_config(). Empty tuple means the action does not engage the F-43 registry-coupling chokepoint (the ~13 infrastructure capabilities legitimately have no artifact target per ADR-092 sub-question (i))."
         }
     }
 }
