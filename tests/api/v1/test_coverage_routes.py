@@ -226,51 +226,47 @@ async def test_coverage_report_html_format_dispatches_to_html_runner():
     assert out == html_payload
 
 
-@pytest.mark.asyncio
-async def test_coverage_targets_returns_facade_payload():
+def test_coverage_targets_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(
         "api.v1.coverage_routes.get_coverage_targets",
         return_value={"path": ".intent/...", "targets": {}},
     ):
-        out = await coverage_targets(request=request)
+        out = coverage_targets(request=request)
     assert "targets" in out
 
 
-@pytest.mark.asyncio
-async def test_coverage_gaps_passes_threshold_and_limit():
+def test_coverage_gaps_passes_threshold_and_limit():
     request = _mock_request_with_context()
     with patch(
         "api.v1.coverage_routes.get_coverage_gaps",
-        new=AsyncMock(return_value={"threshold": 80.0, "count": 0, "gaps": []}),
+        return_value={"threshold": 80.0, "count": 0, "gaps": []},
     ) as facade:
-        out = await coverage_gaps(request=request, threshold=80.0, limit=10)
-    facade.assert_awaited_once()
+        out = coverage_gaps(request=request, threshold=80.0, limit=10)
+    facade.assert_called_once()
     _, kwargs = facade.call_args
     assert kwargs["threshold"] == 80.0
     assert kwargs["limit"] == 10
     assert out["threshold"] == 80.0
 
 
-@pytest.mark.asyncio
-async def test_coverage_history_returns_facade_payload():
+def test_coverage_history_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(
         "api.v1.coverage_routes.get_coverage_history",
         return_value={"count": 0, "history": []},
     ):
-        out = await coverage_history(request=request, limit=5)
+        out = coverage_history(request=request, limit=5)
     assert out == {"count": 0, "history": []}
 
 
-@pytest.mark.asyncio
-async def test_coverage_methods_returns_descriptor():
+def test_coverage_methods_returns_descriptor():
     request = _mock_request_with_context()
     with patch(
         "api.v1.coverage_routes.get_coverage_methods",
         return_value={"methods": []},
     ):
-        out = await coverage_methods(request=request)
+        out = coverage_methods(request=request)
     assert "methods" in out
 
 

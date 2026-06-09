@@ -192,7 +192,7 @@ def get_coverage_targets(context: CoreContext) -> dict:
 
 
 # ID: 4d9e2f7a-58c3-4ba1-9e6f-3c4a7b6d8e21
-async def get_coverage_gaps(
+def get_coverage_gaps(
     context: CoreContext,
     *,
     threshold: float = 75.0,
