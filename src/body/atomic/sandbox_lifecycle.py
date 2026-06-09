@@ -141,8 +141,17 @@ class SandboxLifecycle:
         return scoped_context, scoped_git
 
     # ID: b1d2c5f9-3a48-4e67-8b91-2c5f8a3d6e90
-    def propagate_changes(self, scoped_git: Any) -> None:
+    def propagate_changes(self, scoped_git: Any) -> set[str]:
         """Copy files modified inside the sandbox back to the main tree.
+
+        Returns the set of paths the sandbox observed as modified or
+        untracked (i.e. the sandbox's production set for this action).
+        Per ADR-101 D2 the caller (ActionExecutor) stamps this set onto
+        the returned ActionResult so commit_proposal_changes derives the
+        commit set from actual production rather than permission scope.
+        Empty set is returned when the sandbox produced nothing or when
+        the sandbox's own status read failed (loud-failure cases raise
+        before reaching the return statement).
 
         Walks `scoped_git.status_porcelain()` and for each modified or
         untracked entry, copies the worktree-side bytes through the main
@@ -175,13 +184,13 @@ class SandboxLifecycle:
                 "main tree NOT updated to avoid partial propagation",
                 exc,
             )
-            return
+            return set()
 
         if not porcelain:
             logger.debug(
                 "SandboxLifecycle: sandbox produced no changes for %s", sandbox_root
             )
-            return
+            return set()
 
         # Collect intended target paths. Porcelain v1 format is "XY path"
         # but GitService.status_porcelain strips the wrapping stdout, which
@@ -204,7 +213,7 @@ class SandboxLifecycle:
             target_paths.add(rel)
 
         if not target_paths:
-            return
+            return set()
 
         # Conflict check: is the main tree dirty on any target path?
         try:
@@ -252,3 +261,4 @@ class SandboxLifecycle:
             "SandboxLifecycle: propagated %d file(s) from sandbox to main tree",
             copied,
         )
+        return target_paths

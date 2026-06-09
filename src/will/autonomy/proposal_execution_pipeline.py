@@ -175,25 +175,42 @@ async def compute_changed_files(
 def rollback_proposal(
     git_service,
     proposal_id: str,
-    scope_files: list[str],
+    action_results: dict[str, Any],
     pre_sha: str | None,
 ) -> None:
-    """Restore the working tree to pre-execution state after proposal failure.
+    """Restore the action's production set after proposal failure.
 
-    Reverts the proposal's declared scope.files via
-    ``git_service.restore_paths``. No-op when *git_service* is None or
-    *pre_sha* is None (nothing to restore to). Fail-soft: a rollback
-    failure is logged at WARNING and swallowed — the proposal is already
-    marked failed regardless.
+    Per ADR-101 D3, rollback restores the same set that would have been
+    committed on the success path — the paths the action's sandbox
+    actually touched, not the proposal's permission scope. Restoring
+    ``scope.files`` (the pre-ADR-101 behavior) would clobber concurrent
+    architect edits on scope paths the action did not modify, which is
+    the symmetric violation of D1: the rollback "speaks for" bytes the
+    action did not author.
+
+    Computes the production set the same way :func:`commit_proposal_changes`
+    does and passes it to ``git_service.restore_paths``. No-op when
+    *git_service* is None, *pre_sha* is None, or the production set is
+    empty (sandbox-only writes that never reached the main tree need no
+    rollback). Fail-soft: a rollback failure is logged at WARNING and
+    swallowed — the proposal is already marked failed regardless.
     """
     if git_service is None or pre_sha is None:
         return
     try:
-        git_service.restore_paths(scope_files)
+        production = compute_production_set(action_results)
+        if not production:
+            logger.debug(
+                "Proposal %s produced no main-tree changes — nothing to rollback "
+                "(ADR-101 D3)",
+                proposal_id,
+            )
+            return
+        git_service.restore_paths(production)
         logger.info(
-            "Reverted scope files for proposal %s (count=%d, sha=%s)",
+            "Reverted production set for proposal %s (count=%d, sha=%s)",
             proposal_id,
-            len(scope_files),
+            len(production),
             pre_sha,
         )
     except Exception as rollback_err:
@@ -209,17 +226,24 @@ def commit_proposal_changes(
     git_service,
     proposal_id: str,
     proposal_goal: str,
-    scope_files: list[str],
     action_results: dict[str, Any],
 ) -> None:
-    """Commit the proposal's changes to git.
+    """Commit the proposal's actual production to git.
 
-    Stages the declared scope.files plus anything actions reported in
-    ``data['files_produced']`` (issue #297: fix.modularity writes new
-    package files outside scope.files). Commits with message
-    ``fix({proposal_id[:16]}): {goal}``.
+    Per ADR-101 D2, the commit set is derived from the action's actual
+    production — the union of ``data['_sandbox_target_paths']`` (paths
+    the SandboxLifecycle observed modified inside the hermetic worktree,
+    stamped by ActionExecutor after successful propagate_changes) and
+    ``data['files_produced']`` (paths the action explicitly declared as
+    produced, the fix.modularity pattern from #297). The proposal's
+    permission scope (``scope.files``) does NOT participate; it remains
+    a permission boundary, not a production postcondition.
 
-    No-op when *git_service* is None.
+    Commits with message ``fix({proposal_id[:16]}): {goal}``. No-op when
+    *git_service* is None. When the production set is empty (idempotent
+    action against already-correct input, sandbox-only writes that never
+    reached the main tree), no commit is created — the honest outcome:
+    no production means no commit.
 
     Fail-soft: the commit failing is advisory. Execution has already
     happened and the proposal row is already marked completed; we don't
@@ -229,7 +253,13 @@ def commit_proposal_changes(
     if git_service is None:
         return
     try:
-        paths_to_commit = sorted(set(scope_files) | _files_produced_by(action_results))
+        paths_to_commit = compute_production_set(action_results)
+        if not paths_to_commit:
+            logger.info(
+                "Proposal %s produced no changes — no commit emitted (ADR-101 D2)",
+                proposal_id,
+            )
+            return
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
@@ -243,22 +273,36 @@ def commit_proposal_changes(
         )
 
 
-def _files_produced_by(action_results: dict[str, Any]) -> set[str]:
-    """Collect every path actions reported via ``data['files_produced']``.
+# ID: 6f3a8d9c-2b71-4a85-9e1c-7d2f8b4a6e09
+def compute_production_set(action_results: dict[str, Any]) -> list[str]:
+    """Union of paths the executed actions actually authored.
 
-    Some actions — notably ``fix.modularity`` — write new files outside
-    the proposal's declared ``scope.files``. Each such action lists those
-    paths in its ``ActionResult.data['files_produced']``. The commit step
-    unions this set with the declared scope so new files land in git
-    alongside the scope-declared edits. Issue #297.
+    Per ADR-101 D2 this is the authoritative production boundary; both
+    the commit set (:func:`commit_proposal_changes`) and the rollback
+    target (:func:`rollback_proposal`) derive from it. The proposal's
+    permission scope (``scope.files``) is NOT included — that's a
+    permission boundary, not a production postcondition.
+
+    Sources unioned:
+
+    - ``data['_sandbox_target_paths']`` — paths the SandboxLifecycle
+      observed modified inside the hermetic worktree (ADR-071 D2.2).
+      Stamped by ActionExecutor after a successful propagate_changes;
+      absent when the action did not run sandboxed (CLI direct, dry-run,
+      ``ActionImpact`` outside ``{WRITE_CODE, WRITE_METADATA}``).
+    - ``data['files_produced']`` — paths the action explicitly declared
+      as produced. The :mod:`fix.modularity` pattern (#297) writes new
+      package files that exist outside any pre-declared scope; the
+      action lists them here so they reach git.
 
     Non-string and empty entries are filtered out defensively so a
-    malformed action result can't corrupt the git-add invocation.
+    malformed action result can't corrupt the git invocation.
     """
     produced: set[str] = set()
     for result in action_results.values():
         data = result.get("data") or {}
-        for path in data.get("files_produced") or []:
-            if isinstance(path, str) and path:
-                produced.add(path)
-    return produced
+        for key in ("_sandbox_target_paths", "files_produced"):
+            for path in data.get(key) or []:
+                if isinstance(path, str) and path:
+                    produced.add(path)
+    return sorted(produced)

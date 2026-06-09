@@ -627,27 +627,69 @@ only the governor can run it.
 
 ---
 
+## Commit authorship integrity (ADR-101 D1)
+
+Every commit attributes a diff to an author. The diff MUST contain only bytes
+that author produced. This is constitutional and applies to every committer —
+the human architect, Claude Code, autonomous CORE components, any future agent.
+Path scope is a permission boundary (what you're allowed to touch); authorship
+is a production boundary (what you actually wrote). They are two surfaces and
+must be tracked separately.
+
+What this means for Claude Code, operationally:
+
+- **Stage specific files by name; never `git add -A`, `git add .`, or
+  `git commit -a` when the working tree may contain other actors' work.** The
+  user may have stashed edits, partial WIP, or work-in-progress from a prior
+  session. `git add -A` cannot tell which bytes are yours; specific
+  `git add path/to/your/file.py` invocations can.
+- **Never amend a commit you didn't author this turn.** `git commit --amend`
+  rewrites the previous commit's authorship; if that commit was the user's, you
+  are silently re-attributing their work to your session.
+- **Never `git checkout .`, `git restore .`, or `git clean -f` to "clean up".**
+  These commands destroy whatever the user has in flight. Restore specific
+  named paths the user explicitly authorized you to revert.
+- **Co-Authored-By trailers are the explicit-consent mechanism** by which you
+  and the user jointly claim authorship of a single commit. They preserve the
+  chain of who did what. Use them when the commit captures genuine collaborative
+  work, omit them when the work is purely the user's edits that you happened to
+  stage on their behalf.
+
+Same principle bounds the autonomous CORE daemon: it commits only the bytes
+its action produced (ADR-101 D2 derives the commit set from the action's
+sandbox production, not from `proposal.scope.files`).
+
+ADR-021's path-shaped guards (commit set = `scope.files`, pre-claim scope-
+collision check, `autonomy_dirty_tree.yaml` modes) are superseded by ADR-101
+and have been removed from the codebase. Don't reach for them in design
+discussions or expect them in error paths.
+
+---
+
 ## What to check before committing any change
 
-1. No direct DB imports in `src/api/` outside `api/dependencies.py`
-2. No `settings` imports in `src/body/`
-3. Every new public `def` or `class` has a `# ID: <uuid>` comment (private `_name` symbols exempt)
-4. No `.intent/` files accessed via raw `Path` in Body, Will, or API code
-5. Analyzers have no write side effects
-6. No `src/body/` code importing from `src/will/`
-7. No `src/will/` code importing directly from the database session layer
-8. All mutation functions decorated with `@atomic_action` and called via `ActionExecutor`
-9. Workers post to blackboard; they never call other workers directly
-10. Constitutional compliance comment at the top of modified files reflects the change
-11. No Rich objects or Rich markup strings passed to `logger.info()`
-12. `.env`, `.venv/`, and `*.pth` files are untouched. Any write to `.specs/` or `.intent/`
+1. The commit's diff contains only bytes you produced this turn — no user WIP,
+   no stash residue, no other actor's edits swept in by `git add -A`
+   (ADR-101 D1)
+2. No direct DB imports in `src/api/` outside `api/dependencies.py`
+3. No `settings` imports in `src/body/`
+4. Every new public `def` or `class` has a `# ID: <uuid>` comment (private `_name` symbols exempt)
+5. No `.intent/` files accessed via raw `Path` in Body, Will, or API code
+6. Analyzers have no write side effects
+7. No `src/body/` code importing from `src/will/`
+8. No `src/will/` code importing directly from the database session layer
+9. All mutation functions decorated with `@atomic_action` and called via `ActionExecutor`
+10. Workers post to blackboard; they never call other workers directly
+11. Constitutional compliance comment at the top of modified files reflects the change
+12. No Rich objects or Rich markup strings passed to `logger.info()`
+13. `.env`, `.venv/`, and `*.pth` files are untouched. Any write to `.specs/` or `.intent/`
     came from either an authorized mechanical substitution or a write the governor explicitly
     confirmed this turn; any write to the constitutional core (`.intent/constitution/`,
     `.intent/META/`, `.intent/rules/governance/`) was confirmed by the governor naming that
     specific file this turn
-13. Every relevant ADR in `.specs/decisions/` has been honored
-14. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
-15. Any signature/behavior change in `src/` has a corresponding test update in the same
+14. Every relevant ADR in `.specs/decisions/` has been honored
+15. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
+16. Any signature/behavior change in `src/` has a corresponding test update in the same
     commit. Any new public symbol has at least a basic test. See "Tests are part of the
     change" above for why this isn't covered by the autonomous test-gen loop
 

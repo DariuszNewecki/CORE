@@ -297,7 +297,15 @@ class ActionExecutor:
             result = _validate_action_result(action_id, raw_result)
 
             if scoped_git is not None and result.ok:
-                self._sandbox.propagate_changes(scoped_git)
+                target_paths = self._sandbox.propagate_changes(scoped_git)
+                # ADR-101 D2: stamp the sandbox production set onto the
+                # result so commit_proposal_changes can derive the commit
+                # set (and rollback the rollback target) from actual
+                # production, not from the proposal's permission scope.
+                # Underscore-prefixed key marks this as runtime-injected,
+                # not declared by the action.
+                if isinstance(result.data, dict):
+                    result.data["_sandbox_target_paths"] = sorted(target_paths)
 
             logger.info(
                 "Action %s completed: ok=%s, duration=%.2fs",

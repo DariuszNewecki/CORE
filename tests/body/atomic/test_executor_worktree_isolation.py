@@ -201,10 +201,14 @@ def test_clean_propagation_copies_sandbox_writes_to_main(repo: Path) -> None:
         ).read_text() == "# action wrote this\n"
         assert (repo / "scope.py").read_text() == "# original\n"
 
-        executor._sandbox.propagate_changes(scoped_git)
+        target_paths = executor._sandbox.propagate_changes(scoped_git)
 
         # Main now reflects sandbox content
         assert (repo / "scope.py").read_text() == "# action wrote this\n"
+        # ADR-101 D2: propagate_changes returns the sandbox production set
+        # so ActionExecutor can stamp it onto the ActionResult and
+        # commit_proposal_changes can derive the commit set from it.
+        assert target_paths == {"scope.py"}
     finally:
         if scoped_git is not None:
             scoped_git.cleanup()
@@ -275,6 +279,10 @@ def test_propagation_proceeds_when_governor_edits_a_different_file(repo: Path) -
 
 
 def test_propagation_no_op_when_sandbox_made_no_changes(repo: Path) -> None:
+    """ADR-101 D2 / #594 shape: an idempotent action against already-correct
+    input produces no sandbox changes. propagate_changes returns an empty
+    set; commit_proposal_changes will see an empty production set and emit
+    no commit — the honest outcome that closes #594's regression class."""
     executor, ctx = _bare_executor(repo)
     sha = ctx.git_service.get_current_commit()
     defn = _make_definition()
@@ -283,8 +291,9 @@ def test_propagation_no_op_when_sandbox_made_no_changes(repo: Path) -> None:
     )
     try:
         # No action invocation — sandbox stays clean
-        executor._sandbox.propagate_changes(scoped_git)
+        target_paths = executor._sandbox.propagate_changes(scoped_git)
         assert (repo / "scope.py").read_text() == "# original\n"
+        assert target_paths == set()
     finally:
         if scoped_git is not None:
             scoped_git.cleanup()

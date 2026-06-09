@@ -2,12 +2,14 @@
 
 # ADR-021 — Scoped autonomous git operations
 
-**Status:** Accepted
+**Status:** Superseded by ADR-101 (2026-06-09) — see closure marker at end of file.
+**Originally:** Accepted 2026-05-02
 **Date:** 2026-05-02
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #167
 **Supersedes:** nothing
-**Related:** ADR-011 (workers own blackboard attribution), ADR-014 (development-phase priority: loop liveness > productivity > quality), ADR-019 (Edge 5 git-boundary attribution posture)
+**Superseded by:** ADR-101 D2/D3/D4 — D3's commit-set choice, D2/D4's rollback-target choice, and D5/D6's `autonomy_dirty_tree.yaml` machinery are all retired. D1's `commit_paths` / `restore_paths` primitives survive and are reused by ADR-101's implementation.
+**Related:** ADR-011 (workers own blackboard attribution), ADR-014 (development-phase priority: loop liveness > productivity > quality), ADR-019 (Edge 5 git-boundary attribution posture), ADR-071 (hermetic worktree sandbox — the mechanism that made ADR-101's principle enforceable), ADR-101 (commit authorship integrity — the superseding principle)
 
 ---
 
@@ -226,3 +228,57 @@ files outside proposal scope are protected by D2/D3 (they are not
 touched at all); the architect's edits inside proposal scope are
 protected by D5 (the proposal yields rather than running). No need for
 stash semantics.
+
+---
+
+## Superseded by ADR-101 (2026-06-09)
+
+This ADR's central decisions — D3's commit-set choice
+(`commit_paths(proposal.scope.files | files_produced)`), D2/D4's
+rollback target (`restore_paths(proposal.scope.files)`), and D5/D6's
+`autonomy_dirty_tree.yaml` pre-claim collision check — were
+load-bearing on the assumption that the proposal's *permission scope*
+(`scope.files`) was a usable stand-in for the action's *production
+scope* (the bytes the action actually wrote). Two incidents (#124
+April 2026, closed by this ADR; #594 June 2026, the regression that
+reopened the class) established that the two scopes are distinct
+structures and the unification was the bug. The path-shaped commit
+set staged whatever bytes happened to be in the main working tree at
+commit time, including concurrent architect edits the autonomous
+action did not author. ADR-071 D2.2's hermetic worktree sandbox
+closed the *execution-side* collision but explicitly preserved this
+ADR's commit-set arithmetic, leaving the leak open for idempotent
+actions whose sandbox produced no changes.
+
+**What ADR-101 changes:**
+
+- **D3 superseded.** `commit_proposal_changes` derives the commit set
+  from the action's actual production
+  (`sandbox_target_paths ∪ files_produced`), not from `scope.files`.
+  A proposal whose action produced no changes emits no commit — the
+  honest outcome.
+- **D2/D4 superseded.** Rollback restores the same set that would
+  have been committed (the action's touched set), not `scope.files`.
+- **D5 retired.** The pre-claim `_check_scope_collision` is removed;
+  content scope is enforced by construction in the new commit-set
+  arithmetic, so the path-shaped pre-claim guard contributes no
+  remaining safety property.
+- **D6 retired.** `autonomy_dirty_tree.yaml`, its loader, and the
+  `intersection_only` / `any_dirty` mode distinction all disappear.
+  Whether the daemon yields on a dirty tree becomes a *liveness*
+  policy decision (separate from safety), answerable under ADR-014
+  criteria.
+- **D1 survives.** `GitService.commit_paths` and
+  `GitService.restore_paths` remain the constitutional primitives for
+  autonomous git operations and are reused by ADR-101's
+  implementation. The path-scope permission boundary they implement
+  is unchanged; what changes is which paths the caller passes in.
+
+The original text above is preserved per the append-only ADR
+closure-marker convention. Readers consulting any individual decision
+(D2, D3, D4, D5, D6) above should follow this marker for the realized
+shape. The historical reasoning is retained for the audit trail.
+
+**Implementation tracking:** filed alongside ADR-101 acceptance.
+Closure of #594 depends on the ADR-101 implementation commit landing,
+not on this marker.

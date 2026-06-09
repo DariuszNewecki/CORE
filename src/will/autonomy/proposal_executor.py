@@ -22,9 +22,6 @@ from body.flows.executor import FlowExecutor
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.exceptions import GovernanceInstrumentError
-from shared.infrastructure.intent.autonomy_dirty_tree import (
-    load_autonomy_dirty_tree_policy,
-)
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -60,74 +57,6 @@ class ProposalExecutor:
         self.core_context = core_context
         self.action_executor = ActionExecutor(core_context)
         logger.debug("ProposalExecutor initialized")
-
-    async def _check_scope_collision(self, proposal) -> dict | None:
-        """
-        Pre-claim scope-collision check per ADR-021 D5.
-
-        Returns a yield result dict if the dirty working tree intersects
-        proposal.scope.files (or, under any_dirty mode, if the working
-        tree is dirty at all). Returns None if it is safe to proceed.
-
-        Mode is read from .intent/enforcement/config/autonomy_dirty_tree.yaml.
-        On loader sentinel, treats mode as any_dirty (conservative halt).
-        """
-        if self.core_context.git_service is None:
-            return None
-
-        policy = load_autonomy_dirty_tree_policy()
-        if policy.get("_error"):
-            logger.warning(
-                "autonomy_dirty_tree policy unavailable (%s) — defaulting to any_dirty",
-                policy.get("reason"),
-            )
-            mode = "any_dirty"
-        else:
-            mode = policy["mode"]
-
-        try:
-            porcelain = self.core_context.git_service.status_porcelain()
-        except RuntimeError as status_err:
-            logger.warning(
-                "Could not read working-tree status — proceeding cautiously: %s",
-                status_err,
-            )
-            return None
-
-        dirty_paths: set[str] = set()
-        for line in porcelain.splitlines():
-            if len(line) < 4:
-                continue
-            path = line[3:]
-            if " -> " in path:
-                path = path.split(" -> ", 1)[1]
-            if path:
-                dirty_paths.add(path)
-
-        if not dirty_paths:
-            return None
-
-        scope_files = set(proposal.scope.files)
-        intersection = dirty_paths & scope_files
-
-        if mode == "any_dirty" or intersection:
-            colliding = (
-                sorted(intersection)
-                if mode == "intersection_only"
-                else sorted(dirty_paths)
-            )
-            return {
-                "ok": False,
-                "yielded": True,
-                "yield_reason": "scope_collision"
-                if mode == "intersection_only"
-                else "any_dirty",
-                "colliding_paths": colliding,
-                "proposal_id": proposal.proposal_id,
-                "duration_sec": 0.0,
-            }
-
-        return None
 
     # ID: 5bb8175a-6a30-4548-8597-977a43fcb0b7
     async def execute(
@@ -183,16 +112,12 @@ class ProposalExecutor:
                     "duration_sec": time.time() - start_time,
                 }
 
-            # Pre-claim scope-collision check (ADR-021 D5)
-            collision = await self._check_scope_collision(proposal)
-            if collision is not None:
-                logger.info(
-                    "Proposal %s yielded pre-claim: %s (colliding=%d)",
-                    proposal.proposal_id,
-                    collision["yield_reason"],
-                    len(collision["colliding_paths"]),
-                )
-                return collision
+            # ADR-101 D4: pre-claim scope-collision check (ADR-021 D5) is
+            # retired. Content scope is enforced by construction in
+            # commit_proposal_changes via the action's production set;
+            # the path-shaped pre-claim guard contributed no remaining
+            # safety property once the commit-set derivation moved off
+            # proposal.scope.files.
 
             # 3. Mark as executing via claim.proposal atomic action (only if write=True)
             if write:
@@ -338,7 +263,6 @@ class ProposalExecutor:
                         git_service=self.core_context.git_service,
                         proposal_id=proposal.proposal_id,
                         proposal_goal=proposal.goal,
-                        scope_files=proposal.scope.files,
                         action_results=action_results,
                     )
 
@@ -385,7 +309,7 @@ class ProposalExecutor:
                     rollback_proposal(
                         git_service=self.core_context.git_service,
                         proposal_id=proposal.proposal_id,
-                        scope_files=proposal.scope.files,
+                        action_results=action_results,
                         pre_sha=pre_execution_sha,
                     )
             else:

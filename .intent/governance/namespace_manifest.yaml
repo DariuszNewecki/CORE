@@ -893,8 +893,6 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/config/audit_verdict.yaml
     governance_namespace: project::core
-  - path: .intent/enforcement/config/autonomy_dirty_tree.yaml
-    governance_namespace: project::core
   - path: .intent/enforcement/config/circuit_breaker.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/crawl_scopes.yaml

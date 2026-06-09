@@ -40,7 +40,6 @@ from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.workers.proposal_consumer_effects import (
     apply_success_effects,
-    apply_yield_effects,
     summarize_flow_step_failures,
 )
 from will.workers.proposal_consumer_revival import (
@@ -109,7 +108,6 @@ class ProposalConsumerWorker(Worker):
 
         succeeded = 0
         failed = 0
-        yielded = 0
         results: list[dict[str, Any]] = []
 
         for proposal in proposals:
@@ -127,29 +125,10 @@ class ProposalConsumerWorker(Worker):
                     proposal_id, self.worker_uuid, write=True
                 )
 
-                if result.get("yielded"):
-                    yielded += 1
-                    colliding = result.get("colliding_paths", []) or []
-                    yield_reason = result.get("yield_reason", "scope_collision")
-                    logger.info(
-                        "ProposalConsumerWorker: proposal '%s' yielded — %s "
-                        "(colliding=%d)",
-                        proposal_id,
-                        yield_reason,
-                        len(colliding),
-                    )
-                    await apply_yield_effects(self, proposal_id, goal, result)
-                    results.append(
-                        {
-                            "proposal_id": proposal_id,
-                            "goal": goal,
-                            "ok": False,
-                            "yielded": True,
-                            "yield_reason": yield_reason,
-                            "colliding_paths": colliding,
-                        }
-                    )
-                    continue
+                # ADR-101 D4: ProposalExecutor no longer yields pre-claim
+                # on scope collision; result.get("yielded") is dead code.
+                # Content scope is enforced in commit_proposal_changes via
+                # the action's production set rather than path-shaped guards.
 
                 if result["ok"]:
                     succeeded += 1
@@ -226,20 +205,15 @@ class ProposalConsumerWorker(Worker):
                 "executed": len(results),
                 "succeeded": succeeded,
                 "failed": failed,
-                "yielded": yielded,
                 "results": results,
-                "message": (
-                    f"{succeeded} proposals executed, {failed} failed, "
-                    f"{yielded} yielded."
-                ),
+                "message": f"{succeeded} proposals executed, {failed} failed.",
             },
         )
 
         logger.info(
-            "ProposalConsumerWorker: %d succeeded, %d failed, %d yielded.",
+            "ProposalConsumerWorker: %d succeeded, %d failed.",
             succeeded,
             failed,
-            yielded,
         )
 
     # -------------------------------------------------------------------------

@@ -7,12 +7,16 @@ outcomes into blackboard side-effects:
 
 - Success aftermath: forward each action's finding_to_post (ADR-011
   attribution), post `python::test.coverage::*` for each changed src/*.py file.
-- Yield aftermath: post the scope_collision finding so a downstream worker
-  can observe the yield.
 
 All posts flow through the passed-in Worker instance so attribution
 (self._worker_uuid, self._phase) is correct per ADR-011 — these helpers
 do not post on their own account.
+
+ADR-101 D4 retired the pre-claim scope-collision check; the corresponding
+yield-aftermath helper (`apply_yield_effects`) has been removed. Historical
+`autonomy.yielded.scope_collision::*` entries remain on the blackboard for
+audit-trail purposes and are still classified by the dashboard's Type A
+filter.
 
 LAYER: will/workers — internal collaborator of ProposalConsumerWorker.
 No database access, no file writes, no LLM calls.
@@ -164,79 +168,3 @@ async def apply_success_effects(
                     proposal_id,
                     test_req_err,
                 )
-
-
-# ID: 19c42f70-4275-4635-8df9-6568dfabf7a1
-async def apply_yield_effects(
-    worker: Worker,
-    proposal_id: str,
-    goal: str,
-    result: dict[str, Any],
-) -> None:
-    """
-    Post the autonomy.yielded.scope_collision finding when ProposalExecutor
-    yields a proposal rather than executing it (typically because the
-    working tree is dirty under ADR-021 D5).
-
-    Posted terminal-at-creation via post_observation(status='abandoned')
-    per the observability-TTL fix (2026-05-25): no in-code resolver
-    consumes these findings, so prior posts as status='open' accumulated
-    forever and produced perpetual stale-alerts from
-    BlackboardShopManager. The prior docstring's claim of "resolved when
-    proposal completes/fails" was aspirational — only 57 rows have ever
-    been resolved historically, all by manual SQL on 2026-05-12 (single
-    governor-triggered purge). If a real proposal-completion resolver is
-    implemented later, the contract here can be downgraded from
-    terminal-at-creation back to open + lifecycle-linked.
-
-    Idempotent by subject is no longer load-bearing now that emissions
-    are terminal — a terminal entry never blocks fresh detection — but
-    the dedup lookup is retained as a cheap guard against double-post
-    races within a single consumer tick.
-
-    Fail-soft: lookup or post errors are logged. On lookup failure we
-    fall back to posting — better a duplicate than a silenced yield. The
-    worker's run-loop accounting (yielded += 1) is not disturbed either
-    way.
-    """
-    colliding = result.get("colliding_paths", []) or []
-    yield_reason = result.get("yield_reason", "scope_collision")
-    subject = f"autonomy.yielded.scope_collision::{proposal_id}"
-
-    from body.services.service_registry import service_registry
-
-    try:
-        bb_service = await service_registry.get_blackboard_service()
-        existing = await bb_service.fetch_open_finding_subjects_by_prefix(subject)
-        if subject in existing:
-            logger.info(
-                "ProposalConsumerWorker: yield finding already open for "
-                "proposal %s — skipping duplicate post",
-                proposal_id,
-            )
-            return
-    except Exception as lookup_err:
-        logger.warning(
-            "Yield-finding dedup lookup failed for proposal %s "
-            "(falling back to post): %s",
-            proposal_id,
-            lookup_err,
-        )
-
-    try:
-        await worker.post_observation(
-            subject=subject,
-            payload={
-                "proposal_id": proposal_id,
-                "goal": goal,
-                "yield_reason": yield_reason,
-                "colliding_paths": colliding,
-            },
-            status="abandoned",
-        )
-    except Exception as post_err:
-        logger.warning(
-            "Could not post yield finding for proposal %s: %s",
-            proposal_id,
-            post_err,
-        )
