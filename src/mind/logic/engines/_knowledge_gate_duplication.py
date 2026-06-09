@@ -101,9 +101,12 @@ def _create_duplication_finding(a, b, score, dtype) -> AuditFinding:
     name_b = b.get("qualname") or b.get("name") or "?"
     module_a = a.get("module", "")
     file_path = _resolve_symbol_path(a)
+    # Per ADR-098 D4 / #606: parent rules purity.no_ast_duplication and
+    # purity.no_semantic_duplication are reporting, which rule_executor
+    # maps to INFO at dispatch.
     return AuditFinding(
         check_id=f"purity.no_{dtype}_duplication",
-        severity=AuditSeverity.HIGH,
+        severity=AuditSeverity.INFO,
         message=f"{dtype.upper()} duplication: '{name_a}' duplicates '{name_b}' (score={score:.2f})",
         file_path=file_path,
         context={

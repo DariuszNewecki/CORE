@@ -392,8 +392,10 @@ class KnowledgeGateEngine(BaseEngine):
             rel = str(orphan.relative_to(repo_path))
             findings.append(
                 AuditFinding(
+                    # Per ADR-098 D4 / #606: parent rule purity.no_orphan_files
+                    # is reporting, which rule_executor maps to INFO at dispatch.
                     check_id="purity.no_orphan_files",
-                    severity=AuditSeverity.HIGH,
+                    severity=AuditSeverity.INFO,
                     message=f"Orphan file: '{rel}' is not reachable from any entry point.",
                     file_path=rel,
                 )
