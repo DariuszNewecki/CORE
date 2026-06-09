@@ -91,6 +91,17 @@ _DEFAULT_ICEBERG_MAX_DISTINCT_FILES = 3
 _SCHEMA_CONFORMANCE_RULE_PREFIX = "data.contracts."
 _SCHEMA_CONFORMANCE_RULE_SUFFIX = "_conforms"
 
+# Default severity for rule findings emitted by this engine. All three
+# context-level rules in contracts_gate declare enforcement: reporting,
+# which `rule_executor._map_enforcement_to_severity` maps to
+# AuditSeverity.INFO. The executor overrides each finding's severity at
+# dispatch time per ADR-098 D4; the value here is what callers see in
+# direct (out-of-executor) invocations — e.g. unit tests, smoke checks.
+# Keep aligned with the parent rules' enforcement so the two paths agree.
+# The dispatch-error finding (verify_context's unsupported check_type
+# fallback) keeps HIGH because it signals a config bug, not a rule fact.
+_DEFAULT_FINDING_SEVERITY = AuditSeverity.INFO
+
 # Constitutional layers under src/ where instantiation sites are meaningful
 # for scope-coherence analysis. shared/ is intentionally excluded — it
 # carries cross-layer infrastructure and is not itself a "layer" in the
@@ -227,7 +238,7 @@ def _check_layer_scope_coherence(context: AuditorContext) -> list[AuditFinding]:
             findings.append(
                 AuditFinding(
                     check_id=_RULE_ID_LAYER_SCOPE_COHERENCE,
-                    severity=AuditSeverity.HIGH,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(
                         f"Contract {contract_path.name} (id: {contract_id}) binds "
                         f"class '{class_name}' whose instantiation sites are exclusively "
@@ -425,7 +436,7 @@ async def _check_asymmetric_contract_findings(
         findings.append(
             AuditFinding(
                 check_id=_RULE_ID_ASYMMETRIC_FINDINGS,
-                severity=AuditSeverity.HIGH,
+                severity=_DEFAULT_FINDING_SEVERITY,
                 message=(
                     f"Class '{cls}' is governed by multiple schema_conformance rules "
                     f"with asymmetric finding counts over the last {lookback_hours}h: "
@@ -527,7 +538,7 @@ async def _check_rule_binding_iceberg(
         findings.append(
             AuditFinding(
                 check_id=_RULE_ID_RULE_BINDING_ICEBERG,
-                severity=AuditSeverity.HIGH,
+                severity=_DEFAULT_FINDING_SEVERITY,
                 message=(
                     f"Rule '{row.check_id}' shows iceberg-shaped finding cluster "
                     f"over the last {lookback_hours}h: {finding_count} findings "
