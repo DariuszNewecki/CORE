@@ -33,6 +33,8 @@ from shared.utils.glob_match import matches_glob
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 # Engine types that MUST NOT be evaluated by check_transaction at write time.
 #
 # Two distinct categories share this property:
