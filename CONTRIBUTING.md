@@ -41,7 +41,7 @@ Before opening a PR, contributors are expected to:
 - Run a constitutional audit locally and confirm it passes:
 
 ```bash
-poetry run core-admin code audit
+core-admin code audit
 ```
 
 If a change impacts governance, architecture, or enforcement logic,

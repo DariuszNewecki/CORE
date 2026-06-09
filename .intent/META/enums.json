@@ -341,6 +341,14 @@
         "dev",
         "live"
       ]
+    },
+    "export_evidence_class": {
+      "description": "Declared evidence class of a signed audit export manifest, used by the verifier to refuse mixed-scope exports. Pins the F-46/F-37 (now E-46/E-37) boundary as a machine-readable claim rather than a prose-only narrative declared in ADR-083 D4 and CORE-Features.md \u00a7E-46/\u00a7E-37. (1) audit_evidence \u2014 the export contains audit findings and (where Solo+ stateful operation is in use) the surrounding proposal context as supporting evidence for those findings; produced by E-46. Buyer use case: portable evidence artifact for non-regulated audit consumption. (2) governed_change_evidence \u2014 the export contains the full consequence chain of governed mutations (proposal \u2192 action \u2192 finding closure) formatted for GxP / EU AI Act regulatory submission; produced by E-37. Buyer use case: regulatory submission package. The two classes are mutually exclusive at manifest scope; a single export declares exactly one. Closed vocabulary: a third evidence class requires an amending ADR. Authority: ADR-100 D1 (vocabulary), ADR-083 D4 (prose boundary), ADR-093 D3 (E-NN reclassification), Issue #525 (verifier contract). Consumer: the eventual .intent/enforcement/contracts/ExportManifest.json data contract (deferred per ADR-100 D5 / ADR-093 D5) will $ref this enum by canonical pointer; values outside this enum will be a schema-validation failure at that boundary.",
+      "type": "string",
+      "enum": [
+        "audit_evidence",
+        "governed_change_evidence"
+      ]
     }
   }
 }
