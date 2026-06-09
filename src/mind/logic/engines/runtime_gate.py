@@ -225,8 +225,11 @@ async def _check_worker_process_classification(
         if not state["is_dedicated"] and max_dur > escalation_sec:
             findings.append(
                 AuditFinding(
+                    # Per ADR-098 D4 / #606: parent rule
+                    # runtime.worker_process_classification is advisory,
+                    # which rule_executor maps to INFO at dispatch.
                     check_id=_RULE_ID,
-                    severity=AuditSeverity.MEDIUM,
+                    severity=AuditSeverity.INFO,
                     message=(
                         f"escalation_required: worker '{stem}' declares "
                         f"requires_dedicated_process: false, but observed "
@@ -395,8 +398,11 @@ async def _check_worker_max_interval_within_observed(
 
         findings.append(
             AuditFinding(
+                # Per ADR-098 D4 / #606: parent rule
+                # runtime.worker_max_interval_within_observed is blocking,
+                # which rule_executor maps to BLOCK at dispatch.
                 check_id=_RULE_ID_MAX_INTERVAL,
-                severity=AuditSeverity.MEDIUM,
+                severity=AuditSeverity.BLOCK,
                 message=(
                     f"worker '{stem}' configured max_interval="
                     f"{w['max_interval']}s but observed p95 cycle gap "
