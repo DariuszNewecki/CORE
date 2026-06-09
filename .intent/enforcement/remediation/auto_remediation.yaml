@@ -886,13 +886,49 @@ mappings:
       to be built.
     status: PENDING
 
-  data.contracts.finding_nucleus_conforms:
-    action: fix.contract_conformance
+  # ADR-102 (#612, #613, #614): cross-cutting contracts_gate meta-rules.
+  # Not auto-fixable — each fires when a contract's bind is structurally
+  # suspect (layer-incoherent, asymmetric finding counts, iceberg cluster).
+  # Resolution requires architectural judgment: retire the contract,
+  # narrow governed_classes, or reshape the rule's scope. Routed to
+  # governor inbox as DELEGATE.
+
+  data.contracts.layer_scope_coherence:
+    action: fix.modularity
     confidence: 0.40
     description: >
-      Pydantic model conformance check under ADR-056 wave work. Fixer
-      to be built.
-    status: PENDING
+      Cross-cutting contract-scope rule (#612). Fires when a contract
+      requiring worker_uuid binds a class whose instantiation sites
+      are exclusively in a layer constitutionally forbidden from
+      blackboard attribution (Mind, today). Resolution requires
+      architectural judgment — retire the contract or remove the
+      class from governed_classes. Routed to governor inbox as
+      DELEGATE.
+    status: DELEGATE
+
+  data.contracts.asymmetric_contract_findings:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      Cross-cutting contract-scope rule (#613). Fires when a class is
+      governed by multiple schema_conformance rules with asymmetric
+      finding counts (some 0, some >0) — the high-firing rule's
+      binding is suspect, not the class's shape. Resolution requires
+      architectural judgment about the suspect contract's scope.
+      Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
+  data.contracts.rule_binding_iceberg:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      Cross-cutting contract-scope rule (#614). Fires on iceberg-shape
+      finding clusters (many findings on few files for one
+      schema_conformance rule) — signals the rule's binding may itself
+      be the bug. Resolution requires investigating the rule's
+      governed_classes vs the affected classes' operational role.
+      Routed to governor inbox as DELEGATE.
+    status: DELEGATE
 
   data.contracts.fix_result_conforms:
     action: fix.contract_conformance
