@@ -76,6 +76,16 @@
                 "minLength": 1
             },
             "description": "Field names that every governed class must declare. A required field absent from a governed class is reported as missing."
+        },
+        "permitted_extensions": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
         }
     }
 }

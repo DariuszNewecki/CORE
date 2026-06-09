@@ -44,10 +44,9 @@ from will.autonomy.proposal_state_manager import ProposalNotFoundError
 logger = getLogger(__name__)
 
 
-# API claimer sentinel — distinct from CLI_CLAIMER_UUID
-# (cli/resources/proposals/manage.py uses ...0001). Mirrors the ADR-017
-# D4 pattern: governor-direct execution paths get a stable sentinel so
-# claimed_by lineage is queryable per surface.
+# API claimer sentinel for governor-direct execution paths invoked over HTTP.
+# Mirrors the ADR-017 D4 pattern: governor-direct execution paths get a stable
+# sentinel so claimed_by lineage is queryable per surface.
 API_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000002")
 
 

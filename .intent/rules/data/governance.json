@@ -32,8 +32,8 @@
             "enforcement": "reporting"
         },
         {
-            "id": "data.contracts.finding_nucleus_conforms",
-            "statement": "The classes `CheckResult` and `AuditFinding` MUST declare fields that conform to `.intent/enforcement/contracts/Finding.json`. Authority: ADR-056 D3.",
+            "id": "data.contracts.layer_scope_coherence",
+            "statement": "A data contract MUST NOT bind a class whose instantiation sites are exclusively in a layer whose constitutional rules forbid the operations the contract requires. Initial scope: contracts requiring `worker_uuid` (blackboard FK) bound to Mind-layer-only classes. Authority: ADR-102 (#612).",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"

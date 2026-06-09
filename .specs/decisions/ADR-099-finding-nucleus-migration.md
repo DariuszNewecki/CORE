@@ -3,7 +3,7 @@
 # ADR-099 — Finding-nucleus migration: alias-bridged reconciliation of CheckResult and AuditFinding to the canonical contract
 
 **Date:** 2026-06-09
-**Status:** Accepted (2026-06-09) — Revision A is the authoritative shape. The original D1 and D2 below are preserved with `> SUPERSEDED by Revision A` markers per `[[feedback_append_only_amendments_under_review]]`; the audit trail of how the decision was reached stays readable inside the file.
+**Status:** Retired (2026-06-09) — superseded by **ADR-102**. Only D3 (the `permitted_extensions` clause on the META schema) and migration step 1 (the META schema extension that landed it) survive; everything else — D1 synthetic-worker apparatus, D2 alias bridge, D4 sequencing, D5 verification gates, and migration steps 2–10 — is retired. See Revision C below for the supersession ledger and the reverts that followed. The original draft, Revision A, and Revision B are preserved in place with their existing `> SUPERSEDED` markers per `[[feedback_append_only_amendments_under_review]]`; the audit trail (original draft → Revision A → Revision B → Revision C retirement) stays readable inside the file.
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-09, after #598 triage. ADR-056 D3 committed CheckResult and AuditFinding to the canonical Finding nucleus (`rule_id, severity, subject, evidence, worker_uuid`); implementation has been on incompatible names since the contract bind landed. The contract author left a deliberate dual-contract structure — Finding.json governs CheckResult+AuditFinding for *visibility* of the gap, AuditFinding.json governs AuditFinding for the *actual persistence shape*. The 16 audit findings against `data.contracts.finding_nucleus_conforms` are the gap visible. The five open design questions in #598 — worker_uuid attribution, renames vs aliases, extension allowlist, migration sequencing, pre-migration instrumentation — needed an integrated decision, not piecemeal answers.)
 **Grounding paper:** ADR-056 D3 — *"Layer-specific extensions are permitted; nucleus fields are not optional."* The ADR-056 bind is the constitutional commitment this migration honors.
@@ -263,7 +263,7 @@ Steps 1–4 are landing-order-coupled. Steps 5–7 land independently (CheckResu
 
 ---
 
-## Revision A — 2026-06-09 (current authoritative proposal)
+## Revision A — 2026-06-09 (authoritative for D2–D5; D1 superseded by Revision B)
 
 ### Why this revision
 
@@ -287,6 +287,8 @@ The migration commit is identifiable in git log as `9551e972 ADR-059 D2: replace
 Revision A keeps everything else from the original draft unchanged — D3 (`permitted_extensions` as structural allowlist), D4 (CheckResult-first sequencing), D5 (smoke test + audit-pipeline diff gates), the 10-step migration order, the BlackboardEntry deferral. Those held under verification.
 
 ### D1 (Revision A) — Non-worker findings use a reserved sentinel `worker_uuid`; operator-run is a constitutional officer
+
+> **SUPERSEDED by Revision B — D1 only.** Revision B keeps Revision A's sentinel mechanism, closed-vocabulary discipline, `worker_registry` officer registration, and honest-trade-off framing. What changes: the implementation-pass duplicate sweep before step 2 found that `...0002` was already live as `API_CLAIMER_UUID` (ADR-017 D4 pattern) and that `...0001` had a stale `CLI_CLAIMER_UUID` comment. Revision B consolidates the audit-emitter sentinels (operator-run, ci-run) with the ADR-017 D4 claimer sentinel (api-claimer) into a single authoritative ledger, adds an `axis` field to distinguish the two patterns, and renumbers `ci-run` to `...0003`. The mechanism is identical; the ledger is wider.
 
 The Finding nucleus's `worker_uuid` field is **mandatory and never optional**. Non-worker emitters use a reserved sentinel UUID identifying the source. The initial sentinels:
 
@@ -432,3 +434,107 @@ D4's CheckResult-first ordering remains correct. The bridge-mechanism split does
 | 2026-06-09 | Same reviewer, second pass on the first draft of Revision A | Revision A's "Why this revision" subsection + External Review Record's framing of the severity claim. | Flagged that the first draft of Revision A asserted the severity claim was "verified incorrect" without showing the four-check evidence — the same kind of bald assertion the first round's verification discipline was meant to correct. Forced the four-check log to be recorded inline (above) and the ERR row's wording to be amended from "verified incorrect" to "investigated via four-check protocol; reviewer's index was stale; live shows reconciliation landed." Epistemic discipline preserved into the permanent record. |
 
 The pattern this ADR followed: verify the ADR's load-bearing decisions against live source before flipping Status from Proposed → Accepted, and verify the verification before stamping it into the append-only record. The original D2's miss came from accepting the ADR's code blocks and the file's module docstring at face value (memory `[[feedback_verify_docstring_against_impl]]`); the Revision A "verified incorrect" miss came from re-asserting from memory after writing the lesson down (memory `[[feedback_recheck_state_before_public_assertion]]`). Both lessons reinforced.
+
+---
+
+## Revision B — 2026-06-09 (current authoritative proposal; D1 only)
+
+### Why this revision
+
+Implementation-pass duplicate sweep before drafting `.intent/META/synthetic_workers.json` (migration step 2) surfaced two collisions on the reserved UUID range Revision A's D1 specified:
+
+1. **`...0002` is live as `API_CLAIMER_UUID`** at `src/api/v1/proposals_routes.py:51` — a proposal-claimer sentinel established by the ADR-017 D4 pattern (*"governor-direct execution paths get a stable sentinel so claimed_by lineage is queryable per surface"*). Different DB column (`proposals.claimed_by` vs `worker_uuid` on findings) but the same `worker_registry` key space: registering `...0002` as "ci-run" would mean future SQL queries joining `claimed_by → worker_registry.id` yield a misleading "ci-run" label on actual API claims.
+2. **`...0001` had a stale comment** at `proposals_routes.py:47-50` referencing a `CLI_CLAIMER_UUID` constant at `src/cli/resources/proposals/manage.py`. Grep finds no such constant — the CLI now calls the API via `CoreApiClient` and the literal UUID was removed. Slot is functionally free; the comment is documentation rot, cleaned up in this revision's step 2 work.
+
+The bigger pattern the sweep surfaced: the "synthetic UUID for non-worker action" convention already exists under ADR-017 D4. Revision A's D1 formalized the convention for the audit-emitter axis without acknowledging the existing claimer-axis instances — a split ledger waiting to drift. Revision B consolidates.
+
+### D1 (Revision B) — Single authoritative ledger; consolidated with the ADR-017 D4 claimer pattern
+
+`.intent/META/synthetic_workers.json` is the authoritative ledger of ALL reserved synthetic UUIDs in CORE. Both axes — audit-emitter and claimer — declare here:
+
+| Name | UUID | Axis | Authority |
+|---|---|---|---|
+| operator-run | `00000000-0000-0000-0000-000000000001` | audit-emitter (`worker_uuid`) | ADR-099 D1 |
+| api-claimer | `00000000-0000-0000-0000-000000000002` | claimer (`proposals.claimed_by`) | ADR-017 D4 (preserved, consolidated) |
+| ci-run | `00000000-0000-0000-0000-000000000003` | audit-emitter (`worker_uuid`) | ADR-099 D1 (renumbered from ...0002 per this revision) |
+
+The closed-vocabulary discipline still applies — adding a new entry requires governor approval (the file is in `.intent/META/`, constitutional core). The `axis` field distinguishes the two patterns so consumers don't conflate them; the `worker_registry` officer-registration in migration step 3 still covers only the audit-emitter entries (api-claimer follows ADR-017 D4's existing attribution model, which doesn't require a worker_registry row).
+
+### Migration step 2 — expanded scope under Revision B
+
+Step 2 now lands four artifacts together (in the same change-set):
+
+1. `.intent/META/synthetic_workers.json` — the ledger above.
+2. `src/shared/infrastructure/intent/synthetic_workers.py` — the loader exposing `OPERATOR_RUN_UUID`, `API_CLAIMER_UUID`, `CI_RUN_UUID` constants and a `SYNTHETIC_WORKERS` dict.
+3. `src/api/v1/proposals_routes.py` migration — imports `API_CLAIMER_UUID` from the loader (line 51's local literal removed; lines 47-50's stale `CLI_CLAIMER_UUID` comment removed; unused `from typing import Final` and `from uuid import UUID` imports removed).
+4. This Revision B section.
+
+The Revision A step-2 verification gates apply unchanged: unit test asserts loader returns the declared sentinels; AST gate confirms the constants are read only from this loader (no scattered literals — `API_CLAIMER_UUID` is no longer a scattered literal as of this revision).
+
+### What this revision does NOT change
+
+- D1's sentinel mechanism, closed-vocabulary discipline, and `worker_registry` officer registration for audit-emitter sentinels — unchanged from Revision A.
+- D2 (Revision A) bridge-mechanism split — unchanged.
+- D3 (`permitted_extensions` clause) — unchanged.
+- D4 sequencing (CheckResult first, AuditFinding second, BlackboardEntry deferred) — unchanged.
+- D5 verification gates (synthetic-emitter smoke test, audit-pipeline diff) — unchanged.
+- The 10-step migration order — unchanged in sequence; step 2's scope expands as above.
+
+### External Review Record amendment
+
+| Date | Reviewer | Surface reviewed | Contribution |
+|---|---|---|---|
+| 2026-06-09 | Implementation-pass duplicate sweep (in-session) | Pre-write grep of UUID literals in `src/` before drafting `synthetic_workers.json` | Surfaced ADR-017 D4 collision on `...0002` (live `API_CLAIMER_UUID` in `proposals_routes.py:51`) and stale `CLI_CLAIMER_UUID` comment at lines 47-50. Triggered Revision B's consolidation into a single ledger with an `axis` field; renumbered ci-run to `...0003`; migrated `API_CLAIMER_UUID` to load from the loader. The pattern the sweep enforces: duplicate-check BEFORE writing reserved identifiers, not after — the comment in `proposals_routes.py` even referenced the ADR-017 D4 pattern in passing, but Revision A drafted around the existing convention without acknowledging it. |
+
+---
+
+## Revision C — 2026-06-09 (retirement; superseded by ADR-102)
+
+### Why this revision
+
+Step 3's worker_registry seed pre-write check surfaced a third mechanism error in two sessions: the ADR's `status: "active"` framing references a column that doesn't exist (`worker_registry` has no status column per `worker_registry_service.py:30-31`), and the `no heartbeat` framing conflicts with the schema (`last_heartbeat` is NOT NULL DEFAULT now()). That was the third correction needed in one session — after Revision A's Pydantic-on-dataclass error and Revision B's UUID collision. A third correction pass on a migration plan is a pattern, not noise.
+
+The step-back question — *what are we actually trying to accomplish, and is this approach earning its weight?* — surfaced the load-bearing fact ADR-099 inherited but never verified:
+
+**AuditFinding and CheckResult are not constitutional Findings.** Grep confirmed:
+- **AuditFinding** (23 instantiation sites) lives **exclusively in `src/mind/`**. Mind layer is constitutionally forbidden from DB access (`architecture.mind.no_database_access`). Zero grep hits for AuditFinding near `post_finding` or `blackboard_entries`. AuditFinding never crosses the persistence boundary; it's a return shape from rule evaluators.
+- **CheckResult** (3 instantiation sites) is internal to `body/autonomy/micro_proposal_executor.py`'s `validate_proposal()` and `body/services/cim/policy.py`'s CIM evaluation. Returned as `list[CheckResult]`; never persisted.
+- The bridge to the blackboard is **`audit_ingest_worker`** (Will layer): it calls Mind's `_run_audit()`, receives dicts, then calls `post_artifact_finding()` with a payload constructed inline. The worker's OWN `worker_uuid` populates `blackboard_entries.worker_uuid`. The blackboard payload is JSONB, not a Pydantic class.
+
+So **neither class is the constitutional Finding surface**. The constitutional Finding is the blackboard JSONB payload, which already conforms (worker-attributed via FK, structurally correct). Each class is *also already governed* by its own appropriate per-class contract (CheckResult.json, AuditFinding.json) with zero findings against either.
+
+**Finding.json's binding of these two classes was a category error in ADR-056 D3** — overlaying a nucleus contract on data carriers that don't cross the persistence boundary. The 16 findings on `data.contracts.finding_nucleus_conforms` are exclusively that contract firing on classes it shouldn't be governing.
+
+**ADR-102 supersedes this ADR.** Finding.json is retired. The nucleus enforcement site moves from class-shape (the wrong site) to blackboard-write boundary (the right site). Most of ADR-099 is retired with Finding.json — there's no migration to do because there are no classes to migrate.
+
+### What this revision retires
+
+- **D1 (all variants — original, Revision A, Revision B).** Synthetic-worker sentinel mechanism is unnecessary. Operator CLI runs and CI gates are read-only evaluator invocations; they emit data carriers, not blackboard-persisted Findings. No attribution is needed because nothing crosses the boundary needing it.
+- **D2 (all variants — original, Revision A).** Alias-bridged class rename is unnecessary. The 23 AuditFinding emitter sites and 3 CheckResult emitter sites remain unchanged. Their classes are already correctly governed by CheckResult.json and AuditFinding.json with zero findings.
+- **D4 — CheckResult-first sequencing.** No migration to sequence.
+- **D5 — synthetic-emitter smoke test + audit-pipeline diff verification.** No migration to verify.
+- **Migration steps 2–10.** All retired.
+
+### What this revision keeps
+
+- **D3 — `permitted_extensions` clause on the META schema.** The structural concept (refinement-of-nucleus fields are allowlisted extensions, structurally distinguished from drift) remains independently useful even with no current consumer. ADR-102 keeps it for future contracts.
+- **Migration step 1.** The `permitted_extensions` clause added to `.intent/META/data_contract.schema.json` stays in place.
+
+### What gets reverted (alongside this revision, in the same change-set as ADR-102)
+
+- **`.intent/enforcement/contracts/Finding.json` — deleted.** This is the load-bearing fix per ADR-102 D1; it's the action that clears the 16 findings.
+- **`src/shared/infrastructure/intent/synthetic_workers.py` — deleted.** Loader has no consumers after the proposals_routes.py revert.
+- **`src/api/v1/proposals_routes.py` — restored to local `API_CLAIMER_UUID` declaration.** The "consolidate into single ledger" rationale from Revision B was downstream of the synthetic-worker apparatus; without that apparatus the centralization has no benefit. The stale `CLI_CLAIMER_UUID` comment cleanup is preserved as a legitimate small fix.
+- **`.intent/META/synthetic_workers.json` — surfaced for governor deletion** (constitutional core requires specific file-naming for deletion; cannot delete unilaterally).
+
+### What remains as a forward-looking commitment from ADR-102 D2
+
+The 5-field nucleus (`rule_id, severity, subject, evidence, worker_uuid`) remains the constitutional shape of a Finding. Its enforcement site moves from class-shape to blackboard-write boundary — i.e., enforced at `Worker.post_finding()` against payload dicts being inserted into `core.blackboard_entries`. The `worker_uuid` half is already enforced by the `blackboard_entries_worker_uuid_fkey` constraint. Structural validation of the other four fields at `post_finding` time is **out of scope** for this ADR and for ADR-102; it's filed as a follow-up for when prioritized.
+
+### References
+
+- **ADR-102** — Primary driver of this retirement. Read that for the full reframing.
+- ADR-056 D3 — Narrowed in scope per ADR-102 D2 (nucleus commitment preserved; enforcement site moved).
+- `[[feedback_two_surface_requires_two_structures]]` — The lesson this ADR (and its retirement) embodies: when forcing two distinct shapes through one contract creates persistent drift visibility, the unification was the bug.
+- `[[feedback_count_from_source_not_narrative]]` — The discipline that produced the retirement. Three sessions of correction passes were the narrative reading. The grep-from-source produced the categorical answer.
+- `[[feedback_layered_authority_three_way_check]]` — ADR > paper > code; here ADR-056 D3's bind held authority through ADR-099's three revision passes until the grep-from-code surfaced the category error.

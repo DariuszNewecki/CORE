@@ -46,15 +46,19 @@ mappings:
 
   # ── Wave 1 ─────────────────────────────────────────────────────────────────
 
-  data.contracts.finding_nucleus_conforms:
-    engine: ast_gate
+  # ADR-102 (#612): cross-cutting check that catches the class of bind
+  # error ADR-099 spent three revision passes trying to honor. Fires when
+  # a contract requiring worker_uuid binds a class whose instantiation
+  # sites live exclusively in a layer forbidden from blackboard
+  # attribution (Mind, today). Context-level dispatch; applies_to is
+  # intentionally empty because the check iterates contracts and src/
+  # globally.
+  data.contracts.layer_scope_coherence:
+    engine: contracts_gate
     params:
-      check_type: schema_conformance
-      schema_ref: Finding
+      check_type: layer_scope_coherence
     scope:
-      applies_to:
-        - "src/body/services/cim/models.py"
-        - "src/shared/models/audit_models.py"
+      applies_to: []
 
   data.contracts.proposal_conforms:
     engine: ast_gate
