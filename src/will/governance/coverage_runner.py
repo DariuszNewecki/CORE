@@ -453,6 +453,122 @@ async def run_and_persist_coverage_batch(
     )
 
 
+# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+async def get_latest_coverage_report(
+    session: Any, *, format: str | None = None
+) -> dict | None:
+    """Return the most recently completed coverage-report run's result.
+
+    Report-runs are identified in ``core.coverage_runs`` by
+    ``target_file IS NULL AND batch_priority IS NULL`` — those NULLs are
+    the discriminator separating report-runs from generate-runs (which
+    always have one or the other set). Filters to status='completed'
+    and orders by finished_at descending.
+
+    If *format* is supplied (``'text'`` or ``'html'``), filters to
+    runs whose persisted ``result.format`` matches; otherwise returns
+    the most recent regardless of format.
+
+    Returns the row's ``result`` payload, or None if no completed
+    report-run exists yet (the caller surfaces a 404 with a hint to
+    POST /v1/coverage/reports).
+    """
+    if format is not None:
+        sql = """
+            SELECT result
+              FROM core.coverage_runs
+             WHERE target_file IS NULL
+               AND batch_priority IS NULL
+               AND status = 'completed'
+               AND result ->> 'format' = :format
+             ORDER BY finished_at DESC
+             LIMIT 1
+        """
+        params = {"format": format}
+    else:
+        sql = """
+            SELECT result
+              FROM core.coverage_runs
+             WHERE target_file IS NULL
+               AND batch_priority IS NULL
+               AND status = 'completed'
+             ORDER BY finished_at DESC
+             LIMIT 1
+        """
+        params = {}
+
+    result = await session.execute(text(sql), params)
+    row = result.first()
+    if row is None:
+        return None
+    return row[0]
+
+
+# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+async def run_and_persist_coverage_report(
+    context: CoreContext,
+    session: Any,
+    *,
+    run_id: UUID,
+    format: str,
+    show_missing: bool,
+) -> None:
+    """Run the pytest coverage report off the request thread (#608 fix).
+
+    The row has already been INSERTed by ``POST /v1/coverage/reports``
+    with ``target_file=NULL`` and ``batch_priority=NULL`` — those NULLs
+    are the discriminator that distinguishes a report-run from a
+    generate-run when ``GET /v1/coverage/report`` queries for the
+    latest result.
+
+    Transitions the row pending → executing → completed | failed. The
+    pytest invocation is the same one ``get_coverage_report`` /
+    ``get_coverage_html_report`` already do; moving it here keeps the
+    HTTP GET cheap (which is what it should be) while preserving the
+    underlying pytest-driven behavior. Failures are recorded on the row;
+    this function never raises into the background-task scheduler.
+    """
+    await _update_coverage_run_status(session, run_id, "executing", started=True)
+
+    try:
+        if format == "html":
+            result = await get_coverage_html_report(context)
+        else:
+            result = await get_coverage_report(context, show_missing=show_missing)
+    except Exception as exc:
+        logger.exception("coverage_runner: report run raised for %s", run_id)
+        await _update_coverage_run_status(
+            session,
+            run_id,
+            "failed",
+            finished=True,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+        return
+
+    ok = bool(result.get("ok", False))
+    payload = {
+        "format": format,
+        "show_missing": show_missing,
+        **result,
+    }
+    await _update_coverage_run_status(
+        session,
+        run_id,
+        "completed" if ok else "failed",
+        finished=True,
+        error=None if ok else result.get("summary") or "pytest non-zero exit",
+        result=payload,
+    )
+
+    logger.info(
+        "coverage_runner: report %s completed format=%s ok=%s",
+        run_id,
+        format,
+        ok,
+    )
+
+
 # ID: f6a8b0c2-4d6e-5f7a-8b9c-0d1e2f3a4b5c
 async def run_tests_interactive(
     context: CoreContext, *, target_file: str | None = None
