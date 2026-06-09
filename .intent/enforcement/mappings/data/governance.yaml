@@ -75,6 +75,23 @@ mappings:
     scope:
       applies_to: []
 
+  # ADR-102 (#614): iceberg-shape detector. Fires on schema_conformance
+  # rules where finding_count >= min_findings AND distinct file_paths
+  # <= max_distinct_files in the lookback window — the cluster shape
+  # itself signals the rule's binding is suspect. Catches the canonical
+  # case even when only one contract is involved (asymmetric_contract_findings
+  # needs ≥2 contracts to fire; this one doesn't). Skip-silently when
+  # db_session is not injected.
+  data.contracts.rule_binding_iceberg:
+    engine: contracts_gate
+    params:
+      check_type: rule_binding_iceberg
+      lookback_hours: 24
+      min_findings: 10
+      max_distinct_files: 3
+    scope:
+      applies_to: []
+
   data.contracts.proposal_conforms:
     engine: ast_gate
     params:

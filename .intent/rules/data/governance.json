@@ -46,6 +46,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.rule_binding_iceberg",
+            "statement": "When a schema_conformance rule produces many findings against few distinct source files over the lookback window (iceberg shape: high finding count concentrated on a small file set), the rule's binding is suspect — investigate the rule's scope before reshaping the affected classes. Authority: ADR-102 (#614).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.proposal_conforms",
             "statement": "The dataclass `Proposal` MUST declare fields that conform to `.intent/enforcement/contracts/Proposal.json`. Authority: ADR-056 D4.",
             "authority": "policy",

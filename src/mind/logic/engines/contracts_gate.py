@@ -3,7 +3,7 @@
 """
 Contracts gate — cross-cutting coherence checks on data contracts.
 
-Dispatches two check_types today:
+Dispatches three check_types today:
 
 - layer_scope_coherence (#612, ADR-102): for every data_contract under
   .intent/enforcement/contracts/, check whether each governed_class's
@@ -16,15 +16,28 @@ Dispatches two check_types today:
   findings in a lookback window while another fires N>0, surface the
   high-firing rule's binding as suspect. The empirical counterpart to
   layer_scope_coherence — catches mis-scoped contracts via observed
-  finding-count asymmetry against core.audit_findings, not via static
-  reasoning. The canonical case (Finding.json firing N>0 against
-  AuditFinding while AuditFinding.json fires 0) is what triggered
-  ADR-102; this rule generalizes the signal.
+  finding-count asymmetry against core.audit_findings.
+
+- rule_binding_iceberg (#614): when a schema_conformance rule produces
+  many findings against few distinct subjects (file_paths) over the
+  lookback window, surface the rule's binding as suspect — the
+  iceberg-shape signal (high finding count concentrated on a small
+  source-file set) typically means the rule is mis-scoped to a class
+  that consistently fails it, not that the class needs reshaping. Per
+  memory feedback_iceberg_class_findings, the cluster pattern itself
+  is the diagnostic. The canonical case (Finding.json firing 16
+  findings against 2 files, ratio 8) is what triggered ADR-102; this
+  rule catches that shape even when only one contract is involved.
+
+The canonical case (Finding.json firing N>0 against AuditFinding while
+AuditFinding.json fires 0) is what triggered ADR-102; the three rules
+together catch the bind-error pattern from static, asymmetric, and
+iceberg angles.
 
 LAYER: mind.logic.engines — read-only verification. No file writes.
-DB access (asymmetric check) is via the audit context's injected session
-per architecture.boundary.database_session_access — Mind layer does not
-open sessions itself.
+DB access (asymmetric / iceberg checks) is via the audit context's
+injected session per architecture.boundary.database_session_access —
+Mind layer does not open sessions itself.
 """
 
 from __future__ import annotations
@@ -52,16 +65,31 @@ logger = getLogger(__name__)
 
 _ENGINE_ID = "contracts_gate"
 _CONTEXT_CHECK_TYPES = frozenset(
-    {"layer_scope_coherence", "asymmetric_contract_findings"}
+    {
+        "layer_scope_coherence",
+        "asymmetric_contract_findings",
+        "rule_binding_iceberg",
+    }
 )
 _RULE_ID_LAYER_SCOPE_COHERENCE = "data.contracts.layer_scope_coherence"
 _RULE_ID_ASYMMETRIC_FINDINGS = "data.contracts.asymmetric_contract_findings"
+_RULE_ID_RULE_BINDING_ICEBERG = "data.contracts.rule_binding_iceberg"
 
-# Default lookback window for the asymmetric_contract_findings check.
-# 24h gives the daemon multiple audit cycles to populate counts without
-# letting a single anomalous cycle dominate. Tunable per-mapping via the
-# `lookback_hours` param.
+# Default lookback window for the DB-backed checks. 24h gives the daemon
+# multiple audit cycles to populate counts without letting a single
+# anomalous cycle dominate. Tunable per-mapping via `lookback_hours`.
 _DEFAULT_ASYMMETRY_LOOKBACK_HOURS = 24
+
+# Default thresholds for rule_binding_iceberg. min_findings + max_distinct
+# files jointly define the iceberg shape: many findings concentrated on
+# few source files. The canonical ADR-102 case (Finding.json fired 16
+# findings on 2 files) fires under these defaults. Both tunable per
+# mapping. Schema-conformance rules' check_ids match the suffix below.
+_DEFAULT_ICEBERG_LOOKBACK_HOURS = 24
+_DEFAULT_ICEBERG_MIN_FINDINGS = 10
+_DEFAULT_ICEBERG_MAX_DISTINCT_FILES = 3
+_SCHEMA_CONFORMANCE_RULE_PREFIX = "data.contracts."
+_SCHEMA_CONFORMANCE_RULE_SUFFIX = "_conforms"
 
 # Constitutional layers under src/ where instantiation sites are meaningful
 # for scope-coherence analysis. shared/ is intentionally excluded — it
@@ -125,6 +153,8 @@ class ContractsGateEngine(BaseEngine):
             return _check_layer_scope_coherence(context)
         if check_type == "asymmetric_contract_findings":
             return await _check_asymmetric_contract_findings(context, params)
+        if check_type == "rule_binding_iceberg":
+            return await _check_rule_binding_iceberg(context, params)
         return [
             AuditFinding(
                 check_id=f"{self.engine_id}.{check_type or 'missing'}.error",
@@ -412,6 +442,115 @@ async def _check_asymmetric_contract_findings(
                     "zero_rules": zero_rules,
                     "firing_rules": [rid for rid, _ in firing_rules],
                     "lookback_hours": lookback_hours,
+                },
+            )
+        )
+    return findings
+
+
+# ID: 556abbec-b698-4d74-b07a-30faaeb5f31a
+async def _check_rule_binding_iceberg(
+    context: AuditorContext, params: dict[str, Any]
+) -> list[AuditFinding]:
+    """Detect schema_conformance rules whose findings cluster as icebergs.
+
+    Queries core.audit_findings for findings whose check_id matches the
+    schema_conformance namespace (data.contracts.*_conforms) within the
+    lookback window. Groups by check_id; counts findings and distinct
+    file_paths per rule. When a rule's finding count exceeds
+    min_findings AND its distinct-file count is at or below
+    max_distinct_files, the cluster shape (many findings on few files)
+    signals the rule's binding is suspect — investigate the rule's
+    scope rather than the classes.
+
+    Complements asymmetric_contract_findings (#613): the asymmetric
+    check fires when multiple rules govern the same class; this iceberg
+    check fires even with one rule, when that rule keeps firing on the
+    same small file set across cycles.
+
+    Skip-silently when db_session is not injected (consistent with the
+    runtime_gate pattern). The canonical ADR-102 case (Finding.json
+    firing 16 findings on 2 files) fires under default thresholds.
+    """
+    findings: list[AuditFinding] = []
+
+    session = getattr(context, "db_session", None)
+    if session is None:
+        logger.debug(
+            "contracts_gate.rule_binding_iceberg: db_session not injected — "
+            "check deferred to next audit cycle."
+        )
+        return findings
+
+    lookback_hours = int(params.get("lookback_hours", _DEFAULT_ICEBERG_LOOKBACK_HOURS))
+    min_findings = int(params.get("min_findings", _DEFAULT_ICEBERG_MIN_FINDINGS))
+    max_distinct_files = int(
+        params.get("max_distinct_files", _DEFAULT_ICEBERG_MAX_DISTINCT_FILES)
+    )
+    rule_prefix = _SCHEMA_CONFORMANCE_RULE_PREFIX
+    rule_suffix = _SCHEMA_CONFORMANCE_RULE_SUFFIX
+
+    iceberg_query = text(
+        """
+        SELECT
+            check_id,
+            COUNT(*) AS finding_count,
+            COUNT(DISTINCT file_path) AS distinct_files,
+            ARRAY_AGG(DISTINCT file_path ORDER BY file_path) AS file_paths
+        FROM core.audit_findings
+        WHERE check_id LIKE :rule_prefix || '%' || :rule_suffix
+          AND created_at > now() - make_interval(hours => :lookback_hours)
+          AND file_path IS NOT NULL
+        GROUP BY check_id
+        HAVING COUNT(*) >= :min_findings
+           AND COUNT(DISTINCT file_path) <= :max_distinct_files
+        ORDER BY check_id
+        """
+    )
+    result = await session.execute(
+        iceberg_query,
+        {
+            "rule_prefix": rule_prefix,
+            "rule_suffix": rule_suffix,
+            "lookback_hours": lookback_hours,
+            "min_findings": min_findings,
+            "max_distinct_files": max_distinct_files,
+        },
+    )
+
+    for row in result:
+        finding_count = int(row.finding_count)
+        distinct_files = int(row.distinct_files)
+        file_paths = list(row.file_paths or [])
+        ratio = finding_count / distinct_files if distinct_files else 0.0
+        files_str = ", ".join(file_paths) if file_paths else "<no file_path>"
+        findings.append(
+            AuditFinding(
+                check_id=_RULE_ID_RULE_BINDING_ICEBERG,
+                severity=AuditSeverity.HIGH,
+                message=(
+                    f"Rule '{row.check_id}' shows iceberg-shaped finding cluster "
+                    f"over the last {lookback_hours}h: {finding_count} findings "
+                    f"concentrated on {distinct_files} distinct file(s) "
+                    f"(ratio {ratio:.1f}). Files: [{files_str}]. The cluster "
+                    f"shape signals the rule's binding is suspect — investigate "
+                    f"whether the rule's governed_classes correctly correspond to "
+                    f"the operational role of the affected classes, rather than "
+                    f"treating the findings as drift to be cleared. Canonical "
+                    f"case: ADR-102 (Finding.json fired 16 findings on 2 files; "
+                    f"the binding was the bug, not the classes' shapes)."
+                ),
+                context={
+                    "rule_id": row.check_id,
+                    "finding_count": finding_count,
+                    "distinct_files": distinct_files,
+                    "ratio": round(ratio, 2),
+                    "file_paths": file_paths,
+                    "lookback_hours": lookback_hours,
+                    "thresholds": {
+                        "min_findings": min_findings,
+                        "max_distinct_files": max_distinct_files,
+                    },
                 },
             )
         )
