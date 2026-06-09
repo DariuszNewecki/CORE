@@ -25,7 +25,7 @@ console = Console()
 
 @app.command("sync-env")
 @command_meta(
-    canonical_name="database.sync_env",
+    canonical_name="database.sync-env",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.BODY,
     summary="Sync .env variables into core.runtime_settings table.",

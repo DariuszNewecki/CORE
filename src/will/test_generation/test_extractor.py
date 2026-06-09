@@ -52,10 +52,10 @@ class TestCodeExtractor:
         standalone_tests = []
 
         for node in tree.body:
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.Import | ast.ImportFrom):
                 imports.append(node)
 
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 # Check if it's a fixture or standalone test
                 if self._is_fixture(node):
                     fixtures.append(node)
@@ -64,7 +64,7 @@ class TestCodeExtractor:
 
             elif isinstance(node, ast.ClassDef):
                 # Extract passing methods from test classes
-                passing_methods = []
+                passing_methods: list[ast.stmt] = []
                 for item in node.body:
                     if isinstance(item, ast.FunctionDef):
                         full_name = f"{node.name}::{item.name}"
@@ -80,7 +80,7 @@ class TestCodeExtractor:
         if not standalone_tests and not classes_with_tests:
             return None
 
-        new_body = []
+        new_body: list[ast.stmt] = []
         new_body.extend(imports)
         new_body.extend(fixtures)
 
@@ -89,6 +89,7 @@ class TestCodeExtractor:
             # Create new class with only passing methods
             new_class = ast.ClassDef(
                 name=class_node.name,
+                type_params=class_node.type_params,
                 bases=class_node.bases,
                 keywords=class_node.keywords,
                 body=passing_methods,
@@ -102,7 +103,7 @@ class TestCodeExtractor:
         new_tree = ast.Module(body=new_body, type_ignores=[])
         return ast.unparse(new_tree)
 
-    def _is_fixture(self, node: ast.FunctionDef) -> bool:
+    def _is_fixture(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         """Check if function is a pytest fixture."""
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "fixture":

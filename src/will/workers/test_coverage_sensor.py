@@ -69,9 +69,8 @@ class TestCoverageSensor(Worker):
 
         # ADR-091 D1: artifact_type and rule_namespace are required on every
         # class:sensing worker. D5 Phase 5 routes subject construction through
-        # the declared values rather than a hardcoded legacy prefix; the
-        # canonical subject becomes
-        # `<artifact_type>::<rule_namespace>::<source_file>`.
+        # the declared values rather than a hardcoded prefix; the canonical
+        # subject becomes `<artifact_type>::<rule_namespace>::<source_file>`.
         scope = self._declaration["mandate"]["scope"]
         self._artifact_type: str = scope["artifact_type"][0]
         self._rule_namespace: str = scope["rule_namespace"]

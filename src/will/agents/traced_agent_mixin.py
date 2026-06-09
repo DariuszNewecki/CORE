@@ -14,6 +14,12 @@ Usage:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from will.orchestration.decision_tracer import DecisionTracer
+
 
 # ID: d2e3f4a5-b6c7-8901-defa-123456789012
 class TracedAgentMixin:
@@ -21,6 +27,8 @@ class TracedAgentMixin:
 
     Requires subclass to set self.tracer = DecisionTracer() in __init__.
     """
+
+    tracer: DecisionTracer
 
     # ID: e3f4a5b6-c7d8-9012-efab-234567890123
     def get_decision_trace(self) -> str:

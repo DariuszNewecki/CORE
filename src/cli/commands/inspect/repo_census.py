@@ -10,7 +10,6 @@ polls the async run, and renders the result payload.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -28,15 +27,6 @@ console = Console()
 # ID: 57d975ad-ad77-453a-a7c4-9779eaa9e542
 async def repo_census_cmd(
     ctx: typer.Context,
-    path: Path = typer.Option(
-        None,
-        "--path",
-        "-p",
-        help="Repository root to inspect (server-side: API resolves repo root).",
-    ),
-    out: Path = typer.Option(
-        None, "--out", "-o", help="Ignored — output paths are server-managed."
-    ),
     snapshot: bool = typer.Option(
         False, "--snapshot", help="Save census as immutable snapshot"
     ),
@@ -64,8 +54,6 @@ async def repo_census_cmd(
     - --diff-prev: GET /v1/census/diff (no baseline)
     """
     _ = ctx
-    _ = path  # API resolves repo_root server-side; --path retained for compatibility.
-    _ = out  # Output paths are now server-managed; --out kept for backward compat.
     client = CoreApiClient()
 
     if list_baselines_flag:

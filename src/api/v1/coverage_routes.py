@@ -208,7 +208,7 @@ async def coverage_history(
 
 @router.get(
     "/methods",
-    # F-40.1: internal — legacy-vs-adaptive method comparison is
+    # F-40.1: internal — baseline-vs-adaptive method comparison is
     # CORE-internal autonomy concern; sidecars don't care. Excluded
     # from /v1/openapi.json per ADR-087.
     include_in_schema=False,
