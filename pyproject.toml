@@ -49,7 +49,7 @@ packages = [
 python = "^3.12"
 
 # Web Framework
-fastapi = "^0.121.0"
+fastapi = "^0.136.0"
 uvicorn = { extras = ["standard"], version = "^0.38.0" }
 
 # Database (Async)

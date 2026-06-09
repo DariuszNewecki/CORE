@@ -111,6 +111,13 @@ def create_app() -> FastAPI:
         version=_resolve_runtime_version(),
         description=_OEM_API_DESCRIPTION,
         lifespan=core_lifespan,
+        # ADR-087 D2 + D7: fastapi 0.132 introduced default-strict Content-Type
+        # checking on JSON requests. That is a request-shape tightening per D2
+        # ("narrower accepted shape — breaking"). The grandfathered v1 baseline
+        # under D7 accepted requests without a Content-Type header. Opt out to
+        # preserve that baseline; the strict default can be revisited at the
+        # next /v2/ cut.
+        strict_content_type=False,
         openapi_tags=[
             {
                 "name": "Audit",
