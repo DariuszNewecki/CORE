@@ -3,7 +3,7 @@
 # ADR-099 — Finding-nucleus migration: alias-bridged reconciliation of CheckResult and AuditFinding to the canonical contract
 
 **Date:** 2026-06-09
-**Status:** Proposed
+**Status:** Proposed — Revision A is the current authoritative proposal (see "Revision A" section at end of file). The original D1 and D2 below are preserved with `> SUPERSEDED by Revision A` markers as record of how the proposal evolved. Acceptance would target Revision A; if Revision A is rejected the original draft falls back as the prior proposal.
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-09, after #598 triage. ADR-056 D3 committed CheckResult and AuditFinding to the canonical Finding nucleus (`rule_id, severity, subject, evidence, worker_uuid`); implementation has been on incompatible names since the contract bind landed. The contract author left a deliberate dual-contract structure — Finding.json governs CheckResult+AuditFinding for *visibility* of the gap, AuditFinding.json governs AuditFinding for the *actual persistence shape*. The 16 audit findings against `data.contracts.finding_nucleus_conforms` are the gap visible. The five open design questions in #598 — worker_uuid attribution, renames vs aliases, extension allowlist, migration sequencing, pre-migration instrumentation — needed an integrated decision, not piecemeal answers.)
 **Grounding paper:** ADR-056 D3 — *"Layer-specific extensions are permitted; nucleus fields are not optional."* The ADR-056 bind is the constitutional commitment this migration honors.
@@ -61,6 +61,8 @@ The 16 findings aren't just visible drift. Three concrete failures land downstre
 
 ### D1 — Non-worker findings use a reserved sentinel `worker_uuid`; operator-run is a constitutional officer
 
+> **SUPERSEDED by Revision A — D1 prose only, mechanism unchanged.** Revision A keeps the sentinel mechanism, the `worker_registry` officer registration, and the closed-vocabulary `synthetic_workers.json` declaration. What changes is the framing: the claim that the sentinel "is queryable as data, not a special case in code" was self-contradicted by the Out-of-scope note that liveness consumers must exclude synthetic UUIDs (which IS a special case in code, just localized to liveness). Revision A acknowledges the trade honestly instead of overselling it. Text below preserved as the original framing.
+
 The Finding nucleus's `worker_uuid` field is **mandatory and never optional**. Non-worker emitters use a reserved sentinel UUID identifying the source. The initial sentinels:
 
 | Source | Reserved UUID | Registered as |
@@ -79,6 +81,8 @@ The operator-run sentinel is **not** a workaround. It is a constitutional declar
 The sentinel UUIDs are declared in `.intent/META/synthetic_workers.json` (new artifact, follows the data-driven-vocab pattern of `enums.json`). The list is closed — adding a new sentinel requires governor approval, same as any other constitutional vocabulary expansion. This forecloses ad-hoc sentinel proliferation.
 
 ### D2 — Aliases bridge the rename, with a fixed deprecation horizon
+
+> **SUPERSEDED by Revision A — load-bearing mechanism error.** This original D2 specified Pydantic `Field(alias=...)` as the bridge mechanism for both classes. That's correct for `CheckResult` (which is `class CheckResult(BaseModel)` — Pydantic) but **mechanically broken for `AuditFinding`**, which is actually `@dataclass(init=False)`. The misreading came from the `audit_models.py` module docstring ("Defines the Pydantic models…"), which is itself stale and lies about the class type. `Field(alias=...)` is a Pydantic-only feature; on a `@dataclass` it either errors or silently no-ops. The original D2 below is preserved as record of the misreading; Revision A specifies the correct bridge mechanism per class. Discovered by an external review during the Proposed→Acceptance gate (see External Review Record at end of file).
 
 The Finding-nucleus field names (`rule_id`, `subject`, `evidence`) replace the current implementation names (`check_id`, [no current equivalent], `message`) on `AuditFinding`; (`rule`, [no current equivalent], `evidence` — `evidence` already matches) on `CheckResult`. The migration uses **Pydantic field aliases with a one-release deprecation horizon**, not a hard rename:
 
@@ -256,3 +260,175 @@ Steps 1–4 are landing-order-coupled. Steps 5–7 land independently (CheckResu
 - Memory: `[[feedback_three_layer_intent_alignment]]` — the precise pathology this ADR addresses (engine / rule / convention disagreement; here it's nucleus / persistence / actual-class).
 - Memory: `[[feedback_append_only_adr_closure_marker]]` — informs the deprecation comment shape on D2's aliased Field declarations.
 - Memory: `[[feedback_schema_as_truth_no_migration_framework]]` — step 3's worker_registry seed lives in `infra/sql/db_schema_live.sql`, not in a migration framework that doesn't exist.
+
+---
+
+## Revision A — 2026-06-09 (current authoritative proposal)
+
+### Why this revision
+
+A pre-acceptance external review verified the ADR's decisions against current source rather than against the ADR's code blocks. Two findings:
+
+1. **Load-bearing mechanism error in D2.** The original D2 specified Pydantic `Field(alias=...)` as the bridge mechanism for both `CheckResult` and `AuditFinding`. Verification against `src/shared/models/audit_models.py` showed `AuditFinding` is `@dataclass(init=False)` — not Pydantic — despite a stale module docstring claiming "Defines the Pydantic models." `Field(alias=...)` is Pydantic-only. The 23-emitter migration arc (the largest blast radius in the ADR, and the entire reason D4's careful sequencing exists) specified a mechanism that doesn't work on the target class. Implementing the original D2 would either fail at step 8 instantiation or force the implementer to silently improvise — exactly the implementation-drift failure mode ADRs exist to prevent.
+
+2. **D1 framing oversold the sentinel mechanism.** D1 claimed the sentinel approach "is queryable as data, not a special case in code." The Out-of-scope section in the same ADR notes that liveness consumers (`worker_max_interval` per #604, `active_uuids` filter in `worker_shop_manager`) must skip synthetic-worker UUIDs. That IS a special case in code — localized to liveness, but still code. The mechanism remains the correct choice (the alternatives have worse trade-offs); the framing should acknowledge the trade rather than oversell it.
+
+The third claim the review surfaced — that the severity vocabulary referenced in the Context section was on a "stale" three-value scale — was investigated against live `main` (HEAD `b366e480` at investigation time) via the reviewer's own specified four-check protocol after they flagged that the first response to their critique had asserted "verified" without showing the work. The reviewer's index was stale relative to live; live shows the five-value reconciliation landed.
+
+**Four-check verification log:**
+
+1. `AuditSeverity` IntEnum members at `src/shared/models/audit_models.py:14-28`: `INFO=1, LOW=2, MEDIUM=3, HIGH=4, BLOCK=5` — five-value.
+2. `severity_from_string` lives at `src/cli/commands/check/converters.py:42` (not in `audit_models.py` as the reviewer's index suggested). Default: `AuditSeverity.BLOCK`. Lookup: `AuditSeverity[v.upper()]` against canonical five-value names. No `WARNING`/`ERROR` mapping anywhere.
+3. `grep -rn 'AuditSeverity.WARNING\|AuditSeverity.ERROR' src/` (excluding `tests/`) returns zero hits — ADR-059 D2's stated verification criterion is satisfied.
+4. `.intent/META/enums.json` `audit_severity.enum`: `["info", "low", "medium", "high", "block"]` (type `string`, enum field present).
+
+The migration commit is identifiable in git log as `9551e972 ADR-059 D2: replace AuditSeverity 3-value scale with 5-value finding scale`. ADR-099's "severity already shared, no changes" precondition holds against live source. No revision needed on this claim — but the *epistemic* point the reviewer made (don't assert "verified" without showing the work) is recorded in the External Review Record as a methodology lesson alongside the substantive findings.
+
+Revision A keeps everything else from the original draft unchanged — D3 (`permitted_extensions` as structural allowlist), D4 (CheckResult-first sequencing), D5 (smoke test + audit-pipeline diff gates), the 10-step migration order, the BlackboardEntry deferral. Those held under verification.
+
+### D1 (Revision A) — Non-worker findings use a reserved sentinel `worker_uuid`; operator-run is a constitutional officer
+
+The Finding nucleus's `worker_uuid` field is **mandatory and never optional**. Non-worker emitters use a reserved sentinel UUID identifying the source. The initial sentinels:
+
+| Source | Reserved UUID | Registered as |
+|---|---|---|
+| Operator-run (`core-admin code audit`) | `00000000-0000-0000-0000-000000000001` | Constitutional officer in `worker_registry` with name `"operator-run"`, status `"active"`, no heartbeat (the operator is the heartbeat) |
+| CI-run (F-10 stateless audit, GH Actions) | `00000000-0000-0000-0000-000000000002` | Constitutional officer in `worker_registry` with name `"ci-run"`, status `"active"`, no heartbeat |
+
+The operator-run sentinel is a constitutional declaration: the operator's CLI invocation is a recognized audit-emitting authority, equivalent to a sensor worker for governance-attribution purposes. The `worker_registry` entry makes the attribution queryable (e.g., "show all operator-attributed findings in the last 24h" is a SQL filter, not a branch in code) and keeps the type discipline intact (`worker_uuid` is always a UUID, never None).
+
+The sentinel UUIDs are declared in `.intent/META/synthetic_workers.json` (new artifact, follows the data-driven-vocab pattern of `enums.json`). The list is closed — adding a new sentinel requires governor approval, same as any other constitutional vocabulary expansion.
+
+**The trade-off, stated honestly:** the sentinel approach localizes "is this synthetic?" branching to liveness consumers — `worker_max_interval` and `worker_shop_manager.active_uuids`. The original D1 framing claimed this was "not a special case in code"; that overstated the position. The accurate framing: synthetic-UUID exclusion in liveness is a small, named, localized branch — preferred over the alternatives because the branch lives at a small, well-defined surface rather than at every Finding consumer.
+
+**Why this beats the alternatives.**
+
+- *Optional `worker_uuid`* (#598's Q1 option (b)) leaks `Optional[UUID]` into every Finding consumer. Liveness consumers would still need to special-case the None branch — the "no special case in code" property the original D1 implicitly claimed never held. Optional erodes the nucleus's "5 mandatory fields" property at every reader, not just at liveness.
+- *Discriminator field `source`* (#598's Q1 option (c)) introduces a parallel attribution axis. Two ways to say "who emitted this" (sentinel + discriminator) invites drift between the two; consumers that join on one don't see the other.
+- *Reserved sentinel* (option (a)) keeps `worker_uuid: UUID` as a non-optional type, localizes the synthetic-vs-real distinction to liveness consumers (a small, well-defined set), and generalizes to future synthetic emitters (audit-snapshot replay, remediation-evidence writer) without further vocabulary expansion at the consumer surface.
+
+### D2 (Revision A) — Bridge mechanism split by class type
+
+The Finding-nucleus field names (`rule_id`, `subject`, `evidence`) replace the current implementation names on both classes. The migration uses **two different bridge mechanisms appropriate to each class's type discipline**, with a single shared deprecation horizon.
+
+**For `CheckResult`** (`src/body/services/cim/models.py:279` — `class CheckResult(BaseModel)`, Pydantic):
+
+Pydantic field aliases. `Field(alias="rule")` accepts the old name on input while the canonical name is the attribute. Standard Pydantic pattern.
+
+```python
+class CheckResult(BaseModel):
+    rule_id: str = Field(alias="rule")          # canonical; old name accepted as alias
+    severity: Literal["block", "high", "medium", "low", "info"]
+    subject: str                                 # NEW field; CIM's per-policy target identifier
+    evidence: str                                # already canonical; no change
+    worker_uuid: UUID                            # NEW field; sentinel for operator-run
+    # Extension fields (permitted per D3):
+    id: str
+    recommendation: str
+    links: list[str] = Field(default_factory=list)
+
+    model_config = {"populate_by_name": True}    # accept both `rule` and `rule_id` on input
+```
+
+**For `AuditFinding`** (`src/shared/models/audit_models.py:41` — `@dataclass(init=False)`, NOT Pydantic):
+
+Custom `__init__` kwarg-aliasing. This is the codebase's established dataclass rename-bridge pattern — already present in the same class file for the `details=` → `context` legacy alias. The hand-written `__init__` accepts both legacy and canonical kwargs and folds them onto the canonical field. No Pydantic involvement.
+
+```python
+@dataclass(init=False)
+class AuditFinding:
+    rule_id: str                                 # canonical; replaces check_id
+    severity: AuditSeverity
+    subject: str                                 # NEW field; the artifact identity
+    evidence: str                                # canonical; replaces message
+    worker_uuid: UUID                            # NEW field; sentinel for operator-run
+    # Extension fields (permitted per D3):
+    file_path: str | None = None
+    line_number: int | None = None
+    context: dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        *,
+        # Canonical kwargs — preferred for new code:
+        rule_id: str | None = None,
+        severity: AuditSeverity,
+        subject: str | None = None,
+        evidence: str | None = None,
+        worker_uuid: UUID,
+        # Legacy kwargs — accepted during deprecation horizon, fold onto canonical:
+        check_id: str | None = None,
+        message: str | None = None,
+        # Extensions:
+        file_path: str | None = None,
+        line_number: int | None = None,
+        context: dict[str, Any] | None = None,
+        details: dict[str, Any] | None = None,    # existing legacy → context (pre-existing)
+    ) -> None:
+        # rule_id resolution: prefer canonical, fall back to legacy, raise if both absent
+        if rule_id is None and check_id is None:
+            raise TypeError("AuditFinding requires rule_id (or legacy check_id)")
+        if rule_id is not None and check_id is not None and rule_id != check_id:
+            raise TypeError("AuditFinding: rule_id and check_id given with different values")
+        self.rule_id = rule_id if rule_id is not None else check_id
+
+        # evidence resolution: same pattern
+        if evidence is None and message is None:
+            raise TypeError("AuditFinding requires evidence (or legacy message)")
+        if evidence is not None and message is not None and evidence != message:
+            raise TypeError("AuditFinding: evidence and message given with different values")
+        self.evidence = evidence if evidence is not None else message
+
+        # subject is new; required canonical
+        if subject is None:
+            raise TypeError("AuditFinding requires subject")
+        self.subject = subject
+
+        self.severity = severity
+        self.worker_uuid = worker_uuid
+        self.file_path = file_path
+        self.line_number = line_number
+
+        # context resolution: existing pattern (preserved from current code)
+        base_context: dict[str, Any] = dict(context or {})
+        if details:
+            base_context.update(details)
+        self.context = base_context
+```
+
+The `details=` → `context` fold is preserved unchanged — that legacy alias predates this migration and lives on its own lifecycle.
+
+**Both bridges share the same one-cycle deprecation horizon** dated in `.intent/CHANGELOG.md` at the time the bridges ship. The horizon's mechanism per class:
+
+- **CheckResult:** at step 10, the `Field(alias="rule")` is removed; `populate_by_name = True` is removed. Any consumer still passing `rule=` raises a Pydantic `ValidationError`.
+- **AuditFinding:** at step 10, the `check_id` and `message` kwargs are removed from the `__init__` signature. Any caller still passing them raises `TypeError: unexpected keyword argument`. The `details=` legacy kwarg is NOT removed at step 10 — it's on a separate lifecycle and its retirement (if any) is a future ADR.
+
+**D5's smoke test must now exercise both bridge shapes** (Revision A amendment to D5): the test fixture for AuditFinding constructs instances using `(check_id=..., message=...)`, `(rule_id=..., evidence=...)`, and `(check_id=..., evidence=...)` mixed; the test fixture for CheckResult does the same with `rule=` and `rule_id=`. Each form must instantiate cleanly during the alias period and `as_dict()` to the same canonical payload. Post-step-10, the legacy-only forms must fail — that failure is the verification that the deprecation horizon closed cleanly.
+
+**Why the split by class type rather than converting `AuditFinding` to Pydantic.**
+
+Converting `AuditFinding` to a Pydantic `BaseModel` would unify the bridge mechanism — but it's a much larger blast radius than this ADR is sized to absorb. The dataclass has a hand-written `__init__`, a `details` property + setter, a custom `as_dict()`, and `@dataclass(init=False)` semantics that consumers may rely on. Migrating to Pydantic would change instantiation semantics, attribute-access semantics (Pydantic does extra validation), serialization (custom `as_dict()` vs `model_dump()`), and likely break some of the 23 emitters in ways the alias bridge alone wouldn't. That's a different ADR. Splitting the bridge by class type lets this ADR achieve its objective (nucleus reconciliation) without paying that cost.
+
+### Sequencing impact (D4 unchanged; clarification only)
+
+D4's CheckResult-first ordering remains correct. The bridge-mechanism split doesn't alter the sequencing argument — CheckResult is still the smaller blast radius (3 emitters vs 23) and the right proof-of-pattern surface. What changes is that step 6 (CheckResult migration) and step 8 (AuditFinding migration) now exercise *different* bridge mechanisms, so the proof-of-pattern from step 6 doesn't carry directly to step 8's mechanics — but the surrounding migration discipline (smoke, audit-pipeline diff, bake cycle) does. Step 8's risk profile is comparable to step 6's; the bridge-mechanism delta is the localized variable.
+
+### What this revision does NOT change
+
+- D3's `permitted_extensions` clause and the META schema extension at step 1 — unchanged.
+- D4's CheckResult-first → AuditFinding-second sequencing — unchanged.
+- D5's two verification gates (synthetic-emitter smoke test, audit-pipeline diff) — unchanged in intent; D5's smoke test fixture content amended above to cover both bridge shapes.
+- The 10-step migration order — unchanged.
+- BlackboardEntry deferral to a future ADR (ADR-100) — unchanged.
+- D1's sentinel mechanism, the `synthetic_workers.json` declaration, the `worker_registry` officer registration, and the closed-vocabulary discipline — unchanged. Only D1's framing prose is amended (above) to acknowledge the localized liveness branch instead of overselling the sentinel as branch-free.
+
+---
+
+## External Review Record
+
+| Date | Reviewer | Surface reviewed | Contribution |
+|---|---|---|---|
+| 2026-06-09 | Pre-acceptance external review (via the governor's session) | Original D1 + D2 verified against `src/shared/models/audit_models.py` and `src/body/services/cim/models.py` rather than against ADR code blocks. | (1) Caught that `AuditFinding` is `@dataclass(init=False)`, not Pydantic (the module docstring lies). Original D2's `Field(alias=...)` mechanism is Pydantic-only and would either error or no-op on the 23-emitter target class. Triggered Revision A's bridge-mechanism split. (2) Surfaced D1's framing inconsistency (sentinel framed as "not a special case in code" while the Out-of-scope section requires liveness-side branching). Triggered Revision A's honest-trade-off reframe of D1. (3) Raised a third claim — severity vocab on a stale three-value scale. Investigated via four-check protocol against live `main` (see "Why this revision" section above); index was stale, live source is the five-value reconciliation ADR-099 references. No substantive revision; ADR's precondition holds. |
+| 2026-06-09 | Same reviewer, second pass on the first draft of Revision A | Revision A's "Why this revision" subsection + External Review Record's framing of the severity claim. | Flagged that the first draft of Revision A asserted the severity claim was "verified incorrect" without showing the four-check evidence — the same kind of bald assertion the first round's verification discipline was meant to correct. Forced the four-check log to be recorded inline (above) and the ERR row's wording to be amended from "verified incorrect" to "investigated via four-check protocol; reviewer's index was stale; live shows reconciliation landed." Epistemic discipline preserved into the permanent record. |
+
+The pattern this ADR followed: verify the ADR's load-bearing decisions against live source before flipping Status from Proposed → Accepted, and verify the verification before stamping it into the append-only record. The original D2's miss came from accepting the ADR's code blocks and the file's module docstring at face value (memory `[[feedback_verify_docstring_against_impl]]`); the Revision A "verified incorrect" miss came from re-asserting from memory after writing the lesson down (memory `[[feedback_recheck_state_before_public_assertion]]`). Both lessons reinforced.
