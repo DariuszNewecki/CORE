@@ -135,6 +135,7 @@ class WorkerShopManager(Worker):
                     logger.exception("WorkerShopManager: failed to post error report")
 
             elapsed = time.monotonic() - cycle_start
+            # Cycle-cap arithmetic per ADR-103: next cycle starts at max(elapsed, max_interval).
             await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------

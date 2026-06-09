@@ -181,12 +181,12 @@
                         "max_interval": {
                             "type": "integer",
                             "minimum": 10,
-                            "description": "Maximum seconds between heartbeats. Constitutional commitment — the worker must post a heartbeat at least once per this interval."
+                            "description": "Cycle cap — maximum seconds between consecutive cycle starts (and equivalently between heartbeats, since each cycle begins with a heartbeat). Per ADR-103: the runtime enforces this via `sleep(max(max_interval - elapsed, 0))`, so next cycle starts at `max(elapsed, max_interval)`. The operator declares the cadence; the runtime adapts sleep to honor it. When observed cycle exceeds this cap (× 1.1 jitter tolerance), `runtime.worker_max_interval_within_observed` fires — meaning real work has grown past the cap, not that the rule is too tight."
                         },
                         "glide_off": {
                             "type": "integer",
                             "minimum": 0,
-                            "description": "Grace period in seconds added to max_interval before the Orchestrator raises a violation. Defaults to 10% of max_interval if absent. Absorbs timing jitter without masking real silence."
+                            "description": "Jitter tolerance in seconds added to max_interval before the liveness check raises worker.silent. Defaults to 10% of max_interval if absent. Per ADR-103 D2: this is measurement-jitter accommodation (scheduler delays, DB write latency), not a separate tolerance budget operators may spend. The rule's × 1.1 multiplier serves the same purpose at the 24h-aggregation cadence."
                         },
                         "batch_size": {
                             "type": "integer",

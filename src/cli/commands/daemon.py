@@ -171,6 +171,7 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
                 "CORE daemon: one-shot worker '%s' failed: %s", stem, e, exc_info=True
             )
         elapsed = time.monotonic() - cycle_start
+        # Cycle-cap arithmetic per ADR-103: next cycle starts at max(elapsed, interval).
         await asyncio.sleep(max(interval - elapsed, 0))
 
 

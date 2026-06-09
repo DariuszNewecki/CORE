@@ -108,6 +108,8 @@ def load_worker_schedule_state(
                     "glide_off",
                     max(int(max_interval * _CFG.glide_off_multiplier), 10),
                 )
+                # ADR-103 D2: glide_off is jitter tolerance (scheduler delays,
+                # DB write latency), not a tolerance budget operators may spend.
                 thresholds[uuid] = max_interval + glide_off
         except Exception as exc:
             logger.warning(

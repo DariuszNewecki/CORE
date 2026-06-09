@@ -30,7 +30,14 @@ mandate:
     # over 24h, n=293). The 300s threshold sat within measurement jitter
     # of the worker's actual cycle and was a worker.silent false-positive
     # source. 360 leaves comfortable headroom over observed reality.
-    max_interval: 360
+    #
+    # Bumped 360 -> 420 (2026-06-09) under ADR-103. Audit observed p95=396.2s
+    # over 24h (n=240) — the bare-minimum 0.2s breach of the 360×1.1=396.0s
+    # threshold. Per ADR-103 D2 a fire means real cycle has grown past the
+    # cap, not that the rule is too tight; investigation confirmed the
+    # growth is steady-state graph-sync work, not a regression. 420 holds
+    # the same 1.1 multiplier comfortably (p95=396.2 << 420×1.1=462).
+    max_interval: 420
 
 implementation:
   module: will.workers.db_sync_worker
