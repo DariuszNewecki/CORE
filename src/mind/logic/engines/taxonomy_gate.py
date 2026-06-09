@@ -56,6 +56,13 @@ logger = getLogger(__name__)
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
 _SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"
 _SELF_RESOLVE_RESOLVER_OWNED_CHECK = "self_resolve_resolver_owned"
+
+# All three rules this engine evaluates declare enforcement: blocking,
+# which rule_executor._map_enforcement_to_severity maps to BLOCK at
+# dispatch. Matching at emission keeps direct callers (unit tests,
+# smoke checks) agreeing with what the executor sets.
+# Per ADR-098 D4 / #606.
+_DEFAULT_FINDING_SEVERITY = AuditSeverity.BLOCK
 _YAML_REL_PATH = ".intent/taxonomies/operational_capabilities.yaml"
 _WORKERS_REL_DIR = ".intent/workers"
 _ARTIFACT_TYPES_REL_DIR = ".intent/artifact_types"
@@ -189,7 +196,7 @@ class TaxonomyGateEngine(BaseEngine):
         return [
             AuditFinding(
                 check_id="governance.taxonomy.operational_capabilities_decorator_backing",
-                severity=AuditSeverity.INFO,
+                severity=_DEFAULT_FINDING_SEVERITY,
                 message=(
                     f"Phantom capability '{cap_id}' in "
                     f"{_YAML_REL_PATH} has no matching "
@@ -252,7 +259,7 @@ class TaxonomyGateEngine(BaseEngine):
             findings.append(
                 AuditFinding(
                     check_id="governance.taxonomy.sensor_supported_by_declaration",
-                    severity=AuditSeverity.INFO,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(
                         f"Sensor '{sensor_id}' declares artifact_type "
                         f"'{artifact_type_id}' but is not listed in that "
@@ -274,7 +281,7 @@ class TaxonomyGateEngine(BaseEngine):
             findings.append(
                 AuditFinding(
                     check_id="governance.taxonomy.sensor_supported_by_declaration",
-                    severity=AuditSeverity.INFO,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(
                         f"artifact_type '{artifact_type_id}' lists sensor "
                         f"'{sensor_id}' in supported_sensors but no sensor "
@@ -344,7 +351,7 @@ class TaxonomyGateEngine(BaseEngine):
             findings.append(
                 AuditFinding(
                     check_id="governance.taxonomy.self_resolve_resolver_owned",
-                    severity=AuditSeverity.INFO,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(
                         f"self_resolve subject prefix '{prefix}' is missing "
                         f"resolver-ownership backing: {' and '.join(gaps)}. "
