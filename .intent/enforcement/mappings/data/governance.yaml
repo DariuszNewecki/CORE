@@ -60,6 +60,21 @@ mappings:
     scope:
       applies_to: []
 
+  # ADR-102 (#613): empirical counterpart to layer_scope_coherence.
+  # Queries core.audit_findings for finding counts per schema_conformance
+  # rule over the lookback window; for classes governed by ≥2 rules with
+  # asymmetric counts (some 0, some >0), the high-firing rule's binding
+  # is suspect. Catches the canonical ADR-102 case directly (Finding.json
+  # firing against AuditFinding while AuditFinding.json fires 0).
+  # Skip-silently semantics when db_session is not injected.
+  data.contracts.asymmetric_contract_findings:
+    engine: contracts_gate
+    params:
+      check_type: asymmetric_contract_findings
+      lookback_hours: 24
+    scope:
+      applies_to: []
+
   data.contracts.proposal_conforms:
     engine: ast_gate
     params:

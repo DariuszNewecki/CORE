@@ -39,6 +39,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.asymmetric_contract_findings",
+            "statement": "When the same class is governed by multiple schema_conformance rules and at least one rule fires zero findings while another fires N>0 over the lookback window, the high-firing rule's binding is suspect — verify scope before reshaping the class. Authority: ADR-102 (#613).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.proposal_conforms",
             "statement": "The dataclass `Proposal` MUST declare fields that conform to `.intent/enforcement/contracts/Proposal.json`. Authority: ADR-056 D4.",
             "authority": "policy",

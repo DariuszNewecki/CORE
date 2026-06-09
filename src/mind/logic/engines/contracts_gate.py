@@ -1,25 +1,30 @@
 # src/mind/logic/engines/contracts_gate.py
 
 """
-Contracts gate — cross-cutting layer-coherence checks on data contracts.
+Contracts gate — cross-cutting coherence checks on data contracts.
 
-Dispatches one check_type today:
+Dispatches two check_types today:
 
 - layer_scope_coherence (#612, ADR-102): for every data_contract under
   .intent/enforcement/contracts/, check whether each governed_class's
   instantiation sites in src/ live exclusively in a layer whose
   constitutional rules forbid the operations the contract enforces.
-  If so, emit a constitutional-incoherence finding.
+  Static analysis; emits constitutional-incoherence findings.
 
-  The canonical case this rule prevents: Finding.json bound CheckResult
-  and AuditFinding to a 5-field nucleus including worker_uuid (which
-  requires blackboard attribution via FK). AuditFinding lives exclusively
-  in src/mind/; Mind is forbidden from DB access; therefore the binding
-  was categorically incoherent. ADR-102 retired Finding.json; this rule
-  prevents a recurrence.
+- asymmetric_contract_findings (#613): when the same class is governed
+  by multiple schema_conformance rules and one rule produces zero
+  findings in a lookback window while another fires N>0, surface the
+  high-firing rule's binding as suspect. The empirical counterpart to
+  layer_scope_coherence — catches mis-scoped contracts via observed
+  finding-count asymmetry against core.audit_findings, not via static
+  reasoning. The canonical case (Finding.json firing N>0 against
+  AuditFinding while AuditFinding.json fires 0) is what triggered
+  ADR-102; this rule generalizes the signal.
 
-LAYER: mind.logic.engines — read-only verification. No file writes, no
-DB access (operates on filesystem-resident contracts + source AST scan).
+LAYER: mind.logic.engines — read-only verification. No file writes.
+DB access (asymmetric check) is via the audit context's injected session
+per architecture.boundary.database_session_access — Mind layer does not
+open sessions itself.
 """
 
 from __future__ import annotations
@@ -28,6 +33,9 @@ import json
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+import yaml
+from sqlalchemy import text
 
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -43,8 +51,17 @@ logger = getLogger(__name__)
 
 
 _ENGINE_ID = "contracts_gate"
-_CONTEXT_CHECK_TYPES = frozenset({"layer_scope_coherence"})
+_CONTEXT_CHECK_TYPES = frozenset(
+    {"layer_scope_coherence", "asymmetric_contract_findings"}
+)
 _RULE_ID_LAYER_SCOPE_COHERENCE = "data.contracts.layer_scope_coherence"
+_RULE_ID_ASYMMETRIC_FINDINGS = "data.contracts.asymmetric_contract_findings"
+
+# Default lookback window for the asymmetric_contract_findings check.
+# 24h gives the daemon multiple audit cycles to populate counts without
+# letting a single anomalous cycle dominate. Tunable per-mapping via the
+# `lookback_hours` param.
+_DEFAULT_ASYMMETRY_LOOKBACK_HOURS = 24
 
 # Constitutional layers under src/ where instantiation sites are meaningful
 # for scope-coherence analysis. shared/ is intentionally excluded — it
@@ -106,6 +123,8 @@ class ContractsGateEngine(BaseEngine):
         check_type = params.get("check_type")
         if check_type == "layer_scope_coherence":
             return _check_layer_scope_coherence(context)
+        if check_type == "asymmetric_contract_findings":
+            return await _check_asymmetric_contract_findings(context, params)
         return [
             AuditFinding(
                 check_id=f"{self.engine_id}.{check_type or 'missing'}.error",
@@ -246,3 +265,154 @@ def _index_instantiation_layers(
             layers_by_class[name].add(layer)
 
     return layers_by_class
+
+
+# ID: d9accb7b-dc2e-4fde-af86-c9e8a9554998
+async def _check_asymmetric_contract_findings(
+    context: AuditorContext, params: dict[str, Any]
+) -> list[AuditFinding]:
+    """Detect classes governed by multiple rules with asymmetric finding counts.
+
+    Reads enforcement mappings to enumerate rules whose engine is
+    ast_gate with check_type schema_conformance, resolves each rule's
+    schema_ref to its contract, and builds class → {rule_ids} from the
+    contracts' governed_classes. For classes appearing under ≥2 rules,
+    queries core.audit_findings for finding counts per rule within the
+    lookback window. If at least one rule fires zero and at least one
+    fires N>0 on the same class, the high-firing rule's binding is
+    suspect — emit a meta-finding pointing at it.
+
+    The canonical case this rule generalizes (the literal trigger for
+    ADR-102): Finding.json firing 9 against AuditFinding while
+    AuditFinding.json fires 0 → asymmetry → Finding.json's binding was
+    the bug, not AuditFinding's shape.
+
+    Skip-silently semantics on missing infrastructure: no mappings
+    file → empty findings; no multi-rule classes → empty findings; no
+    db_session injected → empty findings (check deferred to next cycle
+    where the session is available).
+    """
+    findings: list[AuditFinding] = []
+    repo_root: Path = context.paths.repo_root
+    mappings_path = (
+        repo_root / ".intent" / "enforcement" / "mappings" / "data" / "governance.yaml"
+    )
+    contracts_dir = repo_root / ".intent" / "enforcement" / "contracts"
+
+    if not mappings_path.exists():
+        logger.warning("contracts_gate: mappings not found: %s", mappings_path)
+        return findings
+
+    try:
+        mappings_doc = yaml.safe_load(mappings_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as e:
+        logger.warning("contracts_gate: malformed mappings: %s", e)
+        return findings
+
+    rule_to_schema: dict[str, str] = {}
+    for rule_id, mapping in (mappings_doc.get("mappings") or {}).items():
+        if not isinstance(mapping, dict):
+            continue
+        engine = mapping.get("engine")
+        params_block = mapping.get("params") or {}
+        if engine != "ast_gate":
+            continue
+        if params_block.get("check_type") != "schema_conformance":
+            continue
+        schema_ref = params_block.get("schema_ref")
+        if isinstance(schema_ref, str) and schema_ref:
+            rule_to_schema[rule_id] = schema_ref
+
+    if not rule_to_schema:
+        return findings
+
+    schema_to_classes: dict[str, set[str]] = {}
+    for schema_ref in set(rule_to_schema.values()):
+        contract_path = contracts_dir / f"{schema_ref}.json"
+        if not contract_path.exists():
+            continue
+        try:
+            data = json.loads(contract_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        governed = set(data.get("governed_classes") or [])
+        if governed:
+            schema_to_classes[schema_ref] = governed
+
+    class_to_rules: dict[str, set[str]] = {}
+    for rule_id, schema_ref in rule_to_schema.items():
+        for cls in schema_to_classes.get(schema_ref, set()):
+            class_to_rules.setdefault(cls, set()).add(rule_id)
+
+    multi_rule_classes = {c: r for c, r in class_to_rules.items() if len(r) >= 2}
+    if not multi_rule_classes:
+        return findings
+
+    session = getattr(context, "db_session", None)
+    if session is None:
+        logger.debug(
+            "contracts_gate.asymmetric_contract_findings: db_session not "
+            "injected — check deferred to next audit cycle."
+        )
+        return findings
+
+    lookback_hours = int(
+        params.get("lookback_hours", _DEFAULT_ASYMMETRY_LOOKBACK_HOURS)
+    )
+    rule_ids_of_interest = sorted(
+        {rid for rules in multi_rule_classes.values() for rid in rules}
+    )
+
+    count_query = text(
+        """
+        SELECT check_id, COUNT(*) AS finding_count
+        FROM core.audit_findings
+        WHERE check_id = ANY(:rule_ids)
+          AND created_at > now() - make_interval(hours => :lookback_hours)
+        GROUP BY check_id
+        """
+    )
+    result = await session.execute(
+        count_query,
+        {"rule_ids": rule_ids_of_interest, "lookback_hours": lookback_hours},
+    )
+    rule_counts: dict[str, int] = {
+        row.check_id: int(row.finding_count) for row in result
+    }
+    for rid in rule_ids_of_interest:
+        rule_counts.setdefault(rid, 0)
+
+    for cls, rule_set in sorted(multi_rule_classes.items()):
+        counts = {rid: rule_counts[rid] for rid in sorted(rule_set)}
+        zero_rules = sorted(rid for rid, c in counts.items() if c == 0)
+        firing_rules = sorted(
+            ((rid, c) for rid, c in counts.items() if c > 0), key=lambda pair: pair[0]
+        )
+        if not zero_rules or not firing_rules:
+            continue
+        firing_str = ", ".join(f"{rid}(N={c})" for rid, c in firing_rules)
+        zero_str = ", ".join(zero_rules)
+        findings.append(
+            AuditFinding(
+                check_id=_RULE_ID_ASYMMETRIC_FINDINGS,
+                severity=AuditSeverity.HIGH,
+                message=(
+                    f"Class '{cls}' is governed by multiple schema_conformance rules "
+                    f"with asymmetric finding counts over the last {lookback_hours}h: "
+                    f"firing [{firing_str}], silent [{zero_str}]. The silent rule(s)' "
+                    f"contract(s) conform; the firing rule(s)' binding is suspect — "
+                    f"verify against the class's operational role rather than "
+                    f"reshaping the class. Canonical case: ADR-102 (Finding.json fired "
+                    f"N>0 against AuditFinding while AuditFinding.json fired 0; the "
+                    f"binding error was Finding.json's, not AuditFinding's shape)."
+                ),
+                context={
+                    "class_name": cls,
+                    "rule_counts": counts,
+                    "zero_rules": zero_rules,
+                    "firing_rules": [rid for rid, _ in firing_rules],
+                    "lookback_hours": lookback_hours,
+                },
+            )
+        )
+    return findings
