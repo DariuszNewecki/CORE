@@ -40,4 +40,13 @@
 # — the conservative mode. A safety policy that cannot be loaded must
 # fail toward halt, never toward proceed.
 
-mode: intersection_only
+# 2026-06-09 — flipped to `any_dirty` as the temporary mitigation for #594
+# (ADR-021 D3 regression: e7a591be absorbed unrelated working-tree edits
+# under fix.format attribution). `intersection_only` mode has a race
+# window between _check_scope_collision (proposal_executor.py:187) and
+# commit_paths (proposal_executor.py:337); active human work in the
+# tree during action execution can slip into the autonomous commit.
+# Revert to `intersection_only` once #594 lands a content-scoped staging
+# fix in git_service.commit_paths (currently does `git add -- <paths>`,
+# which honors file-name scope but not content scope).
+mode: any_dirty
