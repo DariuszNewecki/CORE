@@ -338,7 +338,6 @@ class ModularityChecker:
                 return [
                     {
                         "rule_id": "modularity.needs_split",
-                        "severity": "warning",
                         "message": (
                             f"File has {loc} lines (limit {max_lines}) with only "
                             f"{len(responsibilities)} responsibility signal(s) — "
@@ -382,7 +381,6 @@ class ModularityChecker:
                 return [
                     {
                         "rule_id": "modularity.class_too_large",
-                        "severity": "warning",
                         "message": (
                             f"Class {name!r} occupies {class_lines} lines "
                             f"(limit {max_lines}) — class-level refactor required, "
@@ -422,7 +420,6 @@ class ModularityChecker:
                 return [
                     {
                         "rule_id": "modularity.needs_refactor",
-                        "severity": "error",
                         "message": (
                             f"File touches {len(concerns)} concern areas "
                             f"(limit {max_concerns}) — mixed disciplines"
