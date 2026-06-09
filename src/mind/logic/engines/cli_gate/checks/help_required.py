@@ -12,6 +12,13 @@ from mind.logic.engines.cli_gate.base_check import CliCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
+# Matches rule_executor._map_enforcement_to_severity for reporting-level
+# rules (cli.help_required). The executor overrides at dispatch; this keeps
+# direct callers (unit tests, smoke checks) seeing the truthful value.
+# Per ADR-098 D4 / #606.
+_DEFAULT_FINDING_SEVERITY = AuditSeverity.INFO
+
+
 # ID: 7db1d368-f633-46ac-99c2-d492c040f402
 class HelpRequiredCheck(CliCheck):
     check_type = "help_required"
@@ -30,7 +37,7 @@ class HelpRequiredCheck(CliCheck):
             findings.append(
                 AuditFinding(
                     check_id="cli_gate.help_required",
-                    severity=AuditSeverity.BLOCK,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(
                         f"Command '{name}' has no help summary (docstring "
                         "or @command_meta(summary=...) required)."

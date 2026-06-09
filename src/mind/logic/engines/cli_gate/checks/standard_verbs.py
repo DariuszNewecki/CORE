@@ -12,6 +12,13 @@ from mind.logic.engines.cli_gate.base_check import CliCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
+# Matches rule_executor._map_enforcement_to_severity for reporting-level
+# rules (cli.standard_verbs). The executor overrides at dispatch; this keeps
+# direct callers (unit tests, smoke checks) seeing the truthful value.
+# Per ADR-098 D4 / #606.
+_DEFAULT_FINDING_SEVERITY = AuditSeverity.INFO
+
+
 # ID: dea77503-0ced-42c9-b114-3d3042828545
 class StandardVerbsCheck(CliCheck):
     check_type = "standard_verbs"
@@ -37,7 +44,7 @@ class StandardVerbsCheck(CliCheck):
             findings.append(
                 AuditFinding(
                     check_id="cli_gate.standard_verbs",
-                    severity=AuditSeverity.BLOCK,
+                    severity=_DEFAULT_FINDING_SEVERITY,
                     message=(f"Command '{name}' uses non-standard verb '{action}'."),
                     file_path=cmd.get("file_path") or "none",
                     context={
