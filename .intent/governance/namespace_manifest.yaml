@@ -77,6 +77,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/META/workflow_stage.schema.json
     governance_namespace: framework
+  - path: .intent/META/artifact_type.schema.json
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/constitution/** — constitutional articles inherited by any
@@ -163,6 +165,36 @@ classifications:
       D4). Framework: the value space ships with CORE.
   - path: .intent/taxonomies/principal_roles.yaml
     governance_namespace: framework
+  - path: .intent/taxonomies/cognitive_roles.yaml
+    governance_namespace: framework
+  - path: .intent/taxonomies/operational_capabilities.yaml
+    governance_namespace: framework
+  - path: .intent/taxonomies/target_class_boundaries.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/artifact_types/** — artifact-type registry (ADR-090 / F-41).
+  # The universal artifact-type definitions consumed by sensors and
+  # validators. Framework: the type vocabulary ships with CORE.
+  # ---------------------------------------------------------------------
+  - path: .intent/artifact_types/doc.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/infra.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/intent_json.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/intent_yaml.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/prompt.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/python.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/report.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/spec_markdown.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/test.yaml
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/rules/governance/** — framework subset.
@@ -184,6 +216,10 @@ classifications:
   - path: .intent/rules/governance/vocabulary_canonical_store.json
     governance_namespace: framework
   - path: .intent/rules/governance/vocabulary_registers.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/sensor_taxonomy.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/taxonomy.json
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
@@ -230,6 +266,10 @@ classifications:
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/vocabulary_registers.yaml
     governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/sensor_taxonomy.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/taxonomy.yaml
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/enforcement/mappings/runtime/** — framework subset.
@@ -239,12 +279,16 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/runtime/worker_process_classification.yaml
     governance_namespace: framework
+  - path: .intent/enforcement/mappings/runtime/worker_max_interval.yaml
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/rules/runtime/** — framework subset.
   # Rule declarations for runtime telemetry-driven invariants.
   # ---------------------------------------------------------------------
   - path: .intent/rules/runtime/worker_process_classification.json
+    governance_namespace: framework
+  - path: .intent/rules/runtime/worker_max_interval.json
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
@@ -413,6 +457,89 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Workflow-Stages.md
     governance_namespace: framework
+  - path: .specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Enforcement-Completeness.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-OEM-API.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-URS-Verifier.md
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .specs/concepts/** — framework concept papers.
+  # Exploratory framework-shape thinking; promoted to papers when stable.
+  # ---------------------------------------------------------------------
+  - path: .specs/concepts/CORE-URS-Intake-Concept.md
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .specs/contracts/** — published framework contracts (OEM API etc.).
+  # ---------------------------------------------------------------------
+  - path: .specs/contracts/oem_api_v1.openapi.json
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .specs/core-ng/** — CORE-NG exploratory specs (framework redesign).
+  # Per .specs/core-ng/README.md: declarative-reconstruction thesis,
+  # implementation-neutral declaration pack, conformance model. Nothing
+  # here is binding for current CORE unless explicitly promoted. Framework:
+  # the content describes CORE-the-framework, not this deployment.
+  # ---------------------------------------------------------------------
+  - path: .specs/core-ng/README.md
+    governance_namespace: framework
+  - path: .specs/core-ng/conformance/README.md
+    governance_namespace: framework
+  - path: .specs/core-ng/conformance/declaration-sufficiency-checklist.md
+    governance_namespace: framework
+  - path: .specs/core-ng/conformance/invalid-system-examples.md
+    governance_namespace: framework
+  - path: .specs/core-ng/conformance/minimal-conformance-scenarios.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/README.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/00-purpose-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/01-concept-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/02-authority-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/03-constraint-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/04-transformation-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/05-validation-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/06-evidence-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/07-refusal-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarations/08-equivalence-declarations.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/README.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/00-conversation-gist.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/01-thesis.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/02-rewrite-protocol.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/03-anti-contamination-rules.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/04-declaration-pack-outline.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/05-first-experiment.md
+    governance_namespace: framework
+  - path: .specs/core-ng/declarative-reconstruction/06-open-questions.md
+    governance_namespace: framework
+  - path: .specs/core-ng/reference-mapping/README.md
+    governance_namespace: framework
+  - path: .specs/core-ng/reference-mapping/current-core-mapping.md
+    governance_namespace: framework
+  - path: .specs/core-ng/reference-mapping/known-implementation-biases.md
+    governance_namespace: framework
+  - path: .specs/core-ng/reference-mapping/non-binding-reference-observations.md
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .specs/decisions/** — framework subset.
@@ -505,6 +632,26 @@ classifications:
     governance_namespace: framework
   - path: .specs/decisions/ADR-080-fs-op-class-vocabulary-split.md
     governance_namespace: framework
+  - path: .specs/decisions/ADR-081-per-worker-process-isolation-classification.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-086-installation-architecture.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-090-f41-artifact-type-registry-as-unified-governance-contract.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-091-f42-pluggable-sensor-model-as-second-published-contract.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-093-feature-extension-class-split-and-urs-line-discipline.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-094-urs-satisfaction-sensor-implementation.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-095-modularity-as-architectural-judgment.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-096-shadow-kg-sensation-primitive.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-097-target-class-dispatch-for-the-single-filesystem-write-channel.md
+    governance_namespace: framework
 
   # =====================================================================
   # PROJECT::CORE
@@ -552,6 +699,10 @@ classifications:
   - path: .intent/workers/audit_ingest_worker.yaml
     governance_namespace: project::core
   - path: .intent/workers/audit_sensor_architecture.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_cli.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_governance.yaml
     governance_namespace: project::core
   - path: .intent/workers/audit_sensor_layout.yaml
     governance_namespace: project::core
@@ -650,6 +801,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/rules/architecture/quality_gates.json
     governance_namespace: project::core
+  - path: .intent/rules/architecture/artifact_discovery.json
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .intent/rules/cli/** — CORE-specific CLI rules.
@@ -674,6 +827,8 @@ classifications:
   - path: .intent/rules/code/purity.json
     governance_namespace: project::core
   - path: .intent/rules/code/style.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/test_quality.json
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -882,6 +1037,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/quality_gates.yaml
     governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/artifact_discovery.yaml
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .intent/enforcement/mappings/cli/**
@@ -971,11 +1128,45 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
+  # .intent/ root-level governor docs.
+  # ARCHITECT.md describes the governor's role on this deployment;
+  # daily_loop.md is an informal working note kept in-tree (its header
+  # acknowledges "not yet doctrine"). Both project::core: deployment-
+  # specific operational documents, not framework patterns.
+  # ---------------------------------------------------------------------
+  - path: .intent/ARCHITECT.md
+    governance_namespace: project::core
+  - path: .intent/daily_loop.md
+    governance_namespace: project::core
+    notes: >
+      File header marks this as "informal — not yet doctrine." Classified
+      project::core on directory placement; promotion to framework
+      doctrine would require an ADR.
+
+  # ---------------------------------------------------------------------
   # .specs/commercial/** — CORE org material.
   # ---------------------------------------------------------------------
   - path: .specs/commercial/.gitkeep
     governance_namespace: project::core
   - path: .specs/commercial/CORE-TechRep-Onboarding.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Business-Model.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Company.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Competitive.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Customer-Personas.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Demo-Narrative.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-GTM.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Market-ICP.md
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-Products.md
+    governance_namespace: project::core
+  - path: .specs/commercial/Dev.to/when-one-enum-is-secretly-two.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1003,6 +1194,76 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/worktree-sandbox-implementation-plan.md
     governance_namespace: project::core
+  - path: .specs/planning/CORE-Feature-Dependency-Graph.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-Operational-Completeness.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/planning/archive/** — retired planning notes, recon, handoffs,
+  # state snapshots. Kept for historical reference; not driving current
+  # work. All project::core (planning is deployment-specific).
+  # ---------------------------------------------------------------------
+  - path: .specs/planning/archive/ADR-081-implementation-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/BAND-B-consequence-chain-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CCC-backlog-cleanup-2026-05-31.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CORE-A3-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CORE-API-capability-map-2026-05-16.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CORE-GitHub-Project-Management.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/worktree-sandbox-implementation-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-daemon-reactivation-recon.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/counterfactual.json
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/modularity_diagnostic.py
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/needs_split_findings.json
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/per_file.json
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-25-consequence-chain-mapping.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/2026-04-27-test-environment-recon.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/CORE-state-2026-04-18.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/Prior Art and the End-to-End Gap.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/nested_scope_audit_2026-04-19.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/reconnaissance_2026-04-20.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/tracing_mandatory_diagnostic_2026-04-20.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-19.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-20.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-20-evening.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-21.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-24.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-25.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/handoff_2026-04-23_evening.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/session_handoff_2026-04-21_evening.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/state/handoffs/session_handoff_2026-04-22_evening.md
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/requirements/** — URS for specific CORE features.
@@ -1014,6 +1275,17 @@ classifications:
   - path: .specs/requirements/CORE-Governor-Dashboard-URS.md
     governance_namespace: project::core
   - path: .specs/requirements/URS-consequence-chain.md
+    governance_namespace: project::core
+  - path: .specs/requirements/URS-mechanism-coherence.md
+    governance_namespace: project::core
+  - path: .specs/requirements/URS-requirement-fulfillment-verification.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/verification/** — F-feature verification documents.
+  # project::core: verification is deployment-specific.
+  # ---------------------------------------------------------------------
+  - path: .specs/verification/F-40-sidecar-walk.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1197,5 +1469,28 @@ classifications:
   - path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md
     governance_namespace: project::core
     # notes: gray — generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
+  - path: .specs/decisions/ADR-083-commercial-add-on-stamping-f44-f47.md
+    governance_namespace: project::core
+    notes: >
+      Commercial add-on stamping for this open-core deployment's
+      feature set; deployment-specific decision.
+  - path: .specs/decisions/ADR-084-commercial-surface-taxonomy-and-open-core-honesty.md
+    governance_namespace: project::core
+    notes: >
+      Commercial surface taxonomy for this CORE deployment.
+  - path: .specs/decisions/ADR-085-open-operational-completeness-as-engineering-sole-goal.md
+    governance_namespace: project::core
+    notes: >
+      This deployment's engineering-posture decision (operational
+      completeness gates commercial work).
+  - path: .specs/decisions/ADR-088-pypi-version-alignment.md
+    governance_namespace: project::core
+    notes: This deployment's PyPI release-versioning policy.
+  - path: .specs/decisions/ADR-089-f27-exit-criterion-capability-not-usage.md
+    governance_namespace: project::core
+    notes: F-27 exit criterion is feature-specific to this deployment.
+  - path: .specs/decisions/ADR-092-f43-exit-criterion-contract-readiness.md
+    governance_namespace: project::core
+    notes: F-43 exit criterion is feature-specific to this deployment.
   - path: .specs/decisions/README.md
     governance_namespace: project::core
