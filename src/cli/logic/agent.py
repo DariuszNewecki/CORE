@@ -76,6 +76,9 @@ async def scaffold_new_application(
             )
             git_service.init(scaffolder.project_root)
             scoped_git_service = context.git_service.__class__(scaffolder.project_root)
+            # ADR-101 D1 audit: add_all + commit on a freshly-init'd repo is
+            # safe — no concurrent actors could have written to project_root
+            # before scaffolder.write_file populated it this turn.
             scoped_git_service.add_all()
             scoped_git_service.commit(
                 f"feat(scaffold): Initial commit for '{project_name}'"

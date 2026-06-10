@@ -27,20 +27,28 @@ class IntegrationError(CoreError):
 async def integrate_changes(context: CoreContext, commit_message: str) -> None:
     """
     Orchestrates the full, non-destructive, and intelligent integration of code changes.
+
+    Per ADR-101 D1: the commit's diff must contain only bytes the caller
+    produced. The caller is responsible for staging their intended files
+    before invoking this workflow; we do not call ``add_all`` here, and
+    we commit only the caller's pre-staged paths even if the format/lint
+    workflow re-touches other files in the tree.
     """
     git_service = context.git_service
     workflow_failed = False
 
     try:
-        logger.info("Step 1: Staging all current changes...")
-        git_service.add_all()
+        logger.info("Step 1: Reading caller's pre-staged files...")
         staged_files = git_service.get_staged_files()
 
         if not staged_files:
-            logger.info("No changes found to integrate. Working directory is clean.")
+            logger.info(
+                "No staged changes to integrate. Caller must `git add` the "
+                "intended files before invoking /v1/integrate (ADR-101 D1)."
+            )
             return
 
-        logger.info("   -> Staged %s file(s) for integration.", len(staged_files))
+        logger.info("   -> %s file(s) pre-staged for integration.", len(staged_files))
 
         # Try multiple possible locations for integration workflow
         workflow_policy = None
@@ -105,8 +113,11 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
         if workflow_failed:
             raise Exception("Workflow halted due to a failed step.")
 
-        git_service.commit(commit_message)
-        logger.info("Successfully integrated and committed changes.")
+        git_service.commit_paths(staged_files, commit_message)
+        logger.info(
+            "Successfully integrated and committed %d staged path(s).",
+            len(staged_files),
+        )
 
     except Exception as e:
         logger.error("Integration process failed: %s", e)
