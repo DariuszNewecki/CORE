@@ -56,7 +56,8 @@ jobs:
           poetry run pytest \
             --cov=src \
             --cov-report=xml:coverage.xml \
-            --cov-report=term-missing:skip-covered
+            --cov-report=term-missing:skip-covered \
+            --cov-fail-under=45
 
       - name: Upload coverage to Codecov
         if: github.repository == 'DariuszNewecki/CORE'
