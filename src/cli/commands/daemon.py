@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import fcntl
+import hashlib
 import importlib
 import logging
 import os
@@ -54,6 +55,12 @@ daemon_app = typer.Typer(help="Background worker daemon management.")
 
 # Default interval for one-shot workers that lack run_loop (seconds).
 _CFG = load_operational_config().daemon
+
+# Cold-start jitter cap (#611). Each one-shot worker delays its first cycle
+# by a hash-of-stem offset in [0, _STARTUP_JITTER_CAP_SEC). Spreads the
+# post-restart CPU peak across the cap window so a cohort of audit sensors
+# can't blackout the single-worker uvicorn API.
+_STARTUP_JITTER_CAP_SEC = 30
 
 # Singleton-instance machinery.
 # var/run/core-daemon.pid holds the PID of the running daemon; an exclusive
@@ -158,10 +165,27 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
     """
     Wraps a one-shot worker (has start() but no run_loop()) in a periodic loop.
     Re-instantiation is not needed — start() is idempotent per the Worker contract.
+
+    Cold-start jitter (#611): before the first cycle, each one-shot worker
+    waits a deterministic offset in [0, _STARTUP_JITTER_CAP_SEC) computed
+    from the stem's SHA-256 hash. Spreads simultaneous post-restart CPU
+    draw across the cap window so a cohort of audit sensors can't blackout
+    the single-worker uvicorn API for the first 2-5 minutes after restart.
     """
     import time
 
     logger.info("CORE daemon: one-shot loop for '%s' (interval=%ds)", stem, interval)
+
+    jitter_cap = min(_STARTUP_JITTER_CAP_SEC, max(interval, 0))
+    if jitter_cap > 0:
+        offset = (
+            int.from_bytes(hashlib.sha256(stem.encode()).digest()[:2], "big")
+            % jitter_cap
+        )
+        if offset:
+            logger.info("CORE daemon: '%s' staggered cold-start +%ds", stem, offset)
+            await asyncio.sleep(offset)
+
     while True:
         cycle_start = time.monotonic()
         try:
