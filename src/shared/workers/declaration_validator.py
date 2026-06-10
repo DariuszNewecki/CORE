@@ -20,7 +20,10 @@ from threading import RLock
 from typing import Any
 
 import jsonschema
-from jsonschema import Draft7Validator, RefResolver
+from jsonschema import Draft7Validator
+from referencing import Registry, Resource
+from referencing.exceptions import NoSuchResource
+from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent.canonical_enums import get_enum_members
 from shared.infrastructure.intent.errors import GovernanceError
@@ -53,22 +56,22 @@ def _build_validator() -> Draft7Validator:
 
     Draft7Validator.check_schema(schema)
 
-    base_uri = schema_path.parent.as_uri() + "/"
-    resolver = RefResolver(
-        base_uri=base_uri,
-        referrer=schema,
-        store={
-            base_uri + "enums.json": enums,
-            base_uri + "worker.schema.json": schema,
-        },
-    )
+    by_name = {"enums.json": enums, "worker.schema.json": schema}
+
+    def retrieve(uri: str) -> Resource:
+        name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
+        if name in by_name:
+            return Resource.from_contents(by_name[name], default_specification=DRAFT7)
+        raise NoSuchResource(ref=uri)
+
+    registry = Registry(retrieve=retrieve)
 
     # Principle 2: worker_phase must exist and be non-empty before any
     # worker declaration may validate. get_enum_members raises
     # GovernanceError on absent or empty enum.
     get_enum_members("worker_phase")
 
-    return Draft7Validator(schema, resolver=resolver)
+    return Draft7Validator(schema, registry=registry)
 
 
 # ID: 81144685-8de2-47c0-9dae-41989c75dfd6

@@ -10,7 +10,10 @@ from pathlib import Path
 from typing import Any
 
 import jsonschema
-from jsonschema import Draft7Validator, RefResolver
+from jsonschema import Draft7Validator
+from referencing import Registry, Resource
+from referencing.exceptions import NoSuchResource
+from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.logger import getLogger
@@ -198,13 +201,19 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
             errors.append(msg)
             continue
 
-        resolver = RefResolver(
-            base_uri=meta_base_uri,
-            referrer=schema,
-            store=meta_ref_store,
-        )
+        by_name = {uri.rsplit("/", 1)[-1]: doc for uri, doc in meta_ref_store.items()}
+
+        def retrieve(uri: str) -> Resource:
+            name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
+            if name in by_name:
+                return Resource.from_contents(
+                    by_name[name], default_specification=DRAFT7
+                )
+            raise NoSuchResource(ref=uri)
+
+        registry = Registry(retrieve=retrieve)
         try:
-            Draft7Validator(schema, resolver=resolver).validate(document)
+            Draft7Validator(schema, registry=registry).validate(document)
         except jsonschema.ValidationError as e:
             msg = f"Schema validation failed for {doc_path}:\n{e.message}"
             if strict:

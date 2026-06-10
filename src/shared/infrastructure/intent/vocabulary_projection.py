@@ -16,13 +16,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 import jsonschema
-from jsonschema import RefResolver
+from jsonschema import Draft7Validator
+from referencing import Registry, Resource
+from referencing.exceptions import NoSuchResource
+from referencing.jsonschema import DRAFT7
 
 from shared.config import resolve_default_repo_path
 from shared.logger import getLogger
@@ -142,16 +144,31 @@ def compute_canonical_section_hash(repo_root: Path) -> str | None:
 
 # ID: 9d3a5c1e-7b2f-4a8d-b1c3-4e7f8a2d5c0b
 def _validate_schema(instance: dict, schema_path: Path, schema: dict) -> str | None:
-    """Validate instance against schema with $ref resolution. Returns error string or None."""
-    base_uri = schema_path.parent.as_uri() + "/"
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-        resolver = RefResolver(base_uri=base_uri, referrer=schema)
-        try:
-            jsonschema.validate(instance, schema, resolver=resolver)
-        except jsonschema.ValidationError as e:
-            path = "/".join(str(p) for p in e.absolute_path) or "<root>"
-            return f"schema validation failed at {path}: {e.message}"
+    """Validate instance against schema with $ref resolution. Returns error string or None.
+
+    Referenced schemas (e.g. `./enums.json` next to `vocabulary.schema.json`)
+    are loaded from disk via the retrieve callback — mirrors the
+    fetch-on-demand behaviour the legacy jsonschema.RefResolver had when
+    no store was supplied.
+    """
+    meta_dir = schema_path.parent
+
+    def retrieve(uri: str) -> Resource:
+        name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
+        target = meta_dir / name
+        if target.is_file():
+            return Resource.from_contents(
+                json.loads(target.read_text(encoding="utf-8")),
+                default_specification=DRAFT7,
+            )
+        raise NoSuchResource(ref=uri)
+
+    registry = Registry(retrieve=retrieve)
+    try:
+        Draft7Validator(schema, registry=registry).validate(instance)
+    except jsonschema.ValidationError as e:
+        path = "/".join(str(p) for p in e.absolute_path) or "<root>"
+        return f"schema validation failed at {path}: {e.message}"
     return None
 
 

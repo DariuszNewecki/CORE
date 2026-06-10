@@ -15,7 +15,11 @@ from pathlib import Path
 from typing import Any
 
 import jsonschema
+from jsonschema import Draft7Validator
 from jsonschema.validators import validator_for
+from referencing import Registry, Resource
+from referencing.exceptions import NoSuchResource
+from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent.intent_repository import (
     get_intent_repository,
@@ -93,6 +97,41 @@ class MetaValidator:
             except Exception:
                 continue
         return index
+
+    # ID: 5a0f0b93-abc6-48fb-9313-4304a868d995
+    def _build_registry(self) -> Registry:
+        """Build a `referencing.Registry` whose retrieve callback resolves
+        `$ref` URIs against `self._all_schemas` and the META directory.
+
+        The store is keyed by bare filename (e.g. `"worker.schema.json"`)
+        and by `schema_id` where present. URI resolution tries bare
+        filename in the store first, then full URI match (for `schema_id`
+        keyed entries), then falls back to fetching the file from the
+        META directory on disk — mirroring legacy `RefResolver`'s default
+        filesystem-fetch behaviour for files like `enums.json` that are
+        not collected by `_index_all_schemas` (which only walks
+        `*.schema.json`).
+        """
+        store = self._all_schemas
+        meta_dir = (self.intent_root / "META").resolve()
+
+        def retrieve(uri: str) -> Resource:
+            name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
+            if name in store:
+                return Resource.from_contents(store[name], default_specification=DRAFT7)
+            if uri in store:
+                return Resource.from_contents(store[uri], default_specification=DRAFT7)
+            target = meta_dir / name
+            if target.is_file():
+                import json as _json
+
+                return Resource.from_contents(
+                    _json.loads(target.read_text(encoding="utf-8")),
+                    default_specification=DRAFT7,
+                )
+            raise NoSuchResource(ref=uri)
+
+        return Registry(retrieve=retrieve)
 
     def _load_meta_schema(self) -> dict[str, Any]:
         rel_path = "META/GLOBAL-DOCUMENT-META-SCHEMA.json"
@@ -184,17 +223,9 @@ class MetaValidator:
             self._add_error(str(rel_path), "invalid_structure", "Must be a mapping")
             return False
 
-        from jsonschema import RefResolver
-
-        meta_dir = (self.intent_root / "META").resolve()
-        base_uri = meta_dir.as_uri() + "/"
-        resolver = RefResolver(
-            base_uri=base_uri,
-            referrer=self.meta_schema,
-            store=self._all_schemas,
-        )
+        registry = self._build_registry()
         try:
-            jsonschema.validate(doc, self.meta_schema, resolver=resolver)
+            Draft7Validator(self.meta_schema, registry=registry).validate(doc)
         except jsonschema.ValidationError as e:
             path = ".".join(map(str, e.absolute_path)) or "root"
             self._add_error(str(rel_path), "schema_violation", e.message, path)
@@ -225,29 +256,12 @@ class MetaValidator:
             return
 
         try:
-            # FIX: Create a validator that knows about all our local schemas
             validator_cls = validator_for(schema)
-
-            # Simple resolver that pulls from our in-memory index
-            # This is the "Sound Solution" for local $ref issues
-            # ID: ac52e1ca-d781-4664-ac7f-833bafcb384b
-            def retrieve_schema(uri):
-                name = uri.split("/")[-1]
-                if name in self._all_schemas:
-                    return self._all_schemas[name]
-                raise Exception(f"Could not resolve {uri}")
-
-            # Run validation with a custom resolver logic (simplified for 3.12 compatibility)
-            from jsonschema import RefResolver
-
-            meta_dir = (self.intent_root / "META").resolve()
-            base_uri = meta_dir.as_uri() + "/"
-            resolver = RefResolver(
-                base_uri=base_uri,
-                referrer=schema,
-                store=self._all_schemas,
-            )
-            validator = validator_cls(schema, resolver=resolver)
+            # referencing.Registry replaces the legacy jsonschema.RefResolver
+            # store — same underlying schema index, retrieve callback wires
+            # bare-filename and schema_id lookups.
+            registry = self._build_registry()
+            validator = validator_cls(schema, registry=registry)
 
             for error in validator.iter_errors(doc):
                 path = ".".join(map(str, error.path)) or "root"
