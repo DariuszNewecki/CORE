@@ -1,22 +1,25 @@
 # CLAUDE.md — CORE
 
-This file is loaded automatically at the start of every Claude Code session in this repo.
-Read it fully before touching any code.
+Loaded automatically at the start of every Claude Code session. Read fully before touching code.
 
 ---
 
 ## What CORE is, and what you are
 
 CORE is a constitutionally-governed software factory: a runtime that supervises AI code
-generation under deterministic rules. `.intent/` is law — the runtime reads it to make
-governance decisions. `.specs/` is architectural reasoning — humans read it to understand why.
-`src/` is the implementation.
+generation under deterministic rules. `.intent/` is law (read by the runtime); `.specs/` is
+architectural reasoning (read by humans); `src/` is the implementation.
 
-You (Claude Code) are the execution arm, not the governor. The human who owns this repo is
-the architect and governor; they write intent and review outputs; they do not write code
-manually. Your job is to produce correct, complete files that conform to `.intent/` and to
-the decisions in `.specs/decisions/`. AI output is not trusted by default — it is verified.
-Produce work that earns the verification.
+You (Claude Code) are the execution arm, not the governor. The human owns this repo, writes
+intent, and reviews outputs — they do not write code manually. Your job is to produce correct,
+complete files that conform to `.intent/` and the decisions in `.specs/decisions/`. AI output
+is not trusted by default — it is verified. Produce work that earns the verification.
+
+This file is a **development contract**, not a runtime governance posture. CORE is
+bootstrapped on itself; the restrictions here govern how Claude Code works on this repo and
+are intentionally permissive under governor confirmation. The strong version — what CORE
+enforces on governed projects at runtime — lives in `.intent/`. Do not import that live
+strictness into this dev contract, and do not export this dev permissiveness into runtime rules.
 
 ---
 
@@ -26,416 +29,230 @@ Produce work that earns the verification.
 src/
   api/        — FastAPI routes and dependency providers only. No business logic.
   body/       — Analyzers, atomic actions, services, infrastructure workers. Execution layer.
-  cli/        — Typer CLI commands. Rich rendering is allowed here only
-                (architecture.channels.cli_rendering_allowed).
+  cli/        — Typer CLI commands. Rich rendering allowed here only.
   mind/       — Constitutional logic engines (ast_gate, glob_gate, llm_gate, runtime_gate, …).
-                Reads .intent/ at runtime and evaluates rules. Mind layer in code: declares no
-                I/O, no execution, no Body or Will invocation. Permitted by
-                architecture.layer_exclusivity; constrained by architecture.mind.* and
-                architecture.layers.no_mind_execution.
-  shared/     — Cross-cutting substrate: DB session, models, AST utilities, knowledge graph,
-                intent infrastructure. Forbidden from importing src/mind/, src/body/, or
-                src/will/ (architecture.shared.no_layer_imports).
+                Reads .intent/ at runtime. No I/O, no execution, no Body/Will invocation.
+  shared/     — Cross-cutting substrate. Must not import src/mind/, src/body/, or src/will/.
   will/       — Autonomous developer, cognitive orchestration, agents.
-.intent/      — Governance law as data: YAML/JSON policies, rules, mappings, META schemas.
-                Read at runtime by IntentRepository; never imported as Python.
-.specs/       — Architectural reasoning: charter, papers, ADRs, requirements.
+.intent/      — Governance law as data (YAML/JSON). Read at runtime via IntentRepository;
+                never imported as Python.
+.specs/       — Charter, northstar, papers/ (47+), requirements/ (URS), decisions/ (ADRs),
+                planning/ (roadmaps).
 ```
 
-The Mind/Body/Will distinction is between *code* layers (`src/mind/`, `src/body/`, `src/will/`)
-and *data* surfaces (`.intent/` is the governance law that `src/mind/` reads; `.specs/` is the
-reasoning behind it). They are not the same thing — do not conflate "the Mind" (`.intent/`)
-with "the Mind layer in code" (`src/mind/`).
+Mind/Body/Will names *code* layers; `.intent/` and `.specs/` are *data* surfaces. Do not
+conflate "the Mind" (`.intent/`) with "the Mind layer in code" (`src/mind/`).
 
----
-
-## `.specs/` — architectural reasoning
-
-```
-.specs/
-  CORE-CHARTER.md        founding declaration
-  northstar/             why CORE exists
-  papers/                architectural reasoning (47+ documents)
-  requirements/          URS documents
-  decisions/             ADRs — numbered, accepted, implemented
-  planning/              roadmaps
-```
-
-**Before editing code in a layer or subsystem you have not seen before**, check
-`.specs/papers/` for a relevant paper and `.specs/decisions/` for recent ADRs. These are the
-source of truth for *why* things are the way they are.
-
-**ADRs are live.** `.specs/decisions/` contains numbered ADRs (ADR-001, ADR-002, ADR-003, …).
-New ADRs are authored by the human *before* implementation, accepted, then implemented as a
-change-set. If an ADR is referenced in a prompt, read it before editing.
-
-`.specs/` is human territory. **By default, do not modify anything under `.specs/`**; when
-asked to draft an ADR or paper, return the complete file content in the response for the
-governor to apply. **Exception — confirmed write:** if the governor explicitly confirms a
-write to a `.specs/` file in the current turn, Claude Code may write that file directly. The
-confirmation is per-turn and does not carry forward. Absent that confirmation, draft in the
-response and never write under `.specs/` yourself.
+**ADRs are live.** Authored by the human before implementation, then implemented as a
+change-set. If an ADR is referenced in a prompt, read it before editing. Before editing a
+layer or subsystem you have not seen before, check `.specs/papers/` and `.specs/decisions/`.
 
 ---
 
 ## How to work in this repo
 
-**Reconnaissance before editing.** When asked to change code in a file or module you have
-not seen in this session, first: read the file; report what you found (current shape,
-relevant structures, any existing patterns); identify every call site that would be affected.
-Only then edit. For non-trivial changes (multi-file edits, schema changes, new fields on
-shared models, anything touching more than three files) pause after reconnaissance and wait
-for the governor to review before making edits.
+**Reconnaissance before editing.** For any file/module not seen this session: read it, report
+what you found, identify every affected call site — then edit. For non-trivial changes
+(multi-file, schema changes, new fields on shared models, >3 files) pause after
+reconnaissance for governor review.
 
-**Tests are part of the change.** When you change a public function/class signature or
-behavior in `src/`, update the corresponding test in the same change. When you add a new
-public function/class, write at least basic tests for it. You cannot run `pytest` yourself
-— the governor verifies — but you must author the tests. Do not rely on the autonomous
-test-generation loop to compensate for skipped tests: the loop has a known import-validation
-gap (#574) and a known semantic-miscapture rate of roughly 30% (see #572), and signature
-drift accumulates silently across sessions when source ships without test updates (#572 Cat
-B, ~80–100 tests, is the canonical evidence). The minimum-scope principle does **not**
-exempt test updates — tests are part of the change, not scope expansion.
+**Tests are part of the change.** Signature/behavior change in `src/` → update the
+corresponding test in the same change. New public function/class → at least basic tests. You
+cannot run `pytest` (governor verifies) but you must author the tests. Do not rely on the
+autonomous test-gen loop to compensate: it has an import-validation gap (#574) and ~30%
+semantic-miscapture (#572); signature drift accumulates silently (#572 Cat B, ~80–100 tests).
+Minimum-scope does **not** exempt test updates.
 
-**Complete files, not diffs.** When modifying a file, output the complete file content in a
-fenced block labelled with its path. The governor reviews whole files, not diff fragments.
+**Complete files, not diffs.** Output the complete file content in a fenced block labelled
+with its path. The governor reviews whole files.
 
-**Verification after editing.** Before reporting completion: run `ruff check` on every file
-touched. Run small import/instantiation smoke tests where possible. Do NOT run `pytest`, do
-NOT commit — those are governor actions. Restarting `core-daemon` + `core-api` is in-scope
-when a fix needs operationalization (the running daemon caches imported modules, so a code
-fix only lands after restart). Avoid restarting mid-flight against an active CCC scan or
-long-running remediation; otherwise it's a normal step in the development loop.
+**Verification after editing.** Run `ruff check` on every file touched; run import/
+instantiation smoke tests where possible. Do NOT run `pytest`, do NOT commit — governor
+actions. Restarting `core-daemon` + `core-api` is in-scope when a fix needs
+operationalization (the daemon caches imported modules); avoid restarting mid-flight against
+an active CCC scan or long-running remediation.
 
-**When in doubt, ask.** A five-second clarifying question is cheaper than a fifteen-minute
-implementation against the wrong assumption. Do not invent requirements; do not infer CLI
-commands from plausibility. If a brief says "atomic action" and no CLI surface exists to
-invoke one, ask rather than writing a throwaway script.
+**When in doubt, ask.** Do not invent requirements or infer CLI commands from plausibility.
+If a brief says "atomic action" and no CLI surface exists to invoke one, ask rather than
+writing a throwaway script.
 
 ---
 
-## Writing to `.intent/` and `.specs/` — the confirmation gate
+## Governed and prohibited surfaces
 
-**This file is a development contract, not a runtime governance posture.** CORE is
-bootstrapped on itself — we develop CORE using CORE. The restrictions here govern how Claude
-Code works on *this repo during development*; they are intentionally permissive under governor
-confirmation so the bootstrap can never lock itself out of evolving its own governance frame.
-The *strong* version of these restrictions — what CORE enforces on governed projects at
-runtime — lives in `.intent/` rules read by the runtime, not here. Do not import that live
-strictness into this dev contract, and do not export this dev permissiveness into runtime
-rules. (This conflation is the framework/project namespace fusion the namespace-split work
-exists to resolve.)
+### `.intent/` and `.specs/` — the confirmation gate
 
-`.intent/` files contain governance law; `.specs/` files contain architectural reasoning.
-Both are human-authored by default. Claude Code's default posture toward both is
-**draft-in-response**: produce the complete corrected file in the response and let the
-governor apply it.
-
-Claude Code MAY write directly to `.intent/` or `.specs/` only under one of these paths:
+Both are human-authored by default. Default posture: **draft-in-response** — produce the
+complete corrected file in the response; the governor applies it. Direct writes are permitted
+only under one of two paths, both governor-initiated:
 
 **Path A — confirmed write (semantic edits permitted).** The governor explicitly confirms a
-write to a named file in the current turn. That single write is permitted, including
-semantic changes. The confirmation is **turn-scoped**: it authorizes the writes named in
-that turn and does not carry forward to later turns.
+write to a named file in the current turn. **Turn-scoped**: authorizes the writes named in
+that turn only; does not carry forward.
 
-**Path B — authorized mechanical substitution (no fresh confirmation needed per write).**
-A purely syntactic change the governor named in the prompt, where **all four** conditions hold:
+**Path B — authorized mechanical substitution.** A purely syntactic change the governor named
+in the prompt, where all four hold: (1) explicitly authorized — the governor names the
+transformation; no inferring, optimizing, or improving it; (2) purely syntactic — a string or
+regex substitution; if applying it requires understanding the governance meaning, it is
+semantic → Path A; (3) no content added or removed — no "while you're at it" fixes, no
+reorganization; (4) semantically invariant — two readers interpret the file the same way
+before and after. Passing examples: filename-rename propagation, path-reference updates after
+a move, renaming a governor-decided constant.
 
-1. **Explicitly authorized by the governor in the prompt.** The governor names the
-   transformation. Claude Code does not infer, optimize, or improve the substitution.
-2. **Purely syntactic.** A string or regex substitution. If applying the change correctly
-   requires understanding the surrounding text's governance meaning, it is a semantic edit —
-   use Path A.
-3. **No content added or removed.** Pure replacement only. No "while you're at it" fixes.
-   No reorganization. No clarifications.
-4. **Semantically invariant.** Two readers must interpret the file the same way before
-   and after the change.
+**Constitutional core — heightened confirmation.** `.intent/constitution/`, `.intent/META/`,
+`.intent/rules/governance/` define the governance frame. Path A reaches them, but the
+governor must name the **specific** file in the confirmation (no blanket "go ahead"), and
+Claude Code surfaces the change for review before writing.
 
-Examples that pass Path B and Claude Code may apply:
+When neither path applies, draft-in-response. Direct writes are the exception.
 
-- Filename rename propagation when a governance file moves
-- Updating a path reference when a file moves
-- Renaming a constant whose new name has been governor-decided
+### Never modify
 
-**The constitutional core requires heightened confirmation.** Files under
-`.intent/constitution/`, `.intent/META/`, and `.intent/rules/governance/` define the
-governance frame itself. A confirmed write (Path A) reaches them too — the bootstrap must be
-able to evolve its own frame — but with one added condition: the governor must name the
-**specific** constitutional file in the confirmation, not a blanket "go ahead," and Claude
-Code surfaces the change for review before writing. Per-file authorization plus visibility is
-the residual safety here; it is not a lockout.
+Machine-specific infrastructure — never "fix" paths or settings here. Your container may
+mount the repo at a path other than the server's `/opt/dev/CORE`; that is a container
+artifact, not a bug.
 
-When neither path applies, default to producing a corrected file or patch list for the
-governor to apply. Direct writes are the exception, not the norm.
-
----
-
-## Files Claude Code must NEVER modify
-
-These files are machine-specific infrastructure. Claude Code may run inside a container where
-paths differ from the server. Never "fix" paths or settings you see here.
-
-- `.env` — environment-specific paths and secrets for this machine (`/opt/dev/CORE`)
-- `.venv/` — the Python virtual environment; never touch any file inside it
-- `*.pth` files — Python path configuration; machine-specific, never modify
-- `var/` — runtime data directory; read-only unless explicitly asked
-- Any file outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md`
-
-`.intent/` and `.specs/` are governed surfaces, not hard-prohibited ones: writes are
-permitted under the confirmation gate above, with the constitutional core carved out.
-
-**Turn-scoped governor override.** `.intent/` and `.specs/` are draft-in-response by default.
-If the governor explicitly confirms a write to one of these files in the current turn, that
-write — including semantic edits — is permitted for that turn only. The permission does not
-carry forward to subsequent turns. It reaches the constitutional core only under heightened
-confirmation — the governor names the specific constitutional file in the same turn.
-
-**The project lives at `/opt/dev/CORE` on the server.** Claude Code's container may mount it
-at a different path — that is a container artifact, not a bug to fix.
-
-- `/tmp/` — **the system temp directory is prohibited.** All temporary file writes must use
-  `var/tmp/` (relative to the repo root). Never use `/tmp/`, `tempfile.gettempdir()`, or any
-  `tempfile` default that resolves outside the repo. Pass `dir=repo_root / "var" / "tmp"`
-  explicitly when creating temporary files via `tempfile.NamedTemporaryFile`,
-  `tempfile.mkstemp`, or `tempfile.mkdtemp`.
+- `.env`, `.venv/`, `*.pth` — environment/venv/path config for this machine
+- `var/` — runtime data; read-only unless explicitly asked
+- Anything outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md`
+- `/tmp/` — **prohibited.** All temp writes use `var/tmp/` (repo-relative). Never
+  `tempfile.gettempdir()` or any `tempfile` default outside the repo; pass
+  `dir=repo_root / "var" / "tmp"` explicitly.
 
 ---
 
 ## Constitutional rules
 
-This section is a derived operational digest of constitutional rules. `.intent/` is canonical.
-On any divergence between this section and `.intent/`, `.intent/` wins; surface the
-divergence to the governor rather than resolving it in code.
+Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
+the divergence, don't resolve it in code. Severity is read from each rule's on-disk
+`enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
+the other two surface findings. At digest time: 31 blocking + 27 reporting + 9 advisory = 67.
 
-Severity below is read from each rule's on-disk `enforcement` field, not inferred from the
-file the rule lives in. **Blocking** rules stop a commit through the audit pipeline.
-**Reporting / advisory** rules surface findings to the governor without blocking. On-disk
-enforcement enum is `blocking` / `reporting` / `advisory` (three tiers, per
-`.intent/META/rule_document.schema.json`); the digest groups the latter two into one
-operational bucket since both surface findings without blocking.
-
-At the time of this digest: 31 blocking + 27 reporting + 9 advisory = 67 rules. Verify by
-re-reading `.intent/rules/architecture/*.json` and
-`.intent/enforcement/mappings/architecture/*.yaml`.
-
-**Integrity check (run before trusting this digest).** The digest's rule-id set must equal
-the `.intent/rules/architecture/*.json` set. Re-derive with
-`jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u` and compare against the
-backticked ids below. A mismatch means the digest has drifted — surface it to the governor,
-don't edit around it.
+**Integrity check (run before trusting this digest):** the digest's rule-id set must equal
+`jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
+digest has drifted — surface it to the governor.
 
 ### Blocking rules — stop a commit
 
-Format: `rule_id` — scope (`applies_to`) — one-line statement (MUST/SHOULD wording from the
-rule preserved).
+**Atomic actions (`src/body/atomic/**/*.py`)**
+- `atomic_actions.must_have_decorator` — Functions registered with `@register_action` MUST also have `@atomic_action` with required metadata (action_id, intent, impact, policies).
+- `atomic_actions.must_return_action_result` — `@atomic_action` functions MUST declare `ActionResult` as their return type annotation and actually return `ActionResult` instances.
+- `atomic_actions.result_must_be_structured` — `ActionResult.data` MUST be a dictionary with string keys; nested structures permitted, top level must be a dict.
+- `atomic_actions.no_governance_bypass` — No atomic action MAY return types other than `ActionResult` to bypass governance validation; tuple returns are explicitly forbidden.
+- `atomic_actions.must_accept_kwargs` — `@atomic_action` functions MUST include `**kwargs`; the check fires at decoration (import) time.
+- `atomic_actions.impact_level_must_be_governed` — Impact classification MUST be declared in `.intent/enforcement/config/action_risk.yaml` keyed by `action_id`, not embedded in `src/`.
+- `atomic_actions.fix_action_scope` — `fix.imports` is exclusively import ordering/sorting; `check.imports` is the authority for import-resolution verification.
+- `architecture.flows.atomic_action_must_not_compose` — An `@atomic_action` MUST NOT internally invoke other registered AtomicActions via `ActionExecutor.execute()`; composition belongs to Flows.
 
-**Atomic actions (`src/body/atomic/`)**
+**Flows**
+- `architecture.flows.flow_declared_in_intent` (`src/**`) — Every Flow MUST be declared in `.intent/flows/*.yaml` and registered in `FlowRegistry`; Python-data-structure Flows are forbidden.
+- `architecture.flows.flow_must_not_post_to_blackboard` (`src/body/flows/**`) — Flows MUST NOT call `post_finding()`, `post_report()`, `post_heartbeat()`, or INSERT/UPDATE `core.blackboard_entries`.
+- `architecture.flows.flow_must_not_create_proposals` (`src/body/flows/**`) — Flows MUST NOT create, submit, or approve `Proposal` objects.
+- `architecture.flows.flow_must_propagate_write_false` (`src/body/flows/executor.py`) — FlowExecutor MUST propagate `write=False` to every step; the flag is caller-supplied and immutable per Flow execution.
 
-- `atomic_actions.must_have_decorator` — `src/body/atomic/**/*.py` — Functions registered with `@register_action` MUST also have `@atomic_action` with required metadata (action_id, intent, impact, policies).
-- `atomic_actions.must_return_action_result` — `src/body/atomic/**/*.py` — `@atomic_action` functions MUST declare `ActionResult` as their return type annotation and actually return `ActionResult` instances.
-- `atomic_actions.result_must_be_structured` — `src/body/atomic/**/*.py` — `ActionResult.data` MUST be a dictionary with string keys; nested structures permitted, top level must be a dict.
-- `atomic_actions.no_governance_bypass` — `src/body/atomic/**/*.py` — No atomic action MAY return types other than `ActionResult` to bypass governance validation; tuple returns are explicitly forbidden.
-- `atomic_actions.must_accept_kwargs` — `src/body/atomic/**/*.py` — `@atomic_action` functions MUST include `**kwargs` in their signature; the check fires at decoration (import) time.
-- `atomic_actions.impact_level_must_be_governed` — `src/body/atomic/**/*.py` — Action impact classification MUST be declared in `.intent/enforcement/config/action_risk.yaml` keyed by `action_id`, not embedded in registration calls in `src/`.
-- `atomic_actions.fix_action_scope` — `src/body/atomic/**/*.py` — `fix.imports` is exclusively scoped to import ordering/sorting; the separate `check.imports` action is the designated authority for import-resolution verification.
-- `architecture.flows.atomic_action_must_not_compose` — `src/body/atomic/**/*.py` — An `@atomic_action` MUST NOT internally invoke other registered AtomicActions via `ActionExecutor.execute()`; composition is the sole responsibility of a Flow.
-
-**Flows (`src/body/flows/`)**
-
-- `architecture.flows.flow_declared_in_intent` — `src/**/*.py` — Every Flow MUST be declared in `.intent/flows/*.yaml` and registered in `FlowRegistry`; Python-data-structure Flows are forbidden.
-- `architecture.flows.flow_must_not_post_to_blackboard` — `src/body/flows/**/*.py` — Flows MUST NOT call `post_finding()`, `post_report()`, `post_heartbeat()`, or INSERT/UPDATE `core.blackboard_entries`.
-- `architecture.flows.flow_must_not_create_proposals` — `src/body/flows/**/*.py` — Flows MUST NOT create, submit, or approve `Proposal` objects.
-- `architecture.flows.flow_must_propagate_write_false` — `src/body/flows/executor.py` — FlowExecutor MUST propagate `write=False` to every step; the flag is caller-supplied and immutable for the duration of a Flow execution.
-
-**Blackboard**
-
-- `architecture.blackboard.worker_only_inserts` — `src/**/*.py` — INSERT against `core.blackboard_entries` MUST originate from the Worker base class; services and atomic actions route through `self.post_finding()` / `post_report()` / `post_heartbeat()`.
-- `architecture.blackboard.reaudit_requires_reaudit_mechanism` — `src/**/*.py` — Every UPDATE transitioning a row to `status='awaiting_reaudit'` MUST co-occur with `resolution_mechanism = 'reaudit'` in the same WHERE clause.
+**Blackboard (`src/**`)**
+- `architecture.blackboard.worker_only_inserts` — INSERT against `core.blackboard_entries` MUST originate from the Worker base class; services and atomic actions route through `self.post_finding()` / `post_report()` / `post_heartbeat()`.
+- `architecture.blackboard.reaudit_requires_reaudit_mechanism` — Every UPDATE to `status='awaiting_reaudit'` MUST co-occur with `resolution_mechanism = 'reaudit'` in the same WHERE clause.
 
 **Privileged-boundary imports**
+- `architecture.boundary.database_session_access` (mind|will) — Only infrastructure, Body, and shared services MAY import `get_session` / `AsyncSession` directly; Mind and Will MUST use DI.
+- `architecture.boundary.settings_access` (body|mind|will) — Only infrastructure and bootstrap MAY import `Settings` directly; others receive configuration via DI or environment abstraction.
+- `architecture.boundary.file_handler_access` (mind|will) — Only Body and infrastructure MAY instantiate `FileHandler` directly; Will and Mind delegate file operations to Body services.
+- `architecture.boundary.llm_client_access` (body|mind) — Only Will and autonomous services MAY import LLM client infrastructure; Body MUST NOT make AI decisions, Mind MUST NOT invoke AI.
+- `architecture.shared.no_layer_imports` (`src/shared/**`) — Shared MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (8 `excludes:` pending closure ADRs per ADR-049 D1/D3; no new excludes without a companion closure ADR.)
 
-- `architecture.boundary.database_session_access` — `src/mind/**/*.py | src/will/**/*.py` — Only infrastructure, Body, and shared services MAY import `get_session` / `AsyncSession` directly; Mind and Will MUST use dependency injection.
-- `architecture.boundary.settings_access` — `src/body/**/*.py | src/mind/**/*.py | src/will/**/*.py` — Only infrastructure and bootstrap modules MAY import `Settings` directly; all other components MUST receive configuration through DI or environment abstraction.
-- `architecture.boundary.file_handler_access` — `src/mind/**/*.py | src/will/**/*.py` — Only Body and infrastructure MAY instantiate `FileHandler` directly; Will and Mind MUST delegate file operations to Body services.
-- `architecture.boundary.llm_client_access` — `src/body/**/*.py | src/mind/**/*.py` — Only Will and autonomous services MAY import LLM client infrastructure; Body MUST NOT make AI decisions, Mind MUST NOT invoke AI.
-- `architecture.shared.no_layer_imports` — `src/shared/**/*.py` — Shared infrastructure components MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (Per ADR-049 D1/D3 the YAML carries 8 `excludes:` pending closure ADRs; no new excludes without a companion closure ADR.)
+**Channels**
+- `architecture.channels.logic_logger_only` (`src/**`) — Non-UI runtime and logic modules MUST use the CORE standard logger for operational output.
+- `architecture.channels.api_structured_output_only` (`src/api/**`) — API modules MUST use structured response mechanisms and MUST NOT use terminal-oriented rendering.
 
-**Channels — blocking**
-
-- `architecture.channels.logic_logger_only` — `src/**/*.py` — Non-UI runtime and logic modules MUST use the CORE standard logger for operational output.
-- `architecture.channels.api_structured_output_only` — `src/api/**/*.py` — API modules MUST communicate through structured response mechanisms and MUST NOT use terminal-oriented rendering.
-
-**Async / module-time / paths**
-
-- `async.no_manual_loop_run` — `src/**/*.py` — Logic modules MUST NOT call `asyncio.run()` or manually create new event loops.
-- `logic.di.no_global_session` — `src/features/**/*.py | src/body/services/**/*.py` — Modules MUST NOT import `get_session` globally; database access MUST be injected.
-- `architecture.no_module_async_engine` — `src/**/*.py` — Async execution engines MUST NOT be instantiated at module import time.
-- `architecture.path_access.no_hardcoded_runtime_dirs` — `src/**/*.py` — Runtime output directory names (logs, reports) MUST NOT appear as string literals in path construction in `src/`; route through `PathResolver` or `FileHandler`.
+**Async / module-time / paths (`src/**` unless noted)**
+- `async.no_manual_loop_run` — Logic modules MUST NOT call `asyncio.run()` or manually create event loops.
+- `logic.di.no_global_session` (`src/features/** | src/body/services/**`) — MUST NOT import `get_session` globally; database access MUST be injected.
+- `architecture.no_module_async_engine` — Async execution engines MUST NOT be instantiated at module import time.
+- `architecture.path_access.no_hardcoded_runtime_dirs` — Runtime output directory names MUST NOT appear as string literals in path construction; route through `PathResolver` or `FileHandler`.
 
 **Patterns / mutation surface**
+- `architecture.patterns.action_pattern` (`src/body/atomic/** | src/cli/commands/**`) — Action commands MUST use `@atomic_action` and have a `write` parameter defaulting to `False`.
+- `governance.mutation_surface.filehandler_required` (`src/** | features/**`) — All filesystem writes MUST route through `FileHandler`; direct `write_text()`, `write_bytes()`, or `open(...)` in write/append mode are prohibited in production code.
 
-- `architecture.patterns.action_pattern` — `src/body/atomic/**/*.py | src/cli/commands/**/*.py` — Action commands MUST use `@atomic_action` and have a `write` parameter defaulting to `False`.
-- `governance.mutation_surface.filehandler_required` — `src/**/*.py | features/**/*.py` — All filesystem writes MUST route through `FileHandler`; direct `write_text()`, `write_bytes()`, or `open(...)` in write/append mode are prohibited in production code.
-
-**Constitution / governance read-only**
-
-- `architecture.constitution_read_only` — `src/**/*.py` — The constitutional intent directory MUST be immutable.
-- `architecture.meta_read_only` — `src/**/*.py` — Intent schema and META artifacts MUST NOT be mutated at runtime.
-- `governance.constitution.read_only` — `src/**/*.py` — `.intent/**` MUST be treated as immutable by all system components.
-- `governance.logic_mutation.governed` — `src/**/*.py` — Permanent modifications to production logic within `src/` MUST occur only through governed mutation surfaces.
+**Constitution / governance read-only (`src/**`)**
+- `architecture.constitution_read_only` — The constitutional intent directory MUST be immutable.
+- `architecture.meta_read_only` — Intent schema and META artifacts MUST NOT be mutated at runtime.
+- `governance.constitution.read_only` — `.intent/**` MUST be treated as immutable by all system components.
+- `governance.logic_mutation.governed` — Permanent modifications to production logic within `src/` MUST occur only through governed mutation surfaces.
 
 ### Reporting / advisory rules — surface findings, do not block
 
-Same format. Marked `[reporting]` or `[advisory]` per the on-disk `enforcement` field.
+Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
-**Layer scope — Mind (`src/mind/`)**
+**Mind (`src/mind/**`)** — all `[r]`: `no_database_access` (MUST NOT import `get_session`); `no_filesystem_writes`; `no_body_invocation`; `no_will_invocation`; `architecture.layers.no_mind_execution` (no I/O, no action invocation); `no_execution_semantics` (no risk classification, decision-making, caching strategies, validation enforcement); `execution_signal` (pre-selector, no verdict).
 
-- `architecture.mind.no_database_access` — `src/mind/**/*.py` — Mind layer components MUST NOT import database session infrastructure (`get_session`). [reporting]
-- `architecture.mind.no_filesystem_writes` — `src/mind/**/*.py` — Mind layer components MUST NOT write to filesystem. [reporting]
-- `architecture.mind.no_body_invocation` — `src/mind/**/*.py` — Mind layer components MUST NOT import or invoke Body layer. [reporting]
-- `architecture.mind.no_will_invocation` — `src/mind/**/*.py` — Mind layer components MUST NOT import or invoke Will layer. [reporting]
-- `architecture.layers.no_mind_execution` — `src/mind/**/*.py` — Mind layer components MUST NOT perform I/O operations or invoke actions. [reporting]
-- `architecture.mind.no_execution_semantics` — `src/mind/**/*.py` — Mind components MUST NOT contain execution logic (risk classification, decision-making, caching strategies, validation enforcement). [reporting]
-- `architecture.mind.execution_signal` — `src/mind/**/*.py` — Pre-selector flagging files with structural markers of execution semantics for review (produces no verdict). [reporting]
+**Body** — `architecture.body.no_rule_evaluation` [r] — MUST NOT evaluate constitutional rules directly. `architecture.layers.no_body_to_will` [r] — MUST NOT import/invoke Will (narrow 4-sub-path scope per ADR-049 D1, pending tightening).
 
-**Layer scope — Body (`src/body/`)**
+**Will** — `architecture.will.no_direct_database_access` [r]; `no_filesystem_operations` [r — SHOULD delegate to Body]; `must_delegate_to_body` [r — orchestration SHOULD import and delegate to Body services].
 
-- `architecture.body.no_rule_evaluation` — `src/body/**/*.py` — Body layer components MUST NOT evaluate constitutional rules directly. [reporting]
-- `architecture.layers.no_body_to_will` — `src/body/**/*.py` — Body layer components MUST NOT import or invoke Will layer. [reporting; narrow 4-sub-path scope per ADR-049 D1 pending tightening to bare prefix]
+**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services].
 
-**Layer scope — Will (`src/will/`)**
+**Shared / layout** — `architecture.shared.no_strategic_decisions` [r]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point.
 
-- `architecture.will.no_direct_database_access` — `src/will/**/*.py` — Will layer components MUST NOT import `get_session` directly. [reporting]
-- `architecture.will.no_filesystem_operations` — `src/will/**/*.py` — Will layer components SHOULD delegate filesystem operations to Body. [reporting — SHOULD, not MUST]
-- `architecture.will.must_delegate_to_body` — `src/will/agents/**/*.py | src/will/orchestration/**/*.py` — Will orchestration components SHOULD import and delegate to Body services. [reporting]
+**Channels** — `architecture.channels.logic_no_terminal_rendering` [r]; `cli_rendering_allowed` [r — positive permission]; `logger_not_presentation` [r — logger MUST NOT be used as a presentation renderer].
 
-**Layer scope — API (`src/api/`)**
+**Logging / governance** — `logic.logging.standard_only` [r — standard `getLogger`, no f-strings]; `governance.artifact_mutation.traceable` [r — artifacts/logs/reports SHOULD go via `FileHandler`]; `governance.dangerous_execution_primitives` [r — `eval`/`exec`/`compile`/`subprocess` require documented justification; Will MUST NOT use them; Body MAY in designated sanctuary modules].
 
-- `architecture.api.no_direct_database_access` — `src/api/**/*.py | src/api/*.py` — API layer components MUST NOT import `get_session` directly. Sanctioned repositories and services accessed via `api/dependencies.py` and named providers ARE permitted; the broader "MUST NOT access infrastructure directly" framing is superseded by ADR-049 D1 (§6). [reporting]
-- `architecture.api.must_route_through_will` — `src/api/**/*_routes.py` — API route handlers SHOULD delegate all logic to Will layer. [reporting; API → Will use-case layer recorded as architectural debt per ADR-049 D1]
-- `architecture.api.no_body_bypass` — `src/api/**/*.py | src/api/*.py` — API layer components SHOULD NOT directly import Body services. [reporting]
+**Intent access** — `architecture.intent.no_legacy_root_assumptions` [r]; `architecture.namespace.no_direct_protected_access` [r — no direct filesystem crawling/parsing of `.intent`; route through shared intent infrastructure]; `architecture.intent.gateway_is_shared_infrastructure` [r — consume `.intent` through `src/shared/infrastructure/intent/`].
 
-**Layer scope — Shared (`src/shared/`)**
+**Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern].
 
-- `architecture.shared.no_strategic_decisions` — `src/shared/**/*.py` — Shared infrastructure components MUST NOT make strategic decisions or orchestrate workflows. [reporting]
-- `architecture.layer_exclusivity` — `src/**/*.py` — All `src/` Python files MUST reside within a constitutional layer (`mind/`, `body/`, `will/`), a sanctioned infrastructure directory (`shared/`, `api/`), or be a root entry point. [reporting]
-
-**Channels — non-blocking**
-
-- `architecture.channels.logic_no_terminal_rendering` — `src/**/*.py` — Non-UI runtime and logic modules MUST NOT perform terminal-oriented rendering. [reporting]
-- `architecture.channels.cli_rendering_allowed` — `src/cli/**/*.py` — CLI surface modules MAY use terminal-oriented rendering for user-facing output. [reporting — positive permission]
-- `architecture.channels.logger_not_presentation` — `src/**/*.py` — The CORE logger MUST be used for operational logging and MUST NOT be used as a presentation renderer. [reporting]
-
-**Logging / governance — non-blocking**
-
-- `logic.logging.standard_only` — `src/**/*.py` — Operational logs MUST use standard `getLogger` and avoid f-strings for lazy evaluation. [reporting]
-- `governance.artifact_mutation.traceable` — `src/**/*.py` — System artifacts, logs, and reports SHOULD be generated via `FileHandler` to ensure audit traceability. [reporting]
-- `governance.dangerous_execution_primitives` — `src/**/*.py` — Dangerous primitives (`eval`, `exec`, `compile`, `subprocess`) require documented justification; Will MUST NOT use them; Body MAY use them in designated sanctuary modules with clear operational need. [reporting]
-
-**Intent access — non-blocking**
-
-- `architecture.intent.no_legacy_root_assumptions` — `src/**/*.py` — Governance consumers MUST NOT hardcode legacy `.intent` root assumptions (`policies/`, `standards/`, `charter/policies/`). [reporting]
-- `architecture.namespace.no_direct_protected_access` — `src/**/*.py` — Non-gateway Python components MUST NOT discover, scan, or load `.intent` governance artifacts through direct filesystem crawling or local parsing logic; access MUST route through shared intent infrastructure. [reporting]
-- `architecture.intent.gateway_is_shared_infrastructure` — `src/**/*.py` — Components outside `src/shared/infrastructure/intent/` SHOULD consume `.intent` through that layer rather than implementing local resolvers. [reporting]
-
-**Modernization — non-blocking**
-
-- `modernization.legacy_signal` — `src/**/*.py` — Pre-selector flagging files with structural markers of legacy / shim / deprecation for evolutionary-purity review (no verdict). [reporting]
-- `modernization.legacy_scars` — `src/**/*.py` — Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern. [advisory]
-
-**Workers / discovery / quality — advisory**
-
-- `architecture.flows.worker_must_not_hardwire_sequence` — `src/**/workers/**/*.py | src/shared/workers/**/*.py` — A Worker's `run()` method MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls that could be extracted into a named Flow. [advisory]
-- `architecture.artifact_discovery_through_registry` — declared-only (no enforcement mapping) — Discovery components (sensors, validators, crawlers) MUST consult the artifact_type registry via `IntentRepository.list_artifact_types()` / `get_artifact_type(id)`; hardcoded extension-based discovery globs are forbidden. [advisory]
-- `governance.intent_meta.required` — `.intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json` — A single META directory MUST exist at `.intent/META` to serve as the authoritative contract for intent artifacts. [advisory]
-- `governance.no_governance_bypass` — `src/**/*.py` — No action or workflow MAY bypass governance validation; if a precondition cannot be evaluated, the operation MUST be blocked. [advisory]
-- `modularity.unix_philosophy` — `src/**/*.py` — Components SHOULD follow UNIX philosophy: do one thing well, compose via clear interfaces, minimize coupling. [advisory]
-- `quality.type_safety` — `src/**/*.py` — Production code SHOULD be type-safe as verified by MyPy static analysis. [advisory]
-- `quality.security_audit` — `pyproject.toml` — The project dependency tree SHOULD be free of known vulnerabilities as verified by pip-audit. [advisory]
-- `quality.test_integrity` — `tests/**/*.py` — The project test suite SHOULD be functional and passing without collection errors. [advisory]
+**Workers / discovery / quality** — all `[a]`: `architecture.flows.worker_must_not_hardwire_sequence` (a Worker `run()` MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls extractable into a named Flow); `architecture.artifact_discovery_through_registry` (declared-only; discovery MUST consult the artifact_type registry via `IntentRepository`; hardcoded extension globs forbidden); `governance.intent_meta.required`; `governance.no_governance_bypass` (if a precondition cannot be evaluated, block); `modularity.unix_philosophy`; `quality.type_safety` (MyPy); `quality.security_audit` (pip-audit); `quality.test_integrity` (suite passing, no collection errors).
 
 ### Operational corollaries
 
-A few operational corollaries follow from the rule set; they are not separate constitutional
-claims, just the practical shape of conforming code:
-
 - API routes acquire DB sessions through `api.dependencies` (`get_api_session` for handlers,
   `open_background_session` for background tasks). `src/api/dependencies.py` is the single
-  sanctioned site for the `shared.infrastructure.database` import; direct imports elsewhere
-  in `src/api/` trip `architecture.api.no_direct_database_access`.
+  sanctioned site for the `shared.infrastructure.database` import in `src/api/`.
 - Body components receive configuration via DI (`repo_root`, `prompt_root`, …); on missing
-  parameters return `ComponentResult(ok=False, …)` rather than reaching for `settings`. This
-  is the practical shape of `architecture.boundary.settings_access`.
+  parameters return `ComponentResult(ok=False, …)` rather than reaching for `settings`.
 - `.intent/` is accessed through `IntentRepository` (`get_intent_repository().initialize()`),
-  never through raw `Path(".intent/…").read_text()` or `glob()`. This is the practical shape
-  of `architecture.namespace.no_direct_protected_access` /
-  `architecture.intent.gateway_is_shared_infrastructure`.
-- Analyzers in `src/body/analyzers/` are PARSE-phase components: read-only, deterministic,
-  side-effect-free, returning `ComponentPhase.PARSE`. This sits under
-  `architecture.body.no_rule_evaluation` and the general phase discipline (see "Component
-  phases" below).
+  never raw `Path(".intent/…").read_text()` or `glob()`.
+- Analyzers in `src/body/analyzers/` are PARSE-phase: read-only, deterministic,
+  side-effect-free, returning `ComponentPhase.PARSE`.
 
 ---
 
 ## Rich rendering rules
 
-CORE uses Rich for terminal output. There is a strict separation between logging
-and rendering — violating this causes objects to render as `<rich.table.Table object at 0x...>`.
-
-**Rule**: Rich objects (Table, Panel, Rule, etc.) and strings containing Rich markup
-MUST go through `console.print()`. They must NEVER be passed to `logger.info()`.
+Rich objects (Table, Panel, Rule, …) and strings containing Rich markup MUST go through
+`console.print()` — never `logger.info()`. Logger strings are plain text only. `console` is a
+module-level `Console()` instance. CLI layer (`src/cli/`) may render freely; logic/Will
+layers must not import `rich.console` directly.
 
 ```python
-# CORRECT
-console.print(table)
-console.print(Panel("content"))
-console.rule("[bold cyan]Title[/bold cyan]")
-
-# WRONG — Rich objects or markup passed to logger
-logger.info(table)
-logger.info(Panel("content"))
-logger.info("[bold green]Success[/bold green]")  # markup in logger = violation
+console.print(table)                              # CORRECT
+logger.info(table)                                # WRONG
+logger.info("[bold green]Success[/bold green]")   # WRONG — markup in logger
 ```
-
-Logger strings must be plain text only — no Rich markup, no Rich objects.
-`console` must be a module-level `Console()` instance: `console = Console()`.
-
-CLI layer (`src/cli/`) may use `console.print()` freely.
-Logic/Will layers must not import `rich.console` directly — use the CLI layer for rendering.
 
 ---
 
-## Symbol IDs — required on every definition
+## Symbol IDs — required on every public definition
 
-Every class and function must have a `# ID: <uuid>` comment on the line immediately
-before the `def` or `class` keyword. This is how the knowledge graph tracks symbols
-across refactors. When you add a new function or class, generate a fresh UUID v4
-(e.g. `python -c 'import uuid; print(uuid.uuid4())'`).
-
-⚠️ The `xxxxxxxx-…-xxxxxxxxxxxx` placeholders below are **not valid UUIDs** and
-must be replaced before the code is committed. Do NOT copy them verbatim — they
-are intentionally malformed so the symbol-graph parser will reject them if
-pasted by mistake. Worker `identity.uuid` values in `.intent/workers/*.yaml`
-follow the same rule.
+Every public class and function carries `# ID: <uuid>` on the line immediately before `def`
+or `class`. Generate a fresh UUID v4 per symbol (`python -c 'import uuid; print(uuid.uuid4())'`).
+Never reuse or copy existing IDs. Private symbols (`_name`) are exempt. Placeholder
+`xxxxxxxx-…` strings are intentionally malformed — never paste them. Worker `identity.uuid`
+values in `.intent/workers/*.yaml` follow the same rule.
 
 ```python
-# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# ID: <fresh-uuid-v4>
 class MyNewComponent(BaseAnalyzer):
-    ...
-
-    # ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    # ID: <fresh-uuid-v4>
     async def execute(self, **kwargs) -> ComponentResult:
         ...
 ```
 
-Do not reuse or copy existing IDs. Do not skip the ID comment on any new definition.
-**Private symbols (`_name`) do not require ID comments.** Only public definitions need them.
-
 ---
 
 ## Component phases
-
-Every component declares which phase it belongs to via the `phase` property. Phases correspond to base classes:
 
 | Phase | Base Class | Rule |
 |-------|-----------|------|
@@ -446,133 +263,90 @@ Every component declares which phase it belongs to via the `phase` property. Pha
 | `RUNTIME` | `BaseStrategist` | Deterministic, rule-based decisions (no LLM calls) |
 | `EXECUTION` | Workers / atomic actions | Mutations under constitutional control |
 
-**Strategists are not evaluators.** Evaluators assess quality; strategists make decisions. Both are
-side-effect-free, but only strategists produce a `next_suggested` action.
+Strategists are not evaluators: evaluators assess quality; strategists make decisions and
+produce `next_suggested`. Both are side-effect-free.
 
----
-
-## Workflow phase ordering
-
-The autonomous pipeline stages must execute in this order and must never skip:
+**Workflow stage ordering — never skip:**
 
 ```
-interpret.intent
-  → parse.plan_actions
-    → load.operational_context
-      → runtime.{generate_changes | generate_tests | repair_changes}
-        → audit.{validate_changes | canary_validation | sandbox_validation | style_check}
-          → execution.commit_changes
+interpret.intent → parse.plan_actions → load.operational_context
+  → runtime.{generate_changes | generate_tests | repair_changes}
+    → audit.{validate_changes | canary_validation | sandbox_validation | style_check}
+      → execution.commit_changes
 ```
 
-Each stage has invariants defined in `.intent/workflows/stages/*.yaml`.
-Stages marked `must_not: commit changes` must never write to the repo.
-Only `execution.commit_changes` is permitted to write files to disk.
+Invariants per stage live in `.intent/workflows/stages/*.yaml`. Stages marked
+`must_not: commit changes` never write; only `execution.commit_changes` writes to disk.
 
 ---
 
 ## The autonomous test-generation loop
 
-`TestCoverageSensor` scans `src/` for uncovered source files (governed by
-`.intent/enforcement/config/test_coverage.yaml`) → posts `test.run_required` findings.
-`TestRunnerSensor` runs pytest on existing test files → posts `test.failure` or
-`test.missing` for each gap. `TestRemediatorWorker` consumes both subjects → creates one
-`build.tests` proposal per source file. `ProposalConsumerWorker` executes approved proposals
-via `ActionExecutor`, which invokes the `build.tests` atomic action → `CoderAgent` →
-`ContextService` → LLM.
-
-The loop is token-free except for `build.tests` itself. Do not short-circuit it; do not add
-direct worker-to-worker calls. Source→test path mapping is governed — never hardcode
-`source.replace("src/", "tests/")…`; use `shared.infrastructure.intent.test_coverage_paths.source_to_test_path`.
+`TestCoverageSensor` (governed by `.intent/enforcement/config/test_coverage.yaml`) posts
+`test.run_required`; `TestRunnerSensor` posts `test.failure` / `test.missing`;
+`TestRemediatorWorker` creates one `build.tests` proposal per source file;
+`ProposalConsumerWorker` executes approved proposals via `ActionExecutor` → `build.tests`
+atomic action → `CoderAgent` → `ContextService` → LLM. Token-free except `build.tests`
+itself. Do not short-circuit it; no direct worker-to-worker calls. Source→test path mapping
+is governed — use `shared.infrastructure.intent.test_coverage_paths.source_to_test_path`,
+never hardcoded string replacement.
 
 ---
 
 ## Key patterns
 
-**ActionResult is the return type for atomic actions (not ComponentResult):**
+**ActionResult for atomic actions (not ComponentResult):**
 ```python
 from shared.action_types import ActionResult
-
-return ActionResult(
-    action_id=self.action_id,
-    ok=True,
-    data={...},
-    impact=ActionImpact.WRITE_CODE,
-    duration_sec=elapsed,
-)
+return ActionResult(action_id=self.action_id, ok=True, data={...},
+                    impact=ActionImpact.WRITE_CODE, duration_sec=elapsed)
 ```
 
-**RefusalResult is a first-class outcome, not an error:**
-
-When a component cannot proceed (bad input, low confidence, boundary violation), return a
-`RefusalResult` — not a bare `ComponentResult(ok=False)`. Use the appropriate factory:
-
+**RefusalResult is a first-class outcome, not an error** — when a component cannot proceed,
+use the appropriate factory, not bare `ComponentResult(ok=False)`:
 ```python
 from shared.models.refusal_result import RefusalResult
-
 return RefusalResult.extraction_failed(component_id=self.component_id, reason="...")
-return RefusalResult.low_confidence(component_id=self.component_id, reason="...")
-return RefusalResult.boundary_violation(component_id=self.component_id, reason="...")
-return RefusalResult.quality_threshold(component_id=self.component_id, reason="...")
+# also: .low_confidence, .boundary_violation, .quality_threshold
 ```
 
-**All mutation functions must use `@atomic_action` and route through `ActionExecutor`:**
-
-Direct calls to `@atomic_action`-decorated functions without the executor raise
-`GovernanceBypassError`. The executor sets the governance token that authorizes execution.
-
+**Mutations use `@atomic_action` and route through `ActionExecutor`** — direct calls to
+decorated functions raise `GovernanceBypassError`; the executor sets the governance token:
 ```python
 from shared.atomic_action import atomic_action, ActionImpact
 
-@atomic_action(
-    action_id="my.action.id",
-    intent="Short description of what this does",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["relevant.policy.id"],
-)
-async def my_action(file_path: str, content: str) -> ActionResult:
-    ...
+@atomic_action(action_id="my.action.id", intent="Short description",
+               impact=ActionImpact.WRITE_CODE, policies=["relevant.policy.id"])
+async def my_action(file_path: str, content: str, **kwargs) -> ActionResult: ...
 ```
 
-**ExecutionTask carries task intent.** `ExecutionTask.task_type` must match the caller's
-actual intent — `"code_generation"`, `"test_generation"`, `"code_modification"`, etc. The
-value propagates through `CoderAgent` to `ContextService.build_for_task` and routes the call
-to the correct governance phase. The allowed vocabulary is a closed set in
+**ExecutionTask.task_type carries the caller's actual intent** (`"code_generation"`,
+`"test_generation"`, `"code_modification"`, …) — it routes through `CoderAgent` to
+`ContextService.build_for_task` and into the correct governance phase. Closed vocabulary in
 `shared.models.execution_models`. See ADR-003.
 
 **Workers communicate exclusively via the blackboard:**
-
 ```python
-# In a Worker subclass
 class MyWorker(Worker):
     declaration_name = "my_worker"  # matches .intent/workers/my_worker.yaml
-
     async def run(self) -> None:
-        await self.post_finding("subject", {"key": "value"})   # open finding
-        await self.post_report("subject", {"result": "done"})  # completion
-        await self.post_heartbeat()                            # proof of life
+        await self.post_finding("subject", {"key": "value"})
+        await self.post_report("subject", {"result": "done"})
+        await self.post_heartbeat()
 ```
+At least one blackboard entry per run. Direct inter-worker communication is prohibited.
+Payloads are auto-sanitized to ASCII before DB insert.
 
-Workers must post at least one blackboard entry per run. Direct inter-worker
-communication is prohibited — blackboard only. Payloads are auto-sanitized to ASCII
-before DB insert.
-
-**CLI commands use `@core_command`:**
-
+**CLI commands use `@core_command`** — `ctx: typer.Context` is always the first parameter; it
+manages the asyncio loop, injects services, and formats `ActionResult` output. Mutating
+commands set `dangerous=True`:
 ```python
-from shared.cli_utils.decorators import core_command
-
 @app.command()
 @core_command(dangerous=False, requires_context=True)
-async def my_command(ctx: typer.Context) -> ActionResult:
-    ...
+async def my_command(ctx: typer.Context) -> ActionResult: ...
 ```
 
-`@core_command` requires `ctx: typer.Context` as the first parameter — always include it.
-It manages the asyncio loop lifecycle, injects services via the context registry, and
-formats `ActionResult` output automatically. Dangerous commands (mutations) should set
-`dangerous=True`.
-
-**Background tasks always use `open_background_session`:**
+**Background tasks use `open_background_session`:**
 ```python
 async def run_task() -> None:
     async with open_background_session() as session:
@@ -580,125 +354,80 @@ async def run_task() -> None:
 background_tasks.add_task(run_task)
 ```
 
-**ComponentResult is the universal return type for all Body components:**
+**ComponentResult is the universal return type for Body components:**
 ```python
-return ComponentResult(
-    component_id=self.component_id,
-    ok=True,
-    data={...},
-    phase=self.phase,
-    confidence=1.0,
-    duration_sec=elapsed,
-    metadata={"rationale": "..."},
-)
+return ComponentResult(component_id=self.component_id, ok=True, data={...},
+                       phase=self.phase, confidence=1.0, duration_sec=elapsed,
+                       metadata={"rationale": "..."})
 ```
 
-**File mutations go through FileHandler, never `Path.write_text` directly:**
+**File mutations go through FileHandler, never `Path.write_text`:**
 ```python
 from shared.infrastructure.file_handler import FileHandler
-fh = FileHandler(str(repo_root))
-fh.write_runtime_text("relative/path.py", content)
+FileHandler(str(repo_root)).write_runtime_text("relative/path.py", content)
 ```
 
 ---
 
 ## After making changes
 
-CORE syncs the knowledge graph autonomously. `DbSyncWorker`
-(`.intent/workers/db_sync_worker.yaml`) invokes the `sync.db` atomic
-action on a ~5-minute cadence, so a routine code edit reaches the
-PostgreSQL graph and vectors without operator action. Do not push the
-governor to run anything after every edit — trust the worker.
-
-Suggest the governor run `core-admin dev sync --write` manually only when
-one of these conditions holds:
-
-- The code is not yet constitutionally clean (missing IDs, formatting,
-  headers, docstrings, logger conventions). The CLI workflow runs a *fix*
-  phase first; `DbSyncWorker` runs only the sync half.
-- The governor is about to commit and wants a synchronous sync
-  confirmation before doing so.
-- `DbSyncWorker` is stalled — no recent `sync.db.complete` report on the
-  blackboard, or its `last_heartbeat` in `worker_registry` is materially
-  older than its 300-second `max_interval`.
-
-The command requires interactive confirmation (`y`) and cannot be piped —
-only the governor can run it.
+`DbSyncWorker` (`.intent/workers/db_sync_worker.yaml`) runs `sync.db` on a ~5-minute cadence;
+routine edits reach the PostgreSQL graph and vectors without operator action. Suggest the
+governor run `core-admin dev sync --write` (interactive-confirm; governor-only) **only** when:
+the code is not yet constitutionally clean (the CLI runs a *fix* phase first; the worker
+syncs only); the governor wants synchronous confirmation before committing; or `DbSyncWorker`
+is stalled (no recent `sync.db.complete` report, or `last_heartbeat` materially older than
+its 300-second `max_interval`).
 
 ---
 
 ## Commit authorship integrity (ADR-101 D1)
 
-Every commit attributes a diff to an author. The diff MUST contain only bytes
-that author produced. This is constitutional and applies to every committer —
-the human architect, Claude Code, autonomous CORE components, any future agent.
-Path scope is a permission boundary (what you're allowed to touch); authorship
-is a production boundary (what you actually wrote). They are two surfaces and
-must be tracked separately.
+A commit's diff MUST contain only bytes its author produced. Constitutional; applies to every
+committer. Path scope is a permission boundary; authorship is a production boundary — two
+separate surfaces. Operationally:
 
-What this means for Claude Code, operationally:
+- **Stage specific files by name.** Never `git add -A`, `git add .`, or `git commit -a` when
+  the tree may contain other actors' work.
+- **Never amend a commit you didn't author this turn** — `--amend` re-attributes the prior
+  commit to your session.
+- **Never `git checkout .`, `git restore .`, or `git clean -f`** — restore only specific
+  paths the governor explicitly authorized.
+- **Co-Authored-By trailers** are the explicit-consent mechanism for jointly-authored
+  commits; use them for genuine collaboration, omit when the bytes are purely the user's.
 
-- **Stage specific files by name; never `git add -A`, `git add .`, or
-  `git commit -a` when the working tree may contain other actors' work.** The
-  user may have stashed edits, partial WIP, or work-in-progress from a prior
-  session. `git add -A` cannot tell which bytes are yours; specific
-  `git add path/to/your/file.py` invocations can.
-- **Never amend a commit you didn't author this turn.** `git commit --amend`
-  rewrites the previous commit's authorship; if that commit was the user's, you
-  are silently re-attributing their work to your session.
-- **Never `git checkout .`, `git restore .`, or `git clean -f` to "clean up".**
-  These commands destroy whatever the user has in flight. Restore specific
-  named paths the user explicitly authorized you to revert.
-- **Co-Authored-By trailers are the explicit-consent mechanism** by which you
-  and the user jointly claim authorship of a single commit. They preserve the
-  chain of who did what. Use them when the commit captures genuine collaborative
-  work, omit them when the work is purely the user's edits that you happened to
-  stage on their behalf.
-
-Same principle bounds the autonomous CORE daemon: it commits only the bytes
-its action produced (ADR-101 D2 derives the commit set from the action's
-sandbox production, not from `proposal.scope.files`).
-
-ADR-021's path-shaped guards (commit set = `scope.files`, pre-claim scope-
-collision check, `autonomy_dirty_tree.yaml` modes) are superseded by ADR-101
-and have been removed from the codebase. Don't reach for them in design
-discussions or expect them in error paths.
+The autonomous daemon is bounded the same way (ADR-101 D2: commit set derives from the
+action's sandbox production, not `proposal.scope.files`). ADR-021's path-shaped guards are
+superseded by ADR-101 and removed from the codebase — don't reach for them.
 
 ---
 
-## What to check before committing any change
+## Pre-commit checklist
 
-1. The commit's diff contains only bytes you produced this turn — no user WIP,
-   no stash residue, no other actor's edits swept in by `git add -A`
-   (ADR-101 D1)
+1. The diff contains only bytes you produced this turn — no user WIP, no stash residue (ADR-101 D1)
 2. No direct DB imports in `src/api/` outside `api/dependencies.py`
 3. No `settings` imports in `src/body/`
-4. Every new public `def` or `class` has a `# ID: <uuid>` comment (private `_name` symbols exempt)
-5. No `.intent/` files accessed via raw `Path` in Body, Will, or API code
+4. Every new public `def`/`class` has a `# ID: <uuid>` comment (private `_name` exempt)
+5. No `.intent/` access via raw `Path` in Body, Will, or API code
 6. Analyzers have no write side effects
-7. No `src/body/` code importing from `src/will/`
-8. No `src/will/` code importing directly from the database session layer
-9. All mutation functions decorated with `@atomic_action` and called via `ActionExecutor`
-10. Workers post to blackboard; they never call other workers directly
+7. No `src/body/` imports from `src/will/`
+8. No `src/will/` direct imports from the database session layer
+9. All mutation functions use `@atomic_action` via `ActionExecutor`
+10. Workers post to blackboard; never call other workers directly
 11. Constitutional compliance comment at the top of modified files reflects the change
-12. No Rich objects or Rich markup strings passed to `logger.info()`
-13. `.env`, `.venv/`, and `*.pth` files are untouched. Any write to `.specs/` or `.intent/`
-    came from either an authorized mechanical substitution or a write the governor explicitly
-    confirmed this turn; any write to the constitutional core (`.intent/constitution/`,
-    `.intent/META/`, `.intent/rules/governance/`) was confirmed by the governor naming that
-    specific file this turn
-14. Every relevant ADR in `.specs/decisions/` has been honored
-15. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
-16. Any signature/behavior change in `src/` has a corresponding test update in the same
-    commit. Any new public symbol has at least a basic test. See "Tests are part of the
-    change" above for why this isn't covered by the autonomous test-gen loop
+12. No Rich objects or markup passed to `logger.info()`
+13. `.env`, `.venv/`, `*.pth` untouched; any `.intent/`/`.specs/` write satisfied the
+    confirmation gate (Path A or B); any constitutional-core write was confirmed by the
+    governor naming that specific file this turn
+14. Every relevant ADR in `.specs/decisions/` honored
+15. No writes to `/tmp/` or outside the repo — temp files in `var/tmp/` only
+16. Signature/behavior changes have test updates in the same commit; new public symbols have
+    at least a basic test ("Tests are part of the change")
 
 ---
 
 ## Tech stack
 
-- Python 3.12, `from __future__ import annotations` in every file
-- FastAPI + SQLAlchemy async (PostgreSQL)
-- Typer + Rich for CLI
-- pytest + pytest-asyncio for tests
-- `shared.logger.getLogger(__name__)` — never use `logging.getLogger` directly
+Python 3.12 (`from __future__ import annotations` in every file) · FastAPI + SQLAlchemy
+async (PostgreSQL) · Typer + Rich · pytest + pytest-asyncio ·
+`shared.logger.getLogger(__name__)` — never `logging.getLogger` directly.
