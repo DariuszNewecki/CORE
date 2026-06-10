@@ -203,7 +203,7 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
 
         by_name = {uri.rsplit("/", 1)[-1]: doc for uri, doc in meta_ref_store.items()}
 
-        def retrieve(uri: str) -> Resource:
+        def _retrieve(uri: str) -> Resource:
             name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
             if name in by_name:
                 return Resource.from_contents(
@@ -211,7 +211,7 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
                 )
             raise NoSuchResource(ref=uri)
 
-        registry = Registry(retrieve=retrieve)
+        registry = Registry(retrieve=_retrieve)
         try:
             Draft7Validator(schema, registry=registry).validate(document)
         except jsonschema.ValidationError as e:

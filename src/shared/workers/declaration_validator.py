@@ -58,13 +58,13 @@ def _build_validator() -> Draft7Validator:
 
     by_name = {"enums.json": enums, "worker.schema.json": schema}
 
-    def retrieve(uri: str) -> Resource:
+    def _retrieve(uri: str) -> Resource:
         name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
         if name in by_name:
             return Resource.from_contents(by_name[name], default_specification=DRAFT7)
         raise NoSuchResource(ref=uri)
 
-    registry = Registry(retrieve=retrieve)
+    registry = Registry(retrieve=_retrieve)
 
     # Principle 2: worker_phase must exist and be non-empty before any
     # worker declaration may validate. get_enum_members raises

@@ -115,7 +115,7 @@ class MetaValidator:
         store = self._all_schemas
         meta_dir = (self.intent_root / "META").resolve()
 
-        def retrieve(uri: str) -> Resource:
+        def _retrieve(uri: str) -> Resource:
             name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
             if name in store:
                 return Resource.from_contents(store[name], default_specification=DRAFT7)
@@ -131,7 +131,7 @@ class MetaValidator:
                 )
             raise NoSuchResource(ref=uri)
 
-        return Registry(retrieve=retrieve)
+        return Registry(retrieve=_retrieve)
 
     def _load_meta_schema(self) -> dict[str, Any]:
         rel_path = "META/GLOBAL-DOCUMENT-META-SCHEMA.json"

@@ -153,7 +153,7 @@ def _validate_schema(instance: dict, schema_path: Path, schema: dict) -> str | N
     """
     meta_dir = schema_path.parent
 
-    def retrieve(uri: str) -> Resource:
+    def _retrieve(uri: str) -> Resource:
         name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
         target = meta_dir / name
         if target.is_file():
@@ -163,7 +163,7 @@ def _validate_schema(instance: dict, schema_path: Path, schema: dict) -> str | N
             )
         raise NoSuchResource(ref=uri)
 
-    registry = Registry(retrieve=retrieve)
+    registry = Registry(retrieve=_retrieve)
     try:
         Draft7Validator(schema, registry=registry).validate(instance)
     except jsonschema.ValidationError as e:
