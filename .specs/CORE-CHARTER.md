@@ -1,12 +1,52 @@
-<!-- path: .intent/CORE-CHARTER.md -->
+<!-- path: .specs/CORE-CHARTER.md -->
 
 # CORE Charter
 
-**Status:** Founding Charter
+**Status:** Superseded — §6 retained as foundational principle in force
 
 **Scope:** Entire CORE system
 
 **Location of Authority:** `.intent/`
+
+---
+
+## Status: Superseded (2026-06-10)
+
+This Charter was authored before the post-2026-05-26 governance topology was
+declared. Its structural sections (§2–§5, §7) were superseded incrementally as
+the authoritative successors landed, but the Charter itself was not updated.
+The 2026-06-10 external governance review (F-02) surfaced the resulting drift:
+internal path references contradicting §2's own corrected listing, the
+two-tier model contradicting `CORE-Governance-Topology.md` §2's four-surface
+model, and the §4 precedence ladder contradicting
+`CORE-Rule-Conflict-Semantics.md` §7.
+
+Per-section supersession map:
+
+| § | Topic | Status | Authoritative successor |
+|---|---|---|---|
+| §1 | Founding purpose | Historical | — |
+| §2 | Two-tier governance model | **Superseded** | `CORE-Governance-Topology.md` §2 (four governance surfaces: Northstar / Papers / ADRs / Enforcement) |
+| §3 | Authority Statement | **Superseded** | `CORE-Governance-Topology.md` §3 (directional relation graph) |
+| §4 | Reading Order + precedence ladder | **Superseded** | Topology §2 (orientation); `CORE-Rule-Conflict-Semantics.md` §7 (precedence) |
+| §5 | Mind/Body/Will + Infrastructure | **Superseded** | `CORE-Mind-Body-Will-Separation.md`, `CORE-Infrastructure-Definition.md` |
+| §6 | Intentional Incompleteness — "law precedes machinery" | **In force** | — (the Charter is its canonical home) |
+| §7 | Change Discipline | **Superseded** | Constitution Article VII |
+| §8 | DB as SSOT | Historical (claim survives but no longer load-bearing here) | — |
+| §9, §10 | Duration, Closing | Historical | — |
+
+**§6 carries a principle no other artifact articulates** — "law precedes
+machinery: no schema, engine, or tool may be introduced to compensate for
+incomplete law." This principle remains in force. The Charter is its
+canonical home; ADR-091's grounding citation of the Charter's
+open-completeness commitment continues to resolve to §6.
+
+The body below is retained as the constitutional record of founding intent.
+Superseded sections are no longer prescriptive; their content survives as
+the record of what was tried and what supersedes it. Path references in the
+superseded body (`.intent/papers/` etc.) are historical and reflect an
+earlier source layout — papers live at `.specs/papers/` per current source
+layout.
 
 ---
 

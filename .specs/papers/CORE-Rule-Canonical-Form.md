@@ -37,6 +37,35 @@ If any implementation contradicts this paper, the implementation is invalid.
 
 ---
 
+## Scope (added 2026-06-10)
+
+This paper governs **Rule semantics** — what a Rule IS at the constitutional
+level. Per Constitution Article VIII, storage formats, schemas, registries,
+enforcement engines, and tooling artifacts are implementation concerns, not
+law, and are outside this paper's scope.
+
+Derived artifacts (per the Derivation Boundary below) — including the storage
+schemas under `.intent/META/`, the rule documents under `.intent/rules/`, and
+any tooling that reads or writes them — MAY include annotative or tooling
+fields such as `rationale`, `scope`, `check`, or `$schema`. Such fields are
+documentation or tooling constructs per this paper's Forbidden Fields treatment
+("If such concepts are needed, they must exist as derived artifacts, tooling
+constructs, or documentation. They are **not law**."). They are not
+constitutional rule content and their presence in a storage encoding does not
+violate this paper.
+
+The constitutional core remains the canonical five fields (`id`, `statement`,
+`authority`, `phase`, `enforcement`) at the rule-object level. The document
+envelope that carries rule objects — shared with `worker`, `vocabulary`,
+`flow`, `data_contract`, `phase` — is a uniform CORE storage pattern governed
+by Article VIII, not by this paper.
+
+This Scope section was added 2026-06-10 in response to F-01 of the external
+governance review (issue #621). It clarifies the paper's existing reach
+without altering its substantive claims.
+
+---
+
 ## Canonical Rule Definition
 
 A Rule is constitutionally valid **if and only if** it is expressible using **exactly five fields**.

@@ -2,9 +2,44 @@
 
 # CORE Rule Storage Minimalism
 
-**Status:** Constitutional Companion Paper
+**Status:** Superseded (retained as constitutional record)
 **Authority:** Constitution (derivative, non-amending)
-**Scope:** Machine-readable storage of CORE Rules
+**Scope:** Machine-readable storage of CORE Rules (retired — see below)
+
+---
+
+## Status: Superseded (2026-06-10)
+
+Superseded by **Constitution Article VIII** (storage formats explicitly placed
+outside constitutional scope) and **CORE Rule Canonical Form** (with its
+2026-06-10 scope clarification establishing that derived artifacts — including
+storage encodings — are governed by Article VIII, not by Canonical-Form).
+
+This paper claimed Constitution-derivative authority (frontmatter) to prohibit
+specific shapes in Rule storage — optional fields, schema references,
+inheritance and aliasing, grouping. Constitution Article VIII lines 266–278
+enumerates the domains the Constitution does **not** define and explicitly
+lists "storage formats" among them, declaring them "implementation concerns,
+not law." A paper deriving authority from the Constitution cannot
+constitutionally make prohibitions on a domain the Constitution itself places
+outside law. The paper's prohibitions were over-reach by Constitution
+Article V's own definition of derived authority.
+
+The error was surfaced by the 2026-06-10 external governance review (F-01).
+
+Verification: the shipped `rule_document.schema.json` uses the
+envelope-with-metadata pattern shared by every governed CORE document type
+(`worker`, `vocabulary`, `flow`, `data_contract`, `phase`, `rule_document`);
+no rule has ever been stored in the flat 5-key shape this paper described.
+The schema's optional `rationale` / `scope` / `check` fields are documentation
+and tooling per Canonical-Form's own Forbidden Fields treatment ("If such
+concepts are needed, they must exist as derived artifacts, tooling constructs,
+or documentation. They are **not law**."), not constitutional rule content.
+No corpus change is required to close F-01.
+
+The body below is retained as the constitutional record of the analysis: what
+was tried, why it was wrong, and what supersedes it. Its prohibitions are no
+longer in force.
 
 ---
 
