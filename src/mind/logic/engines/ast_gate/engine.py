@@ -13,6 +13,7 @@ from mind.logic.engines.ast_gate.checks import (
     ConservationChecks,
     GenericASTChecks,
     ImportChecks,
+    IndeterminateHumanChecks,
     LoggingChecks,
     NamingChecks,
     PromptModelChecks,
@@ -106,6 +107,7 @@ class ASTGateEngine(BaseEngine):
             "schema_conformance",
             "tempfile_default_dir",
             "reaudit_requires_reaudit_mechanism",
+            "indeterminate_requires_human_mechanism",
         }
     )
 
@@ -312,6 +314,13 @@ class ASTGateEngine(BaseEngine):
         elif check_type == "reaudit_requires_reaudit_mechanism":
             violations.extend(
                 AwaitingReauditChecks.check_reaudit_requires_mechanism(tree)
+            )
+
+        elif check_type == "indeterminate_requires_human_mechanism":
+            violations.extend(
+                IndeterminateHumanChecks.check_indeterminate_requires_human_mechanism(
+                    tree
+                )
             )
 
         elif check_type == "test_file_naming":

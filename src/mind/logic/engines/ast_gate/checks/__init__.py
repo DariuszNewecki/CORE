@@ -10,6 +10,7 @@ from .capability_checks import CapabilityChecks
 from .conservation_checks import ConservationChecks
 from .generic_checks import GenericASTChecks
 from .import_checks import ImportChecks
+from .indeterminate_human_checks import IndeterminateHumanChecks
 from .logging_checks import LoggingChecks
 from .metadata_checks import normalize_ast, verify_metadata_only_diff
 from .naming_checks import NamingChecks
@@ -26,6 +27,7 @@ __all__ = [
     "ConservationChecks",
     "GenericASTChecks",
     "ImportChecks",
+    "IndeterminateHumanChecks",
     "LoggingChecks",
     "NamingChecks",
     "PromptModelChecks",

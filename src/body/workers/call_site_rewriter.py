@@ -464,6 +464,13 @@ class CallSiteRewriter(Worker):
                     """
                     UPDATE core.blackboard_entries
                     SET status = :status,
+                        -- ADR-091 D2-A1: transition into 'indeterminate' hands
+                        -- closing authority to a human; the field tracks it.
+                        -- ELSE preserves the mechanism for other transitions.
+                        resolution_mechanism = CASE
+                            WHEN :status = 'indeterminate' THEN 'human'
+                            ELSE resolution_mechanism
+                        END,
                         resolved_at = CASE
                             WHEN :status IN ('resolved', 'abandoned', 'indeterminate')
                                 THEN now()

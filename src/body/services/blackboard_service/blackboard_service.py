@@ -245,6 +245,10 @@ class BlackboardService:
                             """
                             UPDATE core.blackboard_entries
                             SET status = 'indeterminate',
+                                -- ADR-091 D2-A1: a finding delegated to the
+                                -- governor is closed by a human, never by the
+                                -- reaudit sensor. The transition owns the field.
+                                resolution_mechanism = 'human',
                                 resolved_at = now(),
                                 updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
@@ -662,6 +666,15 @@ class BlackboardService:
                     """
                     UPDATE core.blackboard_entries
                     SET status = :status,
+                        -- ADR-091 D2-A1: a transition into 'indeterminate'
+                        -- hands closing authority to a human; the field must
+                        -- track that (else a reaudit finding masquerades in
+                        -- the reaudit queue forever). ELSE preserves the
+                        -- existing mechanism for every other transition.
+                        resolution_mechanism = CASE
+                            WHEN :status = 'indeterminate' THEN 'human'
+                            ELSE resolution_mechanism
+                        END,
                         resolved_at = CASE
                             WHEN :status IN ('resolved', 'abandoned', 'indeterminate', 'suppressed')
                                 THEN now()

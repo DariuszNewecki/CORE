@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.blackboard",
         "title": "Blackboard Attribution and Resolution-Authority Invariants",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -25,6 +25,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "ADR-091 D2 Revision B (accepted 2026-06-05) names the load-bearing invariant: a finding may be transitioned to awaiting_reaudit if and only if its resolution_mechanism = 'reaudit'. The runtime guard ships in the same commit at src/body/services/blackboard_service/blackboard_proposal_service.py (revive_findings_for_failed_proposal). This rule polices the SQL surface so any future site that adds another awaiting_reaudit write inherits the guard or fails audit. The check is an AST-over-SQL-strings sweep: locate every UPDATE … SET status = 'awaiting_reaudit' and confirm `resolution_mechanism = 'reaudit'` appears in the WHERE clause of the same statement. Engine implementation is deferred to a follow-up issue per ADR-091 D2 commit 1c scoping; this rule ships as advisory in the interim so the constitutional content is on the books from commit 1c forward. Target enforcement: blocking once the engine lands and one audit cycle confirms zero violations (expected — the only awaiting_reaudit site already carries the guard from this commit)."
+        },
+        {
+            "id": "architecture.blackboard.indeterminate_requires_human_mechanism",
+            "statement": "Every UPDATE on core.blackboard_entries whose SET clause transitions a row to status='indeterminate' (a literal `status = 'indeterminate'` assignment, or a bound `status = :status` parameter that may be 'indeterminate') MUST co-assign `resolution_mechanism = 'human'` in the same SET clause — as a literal, or via `CASE WHEN :status = 'indeterminate' THEN 'human' ELSE resolution_mechanism END`. A finding marked indeterminate is closed by a human governor, never by ADR-045's reaudit sensor; leaving resolution_mechanism at its birth value 'reaudit' parks it in the reaudit queue where no sensor can clear it, and the audit re-detects and re-emits it every cycle.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-091 D2 Amendment (accepted 2026-06-12, #628) names the field-ownership invariant: a transition that changes which authority class may close a finding owns resolution_mechanism, not just the posting authority at birth. This rule is the symmetric twin of reaudit_requires_reaudit_mechanism — where that guards entry into the reaudit queue, this guards the delegation/indeterminate transition from leaving the reaudit value stale. The runtime fix ships in the same change-set at four UPDATE sites: BlackboardService.mark_indeterminate, BlackboardService.update_entry_status, CallSiteRewriter._mark_findings, and PromptArtifactWriter. The check is an AST-over-SQL-strings sweep scoped to the SET body (statements that merely filter on status='indeterminate' in WHERE are not flagged). Detection differs from the reaudit guard's literal-only match because indeterminate is written both literally and via :status parameter. Ships as reporting; promotes to blocking after one clean audit cycle confirms zero violations and the one-shot backfill (#628 fix D) clears the pre-existing indeterminate+reaudit rows."
         }
     ]
 }

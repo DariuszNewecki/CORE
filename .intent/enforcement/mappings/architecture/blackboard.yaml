@@ -59,3 +59,32 @@ mappings:
       excludes:
         - "tests/**/*.py"
         - "**/__init__.py"
+
+  # Rule: architecture.blackboard.indeterminate_requires_human_mechanism
+  # Engine: ast_gate (per-file AST scan over sqlalchemy.text(...) string
+  #         literals)
+  #
+  # ADR-091 D2 Amendment (2026-06-12, #628). The symmetric twin of the
+  # reaudit guard above: every UPDATE on core.blackboard_entries whose SET
+  # clause transitions a row to status='indeterminate' MUST co-assign
+  # `resolution_mechanism = 'human'`. Detection is scoped to the SET body
+  # (WHERE-clause status='indeterminate' filters are not flagged) and, unlike
+  # the reaudit guard's literal-only match, fires on both the literal and the
+  # parameterised (:status) forms because indeterminate is written both ways.
+  #
+  # Promotion path: ships at `reporting`; promotes to `blocking` after one
+  # clean audit cycle confirms zero violations and the #628 fix-D backfill
+  # clears the pre-existing indeterminate+reaudit rows. Expected violations at
+  # engine landing: zero — the four write sites (mark_indeterminate,
+  # update_entry_status, CallSiteRewriter._mark_findings, PromptArtifactWriter)
+  # all carry the human co-assignment from this change-set.
+  architecture.blackboard.indeterminate_requires_human_mechanism:
+    engine: ast_gate
+    params:
+      check_type: indeterminate_requires_human_mechanism
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "**/__init__.py"

@@ -3,7 +3,7 @@
 # ADR-091 — F-42 pluggable sensor model as the second published contract
 
 **Date:** 2026-06-05
-**Status:** Accepted
+**Status:** Accepted (Revision B implemented in tree; **D2 Amendment 2026-06-12** accepted by governor decision 2026-06-12 — see "D2 Amendment — disposition transitions own `resolution_mechanism`" at end; tracking #628)
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-05 — drafted under Path A execute-verb authorization, "proceed as suggested" + named topic ADR-091 + execute-verb "draft directly to disc"; revised under governor direction to unify three open questions into canonical contracts rather than per-sensor grandfather clauses)
 **Grounding papers:** `papers/CORE-Features.md` §3.11 (extension interfaces F-41–F-43 as plugin APIs against the open-base contract) and §F-42 (the abstract sensor interface); `CORE-CHARTER.md` (the open-completeness commitment under which the audit loop must be artifact-agnostic, not Python-shaped).
@@ -843,3 +843,107 @@ Acceptance gate (binary): post-migration, `SELECT count(*) FROM core.blackboard_
 - **F-42 (CORE-Features.md)** — pluggable sensor model; the second published contract that consumes the single finding API.
 - **Worker base class** — `src/shared/workers/base.py`: `post_finding`, `post_artifact_finding`, `_post_entry` (INSERT site amended here).
 - **Existing CHECK precedent** — `blackboard_entry_status_closed_set` on `core.blackboard_entries` (closed-set vocabulary enforced at the DB layer; the pattern Revision B mirrors for `resolution_mechanism`).
+
+---
+
+## D2 Amendment — disposition transitions own `resolution_mechanism`; subject-lifecycle invariant (proposed 2026-06-12, pending governor acceptance)
+
+**Author:** Darek (Dariusz Newecki)
+**Drafter:** Claude (session 2026-06-12 — drafted directly to disc under Path A: named topic ADR-091 + execute-verb "draft the ADR-091 amendment"; not committed, surfaced for governor review)
+**Tracking:** #628
+**Status:** **Accepted (governor decision 2026-06-12).** The field-ownership invariant, D2-A1/A2/A3 decisions, and acceptance gate below are constitutional under ADR-091 from this commit forward. **Extends** Revision B's `resolution_mechanism` field; supersedes nothing. Implementation tracked at #628 (B+C first, then A, then D, E). Both `awaiting_reaudit`-as-status (Revision B prose) and the running system's reaudit queue (`status='indeterminate' AND resolution_mechanism='reaudit'`, per `health_log_service.py` F-19 and the live DB) are in scope; this amendment governs the field, not the status spelling.
+
+### The defect this closes
+
+Revision B established `resolution_mechanism` and one invariant governing a single transition direction — *entry into the reaudit queue*: a finding may be parked for reaudit iff `resolution_mechanism='reaudit'`. It left a second transition direction ungoverned: the `open → indeterminate` transition by **delegation** — `ViolationRemediatorWorker` marking a `DELEGATE`-classified finding "awaiting governor" via `mark_delegated → BlackboardService.mark_indeterminate`.
+
+That UPDATE sets `status='indeterminate'` and `resolved_at` but **never touches `resolution_mechanism`**. The finding, born with `resolution_mechanism='reaudit'` (every `post_artifact_finding` caller carries it automatically per Revision B (b)), keeps that value while being declared "a human must decide." The two fields now contradict each other. Consequences:
+
+1. **It masquerades as the reaudit queue.** The F-19 "open" predicate is `status='open' OR (status='indeterminate' AND resolution_mechanism='reaudit')`. A delegated finding satisfies the second clause and is counted as open convergence work, though no sensor will ever clear it.
+2. **The sensor re-INSERTs it every cycle.** The violation is never auto-fixed (it is `DELEGATE` by design), so each audit cycle re-detects the subject and posts a *new* finding row — there is no subject-scoped memory to suppress the re-raise.
+
+**Evidence (live `core` DB, 2026-06-12):** 116 "open" convergence subjects; **0** of `status='open'`; **all 116** `status='indeterminate' AND resolution_mechanism='reaudit'`; every one maps to a rule classified `DELEGATE` in `auto_remediation.yaml` (purity.no_orphan_files ×42, cli.standard_verbs ×35, …). 173 live rows for 116 subjects (re-INSERT churn — one subject carried three identical rows stamped within the same second). Full root cause in #628.
+
+### Root cause — an asymmetric state-machine seam (ADR-072 shape)
+
+`resolution_mechanism` is stamped once **at birth by the posting authority** (`post_artifact_finding → reaudit`), which cannot know the rule's remediation disposition — that lives downstream in `auto_remediation.yaml`. Disposition is decided **later by the remediator**, which rewrites `status` but not `resolution_mechanism`. Revision B's own design premise — *"the field IS the classification; the daemon routes resolution by reading the column"* (Revision B (g)) — is silently violated, because the one code path that re-classifies closing authority does not write the column. This is the ADR-072 failure shape: an **unscoped entry** (birth always stamps `reaudit`) with a **scoped exit** (delegation changes status only) accumulates indefinitely.
+
+### The load-bearing invariant (field-ownership)
+
+> **`resolution_mechanism` is owned by whichever authority last sets a finding's closing disposition — not solely by the posting authority at birth. Any transition that changes which class may close a finding MUST rewrite `resolution_mechanism` to match. In particular, delegating a finding to the governor (the `DELEGATE → indeterminate` transition) MUST set `resolution_mechanism='human'`.**
+
+This introduces **no new value and no new mechanism.** It uses Revision B's existing `human ∈ {reaudit, self_resolve, human}`, whose definition — *"a human only, via `core-admin blackboard resolve`"* (Revision B D2 table) — is exactly a delegated finding's closer. The amendment makes the field track reality across the finding's whole lifecycle, which Revision B's routing model already assumes but never enforced on the delegation path.
+
+### D2-A1 — Decision: delegation rewrites the field (#628 fixes B + C)
+
+`BlackboardService.mark_indeterminate` (and its `mark_delegated` caller) set `resolution_mechanism='human'` in the same UPDATE that sets `status='indeterminate'`. Effects, both structural:
+
+- The finding **drops out of the F-19 "open" predicate** and appears solely in the Governor Inbox (`status='indeterminate'`, any mechanism) — the human-decision queue it actually belongs to.
+- It becomes **structurally ineligible for the reaudit queue** — Revision B's existing reaudit guard already excludes any finding whose `resolution_mechanism ≠ 'reaudit'`, so no sensor can re-park it.
+
+### D2-A2 — Symmetric enforcement guard (closes the enforcement asymmetry)
+
+Revision B shipped `architecture.blackboard.reaudit_requires_reaudit_mechanism` guarding *entry* into reaudit. Nothing guarded *exit by delegation* clearing the field. A new rule — shipped as `architecture.blackboard.indeterminate_requires_human_mechanism` (named to mirror its sibling `reaudit_requires_reaudit_mechanism`; the invariant is *any* indeterminate write, not only delegation) — requires: any UPDATE whose SET clause transitions a row to `status='indeterminate'` MUST co-assign `resolution_mechanism='human'` in the same statement, and MUST NOT leave `'reaudit'`. Ships `reporting`, promotes to `blocking` once the existing rows are migrated (D2-A1 + the one-shot backfill below). Fix-the-class-and-add-the-rule, never one without the other.
+
+### D2-A3 — Subject-lifecycle invariant (the re-raise fix; placement is load-bearing — #628 fix A)
+
+Independent of the field seam: the audit sensor re-INSERTs a fresh finding for an already-known subject every cycle because **the data contract has no subject-scoped memory** — every timestamp column on `core.blackboard_entries` is row-scoped (`created_at`/`updated_at`/`claimed_at`/`resolved_at`); there is no `first_raised_at`/`last_raised_at` and no one-live-row-per-subject constraint. The sensor is therefore *structurally forced* to blind re-emission.
+
+> **The blackboard owns one live finding per `subject`. A re-detected subject that already has a live (non-terminal, or delegated-pending-governor) finding is an UPDATE/touch of the existing row, not a new INSERT.**
+
+**This invariant lives at the posting/adjudication boundary — a universal sink for all sensors — NOT as a per-sensor pre-query guard.** The per-sensor form is rejected: it would replicate across every re-raising sensor (violating universal-sink discipline) and would read central-DB historical state to suppress a symptom — the *Centralized-Truth blindness* CORE-PAPER-004 (Octopus) names as the "Ideological Rot." The board-boundary form instead gives every sensor the subject-level memory it structurally lacks: the small, proportionate Octopus-aligned reflex. **Scope guardrail:** this is *board-owns-subject-lifecycle*, nothing grander — it is explicitly **not** "building the Octopus" (Shadow KG, Reflex loops, real-time sensation remain dormant and out of scope). `[[feedback-protocols-reflex-check]]` applies: do not abstract beyond the one invariant.
+
+> **Correction (2026-06-12, post-implementation recon).** The premise above —
+> "the subject-level memory it structurally lacks" — is **wrong**. Recon of the
+> post path found the memory already exists: `fetch_active_finding_subjects_by_prefix`
+> dedups sensor posts and *already includes* `status='indeterminate'`, and the
+> reaudit drain scopes to `awaiting_reaudit`, never touching `indeterminate`.
+> So **B alone** resolves the count inflation; the residual re-INSERT is a
+> bounded *intra-run* duplication (file-level subjects collapsing multiple
+> same-rule violations) plus a likely transient June-1 path-migration artifact —
+> not a missing-lifecycle invariant. **A is therefore deferred to evidence:**
+> after B+D deploy, observe one audit cycle; build the ~3-line `violations`
+> dedup (optionally a `UNIQUE (subject) WHERE status NOT IN (terminal)` partial
+> index) only if duplicates persist. This corrects an unverified assertion;
+> it does not change D2-A1/A2 (B+C), which stand.
+
+### Implementation scope (tracked at #628, fixes A–E)
+
+| # | Maps to | Change |
+|---|---------|--------|
+| A | D2-A3 | One-live-finding-per-subject at the post/adjudicate boundary (re-detection = update, not insert). Load-bearing; the largest item (needs the subject-scoped lookup the schema lacks today). |
+| B | D2-A1 | `mark_indeterminate`/`mark_delegated` co-set `resolution_mechanism='human'`. ≈1 line. |
+| C | D2-A2 | The symmetric ast_gate guard rule + mapping. Ships in the same change-set as B. |
+| D | — | One-shot backfill: existing `indeterminate AND reaudit` delegated rows → `human`; purge the ~17 absolute-path ghost subjects orphaned by the June-1 abs→relative path migration. Only meaningful after A+B (else the fountain refills). |
+| E | — | Normalize sensor `identity_key_value` to repo-relative so a future path-format change cannot re-orphan subjects. |
+
+### Acceptance gate (binary)
+
+After migration:
+1. `SELECT count(*) FROM core.blackboard_entries WHERE entry_type='finding' AND status='indeterminate' AND resolution_mechanism='reaudit'` returns **0** — no delegated finding masquerades as the reaudit queue.
+2. One audit cycle over a still-violating `DELEGATE`-classified subject produces **no new row** for a subject that already has a live finding — re-INSERT churn eliminated (the same-second triple-insert cannot recur).
+3. The F-19 "open" count reflects only genuinely-open and genuinely-reaudit-queued findings; delegated decisions appear **once**, in the governor inbox.
+
+### Alternatives considered
+
+- **Leave the field at birth; fix only the F-19 predicate to exclude `DELEGATE` rules.** Rejected — the predicate would re-derive disposition from the rule map *at query time*, re-introducing the read-time derivation Revision B (g) already rejected for the reaudit guard ("must be a stored, indexable column, not a string-prefix computation"); and it would not stop the re-INSERT churn (D2-A3), which is the larger defect.
+- **Per-sensor "already raised?" guard.** Rejected — see D2-A3 (replication + Centralized-Truth blindness; it embodies the very rot it would patch).
+- **A new status value (e.g. `delegated`) instead of reusing `indeterminate` + `human`.** Rejected — `status` is already uniform across findings (Revision B (3)); the discriminator is `resolution_mechanism` by design. A new status re-introduces the two-headedness Revision B eliminated.
+
+### Revisit triggers
+
+- A disposition class appears whose closer is neither the owning sensor, the posting supervisor, nor a human (cf. Revision B (h)'s fourth-class trigger). The field-ownership invariant absorbs it automatically: whoever sets the disposition sets the field.
+- A subject legitimately needs multiple concurrent live findings (e.g. distinct payload variants under one subject). Revisit the one-live-finding-per-subject invariant as a per-artifact-type policy, not a global schema change.
+
+### External review record
+
+None yet. Per this ADR's own discipline (Revision B's "first substantive D2 amendment deserves heightened governor review" note), an adversarial external review via the GitHub connector is recommended before promotion to accepted. Two claims to verify against live code: (1) `mark_delegated → mark_indeterminate` leaves `resolution_mechanism` untouched today; (2) no consumer depends on delegated findings carrying `'reaudit'`.
+
+### References
+
+- **#628** — root cause writeup + A–E fix breakdown + post-boundary placement decision (this amendment's tracking issue).
+- **ADR-072** — asymmetric state-machine wiring (unscoped entry + scoped exit accumulates); the precedent failure shape named above.
+- **ADR-045** — `awaiting_reaudit` / reaudit eligibility; Revision B's structural axis, unchanged here.
+- **Revision B D2 (this ADR)** — the `resolution_mechanism` field this amendment extends; its reaudit guard is the exact inverse of D2-A2.
+- **CORE-PAPER-004 (Octopus-UNIX Synthesis)** — Centralized-Truth blindness; the framing for D2-A3's board-boundary placement.
+- Code touchpoints — `src/shared/workers/base.py:post_artifact_finding` (the birth stamp); `src/body/services/blackboard_service/blackboard_service.py:mark_indeterminate` (the un-rewritten transition); `src/will/workers/violation_remediator_blackboard.py:mark_delegated`.
