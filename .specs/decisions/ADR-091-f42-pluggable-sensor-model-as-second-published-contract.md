@@ -12,6 +12,25 @@
 
 ---
 
+## Reader orientation — this ADR carries two contracts
+
+A navigation aid (added 2026-06-12); nothing below is changed or removed.
+
+1. **Pluggable sensor model** (F-42) — Decisions **D1–D7**. The second ADR-084
+   D1 published contract: sensor declarations, the canonical subject format,
+   `supported_sensors` cross-validation, and the migration phases.
+2. **Blackboard finding-lifecycle contract** — **D2 Revision B** (the
+   `resolution_mechanism` field + the reaudit-eligibility invariant) and the
+   **2026-06-12 D2 Amendment** (field-ownership on disposition transitions;
+   #628). This contract is anchored as "ADR-091 D2" across ~60 code/`.intent`
+   sites, so it lives here rather than in a separate ADR.
+
+Sections headed `Note —` are dated, append-only implementation history;
+`Revision A` / `Revision B` preserve the D2 review trail. New readers: start at
+**## Decisions**.
+
+---
+
 ## Context
 
 ### The audit engine claims artifact-agnosticism; the sensor layer encodes Python
