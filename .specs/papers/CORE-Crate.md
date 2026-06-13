@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Crate
+title: CORE — The Crate
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Crate.md -->
 
 # CORE — The Crate

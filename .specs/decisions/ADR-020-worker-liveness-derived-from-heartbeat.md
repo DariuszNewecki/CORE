@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-020
+title: ADR-020 — Worker liveness derived from heartbeat, not from registry status
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-020-worker-liveness-derived-from-heartbeat.md -->
 
 # ADR-020 — Worker liveness derived from heartbeat, not from registry status

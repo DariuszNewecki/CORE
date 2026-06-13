@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-086
+title: ADR-086 — Installation Architecture
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-086-installation-architecture.md -->
 
 # ADR-086 — Installation Architecture

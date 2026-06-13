@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-RemediationMap
+title: CORE — The RemediationMap
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-RemediationMap.md -->
 
 # CORE — The RemediationMap

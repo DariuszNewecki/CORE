@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Gate
+title: CORE — Gates
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Gate.md -->
 
 # CORE — Gates

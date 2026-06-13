@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Infrastructure-Definition
+title: 'CORE: Infrastructure Definition and Authority Boundaries'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Infrastructure-Definition.md -->
 
 # CORE: Infrastructure Definition and Authority Boundaries

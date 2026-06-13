@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-089
+title: 'ADR-089 — F-27 exit criterion: capability proof replaces usage window'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-089-f27-exit-criterion-capability-not-usage.md -->
 
 # ADR-089 — F-27 exit criterion: capability proof replaces usage window

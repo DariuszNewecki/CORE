@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-DbSyncWorker
+title: CORE — DB Sync Worker
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-DbSyncWorker.md -->
 
 # CORE — DB Sync Worker

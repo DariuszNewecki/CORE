@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-024
+title: 'ADR-024: Local LLM cognitive role assignments — governed evaluation over assumption'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-024-local-llm-cognitive-role-assignments.md -->
 
 # ADR-024: Local LLM cognitive role assignments — governed evaluation over assumption

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Rule-Evaluation-Semantics
+title: 'CORE: Rule Evaluation Semantics'
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: papers/CORE-Rule-Evaluation-Semantics.md -->
 
 # CORE: Rule Evaluation Semantics

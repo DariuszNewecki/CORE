@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Common-Governance-Failure-Modes
+title: 'CORE: Common Governance Failure Modes'
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: papers/CORE-Common-Governance-Failure-Modes.md -->
 
 # CORE: Common Governance Failure Modes

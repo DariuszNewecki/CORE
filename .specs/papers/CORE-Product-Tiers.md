@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Product-Tiers
+title: 'CORE: Product Tier Architecture'
+status: canonical
+doctrine_tier: foundational
+---
+
 # CORE: Product Tier Architecture
 
 **Document type:** Strategic paper

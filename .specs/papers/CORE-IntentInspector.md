@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-IntentInspector
+title: CORE — Intent Inspector
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-IntentInspector.md -->
 
 # CORE — Intent Inspector

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ShopManager
+title: CORE — ShopManager
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-ShopManager.md -->
 
 # CORE — ShopManager

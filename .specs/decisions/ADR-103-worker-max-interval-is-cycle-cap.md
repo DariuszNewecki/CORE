@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-103
+title: ADR-103 — Worker `schedule.max_interval` is a cycle cap, not a sleep cap
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-103-worker-max-interval-is-cycle-cap.md -->
 
 # ADR-103 — Worker `schedule.max_interval` is a cycle cap, not a sleep cap

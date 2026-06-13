@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-DataContracts
+title: CORE — Data Contracts
+status: canonical
+doctrine_tier: constitution
+---
+
 # CORE — Data Contracts
 
 **Status:** Canonical

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ViolationSensor
+title: CORE — ViolationSensor
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-ViolationSensor.md -->
 
 # CORE — ViolationSensor

@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-101
+title: 'ADR-101 — Commit authorship integrity: every commit''s diff contains only
+  work its author produced'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-101-commit-authorship-integrity.md -->
 
 # ADR-101 — Commit authorship integrity: every commit's diff contains only work its author produced

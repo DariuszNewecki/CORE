@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-021
+title: ADR-021 — Scoped autonomous git operations
+status: superseded
+---
+
 <!-- path: .specs/decisions/ADR-021-scoped-autonomous-git-operations.md -->
 
 # ADR-021 — Scoped autonomous git operations

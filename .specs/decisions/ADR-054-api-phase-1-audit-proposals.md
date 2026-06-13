@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-054
+title: 'ADR-054 — API Phase 1: /audit + /proposals'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-054-api-phase-1-audit-proposals.md -->
 
 # ADR-054 — API Phase 1: /audit + /proposals

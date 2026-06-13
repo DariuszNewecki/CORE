@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-085
+title: ADR-085 — Open operational completeness as engineering's sole goal
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-085-open-operational-completeness-as-engineering-sole-goal.md -->
 
 # ADR-085 — Open operational completeness as engineering's sole goal

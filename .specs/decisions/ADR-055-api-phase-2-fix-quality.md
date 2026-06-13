@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-055
+title: 'ADR-055 — API Phase 2: /fix + /quality'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-055-api-phase-2-fix-quality.md -->
 
 # ADR-055 — API Phase 2: /fix + /quality

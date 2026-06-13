@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ViolationExecutor
+title: CORE — ViolationExecutor
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-ViolationExecutor.md -->
 
 # CORE — ViolationExecutor

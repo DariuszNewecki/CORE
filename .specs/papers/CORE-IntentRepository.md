@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-IntentRepository
+title: CORE — The IntentRepository
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-IntentRepository.md -->
 
 # CORE — The IntentRepository

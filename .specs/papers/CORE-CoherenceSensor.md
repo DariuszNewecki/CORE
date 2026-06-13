@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-CoherenceSensor
+title: CORE — Coherence Sensor
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-CoherenceSensor.md -->
 
 # CORE — Coherence Sensor

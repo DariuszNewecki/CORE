@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-091
+title: ADR-091 — F-42 pluggable sensor model as the second published contract
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-091-f42-pluggable-sensor-model-as-second-published-contract.md -->
 
 # ADR-091 — F-42 pluggable sensor model as the second published contract

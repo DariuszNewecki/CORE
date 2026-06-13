@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-046
+title: ADR-046 — Flow risk derived from constituent steps; close the test-format heal
+  loop
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-046-flow-risk-from-constituent-steps.md -->
 
 # ADR-046 — Flow risk derived from constituent steps; close the test-format heal loop

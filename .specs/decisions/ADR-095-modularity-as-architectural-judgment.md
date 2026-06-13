@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-095
+title: ADR-095 — Modularity family as architectural-judgment, role-declared sanctuary
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-095-modularity-as-architectural-judgment.md -->
 
 # ADR-095 — Modularity family as architectural-judgment, role-declared sanctuary

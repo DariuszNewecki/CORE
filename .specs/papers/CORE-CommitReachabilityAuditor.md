@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-CommitReachabilityAuditor
+title: CORE — Commit Reachability Auditor
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-CommitReachabilityAuditor.md -->
 
 # CORE — Commit Reachability Auditor

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Capability-Taxonomy
+title: CORE Capability Taxonomy
+status: canonical
+doctrine_tier: foundational
+---
+
 # CORE Capability Taxonomy
 
 **Status:** Canonical

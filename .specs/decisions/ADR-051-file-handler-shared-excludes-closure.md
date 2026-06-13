@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-051
+title: ADR-051 — file_handler.py shared/ excludes closure
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-051-file-handler-shared-excludes-closure.md -->
 
 # ADR-051 — file_handler.py shared/ excludes closure

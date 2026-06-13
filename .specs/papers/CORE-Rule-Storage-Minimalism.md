@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Rule-Storage-Minimalism
+title: CORE Rule Storage Minimalism
+status: superseded
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Rule-Storage-Minimalism.md -->
 
 # CORE Rule Storage Minimalism

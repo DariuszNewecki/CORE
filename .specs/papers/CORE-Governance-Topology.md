@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Governance-Topology
+title: CORE-Governance-Topology
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-Governance-Topology.md -->
 
 # CORE-Governance-Topology

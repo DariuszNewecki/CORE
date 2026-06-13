@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-URS-Verifier
+title: CORE — URS Verifier (Requirement Fulfillment Verification)
+status: draft
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-URS-Verifier.md -->
 
 # CORE — URS Verifier (Requirement Fulfillment Verification)

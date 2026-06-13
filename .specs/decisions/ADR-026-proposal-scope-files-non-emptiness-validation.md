@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-026
+title: ADR-026 — Validate `proposal.scope.files` non-emptiness at `Proposal.validate()`
+status: accepted
+---
+
 # ADR-026 — Validate `proposal.scope.files` non-emptiness at `Proposal.validate()`
 
 **Status:** Accepted

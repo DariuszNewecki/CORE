@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ObserverWorker
+title: CORE — Observer Worker
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-ObserverWorker.md -->
 
 # CORE — Observer Worker

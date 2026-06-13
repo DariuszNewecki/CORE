@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-009
+title: 'ADR-009: CLI-depth block transient — passive instrumentation over active probe'
+status: accepted
+---
+
 # ADR-009: CLI-depth block transient — passive instrumentation over active probe
 
 **Status:** Accepted

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-CapabilityTagger
+title: CORE — Capability Tagger
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-CapabilityTagger.md -->
 
 # CORE — Capability Tagger

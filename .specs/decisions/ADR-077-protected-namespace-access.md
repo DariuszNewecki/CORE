@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-077
+title: ADR-077 — Config-driven protected-namespace access with an introspective filesystem-operation
+  taxonomy
+status: accepted
+---
+
 # ADR-077 — Config-driven protected-namespace access with an introspective filesystem-operation taxonomy
 
 **Date:** 2026-05-30

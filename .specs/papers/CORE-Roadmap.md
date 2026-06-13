@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Roadmap
+title: 'CORE: Roadmap'
+status: canonical
+doctrine_tier: informational
+---
+
 # CORE: Roadmap
 
 **Document type:** Strategic paper — sequencing surface

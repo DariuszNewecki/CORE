@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-075
+title: ADR-075 — Framework / Project Namespace Split
+status: accepted
+---
+
 # ADR-075 — Framework / Project Namespace Split
 
 **Date:** 2026-05-28

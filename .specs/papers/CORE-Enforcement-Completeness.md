@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Enforcement-Completeness
+title: CORE — Enforcement Completeness
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Enforcement-Completeness.md -->
 
 # CORE — Enforcement Completeness

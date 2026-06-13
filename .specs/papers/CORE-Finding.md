@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Finding
+title: CORE — The Finding
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Finding.md -->
 
 # CORE — The Finding

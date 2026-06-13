@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-002
+title: 'ADR-002: Shared Layer Boundary Enforcement'
+status: accepted
+---
+
 # ADR-002: Shared Layer Boundary Enforcement
 
 **Status:** Accepted

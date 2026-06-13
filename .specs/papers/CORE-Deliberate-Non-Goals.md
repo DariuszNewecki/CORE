@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Deliberate-Non-Goals
+title: 'CORE: Deliberate Non-Goals'
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-Deliberate-Non-Goals.md -->
 
 # CORE: Deliberate Non-Goals

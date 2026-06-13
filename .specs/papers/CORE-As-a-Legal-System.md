@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-As-a-Legal-System
+title: CORE as a Legal System, Not a Framework
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: papers/CORE-As-a-Legal-System.md -->
 
 # CORE as a Legal System, Not a Framework

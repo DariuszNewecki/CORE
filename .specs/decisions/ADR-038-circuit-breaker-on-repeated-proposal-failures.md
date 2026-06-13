@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-038
+title: ADR-038 — Circuit-breaker on repeated proposal failures
+status: proposed
+---
+
 <!-- path: .specs/decisions/ADR-038-circuit-breaker-on-repeated-proposal-failures.md -->
 <!-- DRAFT — staged at var/adr-drafts/ pending governor review and move to .specs/decisions/ -->
 

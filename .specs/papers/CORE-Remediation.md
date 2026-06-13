@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Remediation
+title: CORE — Remediation
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Remediation.md -->
 
 # CORE — Remediation

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-TestGovernance
+title: CORE — Test Governance
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-TestGovernance.md -->
 
 # CORE — Test Governance

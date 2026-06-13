@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-063
+title: ADR-063 — bootstrap.py will.tools body→will closure
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-063-bootstrap-will-tools-body-will-closure.md -->
 
 # ADR-063 — bootstrap.py will.tools body→will closure

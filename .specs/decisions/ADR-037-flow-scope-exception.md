@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-037
+title: ADR-037 — Flow refs exempt from ADR-035 per-file scoping
+status: proposed
+---
+
 <!-- path: .specs/decisions/ADR-037-flow-scope-exception.md -->
 
 # ADR-037 — Flow refs exempt from ADR-035 per-file scoping

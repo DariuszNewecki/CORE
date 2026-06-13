@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-003
+title: 'ADR-003: task_type as a first-class field on ExecutionTask'
+status: accepted
+---
+
 # ADR-003: task_type as a first-class field on ExecutionTask
 
 **Status:** Accepted

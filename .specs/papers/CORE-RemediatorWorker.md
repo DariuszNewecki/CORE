@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-RemediatorWorker
+title: CORE — RemediatorWorker
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-RemediatorWorker.md -->
 
 # CORE — RemediatorWorker

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-031
+title: ADR-031 — No Hardcoded Runtime Directory Paths
+status: proposed
+---
+
 <!-- path: .specs/decisions/ADR-031-no-hardcoded-runtime-dir-paths.md -->
 
 # ADR-031 — No Hardcoded Runtime Directory Paths

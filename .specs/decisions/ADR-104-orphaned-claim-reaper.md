@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-104
+title: ADR-104 — Orphaned-claim reaper (claim lifecycle is process-scoped, not loop-scoped)
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-104-orphaned-claim-reaper.md -->
 
 # ADR-104 — Orphaned-claim reaper (claim lifecycle is process-scoped, not loop-scoped)

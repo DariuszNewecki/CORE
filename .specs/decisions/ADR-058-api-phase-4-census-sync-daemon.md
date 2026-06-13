@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-058
+title: 'ADR-058 — API Phase 4: /census + /sync + /daemon'
+status: accepted
+---
+
 # ADR-058 — API Phase 4: /census + /sync + /daemon
 
 **Status:** Accepted

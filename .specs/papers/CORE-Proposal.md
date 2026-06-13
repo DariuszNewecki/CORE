@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Proposal
+title: CORE — The Proposal
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Proposal.md -->
 
 # CORE — The Proposal

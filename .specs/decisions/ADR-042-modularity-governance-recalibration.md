@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-042
+title: 'ADR-042: Modularity governance recalibration — responsibility-first'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-042-modularity-governance-recalibration.md -->
 
 # ADR-042: Modularity governance recalibration — responsibility-first

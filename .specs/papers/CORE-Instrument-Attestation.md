@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Instrument-Attestation
+title: CORE — Instrument Attestation
+status: draft
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-Instrument-Attestation.md -->
 
 # CORE — Instrument Attestation

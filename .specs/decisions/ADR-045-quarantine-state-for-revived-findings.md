@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-045
+title: ADR-045 — Quarantine state for findings revived after rejection
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-045-quarantine-state-for-revived-findings.md -->
 
 # ADR-045 — Quarantine state for findings revived after rejection

@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-102
+title: 'ADR-102 — Finding.json retirement: class-shape was the wrong enforcement site
+  for the constitutional Finding nucleus'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-102-finding-contract-retirement.md -->
 
 # ADR-102 — Finding.json retirement: class-shape was the wrong enforcement site for the constitutional Finding nucleus

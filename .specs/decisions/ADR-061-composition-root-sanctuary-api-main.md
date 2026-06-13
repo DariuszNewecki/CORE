@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-061
+title: ADR-061 — Composition-Root Sanctuary for `api/main.py` Lifespan Import
+status: accepted
+---
+
 # ADR-061 — Composition-Root Sanctuary for `api/main.py` Lifespan Import
 
 **Date:** 2026-05-19

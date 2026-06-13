@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-048
+title: ADR-048 — `fix.docstrings` walks the AST instead of the knowledge graph
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-048-fix-docstrings-ast-walk.md -->
 
 # ADR-048 — `fix.docstrings` walks the AST instead of the knowledge graph

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-005
+title: 'ADR-005: Govern audit verdict policy in `.intent/`'
+status: accepted
+---
+
 # ADR-005: Govern audit verdict policy in `.intent/`
 
 **Status:** Accepted

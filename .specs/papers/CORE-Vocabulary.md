@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Vocabulary
+title: CORE — Vocabulary
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Vocabulary.md -->
 
 # CORE — Vocabulary

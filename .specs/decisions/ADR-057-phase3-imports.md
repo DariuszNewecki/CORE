@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-057
+title: 'ADR-057 — API Phase 3: /coverage + /refactor + /inspect'
+status: accepted
+---
+
 # ADR-057 — API Phase 3: /coverage + /refactor + /inspect
 
 **Status:** Accepted (revised 2026-05-18 — D5 amended to add three `/inspect` endpoints

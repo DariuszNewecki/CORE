@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Evidence-as-Input
+title: CORE — Evidence as Input
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Evidence-as-Input.md -->
 
 # CORE — Evidence as Input

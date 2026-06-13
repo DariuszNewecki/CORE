@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-060
+title: ADR-060 — Governance Input Staleness Closure
+status: accepted
+---
+
 # ADR-060 — Governance Input Staleness Closure
 
 **Date:** 2026-05-19

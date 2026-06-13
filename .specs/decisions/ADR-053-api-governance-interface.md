@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-053
+title: ADR-053 — CORE API as Resource-Oriented Governance Interface
+status: accepted
+---
+
 # ADR-053 — CORE API as Resource-Oriented Governance Interface
 
 **Status:** Accepted (revised 2026-05-18 — D4 amended to assign unassigned capability map items)

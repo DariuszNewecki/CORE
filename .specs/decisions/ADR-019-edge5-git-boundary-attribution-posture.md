@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-019
+title: ADR-019 — Edge 5 git-boundary attribution posture
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-019-edge5-git-boundary-attribution-posture.md -->
 
 # ADR-019 — Edge 5 git-boundary attribution posture

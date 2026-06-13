@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-PromptGovernancePipeline
+title: CORE — Prompt Governance Pipeline
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-PromptGovernancePipeline.md -->
 
 # CORE — Prompt Governance Pipeline

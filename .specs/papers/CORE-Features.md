@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Features
+title: 'CORE: Feature Registry'
+status: canonical
+doctrine_tier: foundational
+---
+
 # CORE: Feature Registry
 
 **Document type:** Strategic reference

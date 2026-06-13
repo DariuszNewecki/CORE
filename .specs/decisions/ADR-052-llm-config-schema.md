@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-052
+title: 'ADR-052 — LLM Configuration Domain: Final Schema'
+status: accepted
+---
+
 # ADR-052 — LLM Configuration Domain: Final Schema
 
 **Status:** Accepted

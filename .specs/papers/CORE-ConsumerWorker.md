@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ConsumerWorker
+title: CORE — ConsumerWorker
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-ConsumerWorker.md -->
 
 # CORE — ConsumerWorker

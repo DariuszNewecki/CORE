@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-OEM-API
+title: CORE OEM API — F-40 Public Contract Declaration
+status: canonical
+doctrine_tier: foundational
+---
+
 # CORE OEM API — F-40 Public Contract Declaration
 
 **Status:** Draft (F-40.1 output, 2026-06-02)

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Mind-Body-Will-Separation
+title: 'CORE: Mind/Body/Will Architectural Separation'
+status: canonical
+doctrine_tier: constitution
+---
+
 # CORE: Mind/Body/Will Architectural Separation
 
 **Status:** Constitutional Paper

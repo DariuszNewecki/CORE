@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ViolationRemediatorBody
+title: CORE — Violation Remediator (Body / CLI)
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-ViolationRemediatorBody.md -->
 
 # CORE — Violation Remediator (Body / CLI)

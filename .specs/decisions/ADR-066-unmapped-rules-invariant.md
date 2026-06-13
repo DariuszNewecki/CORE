@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-066
+title: 'ADR-066: Unmapped-Rules Invariant — Every Active Rule Must Have an `auto_remediation.yaml`
+  Entry'
+status: accepted
+---
+
 # ADR-066: Unmapped-Rules Invariant — Every Active Rule Must Have an `auto_remediation.yaml` Entry
 
 **Status:** Accepted

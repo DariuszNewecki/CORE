@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-036
+title: ADR-036 — PathResolver excluded from modularity.needs_split
+status: accepted
+---
+
 # ADR-036 — PathResolver excluded from modularity.needs_split
 
 **Date:** 2026-05-11

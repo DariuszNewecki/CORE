@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Blackboard
+title: CORE — The Blackboard
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Blackboard.md -->
 
 # CORE — The Blackboard

@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-004
+title: 'ADR-004: Govern task_type → phase mapping in `.intent/` and retire the vestigial
+  context CLI'
+status: accepted
+---
+
 # ADR-004: Govern task_type → phase mapping in `.intent/` and retire the vestigial context CLI
 
 **Status:** Accepted

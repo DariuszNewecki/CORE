@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-090
+title: ADR-090 — F-41 artifact type registry as the unified governance contract
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-090-f41-artifact-type-registry-as-unified-governance-contract.md -->
 
 # ADR-090 — F-41 artifact type registry as the unified governance contract

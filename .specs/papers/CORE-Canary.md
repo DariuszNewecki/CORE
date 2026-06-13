@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Canary
+title: CORE — The Canary
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Canary.md -->
 
 # CORE — The Canary

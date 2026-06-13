@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Disposition-Governance
+title: CORE — Disposition Governance
+status: draft
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-Disposition-Governance.md -->
 
 # CORE — Disposition Governance

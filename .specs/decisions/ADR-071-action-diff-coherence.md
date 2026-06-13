@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-071
+title: ADR-071 — Action Diff Coherence Enforcement
+status: accepted
+---
+
 # ADR-071 — Action Diff Coherence Enforcement
 
 **Date:** 2026-05-25

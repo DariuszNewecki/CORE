@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Rule-Canonical-Form
+title: CORE Rule Canonical Form
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Rule-Canonical-Form.md -->
 
 # CORE Rule Canonical Form

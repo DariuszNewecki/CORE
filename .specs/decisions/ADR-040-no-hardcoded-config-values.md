@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-040
+title: ADR-040 — No Hardcoded Values in src/
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-040-no-hardcoded-values-in-src.md -->
 
 # ADR-040 — No Hardcoded Values in src/

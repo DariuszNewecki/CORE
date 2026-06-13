@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-080
+title: ADR-080 — Filesystem-operation-class vocabulary split
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-080-fs-op-class-vocabulary-split.md -->
 
 # ADR-080 — Filesystem-operation-class vocabulary split

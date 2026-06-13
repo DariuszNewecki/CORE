@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-039
+title: ADR-039 — Audit-input cache invalidation
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-039-audit-input-cache-invalidation.md -->
 
 # ADR-039 — Audit-input cache invalidation

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-065
+title: 'ADR-065 — Documentation layer separation: `.specs/` vs `docs/`'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-065-documentation-layer-separation.md -->
 
 # ADR-065 — Documentation layer separation: `.specs/` vs `docs/`

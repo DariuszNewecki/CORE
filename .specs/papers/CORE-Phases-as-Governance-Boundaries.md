@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Phases-as-Governance-Boundaries
+title: 'CORE: Phases as Governance Boundaries'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Phases-as-Governance-Boundaries.md -->
 
 # CORE: Phases as Governance Boundaries

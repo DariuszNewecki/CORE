@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-017
+title: ADR-017 — `claim.proposal` as a governed atomic action
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-017-claim-proposal-as-atomic-action.md -->
 
 # ADR-017 — `claim.proposal` as a governed atomic action

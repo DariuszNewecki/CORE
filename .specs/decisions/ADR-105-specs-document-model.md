@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-105
+title: 'ADR-105 — Document model for `.specs/`: typed headers, forked vocabulary'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-105-specs-document-model.md -->
 
 # ADR-105 — Document model for `.specs/`: typed headers, forked vocabulary

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Constitution-Read-Only-Contract
+title: CORE — Constitution Read-Only Contract
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Constitution-Read-Only-Contract.md -->
 
 # CORE — Constitution Read-Only Contract

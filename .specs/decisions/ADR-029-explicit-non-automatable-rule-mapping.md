@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-029
+title: ADR-029 — Explicitly map non-automatable rules in RemediationMap
+status: accepted
+---
+
 # ADR-029 — Explicitly map non-automatable rules in RemediationMap
 
 **Status:** Accepted

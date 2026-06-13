@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-AutonomousProposalWorker
+title: CORE — Autonomous Proposal Worker
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-AutonomousProposalWorker.md -->
 
 # CORE — Autonomous Proposal Worker

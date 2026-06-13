@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-011
+title: 'ADR-011: Workers own blackboard attribution; services do not post'
+status: accepted
+---
+
 # ADR-011: Workers own blackboard attribution; services do not post
 
 **Status:** Accepted

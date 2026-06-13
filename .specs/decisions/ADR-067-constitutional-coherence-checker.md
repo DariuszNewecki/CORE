@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-067
+title: 'ADR-067 — Constitutional Coherence Checker: Storage, CLI, LLM Invocation,
+  and Scheduling'
+status: accepted
+---
+
 # ADR-067 — Constitutional Coherence Checker: Storage, CLI, LLM Invocation, and Scheduling
 
 **Status:** Accepted

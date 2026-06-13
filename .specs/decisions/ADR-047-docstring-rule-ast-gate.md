@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-047
+title: ADR-047 — Move `purity.docstrings.required` from `llm_gate` to `ast_gate`
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-047-docstring-rule-ast-gate.md -->
 
 # ADR-047 — Move `purity.docstrings.required` from `llm_gate` to `ast_gate`

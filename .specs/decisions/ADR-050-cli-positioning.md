@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-050
+title: ADR-050 — CLI is a standalone HTTP client; `src/cli/` extracted from CORE
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-050-cli-positioning.md -->
 
 # ADR-050 — CLI is a standalone HTTP client; `src/cli/` extracted from CORE

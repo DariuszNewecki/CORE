@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-001
+title: 'ADR-001: Establish the `.specs/` layer'
+status: accepted
+---
+
 # ADR-001: Establish the `.specs/` layer
 
 **Status:** Accepted

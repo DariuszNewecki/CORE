@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Constitutional-Foundations
+title: 'CORE: Constitutional Foundations for Governing Acting Systems'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: papers/CORE-Constitutional-Foundations.md -->
 
 # CORE: Constitutional Foundations for Governing Acting Systems

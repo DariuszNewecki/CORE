@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-OptimizerWorker
+title: CORE — OptimizerWorker
+status: draft
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-OptimizerWorker.md -->
 
 # CORE — OptimizerWorker

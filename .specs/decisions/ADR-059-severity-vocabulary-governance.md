@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-059
+title: ADR-059 — Severity Vocabulary Governance
+status: accepted
+---
+
 # ADR-059 — Severity Vocabulary Governance
 
 **Date:** 2026-05-19

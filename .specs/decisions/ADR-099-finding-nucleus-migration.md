@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-099
+title: 'ADR-099 — Finding-nucleus migration: alias-bridged reconciliation of CheckResult
+  and AuditFinding to the canonical contract'
+status: superseded
+---
+
 <!-- path: .specs/decisions/ADR-099-finding-nucleus-migration.md -->
 
 # ADR-099 — Finding-nucleus migration: alias-bridged reconciliation of CheckResult and AuditFinding to the canonical contract

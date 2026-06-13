@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-027
+title: ADR-027 — Sensor-fixer coherence detection via consequence chain query
+status: accepted
+---
+
 # ADR-027 — Sensor-fixer coherence detection via consequence chain query
 
 **Date:** 2026-05-07

@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-025
+title: 'ADR-025: ArchitecturalContextBuilder construction site — CoreContext factory
+  over agent-internal construction'
+status: accepted
+---
+
 # ADR-025: ArchitecturalContextBuilder construction site — CoreContext factory over agent-internal construction
 
 **Status:** Accepted

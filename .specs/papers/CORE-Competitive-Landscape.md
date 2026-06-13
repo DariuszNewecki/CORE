@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Competitive-Landscape
+title: 'CORE: Competitive Landscape and Feature Comparison'
+status: canonical
+doctrine_tier: informational
+---
+
 # CORE: Competitive Landscape and Feature Comparison
 
 **Document type:** Strategic paper

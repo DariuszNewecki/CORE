@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-016
+title: 'ADR-016: Test environment architecture'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-016-test-environment-architecture.md -->
 
 # ADR-016: Test environment architecture

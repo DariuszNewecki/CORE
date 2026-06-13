@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ConstitutionalCoherenceChecker
+title: CORE — Constitutional Coherence Checker
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-ConstitutionalCoherenceChecker.md -->
 
 # CORE — Constitutional Coherence Checker

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-014
+title: 'ADR-014 — Development-Phase Priority: Loop Liveness Before Artifact Quality'
+status: accepted
+---
+
 # ADR-014 — Development-Phase Priority: Loop Liveness Before Artifact Quality
 
 **Date:** 2026-04-26

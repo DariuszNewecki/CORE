@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Workflow-Stages
+title: 'CORE: Workflow Stages'
+status: canonical
+doctrine_tier: foundational
+---
+
 <!-- path: .specs/papers/CORE-Workflow-Stages.md -->
 
 # CORE: Workflow Stages

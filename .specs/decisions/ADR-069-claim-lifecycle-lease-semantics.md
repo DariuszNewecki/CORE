@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-069
+title: 'ADR-069 — Claim Lifecycle: Lease Semantics'
+status: accepted
+---
+
 # ADR-069 — Claim Lifecycle: Lease Semantics
 
 **Date:** 2026-05-23

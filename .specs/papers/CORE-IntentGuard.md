@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-IntentGuard
+title: CORE — IntentGuard
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-IntentGuard.md -->
 
 # CORE — IntentGuard

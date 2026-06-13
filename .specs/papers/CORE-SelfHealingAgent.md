@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-SelfHealingAgent
+title: CORE — Self-Healing Agent
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-SelfHealingAgent.md -->
 
 # CORE — Self-Healing Agent

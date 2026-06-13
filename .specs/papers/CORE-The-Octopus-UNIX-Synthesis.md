@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-The-Octopus-UNIX-Synthesis
+title: 'CORE-PAPER-004: The Octopus-UNIX Synthesis'
+status: draft
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-The-Octopus-UNIX-Synthesis.md -->
 
 # CORE-PAPER-004: The Octopus-UNIX Synthesis

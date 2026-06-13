@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ConservationGate
+title: CORE — The ConservationGate
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-ConservationGate.md -->
 
 # CORE — The ConservationGate

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-094
+title: ADR-094 — URS Satisfaction Sensor (implementing ADR)
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-094-urs-satisfaction-sensor-implementation.md -->
 
 # ADR-094 — URS Satisfaction Sensor (implementing ADR)

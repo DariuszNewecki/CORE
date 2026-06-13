@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-006
+title: 'ADR-006: Align `modularity.needs_split` implementation with its statement'
+status: accepted
+---
+
 # ADR-006: Align `modularity.needs_split` implementation with its statement
 
 **Status:** Accepted

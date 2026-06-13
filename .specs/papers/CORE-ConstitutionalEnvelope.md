@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ConstitutionalEnvelope
+title: CORE — The Constitutional Envelope
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-ConstitutionalEnvelope.md -->
 
 # CORE — The Constitutional Envelope

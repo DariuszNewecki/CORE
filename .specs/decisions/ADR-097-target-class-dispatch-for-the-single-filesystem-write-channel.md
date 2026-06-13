@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-097
+title: ADR-097 — Target-class dispatch for the single filesystem write channel
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-097-target-class-dispatch-for-the-single-filesystem-write-channel.md -->
 
 # ADR-097 — Target-class dispatch for the single filesystem write channel

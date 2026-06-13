@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-032
+title: ADR-032 — Tighten `no_hardcoded_runtime_dirs` regex to path-construction context
+status: accepted
+---
+
 # ADR-032 — Tighten `no_hardcoded_runtime_dirs` regex to path-construction context
 
 **Date:** 2026-05-10

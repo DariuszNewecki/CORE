@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-049
+title: ADR-049 — Restore parity between architectural doctrine and enforced rules
+status: accepted
+---
+
 # ADR-049 — Restore parity between architectural doctrine and enforced rules
 
 **Status:** Accepted

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-028
+title: 'ADR-028: Describe rules; don''t quote forbidden syntax'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-028-describe-rules-dont-quote-forbidden-syntax.md -->
 # ADR-028: Describe rules; don't quote forbidden syntax
 

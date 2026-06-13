@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-ModularizationLessons
+title: 'Lessons Learned: First Autonomous Modularization Run'
+status: canonical
+doctrine_tier: informational
+---
+
 # Lessons Learned: First Autonomous Modularization Run
 # Session: 2026-05-03
 # File split: src/body/atomic/sync_actions.py → sync_actions/

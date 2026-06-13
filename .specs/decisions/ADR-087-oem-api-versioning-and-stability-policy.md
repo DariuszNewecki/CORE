@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-087
+title: ADR-087 — OEM API versioning and stability policy
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md -->
 
 # ADR-087 — OEM API versioning and stability policy

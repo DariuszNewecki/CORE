@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Vocabulary-Registers
+title: CORE — Vocabulary Registers
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Vocabulary-Registers.md -->
 
 # CORE — Vocabulary Registers

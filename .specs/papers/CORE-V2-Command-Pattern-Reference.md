@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-V2-Command-Pattern-Reference
+title: V2 Command Pattern Reference
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-V2-Command-Pattern-Reference.md -->
 
 # V2 Command Pattern Reference

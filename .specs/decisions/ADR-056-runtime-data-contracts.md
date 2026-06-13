@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-056
+title: ADR-056 — Runtime Data Contracts as First-Class Constitutional Artifacts
+status: accepted
+---
+
 # ADR-056 — Runtime Data Contracts as First-Class Constitutional Artifacts
 
 **Date:** 2026-05-17

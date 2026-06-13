@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-RepositoryIndexing
+title: CORE — Repository Indexing
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-RepositoryIndexing.md -->
 
 # CORE — Repository Indexing

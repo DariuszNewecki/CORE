@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-100
+title: 'ADR-100 — Export-evidence-class enum: pin the E-46 / E-37 boundary as machine-readable
+  vocabulary'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-100-export-evidence-class-enum.md -->
 
 # ADR-100 — Export-evidence-class enum: pin the E-46 / E-37 boundary as machine-readable vocabulary

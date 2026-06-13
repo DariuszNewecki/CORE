@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Minimal-Derivable-Artifacts
+title: 'CORE: Minimal Derivable Artifacts'
+status: draft
+doctrine_tier: informational
+---
+
 <!-- path: papers/CORE-Minimal-Derivable-Artifacts.md -->
 
 # CORE: Minimal Derivable Artifacts

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-088
+title: ADR-088 — PyPI version alignment with the narrative release track
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-088-pypi-version-alignment.md -->
 
 # ADR-088 — PyPI version alignment with the narrative release track

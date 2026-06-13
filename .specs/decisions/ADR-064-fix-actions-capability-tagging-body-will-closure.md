@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-064
+title: ADR-064 — fix_actions.py capability_tagging body→will closure
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-064-fix-actions-capability-tagging-body-will-closure.md -->
 
 # ADR-064 — fix_actions.py capability_tagging body→will closure

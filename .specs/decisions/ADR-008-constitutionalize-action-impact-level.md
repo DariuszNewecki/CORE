@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-008
+title: ADR-008 — Constitutionalize `impact_level`
+status: accepted
+---
+
 # ADR-008 — Constitutionalize `impact_level`
 
 **Status:** Accepted

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Emergency-and-Exception-Stance
+title: CORE — Emergency and Exception Stance
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Emergency-and-Exception-Stance.md -->
 
 # CORE — Emergency and Exception Stance

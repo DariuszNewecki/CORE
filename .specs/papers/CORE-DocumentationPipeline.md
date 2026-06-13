@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-DocumentationPipeline
+title: CORE — Documentation Pipeline
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-DocumentationPipeline.md -->
 
 # CORE — Documentation Pipeline

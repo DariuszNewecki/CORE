@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Action
+title: CORE — The Action
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Action.md -->
 
 # CORE — The Action

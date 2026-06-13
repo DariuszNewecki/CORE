@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-062
+title: ADR-062 — proposal_lifecycle_actions.py body→will closure
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-062-proposal-lifecycle-actions-body-will-closure.md -->
 
 # ADR-062 — proposal_lifecycle_actions.py body→will closure

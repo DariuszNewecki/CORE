@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-074
+title: 'ADR-074 — INTERPRET Phase: Contradiction and Ambiguity as Orthogonal Failure
+  Modes'
+status: accepted
+---
+
 # ADR-074 — INTERPRET Phase: Contradiction and Ambiguity as Orthogonal Failure Modes
 
 **Status:** Accepted

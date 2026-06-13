@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-030
+title: ADR-030 — Daemon stale-code detection posture
+status: accepted
+---
+
 # ADR-030 — Daemon stale-code detection posture
 
 **Status:** Accepted

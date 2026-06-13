@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-018
+title: ADR-018 — Decomposed crawler/embedder supersedes vector_sync_worker on the
+  autonomous path
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-018-decomposed-crawler-embedder-supersedes-vector-sync-worker.md -->
 
 # ADR-018 — Decomposed crawler/embedder supersedes vector_sync_worker on the autonomous path

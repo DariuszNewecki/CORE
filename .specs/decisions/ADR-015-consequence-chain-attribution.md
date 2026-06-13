@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-015
+title: 'ADR-015 — Consequence Chain Attribution: Write Paths and Storage Shapes'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-015-consequence-chain-attribution.md -->
 
 # ADR-015 — Consequence Chain Attribution: Write Paths and Storage Shapes

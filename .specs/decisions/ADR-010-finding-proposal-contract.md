@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-010
+title: 'ADR-010: Wire the §7+§7a Finding/Proposal contract'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-010-finding-proposal-contract.md -->
 # ADR-010: Wire the §7+§7a Finding/Proposal contract
 

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-073
+title: 'ADR-073 — Constitutional Coherence Checker: Scanner Redesign'
+status: accepted
+---
+
 # ADR-073 — Constitutional Coherence Checker: Scanner Redesign
 
 **Status:** Accepted

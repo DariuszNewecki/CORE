@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Flow
+title: CORE — Flow
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Flow.md -->
 
 # CORE — Flow

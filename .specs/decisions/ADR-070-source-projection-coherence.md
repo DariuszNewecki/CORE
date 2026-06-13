@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-070
+title: ADR-070 — Source–Projection Coherence as Bounded Drift
+status: accepted
+---
+
 # ADR-070 — Source–Projection Coherence as Bounded Drift
 
 **Date:** 2026-05-24

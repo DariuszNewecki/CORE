@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-093
+title: ADR-093 — Feature / Extension class split + URS-line governance discipline
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-093-feature-extension-class-split-and-urs-line-discipline.md -->
 
 # ADR-093 — Feature / Extension class split + URS-line governance discipline

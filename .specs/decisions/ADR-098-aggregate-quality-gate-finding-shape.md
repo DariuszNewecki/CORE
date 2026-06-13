@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-098
+title: 'ADR-098 — Aggregate quality-gate finding shape: per-file emission with iceberg-tail
+  rendering'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-098-aggregate-quality-gate-finding-shape.md -->
 
 # ADR-098 — Aggregate quality-gate finding shape: per-file emission with iceberg-tail rendering

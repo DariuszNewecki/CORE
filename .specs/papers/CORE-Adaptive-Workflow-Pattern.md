@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Adaptive-Workflow-Pattern
+title: 'CORE: V2 Adaptive Workflow Pattern'
+status: draft
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Adaptive-Workflow-Pattern.md -->
 
 # CORE: V2 Adaptive Workflow Pattern

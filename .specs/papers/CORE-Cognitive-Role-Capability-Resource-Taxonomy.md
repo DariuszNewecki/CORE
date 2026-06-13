@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Cognitive-Role-Capability-Resource-Taxonomy
+title: CORE Cognitive Role–Capability–Resource Taxonomy
+status: canonical
+doctrine_tier: foundational
+---
+
 # CORE Cognitive Role–Capability–Resource Taxonomy
 
 **Status:** Canonical

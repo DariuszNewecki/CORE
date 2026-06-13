@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-092
+title: 'ADR-092 — F-43 exit criterion: contract-readiness replaces invented-proof'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-092-f43-exit-criterion-contract-readiness.md -->
 
 # ADR-092 — F-43 exit criterion: contract-readiness replaces invented-proof

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Context-Packet-Doctrine
+title: 'CORE: Context Packet Doctrine'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Context-Packet-Doctrine.md -->
 
 # CORE: Context Packet Doctrine

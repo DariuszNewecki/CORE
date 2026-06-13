@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-076
+title: ADR-076 — Context-Level Dispatch as a Per-Check-Type Engine Property
+status: accepted
+---
+
 # ADR-076 — Context-Level Dispatch as a Per-Check-Type Engine Property
 
 **Date:** 2026-05-29

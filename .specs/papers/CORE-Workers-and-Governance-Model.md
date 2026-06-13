@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Workers-and-Governance-Model
+title: CORE — Workers, Supervision, and the Blackboard
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Workers-and-Governance-Model.md -->
 
 # CORE — Workers, Supervision, and the Blackboard

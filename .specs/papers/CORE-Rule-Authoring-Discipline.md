@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Rule-Authoring-Discipline
+title: CORE Rule Authoring Discipline
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Rule-Authoring-Discipline.md -->
 # CORE Rule Authoring Discipline
 

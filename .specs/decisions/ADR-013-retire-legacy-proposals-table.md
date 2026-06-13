@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-013
+title: ADR-013 — Retire core.proposals; Reserve Name for core.autonomous_proposals
+status: accepted
+---
+
 # ADR-013 — Retire core.proposals; Reserve Name for core.autonomous_proposals
 
 **Date:** 2026-04-26

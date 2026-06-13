@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-068
+title: ADR-068 — Principal Role Taxonomy
+status: accepted
+---
+
 # ADR-068 — Principal Role Taxonomy
 
 **Date:** 2026-05-22

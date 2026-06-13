@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Capability-Scoped-Filesystem-Authority
+title: CORE — Capability-Scoped Filesystem Authority
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md -->
 
 # CORE — Capability-Scoped Filesystem Authority

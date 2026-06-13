@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-079
+title: ADR-079 — Chokepoint Implementation for Capability-Scoped Filesystem Authority
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-079-chokepoint-implementation-for-capability-scoped-filesystem-authority.md -->
 
 # ADR-079 — Chokepoint Implementation for Capability-Scoped Filesystem Authority

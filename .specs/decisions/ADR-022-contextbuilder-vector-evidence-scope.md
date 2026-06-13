@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-022
+title: 'ADR-022: ContextBuilder vector evidence scope'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-022-contextbuilder-vector-evidence-scope.md -->
 
 # ADR-022: ContextBuilder vector evidence scope

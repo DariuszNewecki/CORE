@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-044
+title: ADR-044 — Incremental LLM-gate verdict cache
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-044-llm-gate-verdict-cache.md -->
 
 # ADR-044 — Incremental LLM-gate verdict cache

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-012
+title: 'ADR-012: Centralize globstar pattern matching via pathspec'
+status: accepted
+---
+
 # ADR-012: Centralize globstar pattern matching via pathspec
 
 **Status:** Accepted

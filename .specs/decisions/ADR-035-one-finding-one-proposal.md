@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-035
+title: ADR-035 — One Finding, One Proposal
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-035-one-finding-one-proposal.md -->
 
 # ADR-035 — One Finding, One Proposal

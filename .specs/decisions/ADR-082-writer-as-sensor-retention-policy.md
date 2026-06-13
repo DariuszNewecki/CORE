@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-082
+title: ADR-082 — Writer-as-sensor retention policy
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md -->
 
 # ADR-082 — Writer-as-sensor retention policy

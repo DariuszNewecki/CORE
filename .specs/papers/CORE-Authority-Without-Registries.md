@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Authority-Without-Registries
+title: 'CORE: Authority Without Registries'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: papers/CORE-Authority-Without-Registries.md -->
 
 # CORE: Authority Without Registries

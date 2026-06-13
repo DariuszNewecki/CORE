@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-081
+title: ADR-081 — Per-worker process-isolation classification
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-081-per-worker-process-isolation-classification.md -->
 
 # ADR-081 — Per-worker process-isolation classification

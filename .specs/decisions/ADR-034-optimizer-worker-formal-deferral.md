@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-034
+title: ADR-034 — OptimizerWorker Formal Deferral
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-034-optimizer-worker-formal-deferral.md -->
 
 # ADR-034 — OptimizerWorker Formal Deferral

@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-023
+title: 'ADR-023: Vocabulary canonical store — paper-first, machine projection derived'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-023-vocabulary-canonical-store.md -->
 
 # ADR-023: Vocabulary canonical store — paper-first, machine projection derived

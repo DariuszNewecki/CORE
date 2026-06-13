@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Cognitive-Routing-and-Resource-Selection
+title: CORE Cognitive Routing and Resource Selection
+status: canonical
+doctrine_tier: informational
+---
+
 <!-- path: .specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md -->
 
 # CORE Cognitive Routing and Resource Selection

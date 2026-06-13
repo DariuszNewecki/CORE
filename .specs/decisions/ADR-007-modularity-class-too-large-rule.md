@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-007
+title: 'ADR-007: `modularity.class_too_large` — rule split from `modularity.needs_split`'
+status: accepted
+---
+
 # ADR-007: `modularity.class_too_large` — rule split from `modularity.needs_split`
 
 **Status:** Accepted

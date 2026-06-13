@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-072
+title: 'ADR-072: Quarantine-Drainer Invariant — Every `awaiting_reaudit` Subject Namespace
+  Must Have a Registered Drainer'
+status: accepted
+---
+
 # ADR-072: Quarantine-Drainer Invariant — Every `awaiting_reaudit` Subject Namespace Must Have a Registered Drainer
 
 **Status:** Accepted

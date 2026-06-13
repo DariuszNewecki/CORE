@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-033
+title: ADR-033 — Flow→Step Parameter Routing Contract
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-033-flow-step-parameter-routing-contract.md -->
 
 # ADR-033 — Flow→Step Parameter Routing Contract

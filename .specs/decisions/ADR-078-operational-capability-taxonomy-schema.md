@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-078
+title: ADR-078 — Operational-Capability Taxonomy Schema
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-078-operational-capability-taxonomy-schema.md -->
 
 # ADR-078 — Operational-Capability Taxonomy Schema

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Rule-Conflict-Semantics
+title: CORE Rule Conflict Semantics
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Rule-Conflict-Semantics.md -->
 
 # CORE Rule Conflict Semantics

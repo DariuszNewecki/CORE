@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Workflow-Papers-First
+title: 'CORE Workflow: Papers First, Then Code'
+status: canonical
+doctrine_tier: constitution
+---
+
 <!-- path: .specs/papers/CORE-Workflow-Papers-First.md -->
 
 # CORE Workflow: Papers First, Then Code

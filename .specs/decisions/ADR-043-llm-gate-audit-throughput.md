@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-043
+title: 'ADR-043: llm_gate audit throughput — pre-selector primary, semaphore secondary'
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-043-llm-gate-audit-throughput.md -->
 
 # ADR-043: llm_gate audit throughput — pre-selector primary, semaphore secondary

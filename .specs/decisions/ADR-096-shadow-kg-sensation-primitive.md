@@ -1,3 +1,11 @@
+---
+kind: adr
+id: ADR-096
+title: ADR-096 — Shadow KG sensation primitive; static-vs-runtime engine partition
+  for pre-commit consequence sensing
+status: accepted
+---
+
 <!-- path: .specs/decisions/ADR-096-shadow-kg-sensation-primitive.md -->
 
 # ADR-096 — Shadow KG sensation primitive; static-vs-runtime engine partition for pre-commit consequence sensing
