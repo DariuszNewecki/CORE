@@ -14,12 +14,16 @@ correctly. The underlying run_tests stays in shared/infrastructure
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.validation.test_runner import run_tests
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 @register_action(
@@ -66,6 +70,7 @@ async def action_test_sandbox_validate(
     *,
     source_file: str | None = None,
     test_file: str | None = None,
+    core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
     """Step-1 "is it working" gate for a generated test (#574 dynamic follow-on).
@@ -83,6 +88,13 @@ async def action_test_sandbox_validate(
     the governed source->test mapping — identical to how build.tests resolves it,
     so both act on the same single path. ``test_file`` may be passed directly to
     override (direct invocation / tests).
+
+    ADR-106: when this runs as a step of a *sandboxed* flow, ``core_context`` is
+    the scoped context whose ``git_service.repo_path`` is the hermetic worktree —
+    where the freshly-generated test actually lives. We thread that path to
+    ``run_tests`` so pytest executes inside the worktree, not the main tree
+    (which does not yet have the generated file). Unsandboxed / direct callers
+    leave ``core_context`` None and fall back to the global ``settings.REPO_PATH``.
     """
     if not test_file and source_file:
         from shared.infrastructure.intent.test_coverage_paths import (
@@ -99,7 +111,12 @@ async def action_test_sandbox_validate(
             },
             impact=ActionImpact.WRITE_DATA,
         )
-    result = await run_tests(target=test_file, action_id="test.sandbox_validate")
+    repo_root = None
+    if core_context is not None and core_context.git_service is not None:
+        repo_root = core_context.git_service.repo_path
+    result = await run_tests(
+        target=test_file, action_id="test.sandbox_validate", repo_root=repo_root
+    )
     if not result.ok:
         result.data["violations"] = [
             {

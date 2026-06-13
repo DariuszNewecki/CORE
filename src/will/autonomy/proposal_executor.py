@@ -18,6 +18,7 @@ from typing import Any
 from uuid import UUID
 
 from body.atomic.executor import ActionExecutor
+from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from body.flows.executor import FlowExecutor
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
@@ -178,13 +179,38 @@ class ProposalExecutor:
                         k: v for k, v in action.parameters.items() if k != "write"
                     }
 
+                    flow_target_paths: set[str] | None = None
                     if ref_kind == "flow":
-                        flow_executor = FlowExecutor(self.core_context)
-                        result = await flow_executor.execute(
-                            flow_id=ref_id,
-                            write=write,
-                            **params,
+                        # ADR-106: a flow's steps build on one another (one writes
+                        # a file, the next edits it, the last executes it), so the
+                        # whole flow runs in ONE hermetic worktree — not per step.
+                        # Mutations land in the sandbox; on flow success we
+                        # propagate the production set back to the main tree
+                        # (ADR-101 D2), and on failure the worktree is discarded so
+                        # the main tree is never touched. Closes #629's
+                        # blast-radius + no-rollback symptoms at the root: flow
+                        # proposals previously skipped the sandbox single actions
+                        # have had since ADR-071 D2.2.
+                        sandbox = SandboxLifecycle(self.core_context)
+                        scoped_context, scoped_git = (
+                            sandbox.build_flow_execution_context(
+                                ref_id, write, pre_execution_sha
+                            )
                         )
+                        try:
+                            flow_executor = FlowExecutor(scoped_context)
+                            result = await flow_executor.execute(
+                                flow_id=ref_id,
+                                write=write,
+                                **params,
+                            )
+                            if scoped_git is not None and result.ok:
+                                flow_target_paths = sandbox.propagate_changes(
+                                    scoped_git
+                                )
+                        finally:
+                            if scoped_git is not None:
+                                scoped_git.cleanup()
                     else:
                         # ADR-071 D2.2 Phase 2: thread pre_execution_sha so
                         # write-bearing actions execute in a hermetic worktree
@@ -201,10 +227,26 @@ class ProposalExecutor:
 
                     action_duration = time.time() - action_start
 
+                    result_data = (
+                        result.data
+                        if isinstance(result.data, dict)
+                        else {"result": str(result.data)}
+                    )
+                    if flow_target_paths:
+                        # ADR-106 D2: stamp the flow sandbox production set so
+                        # compute_production_set drives the commit set (ADR-101
+                        # D2). FlowResult.data is a computed property, so the
+                        # persisted action_results entry is stamped, not
+                        # result.data (which would not survive the property).
+                        result_data = {
+                            **result_data,
+                            "_sandbox_target_paths": sorted(flow_target_paths),
+                        }
+
                     action_results[f"{ref_id}:{action.order}"] = {
                         "ok": result.ok,
                         "duration_sec": action_duration,
-                        "data": result.data,
+                        "data": result_data,
                         "order": action.order,
                         "kind": ref_kind,
                     }

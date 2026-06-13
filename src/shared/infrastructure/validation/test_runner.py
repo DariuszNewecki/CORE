@@ -14,6 +14,7 @@ import asyncio
 import json
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from shared.action_types import ActionImpact, ActionResult
@@ -31,6 +32,7 @@ async def run_tests(
     suppress_logging: bool = True,
     target: str | None = None,
     action_id: str = "test.execute",
+    repo_root: Path | None = None,
 ) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
@@ -44,13 +46,20 @@ async def run_tests(
         action_id: action_id stamped on the returned ActionResult and persisted
             evidence, so single-target validation runs are attributed to their
             caller rather than to test.execute.
+        repo_root: Optional root to run pytest against, overriding the global
+            ``settings.REPO_PATH``. ADR-106: when test.sandbox_validate runs as
+            a step of a sandboxed flow, the freshly-generated test exists only
+            inside the hermetic worktree — pytest must run there (``cwd`` and
+            target resolution), not against the main tree. Defaults to
+            ``settings.REPO_PATH`` so the full-suite ``test.execute`` path is
+            unchanged.
     """
     start_time = time.perf_counter()
 
     if not suppress_logging:
         logger.info("🧪 Initiating system test suite...")
 
-    repo_root = settings.REPO_PATH
+    repo_root = repo_root or settings.REPO_PATH
     tests_path = repo_root / "tests"
     pytest_target = str(repo_root / target) if target else str(tests_path)
 

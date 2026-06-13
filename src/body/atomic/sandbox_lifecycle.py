@@ -43,6 +43,45 @@ logger = getLogger(__name__)
 _SANDBOXED_IMPACTS = frozenset({ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA})
 
 
+def _flow_has_sandboxable_step(
+    flow_id: str, _visited: frozenset[str] = frozenset()
+) -> bool:
+    """True if a flow contains ≥1 write-bearing action step (ADR-106 D5).
+
+    Resolves each ACTION step's declared @atomic_action impact and returns
+    True as soon as one is in ``_SANDBOXED_IMPACTS`` (WRITE_CODE/WRITE_METADATA),
+    recursing through nested FLOW steps. Mirrors the per-action gate in
+    ``build_execution_context`` but at flow granularity (ADR-046 D1 — a flow's
+    impact is the max of its steps). Cycle-safe via ``_visited``; an
+    unresolvable flow/action is treated as non-sandboxable (the conservative
+    direction here is "don't create a worktree for a flow that writes nothing").
+    """
+    from body.atomic.registry import action_registry
+    from body.flows.registry import StepKind, flow_registry
+
+    if flow_id in _visited:
+        return False
+    visited = _visited | {flow_id}
+
+    flow_def = flow_registry.get(flow_id)
+    if flow_def is None:
+        return False
+
+    for step in flow_def.steps:
+        if step.kind == StepKind.ACTION:
+            definition = action_registry.get(step.ref_id)
+            metadata = getattr(
+                getattr(definition, "executor", None), "_atomic_action_metadata", None
+            )
+            if metadata is not None and metadata.impact in _SANDBOXED_IMPACTS:
+                return True
+        elif step.kind == StepKind.FLOW and _flow_has_sandboxable_step(
+            step.ref_id, visited
+        ):
+            return True
+    return False
+
+
 # ID: 8c112a60-ad77-431b-9825-dcdcc63afb55
 class SandboxLifecycle:
     """
@@ -118,6 +157,57 @@ class SandboxLifecycle:
         if metadata is None or metadata.impact not in _SANDBOXED_IMPACTS:
             return self.core_context, None
 
+        return self._make_scoped_context(pre_execution_sha, definition.action_id)
+
+    # ID: 7e1a4d92-5c3b-4f08-a6d1-9b2e8c4f7a30
+    def build_flow_execution_context(
+        self,
+        flow_id: str,
+        write: bool,
+        pre_execution_sha: str | None,
+    ) -> tuple[CoreContext, Any]:
+        """Decide whether to sandbox a whole-flow execution (ADR-106 D1).
+
+        The flow-granularity counterpart to ``build_execution_context``. A flow's
+        steps build on one another (one writes a file, the next edits it, the
+        last executes it), so the unit of isolation is the *flow execution*, not
+        the individual action — one worktree spans every step. Returns
+        ``(context_to_pass_to_FlowExecutor, scoped_git_or_None)``; when sandboxing
+        applies the context is a scoped copy with ``git_service`` and
+        ``file_handler`` repointed at a fresh worktree at ``pre_execution_sha``.
+        The caller MUST ``scoped_git.cleanup()`` in a finally block and, on
+        flow success, call ``propagate_changes(scoped_git)``.
+
+        Gate (all required, ADR-106 D5):
+          - pre_execution_sha is not None (autonomous call path)
+          - write is True
+          - the flow contains ≥1 step whose action impact ∈
+            {WRITE_CODE, WRITE_METADATA} (``_flow_has_sandboxable_step``)
+        """
+        if (
+            pre_execution_sha is None
+            or not write
+            or self.core_context.git_service is None
+        ):
+            return self.core_context, None
+
+        if not _flow_has_sandboxable_step(flow_id):
+            return self.core_context, None
+
+        return self._make_scoped_context(pre_execution_sha, flow_id)
+
+    # ID: 4c8f1b6e-2d97-4a53-be0c-5f3a9d72e681
+    def _make_scoped_context(
+        self, pre_execution_sha: str, label: str
+    ) -> tuple[CoreContext, Any]:
+        """Create a worktree at ``pre_execution_sha`` and a scoped CoreContext.
+
+        Shared core of ``build_execution_context`` (per action) and
+        ``build_flow_execution_context`` (per flow): both gate on their own
+        conditions, then build an identical hermetic worktree. ``label`` is the
+        action_id or flow_id, used only for the log line. The caller MUST call
+        ``scoped_git.cleanup()`` in a finally block.
+        """
         from shared.infrastructure.storage.file_handler import FileHandler
 
         scoped_git = self.core_context.git_service.create_worktree(pre_execution_sha)
@@ -134,7 +224,7 @@ class SandboxLifecycle:
         )
         logger.info(
             "SandboxLifecycle: %s sandboxed in %s at sha %s",
-            definition.action_id,
+            label,
             scoped_git.repo_path,
             pre_execution_sha[:12],
         )
