@@ -91,6 +91,23 @@ SELECT
 FROM window_data
 """
 
+# F-19 governor-inbox backlog (#563). Single source of truth — the convergence
+# operand persisted by ObserverWorker AND the live "Governor Inbox" dashboard
+# panel (`cli/resources/runtime/health.py`) read this SAME predicate, so the two
+# numbers cannot drift (mirrors the F19_CONVERGENCE_SQL single-source pattern).
+# COUNT(DISTINCT subject): the governor acts on a subject, not each recycled row.
+# `resolution_mechanism='human'` only: the reaudit queue is machine-handled and
+# already folded into open_findings, so it is not the governor's inbox.
+GOVERNOR_INBOX_SQL = """
+SELECT
+    COUNT(DISTINCT subject) AS governor_inbox,
+    MIN(created_at) AS oldest_delegate
+FROM core.blackboard_entries
+WHERE entry_type = 'finding'
+  AND status = 'indeterminate'
+  AND resolution_mechanism = 'human'
+"""
+
 
 # ID: 1c26b39c-f6d2-4bee-a65c-bb24071ea25c
 class HealthLogService:
@@ -144,22 +161,12 @@ class HealthLogService:
             open_findings: int = r.scalar() or 0
 
             # F-19 governor-inbox backlog (#563, governor call 2026-06-13): the
-            # second backlog component — work the daemon delegated to the human
-            # (`indeterminate` + `resolution_mechanism='human'`). COUNT(DISTINCT
-            # subject) to match the machine-backlog dedup and resist the per-cycle
-            # firehose. The reaudit queue (already folded into open_findings above)
-            # is excluded so the two components do not double-count.
-            r = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(DISTINCT subject) FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND status = 'indeterminate'
-                      AND resolution_mechanism = 'human'
-                    """
-                )
-            )
-            governor_inbox: int = r.scalar() or 0
+            # second backlog component — work the daemon delegated to the human.
+            # Reads GOVERNOR_INBOX_SQL, the single source the dashboard panel also
+            # reads, so the persisted operand and the live "Governor Inbox" number
+            # cannot drift.
+            gi_row = (await session.execute(text(GOVERNOR_INBOX_SQL))).fetchone()
+            governor_inbox: int = gi_row.governor_inbox if gi_row else 0
 
             r = await session.execute(
                 text(

@@ -30,7 +30,7 @@ from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import text
 
-from body.services.health_log_service import F19_CONVERGENCE_SQL
+from body.services.health_log_service import F19_CONVERGENCE_SQL, GOVERNOR_INBOX_SQL
 from body.services.worker_registry_service import WorkerRegistryService
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
@@ -471,20 +471,11 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     }
 
     # --- Panel 2: Governor Inbox ---
-    inbox_row = (
-        await session.execute(
-            text("""
-            SELECT
-                COUNT(*) FILTER (
-                    WHERE bb.status = 'indeterminate' AND bb.entry_type = 'finding'
-                ) AS delegate_count,
-                MIN(bb.created_at) FILTER (
-                    WHERE bb.status = 'indeterminate' AND bb.entry_type = 'finding'
-                ) AS oldest_delegate
-            FROM core.blackboard_entries bb
-            """),
-        )
-    ).fetchone()
+    # Reads GOVERNOR_INBOX_SQL — the SAME predicate ObserverWorker persists as the
+    # F-19 governor-inbox backlog component (#563), so the dashboard number and the
+    # convergence operand cannot drift. Distinct `indeterminate`+`human` subjects
+    # (was: a raw row count over any-mechanism indeterminate findings).
+    inbox_row = (await session.execute(text(GOVERNOR_INBOX_SQL))).fetchone()
     approval_row = (
         await session.execute(
             text("""
@@ -496,7 +487,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             """),
         )
     ).fetchone()
-    delegate_count = inbox_row.delegate_count if inbox_row else 0
+    delegate_count = inbox_row.governor_inbox if inbox_row else 0
     oldest_delegate = inbox_row.oldest_delegate if inbox_row else None
     approval_count = approval_row.approval_count if approval_row else 0
     oldest_approval = approval_row.oldest_approval if approval_row else None
