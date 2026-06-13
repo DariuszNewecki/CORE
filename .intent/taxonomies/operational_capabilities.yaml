@@ -394,7 +394,7 @@ capabilities:
       delete: []
 
   test.execute:
-    description: pytest runner — executes tests, persists results to DB and var/reports/. Renamed from test_execution per ADR-078 D7.
+    description: pytest runner — executes tests, persists results to DB and to var/logs/tests.jsonl + var/reports/test_failures.json. Renamed from test_execution per ADR-078 D7.
     risk: moderate
     fs_profile:
       read:
@@ -402,8 +402,29 @@ capabilities:
         - {path_pattern: "tests/**", modes: [dev, live]}
       create:
         - {path_pattern: "var/reports/test_results/**", modes: [dev, live]}
-      modify: []
-      delete: []
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+        - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
+      modify:
+        - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+      delete:
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+
+  test.sandbox_validate:
+    description: Single-file generated-test gate (#574 dynamic follow-on) — runs run_tests on one target; persists evidence to DB and to var/logs/tests.jsonl + var/reports/test_failures.json, identical write surface to test.execute.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: "tests/**", modes: [dev, live]}
+      create:
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+        - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
+      modify:
+        - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+      delete:
+        - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
 
   test.system:
     description: Test-execution dispatcher — delegates to test.execute; own fs_profile empty (FS authorization resolves at runtime against the dispatched capability).

@@ -26,7 +26,7 @@ from shared.infrastructure.validation.test_runner import run_tests
     action_id="test.execute",
     description="Run the pytest test suite and persist results as Constitutional Evidence",
     category=ActionCategory.CHECK,
-    policies=["atomic_actions"],
+    policies=["rules/code/purity"],
     requires_db=True,
     requires_vectors=False,
 )
@@ -51,7 +51,7 @@ async def action_test_execute(**kwargs: Any) -> ActionResult:
     action_id="test.sandbox_validate",
     description="Execute a single generated test file in isolation; reject if it fails to collect or run",
     category=ActionCategory.CHECK,
-    policies=["atomic_actions"],
+    policies=["rules/code/purity"],
     requires_db=True,
     requires_vectors=False,
 )
