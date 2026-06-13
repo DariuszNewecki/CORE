@@ -184,3 +184,14 @@ change focused on D1–D5. Tracked in #630.
   step-failure, (c) mutates only the worktree mid-flight.
 - Post-deploy: a live `flow.build_tests` proposal that fails the `test.sandbox_validate` gate
   leaves `git status` clean (no reformatted tests, no leftover `test_generated.py`).
+
+**Verified live (2026-06-13).** Implemented in commit `ddeef371`; daemon redeployed on it. A
+controlled `flow.build_tests` proposal (`audit_violation_normalizer`) was triggered: it went
+`approved → executing → failed`, a sandbox worktree was observed during execution
+(`git worktree list` showed one `core-action-sandbox` entry), the main tree stayed dirty-count
+0 throughout (vs. 26 reformatted files on the pre-fix run), the worktree was cleaned up on
+failure (none leaked), and no `_sandbox_target_paths` were stamped (correct — propagate runs
+only on success). The flow failed at `build.tests` (IntentGuard rejected the generated test), so
+the failure-isolation + rollback path is confirmed end-to-end; the `fix.*`/pytest-in-worktree
+*success* path is exercised when a generation passes the gate (gated behind #630 + scope
+re-open).
