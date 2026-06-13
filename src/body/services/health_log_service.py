@@ -6,6 +6,15 @@ core.system_health_log writes.
 Covers:
   - ObserverWorker._collect_state (all four count queries)
   - ObserverWorker._write_health_log
+
+F-19 backlog vector (#563, governor call 2026-06-13): the convergence goal is
+re-anchored onto open-backlog *net trajectory*, evaluated as two components both
+flat-or-declining — machine backlog (`open_findings`, the open + reaudit-queue
+count) and governor-inbox backlog (`governor_inbox`, distinct `indeterminate` +
+`resolution_mechanism='human'` subjects). `governor_inbox` is persisted into
+`system_health_log.payload` beside `flow_24h` so its 30-day trajectory is
+observable, not only the machine half ("persistence mirrors metric definition").
+See `.specs/planning/CORE-Operational-Completeness.md` §2.2 note (6).
 """
 
 from __future__ import annotations
@@ -134,6 +143,24 @@ class HealthLogService:
             )
             open_findings: int = r.scalar() or 0
 
+            # F-19 governor-inbox backlog (#563, governor call 2026-06-13): the
+            # second backlog component — work the daemon delegated to the human
+            # (`indeterminate` + `resolution_mechanism='human'`). COUNT(DISTINCT
+            # subject) to match the machine-backlog dedup and resist the per-cycle
+            # firehose. The reaudit queue (already folded into open_findings above)
+            # is excluded so the two components do not double-count.
+            r = await session.execute(
+                text(
+                    """
+                    SELECT COUNT(DISTINCT subject) FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'indeterminate'
+                      AND resolution_mechanism = 'human'
+                    """
+                )
+            )
+            governor_inbox: int = r.scalar() or 0
+
             r = await session.execute(
                 text(
                     """
@@ -195,6 +222,7 @@ class HealthLogService:
 
         return {
             "open_findings": open_findings,
+            "governor_inbox": governor_inbox,
             "stale_entries": stale_entries,
             "silent_workers": silent_workers,
             "orphaned_symbols": orphaned_symbols,
@@ -230,6 +258,11 @@ class HealthLogService:
                         "stale_entries": state["stale_entries"],
                         "silent_workers": state["silent_workers"],
                         "orphaned_symbols": state["orphaned_symbols"],
-                        "payload": json.dumps({"flow_24h": state.get("flow_24h", {})}),
+                        "payload": json.dumps(
+                            {
+                                "flow_24h": state.get("flow_24h", {}),
+                                "governor_inbox": state.get("governor_inbox", 0),
+                            }
+                        ),
                     },
                 )
