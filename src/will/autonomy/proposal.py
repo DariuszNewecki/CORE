@@ -173,14 +173,37 @@ class ProposalAction:
         return False
 
 
-def _compute_flow_risk(flow_id: str, _visited: frozenset[str] = frozenset()) -> str:
+def _resolve_impact(action_id: str, risk_mapping: dict[str, str]) -> str:
+    """Resolve an action's governed impact_level from the action_risk mapping.
+
+    ADR-008: impact_level is governed externally in
+    .intent/enforcement/config/action_risk.yaml — never read from code or
+    from registry-overlay state. The registry's ActionDefinition.impact_level
+    field is only populated as a side-effect of ActionExecutor.__init__
+    (executor.apply_risk_config), so any risk computation that runs before an
+    executor exists in the process — as TestRemediatorWorker does — would read
+    an empty string and silently misclassify. Resolving straight from the
+    governed mapping decouples risk computation from executor-init ordering.
+
+    Unknown / unmapped action_ids fail closed to "moderate" — an
+    unclassified action is never treated as safe.
+    """
+    return risk_mapping.get(action_id, "moderate")
+
+
+def _compute_flow_risk(
+    flow_id: str,
+    risk_mapping: dict[str, str],
+    _visited: frozenset[str] = frozenset(),
+) -> str:
     """Resolve a flow's risk as the max impact of its constituent steps.
 
+    Impact for each ACTION step is resolved from the governed action_risk
+    mapping (ADR-008) via _resolve_impact, not from registry-overlay state.
     Recurses through nested flow steps. Cycle-safe via _visited tracker.
     Falls back to "moderate" (conservative) when a flow cannot be resolved
     or a cycle is detected. ADR-046 D1.
     """
-    from body.atomic.registry import action_registry
     from body.flows.registry import StepKind, flow_registry
 
     if flow_id in _visited:
@@ -198,10 +221,9 @@ def _compute_flow_risk(flow_id: str, _visited: frozenset[str] = frozenset()) -> 
     max_level = 0
     for step in flow_def.steps:
         if step.kind == StepKind.ACTION:
-            action_def = action_registry.get(step.ref_id)
-            impact = action_def.impact_level if action_def else "moderate"
+            impact = _resolve_impact(step.ref_id, risk_mapping)
         elif step.kind == StepKind.FLOW:
-            impact = _compute_flow_risk(step.ref_id, visited)
+            impact = _compute_flow_risk(step.ref_id, risk_mapping, visited)
         else:
             impact = "moderate"
         max_level = max(max_level, risk_levels.get(impact, 1))
@@ -352,20 +374,32 @@ class Proposal:
             RiskAssessment with overall risk and factors
         """
         from body.atomic.registry import action_registry
+        from shared.infrastructure.intent.action_risk import load_action_risk
 
         action_risks = {}
         risk_factors = []
 
-        # Gather impact levels — Actions resolve via ActionRegistry; Flows
-        # resolve via FlowRegistry as the max impact of constituent steps
-        # (ADR-046 D1). Falls back to "moderate" for unresolvable flows.
+        # Impact is governed externally (ADR-008): resolve it from the
+        # action_risk mapping, NOT from ActionDefinition.impact_level, which is
+        # only populated as a side-effect of ActionExecutor.__init__ and is
+        # therefore empty in risk-compute contexts that run before any executor
+        # exists (e.g. TestRemediatorWorker). Loaded once and threaded through
+        # the flow recursion. See _resolve_impact.
+        risk_mapping = load_action_risk()
+
+        # Gather impact levels — Actions resolve directly; Flows resolve via
+        # FlowRegistry as the max impact of constituent steps (ADR-046 D1).
+        # Falls back to "moderate" for unresolvable flows / unmapped actions.
         for action in self.actions:
             if action.action_id is not None:
-                definition = action_registry.get(action.action_id)
-                if definition:
-                    action_risks[action.action_id] = definition.impact_level
+                if action_registry.get(action.action_id) is not None:
+                    action_risks[action.action_id] = _resolve_impact(
+                        action.action_id, risk_mapping
+                    )
             elif action.flow_id is not None:
-                action_risks[action.flow_id] = _compute_flow_risk(action.flow_id)
+                action_risks[action.flow_id] = _compute_flow_risk(
+                    action.flow_id, risk_mapping
+                )
 
         # Determine overall risk (highest action risk). Input keys are
         # action_risk vocabulary (impact_level values from
