@@ -116,6 +116,13 @@ discipline layer: defensibility of the *decision*, not just the output.** The
 external corrective is *falsifiability of the stated reason*, spot-checked — not
 a human in every loop.
 
+**This anchor generalizes.** "Cite a falsifiable ground; adversarially sample
+whether it holds" is not specific to dispositions — applied to every visibility
+instrument (conformance audit, runtime vitality, CCC coherence) it becomes the
+*no silent instrument* principle: an instrument may not report a clean number
+while having silently stopped measuring. This paper writes that rule scoped to
+one surface; `CORE-Instrument-Attestation` lifts it to all of them.
+
 ### 3.5 The composite — so it never collapses to throughput
 
 Never optimise one number. Health is a **vector**, and the system alarms on the
