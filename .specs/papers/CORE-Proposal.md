@@ -19,8 +19,21 @@ execute one or more Actions.
 
 A Proposal is the unit of authorized action in CORE.
 
-Nothing executes in CORE without a Proposal. A Worker that executes
-directly — without creating a Proposal — is in constitutional violation.
+Nothing in the autonomous mutation class executes in CORE without a
+Proposal. A Worker that mutates governed artifacts on the basis of a
+fresh remediation or generation decision — and executes directly,
+without creating a Proposal — is in constitutional violation.
+
+Execution under a worker's own *declared* authority is outside this
+class and is not Proposal-gated: declared Flows invoking their
+registered AtomicActions in declared order (CORE-Flow §9);
+writer-as-sensor sensors that reap or sync their own projection inline,
+because the writer is already constitutionally permitted to mutate it
+(ADR-070 D4/D8); and scheduled hygiene, sync, and observability workers
+running their declared-cadence actions and emitting findings. In each
+case the authority is declared up front — in the worker, Flow, or
+projection-inventory declaration — not requested per action, so no
+Proposal mediates it.
 
 A Proposal is created by an acting Worker. It is authorized by the
 constitutional approval model. It is executed by the ConsumerWorker.

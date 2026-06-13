@@ -135,7 +135,11 @@ rule engine.
 Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Two-tier authority model: Constitutional (highest) and Policy. Constitutional
-rules require dual-key amendment. Policy rules are governed by the current
+rules require dual-key amendment — a propose step distinct from an accept step,
+each independently authorized. In multi-governor deployments (Team tier and
+above) the two keys are held by distinct principals; Single-Governor Local
+deployments (ADR-068 D4) satisfy the requirement via the same two-step protocol
+executed by the sole governor. Policy rules are governed by the current
 governor. No AI component can create, modify, or suppress a rule at either
 authority level. Rule authority is declared, not inferred.
 
