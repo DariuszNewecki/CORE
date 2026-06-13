@@ -184,3 +184,118 @@ def test_sandbox_validate_threads_scoped_repo_root() -> None:
     source = inspect.getsource(test_actions)
     assert "git_service.repo_path" in source
     assert "repo_root=repo_root" in source
+
+
+# ---- ADR-107: flow commit set is declared production -----------------------
+
+
+# ID: 8d2f4a91-6c37-4b50-a1e8-3f9d7c2e5b64
+def test_propagate_only_paths_discards_incidental_churn(repo: Path) -> None:
+    """ADR-107 D3: propagate_changes(only_paths=...) copies only the declared
+    output; an incidental change to another file (the fix.format blast-radius
+    shape) stays sandbox-local and never reaches the main tree.
+
+    Uses two committed .py files (both pass the main-repo IntentGuard the
+    scoped FileHandler reuses): scope.py is the declared output, other.py is
+    the incidental churn.
+    """
+    (repo / "other.py").write_text("# other original\n")
+    _run(["git", "add", "other.py"], repo)
+    _run(["git", "commit", "-m", "add other"], repo)
+
+    sandbox, ctx = _make_sandbox(repo)
+    sha = ctx.git_service.get_current_commit()
+    _scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
+        "flow.build_tests", write=True, pre_execution_sha=sha
+    )
+    try:
+        wt = Path(scoped_git.repo_path)
+        (wt / "scope.py").write_text("# DECLARED OUTPUT\n")  # declared
+        (wt / "other.py").write_text("# INCIDENTAL REFORMAT\n")  # incidental churn
+
+        propagated = sandbox.propagate_changes(scoped_git, only_paths={"scope.py"})
+
+        assert propagated == {"scope.py"}
+        # Declared output reached main ...
+        assert (repo / "scope.py").read_text() == "# DECLARED OUTPUT\n"
+        # ... incidental churn did NOT — main still has the original bytes.
+        assert (repo / "other.py").read_text() == "# other original\n"
+    finally:
+        if scoped_git is not None:
+            scoped_git.cleanup()
+
+
+# ID: 1a7e3c95-4d68-4f02-b9a1-6c5e2d8f4b37
+def test_declared_production_unions_files_produced() -> None:
+    """ADR-107 D1: the flow production set is the union of steps' files_produced."""
+    from body.flows.result import FlowResult, StepResult
+    from will.autonomy.proposal_executor import _declared_production
+
+    fr = FlowResult(
+        flow_id="flow.build_tests",
+        ok=True,
+        steps=[
+            StepResult(
+                ref_id="build.tests",
+                required=True,
+                ok=True,
+                data={
+                    "test_file": "tests/x/test_generated.py",
+                    "files_produced": ["tests/x/test_generated.py"],
+                },
+            ),
+            StepResult(
+                ref_id="fix.format", required=False, ok=True, data={"formatted": True}
+            ),
+        ],
+    )
+    assert _declared_production(fr) == {"tests/x/test_generated.py"}
+
+
+# ID: 6b9d2f47-8a13-4e56-90c2-1f7a5e3d8b09
+def test_declared_production_none_when_no_step_declares() -> None:
+    """ADR-107 D4: a flow whose steps declare no files_produced returns None so
+    propagate falls back to the full worktree diff (un-migrated flows)."""
+    from body.flows.result import FlowResult, StepResult
+    from will.autonomy.proposal_executor import _declared_production
+
+    fr = FlowResult(
+        flow_id="flow.legacy",
+        ok=True,
+        steps=[
+            StepResult(ref_id="some.fix", required=False, ok=True, data={"ok": True}),
+            StepResult(
+                ref_id="test.sandbox_validate",
+                required=True,
+                ok=True,
+                data={"summary": "ok"},
+            ),
+        ],
+    )
+    assert _declared_production(fr) is None
+
+
+# ID: 3f8c1e74-9b25-4a60-b8d3-5e2a7c9f4d18
+def test_build_tests_declares_files_produced_on_write() -> None:
+    """ADR-107 D2: build.tests declares its single authored file as
+    files_produced (only on write — a dry-run authors nothing)."""
+    from body.atomic import build_tests_action
+
+    source = inspect.getsource(build_tests_action)
+    assert "files_produced" in source
+    assert "[test_file] if write else []" in source
+
+
+# ID: 9c4a6e23-1d87-4b59-a0f6-2e8b5d3c7f41
+def test_proposal_executor_passes_declared_production_to_propagate() -> None:
+    """ADR-107 D3 wiring: the flow branch derives the declared production and
+    passes it as the propagate allowlist."""
+    from will.autonomy import proposal_executor as pe
+
+    source = inspect.getsource(pe)
+    assert "_declared_production(" in source, (
+        "ADR-107 D1/D3: flow branch must derive the declared production set"
+    )
+    assert "only_paths=" in source, (
+        "ADR-107 D3: declared production must be passed as the propagate allowlist"
+    )

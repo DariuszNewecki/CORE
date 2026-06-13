@@ -351,6 +351,12 @@ async def action_build_tests(
             "source_file": source_file,
             "test_file": test_file,
             "write": write,
+            # ADR-107 D2: declare the one file this action authored. The flow
+            # propagate step (ADR-107 D3) uses files_produced as the
+            # authoritative production set, so a successful flow commits exactly
+            # this test — not the incidental fix.* worktree churn around it.
+            # Only on write: a dry-run authors nothing.
+            "files_produced": [test_file] if write else [],
         },
         duration_sec=time.time() - start,
     )

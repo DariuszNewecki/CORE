@@ -44,6 +44,31 @@ from will.autonomy.proposal_state_manager import ProposalStateManager
 logger = getLogger(__name__)
 
 
+def _declared_production(flow_result: Any) -> set[str] | None:
+    """Union of a flow's steps' declared production (ADR-107 D1).
+
+    Reads ``files_produced`` from each step's result data and returns the union
+    as an allowlist for ``propagate_changes``. Returns ``None`` when NO step
+    declares production (the key is absent on every step) — the ADR-107 D4
+    fallback that keeps un-migrated flows on the full worktree-diff behavior.
+    A step that declares ``files_produced`` (even an empty list) counts as
+    opted in, so a flow whose only writer wrote nothing propagates nothing
+    rather than falling back to the whole diff.
+    """
+    declared: set[str] = set()
+    any_declared = False
+    for step in getattr(flow_result, "steps", None) or []:
+        data = step.data if isinstance(step.data, dict) else {}
+        produced = data.get("files_produced")
+        if produced is None:
+            continue
+        any_declared = True
+        for path in produced:
+            if isinstance(path, str) and path:
+                declared.add(path)
+    return declared if any_declared else None
+
+
 # ID: 69e9d2f1-3246-4a09-a5a8-fc0e1e882f47
 class ProposalExecutor:
     """
@@ -205,8 +230,15 @@ class ProposalExecutor:
                                 **params,
                             )
                             if scoped_git is not None and result.ok:
+                                # ADR-107 D1/D3/D4: a flow commits its steps'
+                                # DECLARED production (files_produced), not the
+                                # worktree diff — so incidental fix.* churn stays
+                                # sandbox-local. When no step declares production,
+                                # only_paths stays None and propagate falls back
+                                # to the full diff (D4, un-migrated flows).
+                                declared = _declared_production(result)
                                 flow_target_paths = sandbox.propagate_changes(
-                                    scoped_git
+                                    scoped_git, only_paths=declared
                                 )
                         finally:
                             if scoped_git is not None:

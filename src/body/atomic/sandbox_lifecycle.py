@@ -231,7 +231,9 @@ class SandboxLifecycle:
         return scoped_context, scoped_git
 
     # ID: b1d2c5f9-3a48-4e67-8b91-2c5f8a3d6e90
-    def propagate_changes(self, scoped_git: Any) -> set[str]:
+    def propagate_changes(
+        self, scoped_git: Any, only_paths: set[str] | None = None
+    ) -> set[str]:
         """Copy files modified inside the sandbox back to the main tree.
 
         Returns the set of paths the sandbox observed as modified or
@@ -242,6 +244,17 @@ class SandboxLifecycle:
         Empty set is returned when the sandbox produced nothing or when
         the sandbox's own status read failed (loud-failure cases raise
         before reaching the return statement).
+
+        ``only_paths`` (ADR-107 D3): when supplied, the copy-back is
+        restricted to this allowlist — the worktree's observed changes are
+        intersected with it, so files the sandbox changed *incidentally*
+        (e.g. a formatter reformatting unrelated files) stay sandbox-local
+        and are discarded with the worktree, never propagated. A declared
+        path that the worktree did not actually change is a no-op, not a
+        failure. The per-action path leaves ``only_paths=None`` and
+        propagates its full diff (an action's only change is its output);
+        the flow path supplies the union of its steps' ``files_produced``
+        (ADR-107 D1).
 
         Walks `scoped_git.status_porcelain()` and for each modified or
         untracked entry, copies the worktree-side bytes through the main
@@ -301,6 +314,20 @@ class SandboxLifecycle:
                 )
                 continue
             target_paths.add(rel)
+
+        # ADR-107 D3: bound the production set to the declared-output allowlist.
+        # Incidental sandbox churn (paths the worktree changed but no step
+        # declared as produced) is dropped here — it is discarded with the
+        # worktree, never reaching the main tree.
+        if only_paths is not None:
+            dropped = target_paths - only_paths
+            target_paths &= only_paths
+            if dropped:
+                logger.info(
+                    "SandboxLifecycle: discarding %d incidental sandbox change(s) "
+                    "outside the declared production set (ADR-107)",
+                    len(dropped),
+                )
 
         if not target_paths:
             return set()
