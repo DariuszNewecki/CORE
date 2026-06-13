@@ -59,8 +59,11 @@ reconnaissance for governor review.
 **Tests are part of the change.** Signature/behavior change in `src/` → update the
 corresponding test in the same change. New public function/class → at least basic tests. You
 cannot run `pytest` (governor verifies) but you must author the tests. Do not rely on the
-autonomous test-gen loop to compensate: it has an import-validation gap (#574) and ~30%
-semantic-miscapture (#572); signature drift accumulates silently (#572 Cat B, ~80–100 tests).
+autonomous test-gen loop to compensate: it is deliberately scope-limited to a single-file
+pilot (`include_files` in `.intent/enforcement/config/test_coverage.yaml`), so it does not
+cover most of `src/`. Its write-time gates have since hardened — import-resolution + shape
+checks (#574, #589) plus a `test.sandbox_validate` execution gate that rejects generated
+tests which fail to run — but until that scope opens, tests for your change are on you.
 Minimum-scope does **not** exempt test updates.
 
 **Complete files, not diffs.** Output the complete file content in a fenced block labelled
