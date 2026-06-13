@@ -23,16 +23,14 @@ excluded_filenames:
 # Scope limiter — if non-empty, only these files are scanned.
 # Remove or leave empty to scan the full source_root.
 #
-# Incremental scope-opening (2026-06-13): the test-gen loop is now hardened on
-# both axes — static pre-write (IntentGuard import-resolution + #589 shape
-# checks) and dynamic post-heal (test.sandbox_validate, the required final step
-# of flow.build_tests; a non-zero pytest exit halts the flow and blocks the
-# autonomous commit). The single-file pilot proved the loop; the trio below is
-# the first measured widening — diverse autogen surfaces (one pure function, one
-# async normalizer, one mixed pure+async worker) to watch the dynamic gate work
-# before broadening further. Open in small batches, not all at once.
+# Scope narrowed back to the single proven file (2026-06-13, reverting the
+# 1->4 widening in 3c6482ff). The widening run validated the loop end-to-end —
+# the risk-compute fix unblocked auto-approval and the dynamic gate
+# (test.sandbox_validate) correctly rejected the generated tests that failed to
+# run — but it also exposed a blast-radius bug (#629): flow.build_tests's fix.*
+# steps reformat the entire tests/ tree instead of just the generated file, and
+# build.tests output is not rolled back when a downstream gate fails. Re-open
+# scope beyond this single file only after #629 is fixed, so the daemon cannot
+# re-pollute the working tree on each generation.
 include_files:
   - "src/will/workers/blackboard_shop_manager.py"
-  - "src/will/workers/audit_violation_filter.py"
-  - "src/will/workers/audit_violation_normalizer.py"
-  - "src/will/workers/circuit_breaker.py"
