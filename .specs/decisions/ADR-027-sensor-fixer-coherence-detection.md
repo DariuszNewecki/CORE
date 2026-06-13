@@ -1,11 +1,9 @@
 # ADR-027 — Sensor-fixer coherence detection via consequence chain query
 
-| Field | Value |
-|-------|-------|
-| **Date** | 2026-05-07 |
-| **Status** | Accepted |
-| **Authority** | Architecture |
-| **Closes** | Issue #114 |
+**Date:** 2026-05-07
+**Status:** Accepted
+**Authority:** Architecture
+**Closes:** Issue #114
 
 ---
 

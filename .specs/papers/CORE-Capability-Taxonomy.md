@@ -1,5 +1,7 @@
 # CORE Capability Taxonomy
 
+**Status:** Canonical
+
 ## Abstract
 
 CORE relies on a controlled vocabulary of **capabilities** to match cognitive roles with execution resources. Capabilities represent the technical abilities required to perform a cognitive responsibility. By standardizing this vocabulary, CORE ensures that routing, observability, and performance measurement remain stable even as models evolve.

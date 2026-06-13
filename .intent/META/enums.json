@@ -349,6 +349,59 @@
         "audit_evidence",
         "governed_change_evidence"
       ]
+    },
+    "document_kind": {
+      "description": "Class of a .specs/ governance document (ADR-105 D5). Distinct from the .intent/ document `kind` enum in GLOBAL-DOCUMENT-META-SCHEMA.json (rule_document, worker, flow, …), which classes runtime-consumed law; document_kind classes human- and CCC-consumed architectural reasoning under .specs/. Consumed via $ref by the per-class header schemas under .specs/META/. The .specs/ document-header validator fails closed on a value outside this enum.",
+      "type": "string",
+      "enum": [
+        "adr",
+        "paper",
+        "requirement",
+        "planning",
+        "charter",
+        "northstar"
+      ]
+    },
+    "document_status": {
+      "description": "Superset of documentary/epistemic lifecycle states for .specs/ documents (ADR-105 D5). DELIBERATELY NOT the operational .intent/ status vocabulary (draft/active/deprecated — see artifact_status, worker_status): a .specs document is architectural reasoning, not loaded law, so its lifecycle is 'is this reasoning accepted / canonical / superseded', not 'is this artifact active in the runtime'. Per-class subsets narrow this superset (adr_status, paper_status); requirements/planning subsets are deferred per ADR-105 D8. The operational-vs-documentary distinction is the core of ADR-105.",
+      "type": "string",
+      "enum": [
+        "draft",
+        "proposed",
+        "accepted",
+        "canonical",
+        "superseded",
+        "retired"
+      ]
+    },
+    "adr_status": {
+      "description": "Subset of document_status valid for ADRs (.specs/decisions/ADR-*.md). An ADR is proposed → accepted, then superseded (replaced by a later ADR) or retired (withdrawn). Mirrors the observed corpus (Accepted dominant; Proposed; Superseded/Retired markers). Consumed via $ref by .specs/META/adr.header.schema.json. ADR-105 D5.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "accepted",
+        "superseded",
+        "retired"
+      ]
+    },
+    "paper_status": {
+      "description": "Subset of document_status valid for papers (.specs/papers/CORE-*.md). A paper is draft → canonical (in-force doctrine), then superseded or retired. Replaces the ungoverned free-text paper Status tail (Canonical / Draft (Greenfield) / Constitutional Paper / Authoritative / …) that #627 surfaced. Consumed via $ref by .specs/META/paper.header.schema.json. ADR-105 D5.",
+      "type": "string",
+      "enum": [
+        "draft",
+        "canonical",
+        "superseded",
+        "retired"
+      ]
+    },
+    "doctrine_tier": {
+      "description": "Doctrinal binding weight of a .specs/ document (ADR-105 D3, Option B). DISTINCT enum from the .intent/ `authority` vocabulary (meta/constitution/policy/code), which names an enforcement layer: a .specs document enforces nothing, so its tier names how binding its reasoning is on downstream artifacts. constitution = constitutional doctrine (highest); foundational = load-bearing premise cited as authority by accepted artifacts; informational = context/landscape/commercial framing, non-binding. The token is deliberately NOT `authority` to prevent the cross-tree semantic collision a shared label would cause (ADR-105 Context); note the sets are not identical — doctrine_tier needs `informational` and does not use `code`.",
+      "type": "string",
+      "enum": [
+        "constitution",
+        "foundational",
+        "informational"
+      ]
     }
   }
 }

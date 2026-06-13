@@ -61,6 +61,8 @@ mandate:
       - intent_yaml
       - intent_json
       - spec_markdown
+      - adr
+      - paper
     domains:
       - knowledge
       - governance

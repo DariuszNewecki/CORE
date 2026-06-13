@@ -2,7 +2,7 @@
 
 # CORE-Governance-Topology
 
-**Status:** Accepted
+**Status:** Canonical
 **Date drafted:** 2026-05-26
 **Date accepted:** 2026-05-26
 **Drafter:** Claude (CCC backlog review session 2026-05-26)

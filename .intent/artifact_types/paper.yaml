@@ -1,0 +1,28 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: paper
+title: Architectural reasoning paper
+description: >
+  Paper markdown under .specs/papers/ — architectural-reasoning doctrine.
+  Modeled subtype of the broader .specs markdown surface (ADR-105 D4): carries
+  a typed YAML frontmatter header validated against
+  .specs/META/paper.header.schema.json, with both status and doctrine_tier
+  mandatory and orthogonal (the #627 conflation fix). Discovery overlaps the
+  spec_markdown supertype by design (ADR-105 implementation note — additive,
+  not replace); both route to the same core-specs collection, so the overlap
+  is benign (content-hash dedup). spec_markdown remains the discovery universe
+  the CCC checks consume; this type adds the header model on top.
+
+discovery:
+  - ".specs/papers/CORE-*.md"
+
+identity_key: path
+schema_ref: ".specs/META/paper.header.schema.json"   # ADR-105 D6 hook 1 — repo-root-relative; consumer lands with the migration
+change_record: text_diff
+vector_collection: core-specs   # matches spec_markdown — keeps the discovery overlap benign
+crawler_indexed: true
+
+supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+  - repo_crawler
+supported_actions: []   # F-43 forward (ADR-090 D5)

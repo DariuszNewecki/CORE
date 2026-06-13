@@ -1,0 +1,62 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.specs.adr.header.schema.json",
+    "title": "CORE ADR document header (ADR-105 D5/D7)",
+    "description": "Validates the YAML frontmatter header of an ADR under .specs/decisions/ADR-*.md. Authored by ADR-105. The prose body is unconstrained; this schema governs only the structured header block. Consumed via the `adr` artifact type's schema_ref by the .specs/ document-header validator (ADR-105 D6 hook 1, built alongside the frontmatter migration). doctrine_tier is optional for ADRs (an ADR's bindingness is carried by its accepted-decision status; the tier axis is load-bearing chiefly for papers, per the #627 finding); status is required.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "kind",
+        "id",
+        "title",
+        "status"
+    ],
+    "properties": {
+        "kind": {
+            "const": "adr"
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]+$"
+        },
+        "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+        },
+        "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+        },
+        "status": {
+            "$ref": "../../.intent/META/enums.json#/definitions/adr_status"
+        },
+        "doctrine_tier": {
+            "$ref": "../../.intent/META/enums.json#/definitions/doctrine_tier"
+        },
+        "supersedes": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "ADR id this supersedes (inherits its grounding), or null."
+        },
+        "depends_on": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "grounding": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Grounding-paper ids. The ADR-049 D2 obligation as a typed field; the CCC enforces 'accepted ADR must declare grounding or supersedes' (ADR-105 D6 hook 2)."
+        },
+        "date": {
+            "type": "string"
+        }
+    }
+}

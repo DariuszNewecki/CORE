@@ -177,6 +177,8 @@ classifications:
   # The universal artifact-type definitions consumed by sensors and
   # validators. Framework: the type vocabulary ships with CORE.
   # ---------------------------------------------------------------------
+  - path: .intent/artifact_types/adr.yaml
+    governance_namespace: framework
   - path: .intent/artifact_types/doc.yaml
     governance_namespace: framework
   - path: .intent/artifact_types/infra.yaml
@@ -184,6 +186,8 @@ classifications:
   - path: .intent/artifact_types/intent_json.yaml
     governance_namespace: framework
   - path: .intent/artifact_types/intent_yaml.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/paper.yaml
     governance_namespace: framework
   - path: .intent/artifact_types/prompt.yaml
     governance_namespace: framework

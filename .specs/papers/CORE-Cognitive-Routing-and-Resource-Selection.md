@@ -2,6 +2,8 @@
 
 # CORE Cognitive Routing and Resource Selection
 
+**Status:** Canonical
+
 ## Abstract
 
 CORE must often choose between multiple eligible execution resources capable of fulfilling a cognitive role. This paper defines the constitutional principles governing how CORE selects among those resources while preserving governance, observability, and architectural neutrality.

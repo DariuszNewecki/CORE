@@ -2,7 +2,7 @@
 
 # V2 Command Pattern Reference
 
-**Status**: PRODUCTION READY
+**Status:** Canonical
 **Reference Implementation**: `core-admin fix clarity`
 **Location**: `src/body/cli/commands/fix/clarity.py` + `src/features/self_healing/clarity_service_v2.py`
 **Compliance**: 95% V2 Architecture

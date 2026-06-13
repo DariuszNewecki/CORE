@@ -1,5 +1,7 @@
 # CORE Cognitive Role–Capability–Resource Taxonomy
 
+**Status:** Canonical
+
 ## Abstract
 
 CORE separates **cognitive responsibility**, **technical ability**, and **execution engines** in order to maintain governance, observability, and replaceability of AI systems.

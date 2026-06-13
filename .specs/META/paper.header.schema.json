@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.specs.paper.header.schema.json",
+    "title": "CORE paper document header (ADR-105 D5/D7)",
+    "description": "Validates the YAML frontmatter header of a paper under .specs/papers/CORE-*.md. Authored by ADR-105. The prose body is unconstrained; this schema governs only the structured header block. Consumed via the `paper` artifact type's schema_ref by the .specs/ document-header validator (ADR-105 D6 hook 1). Both status AND doctrine_tier are required: the #627 drift was precisely a paper asserting one lifecycle state (Draft) while cited at a doctrinal tier it never declared — the two axes are made mandatory and orthogonal here.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "kind",
+        "id",
+        "title",
+        "status",
+        "doctrine_tier"
+    ],
+    "properties": {
+        "kind": {
+            "const": "paper"
+        },
+        "id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128
+        },
+        "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+        },
+        "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+        },
+        "status": {
+            "$ref": "../../.intent/META/enums.json#/definitions/paper_status"
+        },
+        "doctrine_tier": {
+            "$ref": "../../.intent/META/enums.json#/definitions/doctrine_tier"
+        },
+        "supersedes": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Paper id this supersedes, or null."
+        },
+        "depends_on": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}
