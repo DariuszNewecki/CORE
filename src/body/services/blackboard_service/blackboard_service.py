@@ -221,6 +221,115 @@ class BlackboardService:
                     abandoned += result.rowcount
         return abandoned
 
+    # ID: 46b1652f-d096-4f31-8ea3-8bfec88a48e3
+    async def release_orphaned_claims(
+        self,
+        *,
+        live_uuids: list[str],
+        grace_seconds: int,
+        reclaim_cap_n: int,
+        batch_max: int,
+    ) -> dict[str, list[str]]:
+        """Reap claims held by workers that are provably gone (ADR-104 D1-D3).
+
+        A claim is *orphaned* iff all hold:
+          1. ``status = 'claimed'``;
+          2. ``claimed_at < now() - grace_seconds`` (the grace window — per
+             ADR-104 ratification #2 the caller passes
+             ``worker_alive_threshold_sec`` here, so "past grace" and "not
+             alive" read off one clock); and
+          3. ``claimed_by`` is NOT in ``live_uuids`` (the currently-alive
+             worker uuids from ``WorkerRegistryService.fetch_alive_workers``).
+
+        Each orphaned claim's ``orphan_release_count`` is incremented. When
+        the new count reaches ``reclaim_cap_n`` the entry is *abandoned*
+        (terminal, ``resolved_at`` set) instead of re-opened — the ADR-104 D3
+        rail that breaks a crash -> reclaim -> crash loop on an unprocessable
+        finding. Otherwise it is reset to ``status='open'``,
+        ``claimed_by=NULL`` (the ``release_claimed_entries`` semantics) so a
+        live worker reclaims it.
+
+        Bounded by ``batch_max`` (ADR-070 D8 rail). This method performs the
+        state transitions only; per
+        ``architecture.blackboard.worker_only_inserts`` the findings that
+        announce reaps (ADR-104 D4) are posted by the calling Worker
+        (BlackboardShopManager), not here.
+
+        Fail-safe (ADR-104 D5): an empty ``live_uuids`` would make condition
+        (3) vacuously true for every claim — mass-reaping on a registry
+        glitch. This method refuses an empty ``live_uuids``; the primary D5
+        guard lives in the caller, this is defense in depth.
+
+        Returns ``{'released': [entry_id, ...], 'abandoned': [entry_id, ...]}``
+        as string ids, so the caller posts one finding per reaped entry.
+        """
+        empty: dict[str, list[str]] = {"released": [], "abandoned": []}
+        if not live_uuids:
+            return empty
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                selected = await session.execute(
+                    text(
+                        """
+                        SELECT id::text, orphan_release_count
+                        FROM core.blackboard_entries
+                        WHERE status = 'claimed'
+                          AND claimed_at < now() - make_interval(secs => :grace)
+                          AND claimed_by <> ALL(cast(:live_uuids as uuid[]))
+                        ORDER BY claimed_at ASC
+                        LIMIT :batch_max
+                        """
+                    ),
+                    {
+                        "grace": grace_seconds,
+                        "live_uuids": live_uuids,
+                        "batch_max": batch_max,
+                    },
+                )
+                rows = selected.fetchall()
+                if not rows:
+                    return empty
+
+                to_abandon = [r[0] for r in rows if (r[1] + 1) >= reclaim_cap_n]
+                to_release = [r[0] for r in rows if (r[1] + 1) < reclaim_cap_n]
+
+                if to_release:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'open',
+                                claimed_by = NULL,
+                                orphan_release_count = orphan_release_count + 1,
+                                updated_at = now()
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'claimed'
+                            """
+                        ),
+                        {"ids": to_release},
+                    )
+
+                if to_abandon:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'abandoned',
+                                resolved_at = now(),
+                                orphan_release_count = orphan_release_count + 1,
+                                updated_at = now()
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'claimed'
+                            """
+                        ),
+                        {"ids": to_abandon},
+                    )
+
+        return {"released": to_release, "abandoned": to_abandon}
+
     # ID: d3a1f7b2-8c4e-4a9d-b6e5-1f0c3d7a2e89
     async def mark_indeterminate(self, entry_ids: list[str]) -> int:
         """

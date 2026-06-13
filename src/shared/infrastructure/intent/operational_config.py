@@ -167,7 +167,16 @@ class BlackboardConfig:
       auto-resolution is information-preserving.
 
     sweep_batch_max — row cap per sweep run (rails per
-    feedback_destructive_autonomous_needs_rails_first).
+    feedback_destructive_autonomous_needs_rails_first). Also caps the
+    ADR-104 orphaned-claim reaper sweep.
+
+    reclaim_cap_n — ADR-104 D3 reclaim rail. After an orphaned claim has
+    been released this many times (orphan_release_count), the entry is
+    abandoned (terminal) instead of re-opened, breaking a crash -> reclaim
+    -> crash loop on an unprocessable finding. The orphaned-claim grace
+    window and liveness threshold are NOT separate knobs here: per ADR-104
+    ratification #2 they ARE HealthConfig.worker_alive_threshold_sec (one
+    clock, no second number to drift).
     """
 
     sla_default_seconds: int = 3600
@@ -179,6 +188,7 @@ class BlackboardConfig:
         "coherence.repo_artifacts.drift",
     )
     sweep_batch_max: int = 500
+    reclaim_cap_n: int = 3
     # #568: count-based retention for slow-callback telemetry. Time-based
     # TTL over-prunes well-behaved workers (rare emitters lose their entire
     # window) while leaving hot emitters with hundreds of rows. Keep the
@@ -303,6 +313,13 @@ class HealthConfig:
     medium_lookback_minutes: int = 60
     short_lookback_minutes: int = 30
     recent_lookback_minutes: int = 10
+    # ADR-104 D8 — the liveness lease. A worker refreshes worker_registry
+    # .last_heartbeat on this cadence for as long as its run() executes, so a
+    # claim-holder whose single run exceeds worker_alive_threshold_sec is not
+    # mistaken for dead and reaped by the orphaned-claim reaper (ADR-104 D1).
+    # MUST stay comfortably below worker_alive_threshold_sec; 240 < 600 gives
+    # ~2.5x margin against a missed renewal.
+    worker_lease_renew_interval_sec: int = 240
 
 
 @dataclass(frozen=True)
@@ -774,6 +791,7 @@ def _load_blackboard(raw: dict[str, Any]) -> BlackboardConfig:
         telemetry_keep_last_per_worker=_get_int(
             sec, "telemetry_keep_last_per_worker", 100
         ),
+        reclaim_cap_n=_get_int(sec, "reclaim_cap_n", 3),
     )
 
 
@@ -886,6 +904,9 @@ def _load_health(raw: dict[str, Any]) -> HealthConfig:
         medium_lookback_minutes=_get_int(sec, "medium_lookback_minutes", 60),
         short_lookback_minutes=_get_int(sec, "short_lookback_minutes", 30),
         recent_lookback_minutes=_get_int(sec, "recent_lookback_minutes", 10),
+        worker_lease_renew_interval_sec=_get_int(
+            sec, "worker_lease_renew_interval_sec", 240
+        ),
     )
 
 

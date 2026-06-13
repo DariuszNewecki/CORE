@@ -839,6 +839,7 @@ CREATE TABLE core.blackboard_entries (
     claimed_by uuid,
     claimed_at timestamp with time zone,
     resolved_at timestamp with time zone,
+    orphan_release_count integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT blackboard_entry_status_closed_set CHECK ((status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text, 'resolved'::text, 'abandoned'::text, 'deferred_to_proposal'::text, 'dry_run_complete'::text, 'indeterminate'::text, 'suppressed'::text]))),

@@ -19,6 +19,7 @@ DB access is legitimate here: blackboard IS the infrastructure.
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from abc import ABC, abstractmethod
@@ -191,11 +192,21 @@ class Worker(ABC):
         worker still holds in status='claimed' at exit time — covering
         graceful shutdown (asyncio.CancelledError from systemctl stop),
         uncaught Exception, and the success path (idempotent: the WHERE
-        clause filters entries already in a terminal status). The lease
-        mechanism (ADR-069 D2/D6, future work) remains the recovery path
-        for ungraceful exits where the finally block cannot run.
+        clause filters entries already in a terminal status).
+
+        ADR-104 D8 (the lease): a concurrent renewal task refreshes this
+        worker's worker_registry.last_heartbeat for as long as run()
+        executes. Heartbeats are otherwise posted only at run-start, so a
+        claim-holder whose single run() exceeds the ADR-041 alive-threshold
+        would fall out of the alive-set while still working and have its live
+        claims reaped by the orphaned-claim sweep (ADR-104 D1). The lease
+        keeps "stale heartbeat" honestly meaning "gone." This realizes the
+        ADR-069 D2/D6 lease forecast for the ungraceful-exit recovery path.
+        Claim-holders run via this start() path; self-scheduling workers
+        (run_loop) re-heartbeat each short cycle and are out of scope.
         """
         await self._register()
+        lease_task = asyncio.create_task(self._renew_lease_until_cancelled())
         try:
             await self.run()
         except Exception as e:
@@ -208,6 +219,18 @@ class Worker(ABC):
             logger.error("Worker %s failed: %s", self._worker_name, e, exc_info=True)
             raise
         finally:
+            lease_task.cancel()
+            try:
+                await lease_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as lease_err:
+                logger.error(
+                    "Worker %s lease task errored at shutdown: %s",
+                    self._worker_name,
+                    lease_err,
+                    exc_info=True,
+                )
             try:
                 await self._release_held_claims()
             except Exception as release_err:
@@ -218,6 +241,55 @@ class Worker(ABC):
                     self._worker_name,
                     release_err,
                     exc_info=True,
+                )
+
+    async def _renew_lease_until_cancelled(self) -> None:
+        """ADR-104 D8 — the liveness lease renewal loop.
+
+        While run() executes, refresh worker_registry.last_heartbeat on a
+        cadence shorter than the ADR-041 alive-threshold so the orphaned-claim
+        reaper (ADR-104 D1) never mistakes a long-running claim-holder for
+        dead. Registry-only touch — no blackboard heartbeat row per interval,
+        just the timestamp the reaper reads. Cancelled by start()'s finally
+        block when run() completes/fails/is cancelled. A renewal failure is
+        logged and the loop continues; it must never crash the worker.
+        """
+        from shared.infrastructure.intent.operational_config import (
+            load_operational_config,
+        )
+
+        interval = load_operational_config().health.worker_lease_renew_interval_sec
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                await self._renew_registry_heartbeat()
+            except Exception as exc:
+                logger.warning(
+                    "Worker %s lease renewal failed (will retry next interval): %s",
+                    self._worker_name,
+                    exc,
+                )
+
+    async def _renew_registry_heartbeat(self) -> None:
+        """Refresh this worker's worker_registry.last_heartbeat (ADR-104 D8).
+
+        Distinct from post_heartbeat(): updates only the registry liveness
+        timestamp the reaper reads, not a blackboard heartbeat row — the lease
+        proves liveness without emitting a per-interval heartbeat finding.
+        """
+        from sqlalchemy import text
+
+        async with get_session() as session:
+            async with session.begin():
+                await session.execute(
+                    text(
+                        """
+                        update core.worker_registry
+                           set last_heartbeat = now()
+                         where worker_uuid = :worker_uuid
+                        """
+                    ),
+                    {"worker_uuid": self._worker_uuid},
                 )
 
     async def _release_held_claims(self) -> int:

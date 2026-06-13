@@ -119,6 +119,12 @@ blackboard:
     - "coherence.violation_executor.blast_bound"
     - "coherence.repo_artifacts.drift"
   sweep_batch_max: 500
+  # ADR-104 D3 — reclaim rail. After an orphaned claim has been released this
+  # many times it is abandoned (terminal) instead of re-opened, breaking a
+  # crash -> reclaim -> crash loop. The orphan grace window and liveness
+  # threshold are not separate knobs: per ratification #2 they are
+  # health.worker_alive_threshold_sec (one clock).
+  reclaim_cap_n: 3
 
 # ---------------------------------------------------------------------------
 # Health log
@@ -231,6 +237,11 @@ health:
   medium_lookback_minutes: 60
   short_lookback_minutes: 30
   recent_lookback_minutes: 10
+  # ADR-104 D8 — liveness lease cadence. A worker refreshes its registry
+  # heartbeat this often while run() executes, so a long-running claim-holder
+  # stays in the alive-set and is never reaped by the orphaned-claim sweep.
+  # MUST stay below worker_alive_threshold_sec (600) with margin.
+  worker_lease_renew_interval_sec: 240
 
 # ---------------------------------------------------------------------------
 # Testing and sandbox

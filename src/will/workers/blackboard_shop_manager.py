@@ -29,6 +29,14 @@ ADR-082 retention sweeps (per cycle, bounded by sweep_batch_max):
 - DELEGATE OPEN findings: status open → resolved for subjects in
   blackboard.delegate_finding_subjects past delegate_finding_ttl_days.
 
+ADR-104 orphaned-claim reaper (per cycle, bounded by sweep_batch_max):
+- Release claims held by workers no longer in the alive-set (ungraceful
+  death). Released back to 'open' under the reclaim cap; abandoned
+  (terminal) at the cap, with a Type-B blackboard.claim_orphan_abandoned::
+  observation that surfaces as F-19 stuck. D5 fail-safe skips the sweep on
+  an empty/unavailable alive-set. The D8 liveness lease (Worker.start)
+  keeps long-running claim-holders in the alive-set so they are not reaped.
+
 Self-scheduling: BlackboardShopManager manages its own asyncio loop via
 run_loop(). Sanctuary starts run_loop() once on bootstrap.
 
@@ -75,6 +83,7 @@ _SLA: dict[str, int] = {
     "proposal": 1800,
 }
 _CFG = load_operational_config().blackboard
+_HEALTH = load_operational_config().health
 
 
 # ID: d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b
@@ -183,6 +192,30 @@ class BlackboardShopManager(Worker):
                 delegate_swept,
             )
 
+        # ADR-104 — release claims orphaned by ungraceful worker death. Each
+        # entry abandoned at the reclaim cap gets a terminal Type-B
+        # observation so F19_CONVERGENCE_SQL counts it as stuck; released
+        # entries are reported (not posted as findings, which would inflate
+        # F-19's total_open — the very gauge ratification #3 protects).
+        reaped = await self._sweep_orphaned_claims()
+        for entry_id in reaped["abandoned"]:
+            await self.post_observation(
+                subject=f"blackboard.claim_orphan_abandoned::{entry_id}",
+                payload={
+                    "entry_id": entry_id,
+                    "reason": "reclaim_cap_reached",
+                    "reclaim_cap_n": _CFG.reclaim_cap_n,
+                },
+                status="abandoned",
+            )
+        if reaped["released"] or reaped["abandoned"]:
+            logger.warning(
+                "BlackboardShopManager: ADR-104 reaper — released %d orphaned "
+                "claim(s), abandoned %d at reclaim cap",
+                len(reaped["released"]),
+                len(reaped["abandoned"]),
+            )
+
         stale = await self._fetch_stale_entries()
         existing = await self._fetch_existing_findings()
 
@@ -229,6 +262,13 @@ class BlackboardShopManager(Worker):
                 "ttl_sweep": {
                     "telemetry_deleted": telemetry_swept,
                     "delegate_resolved": delegate_swept,
+                },
+                "orphan_reaper": {
+                    "skipped": reaped["skipped"],
+                    "released": len(reaped["released"]),
+                    "abandoned": len(reaped["abandoned"]),
+                    "released_ids": reaped["released"],
+                    "abandoned_ids": reaped["abandoned"],
                 },
             },
         )
@@ -316,3 +356,50 @@ class BlackboardShopManager(Worker):
             ttl_days=_CFG.delegate_finding_ttl_days,
             batch_max=_CFG.sweep_batch_max,
         )
+
+    async def _sweep_orphaned_claims(self) -> dict[str, Any]:
+        """ADR-104 D1-D5 — release claims held by provably-dead workers.
+
+        Orphan criteria (all three, evaluated in BlackboardService): the entry
+        is 'claimed', its claimed_at is older than worker_alive_threshold_sec,
+        and its claimed_by is not in the alive-set. Per ratification #2 the
+        same threshold serves as both the liveness window and the claim grace
+        (one clock). Releases under the reclaim cap; abandons at the cap (D3).
+
+        D5 fail-safe: if the alive-set is unavailable or empty, skip this cycle
+        rather than mass-reap on a transient registry glitch. Returns the
+        BlackboardService result augmented with a 'skipped' flag; the caller
+        posts terminal observations for abandoned entries and folds the counts
+        into the run.complete report.
+        """
+        from body.services.service_registry import service_registry
+
+        alive_threshold = _HEALTH.worker_alive_threshold_sec
+        registry = await service_registry.get_worker_registry_service()
+        try:
+            alive = await registry.fetch_alive_workers(threshold_sec=alive_threshold)
+        except Exception as exc:
+            logger.warning(
+                "BlackboardShopManager: ADR-104 reaper skipped — "
+                "fetch_alive_workers failed: %s",
+                exc,
+            )
+            return {"skipped": True, "released": [], "abandoned": []}
+
+        live_uuids = [str(w["worker_uuid"]) for w in alive]
+        if not live_uuids:
+            logger.warning(
+                "BlackboardShopManager: ADR-104 reaper skipped — empty "
+                "alive-set (D5 fail-safe)"
+            )
+            return {"skipped": True, "released": [], "abandoned": []}
+
+        svc = await service_registry.get_blackboard_service()
+        result = await svc.release_orphaned_claims(
+            live_uuids=live_uuids,
+            grace_seconds=alive_threshold,
+            reclaim_cap_n=_CFG.reclaim_cap_n,
+            batch_max=_CFG.sweep_batch_max,
+        )
+        result["skipped"] = False
+        return result
