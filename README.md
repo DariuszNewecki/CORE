@@ -127,7 +127,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n194 rules • 11 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n209 rules • 13 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -163,7 +163,7 @@ Within CORE:
 
 - No file outside an autonomy lane can be modified
 - No structural rule can be bypassed silently
-- No database action occurs without authorization
+- No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
 - All decisions are phase-aware and logged with full decision traces
 - No agent can amend constitutional law
 
@@ -198,6 +198,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 | `action_gate`     | Atomic-action invariants                     |
 | `passive_gate`    | Substrate-enforced rules (DB/runtime marker) |
 | `taxonomy_gate`   | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
+| `contracts_gate`  | Cross-cutting data-contract coherence (context-level; ADR-102) |
 | `llm_gate`        | LLM-assisted semantic checks                 |
 | `IntentGuard`*    | Runtime write authorization (not audit)      |
 
@@ -205,7 +206,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-194 rules across 45 rule documents. All mapped.
+209 rules across 49 rule documents. 204 are mapped to enforcement engines; 5 test-quality rules are still pending mappings. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
 
 ---
 
