@@ -27,12 +27,23 @@ logger = getLogger(__name__)
 
 
 # ID: 0a702b47-f04b-4afe-8e35-20e9cad19aa3
-async def run_tests(suppress_logging: bool = True) -> ActionResult:
+async def run_tests(
+    suppress_logging: bool = True,
+    target: str | None = None,
+    action_id: str = "test.execute",
+) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
 
     Args:
         suppress_logging: If False, logs start/stop events to the system logger.
+        target: Optional repo-relative path (or pytest node-id) to run instead
+            of the full suite. When set, only that target is executed — used by
+            test.sandbox_validate to run a single freshly-generated test file so
+            a runtime-failing autogen test is caught before it commits.
+        action_id: action_id stamped on the returned ActionResult and persisted
+            evidence, so single-target validation runs are attributed to their
+            caller rather than to test.execute.
     """
     start_time = time.perf_counter()
 
@@ -41,13 +52,14 @@ async def run_tests(suppress_logging: bool = True) -> ActionResult:
 
     repo_root = settings.REPO_PATH
     tests_path = repo_root / "tests"
+    pytest_target = str(repo_root / target) if target else str(tests_path)
 
     timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 300)
 
     try:
         process = await asyncio.create_subprocess_exec(
             "pytest",
-            str(tests_path),
+            pytest_target,
             "--tb=short",
             "-q",
             stdout=asyncio.subprocess.PIPE,
@@ -91,7 +103,7 @@ async def run_tests(suppress_logging: bool = True) -> ActionResult:
 
     # 2. Build the Canonical ActionResult
     action_result = ActionResult(
-        action_id="test.execute",
+        action_id=action_id,
         ok=ok,
         data=result_data,
         duration_sec=duration,

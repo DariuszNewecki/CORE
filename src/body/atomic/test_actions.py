@@ -45,3 +45,70 @@ async def action_test_execute(**kwargs: Any) -> ActionResult:
     against test.execute's fs_profile, not the enclosing caller's.
     """
     return await run_tests()
+
+
+@register_action(
+    action_id="test.sandbox_validate",
+    description="Execute a single generated test file in isolation; reject if it fails to collect or run",
+    category=ActionCategory.CHECK,
+    policies=["atomic_actions"],
+    requires_db=True,
+    requires_vectors=False,
+)
+@atomic_action(
+    action_id="test.sandbox_validate",
+    intent="Run a freshly-generated test file via pytest and fail the build_tests flow if it does not pass",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["atomic_actions"],
+)
+# ID: c966c90d-43ec-47fa-8cc5-41c22f74383d
+async def action_test_sandbox_validate(
+    *,
+    source_file: str | None = None,
+    test_file: str | None = None,
+    **kwargs: Any,
+) -> ActionResult:
+    """Step-1 "is it working" gate for a generated test (#574 dynamic follow-on).
+
+    Code generation is two steps — a working .py, then a CORE-compliant .py. The
+    static gate (IntentGuard import-resolution + #589 shape checks) and the fix.*
+    auto-heal cover compliance; this covers *working*: it executes the generated
+    test file so one that imports cleanly and looks right but fails at runtime —
+    wrong assertion, signature drift, broken fixture — is caught. Wired as the
+    required final step of flow.build_tests: a non-zero pytest exit halts the flow
+    (FlowExecutor required-step semantics) so the failing test never reaches the
+    autonomous commit.
+
+    Takes ``source_file`` (the flow-routed parameter) and derives the test path via
+    the governed source->test mapping — identical to how build.tests resolves it,
+    so both act on the same single path. ``test_file`` may be passed directly to
+    override (direct invocation / tests).
+    """
+    if not test_file and source_file:
+        from shared.infrastructure.intent.test_coverage_paths import (
+            source_to_test_path,
+        )
+
+        test_file = source_to_test_path(source_file)
+    if not test_file:
+        return ActionResult(
+            action_id="test.sandbox_validate",
+            ok=False,
+            data={
+                "error": "test.sandbox_validate requires 'source_file' or 'test_file'"
+            },
+            impact=ActionImpact.WRITE_DATA,
+        )
+    result = await run_tests(target=test_file, action_id="test.sandbox_validate")
+    if not result.ok:
+        result.data["violations"] = [
+            {
+                "file": test_file,
+                "rule": "test.generated.must_execute",
+                "message": (
+                    "Generated test failed sandbox execution: "
+                    + str(result.data.get("summary", "unknown failure"))
+                ),
+            }
+        ]
+    return result

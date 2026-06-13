@@ -51,3 +51,13 @@ flow:
       kind: action
       required: false
       consumes: [write]
+
+    # Step-1 "is it working" gate (#574 dynamic follow-on): execute the
+    # generated test in isolation. Required — a non-zero pytest exit halts the
+    # flow, so a test that imports cleanly but fails at runtime (wrong assertion,
+    # signature drift, broken fixture) never reaches the autonomous commit.
+    # Derives the same test path from source_file that build.tests writes to.
+    - ref_id: test.sandbox_validate
+      kind: action
+      required: true
+      consumes: [source_file]
