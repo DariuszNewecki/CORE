@@ -272,3 +272,31 @@ class LlmExchangeLog(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+# ID: e8d5bec8-e0cf-48bc-befb-df8b82008430
+class LlmResourceRate(Base):
+    """Append-only per-model LLM pricing (#620).
+
+    Rates are keyed on `model_snapshot` — the model actually recorded on
+    each `llm_exchange_log` row — not on `resource_name`, because pricing
+    is a property of the model and `model_snapshot` survives a resource
+    being re-pointed at a different model. The composite PK
+    `(model_snapshot, effective_from)` makes the table append-only: a price
+    change inserts a new row rather than mutating the old one, so historical
+    `llm_exchange_log` rows can be priced at the rate active at their `ts`
+    (the writer selects the greatest `effective_from <= ts`).
+
+    Local Ollama models are seeded at 0/0; a model with no rate row leaves
+    `cost_estimate` NULL and is logged, so the gap stays visible.
+    """
+
+    __tablename__: ClassVar[str] = "llm_resource_rates"
+    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+
+    model_snapshot: Mapped[str] = mapped_column(Text, primary_key=True)
+    input_per_mtok: Mapped[float] = mapped_column(Numeric(12, 6), nullable=False)
+    output_per_mtok: Mapped[float] = mapped_column(Numeric(12, 6), nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), primary_key=True
+    )

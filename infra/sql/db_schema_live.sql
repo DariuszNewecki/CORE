@@ -1792,7 +1792,6 @@ CREATE TABLE core.llm_resources (
     rate_limit_seconds integer DEFAULT 0 NOT NULL,
     retry_attempts integer DEFAULT 0 NOT NULL,
     retry_backoff_seconds integer DEFAULT 5 NOT NULL,
-    cost_per_token numeric(12,8),
     health_status text DEFAULT 'unknown'::text,
     last_health_check_at timestamp with time zone,
     registered_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -1804,6 +1803,21 @@ CREATE TABLE core.llm_resources (
 
 
 ALTER TABLE core.llm_resources OWNER TO core_db;
+
+--
+-- Name: llm_resource_rates; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_resource_rates (
+    model_snapshot text NOT NULL,
+    input_per_mtok numeric(12,6) NOT NULL,
+    output_per_mtok numeric(12,6) NOT NULL,
+    effective_from timestamp with time zone NOT NULL,
+    CONSTRAINT llm_resource_rates_pkey PRIMARY KEY (model_snapshot, effective_from)
+);
+
+
+ALTER TABLE core.llm_resource_rates OWNER TO core_db;
 
 --
 -- Name: model_performance_results; Type: TABLE; Schema: core; Owner: core_db

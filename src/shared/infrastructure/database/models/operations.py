@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, ClassVar
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -47,7 +47,6 @@ class LlmResource(Base):
     retry_backoff_seconds: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="5"
     )
-    cost_per_token: Mapped[float | None] = mapped_column(Numeric(12, 8))
     health_status: Mapped[str | None] = mapped_column(Text, server_default="unknown")
     last_health_check_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
     registered_at: Mapped[Any] = mapped_column(

@@ -11,8 +11,10 @@ from __future__ import annotations
 import asyncio
 import random
 import time
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.config_service import ConfigService, LLMResourceConfig
@@ -27,6 +29,48 @@ logger = getLogger(__name__)
 # Default cognitive_role for embedding calls — Vectorizer is an active row
 # in core.cognitive_roles so the FK constraint is satisfied.
 _DEFAULT_EMBEDDING_ROLE = "Vectorizer"
+
+# Cost-estimate precision matches core.llm_exchange_log.cost_estimate (Numeric(10, 6)).
+_COST_QUANTUM = Decimal("0.000001")
+
+
+def _compute_cost_estimate(
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+    input_per_mtok: Decimal,
+    output_per_mtok: Decimal,
+) -> Decimal:
+    """Pure USD cost from token counts and per-million-token rates (#620).
+
+    None token counts are treated as 0. The result is quantized to the six
+    decimal places of the cost_estimate column. Unit-tested directly.
+    """
+    pt = Decimal(prompt_tokens or 0)
+    ct = Decimal(completion_tokens or 0)
+    cost = (pt * input_per_mtok + ct * output_per_mtok) / Decimal(1_000_000)
+    return cost.quantize(_COST_QUANTUM, rounding=ROUND_HALF_UP)
+
+
+async def _lookup_model_rate(
+    session: AsyncSession, model_snapshot: str
+) -> tuple[Decimal, Decimal] | None:
+    """Most-recent (input, output) per-Mtok rate effective now for a model.
+
+    Selects the rate row with the greatest `effective_from <= now()`.
+    Returns None when no rate row covers the model — the caller leaves
+    cost_estimate NULL and logs the gap (#620).
+    """
+    from shared.infrastructure.database.models.llm_config import LlmResourceRate
+
+    stmt = (
+        select(LlmResourceRate.input_per_mtok, LlmResourceRate.output_per_mtok)
+        .where(LlmResourceRate.model_snapshot == model_snapshot)
+        .where(LlmResourceRate.effective_from <= func.now())
+        .order_by(LlmResourceRate.effective_from.desc())
+        .limit(1)
+    )
+    row = (await session.execute(stmt)).first()
+    return (row.input_per_mtok, row.output_per_mtok) if row else None
 
 
 # ID: 7a329240-1a5e-440b-9c8a-65ad427b5e65
@@ -335,23 +379,39 @@ class LLMClient:
         if not cognitive_role:
             return
         duration_ms = int((time.monotonic() - started) * 1000)
+        prompt_tokens = usage_sink.get("prompt_tokens")
+        completion_tokens = usage_sink.get("completion_tokens")
         try:
             from shared.infrastructure.database.models.llm_config import (
                 LlmExchangeLog,
             )
             from shared.infrastructure.database.session_manager import get_session
 
-            row = LlmExchangeLog(
-                resource_name=self.resource_config.resource_name,
-                cognitive_role=cognitive_role,
-                prompt_tokens=usage_sink.get("prompt_tokens"),
-                completion_tokens=usage_sink.get("completion_tokens"),
-                duration_ms=duration_ms,
-                model_snapshot=self.model_name,
-                cost_estimate=None,
-                privacy_level=privacy_level,
-            )
             async with get_session() as session:
+                rate = await _lookup_model_rate(session, self.model_name)
+                if rate is None:
+                    cost_estimate: Decimal | None = None
+                    logger.warning(
+                        "no llm_resource_rates entry for model=%s; "
+                        "cost_estimate left NULL (role=%s resource=%s)",
+                        self.model_name,
+                        cognitive_role,
+                        self.resource_config.resource_name,
+                    )
+                else:
+                    cost_estimate = _compute_cost_estimate(
+                        prompt_tokens, completion_tokens, rate[0], rate[1]
+                    )
+                row = LlmExchangeLog(
+                    resource_name=self.resource_config.resource_name,
+                    cognitive_role=cognitive_role,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    duration_ms=duration_ms,
+                    model_snapshot=self.model_name,
+                    cost_estimate=cost_estimate,
+                    privacy_level=privacy_level,
+                )
                 session.add(row)
                 await session.commit()
         except Exception as e:
