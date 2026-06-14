@@ -1,8 +1,8 @@
 # Cold-reviewer Path
 
-If you have not used CORE before and want to see it govern real code — yours — without installing anything locally, the shortest path is to add CORE as a GitHub Action and open a pull request.
+If you want to see CORE govern code in CI without installing anything locally, the shortest path is to add CORE as a GitHub Action and open a pull request.
 
-This page documents the **zero-install** path: govern your own repo through a GitHub Action, no local setup. If you'd rather run CORE locally and watch the full consequence-chain loop in **one command**, that exists too — see [Getting Started](getting-started.md) (`./install-core.sh`).
+**One honest prerequisite, stated up front:** the Action audits your repo against the `.intent/` constitution **in that repo** (see below). If your repo doesn't have one yet, the Action fails — and CORE **cannot yet scaffold a starter constitution for you self-serve** (BYOR is [in progress](https://github.com/DariuszNewecki/CORE/issues/640)). So today this path is for a repo that **already has a `.intent/`**, or for trying it against CORE's own. To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 
 For verifying CORE's claims *about itself* (single gateway, no bypass, no untracked mutation), see the [Proof Index](proof-index.md) instead — that page assumes a running CORE.
 

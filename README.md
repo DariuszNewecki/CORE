@@ -260,7 +260,7 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 ## Quick Start
 
-**Just want to audit a repo?** No local install needed — run the audit in CI with the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `pip install core-runtime && core-admin code audit --offline`.
+> **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **already has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI. **Not yet self-serve:** pointing CORE at your *own* repo from scratch — scaffolding that first constitution (BYOR, [#640](https://github.com/DariuszNewecki/CORE/issues/640)). Until that lands, `core-admin code audit --offline` in a repo with no `.intent/` won't help you (it currently hangs — fix tracked in #640). We'd rather say so than let you hit a wall. **Fastest way to see CORE today: run it on itself, below.**
 
 **Full local runtime** — one command. Clone, then run the installer:
 

@@ -6,9 +6,11 @@ You don't need the full runtime to start. Pick the path that matches your goal:
 
 | Goal | Path | What you need |
 |------|------|---------------|
-| **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo |
-| **Run an audit locally, no services** | `pip install core-runtime` then `core-admin code audit --offline` — skips `knowledge_gate`/`llm_gate` (they need a DB + LLM), reports the skip | Python 3.12+ |
-| **Run the full thesis** (encounter → audit → remediate → verify, the autonomous daemon) | The full local runtime below | Postgres + Qdrant + an LLM resource |
+| **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo **that has a `.intent/` constitution** |
+| **Run an audit locally, no services** | `pip install core-runtime`, then `core-admin code audit --offline` *inside a repo that has a `.intent/`* | Python 3.12+ **and a repo with a `.intent/`** |
+| **Run the full thesis** (encounter → audit → remediate → verify, the autonomous daemon) | The full local runtime below — run it on **CORE itself** | Postgres + Qdrant + an LLM resource |
+
+> **Heads-up — be honest with yourself about what's ready.** The first two rows audit a repo against the `.intent/` constitution **in that repo**. CORE has a rich one; *your* repo doesn't yet, and `core-admin code audit --offline` in a repo with no `.intent/` currently hangs rather than helping (fix tracked in [#640](https://github.com/DariuszNewecki/CORE/issues/640)). A smooth way to scaffold your first constitution (BYOR) is **in progress** — until it lands, the reliable ways to see CORE are: run it on **CORE itself** (`./install-core.sh`), or audit a repo that already has a `.intent/`. `pip install core-runtime` is guaranteed to give you a working `core-admin` CLI — no more, no less, today.
 
 The rest of this page covers the **full local runtime**. For the lightweight paths, the two commands above are the whole story.
 
