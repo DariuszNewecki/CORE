@@ -62,7 +62,7 @@ async def _fetch_capabilities(session: AsyncSession) -> list[dict]:
 
 def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
     """Groups capabilities by their domain prefix."""
-    domains = {}
+    domains: dict[str, list[dict]] = {}
     for cap in capabilities:
         key = cap["capability"]
         # Infer domain from the key

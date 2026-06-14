@@ -98,7 +98,7 @@ class MicroProposalValidator:
         self.policy: dict[str, Any] = _load_policy(self._path_resolver)
 
         # Extract Paths Rule
-        path_rule = next(
+        path_rule: dict[str, Any] = next(
             (r for r in self.policy.get("rules", []) if r.get("id") == "safe_paths"), {}
         )
         self._allowed_paths: list[str] = list(path_rule.get("allowed_paths", []) or [])
@@ -107,7 +107,7 @@ class MicroProposalValidator:
         )
 
         # Extract Actions Rule (FIXED: Added this)
-        action_rule = next(
+        action_rule: dict[str, Any] = next(
             (r for r in self.policy.get("rules", []) if r.get("id") == "safe_actions"),
             {},
         )

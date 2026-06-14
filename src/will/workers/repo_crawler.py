@@ -105,7 +105,8 @@ class RepoCrawlerWorker(Worker):
         # DELETE inline OR records the guard state and leaves orphans_reaped
         # at 0. The worker reads stats and posts the appropriate shape.
         orphans_reaped = stats.get("orphans_reaped", 0)
-        guard = stats.get("coherence_guard") or {}
+        guard_raw = stats.get("coherence_guard")
+        guard: dict[str, Any] = guard_raw if isinstance(guard_raw, dict) else {}
 
         if guard.get("triggered"):
             # Safety rail tripped — reap was SKIPPED. Post an OPEN finding

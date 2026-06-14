@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
@@ -141,7 +141,7 @@ class ContextRetriever:
         Session is REQUIRED. No fallback, no exceptions.
         """
         query, params = self.query_builder.build_symbols_by_ids_query(symbol_ids)
-        result = await session.execute(query, params)
+        result: Any = await session.execute(query, params)
         return result.fetchall()
 
     async def _build_examples(self, symbol_rows) -> list[CodeExample]:

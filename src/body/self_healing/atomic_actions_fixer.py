@@ -15,6 +15,7 @@ inserted, plus mandatory imports added.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 
 # ID: 7b1c4661-73dd-4200-98c7-57c56a95f51e
@@ -23,7 +24,7 @@ def fix_file_violations(source: str, violations: list, file_path: Path) -> str:
     Fix all violations in a single file and ensure imports exist.
     """
     lines = source.splitlines(keepends=True)
-    violations_by_function = {}
+    violations_by_function: dict[str, list[Any]] = {}
     for v in violations:
         violations_by_function.setdefault(v.function_name, []).append(v)
     for function_name, func_violations in violations_by_function.items():

@@ -31,7 +31,7 @@ async def validate_code_async(
     if not quiet:
         logger.debug("Validation: Classifying '{file_path}' as '%s'.", classification)
     final_code = code
-    violations = []
+    violations: list[Any] = []
     if classification == "python":
         if not auditor_context:
             raise ValueError("AuditorContext is required for validating Python code.")

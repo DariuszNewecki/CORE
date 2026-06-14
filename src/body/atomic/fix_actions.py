@@ -482,6 +482,10 @@ async def action_fix_atomic_actions(
         for v in data["violations"]
     ]
 
+    # Left unannotated deliberately: annotating the key type surfaces a latent
+    # str/Path confusion in this function (keys are Path, consumed as str). That
+    # is a real bug tracked separately, not a mechanical annotation — suppressing
+    # the var-annotated finding here would hide it. See #644 (str/Path confusion).
     violations_by_file = {}
     for v in violations:
         violations_by_file.setdefault(v.file_path, []).append(v)

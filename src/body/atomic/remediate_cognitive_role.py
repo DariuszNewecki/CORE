@@ -84,7 +84,7 @@ async def remediate_cognitive_role(
             message="Missing required parameter: file_path", data={"rule": rule}
         )
 
-    payload = {
+    payload: dict[str, Any] = {
         "file_path": file_path,
         "line_number": line_number,
         "artifact_name": "cognitive_role_string",

@@ -31,7 +31,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -100,7 +100,7 @@ class NormativeMarkerRegister:
 
     @classmethod
     def _from_data(
-        cls, data: dict[str, object] | None, *, source: str
+        cls, data: dict[str, Any] | None, *, source: str
     ) -> NormativeMarkerRegister:
         data = data or {}
         markers = tuple(data.get("markers", []))

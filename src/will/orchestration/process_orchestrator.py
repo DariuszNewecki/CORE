@@ -125,7 +125,7 @@ class ProcessOrchestrator:
             ])
         """
         results = []
-        accumulated_data = {}
+        accumulated_data: dict[str, Any] = {}
         for i, (component, inputs) in enumerate(steps, 1):
             logger.info(
                 "Step %s/%s: Executing %s", i, len(steps), component.component_id
@@ -186,7 +186,7 @@ class ProcessOrchestrator:
         logger.info("Starting adaptive workflow")
         current_component = initial_component
         current_inputs = initial_inputs
-        accumulated_data = {}
+        accumulated_data: dict[str, Any] = {}
         step_count = 0
         while step_count < max_steps:
             step_count += 1

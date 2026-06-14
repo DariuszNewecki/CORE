@@ -26,7 +26,7 @@ Both versions must produce canonical task structures that pass Parse phase valid
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
@@ -226,7 +226,7 @@ class InterpretPhase:
             }
         """
         targets = []
-        constraints = {}
+        constraints: dict[str, Any] = {}
 
         # Look for file paths (simple pattern)
         # Matches: src/module/file.py, path/to/module.py, etc.
