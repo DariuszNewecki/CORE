@@ -6,6 +6,79 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
+## [2.7.0] — 2026-06-14
+
+### 🎯 Bounded Autonomy
+
+The autonomous remediation loop becomes real *and* safe. CORE's daemon finds constitutional violations in its own codebase, proposes fixes, and executes approved ones — this release puts hard bounds around that capability so it can run unattended without escaping its lane.
+
+#### Autonomy, bounded
+
+- **ADR-106 — Sandboxed flow proposals.** Autonomous flow proposals execute in a hermetic git worktree; a failed remediation rolls back instead of reflowing the working tree. Closes the gap where flows skipped the per-action sandbox single actions already had (ADR-071).
+- **ADR-107 — Declared-production commit set.** A flow commits only the files its steps declared as produced, not whatever the worktree diff happens to contain.
+- **ADR-104 — Orphaned-claim reaper.** Claim lifecycle is process-scoped; a dead worker's claims are reclaimed under a lease (D8), so slow *live* workers are never reaped mid-run.
+- **Remediation-attempt cap (#637).** A proposal that fails repeatedly is abandoned with attestations rather than retried forever (ADR-104 D9).
+- **Test-generation loop unblocked end-to-end.** Risk compute reads governed `action_risk` instead of an executor-init overlay, and every generated test is sandbox-validated before it counts.
+
+#### ADR-101 — Commit authorship integrity
+
+A commit's diff must contain only bytes its author produced — constitutional, applied to every committer. Supersedes ADR-021's path-shaped guards: the commit set derives from production, not permission scope.
+
+#### ADR-105 — `.specs/` document model
+
+`.specs/` gains a typed, fail-closed document model with a forked vocabulary (`doctrine_tier`, distinct from `.intent`'s operational `authority`). 181 documents migrated to machine-readable headers; a structural validator enforces them.
+
+#### Outward-facing — the open on-ramp
+
+- **ADR-108 — Minimal starter-intent** for external adoption (a 4-rule authored starter vs the full 248-artifact `.intent`).
+- One-command on-ramp (`install-core.sh`) plus a reviewer-reproducible consequence-chain demo.
+
+#### Packaging & distribution
+
+- **PEP 621 migration (#543).** `pyproject.toml` moves to the standard `[project]` table; license declared as the SPDX expression `MIT`.
+- **Semver policy (#541).** An authoritative versioning contract (`.specs/planning/CORE-Semver-Policy.md`) anchored on ADR-086 D7 + ADR-088 D5.
+- **`core-engine` Docker image (#539).** The Solo+ runtime image publishes to GHCR on every tag — `core-engine:X.Y.Z` exists if and only if `core-runtime X.Y.Z` is on PyPI (ADR-086 D7 iff invariant now satisfied).
+
+#### Engineering health
+
+Type-safety drain: mypy errors 756 → 547, including a DI construction-guarantee pass (#643) making `CoreContext`'s git/knowledge/file-handler services mandatory rather than Optional.
+
+PyPI `core-runtime==2.7.0`; Docker `ghcr.io/dariusznewecki/core-engine:2.7.0`; classifier `Development Status :: 4 - Beta`.
+
+## Closes
+
+- #539 (core-engine Docker image + GHCR workflow), #541 (semver policy doc), #543 (PEP 621 migration)
+- ADR-101, ADR-104, ADR-105, ADR-106, ADR-107, ADR-108
+
+---
+
+## [2.6.0] — 2026-06-02
+
+### 🎯 Declared Surface
+
+First release on the aligned PyPI/GitHub version track (ADR-088). The `core-runtime` package now publishes from a declared `__all__` rather than the unbounded source tree, and the runtime chokepoint that authorizes filesystem writes is observable per capability and per mode.
+
+#### F-48.4 — Public Python API surface (#540)
+
+The first explicit declaration of CORE's published Python contract per ADR-084 D4. `__all__` is declared in every top-level package; forks pin against this contract, and every symbol outside it is internal. Public surface: 6 symbols across 6 packages (`shared`'s `@atomic_action` extension contract plus `mind.run_stateless_audit`); `api`/`body`/`cli`/`will` export nothing until promoted via ADR.
+
+#### ADR-079 D10 Stage 2 — Capability-scoped chokepoint at blocking
+
+`governance.taxonomy.operational_capabilities_decorator_backing` promotes from reporting to blocking: every capability id in `.intent/taxonomies/operational_capabilities.yaml` must be backed by exactly one `@atomic_action`. Stages 3–5 (per-capability denial, `.intent`/`.specs` atomic swap, legacy `FileService` retirement) carry forward.
+
+#### ADR-088 — Aligned PyPI/GitHub version track
+
+`pyproject.toml`'s version and GitHub's release track agree from this release forward. The `v0.1.0`–`v0.1.6` PyPI tags were F-48 publish-bootstrap iterations — honest history, not a parallel `0.x` track, and no future `0.x` tags are created. The `v2.x` track is continued, not reset; the Beta classifier surfaces the residual SemVer concession (ADR-088 D2).
+
+PyPI `core-runtime==2.6.0`; classifier `Development Status :: 4 - Beta`.
+
+## Closes
+
+- #540 (F-48.4 — public-vs-internal API distinction)
+- ADR-079 D10 Stage 2, ADR-088
+
+---
+
 ## [2.5.0] — 2026-05-12
 
 ### 🎯 Engine Integrity
