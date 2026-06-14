@@ -25,7 +25,10 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: "1.8.3"
+          # Poetry >= 2.0 required: pyproject.toml uses the PEP 621 [project]
+          # table, which Poetry 1.x cannot read (poetry install would fail on
+          # the now-metadata-less [tool.poetry] section).
+          version: "2.2.1"
           virtualenvs-create: true
           virtualenvs-in-project: true
 
