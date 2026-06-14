@@ -124,7 +124,9 @@ This indexes `.intent/` governance documents and `.specs/` architectural papers 
 
 ## Key Commands
 
-Sync the knowledge graph after code changes:
+Apply structural fixes and sync state after code changes — `dev sync` first
+fixes metadata (symbol IDs, headers, formatting), then syncs the knowledge graph
+and vectors:
 
 ```bash
 poetry run core-admin dev sync --write
@@ -160,6 +162,8 @@ CORE's audit output is structured by policy domain. Each finding references:
 - The enforcement strength (Blocking / Reporting / Advisory)
 
 Blocking violations halt autonomous execution. They must be resolved — either by fixing the violation or by amending the constitution through the governed proposal process.
+
+> **CLI severity tokens.** When filtering the audit by severity (`code audit --severity <level>`), the accepted values are `info`, `low`, `medium`, `high`, `block`. The threshold for blocking rules is the lowercase token `block` — not `blocking`.
 
 ---
 

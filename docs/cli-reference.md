@@ -53,8 +53,8 @@ poetry run core-admin proposals execute <id>  # Execute approved proposal
 ### `dev` — Developer Workflows
 
 ```bash
-poetry run core-admin dev sync                         # Dry-run: preview knowledge graph sync
-poetry run core-admin dev sync --write                 # Sync (interactive confirmation required)
+poetry run core-admin dev sync                         # Dry-run: preview fixes + graph/vector sync
+poetry run core-admin dev sync --write                 # Fix metadata (IDs/headers/format), then sync graph + vectors (interactive confirm)
 poetry run core-admin dev chat                         # AI chat for development assistance
 poetry run core-admin dev refactor <goal>              # Autonomous refactoring toward a goal
 poetry run core-admin dev refactor <goal> --write      # Apply refactoring
