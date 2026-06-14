@@ -167,6 +167,49 @@ Blocking violations halt autonomous execution. They must be resolved — either 
 
 ---
 
+## Going Further
+
+### Turn on autonomy
+
+So far you've driven CORE by hand. Start the daemon and it runs continuously —
+finding violations, proposing fixes, and (for risk-classified-safe changes)
+executing them, all coordinated on the blackboard:
+
+```bash
+make daemon-start            # or: poetry run core-admin daemon up   (systemd units)
+```
+
+With the daemon running, routine maintenance is **automatic**: `DbSyncWorker`
+keeps the knowledge graph and vectors in sync on a ~5-minute cadence, and the
+remediation loop proposes fixes for structural violations. You rarely need to
+run `dev sync --write` by hand — that command is the synchronous *do-it-now*
+version of what the daemon does continuously (useful when the tree isn't clean
+yet, or the daemon is stalled).
+
+Observe it working:
+
+```bash
+poetry run core-admin runtime dashboard                              # five-panel situational awareness
+poetry run core-admin workers blackboard --filter "audit.violation"  # live findings
+```
+
+### Let CORE write code (needs an LLM)
+
+The deterministic fixers (symbol IDs, formatting) need no model. To have CORE
+*generate* code — natural-language tasks and LLM-driven remediation — configure
+an LLM provider in `.env` (see the LLM section), then run the remediation
+pipeline for a rule:
+
+```bash
+poetry run core-admin workers remediate <rule>            # sensor → LLM proposes fix → canary → blackboard (review)
+poetry run core-admin workers remediate <rule> --write    # ... and apply + commit the fix
+```
+
+This is governed generation under the same constitutional loop — the A2/A3
+capability on the [Autonomy Ladder](autonomy-ladder.md).
+
+---
+
 ## Next Steps
 
 - [How It Works](how-it-works.md) — understand the constitutional model before making changes
