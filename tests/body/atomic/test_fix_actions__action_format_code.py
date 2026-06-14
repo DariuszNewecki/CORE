@@ -11,6 +11,8 @@
   test_fix_actions__action_fix_placeholders.py.
 """
 
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -82,4 +84,25 @@ async def test_action_format_code_format_code_called():
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with authorize_execution("format.code"):
             await action_format_code(write=False)
-        mock_format.assert_called_once_with(path=None, write=False)
+        # No core_context → cwd falls back to None (process cwd, CLI default).
+        mock_format.assert_called_once_with(path=None, write=False, cwd=None)
+
+
+@pytest.mark.asyncio
+async def test_action_format_code_threads_worktree_cwd():
+    """#638: a scoped core_context routes ruff's cwd into the flow worktree.
+
+    When the action runs inside a hermetic flow worktree (ADR-106), the
+    injected core_context's git_service.repo_path points at the sandbox.
+    format_code MUST receive that path as cwd so ruff reformats the sandbox
+    tree, not the real one — otherwise the working tree is polluted.
+    """
+    worktree = Path("/var/tmp/core-action-sandbox-deadbeef")
+    core_context = SimpleNamespace(
+        git_service=SimpleNamespace(repo_path=worktree)
+    )
+    with patch("body.self_healing.code_style_service.format_code") as mock_format:
+        with authorize_execution("format.code"):
+            result = await action_format_code(core_context=core_context, write=True)
+        mock_format.assert_called_once_with(path=None, write=True, cwd=worktree)
+        assert result.ok

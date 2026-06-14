@@ -61,8 +61,18 @@ async def run_command_async(
 
 
 # ID: f555860f-aeb3-4a20-92ff-eee51b7f4501
-def run_poetry_command(description: str, command: list[str]):
-    """Helper to run a command via Poetry, log it, and handle errors (Synchronous)."""
+def run_poetry_command(
+    description: str, command: list[str], cwd: Path | str | None = None
+):
+    """Helper to run a command via Poetry, log it, and handle errors (Synchronous).
+
+    ``cwd`` (#638 / ADR-106): when supplied, the subprocess runs in that
+    directory rather than the daemon's process cwd. Fix actions executing
+    inside a hermetic flow worktree pass the scoped ``repo_path`` here so
+    external tools (ruff) operate on the sandbox tree, not the real one.
+    Default ``None`` preserves the legacy process-cwd behaviour for the
+    CLI/audit callers that run against the working tree directly.
+    """
     POETRY_EXECUTABLE = shutil.which("poetry")
     if not POETRY_EXECUTABLE:
         logger.error("❌ Could not find 'poetry' executable in your PATH.")
@@ -72,7 +82,11 @@ def run_poetry_command(description: str, command: list[str]):
     full_command = [POETRY_EXECUTABLE, "run", *command]
     try:
         result = subprocess.run(
-            full_command, check=True, text=True, capture_output=True
+            full_command,
+            check=True,
+            text=True,
+            capture_output=True,
+            cwd=str(cwd) if cwd else None,
         )
         if result.stdout:
             logger.info(result.stdout)

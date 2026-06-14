@@ -9,17 +9,25 @@ Ensures that external tools (ruff format/ruff check) do not mutate the disk unle
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from shared.utils.subprocess_utils import run_poetry_command
 
 
 # ID: 1655ba02-a26e-4f8b-847a-8e4d16acfea0
-def format_code(path: str | None = None, write: bool = True) -> None:
+def format_code(
+    path: str | None = None, write: bool = True, cwd: Path | str | None = None
+) -> None:
     """
     Format code using ruff format and ruff check.
 
     Args:
         path: Optional specific target. Defaults to src and tests.
         write: If False, runs in check-only mode (Dry Run).
+        cwd: Optional working directory for the ruff subprocess. Fix actions
+            running inside a hermetic flow worktree (ADR-106) pass the scoped
+            repo_path so ruff formats the sandbox tree rather than the real
+            one (#638); None runs in the process cwd (CLI default).
     """
     if path is None:
         targets = ["src", "tests"]
@@ -45,7 +53,10 @@ def format_code(path: str | None = None, write: bool = True) -> None:
     run_poetry_command(
         f"✨ Ruff Format ({'Write' if write else 'Check'}): {' '.join(targets)}",
         ruff_format_cmd,
+        cwd=cwd,
     )
     run_poetry_command(
-        f"✨ Ruff Check ({'Fix' if write else 'Check'}): {' '.join(targets)}", ruff_cmd
+        f"✨ Ruff Check ({'Fix' if write else 'Check'}): {' '.join(targets)}",
+        ruff_cmd,
+        cwd=cwd,
     )

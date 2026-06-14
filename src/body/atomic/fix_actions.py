@@ -67,14 +67,28 @@ def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
 )
 # ID: 5c3ede6c-23e1-4b92-8a00-7b2046eac121
 async def action_format_code(
-    file_path: str | None = None, write: bool = False, **kwargs
+    core_context: CoreContext | None = None,
+    file_path: str | None = None,
+    write: bool = False,
+    **kwargs,
 ) -> ActionResult:
-    """Format code using ruff format and ruff check."""
+    """Format code using ruff format and ruff check.
+
+    Runs ruff inside the execution context's repo_path so that when the
+    action executes within a hermetic flow worktree (ADR-106) the format
+    pass operates on the sandbox tree, not the real one (#638). A None
+    context (defensive / non-executor path) falls back to the process cwd.
+    """
     start = time.time()
     from body.self_healing.code_style_service import format_code
 
+    cwd = (
+        core_context.git_service.repo_path
+        if core_context is not None and core_context.git_service is not None
+        else None
+    )
     try:
-        format_code(path=file_path, write=write)
+        format_code(path=file_path, write=write, cwd=cwd)
     except Exception as e:
         return ActionResult(
             action_id="fix.format",
@@ -104,11 +118,23 @@ async def action_format_code(
     policies=["atomic_actions"],
 )
 # ID: d5879178-fdfe-4d8b-b6a6-f887f8e9500b
-async def action_fix_imports(write: bool = False, **kwargs) -> ActionResult:
-    """Sort and group Python imports according to constitutional style policy."""
+async def action_fix_imports(
+    core_context: CoreContext | None = None, write: bool = False, **kwargs
+) -> ActionResult:
+    """Sort and group Python imports according to constitutional style policy.
+
+    Runs ruff inside the execution context's repo_path so an in-worktree
+    flow execution (ADR-106) sorts imports in the sandbox tree, not the
+    real one (#638). A None context falls back to the process cwd.
+    """
     start = time.time()
     from shared.utils.subprocess_utils import run_poetry_command
 
+    cwd = (
+        core_context.git_service.repo_path
+        if core_context is not None and core_context.git_service is not None
+        else None
+    )
     target_path = "src/"
     try:
         cmd = ["ruff", "check", target_path, "--select", "I"]
@@ -116,7 +142,7 @@ async def action_fix_imports(write: bool = False, **kwargs) -> ActionResult:
             cmd.append("--fix")
         cmd.append("--exit-zero")
 
-        run_poetry_command(f"Sorting imports in {target_path}", cmd)
+        run_poetry_command(f"Sorting imports in {target_path}", cmd, cwd=cwd)
 
         return ActionResult(
             action_id="fix.imports",
