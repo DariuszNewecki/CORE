@@ -13,6 +13,16 @@ permissions:
   issues: write
 
 jobs:
+  # #631 — fail when README's advertised governance counts drift from source.
+  # Pure shell + jq (pre-installed on the runner); no Poetry/DB, runs in parallel.
+  readme-counts:
+    name: README count drift (#631)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Re-derive README quantitative claims from source
+        run: bash scripts/check_readme_counts.sh
+
   validate:
     name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
