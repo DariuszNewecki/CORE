@@ -34,13 +34,15 @@ excluded_filenames:
 #   - #637 / ADR-104 D9: a generation that perpetually fails its gate is
 #     abandoned (terminal Type-B) after remediation_cap_n (3) attempts
 #     instead of churning generate->fail->revive forever.
-# The trio below are diverse autogen surfaces (one pure function, one async
-# normalizer, one mixed) that FAILED generation in the prior run — re-opening
-# them now exercises the cap live (they abandon after 3) and is safe by
-# construction. A file that generates a PASSING test exercises the ADR-107
-# success path (the still-unverified #630 acceptance). Open in small batches.
+# The prior cap-exercise set (blackboard_shop_manager / audit_violation_filter /
+# audit_violation_normalizer / circuit_breaker) completed its purpose: #637's
+# remediation cap is now LIVE-VERIFIED — those findings abandoned terminal
+# Type-B at remediation_cap_n=3 with blackboard.remediation_cap_reached
+# attestations (2026-06-14). The remaining unproven item is the #638/#630
+# SUCCESS path — a tree-clean run that actually reaches the fix.* heal steps.
+# The single pure-function file below (fix_placeholders_in_content: str -> str,
+# stdlib-only `re` import) generates a clean passing test reliably, so it
+# exercises that path and demonstrates the #638 fix (fix.* now run inside the
+# hermetic worktree, not the real tree). Open in small batches.
 include_files:
-  - "src/will/workers/blackboard_shop_manager.py"
-  - "src/will/workers/audit_violation_filter.py"
-  - "src/will/workers/audit_violation_normalizer.py"
-  - "src/will/workers/circuit_breaker.py"
+  - "src/body/self_healing/placeholder_fixer_service.py"
