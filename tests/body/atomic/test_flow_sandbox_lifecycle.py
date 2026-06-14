@@ -49,8 +49,7 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _make_sandbox(repo: Path) -> tuple[SandboxLifecycle, CoreContext]:
-    ctx = CoreContext(registry=MagicMock())
-    ctx.git_service = GitService(repo)
+    ctx = CoreContext(registry=MagicMock(), git_service=GitService(repo))
     ctx.file_handler = FileHandler(str(repo))
     return SandboxLifecycle(ctx), ctx
 

@@ -616,7 +616,16 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     logger.info("CORE daemon starting...")
 
-    ctx = CoreContext(registry=service_registry)
+    # git_service is mandatory (#643) — construct it up front so CoreContext is
+    # fully wired. GitService.__init__ only resolves a path (no git invocation),
+    # so it cannot fail where get_repo_path() succeeds, which knowledge_service
+    # already requires unconditionally below.
+    from shared.infrastructure.git_service import GitService
+
+    ctx = CoreContext(
+        registry=service_registry,
+        git_service=GitService(repo_path=BootstrapRegistry.get_repo_path()),
+    )
 
     cog_svc: Any = None
     try:
@@ -642,26 +651,19 @@ async def _run_daemon_locked(only: str | None = None) -> None:
         repo_path=BootstrapRegistry.get_repo_path()
     )
 
-    # Bootstrap-only — daemon constructs its own GitService (no API yet to call).
-    from shared.infrastructure.git_service import GitService
-
+    # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
     try:
-        ctx.git_service = GitService(repo_path=BootstrapRegistry.get_repo_path())
-        # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
-        try:
-            swept = ctx.git_service.sweep_orphan_worktrees()
-            if swept:
-                logger.info(
-                    "CORE daemon: cleared %d orphan action sandbox(es) from prior runs",
-                    swept,
-                )
-        except Exception as sweep_err:
-            logger.warning(
-                "CORE daemon: orphan worktree sweep failed (non-fatal): %s",
-                sweep_err,
+        swept = ctx.git_service.sweep_orphan_worktrees()
+        if swept:
+            logger.info(
+                "CORE daemon: cleared %d orphan action sandbox(es) from prior runs",
+                swept,
             )
-    except Exception as e:
-        logger.warning("CORE daemon: GitService unavailable: %s", e)
+    except Exception as sweep_err:
+        logger.warning(
+            "CORE daemon: orphan worktree sweep failed (non-fatal): %s",
+            sweep_err,
+        )
 
     ctx.file_handler = service_registry.get_file_handler()
 

@@ -11,9 +11,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.config import settings
+
+
+if TYPE_CHECKING:
+    from shared.infrastructure.git_service import GitService
 
 
 @dataclass
@@ -31,12 +35,19 @@ class CoreContext:
     # The authoritative registry
     registry: Any
 
+    # --- Always-wired services (#643) ---
+    # git_service is guaranteed at construction by every production path
+    # (bootstrap, daemon) and is therefore non-Optional. A construction site
+    # that forgets it fails fast rather than handing consumers a None that
+    # ~113 call sites assume is present. Contrast the genuinely-degradable
+    # services below, which stay Optional (daemon wires them in try/except).
+    git_service: GitService
+
     # --- Configuration SSOT ---
     # FIXED: Uses default_factory to avoid "mutable default" ValueError
     settings: Any = field(default_factory=lambda: settings)
 
-    # --- Active Service Instances ---
-    git_service: Any | None = None
+    # --- Active Service Instances (genuinely optional / JIT-injected) ---
     cognitive_service: Any | None = None
     knowledge_service: Any | None = None
     auditor_context: Any | None = None

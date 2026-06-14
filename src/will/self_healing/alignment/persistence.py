@@ -20,10 +20,17 @@ async def update_system_memory(file_path: str, write: bool):
     from body.introspection.sync_service import run_sync_with_db
     from body.introspection.vectorization_service import run_vectorize
     from shared.context import CoreContext
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.git_service import GitService
 
     async with service_registry.session() as session:
         await run_sync_with_db(session)
-        ctx = CoreContext(registry=service_registry)
+        # git_service is mandatory on CoreContext (#643). run_vectorize does not
+        # use it, but the contract requires every CoreContext to be fully wired.
+        ctx = CoreContext(
+            registry=service_registry,
+            git_service=GitService(repo_path=BootstrapRegistry.get_repo_path()),
+        )
         await run_vectorize(context=ctx, session=session, dry_run=not write)
 
 

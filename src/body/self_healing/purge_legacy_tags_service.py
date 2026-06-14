@@ -92,7 +92,7 @@ async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
     # 5. Group findings by file to minimize gateway transactions
     files_to_fix = defaultdict(list)
     for finding in src_findings:
-        if finding.line_number:
+        if finding.file_path and finding.line_number:
             files_to_fix[finding.file_path].append(finding.line_number)
 
     total_lines_removed = 0
