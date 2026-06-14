@@ -1,8 +1,8 @@
 # Proof Index
 
-CORE makes structural claims about AI-generated code: that `.intent/` is read through one gateway, that mutations cannot bypass the executor, that the API layer cannot reach the database directly, that every action is recorded.
+CORE makes structural claims about AI-generated code: that `.intent/` is read through one gateway, that mutations cannot bypass the executor, that the API layer cannot reach the database directly, that every action is recorded, and that a dangerous action cannot run without approval.
 
-This page maps each claim to the mechanism that enforces it, the evidence a reviewer can observe, and a command that produces that evidence on a running instance. The page is intentionally short — four claims at v1, all verified against the codebase on the date of last update.
+This page maps each claim to the mechanism that enforces it, the evidence a reviewer can observe, and a command that produces that evidence on a running instance. The page is intentionally short — five claims at v1, all verified against the codebase on the date of last update.
 
 If a claim here cites a mechanism that no longer matches the code, the page is wrong and should be corrected before the code is.
 
@@ -16,6 +16,7 @@ If a claim here cites a mechanism that no longer matches the code, the page is w
 | 2 | `@atomic_action` functions cannot be called outside `ActionExecutor`. | The decorator at `src/shared/atomic_action.py` reads a governance token set by `ActionExecutor.execute()`. A direct call finds no token and raises `GovernanceBypassError` (defined at `src/shared/governance_token.py:21`). | A direct call from a Python REPL raises `GovernanceBypassError` with the message `Constitutional Violation: Action '<id>' was called directly. All actions MUST be routed through ActionExecutor.execute().` | See [Bypass smoke](#bypass-smoke) below. |
 | 3 | The API layer holds no direct database imports. | Rule `architecture.api.no_direct_database_access` is mapped to the `ast_gate` engine at `.intent/enforcement/mappings/architecture/layer_separation.yaml`. The daemon runs it on a cadence and posts violations to the blackboard as `audit.violation::architecture.api.no_direct_database_access`. | A live database query returns the current open violation count. An empty result is PASS. | See [Audit-state query](#audit-state-query) below. |
 | 4 | Every action mutation is recorded in a database audit trail. | `ActionExecutor._audit_log` (`src/body/atomic/executor.py:369`) writes a row to `core.action_results` for every executed action, with `action_type`, `ok`, `file_path`, `agent_id`, `duration_ms`, and a JSON `action_metadata` payload that includes `session_id` and `impact`. The write is non-blocking — audit failure is logged, not raised. | Recent rows show real action IDs (`fix.duplicate_ids`, `sync.db`, …) with `agent_id = 'ActionExecutor'` and increasing `created_at` timestamps. | See [Audit-trail query](#audit-trail-query) below. |
+| 5 | A dangerous-impact action cannot auto-execute; it requires explicit governor approval. | Authorization of record is the approval layer, not an inline check. `.intent/enforcement/config/action_risk.yaml` classifies every action `safe \| moderate \| dangerous`; `Proposal.requires_approval` (`src/will/autonomy/proposal.py`) returns True for `moderate`/`high` risk — only `safe` auto-executes, and an unmapped action fails closed to `moderate`. `ActionExecutor._check_authorization` is a post-approval pass-through (not the gate); the audit → consequence loop is the post-hoc net. | The risk config lists actions classified `dangerous`/`moderate` (each behind approval), and `requires_approval` returns True for the `moderate`/`high` band. | `grep -E ': (dangerous\|moderate)$' .intent/enforcement/config/action_risk.yaml` |
 
 ---
 
@@ -100,10 +101,10 @@ Each row is one executed atomic action. Reviewer should observe: `agent_id` is a
 
 ## Scope
 
-V1 covers four claims chosen for what they prove together: a single read gateway (1), no executor bypass (2), no layer bypass at the API surface (3), no untracked mutation (4). Other claims worth adding — autonomous test-loop honesty, blackboard-only worker communication, atomic-action contract enforcement — are deferred until the cited mechanisms stabilize.
+V1 covers five claims chosen for what they prove together: a single read gateway (1), no executor bypass (2), no layer bypass at the API surface (3), no untracked mutation (4), and no auto-execution of a dangerous action without approval (5). Other claims worth adding — autonomous test-loop honesty, blackboard-only worker communication, atomic-action contract enforcement — are deferred until the cited mechanisms stabilize.
 
 If you find a row whose command no longer produces the cited evidence, the disagreement is the bug, not the test.
 
 ---
 
-*Last verified: 2026-06-06 against `main`.*
+*Last verified: 2026-06-14 against `main`.*

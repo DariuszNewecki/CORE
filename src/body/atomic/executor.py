@@ -381,21 +381,40 @@ class ActionExecutor:
         self, definition: ActionDefinition, write: bool
     ) -> dict[str, Any]:
         """
-        DELIBERATE STUB — NOT AN OVERSIGHT.
+        Inline pass-through — authorization of record is the approval layer.
 
-        Inline authorization is intentionally deferred. Enforcement is
-        delegated to the audit → consequence chain loop (ADR-015,
-        ADR-017, ADR-019). This method will be hardened when the
-        enforcement loop has produced sufficient ViolationExecutor
-        discovery data to define meaningful authorization policies.
+        This method intentionally returns ``authorized: True``; it is NOT the
+        authorization gate and never was. For the autonomous path an action's
+        authority to run is decided UPSTREAM, before ActionExecutor is reached:
+        ``.intent/enforcement/config/action_risk.yaml`` classifies every action
+        ``safe | moderate | dangerous``, and ``Proposal.requires_approval``
+        (``src/will/autonomy/proposal.py``) gates execution on it — only
+        ``safe`` auto-executes; ``moderate``/``dangerous`` (and any unmapped
+        action, which fails closed to ``moderate``) require explicit governor
+        approval before a proposal can execute. The audit → consequence loop is
+        the post-hoc net. By the time execute() runs an autonomous action its
+        authorization has already been adjudicated, so re-deciding it here would
+        duplicate the approval layer, not add safety.
 
-        Fill point: this method, single location. Interface contract is
-        already in place; only the policy evaluation body is missing.
+        A ``dangerous`` + ``write`` request still logs a warning because the one
+        path NOT covered by approval gating is a direct CLI invocation (no
+        proposal → no ``requires_approval`` check). That is a governor-operated,
+        trusted-operator surface today (see #636 on the CLI/sandbox boundary).
+        Activation criterion for filling this method with a real deny path: a
+        dangerous action becoming reachable by a NON-governor caller — e.g. the
+        action-execution surface exposed over the API, or non-governor CLI
+        users. Until then the inline check is a pass-through by design.
+
+        (A prior docstring cited ADR-015/017/019 as the deferral basis; those
+        are consequence-chain *attribution* decisions and establish no
+        authorization deferral — citation corrected per #633.)
         """
         if definition.impact_level == "dangerous" and write:
             logger.warning(
-                "Dangerous action %s requested in write mode — "
-                "authorization enforcement deferred to audit loop",
+                "Dangerous action %s requested in write mode via the inline "
+                "path — authorization of record is the approval layer "
+                "(action_risk → Proposal.requires_approval); the inline check "
+                "is a pass-through (see #633).",
                 definition.action_id,
             )
 
