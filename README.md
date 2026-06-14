@@ -82,7 +82,7 @@ EXECUTION   → completed   (24.5s)                                             
 FILE CHANGE → +26 / -0    5a123426 → 71fde489  src/cli/commands/audit_reporter.py   2026-05-16 13:55:49 UTC
 ```
 
-Both chains are queryable end-to-end from `proposal_consequences` and `blackboard_entries`. The constitution decides which authority applies; the schema is identical.
+Both chains are queryable end-to-end from `proposal_consequences` and `blackboard_entries`. The constitution decides which authority applies; the schema is identical. Reproduce them yourself with the [Consequence-chain query](https://dariusznewecki.github.io/CORE/proof-index/#consequence-chain-query) in the Proof Index.
 
 ---
 
