@@ -99,7 +99,7 @@ class FileContextAssembler:
     # ------------------------------------------------------------------
 
     # ID: d0f6bb94-7d45-4c24-bad1-cae8ca87a4b8
-    def _parse_ast(self, source_code: str) -> ast.AST | None:
+    def _parse_ast(self, source_code: str) -> ast.Module | None:
         """Parse source code into AST, returning None on syntax failure."""
         try:
             return ast.parse(source_code)
@@ -107,14 +107,14 @@ class FileContextAssembler:
             return None
 
     # ID: d66b40c4-3d9f-4280-b4d8-1e632cab08ab
-    def _extract_module_docstring(self, tree: ast.AST | None) -> str:
+    def _extract_module_docstring(self, tree: ast.Module | None) -> str:
         """Extract module docstring if available."""
         if tree is None:
             return ""
         return (ast.get_docstring(tree) or "").strip()
 
     # ID: 5ab8f0c7-a2ec-45b4-8d89-d53727fca7a3
-    def _extract_imports(self, tree: ast.AST | None) -> list[dict[str, Any]]:
+    def _extract_imports(self, tree: ast.Module | None) -> list[dict[str, Any]]:
         """
         Extract import information from the module.
 
@@ -154,7 +154,7 @@ class FileContextAssembler:
     # ID: 265fbbef-8452-48fb-b78a-c0e8d4431328
     def _extract_top_level_symbols(
         self,
-        tree: ast.AST | None,
+        tree: ast.Module | None,
     ) -> list[dict[str, Any]]:
         """
         Extract top-level classes and functions with lightweight metadata.

@@ -189,7 +189,7 @@ class FileRoleDetector:
 
     # ID: 95daeeff-f9cf-4c84-bdcc-2ae3a24e6941
     def _detect_role_from_ast(
-        self, tree: ast.AST | None
+        self, tree: ast.Module | None
     ) -> tuple[str, float, list[str]]:
         """Infer role from parsed syntax structure."""
         if tree is None:
@@ -273,7 +273,7 @@ class FileRoleDetector:
     # ------------------------------------------------------------------
 
     # ID: 8ad2e3e1-1f4e-48cf-bf33-f05e8ef2ae4b
-    def _parse_ast(self, source_code: str) -> ast.AST | None:
+    def _parse_ast(self, source_code: str) -> ast.Module | None:
         """Parse Python source into AST, returning None on failure."""
         try:
             return ast.parse(source_code)
