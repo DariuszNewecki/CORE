@@ -15,7 +15,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from mind.logic.engines.base import BaseEngine, EngineResult
-from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from mind.logic.engines.workflow_gate.base_check import (
+    StructuredViolation,
+    WorkflowCheck,
+)
 from mind.logic.engines.workflow_gate.checks import (
     AlignmentVerificationCheck,
     AuditHistoryCheck,
@@ -132,7 +135,23 @@ class WorkflowGateEngine(BaseEngine):
 
             findings = []
             for v in violations:
-                if v.endswith(".py"):
+                # ADR-098 D1/D2: aggregate quality gates return one
+                # StructuredViolation per affected file, carrying file_path
+                # and structured occurrence context. The severity set here
+                # is provisional — rule_executor overrides it from the
+                # rule's declared enforcement (ADR-098 D4) for every
+                # context-level finding before it reaches the report.
+                if isinstance(v, StructuredViolation):
+                    findings.append(
+                        AuditFinding(
+                            check_id=f"workflow.{check_type}",
+                            severity=AuditSeverity.BLOCK,
+                            message=v.message,
+                            file_path=v.file_path,
+                            context=v.context,
+                        )
+                    )
+                elif v.endswith(".py"):
                     findings.append(
                         AuditFinding(
                             check_id=f"workflow.{check_type}",
