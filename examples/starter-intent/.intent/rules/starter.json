@@ -1,0 +1,43 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.starter",
+        "title": "Starter Constitution — Universal Code Hygiene",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "starter.symbol_ids",
+            "statement": "Every public function and class MUST be preceded by a '# ID:' anchor comment on the line immediately above the def/class keyword. The anchor gives each public symbol a stable identity that survives renames and refactors. Private symbols (names starting with an underscore) are exempt.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "Stable identity is the foundation everything else builds on: traceability, cross-references, and consequence logging all key off the symbol ID rather than its name or line number. This is the rule the demo showcases because it is unambiguous and trivially fixable."
+        },
+        {
+            "id": "starter.docstrings",
+            "statement": "Public functions and classes MUST have a docstring that states their intent. A docstring is the contract a future reader — human or tool — relies on.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "starter.no_print",
+            "statement": "Importable library code MUST NOT use print(). Use a logger so output is structured, leveled, and routable. print() in shipped code is almost always a debugging leftover.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "starter.no_bare_except",
+            "statement": "Code MUST NOT swallow exceptions with a bare 'except:' or 'except Exception: pass'. Name the exception you expect and handle it; a silent except hides the bug you most need to see.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "reporting"
+        }
+    ]
+}

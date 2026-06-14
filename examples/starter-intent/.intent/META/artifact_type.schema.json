@@ -1,0 +1,106 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "core.intent.artifact_type.schema.json",
+    "title": "CORE Artifact Type Declaration",
+    "description": "Constitutional declaration of an artifact class CORE governs. Per ADR-090, this is the first ADR-084 D1 published contract — schema changes require governance amendment. Field additions must be backward-compatible (new optional fields permitted); semantic changes to existing fields and removals require a deprecation window.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "$schema",
+        "kind",
+        "id",
+        "discovery",
+        "identity_key",
+        "change_record",
+        "vector_collection",
+        "supported_sensors",
+        "supported_actions"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+        },
+        "kind": {
+            "type": "string",
+            "enum": [
+                "artifact_type"
+            ]
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "minLength": 2,
+            "maxLength": 64,
+            "description": "Short stable identifier (lowercase, snake_case). Cannot change without governance amendment."
+        },
+        "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+        },
+        "description": {
+            "type": "string",
+            "maxLength": 1024
+        },
+        "discovery": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            },
+            "minItems": 1,
+            "description": "Glob patterns (relative to repo root) selecting instances of this artifact type. Replaces the role of .intent/enforcement/config/crawl_scopes.yaml (ADR-090 D7)."
+        },
+        "identity_key": {
+            "type": "string",
+            "enum": [
+                "path",
+                "path_plus_anchor",
+                "uri"
+            ],
+            "description": "How a single instance is uniquely addressed. Closed vocabulary (ADR-090 D2) — extending it is a governance amendment."
+        },
+        "schema_ref": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Optional pointer to a validation schema (e.g. JSON Schema path) for structured artifacts. Null for prose-shaped or AST-parsed types."
+        },
+        "change_record": {
+            "type": "string",
+            "enum": [
+                "text_diff",
+                "structured_patch",
+                "replace"
+            ],
+            "description": "How an edit to an instance is represented. Closed vocabulary (ADR-090 D2) — extending it is a governance amendment."
+        },
+        "vector_collection": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Qdrant collection routing for vector indexing of instances. Absorbs the role of _QDRANT_COLLECTION_MAP in the crawler (ADR-090 D7)."
+        },
+        "crawler_indexed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the repo crawler indexes instances of this type into the vector_collection. Optional; default true (any type in the registry is crawled unless it explicitly opts out). False allows a type to be governed without being indexed for semantic search. Added 2026-06-04 alongside ADR-090 D7 retirement — backward-compatible optional field per ADR-090 D6."
+        },
+        "supported_sensors": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Sensor IDs (F-42) that can observe this artifact type. Empty list permitted until F-42 lands (ADR-090 D5)."
+        },
+        "supported_actions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Atomic action IDs (F-43) that can mutate this artifact type. Empty list permitted until F-43 lands (ADR-090 D5)."
+        }
+    }
+}

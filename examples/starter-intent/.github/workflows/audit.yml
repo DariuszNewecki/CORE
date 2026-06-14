@@ -1,0 +1,16 @@
+name: Constitutional Audit
+
+# Runs the CORE Constitutional Audit on every push and pull request.
+# Findings annotate the offending lines in the PR diff; with `severity: block`
+# any blocking finding fails the job, which can gate merge via branch protection.
+
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DariuszNewecki/CORE@main
+        with:
+          severity: block

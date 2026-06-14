@@ -1,0 +1,44 @@
+mappings:
+  # Maps each rule in rules/starter.json to a deterministic check engine.
+  # The engine + check_type decide HOW a rule is verified; the rule's own
+  # `enforcement` field (in starter.json) decides whether a finding blocks.
+  # All four engines below are LLM-free and need no database or network.
+
+  # 1. Every public def/class carries a `# ID:` anchor.  (blocking)
+  starter.symbol_ids:
+    engine: ast_gate
+    params:
+      check_type: id_anchor
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["**/__init__.py", "tests/**/*.py"]
+
+  # 2. Public symbols have docstrings.  (reporting)
+  starter.docstrings:
+    engine: ast_gate
+    params:
+      check_type: docstrings_present
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["**/__init__.py", "tests/**/*.py"]
+
+  # 3. No print() in importable code.  (reporting)
+  starter.no_print:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**/*.py", "scripts/**/*.py"]
+
+  # 4. No silently-swallowed exceptions.  (reporting)
+  starter.no_bare_except:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except:\\s*pass"
+        - "except Exception:\\s*pass"
+        - "except BaseException:\\s*pass"
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**/*.py"]

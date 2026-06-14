@@ -1,0 +1,93 @@
+# .intent/enforcement/config/phase_responsibility.yaml
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: draft (governor to review and amend before SPECGAP goes live in production)
+#
+# PURPOSE:
+#   Declares which Northstar User Requirements (UR-NN) each workflow phase
+#   is architecturally responsible for operationalizing. Used as the SPECGAP
+#   bridge (ADR-073 D7 condition 2) when upstream Northstar text does not
+#   textually mention a phase by name — which is the common case, including
+#   issue #459 (UR-03 "CORE stops on contradiction" → interpret-phase).
+#
+# RULE: every phase in {interpret, parse, load, runtime, audit, execution}
+#   declares either operationalizes_urs (non-empty) OR cross_cutting: true.
+#   Coverage is governor-verified at ADR-073 acceptance.
+#
+#   This is the INITIAL MAPPING drafted alongside the implementation arc.
+#   Per ADR-073 D11: "Initial mapping content is governor-authored; this file
+#   is the draft starting point." Governor reviews + amends before SPECGAP
+#   ships. Disagreement between mapping and actual phase implementation is
+#   itself SPECGAP-class drift.
+#
+# REFERENCE: ADR-073 D11 establishes this artifact.
+
+phases:
+  interpret:
+    operationalizes_urs:
+      - UR-01  # Universal Input Acceptance — CORE accepts arbitrary user input here
+      - UR-02  # Comprehension Before Action — interpret-phase IS the comprehension step
+      - UR-03  # Gap and Contradiction Reporting — gaps/contradictions in user intent
+    responsible_for:
+      - "User input acceptance and canonical task structure derivation from stated intent"
+      - "Comprehension of intent before any downstream action"
+      - "Surfacing gaps, ambiguity, and contradiction in user intent (UR-03 §5: contradiction is fatal)"
+    cross_cutting: false
+
+  parse:
+    operationalizes_urs:
+      - UR-04  # Constitution Before Code — intent is parsed against the constitution
+    responsible_for:
+      - "Plan-action derivation from comprehended intent under constitutional constraint"
+      - "Refusal when input has no .intent/ (UR-04: constitution is precondition for implementation)"
+    cross_cutting: false
+
+  load:
+    operationalizes_urs: []
+    responsible_for:
+      - "Operational context retrieval (read-only from storage)"
+    cross_cutting: true   # No specific UR; load is mechanism, not constitutional concern. Excluded from SPECGAP.
+
+  runtime:
+    operationalizes_urs: []
+    responsible_for:
+      - "Deterministic rule-based decisions and generate/repair under constitutional control"
+    cross_cutting: true   # No specific UR; runtime is mechanism. Excluded from SPECGAP for v1.
+
+  audit:
+    operationalizes_urs:
+      - UR-06  # Continuous Constitutional Governance — audit IS the continuous enforcement
+      - UR-07  # Defensibility is Non-Negotiable — audit produces the defensibility trail
+    responsible_for:
+      - "Quality assessment under continuous constitutional governance"
+      - "Production of the defensibility trail (UR-07: every output traceable)"
+    cross_cutting: false
+
+  execution:
+    operationalizes_urs:
+      - UR-05  # Output is Working Software — execution produces the output
+    responsible_for:
+      - "Mutations under constitutional control; production of working software"
+      - "Refusal of execution that would violate the constitution"
+    cross_cutting: false
+
+# URs that are cross-cutting and not phase-bound. SPECGAP does NOT emit candidates
+# for these against any single phase; they are honored by every phase.
+cross_cutting_urs:
+  - UR-08  # Judgement Belongs to the Human — applies to every phase
+  # Note: UR-06 and UR-07 are mapped to audit above as their primary fit; they
+  # ALSO apply cross-cuttingly. Governor decides whether to also list them here
+  # for completeness. v1 lists each UR in at most one location to keep SPECGAP
+  # detection deterministic; revisit if cross-cutting double-coverage proves valuable.
+
+# Governor review notes (remove on acceptance):
+# 1. UR-04 mapping to `parse` is the most uncertain. UR-04 says "constitution
+#    before code" — this could be a precondition check (interpret), a structural
+#    enforcement (parse), or a cross-cutting invariant. Drafted as parse because
+#    plan-action derivation is where constitutional constraint first binds.
+# 2. UR-06 (continuous governance) is constitutionally cross-cutting; mapped
+#    to audit as its primary operational fit because audit IS the continuous
+#    enforcement loop. Consider whether to also mark cross_cutting_urs.
+# 3. `load` and `runtime` carry no UR — they are operational mechanisms, not
+#    constitutional commitments. Marked cross_cutting: true to exclude from
+#    SPECGAP emission. Confirm this is the intended posture.

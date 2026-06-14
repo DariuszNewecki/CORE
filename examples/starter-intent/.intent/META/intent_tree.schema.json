@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.intent_tree.schema.json",
+    "title": "CORE .intent/ Tree Contract (A2)",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "required_directories": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "optional_directories": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "notes": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "required_directories",
+        "optional_directories"
+    ],
+    "default": {
+        "required_directories": [
+            "META",
+            "constitution",
+            "rules"
+        ],
+        "optional_directories": [
+            "papers"
+        ],
+        "notes": "Authoritative inputs: META, constitution, rules. Non-authoritative: papers. Everything else is out of scope for enforcement."
+    }
+}
