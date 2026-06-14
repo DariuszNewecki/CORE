@@ -40,21 +40,28 @@ CORE is a governance runtime that constrains AI agents with machine-enforced con
 
 ---
 
-## 🎬 Live Enforcement Demo
+## 🎬 See it govern itself — one command
 
-Blocking rule → targeted drilldown → automated remediation → verified compliance.
+You don't have to take this on faith. On a clean machine with Docker:
 
-[![asciicast](https://asciinema.org/a/BuS0WuKyRxQwYDHD.svg)](https://asciinema.org/a/BuS0WuKyRxQwYDHD)
+```bash
+git clone https://github.com/DariuszNewecki/CORE.git
+cd CORE && ./install-core.sh
+```
 
-This demo shows:
+`install-core.sh` stands up CORE and finishes by running the consequence-chain demo **live** — no LLM key required. It:
 
-- A structural violation (`linkage.assign_ids`)
-- Deterministic blocking of execution
-- Rule-level audit inspection
-- Automated remediation via `core-admin dev sync --write`
-- Verified compliance after repair
+- commits a function that violates `linkage.assign_ids` (a blocking rule)
+- watches CORE's audit **block** it
+- has CORE propose a fix, the governor approve it, and CORE execute it and commit the repair
+- re-audits to confirm **clean**
+- prints the full causal chain it recorded: finding → proposal → approval → execution → file change
+
+Re-run it any time with `scripts/demo.sh`.
 
 Governance is executable.
+
+<!-- TODO: embed a fresh asciicast of ./install-core.sh once recorded -->
 
 ---
 
