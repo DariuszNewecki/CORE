@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -28,6 +30,22 @@ from .scanners import (
 logger = getLogger(__name__)
 
 _CFG = load_operational_config().misc
+
+
+def _resolve_core_version() -> str:
+    """Resolve core-runtime's installed version; fall back to a dev marker in source mode.
+
+    Mirrors ``api.main._resolve_runtime_version``: the census artifact stamps the
+    real installed package version (single source of truth = pyproject
+    ``[project.version]``) rather than a hardcoded literal that silently drifts
+    (#648 — the field had read ``"2.0.0"`` since that release). In a raw source
+    tree with no wheel installed, emit a PEP 440 local-version marker instead of
+    raising.
+    """
+    try:
+        return _pkg_version("core-runtime")
+    except PackageNotFoundError:
+        return "0.0.0+source"
 
 
 # ID: 0b9a7f04-a0b2-438e-89d1-c0690c8fe2a4
@@ -51,7 +69,7 @@ class CensusService:
 
         metadata = RepoCensusMetadata(
             run_id=str(uuid.uuid4()),
-            core_version="2.0.0",
+            core_version=_resolve_core_version(),
         )
 
         repo_info = scan_git_metadata(repo_path)
