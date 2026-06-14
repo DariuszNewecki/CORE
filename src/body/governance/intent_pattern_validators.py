@@ -417,7 +417,7 @@ class PatternValidators:
     @classmethod
     # ID: 5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c
     def check_no_imported_symbol_redeclared(
-        cls, tree: ast.AST, target_path: str
+        cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
         """Flag top-level ``class Foo: pass`` / ``def Foo(...)`` where ``Foo``
         is also imported in the same file.
@@ -474,7 +474,7 @@ class PatternValidators:
     @classmethod
     # ID: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
     def check_no_placeholder_test_body(
-        cls, tree: ast.AST, target_path: str
+        cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
         """Flag ``def test_X(...)`` functions whose body has no observable
         assertion — no ``assert``, no ``pytest.raises(...)``, no mock
@@ -513,7 +513,7 @@ class PatternValidators:
     @classmethod
     # ID: 7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
     def check_no_global_module_mutation(
-        cls, tree: ast.AST, target_path: str
+        cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
         """Flag ``<imported_module>.<attr> = <value>`` at module scope or
         directly inside a fixture body (outside a ``with patch(...)`` /
@@ -544,12 +544,12 @@ class PatternValidators:
             return []
 
         violations: list[ViolationReport] = []
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Assign):
+        for walk_node in ast.walk(tree):
+            if not isinstance(walk_node, ast.Assign):
                 continue
-            if len(node.targets) != 1:
+            if len(walk_node.targets) != 1:
                 continue
-            target = node.targets[0]
+            target = walk_node.targets[0]
             if not isinstance(target, ast.Attribute):
                 continue
             root = target.value
@@ -586,7 +586,7 @@ class PatternValidators:
     @classmethod
     # ID: 8c9d0e1f-2a3b-4c5d-6e7f-8a9b0c1d2e3f
     def check_no_unresolved_free_names(
-        cls, tree: ast.AST, target_path: str
+        cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
         """Flag references to free names (Name nodes used as values) that
         are neither imported nor defined in the file and aren't builtins.
