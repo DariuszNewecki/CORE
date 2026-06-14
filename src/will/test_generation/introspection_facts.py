@@ -201,11 +201,9 @@ def _extract_awaited_call_sites(symbol_code: str, symbol_name: str) -> list[str]
     except SyntaxError:
         return []
 
-    target_node = _find_target_node(tree, symbol_name)
-    if target_node is None:
-        # symbol_code might be just the symbol body (no enclosing def);
-        # fall back to walking the whole tree
-        target_node = tree
+    # symbol_code might be just the symbol body (no enclosing def); fall back
+    # to walking the whole tree when no enclosing node is found.
+    target_node = _find_target_node(tree, symbol_name) or tree
 
     sites: list[str] = []
     for node in ast.walk(target_node):

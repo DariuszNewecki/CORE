@@ -180,8 +180,9 @@ class FunctionCallVisitor(ast.NodeVisitor):
 # ID: 5f4a3e52-b52a-49ac-aa37-a5201376979f
 def parse_metadata_comment(node: ast.AST, source_lines: list[str]) -> dict[str, str]:
     """Returns a dict like {'capability': 'domain.key'} when present; otherwise empty dict."""
-    if getattr(node, "lineno", None) and node.lineno is not None and node.lineno > 1:
-        line = source_lines[node.lineno - 2].strip()
+    lineno = getattr(node, "lineno", None)
+    if lineno is not None and lineno > 1:
+        line = source_lines[lineno - 2].strip()
         if line.startswith("#") and "CAPABILITY:" in line.upper():
             try:
                 # split on the first colon to preserve values containing colons

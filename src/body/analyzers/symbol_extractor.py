@@ -179,7 +179,7 @@ class SymbolExtractor(BaseAnalyzer):
 
     def _extract_symbols(
         self,
-        tree: ast.AST,
+        tree: ast.Module,
         rel_path: str,
         include_private: bool,
     ) -> list[SymbolMetadata]:

@@ -35,7 +35,7 @@ def extract_classes(tree: ast.AST) -> list[dict[str, Any]]:
 
 
 # ID: 74d8bef6-1e3a-4cf6-821a-afbb5f73c20b
-def extract_functions(tree: ast.AST) -> list[dict[str, Any]]:
+def extract_functions(tree: ast.Module) -> list[dict[str, Any]]:
     return [
         {
             "name": n.name,

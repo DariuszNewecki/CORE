@@ -127,7 +127,10 @@ class KnowledgeGraphBuilder:
         return "unknown"
 
     def _process_symbol(
-        self, node: ast.AST, rel_path: Path, source_lines: list[str]
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+        rel_path: Path,
+        source_lines: list[str],
     ) -> None:
         """Extract metadata for a symbol."""
         if not hasattr(node, "name"):
@@ -159,7 +162,11 @@ class KnowledgeGraphBuilder:
             "line_number": node.lineno,
             "end_line_number": getattr(node, "end_lineno", node.lineno),
             "is_async": isinstance(node, ast.AsyncFunctionDef),
-            "parameters": extract_parameters(node) if hasattr(node, "args") else [],
+            "parameters": (
+                extract_parameters(node)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                else []
+            ),
             "is_class": isinstance(node, ast.ClassDef),
             "base_classes": (
                 extract_base_classes(node) if isinstance(node, ast.ClassDef) else []

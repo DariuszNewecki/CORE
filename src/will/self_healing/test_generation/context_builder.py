@@ -94,7 +94,7 @@ class ContextPackageBuilder:
         packet: dict,
         module_path: str,
         source_code: str,
-        tree: ast.AST,
+        tree: ast.Module,
     ) -> ModuleContext:
         """
         Convert ContextPackage to ModuleContext
