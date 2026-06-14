@@ -19,7 +19,16 @@ jobs:
       - name: "Checkout Code"
         uses: actions/checkout@v6
 
-      - name: "Set up Python and Poetry"
+      - name: "Install Poetry"
+        uses: snok/install-poetry@v1
+        with:
+          # Must be installed BEFORE setup-python so its `cache: 'poetry'`
+          # can locate Poetry; >= 2.0 for the PEP 621 [project] table.
+          version: "2.2.1"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: "Set up Python"
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
