@@ -99,6 +99,16 @@ Each row is one executed atomic action. Reviewer should observe: `agent_id` is a
 
 ---
 
+## Boundaries
+
+The claims above state what CORE enforces. This section states where a named mechanism's coverage **deliberately** ends, so a reviewer does not read an out-of-scope path as a gap.
+
+**Worktree execution sandbox (ADR-106 / ADR-071 D2.2).** Write actions execute inside a hermetic git worktree — mutations land in the sandbox and are copy-propagated back only on success, bounded to the declared production set — **only when the caller supplies `pre_execution_sha`**. The autonomous/daemon path supplies it (`src/will/autonomy/proposal_executor.py`, `proposal_execution_pipeline.py`); a **direct CLI invocation leaves it `None` and executes against the real working tree by design**. The boundary is intentional: CLI is a governor-operated surface — the operator authored the change and runs under the D2.1 stop/start protocol — so it is out of sandbox scope, not an oversight. This mirrors the authorization boundary in claim 5: a CLI-direct dangerous write is the same named residual, covered by governor operation plus the audit → consequence loop rather than by the inline mechanism.
+
+Verify the gate: `grep -n "pre_execution_sha is None" src/body/atomic/sandbox_lifecycle.py` shows the sandbox is skipped when no sha is supplied; `grep -rn "pre_execution_sha=" src/will/autonomy/` shows the autonomous callers that supply it. No CLI path does.
+
+---
+
 ## Scope
 
 V1 covers five claims chosen for what they prove together: a single read gateway (1), no executor bypass (2), no layer bypass at the API surface (3), no untracked mutation (4), and no auto-execution of a dangerous action without approval (5). Other claims worth adding — autonomous test-loop honesty, blackboard-only worker communication, atomic-action contract enforcement — are deferred until the cited mechanisms stabilize.
