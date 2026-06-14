@@ -488,7 +488,28 @@ class ActionExecutor:
                         },
                     )
         except Exception as e:
-            logger.warning("Non-blocking audit log failure: %s", e)
+            # #634: audit persistence is best-effort and runs at step 7, after
+            # the mutation has already landed (post-propagate) — there is no
+            # file+DB transaction to unwind, so we do NOT roll back. But a
+            # write action whose action_results row fails to persist is a real
+            # audit gap, not a benign miss: surface it LOUD (ERROR + greppable
+            # AUDIT_GAP marker) so it is alertable, never silently swallowed.
+            # The schema has no per-row failure mode (only action_type/ok are
+            # NOT NULL and both are always supplied), so this fires only on DB
+            # unavailability/serialization. On the autonomous path the
+            # proposal's completion write shares that DB failure, leaving a
+            # visibly-stuck proposal; CLI-direct is the governor-operated
+            # residual. Reads stay a quiet best-effort warning.
+            if write:
+                logger.error(
+                    "AUDIT_GAP: write action %s executed but its "
+                    "core.action_results row failed to persist (%s) — mutation "
+                    "stands, audit trail incomplete for this action (#634)",
+                    definition.action_id,
+                    e,
+                )
+            else:
+                logger.warning("Non-blocking audit log failure (read): %s", e)
 
     # ID: eff3eded-b30d-49e0-b50c-3503a1b695af
     def _prepare_params(
