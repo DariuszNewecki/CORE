@@ -2248,7 +2248,7 @@ CREATE TABLE core.repo_artifacts (
     crawl_run_id uuid NOT NULL,
     last_crawled_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT repo_artifacts_type_check CHECK ((artifact_type = ANY (ARRAY['adr'::text, 'doc'::text, 'infra'::text, 'intent'::text, 'intent_json'::text, 'intent_yaml'::text, 'paper'::text, 'prompt'::text, 'python'::text, 'report'::text, 'spec_markdown'::text, 'test'::text])))
+    CONSTRAINT repo_artifacts_type_check CHECK ((artifact_type = ANY (ARRAY['adr'::text, 'doc'::text, 'infra'::text, 'intent_json'::text, 'intent_yaml'::text, 'paper'::text, 'prompt'::text, 'python'::text, 'report'::text, 'spec_markdown'::text, 'test'::text])))
 );
 
 
