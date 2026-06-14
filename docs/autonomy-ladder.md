@@ -56,7 +56,7 @@ All operations follow the same self-correcting pattern.
 
 CORE's daemon runs continuously, finds violations in its own codebase, proposes fixes, executes approved changes, and verifies the result — without the human writing a single line of code.
 
-- Seven audit sensors running continuously across 52 rules
+- Nine audit sensors running continuously, one per rule namespace (architecture, cli, governance, layout, linkage, logic, modularity, purity, style) — the structural subset of the 209 declared rules
 - Violations posted to the Blackboard and automatically claimed for remediation
 - Proposals executed via governed atomic actions
 - Unmapped violations delegated to human judgment via the Governor Inbox

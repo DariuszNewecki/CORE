@@ -51,7 +51,7 @@ cd CORE
 poetry install
 
 cp .env.example .env
-# Edit .env: set DATABASE__URL / QDRANT__URL if they differ from the defaults,
+# Edit .env: set DATABASE_URL / QDRANT_URL if they differ from the defaults,
 # and configure your LLM provider (see the LLM section of .env.example).
 ```
 
@@ -94,7 +94,8 @@ poetry run core-admin code audit --offline
 
 Offline mode skips `knowledge_gate` and `llm_gate` (they require the knowledge
 graph and an LLM provider) and reports the skip. Once `core-api` is running
-(`core-admin daemon up`), the full audit runs every engine:
+(`./install-core.sh` starts it for you; or run it directly with `make run`), the
+full audit runs every engine:
 
 ```bash
 poetry run core-admin code audit
@@ -112,7 +113,7 @@ A clean audit (zero blocking violations) is the precondition for autonomous oper
 
 ## Sync the Vector Layer
 
-CORE uses Qdrant for semantic search across constitutional documents and architectural papers. Sync the vector collections after installation:
+CORE uses Qdrant for semantic search across constitutional documents and architectural papers. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Sync the vector collections:
 
 ```bash
 poetry run core-admin vectors sync --write
@@ -176,8 +177,11 @@ finding violations, proposing fixes, and (for risk-classified-safe changes)
 executing them, all coordinated on the blackboard:
 
 ```bash
-make daemon-start            # or: poetry run core-admin daemon up   (systemd units)
+make daemon-start            # background daemon (works on a fresh clone)
 ```
+
+(If you've installed CORE's systemd user units, `core-admin daemon up` starts the
+full set — `core-daemon`, `core-api`, and the worker instances — instead.)
 
 With the daemon running, routine maintenance is **automatic**: `DbSyncWorker`
 keeps the knowledge graph and vectors in sync on a ~5-minute cadence, and the

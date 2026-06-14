@@ -125,7 +125,7 @@ asyncio.run(main())
 "
 ```
 
-Each row is one complete consequence chain. `goal` is the finding that triggered it (e.g. `Autonomous remediation: fix.format (1 violation(s) — rules: style.formatter_required ...)`); `approved_by` / `approval_authority` is the authority that authorized execution — `risk_classification.safe_auto_approval` on the risk-classified-safe autonomous path, or a human approver such as `human.cli_operator` on the governor path; `pre_sha → post_sha` with `files_changed` is the executed mutation. This is the query behind the README "Live Audit Trail" — the causal chain (Finding → Proposal → Approval → Execution → File change) read end-to-end from one join.
+Each row is one complete consequence chain. `goal` is the finding that triggered it (e.g. `Autonomous remediation: fix.format (1 violation(s) — rules: style.formatter_required ...)`); `approved_by` / `approval_authority` is the authority that authorized execution — `risk_classification.safe_auto_approval` on the risk-classified-safe autonomous path, or `principal.governor` on the human-approval path; `pre_sha → post_sha` with `files_changed` is the executed mutation. This is the query behind the README "Live Audit Trail" — the causal chain (Finding → Proposal → Approval → Execution → File change) read end-to-end from one join.
 
 ---
 

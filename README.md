@@ -84,7 +84,7 @@ FILE CHANGE → +105 / -0   98da9038 → fca9a971  src/api/cli/client.py        
 ```
 FINDING     → purity.docstrings.required       src/cli/commands/audit_reporter.py   2026-05-15 08:28:29 UTC
 PROPOSAL    → a4363a81…   fix.docstrings                                            2026-05-16 13:39:34 UTC
-APPROVAL    → human.cli_operator  (cli_admin)                                       2026-05-16 13:53:32 UTC
+APPROVAL    → principal.governor  (cli_admin)                                       2026-05-16 13:53:32 UTC
 EXECUTION   → completed   (24.5s)                                                   2026-05-16 13:55:48 UTC
 FILE CHANGE → +26 / -0    5a123426 → 71fde489  src/cli/commands/audit_reporter.py   2026-05-16 13:55:49 UTC
 ```
