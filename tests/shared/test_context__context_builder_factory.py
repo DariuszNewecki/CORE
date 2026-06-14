@@ -17,7 +17,12 @@ from shared.context import CoreContext
 # ID: cc73b8cd-ee95-417e-b7a7-5f5179968369
 def test_context_builder_raises_when_factory_not_configured() -> None:
     """First read with no factory wired surfaces a clear RuntimeError."""
-    context = CoreContext(registry=object(), git_service=object())
+    context = CoreContext(
+        registry=object(),
+        git_service=object(),
+        knowledge_service=object(),
+        file_handler=object(),
+    )
 
     with pytest.raises(RuntimeError, match="ArchitecturalContextBuilder factory"):
         _ = context.context_builder
@@ -35,7 +40,11 @@ def test_context_builder_routes_through_factory_and_caches() -> None:
         return sentinel
 
     context = CoreContext(
-        registry=object(), git_service=object(), context_builder_factory=factory
+        registry=object(),
+        git_service=object(),
+        knowledge_service=object(),
+        file_handler=object(),
+        context_builder_factory=factory,
     )
 
     first = context.context_builder

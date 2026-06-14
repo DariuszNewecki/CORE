@@ -18,6 +18,8 @@ from shared.config import settings
 
 if TYPE_CHECKING:
     from shared.infrastructure.git_service import GitService
+    from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 
 @dataclass
@@ -36,12 +38,14 @@ class CoreContext:
     registry: Any
 
     # --- Always-wired services (#643) ---
-    # git_service is guaranteed at construction by every production path
-    # (bootstrap, daemon) and is therefore non-Optional. A construction site
-    # that forgets it fails fast rather than handing consumers a None that
-    # ~113 call sites assume is present. Contrast the genuinely-degradable
-    # services below, which stay Optional (daemon wires them in try/except).
+    # These are guaranteed at construction by every production path (bootstrap,
+    # daemon) and are therefore non-Optional. A construction site that forgets
+    # one fails fast rather than handing consumers a None that hundreds of call
+    # sites assume is present. Contrast the genuinely-degradable services below,
+    # which stay Optional (the daemon wires them in try/except).
     git_service: GitService
+    knowledge_service: KnowledgeService
+    file_handler: FileHandler
 
     # --- Configuration SSOT ---
     # FIXED: Uses default_factory to avoid "mutable default" ValueError
@@ -49,9 +53,7 @@ class CoreContext:
 
     # --- Active Service Instances (genuinely optional / JIT-injected) ---
     cognitive_service: Any | None = None
-    knowledge_service: Any | None = None
     auditor_context: Any | None = None
-    file_handler: Any | None = None
     planner_config: Any | None = None
     qdrant_service: Any | None = None
     debug: bool = False

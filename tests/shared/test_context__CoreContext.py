@@ -14,7 +14,12 @@ from shared.context import CoreContext
 def test_corecontext_with_registry():
     """Test CoreContext initialization with a registry."""
     test_registry = {"service": "test"}
-    context = CoreContext(registry=test_registry, git_service=object())
+    context = CoreContext(
+        registry=test_registry,
+        git_service=object(),
+        knowledge_service=object(),
+        file_handler=object(),
+    )
     assert context.registry == test_registry
 
 
@@ -35,7 +40,11 @@ def test_corecontext_repr_excludes_sensitive_fields():
         return "service"
 
     context = CoreContext(
-        registry="test_registry", git_service=object(), context_service_factory=factory
+        registry="test_registry",
+        git_service=object(),
+        knowledge_service=object(),
+        file_handler=object(),
+        context_service_factory=factory,
     )
     repr_str = repr(context)
     assert "registry" in repr_str or "test_registry" in repr_str

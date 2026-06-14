@@ -616,15 +616,19 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     logger.info("CORE daemon starting...")
 
-    # git_service is mandatory (#643) — construct it up front so CoreContext is
-    # fully wired. GitService.__init__ only resolves a path (no git invocation),
-    # so it cannot fail where get_repo_path() succeeds, which knowledge_service
-    # already requires unconditionally below.
+    # git_service, knowledge_service and file_handler are mandatory (#643) —
+    # construct them up front so CoreContext is fully wired. These were already
+    # wired unconditionally (no try/except) further down; moving them into the
+    # constructor keeps the same fail-fast behaviour and satisfies the required
+    # fields. The genuinely-degradable services (cognitive/qdrant/auditor) stay
+    # post-construction in try/except below.
     from shared.infrastructure.git_service import GitService
 
     ctx = CoreContext(
         registry=service_registry,
         git_service=GitService(repo_path=BootstrapRegistry.get_repo_path()),
+        knowledge_service=KnowledgeService(repo_path=BootstrapRegistry.get_repo_path()),
+        file_handler=service_registry.get_file_handler(),
     )
 
     cog_svc: Any = None
@@ -647,10 +651,6 @@ async def _run_daemon_locked(only: str | None = None) -> None:
     except Exception as e:
         logger.warning("CORE daemon: AuditorContext unavailable: %s", e)
 
-    ctx.knowledge_service = KnowledgeService(
-        repo_path=BootstrapRegistry.get_repo_path()
-    )
-
     # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
     try:
         swept = ctx.git_service.sweep_orphan_worktrees()
@@ -664,8 +664,6 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             "CORE daemon: orphan worktree sweep failed (non-fatal): %s",
             sweep_err,
         )
-
-    ctx.file_handler = service_registry.get_file_handler()
 
     # ADR-081 Step 0 — loop-hold instrumentation (Option 1, permanent telemetry).
     # Gated on operational_config.daemon.set_debug. When enabled, the asyncio

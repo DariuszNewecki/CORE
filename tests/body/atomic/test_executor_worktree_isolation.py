@@ -46,8 +46,12 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _make_context(repo: Path) -> CoreContext:
-    ctx = CoreContext(registry=MagicMock(), git_service=GitService(repo))
-    ctx.file_handler = FileHandler(str(repo))
+    ctx = CoreContext(
+        registry=MagicMock(),
+        git_service=GitService(repo),
+        knowledge_service=MagicMock(),
+        file_handler=FileHandler(str(repo)),
+    )
     return ctx
 
 
