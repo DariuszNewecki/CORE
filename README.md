@@ -255,21 +255,27 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 **Just want to audit a repo?** No local install needed — run the audit in CI with the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `pip install core-runtime && core-admin code audit --offline`.
 
-**Full local runtime** (the autonomous daemon + consequence chain):
+**Full local runtime** — one command. Clone, then run the installer:
 
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
-poetry install
-cp .env.example .env          # set DB / Qdrant / LLM provider
-
-# Start Postgres + Qdrant, then create the schema
-docker compose up -d
-psql postgresql://postgres:postgres@localhost:5432/core -f infra/sql/db_schema_live.sql
-
-# Run a constitutional audit (offline mode needs no running services)
-poetry run core-admin code audit --offline
+./install-core.sh
 ```
+
+`install-core.sh` checks prerequisites, installs dependencies, starts Postgres + Qdrant, applies the schema, and finishes by **showing CORE govern itself** — a violation found, proposed, approved, fixed, and verified, with the consequence chain recorded. No LLM API key needed for the demo.
+
+<details>
+<summary>Prefer to run the steps yourself?</summary>
+
+```bash
+poetry install
+cp .env.example .env
+docker compose up -d
+docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
+poetry run core-admin code audit --offline   # offline mode needs no running services
+```
+</details>
 
 Full setup — services, schema, vector sync, first audit — is in [Getting Started](https://dariusznewecki.github.io/CORE/getting-started/).
 

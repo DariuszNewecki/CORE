@@ -30,6 +30,21 @@ You will also need an LLM resource — local model server or external API, your 
 
 ## Installation
 
+**One command** (recommended). Clone, then run the installer — it checks
+prerequisites, installs dependencies, starts the services, applies the schema,
+and finishes by showing CORE govern itself (no LLM key needed for the demo):
+
+```bash
+git clone https://github.com/DariuszNewecki/CORE.git
+cd CORE
+./install-core.sh
+```
+
+If that succeeds you can skip to [Key Commands](#key-commands) — CORE is running.
+The rest of this section is the same path, done by hand.
+
+### Manual installation
+
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
@@ -56,8 +71,9 @@ Create the schema in the fresh `core` database (CORE uses a canonical
 schema file, not a migration framework — see [the schema-as-truth model](how-it-works.md)):
 
 ```bash
-# Apply the canonical schema to the empty database
-psql postgresql://postgres:postgres@localhost:5432/core -f infra/sql/db_schema_live.sql
+# Apply the canonical schema to the empty database (runs psql inside the container,
+# so you don't need a psql client on the host)
+docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
 ```
 
 Verify the connection:
