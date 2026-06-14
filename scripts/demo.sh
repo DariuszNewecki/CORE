@@ -20,6 +20,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 SEED="src/body/analyzers/demo_onramp_violation.py"
 ADMIN=(poetry run core-admin)
+# CORE executes fixes in a git worktree built from HEAD, so the violation must
+# be committed for the fixer to see it. Remember where we started so cleanup can
+# roll back the demo's seed + fix commits to a pristine tree.
+ORIG_HEAD="$(git rev-parse HEAD 2>/dev/null || true)"
 
 if [[ -t 1 ]]; then B=$'\e[1m'; G=$'\e[32m'; Y=$'\e[33m'; C=$'\e[36m'; D=$'\e[2m'; X=$'\e[0m'
 else B=''; G=''; Y=''; C=''; D=''; X=''; fi
@@ -27,16 +31,16 @@ act()  { printf '\n%s▸ %s%s\n' "${B}${C}" "$*" "$X"; }
 note() { printf '  %s%s%s\n' "$D" "$*" "$X"; }
 
 cleanup() {
-  if git ls-files --error-unmatch "$SEED" >/dev/null 2>&1; then
-    git rm -f --quiet "$SEED" 2>/dev/null || rm -f "$SEED"
-  else
-    rm -f "$SEED"
+  # Roll the throwaway demo commits (seed + fix) back to the pre-demo state.
+  if [[ -n "${ORIG_HEAD:-}" ]]; then
+    git reset --hard "$ORIG_HEAD" >/dev/null 2>&1 || true
   fi
+  rm -f "$SEED"
 }
 trap cleanup EXIT
 
 # ---- 1. ENCOUNTER — seed a real, structural violation ----------------------
-act "A developer adds a function — but forgets CORE's symbol-ID rule"
+act "A developer adds a function and commits it — forgetting CORE's symbol-ID rule"
 cat > "$SEED" <<'PY'
 """Throwaway file created by scripts/demo.sh to demonstrate CORE's governance loop."""
 from __future__ import annotations
@@ -47,11 +51,18 @@ def greet(name: str) -> str:
     # linkage.assign_ids, a blocking constitutional rule.
     return f"hello, {name}"
 PY
-note "wrote ${SEED} (a public function with no '# ID:' anchor)"
+# Commit it (--no-verify: skip local hooks) so CORE's from-HEAD fix worktree sees it.
+git add "$SEED" >/dev/null 2>&1
+git commit --no-verify -q -m "demo: add greet() — missing # ID anchor" >/dev/null 2>&1 \
+  && note "committed ${SEED} at $(git rev-parse --short HEAD)" \
+  || note "[VM] could not commit the seed — check git identity / hooks"
 
 # ---- 2. AUDIT — CORE detects it, deterministically -------------------------
+# File-scoped (--files) so the demo is fast; capture output then grep so the
+# audit's non-zero "findings present" exit doesn't trip `set -o pipefail`.
 act "CORE audits the change (offline — no services, no LLM)"
-if "${ADMIN[@]}" code audit --offline 2>/dev/null | grep -iE "linkage.assign_ids|${SEED}"; then
+audit_out="$("${ADMIN[@]}" code audit --offline --files "$SEED" 2>/dev/null || true)"
+if grep -qiE 'linkage.assign_ids' <<<"$audit_out"; then
   printf '  %s→ BLOCKED: linkage.assign_ids fired on the new file%s\n' "$Y" "$X"
 else
   note "[VM] expected a linkage.assign_ids finding on ${SEED}; verify the offline rule set covers it"
@@ -66,12 +77,18 @@ PID="$("${ADMIN[@]}" proposals create "Demo: assign the missing symbol ID" \
 note "proposal ${PID} created"
 "${ADMIN[@]}" proposals approve "$PID" --by demo --authority principal.governor >/dev/null 2>&1 \
   && note "approved (authority: principal.governor)"
-"${ADMIN[@]}" proposals execute "$PID" --write >/dev/null 2>&1 \
-  && printf '  %s→ executed: CORE added the missing ID and committed the change%s\n' "$G" "$X"
+# execute is a dangerous op and prompts 'Continue? [y/n]'; answer it for the
+# unattended demo (the proposal was already governor-approved above).
+if printf 'y\n' | "${ADMIN[@]}" proposals execute "$PID" --write >/dev/null 2>&1; then
+  printf '  %s→ executed: CORE added the missing ID and committed the change%s\n' "$G" "$X"
+else
+  note "[VM] execute failed — inspect 'proposals show ${PID}'"
+fi
 
 # ---- 4. VERIFY — re-audit, now clean ---------------------------------------
 act "CORE re-audits to confirm the fix"
-if "${ADMIN[@]}" code audit --offline 2>/dev/null | grep -iqE "linkage.assign_ids.*${SEED##*/}"; then
+verify_out="$("${ADMIN[@]}" code audit --offline --files "$SEED" 2>/dev/null || true)"
+if grep -qiE 'linkage.assign_ids' <<<"$verify_out"; then
   note "[VM] violation still present — inspect proposals show ${PID}"
 else
   printf '  %s→ CLEAN: linkage.assign_ids no longer fires%s\n' "$G" "$X"

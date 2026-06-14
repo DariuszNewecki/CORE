@@ -71,14 +71,36 @@ mkdir -p var/run var/log
 # ---- 3. services -----------------------------------------------------------
 step "Starting Postgres + Qdrant"
 docker compose up -d
+# Wait for Postgres to be REALLY ready. On first start the official image runs
+# initdb behind a temporary socket-only server, then restarts for real — so any
+# connection probe (pg_isready / SELECT 1) over the socket can pass against the
+# temp server and race the schema apply into "the database system is shutting
+# down". The reliable signal is the log: the entrypoint prints "PostgreSQL init
+# process complete" before the real server starts, so we wait for the
+# "ready to accept connections" line that comes AFTER it (or, on an existing
+# volume where there is no initdb, any such line).
 printf '  waiting for Postgres'
-for i in $(seq 1 60); do
-  if docker compose exec -T postgres pg_isready -U postgres -d core >/dev/null 2>&1; then
-    printf '\n'; ok "Postgres ready"; break
+db_ready=0
+for i in $(seq 1 90); do
+  logs="$(docker compose logs postgres 2>/dev/null)"
+  if printf '%s\n' "$logs" | grep -q 'PostgreSQL init process complete'; then
+    # Fresh init finished: only the ready line AFTER it belongs to the real
+    # server (the earlier one was the temporary init server, which then shuts
+    # down — racing the schema apply if trusted).
+    if printf '%s\n' "$logs" | sed -n '/PostgreSQL init process complete/,$p' \
+         | grep -q 'database system is ready to accept connections'; then
+      db_ready=1; printf '\n'; ok "Postgres ready"; break
+    fi
+  elif [[ "$i" -ge 6 ]] \
+       && printf '%s\n' "$logs" | grep -q 'database system is ready to accept connections' \
+       && ! printf '%s\n' "$logs" | grep -q 'shutting down'; then
+    # No initdb after ~12s (existing volume, no temp server): the ready line is
+    # the real server.
+    db_ready=1; printf '\n'; ok "Postgres ready"; break
   fi
   printf '.'; sleep 2
-  [[ "$i" -eq 60 ]] && { printf '\n'; die "Postgres did not become ready within 120s. Check 'docker compose logs postgres'."; }
 done
+[[ "$db_ready" -eq 1 ]] || die "Postgres did not become ready within 180s. Check 'docker compose logs postgres'."
 
 # ---- 4. schema -------------------------------------------------------------
 step "Applying the constitutional schema"
@@ -86,9 +108,26 @@ if docker compose exec -T postgres psql -U postgres -d core -tAc \
      "SELECT to_regclass('core.blackboard_entries')" 2>/dev/null | grep -q blackboard_entries; then
   ok "schema already present — skipping"
 else
-  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d core \
-    < infra/sql/db_schema_live.sql >/dev/null
-  ok "schema applied from infra/sql/db_schema_live.sql"
+  # Apply with retries to ride out the initdb temp-server/real-server restart
+  # (which can otherwise drop the connection mid-apply with "shutting down").
+  # Each attempt starts from a clean slate so a partial apply from a raced
+  # attempt doesn't fail the next one on "already exists".
+  schema_done=0
+  for attempt in $(seq 1 8); do
+    docker compose exec -T postgres psql -U postgres -d core -c 'DROP SCHEMA IF EXISTS core CASCADE' >/dev/null 2>&1 || true
+    # roles the dump's OWNER/GRANT statements reference (bare — app connects as
+    # the postgres superuser, see .env DATABASE_URL), and btree_gist for the one
+    # EXCLUDE-gist constraint (ships with the image, not created by the dump).
+    docker compose exec -T postgres psql -U postgres -d core -c 'CREATE ROLE core_db' >/dev/null 2>&1 || true
+    docker compose exec -T postgres psql -U postgres -d core -c 'CREATE ROLE core'    >/dev/null 2>&1 || true
+    docker compose exec -T postgres psql -U postgres -d core -c 'CREATE EXTENSION IF NOT EXISTS btree_gist' >/dev/null 2>&1 || true
+    if docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d core \
+         < infra/sql/db_schema_live.sql >/dev/null 2>&1; then
+      schema_done=1; ok "schema applied from infra/sql/db_schema_live.sql"; break
+    fi
+    sleep 3
+  done
+  [[ "$schema_done" -eq 1 ]] || die "Schema apply failed after retries. Check 'docker compose logs postgres'."
 fi
 
 # ---- 5. verify -------------------------------------------------------------
@@ -119,6 +158,10 @@ fi
 
 # ---- 7. the demo -----------------------------------------------------------
 step "Showing you CORE govern itself"
+# The demo's execute step commits the fix — a fresh clone may have no git
+# identity, which would make that commit fail. Set a local fallback if unset.
+git config user.email >/dev/null 2>&1 || git config user.email "you@example.com"
+git config user.name  >/dev/null 2>&1 || git config user.name  "CORE User"
 CORE_API_HOST="$API_HOST" CORE_API_PORT="$API_PORT" bash scripts/demo.sh
 
 # ---- 8. done ---------------------------------------------------------------
