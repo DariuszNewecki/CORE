@@ -87,6 +87,11 @@ If `pre-commit` hooks exist, contributors are expected to run them locally.
 
 ---
 
+### 6. Versioning & Releases
+CORE follows SemVer; released versions are immutable (corrections ship as a new patch, never a re-tag). The full policy — what counts as major/minor/patch, the PyPI⟺Docker contract, and pre-release candidates — is in [`.specs/planning/CORE-Semver-Policy.md`](.specs/planning/CORE-Semver-Policy.md).
+
+---
+
 ## What Is Not Acceptable
 - Changes that bypass or dilute `.intent/`
 - Changes that contradict architectural reasoning in `.specs/`

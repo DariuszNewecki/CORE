@@ -9,7 +9,7 @@
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
-*Versioning: SemVer with `2.x` denoting an API approaching stability (Beta on PyPI); see [ADR-088](.specs/decisions/ADR-088-pypi-version-alignment.md) for the policy.*
+*Versioning: SemVer with `2.x` denoting an API approaching stability (Beta on PyPI); see the [versioning policy](.specs/planning/CORE-Semver-Policy.md).*
 
 ---
 
