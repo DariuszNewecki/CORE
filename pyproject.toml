@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "core-runtime"
-version = "2.6.0"
+version = "2.7.0"
 description = "CORE: executable constitutional governance for AI-assisted software development."
 authors = [
     { name = "Dariusz Newecki", email = "d.newecki@gmail.com" },
