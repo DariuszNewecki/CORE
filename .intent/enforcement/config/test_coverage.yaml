@@ -23,14 +23,24 @@ excluded_filenames:
 # Scope limiter — if non-empty, only these files are scanned.
 # Remove or leave empty to scan the full source_root.
 #
-# Scope narrowed back to the single proven file (2026-06-13, reverting the
-# 1->4 widening in 3c6482ff). The widening run validated the loop end-to-end —
-# the risk-compute fix unblocked auto-approval and the dynamic gate
-# (test.sandbox_validate) correctly rejected the generated tests that failed to
-# run — but it also exposed a blast-radius bug (#629): flow.build_tests's fix.*
-# steps reformat the entire tests/ tree instead of just the generated file, and
-# build.tests output is not rolled back when a downstream gate fails. Re-open
-# scope beyond this single file only after #629 is fixed, so the daemon cannot
-# re-pollute the working tree on each generation.
+# Scope re-opened to the 1->4 widening (2026-06-14, restoring 3c6482ff after
+# the three rails the prior widening run surfaced all landed):
+#   - #629 / ADR-106: flow proposals execute in a hermetic worktree, so a
+#     failed run discards everything (no tests/-tree reformat, no staged
+#     rejected test) — live-verified, main-tree dirty-count 0.
+#   - #630 / ADR-107: on success the commit set is the steps' declared
+#     production (files_produced), not the worktree diff — incidental fix.*
+#     churn never reaches the commit.
+#   - #637 / ADR-104 D9: a generation that perpetually fails its gate is
+#     abandoned (terminal Type-B) after remediation_cap_n (3) attempts
+#     instead of churning generate->fail->revive forever.
+# The trio below are diverse autogen surfaces (one pure function, one async
+# normalizer, one mixed) that FAILED generation in the prior run — re-opening
+# them now exercises the cap live (they abandon after 3) and is safe by
+# construction. A file that generates a PASSING test exercises the ADR-107
+# success path (the still-unverified #630 acceptance). Open in small batches.
 include_files:
   - "src/will/workers/blackboard_shop_manager.py"
+  - "src/will/workers/audit_violation_filter.py"
+  - "src/will/workers/audit_violation_normalizer.py"
+  - "src/will/workers/circuit_breaker.py"
