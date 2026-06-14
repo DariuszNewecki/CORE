@@ -51,7 +51,7 @@ dependencies = [
     # Security
     "cryptography>=46.0.5,<47.0.0",
     # CLI & UI
-    "typer[rich]>=0.16.1,<0.17.0",
+    "typer>=0.16.1,<0.17.0",
     "rich>=13,<16",
     # Data Processing
     "pyyaml>=6.0,<7.0",
