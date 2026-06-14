@@ -13,7 +13,7 @@ Every autonomous operation in CORE follows the same governed loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n120 rules • 7 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n209 rules • 13 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -77,7 +77,7 @@ flowchart TD
     CONST[".intent/constitution/<br/>founding rules<br/><i>what CORE will not do</i>"]
     RULES[".intent/rules/<br/>executable rule definitions"]
     MAP[".intent/enforcement/mappings/<br/>rule → engine + file scope"]
-    ENG["Engines<br/>ast_gate · glob_gate · intent_gate<br/>knowledge_gate · workflow_gate<br/>regex_gate · llm_gate"]
+    ENG["Engines<br/>ast_gate · regex_gate · glob_gate · cli_gate<br/>artifact_gate · workflow_gate · knowledge_gate · action_gate<br/>passive_gate · taxonomy_gate · contracts_gate · llm_gate · runtime_gate"]
     CODE["src/"]
     BB["blackboard_entries<br/>audit.violation::&lt;rule&gt;"]
 
@@ -185,17 +185,23 @@ A Blocking rule that fails halts execution immediately. No partial states. No ex
 
 ## Enforcement Engines
 
-CORE evaluates rules through seven engines:
+CORE evaluates rules through thirteen engines:
 
 | Engine | Method |
 |--------|--------|
 | `ast_gate` | Deterministic structural analysis (AST-based) |
-| `glob_gate` | Path and boundary enforcement |
-| `intent_gate` | Runtime write authorization |
-| `knowledge_gate` | Responsibility and ownership validation |
-| `workflow_gate` | Phase-sequencing and coverage checks |
 | `regex_gate` | Pattern-based text enforcement |
+| `glob_gate` | Path and boundary enforcement |
+| `cli_gate` | CLI surface and command-shape enforcement |
+| `artifact_gate` | Declared-vs-discovered artifact completeness |
+| `workflow_gate` | Phase-sequencing and coverage checks |
+| `knowledge_gate` | Responsibility and ownership validation |
+| `action_gate` | Atomic-action invariants |
+| `passive_gate` | Substrate-enforced rules (DB/runtime marker) |
+| `taxonomy_gate` | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
+| `contracts_gate` | Cross-cutting data-contract coherence (context-level; ADR-102) |
 | `llm_gate` | LLM-assisted semantic checks |
+| `runtime_gate` | Runtime write authorization (`IntentGuard` per `CORE-Gate.md`) |
 
 Deterministic when possible. LLM only when necessary.
 
@@ -207,11 +213,11 @@ Within CORE:
 
 - No file outside an autonomy lane can be modified
 - No structural rule can be bypassed silently
-- No database action occurs without authorization
-- All decisions are phase-aware and logged with full decision traces
+- No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
+- Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — surfaced as `AUDIT_GAP`, not silent; see the [Proof Index](proof-index.md))
 - No agent can amend constitutional law
 
-If a blocking rule fails, execution halts. No partial states.
+If a *blocking* rule fails, execution halts with no partial state. Reporting and advisory rules surface findings and continue — what blocks versus what reports depends on the mode.
 
 ---
 

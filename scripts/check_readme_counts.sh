@@ -49,21 +49,21 @@ d_engines=$(grep -rhE 'class [A-Za-z0-9_]+\(BaseEngine\)' src/mind/logic/engines
 # the number(s) the README states. Every matched number must equal the derived
 # value; a claim that matches nothing is a failure (prose drifted out of range).
 assert_claim() {
-  local label="$1" derived="$2" regex="$3" claims c ok=1
-  claims=$(grep -oiE "$regex" "$README" | grep -oE '[0-9]+' | sort -u || true)
+  local label="$1" derived="$2" regex="$3" file="${4:-$README}" claims c ok=1
+  claims=$(grep -oiE "$regex" "$file" | grep -oE '[0-9]+' | sort -u || true)
   if [[ -z "$claims" ]]; then
-    printf 'FAIL  %-14s no README claim matched /%s/ (source=%s)\n' "$label" "$regex" "$derived"
+    printf 'FAIL  %-14s no claim matched /%s/ in %s (source=%s)\n' "$label" "$regex" "$file" "$derived"
     fail=1
     return
   fi
   for c in $claims; do
     if [[ "$c" != "$derived" ]]; then
-      printf 'FAIL  %-14s README states %s, source has %s\n' "$label" "$c" "$derived"
+      printf 'FAIL  %-14s %s states %s, source has %s\n' "$label" "$file" "$c" "$derived"
       fail=1
       ok=0
     fi
   done
-  [[ "$ok" -eq 1 ]] && printf 'ok    %-14s %s\n' "$label" "$derived"
+  [[ "$ok" -eq 1 ]] && printf 'ok    %-14s %s (%s)\n' "$label" "$derived" "$file"
   return 0  # never let a mismatch trip `set -e` — collect all drifts, exit once
 }
 
@@ -72,6 +72,17 @@ assert_claim "rule docs"    "$d_docs"     '[0-9]+ rule documents'
 assert_claim "mapped"       "$d_mapped"   '[0-9]+ are mapped'
 assert_claim "unmapped"     "$d_unmapped" '[0-9]+ test-quality rules'
 assert_claim "engines"      "$d_engines"  '[0-9]+ engines'
+
+# docs/how-it-works.md carries the same constraints-node mermaid as the README
+# ("N rules • M engines"). It drifted unguarded once (#561: said 120 rules / 7
+# engines); guard the two claims it states so the two public surfaces cannot
+# diverge again. Only checked when the file is present (skipped for an external
+# README arg).
+HOWITWORKS="docs/how-it-works.md"
+if [[ "$README" == "README.md" && -f "$HOWITWORKS" ]]; then
+  assert_claim "rules (hiw)"   "$d_rules"   '[0-9]+ rules'   "$HOWITWORKS"
+  assert_claim "engines (hiw)" "$d_engines" '[0-9]+ engines' "$HOWITWORKS"
+fi
 
 if [[ "$fail" -ne 0 ]]; then
   echo

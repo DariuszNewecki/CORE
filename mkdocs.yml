@@ -25,7 +25,9 @@ nav:
       - Vocabulary: vocabulary.md
       - Autonomy Ladder: autonomy-ladder.md
       - Getting Started: getting-started.md
+      - Audit in CI (no install): cold-reviewer.md
       - CLI Reference: cli-reference.md
+      - Proof Index: proof-index.md
       - Contributing: contributing.md
 
 markdown_extensions:

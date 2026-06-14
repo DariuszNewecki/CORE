@@ -1,5 +1,19 @@
 # Getting Started
 
+## Two ways to use CORE
+
+You don't need the full runtime to start. Pick the path that matches your goal:
+
+| Goal | Path | What you need |
+|------|------|---------------|
+| **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo |
+| **Run an audit locally, no services** | `pip install core-runtime` then `core-admin code audit --offline` — skips `knowledge_gate`/`llm_gate` (they need a DB + LLM), reports the skip | Python 3.12+ |
+| **Run the full thesis** (encounter → audit → remediate → verify, the autonomous daemon) | The full local runtime below | Postgres + Qdrant + an LLM resource |
+
+The rest of this page covers the **full local runtime**. For the lightweight paths, the two commands above are the whole story.
+
+---
+
 ## Requirements
 
 | Dependency | Version |
@@ -22,22 +36,33 @@ cd CORE
 poetry install
 
 cp .env.example .env
-# Add your API keys to .env
-
-make db-setup
+# Edit .env: set DATABASE__URL / QDRANT__URL if they differ from the defaults,
+# and configure your LLM provider (see the LLM section of .env.example).
 ```
 
 ---
 
 ## Start the Services
 
-CORE requires PostgreSQL and Qdrant running before any commands execute:
+CORE requires PostgreSQL and Qdrant running before any commands execute. The
+bundled `docker-compose.yml` provides both:
 
 ```bash
-# Start services via Docker (or your preferred method)
+# Start Postgres + Qdrant
 docker compose up -d
+```
 
-# Verify database connection
+Create the schema in the fresh `core` database (CORE uses a canonical
+schema file, not a migration framework — see [the schema-as-truth model](how-it-works.md)):
+
+```bash
+# Apply the canonical schema to the empty database
+psql postgresql://postgres:postgres@localhost:5432/core -f infra/sql/db_schema_live.sql
+```
+
+Verify the connection:
+
+```bash
 poetry run core-admin database status
 ```
 
@@ -45,7 +70,15 @@ poetry run core-admin database status
 
 ## Your First Audit
 
-Once installed, run a constitutional audit to see the current state of the codebase:
+Once installed, run a constitutional audit to see the current state of the codebase. Start with the **offline** audit — it needs no running services:
+
+```bash
+poetry run core-admin code audit --offline
+```
+
+Offline mode skips `knowledge_gate` and `llm_gate` (they require the knowledge
+graph and an LLM provider) and reports the skip. Once `core-api` is running
+(`core-admin daemon up`), the full audit runs every engine:
 
 ```bash
 poetry run core-admin code audit
