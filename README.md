@@ -25,7 +25,7 @@ System: Executes.
 You:    😱
 ```
 
-CORE makes that impossible — not detectable after the fact. Impossible.
+CORE makes that *class* of violation impossible — structurally blocked before execution, not detected after the fact. (Which surfaces hard-block versus advisory-report is mapped under *Current proof status* below.)
 
 ```
 Agent: "I'll delete the production database to fix this bug"
@@ -164,10 +164,25 @@ Within CORE:
 - No file outside an autonomy lane can be modified
 - No structural rule can be bypassed silently
 - No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
-- All decisions are phase-aware and logged with full decision traces
+- Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — see *Current proof status*)
 - No agent can amend constitutional law
 
-If a blocking rule fails, execution halts. No partial states.
+If a *blocking* rule fails, execution halts with no partial state. Reporting and advisory rules surface findings and continue — what blocks versus what reports depends on the mode.
+
+### Current proof status
+
+CORE's guarantee semantics are split across modes by design. This is the honest map of what each surface does, so a single binary claim ("CORE blocks violations") is not mistaken for the whole picture:
+
+| Surface | Mode | Behaviour |
+|---|---|---|
+| `.intent/` writes | hard invariant | blocked — the governance directory is immutable to all components |
+| Constitutional rules | always-blocking | block a commit regardless of strict mode |
+| Policy rules | strict vs. default | block only when `strict_mode=True`; otherwise report |
+| Capability tier | advisory today | reports a "would-deny" signal; does not yet block (ADR-079) |
+| Stateless CI (GitHub Action) | rule subset | skips `knowledge_gate` + `llm_gate` (they need DB / LLM state) and reports the skip |
+| Action audit trail | best-effort | recorded when the DB write succeeds; a write-action failure is surfaced (`AUDIT_GAP`), not silent |
+
+The hard invariants and constitutional rules block unconditionally; the policy, capability, and stateless tiers are weaker by design and labelled here so the boundary is legible rather than implied.
 
 ---
 
