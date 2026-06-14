@@ -4832,5 +4832,5 @@ telemetry = ["opentelemetry-api", "opentelemetry-instrumentation-fastapi", "open
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.12"
-content-hash = "42423d19b7e659eb5038d4d3b72ed9aa742be5e0dc179e2a009dd63b74ba74e2"
+python-versions = ">=3.12,<4.0"
+content-hash = "4db7b6a3c53334a7073479dee1564e2e8fc701f97e234d1b429992beb75f2d5d"

@@ -1,17 +1,18 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "core-runtime"
 version = "2.6.0"
 description = "CORE: executable constitutional governance for AI-assisted software development."
-authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
+authors = [
+    { name = "Dariusz Newecki", email = "d.newecki@gmail.com" },
+]
 license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
-homepage = "https://github.com/DariuszNewecki/CORE"
-repository = "https://github.com/DariuszNewecki/CORE"
-documentation = "https://dariusznewecki.github.io/CORE/"
+requires-python = ">=3.12,<4.0"
 keywords = [
     "governance",
     "audit",
@@ -27,7 +28,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
@@ -36,6 +36,70 @@ classifiers = [
     "Topic :: Software Development :: Testing",
     "Topic :: System :: Systems Administration",
 ]
+dependencies = [
+    # Web Framework
+    "fastapi>=0.136.0,<0.137.0",
+    "uvicorn[standard]>=0.38.0,<0.39.0",
+    # Database (Async)
+    "sqlalchemy[asyncio]>=2.0.36,<3.0.0",
+    "asyncpg>=0.31.0,<0.32.0",
+    "alembic>=1.13.0,<2.0.0",
+    # Configuration & Validation
+    "pydantic>=2.11,<3.0",
+    "pydantic-settings>=2.10.1,<3.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    # Security
+    "cryptography>=46.0.5,<47.0.0",
+    # CLI & UI
+    "typer[rich]>=0.16.1,<0.17.0",
+    "rich>=13,<16",
+    # Data Processing
+    "pyyaml>=6.0,<7.0",
+    "ruamel-yaml>=0.19.0,<0.20.0",
+    "jsonschema>=4,<5",
+    "httpx>=0.28.0,<0.29.0",
+    # Code Quality Tools
+    "black>=26.3.1,<27.0.0",
+    "radon>=6.0.1,<7.0.0",
+    "sqlparse>=0.5.3,<0.6.0",
+    # Vector Database
+    "qdrant-client>=1.9.0,<2.0.0",
+    # Scientific Computing
+    "numpy>=2.3.2,<3.0.0",
+    "scikit-learn>=1.5.1,<2.0.0",
+    "scipy>=1.14.0,<2.0.0",
+    # Graph Analysis
+    "networkx>=3.3,<4.0",
+    # Utilities
+    "filelock>=3.13.0,<4.0.0",
+    "pathspec>=1.1.0,<2.0.0",
+    # Dependency Injection
+    "dependency-injector>=4.42.0,<5.0.0",
+    # LLM
+    "openai>=2.26.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+# Observability (Optional) — install via `pip install core-runtime[telemetry]`
+telemetry = [
+    "opentelemetry-api>=1.21.0,<2.0.0",
+    "opentelemetry-sdk>=1.21.0,<2.0.0",
+    "opentelemetry-instrumentation-fastapi>=0.42b0,<0.43",
+    "opentelemetry-instrumentation-sqlalchemy>=0.42b0,<0.43",
+]
+
+[project.urls]
+Homepage = "https://github.com/DariuszNewecki/CORE"
+Repository = "https://github.com/DariuszNewecki/CORE"
+Documentation = "https://dariusznewecki.github.io/CORE/"
+
+[project.scripts]
+core-admin = "cli.admin_cli:app"
+core = "cli.cli_user:app"
+
+# Poetry-specific configuration that PEP 621 does not model.
+# Package discovery (src/ layout) and the dev dependency group stay here.
+[tool.poetry]
 packages = [
     { include = "api", from = "src" },
     { include = "body", from = "src" },
@@ -43,74 +107,6 @@ packages = [
     { include = "mind", from = "src" },
     { include = "shared", from = "src" },
     { include = "will", from = "src" },
-]
-
-[tool.poetry.dependencies]
-python = "^3.12"
-
-# Web Framework
-fastapi = "^0.136.0"
-uvicorn = { extras = ["standard"], version = "^0.38.0" }
-
-# Database (Async)
-sqlalchemy = { extras = ["asyncio"], version = "^2.0.36" }
-asyncpg = "^0.31.0"
-alembic = "^1.13.0"
-
-# Configuration & Validation
-pydantic = "^2.11"
-pydantic-settings = "^2.10.1"
-python-dotenv = "^1.0.0"
-
-# Security
-cryptography = "^46.0.5"
-
-# CLI & UI
-typer = { extras = ["rich"], version = "^0.16.1" }
-rich = ">=13,<16"
-
-# Data Processing
-pyyaml = "^6.0"
-ruamel-yaml = "^0.19.0"
-jsonschema = "^4"
-httpx = "^0.28.0"
-
-# Code Quality Tools
-black = "^26.3.1"
-radon = "^6.0.1"
-sqlparse = "^0.5.3"
-
-# Vector Database
-qdrant-client = "^1.9.0"
-
-# Scientific Computing
-numpy = "^2.3.2"
-scikit-learn = "^1.5.1"
-scipy = "^1.14.0"
-
-# Graph Analysis
-networkx = "^3.3"
-
-# Utilities
-filelock = "^3.13.0"
-pathspec = "^1.1.0"
-
-# Dependency Injection
-dependency-injector = "^4.42.0"
-
-# Observability (Optional)
-opentelemetry-api = { version = "^1.21.0", optional = true }
-opentelemetry-sdk = { version = "^1.21.0", optional = true }
-opentelemetry-instrumentation-fastapi = { version = "^0.42b0", optional = true }
-opentelemetry-instrumentation-sqlalchemy = { version = "^0.42b0", optional = true }
-openai = "^2.26.0"
-
-[tool.poetry.extras]
-telemetry = [
-    "opentelemetry-api",
-    "opentelemetry-sdk",
-    "opentelemetry-instrumentation-fastapi",
-    "opentelemetry-instrumentation-sqlalchemy",
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -141,10 +137,6 @@ radon = "^6.0.1"
 vulture = "^2.14"
 pip-audit = "^2.10.0"
 bandit = "^1.9.2"
-
-[tool.poetry.scripts]
-core-admin = "cli.admin_cli:app"
-core = "cli.cli_user:app"
 
 [tool.black]
 line-length = 88
