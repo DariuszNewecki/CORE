@@ -100,7 +100,7 @@ flowchart TD
     class CODE,BB observed
 ```
 
-Every executable rule has a mapping; every mapping names exactly one engine; every engine reads files only — never the other way around. Violations land on the blackboard as `audit.violation::<rule>` and cite back at the rule that produced them, which is how the [Proof Index](proof-index.md) audit-state query observes them.
+Every rule with an enforcement mapping names exactly one engine (the 5 test-quality rules pending mappings are the documented exception); every engine reads files only — never the other way around. Violations land on the blackboard as `audit.violation::<rule>` and cite back at the rule that produced them, which is how the [Proof Index](proof-index.md) audit-state query observes them.
 
 **Mind never executes. Mind never mutates. Mind defines law.**
 

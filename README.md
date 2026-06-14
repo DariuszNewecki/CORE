@@ -95,7 +95,7 @@ Both chains are queryable end-to-end from `proposal_consequences` and `blackboar
 
 ## Architectural Model
 
-CORE separates responsibility into three constitutional layers. This separation is enforced as law — not convention.
+CORE separates responsibility across four repository layers — three enforced as constitutional law, and Specs (human intent). This separation is enforced as law — not convention.
 
 ### 📐 Specs — Human Intent (`.specs/`)
 

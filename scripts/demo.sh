@@ -9,12 +9,11 @@
 # It uses the DETERMINISTIC self-healing path (fix.ids), so it needs NO LLM and
 # no API key. It does need a running CORE API (install-core.sh starts one).
 #
-# Safe to re-run: the seeded violation is a single throwaway file that is
-# removed at the end. On a fresh clone the only effect on your tree is the
-# fix-commit CORE makes (expected — that IS the consequence chain).
+# Safe to re-run: the throwaway violation and the demo's seed + fix commits are
+# rolled back to the pre-demo HEAD on exit, leaving your tree as it was.
 #
-# Status: v1 — first end-to-end run is on a clean VM (#562). Steps marked
-# [VM] are the ones most likely to need tuning once observed on a clean box.
+# Verified end-to-end on a clean Ubuntu 24.04 machine — 4 consecutive clean runs
+# including a fresh public `git clone`. See scripts/coldroom-prep.sh.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -55,7 +54,7 @@ PY
 git add "$SEED" >/dev/null 2>&1
 git commit --no-verify -q -m "demo: add greet() — missing # ID anchor" >/dev/null 2>&1 \
   && note "committed ${SEED} at $(git rev-parse --short HEAD)" \
-  || note "[VM] could not commit the seed — check git identity / hooks"
+  || note "could not commit the seed — check git identity / hooks"
 
 # ---- 2. AUDIT — CORE detects it, deterministically -------------------------
 # File-scoped (--files) so the demo is fast; capture output then grep so the
@@ -65,7 +64,7 @@ audit_out="$("${ADMIN[@]}" code audit --offline --files "$SEED" 2>/dev/null || t
 if grep -qiE 'linkage.assign_ids' <<<"$audit_out"; then
   printf '  %s→ BLOCKED: linkage.assign_ids fired on the new file%s\n' "$Y" "$X"
 else
-  note "[VM] expected a linkage.assign_ids finding on ${SEED}; verify the offline rule set covers it"
+  note "expected a linkage.assign_ids finding on ${SEED}; verify the offline rule set covers it"
 fi
 
 # ---- 3. REMEDIATE — propose, approve, execute ------------------------------
@@ -73,7 +72,7 @@ act "CORE proposes the fix, the governor approves, CORE executes"
 PID="$("${ADMIN[@]}" proposals create "Demo: assign the missing symbol ID" \
         -a fix.ids --write 2>/dev/null \
         | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1 || true)"
-[[ -n "$PID" ]] || { note "[VM] could not parse a proposal id from 'proposals create' output — adjust the parse"; exit 1; }
+[[ -n "$PID" ]] || { note "could not read a proposal id from 'proposals create' — is core-api running?"; exit 1; }
 note "proposal ${PID} created"
 "${ADMIN[@]}" proposals approve "$PID" --by demo --authority principal.governor >/dev/null 2>&1 \
   && note "approved (authority: principal.governor)"
@@ -82,14 +81,14 @@ note "proposal ${PID} created"
 if printf 'y\n' | "${ADMIN[@]}" proposals execute "$PID" --write >/dev/null 2>&1; then
   printf '  %s→ executed: CORE added the missing ID and committed the change%s\n' "$G" "$X"
 else
-  note "[VM] execute failed — inspect 'proposals show ${PID}'"
+  note "execute failed — inspect 'proposals show ${PID}'"
 fi
 
 # ---- 4. VERIFY — re-audit, now clean ---------------------------------------
 act "CORE re-audits to confirm the fix"
 verify_out="$("${ADMIN[@]}" code audit --offline --files "$SEED" 2>/dev/null || true)"
 if grep -qiE 'linkage.assign_ids' <<<"$verify_out"; then
-  note "[VM] violation still present — inspect proposals show ${PID}"
+  note "violation still present — inspect proposals show ${PID}"
 else
   printf '  %s→ CLEAN: linkage.assign_ids no longer fires%s\n' "$G" "$X"
 fi
@@ -120,7 +119,7 @@ async def main():
         print(f\"  EXECUTION → {r['status']}\")
         print(f\"  FILE      → {r['files_changed']}   {r['pre_sha']} → {r['post_sha']}\")
 asyncio.run(main())
-" 2>/dev/null || note "[VM] consequence query failed — confirm DB reachable from the demo shell"
+" 2>/dev/null || note "consequence query failed — confirm DB reachable from the demo shell"
 
 printf '\n%s✓ That is the whole thesis: encounter → audit → remediate → verify, recorded end to end.%s\n' "$G" "$X"
 note "Reproduce the chain any time — see docs/proof-index.md (Consequence-chain query)."

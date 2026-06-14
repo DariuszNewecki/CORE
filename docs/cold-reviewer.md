@@ -2,7 +2,7 @@
 
 If you have not used CORE before and want to see it govern real code — yours — without installing anything locally, the shortest path is to add CORE as a GitHub Action and open a pull request.
 
-This page documents that path. It is not "one command on your laptop." A true one-command demo is filed and tracked, but the honest state today is that the cold-reviewer surface CORE actually ships is the audit action.
+This page documents the **zero-install** path: govern your own repo through a GitHub Action, no local setup. If you'd rather run CORE locally and watch the full consequence-chain loop in **one command**, that exists too — see [Getting Started](getting-started.md) (`./install-core.sh`).
 
 For verifying CORE's claims *about itself* (single gateway, no bypass, no untracked mutation), see the [Proof Index](proof-index.md) instead — that page assumes a running CORE.
 
