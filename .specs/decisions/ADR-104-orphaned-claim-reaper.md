@@ -152,3 +152,30 @@ Both materially grow scope (D8 + lease config + a slow-worker-not-reaped test), 
 6. The four ratifications (incl. the D8 lease) are resolved and reflected before `Status: Accepted`.
 
 Implementation lands as one change-set after acceptance, with tests in the same change (signature/behaviour changes carry their tests).
+
+---
+
+## Addendum — D9: the abandon-at-cap rail extends to the remediation-failure loop (2026-06-14, accepted)
+
+**Status of this addendum:** Accepted (governor agreed 2026-06-14: *"ADR-104's rail covers any finding that loops on failure, not just orphaned claims."*). This is an **application of an already-decided principle** (D3), not a new decision — recorded here, append-only, rather than spawned as a new ADR. The governance content is the one-sentence judgment above; the rest is mechanism.
+
+### The second loop D3 doesn't reach
+
+D3 caps the **orphaned-claim** loop (crash → reclaim → crash on a dead-owner claim). There is a sibling loop on a *different* trigger that D3's counter does not touch: the **remediation-failure** loop.
+
+When an autonomous proposal fails (e.g. a `flow.build_tests` run whose generated test fails the `test.sandbox_validate` gate), `revive_findings_for_failed_proposal` routes the finding to `awaiting_reaudit` (ADR-045), not to a terminal state. For a finding whose underlying condition is *unchanged by the failure* — a source file that still has no passing test — the audit sensor's next cycle re-confirms the violation, releases it to `open`, the remediator re-claims it, generates again, fails again. `awaiting_reaudit` **paces** the loop (one lap per sensor cycle) but does not **bound** it: no per-finding attempt counter, no abandon-at-cap. A file whose generation perpetually fails is re-attempted forever, one LLM call per lap.
+
+This is the same failure class D3 names — *"a genuinely unprocessable finding"* — reached by a different path. D3's rail (count, then abandon to terminal Type-B at a governed cap) is the correct response here too.
+
+### D9 — decision
+
+A finding revived through `revive_findings_for_failed_proposal` tracks a `remediation_attempt_count` (the remediation-loop sibling of `orphan_release_count`; column or payload field — the implementation change-set decides). The count is incremented on each revival. When it reaches **M (ratified: 3**, reusing D3's "tolerate two transient failures" calibration, but as its own governed knob — a perpetually-failing remediation is a distinct phenomenon from a crashing worker and may want independent tuning), the finding is **abandoned (terminal Type-B)** instead of routed to `awaiting_reaudit`, and a terminal finding `blackboard.remediation_cap_reached::<entry_id>` is posted. Per D3's precedent it **folds into the F-19 `stuck` bucket** — genuine "daemon cannot self-heal," not silent `total_open` backlog.
+
+Governance corollaries inherited from the parent ADR:
+- **D6 (governed config):** `remediation_cap_n` lives in `operational_config` beside `reclaim_cap_n`. No magic number in `src/`.
+- **D4 (not a silent instrument):** the abandon emits its terminal finding; the cap is observable, never a quiet drop.
+- **D7 (scope):** unchanged claim-taking, unchanged `awaiting_reaudit` semantics below the cap — D9 only adds the terminal rail at the cap.
+
+### D9 — acceptance criterion
+
+7. A failed-proposal finding revived M times is abandoned (terminal Type-B) instead of re-revived, posts `blackboard.remediation_cap_reached::<entry_id>`, and surfaces in the F-19 `stuck` bucket — with a test covering: below cap → revived to `awaiting_reaudit` as today; at cap → abandoned, terminal finding posted. `remediation_cap_n` resolves from `operational_config` (D6).

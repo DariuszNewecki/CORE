@@ -136,7 +136,10 @@ class BlackboardProposalService:
 
     # ID: e1c4b8a7-6f03-4d29-b8a2-9c5d7e0f3a14
     async def revive_findings_for_failed_proposal(
-        self, proposal_id: str, failure_reason: str
+        self,
+        proposal_id: str,
+        failure_reason: str,
+        remediation_cap_n: int | None = None,
     ) -> dict[str, Any] | None:
         """
         Restore findings that were deferred to a now-failed proposal back
@@ -170,72 +173,174 @@ class BlackboardProposalService:
         matches its new non-terminal status (ADR-010 hygiene rule, tracking
         the Option A+ convention from 2026-04-22).
 
+        ``remediation_cap_n`` (ADR-104 D9 / #637) — the remediation-attempt
+        rail. When None (the governor-reject path and any caller that does
+        not count attempts), behaviour is exactly as above: every matching
+        finding is revived, no counter touched. When an int, each finding's
+        ``payload.remediation_attempt_count`` is incremented and, when this
+        failure makes the count reach the cap, the finding is *abandoned*
+        (terminal Type-B) instead of revived — breaking the
+        generate → fail → revive → regenerate loop on a perpetually-failing
+        remediation. This is the D3 orphan abandon-at-cap principle applied
+        one trigger over (gate failure, not worker death); the abandoned
+        finding keeps its original (non-Type-A) subject, so
+        F19_CONVERGENCE_SQL counts it as ``stuck`` with no classifier
+        change. Per ``architecture.blackboard.worker_only_inserts`` the
+        terminal observation announcing the abandon (D4) is posted by the
+        calling Worker, not here.
+
         Returns:
-          None if no findings were revived (revived_count == 0) — nothing
-          to report.
-          dict with keys ``proposal_id``, ``failure_reason``,
-          ``revived_count``, ``revived_finding_ids``, ``revived_subjects``
-          when one or more rows were revived. Both id and subject lists
-          are returned — IDs for precise downstream queries, subjects for
-          human-readable audit trails in the revival report payload.
+          None if nothing was revived or abandoned — nothing to report.
+          Otherwise a dict with ``proposal_id``, ``failure_reason``,
+          ``revived_count`` / ``revived_finding_ids`` / ``revived_subjects``
+          and ``abandoned_count`` / ``abandoned_finding_ids`` /
+          ``abandoned_subjects`` (the last three empty on the uncapped
+          path). Both id and subject lists are returned — IDs for precise
+          downstream queries, subjects for human-readable audit trails.
 
         The caller MUST NOT rely on this method raising on partial failure.
-        Zero rows revived is a legitimate outcome when the failed proposal
+        Zero rows touched is a legitimate outcome when the failed proposal
         had no findings deferred to it (e.g. proposals created by paths
         other than ViolationRemediatorWorker); the caller receives None
         and skips posting a revival report.
         """
         from body.services.service_registry import ServiceRegistry
 
+        abandoned_ids: list[str] = []
+        abandoned_subjects: list[str] = []
+
         async with ServiceRegistry.session() as session:
             async with session.begin():
-                # §7a steps 1+2: query-and-reset in one UPDATE ... RETURNING.
-                # RETURNING id, subject so the Worker can persist both in
-                # the revival report payload (IDs for queries, subjects for
-                # audit trails).
-                #
-                # ADR-091 D2 Revision B reaudit guard:
-                #   AND resolution_mechanism = 'reaudit'
-                # The load-bearing invariant — only findings whose emitter
-                # declared resolution_mechanism='reaudit' may be parked into
-                # awaiting_reaudit. self_resolve and human findings are
-                # constitutionally barred from this transition because
-                # ADR-045's sensor-re-audit machinery has nothing to bind
-                # to for them (no owning audit sensor, no re-readable
-                # artifact). The predicate makes the invariant structural
-                # in SQL: a non-reaudit finding cannot be revived to
-                # awaiting_reaudit even if every other predicate matches.
-                # See ADR-091 lines 668-845 (Revision B (b), Accepted).
-                update_result = await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'awaiting_reaudit',
-                            claimed_by = NULL,
-                            claimed_at = NULL,
-                            resolved_at = NULL,
-                            updated_at = now()
-                        WHERE entry_type = 'finding'
-                          AND resolution_mechanism = 'reaudit'
-                          AND status = 'deferred_to_proposal'
-                          AND payload->>'proposal_id' = :proposal_id
-                        RETURNING id, subject
-                        """
-                    ),
-                    {"proposal_id": proposal_id},
-                )
-                rows = update_result.fetchall()
-                revived_ids = [str(row[0]) for row in rows]
-                revived_subjects = [str(row[1]) for row in rows]
+                if remediation_cap_n is None:
+                    # Uncapped path (governor reject / callers that do not
+                    # count attempts): single query-and-reset, RETURNING
+                    # id, subject. Behaviour unchanged from pre-#637.
+                    #
+                    # ADR-091 D2 Revision B reaudit guard:
+                    #   AND resolution_mechanism = 'reaudit'
+                    # Only findings whose emitter declared
+                    # resolution_mechanism='reaudit' may be parked into
+                    # awaiting_reaudit; the predicate makes the invariant
+                    # structural in SQL. See ADR-091 (Revision B (b)).
+                    update_result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'awaiting_reaudit',
+                                claimed_by = NULL,
+                                claimed_at = NULL,
+                                resolved_at = NULL,
+                                updated_at = now()
+                            WHERE entry_type = 'finding'
+                              AND resolution_mechanism = 'reaudit'
+                              AND status = 'deferred_to_proposal'
+                              AND payload->>'proposal_id' = :proposal_id
+                            RETURNING id, subject
+                            """
+                        ),
+                        {"proposal_id": proposal_id},
+                    )
+                    rows = update_result.fetchall()
+                    revived_ids = [str(row[0]) for row in rows]
+                    revived_subjects = [str(row[1]) for row in rows]
+                else:
+                    # ADR-104 D9 (#637) capped path: select the candidates
+                    # with their current attempt count, partition by whether
+                    # THIS failure (count + 1) reaches the cap, then revive
+                    # the under-cap set and abandon the at-cap set. Mirrors
+                    # release_orphaned_claims' SELECT-partition-two-UPDATE
+                    # shape (D3), with the counter living in the JSONB payload
+                    # rather than a dedicated column.
+                    selected = await session.execute(
+                        text(
+                            """
+                            SELECT id::text, subject,
+                                   COALESCE(
+                                       (payload->>'remediation_attempt_count')::int,
+                                       0
+                                   )
+                            FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND resolution_mechanism = 'reaudit'
+                              AND status = 'deferred_to_proposal'
+                              AND payload->>'proposal_id' = :proposal_id
+                            """
+                        ),
+                        {"proposal_id": proposal_id},
+                    )
+                    rows = selected.fetchall()
+                    # (count + 1) is the attempt this failure represents.
+                    to_abandon = [
+                        (r[0], r[1]) for r in rows if (r[2] + 1) >= remediation_cap_n
+                    ]
+                    to_revive = [
+                        (r[0], r[1]) for r in rows if (r[2] + 1) < remediation_cap_n
+                    ]
+
+                    if to_revive:
+                        # reaudit guard preserved in the UPDATE WHERE.
+                        await session.execute(
+                            text(
+                                """
+                                UPDATE core.blackboard_entries
+                                SET status = 'awaiting_reaudit',
+                                    claimed_by = NULL,
+                                    claimed_at = NULL,
+                                    resolved_at = NULL,
+                                    payload = jsonb_set(
+                                        payload,
+                                        '{remediation_attempt_count}',
+                                        to_jsonb(COALESCE(
+                                            (payload->>'remediation_attempt_count')::int,
+                                            0
+                                        ) + 1)
+                                    ),
+                                    updated_at = now()
+                                WHERE id = ANY(cast(:ids as uuid[]))
+                                  AND resolution_mechanism = 'reaudit'
+                                  AND status = 'deferred_to_proposal'
+                                """
+                            ),
+                            {"ids": [i for i, _ in to_revive]},
+                        )
+
+                    if to_abandon:
+                        await session.execute(
+                            text(
+                                """
+                                UPDATE core.blackboard_entries
+                                SET status = 'abandoned',
+                                    resolved_at = now(),
+                                    payload = jsonb_set(
+                                        payload,
+                                        '{remediation_attempt_count}',
+                                        to_jsonb(COALESCE(
+                                            (payload->>'remediation_attempt_count')::int,
+                                            0
+                                        ) + 1)
+                                    ),
+                                    updated_at = now()
+                                WHERE id = ANY(cast(:ids as uuid[]))
+                                  AND status = 'deferred_to_proposal'
+                                """
+                            ),
+                            {"ids": [i for i, _ in to_abandon]},
+                        )
+
+                    revived_ids = [i for i, _ in to_revive]
+                    revived_subjects = [s for _, s in to_revive]
+                    abandoned_ids = [i for i, _ in to_abandon]
+                    abandoned_subjects = [s for _, s in to_abandon]
 
         logger.info(
-            "Revived %d finding(s) for failed proposal %s (reason: %s)",
+            "Revived %d / abandoned %d finding(s) for failed proposal %s (reason: %s)",
             len(revived_ids),
+            len(abandoned_ids),
             proposal_id,
             failure_reason,
         )
 
-        if not revived_ids:
+        if not revived_ids and not abandoned_ids:
             return None
 
         return {
@@ -244,6 +349,9 @@ class BlackboardProposalService:
             "revived_count": len(revived_ids),
             "revived_finding_ids": revived_ids,
             "revived_subjects": revived_subjects,
+            "abandoned_count": len(abandoned_ids),
+            "abandoned_finding_ids": abandoned_ids,
+            "abandoned_subjects": abandoned_subjects,
         }
 
     # ID: 90c7c05a-a380-4d5a-9b1e-a911c3ed5d02

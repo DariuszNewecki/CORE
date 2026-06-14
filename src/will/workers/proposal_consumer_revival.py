@@ -56,16 +56,31 @@ async def revive_and_report(
       3 (revival report)     — posted here via worker.post_report when one
                                or more findings were revived
 
-    A zero-revival outcome is legitimate (the proposal had no deferred
-    findings) and is logged silently; no report is posted in that case.
+    This is the execution-failure path, so it passes the
+    ``remediation_cap_n`` rail (ADR-104 D9 / #637): a finding that has now
+    failed remediation that many times is abandoned (terminal Type-B) by the
+    service instead of revived, and this worker posts the terminal
+    ``blackboard.remediation_cap_reached::<entry_id>`` observation (D4 — not
+    a silent instrument) per ``worker_only_inserts``. The governor-reject
+    path (proposal_service.reject) does NOT pass the cap — a human decision
+    is not a remediation failure and must not count toward auto-abandon.
+
+    A zero-revival, zero-abandon outcome is legitimate (the proposal had no
+    deferred findings) and is logged silently; nothing is posted then.
     """
     from body.services.service_registry import service_registry
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+
+    cap_n = load_operational_config().blackboard.remediation_cap_n
 
     try:
         bb_service = await service_registry.get_blackboard_service()
         revival = await bb_service.revive_findings_for_failed_proposal(
             proposal_id=proposal_id,
             failure_reason=reason,
+            remediation_cap_n=cap_n,
         )
     except Exception as revive_err:
         logger.warning(
@@ -75,7 +90,44 @@ async def revive_and_report(
         )
         revival = None
 
-    if not revival or revival.get("revived_count", 0) == 0:
+    if not revival:
+        return
+
+    # ADR-104 D9 (#637): findings that reached the remediation-attempt cap
+    # were abandoned terminally by the service. Post one terminal Type-B
+    # observation per abandoned finding so the cap event is named and folds
+    # into the F-19 `stuck` bucket. Posted here (not in the service) per
+    # architecture.blackboard.worker_only_inserts.
+    for entry_id in revival.get("abandoned_finding_ids", []):
+        try:
+            await worker.post_observation(
+                subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                payload={
+                    "entry_id": entry_id,
+                    "proposal_id": revival["proposal_id"],
+                    "failure_reason": revival["failure_reason"],
+                    "reason": "remediation_cap_reached",
+                    "remediation_cap_n": cap_n,
+                },
+                status="abandoned",
+            )
+            logger.warning(
+                "ProposalConsumerWorker: finding %s abandoned at remediation "
+                "cap (n=%d) for proposal %s",
+                entry_id,
+                cap_n,
+                proposal_id,
+            )
+        except Exception as obs_err:
+            logger.warning(
+                "Failed to post remediation-cap observation for finding %s "
+                "(proposal %s): %s",
+                entry_id,
+                proposal_id,
+                obs_err,
+            )
+
+    if revival.get("revived_count", 0) == 0:
         return
 
     try:

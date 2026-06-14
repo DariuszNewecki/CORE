@@ -177,6 +177,17 @@ class BlackboardConfig:
     window and liveness threshold are NOT separate knobs here: per ADR-104
     ratification #2 they ARE HealthConfig.worker_alive_threshold_sec (one
     clock, no second number to drift).
+
+    remediation_cap_n — ADR-104 D9 (#637) remediation-attempt rail, the D3
+    abandon-at-cap principle applied to the *remediation-failure* loop (a
+    different trigger from the orphaned-claim loop). After a finding has
+    been revived from this many failed proposals
+    (payload.remediation_attempt_count), it is abandoned (terminal Type-B)
+    instead of routed back to awaiting_reaudit, breaking a
+    generate -> fail -> revive -> regenerate loop on a perpetually-failing
+    remediation. Reuses D3's "tolerate two transient failures" calibration
+    but is its own knob — a perpetually-failing generation is a distinct
+    phenomenon from a crashing worker and may want independent tuning.
     """
 
     sla_default_seconds: int = 3600
@@ -189,6 +200,7 @@ class BlackboardConfig:
     )
     sweep_batch_max: int = 500
     reclaim_cap_n: int = 3
+    remediation_cap_n: int = 3
     # #568: count-based retention for slow-callback telemetry. Time-based
     # TTL over-prunes well-behaved workers (rare emitters lose their entire
     # window) while leaving hot emitters with hundreds of rows. Keep the
@@ -792,6 +804,7 @@ def _load_blackboard(raw: dict[str, Any]) -> BlackboardConfig:
             sec, "telemetry_keep_last_per_worker", 100
         ),
         reclaim_cap_n=_get_int(sec, "reclaim_cap_n", 3),
+        remediation_cap_n=_get_int(sec, "remediation_cap_n", 3),
     )
 
 
