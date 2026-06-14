@@ -57,7 +57,9 @@ _SCOPE_DIRS: tuple[str, ...] = (
 _PLACEHOLDER_PATTERN = re.compile(r"\bTODO\b|\bFIXME\b|placeholder")
 
 
-def _find_undocumented_public_symbols(tree: ast.AST) -> list[ast.AST]:
+def _find_undocumented_public_symbols(
+    tree: ast.AST,
+) -> list[ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef]:
     """Walk a parsed module and return public symbols lacking a docstring.
 
     Public = name not starting with underscore. Symbol kinds covered:
@@ -72,7 +74,7 @@ def _find_undocumented_public_symbols(tree: ast.AST) -> list[ast.AST]:
         for child in ast.iter_child_nodes(node):
             child._parent = node  # type: ignore[attr-defined]
 
-    candidates: list[ast.AST] = []
+    candidates: list[ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef] = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             continue
@@ -88,7 +90,10 @@ def _find_undocumented_public_symbols(tree: ast.AST) -> list[ast.AST]:
     return candidates
 
 
-def _insert_docstrings(source: str, insertions: list[tuple[ast.AST, str]]) -> str:
+def _insert_docstrings(
+    source: str,
+    insertions: list[tuple[ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, str]],
+) -> str:
     """Insert generated docstrings at AST-determined positions.
 
     Logic ported from body/workers/doc_writer.py:_insert_docstring (retired
@@ -168,7 +173,9 @@ async def _heal_file(
         len(candidates),
     )
 
-    insertions: list[tuple[ast.AST, str]] = []
+    insertions: list[
+        tuple[ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, str]
+    ] = []
     for node in candidates:
         node_source = ast.get_source_segment(source, node)
         if not node_source:
