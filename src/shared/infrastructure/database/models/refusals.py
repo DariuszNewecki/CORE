@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import ClassVar
 
 from sqlalchemy import DateTime, Float, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -46,8 +45,8 @@ class RefusalRecord(Base):
     - User experience improvement
     """
 
-    __tablename__: ClassVar[str] = "refusals"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "refusals"
+    __table_args__ = ({"schema": "core"},)
 
     # Primary key
     id: Mapped[uuid.UUID] = mapped_column(

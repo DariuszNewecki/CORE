@@ -10,7 +10,7 @@ Two tables supporting the constitutional Worker model:
 from __future__ import annotations
 
 import uuid
-from typing import Any, ClassVar
+from typing import Any
 
 from sqlalchemy import DateTime, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -29,8 +29,8 @@ class WorkerRegistry(Base):
     registration are rejected before reaching any gate.
     """
 
-    __tablename__: ClassVar[str] = "worker_registry"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "worker_registry"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -63,8 +63,8 @@ class BlackboardEntry(Base):
     Silence from a worker is itself a constitutional signal.
     """
 
-    __tablename__: ClassVar[str] = "blackboard_entries"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "blackboard_entries"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

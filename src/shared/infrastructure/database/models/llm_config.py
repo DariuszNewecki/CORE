@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -50,8 +50,8 @@ class RoleResourceAssignment(Base):
     a partial unique index on (role, priority) WHERE is_active).
     """
 
-    __tablename__: ClassVar[str] = "role_resource_assignments"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "role_resource_assignments"
+    __table_args__ = ({"schema": "core"},)
 
     role: Mapped[str] = mapped_column(
         Text,
@@ -81,8 +81,8 @@ class SystemConfig(Base):
     (overridable per role in `cognitive_roles.operating_mode`).
     """
 
-    __tablename__: ClassVar[str] = "system_config"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "system_config"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True),
@@ -113,8 +113,8 @@ class SecretStore(Base):
     key string.
     """
 
-    __tablename__: ClassVar[str] = "secret_store"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "secret_store"
+    __table_args__ = ({"schema": "core"},)
 
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     resource_name: Mapped[str | None] = mapped_column(
@@ -138,8 +138,8 @@ class ConfigMigrationLog(Base):
     once every row carries a non-null `migrated_at`.
     """
 
-    __tablename__: ClassVar[str] = "config_migration_log"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "config_migration_log"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True),
@@ -166,8 +166,8 @@ class CapabilityAlignmentTest(Base):
     in `.intent/`.
     """
 
-    __tablename__: ClassVar[str] = "capability_alignment_tests"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "capability_alignment_tests"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True),
@@ -194,8 +194,8 @@ class ModelPerformanceResult(Base):
     or run manually / on schedule (unrestricted).
     """
 
-    __tablename__: ClassVar[str] = "model_performance_results"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "model_performance_results"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True),
@@ -231,8 +231,8 @@ class LlmExchangeLog(Base):
     only; the composite is transparent to readers.
     """
 
-    __tablename__: ClassVar[str] = "llm_exchange_log"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "llm_exchange_log"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True),
@@ -291,8 +291,8 @@ class LlmResourceRate(Base):
     `cost_estimate` NULL and is logged, so the gap stays visible.
     """
 
-    __tablename__: ClassVar[str] = "llm_resource_rates"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "llm_resource_rates"
+    __table_args__ = ({"schema": "core"},)
 
     model_snapshot: Mapped[str] = mapped_column(Text, primary_key=True)
     input_per_mtok: Mapped[float] = mapped_column(Numeric(12, 6), nullable=False)

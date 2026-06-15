@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, ClassVar
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -17,8 +17,8 @@ from .knowledge import Base
 
 # ID: 56c3df7b-4e83-4e55-8823-a8439c6beb77
 class LlmResource(Base):
-    __tablename__: ClassVar[str] = "llm_resources"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "llm_resources"
+    __table_args__ = ({"schema": "core"},)
 
     name: Mapped[str] = mapped_column(Text, primary_key=True)
     env_prefix: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
@@ -62,8 +62,8 @@ class LlmResource(Base):
 
 # ID: 27c701a5-a757-446e-8104-ccfd9b61f068
 class CognitiveRole(Base):
-    __tablename__: ClassVar[str] = "cognitive_roles"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "cognitive_roles"
+    __table_args__ = ({"schema": "core"},)
 
     role: Mapped[str] = mapped_column(Text, primary_key=True)
     description: Mapped[str | None] = mapped_column(Text)
@@ -91,8 +91,8 @@ class CognitiveRole(Base):
 
 # ID: d146d539-6a23-4850-a7e7-f38ba45e7ca6
 class Task(Base):
-    __tablename__: ClassVar[str] = "tasks"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "tasks"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -129,8 +129,8 @@ class Task(Base):
 
 # ID: 56a8723f-0d27-4755-b9e2-bab08e355a1a
 class Action(Base):
-    __tablename__: ClassVar[str] = "actions"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "actions"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

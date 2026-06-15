@@ -11,7 +11,6 @@ Constitutional Principles: knowledge.database_ssot, safe_by_default
 
 from __future__ import annotations
 
-from typing import ClassVar
 from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
@@ -34,8 +33,8 @@ class ActionResult(Base):
     - Any other quality gate checkpoints
     """
 
-    __tablename__: ClassVar[str] = "action_results"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "action_results"
+    __table_args__ = ({"schema": "core"},)
 
     id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid4)
     action_type = Column(

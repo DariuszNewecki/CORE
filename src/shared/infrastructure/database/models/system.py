@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, ClassVar
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -17,8 +17,8 @@ from .knowledge import Base
 
 # ID: a76dcc29-f703-46f2-9b52-66e7261b1e3e
 class CliCommand(Base):
-    __tablename__: ClassVar[str] = "cli_commands"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "cli_commands"
+    __table_args__ = ({"schema": "core"},)
 
     name: Mapped[str] = mapped_column(Text, primary_key=True)
     module: Mapped[str] = mapped_column(Text, nullable=False)
@@ -50,8 +50,8 @@ class CliCommand(Base):
 
 # ID: 40854a23-67ce-4cbd-80f4-800152ae98fe
 class RuntimeService(Base):
-    __tablename__: ClassVar[str] = "runtime_services"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "runtime_services"
+    __table_args__ = ({"schema": "core"},)
 
     name: Mapped[str] = mapped_column(Text, primary_key=True)
     implementation: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
@@ -60,8 +60,8 @@ class RuntimeService(Base):
 
 # ID: 952d44ef-52a3-4101-8aad-610bea45c175
 class Migration(Base):
-    __tablename__: ClassVar[str] = "_migrations"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "_migrations"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[str] = mapped_column(Text, primary_key=True)
     applied_at: Mapped[Any] = mapped_column(
@@ -71,8 +71,8 @@ class Migration(Base):
 
 # ID: 95b1800b-7286-4608-b2e4-49d77be98d2a
 class ContextPacket(Base):
-    __tablename__: ClassVar[str] = "context_packets"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "context_packets"
+    __table_args__ = ({"schema": "core"},)
 
     packet_id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -98,8 +98,8 @@ class ContextPacket(Base):
 
 # ID: 06535678-f663-4668-af56-97f86c12e7ee
 class Northstar(Base):
-    __tablename__: ClassVar[str] = "northstar"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "northstar"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -112,8 +112,8 @@ class Northstar(Base):
 
 # ID: b96ce43c-edf8-4f70-bc20-1541e9ee281a
 class RuntimeSetting(Base):
-    __tablename__: ClassVar[str] = "runtime_settings"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "runtime_settings"
+    __table_args__ = ({"schema": "core"},)
 
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     value: Mapped[str | None] = mapped_column(Text)

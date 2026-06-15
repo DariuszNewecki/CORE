@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import ClassVar
 
 from sqlalchemy import (
     Boolean,
@@ -32,8 +31,8 @@ class AgentDecision(Base):
     Decisions made by agents. Matches CORE v2.2 schema.
     """
 
-    __tablename__: ClassVar[str] = "agent_decisions"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "agent_decisions"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -56,8 +55,8 @@ class AgentMemory(Base):
     Short-term and pattern memory for agents. Matches CORE v2.2 schema.
     """
 
-    __tablename__: ClassVar[str] = "agent_memory"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "agent_memory"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -86,8 +85,8 @@ class AgentMemory(Base):
 
 # ID: 9a090789-0e88-48e9-935e-09c25aeaa944
 class Feedback(Base):
-    __tablename__: ClassVar[str] = "feedback"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "feedback"
+    __table_args__ = ({"schema": "core"},)
 
     id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     task_id = Column(pgUUID(as_uuid=True), ForeignKey("core.tasks.id"))

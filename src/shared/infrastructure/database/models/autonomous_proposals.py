@@ -8,7 +8,6 @@ Stores registry-based action plans for autonomous execution.
 from __future__ import annotations
 
 import uuid
-from typing import ClassVar
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -25,8 +24,8 @@ class AutonomousProposal(Base):
     Stores autonomous proposals that reference actions from action_registry.
     """
 
-    __tablename__: ClassVar[str] = "autonomous_proposals"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "autonomous_proposals"
+    __table_args__ = ({"schema": "core"},)
 
     # Primary key (UUID)
     id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

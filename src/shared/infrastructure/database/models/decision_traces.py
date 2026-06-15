@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import ClassVar
 
 from sqlalchemy import DateTime, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -43,8 +42,8 @@ class DecisionTrace(Base):
     - Autonomous improvement analysis
     """
 
-    __tablename__: ClassVar[str] = "decision_traces"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
+    __tablename__ = "decision_traces"
+    __table_args__ = ({"schema": "core"},)
 
     # Primary key
     id: Mapped[uuid.UUID] = mapped_column(

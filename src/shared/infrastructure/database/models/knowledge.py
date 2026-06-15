@@ -33,8 +33,8 @@ class Base(DeclarativeBase):
 
 # ID: 3fa9cd6c-3533-4dbe-bcfe-73bf554d35d1
 class Domain(Base):
-    __tablename__: ClassVar[str] = "domains"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "domains"
+    __table_args__ = ({"schema": "core"},)
 
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -46,8 +46,8 @@ class Domain(Base):
 
 # ID: 838164ab-6840-4344-b5cf-00ca0436f9a5
 class Symbol(Base):
-    __tablename__: ClassVar[str] = "symbols"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "symbols"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -106,8 +106,8 @@ class Symbol(Base):
 
 # ID: bea0131b-5084-4754-91d1-a78c00bf8850
 class Capability(Base):
-    __tablename__: ClassVar[str] = "capabilities"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "capabilities"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -133,8 +133,8 @@ class Capability(Base):
 
 # ID: 19900250-a4bf-4e4b-8b0b-6bf657f75c11
 class SymbolCapabilityLink(Base):
-    __tablename__: ClassVar[str] = "symbol_capability_links"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "symbol_capability_links"
+    __table_args__ = ({"schema": "core"},)
 
     symbol_id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), ForeignKey("core.symbols.id"), primary_key=True
@@ -152,8 +152,8 @@ class SymbolCapabilityLink(Base):
 
 # ID: 763efb36-9dc1-43a4-ae58-e1bc6b22e130
 class DecoratorRegistry(Base):
-    __tablename__: ClassVar[str] = "decorator_registry"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "decorator_registry"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -178,8 +178,8 @@ class DecoratorRegistry(Base):
 
 # ID: 493aa306-d858-4dfa-8f0d-03d0755dfb28
 class SymbolDecorator(Base):
-    __tablename__: ClassVar[str] = "symbol_decorators"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "symbol_decorators"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, ClassVar
+from typing import Any
 
 from sqlalchemy import (
     ARRAY,
@@ -26,8 +26,8 @@ from .knowledge import Base
 
 # ID: 37950ce0-869d-44df-9bb7-ec42a7c5f0c5
 class SymbolVectorLink(Base):
-    __tablename__: ClassVar[str] = "symbol_vector_links"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "symbol_vector_links"
+    __table_args__ = ({"schema": "core"},)
 
     symbol_id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), ForeignKey("core.symbols.id"), primary_key=True
@@ -42,8 +42,8 @@ class SymbolVectorLink(Base):
 
 # ID: db0cf699-4737-4741-8f83-69751719c2af
 class VectorSyncLog(Base):
-    __tablename__: ClassVar[str] = "vector_sync_log"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "vector_sync_log"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     operation: Mapped[str] = mapped_column(Text, nullable=False)
@@ -62,8 +62,8 @@ class VectorSyncLog(Base):
 
 # ID: f89cf0e2-0af1-43de-b7eb-cfe5157d5522
 class RetrievalFeedback(Base):
-    __tablename__: ClassVar[str] = "retrieval_feedback"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "retrieval_feedback"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -87,8 +87,8 @@ class RetrievalFeedback(Base):
 
 # ID: 69b4fd97-75a7-478d-9d93-76dddca186c9
 class SemanticCache(Base):
-    __tablename__: ClassVar[str] = "semantic_cache"
-    __table_args__: ClassVar[dict[str, Any]] = {"schema": "core"}
+    __tablename__ = "semantic_cache"
+    __table_args__ = ({"schema": "core"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
