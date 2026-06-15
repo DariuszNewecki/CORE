@@ -13,12 +13,14 @@ from typing import Any
 
 from shared.logger import getLogger
 
+from ._host import HostBase
+
 
 logger = getLogger(__name__)
 
 
 # ID: a7256a38-cbdf-430e-ac84-1fbfe9bb102b
-class LLMMixin:
+class LLMMixin(HostBase):
     """
     Mixin providing LLM invocation for ViolationRemediator.
 

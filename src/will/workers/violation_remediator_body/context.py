@@ -11,6 +11,8 @@ from __future__ import annotations
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
+from ._host import HostBase
+
 
 logger = getLogger(__name__)
 
@@ -19,7 +21,7 @@ _CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: 4b9c5641-7688-451c-9b3f-09f2c773098d
-class ContextMixin:
+class ContextMixin(HostBase):
     """
     Mixin providing context-assembly methods for ViolationRemediator.
 

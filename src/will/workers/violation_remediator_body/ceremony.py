@@ -15,12 +15,14 @@ from pathlib import Path
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_command_async
 
+from ._host import HostBase
+
 
 logger = getLogger(__name__)
 
 
 # ID: 7309bbd3-8a4b-427f-9d6f-b93b6bd3f719
-class CeremonyMixin:
+class CeremonyMixin(HostBase):
     """
     Mixin providing Crate/Canary ceremony methods for ViolationRemediator.
 

@@ -14,6 +14,8 @@ from typing import Any
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
+from ._host import HostBase
+
 
 logger = getLogger(__name__)
 
@@ -22,7 +24,7 @@ _CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: 35d0a1e2-de06-43d5-8bab-852f34171cb3
-class BlackboardMixin:
+class BlackboardMixin(HostBase):
     """
     Mixin providing all Blackboard interaction methods for ViolationRemediator.
 
