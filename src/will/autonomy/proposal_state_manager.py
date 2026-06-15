@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from shared.exceptions import CoreError
 from shared.logger import getLogger
@@ -171,6 +171,29 @@ class ProposalStateManager:
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
         )
+
+        # ADR-109 #654 — assisted-lane safety gate. A proposal that declares
+        # validation_checks (the assisted lane sets ["assisted.validate_diff"])
+        # cannot be approved until every declared check is recorded passing in
+        # validation_results. The autonomous path declares no validation_checks,
+        # so this is a no-op there; the gate only bites the human-gated lane.
+        gate_row = (
+            await self._session.execute(
+                select(
+                    AutonomousProposal.validation_checks,
+                    AutonomousProposal.validation_results,
+                ).where(AutonomousProposal.proposal_id == proposal_id)
+            )
+        ).first()
+        if gate_row is not None:
+            declared = gate_row.validation_checks or []
+            results = gate_row.validation_results or {}
+            unmet = [c for c in declared if results.get(c) is not True]
+            if unmet:
+                raise ValueError(
+                    f"Proposal {proposal_id!r} cannot be approved: validation "
+                    f"gate not satisfied (unmet checks: {unmet})."
+                )
 
         stmt = (
             update(AutonomousProposal)

@@ -24,7 +24,12 @@ from will.autonomy.proposal_state_manager import (
 )
 
 
-def _draft_row(proposal_id: str) -> AutonomousProposal:
+def _draft_row(
+    proposal_id: str,
+    *,
+    validation_checks: list[str] | None = None,
+    validation_results: dict[str, bool] | None = None,
+) -> AutonomousProposal:
     """Construct a minimal valid AutonomousProposal in DRAFT for tests."""
     return AutonomousProposal(
         proposal_id=proposal_id,
@@ -35,6 +40,8 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
         constitutional_constraints={},
         approval_required=False,
         created_at=datetime.now(UTC),
+        validation_checks=validation_checks or [],
+        validation_results=validation_results or {},
     )
 
 
@@ -155,3 +162,65 @@ async def test_reject_unknown_uuid_raises_not_found(
     with pytest.raises(ProposalNotFoundError) as excinfo:
         await ProposalStateManager(db_session).reject(bogus_id, reason="test rejection")
     assert bogus_id in str(excinfo.value)
+
+
+async def test_approve_blocks_on_unmet_validation_gate(
+    db_session: AsyncSession,
+) -> None:
+    """ADR-109 #654: a proposal declaring validation_checks cannot be approved
+    while a declared check is not recorded passing; the gate raises and leaves
+    the proposal in draft."""
+    proposal_id = f"test-gate-block-{uuid.uuid4().hex[:8]}"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            validation_checks=["assisted.validate_diff"],
+            validation_results={"assisted.validate_diff": False},
+        )
+    )
+    await db_session.commit()
+
+    try:
+        with pytest.raises(ValueError, match="validation"):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="cli_admin",
+                approval_authority="principal.governor",
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "draft"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_passes_when_validation_gate_met(
+    db_session: AsyncSession,
+) -> None:
+    """ADR-109 #654: once every declared check is recorded passing, approve()
+    proceeds to status='approved' normally."""
+    proposal_id = f"test-gate-pass-{uuid.uuid4().hex[:8]}"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            validation_checks=["assisted.validate_diff"],
+            validation_results={"assisted.validate_diff": True},
+        )
+    )
+    await db_session.commit()
+
+    try:
+        await ProposalStateManager(db_session).approve(
+            proposal_id,
+            approved_by="cli_admin",
+            approval_authority="principal.governor",
+        )
+        await db_session.commit()
+
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "approved"
+    finally:
+        await _delete(db_session, proposal_id)
