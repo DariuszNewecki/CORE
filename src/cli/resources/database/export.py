@@ -2,7 +2,7 @@
 """
 Database export command.
 
-Exports database contents to JSON or SQL format.
+Exports operational data to its canonical, read-only YAML representation.
 """
 
 from __future__ import annotations
@@ -24,37 +24,27 @@ console = Console()
 @app.command("export")
 @core_command(dangerous=False, requires_context=True)
 # ID: e7f86889-85aa-40c7-92f9-19f751f8162f
-async def export_database(
-    ctx: typer.Context,
-    output_dir: str = typer.Option(
-        "backups", "--output-dir", "-o", help="Output directory for export files"
-    ),
-) -> None:
+async def export_database(ctx: typer.Context) -> None:
     """
-    Export database operational data to files.
+    Export database operational data to its canonical YAML representation.
 
-    Exports database tables to canonical YAML representations
-    in the specified output directory.
+    Each operational domain and the vector metadata are written to their
+    fixed, read-only YAML files under the repo (schema-as-truth), via
+    FileHandler. The destination paths are canonical and not configurable.
 
     Constitutional Compliance:
-    - Writes to var/ directory (runtime artifacts)
     - Uses FileHandler for traceable mutations
 
     Examples:
-        # Export to default backups directory
         core-admin database export
-
-        # Export to custom directory
-        core-admin database export --output-dir exports/2024
     """
     console.print("[bold cyan]📤 Database Export[/bold cyan]")
-    console.print(f"Output directory: {output_dir}")
     console.print()
     try:
         from cli.logic.db import export_data
 
-        export_data(output_dir)
-        console.print(f"[green]✅ Export completed to {output_dir}[/green]")
+        await export_data(ctx)
+        console.print("[green]✅ Export completed[/green]")
     except Exception as e:
         logger.error("Database export failed", exc_info=True)
         console.print(f"[red]❌ Error: {e}[/red]")
