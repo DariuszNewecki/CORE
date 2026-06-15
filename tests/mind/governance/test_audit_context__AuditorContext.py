@@ -156,3 +156,72 @@ def test_include_matches_handles_double_star_globs(rel_posix, pattern, expected)
     delegates here; this test pins the matcher behaviour that the audit
     sensor relies on."""
     assert _include_matches(rel_posix, pattern) is expected
+
+
+# ---------------------------------------------------------------------------
+# ADR-039 Option E (2026-06-15) — content-addressed parse cache.
+# get_tree() uses only the module-level _AST_CACHE and its file argument, so a
+# bare context over a tmp repo exercises the caching behaviour without touching
+# governance/graph state.
+# ---------------------------------------------------------------------------
+
+
+def test_get_tree_caches_unchanged_file(tmp_path):
+    """A second get_tree on byte-identical content is a cache hit — the same
+    parsed object is returned, not a re-parse."""
+    from mind.governance.audit_context import _AST_CACHE
+
+    _AST_CACHE.clear()
+    f = tmp_path / "sample.py"
+    f.write_text("x = 1\n", encoding="utf-8")
+    ctx = AuditorContext(tmp_path)
+
+    first = ctx.get_tree(f)
+    second = ctx.get_tree(f)
+
+    assert first is not None
+    assert second is first  # identity => no re-parse
+
+
+def test_get_tree_reparses_when_content_changes(tmp_path):
+    """Changing a file's bytes changes its content key, so the cache misses
+    and re-parses — the new tree reflects the new content. A stale tree is
+    impossible by construction (the fail-safe property of Option E)."""
+    from mind.governance.audit_context import _AST_CACHE
+
+    _AST_CACHE.clear()
+    f = tmp_path / "sample.py"
+    f.write_text("x = 1\n", encoding="utf-8")
+    ctx = AuditorContext(tmp_path)
+
+    before = ctx.get_tree(f)
+    assert before is not None
+    assert len(before.body) == 1
+
+    # Change size (and content) so the (mtime_ns, size) key differs even if
+    # the filesystem's mtime granularity were coarse.
+    f.write_text("x = 1\ny = 2\nz = 3\n", encoding="utf-8")
+    after = ctx.get_tree(f)
+
+    assert after is not before  # forced re-parse
+    assert len(after.body) == 3  # post-write content, not the stale tree
+
+
+def test_invalidate_file_cache_preserves_ast_cache(tmp_path):
+    """Behaviour change: invalidate_file_cache no longer wipes _AST_CACHE.
+    Unchanged files stay parsed across cycles; staleness is handled by the
+    content key in get_tree, not by clearing. Regression guard for the
+    per-cycle full-tree reparse that pinned the sensor fleet's CPU."""
+    from mind.governance.audit_context import _AST_CACHE
+
+    _AST_CACHE.clear()
+    f = tmp_path / "sample.py"
+    f.write_text("x = 1\n", encoding="utf-8")
+    ctx = AuditorContext(tmp_path)
+
+    first = ctx.get_tree(f)
+    ctx.invalidate_file_cache()
+    second = ctx.get_tree(f)
+
+    assert first is not None
+    assert second is first  # cache survived invalidate_file_cache

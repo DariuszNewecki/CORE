@@ -14,8 +14,8 @@ Constitutional Alignment:
 Performance:
 - Module-level knowledge graph cache per repo_path
 - Single-pass filesystem scan with pattern memoization
-- AST cache shared across all rules within a single run
-- Cache persists for process lifetime unless explicitly cleared
+- AST cache keyed by file content identity (ADR-039 Option E): reused across
+  audit runs, re-parsed only when a file's bytes change
 """
 
 from __future__ import annotations
@@ -50,7 +50,31 @@ logger = getLogger(__name__)
 # ============================================================================
 # Cache structure: {repo_path_str: {knowledge_graph, symbols_map, symbols_list}}
 _KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
-_AST_CACHE: dict[Path, ast.AST] = {}
+# ADR-039 (Option E, 2026-06-15): the parse cache is keyed on file *content
+# identity* — (mtime_ns, size) — not path alone, so a changed file misses and
+# re-parses while unchanged files stay cached across audit cycles. This
+# replaces the per-cycle wholesale clear() of the 2026-05-16 supplement, which
+# forced the whole sensor fleet to re-parse the entire tree every cycle. A
+# stale tree is impossible by construction: different bytes => different key
+# => forced re-parse, so the cache only ever reuses an identical parse and
+# never decides whether a file is audited.
+_AST_CACHE: dict[Path, tuple[tuple[int, int], ast.AST]] = {}
+# Bound the cache so a long-lived daemon scanning a churning tree cannot grow
+# it without limit (~969 source files today; generous headroom). FIFO
+# eviction; dropping an entry is always safe — worst case the file is
+# re-parsed on next access.
+_AST_CACHE_MAX_ENTRIES: int = 5000
+
+
+def _store_ast(file_path: Path, content_key: tuple[int, int], tree: ast.AST) -> None:
+    """Store a parsed tree under its content key, evicting FIFO past the cap."""
+    if file_path in _AST_CACHE:
+        # Refresh in place — drop first so the re-insert lands at the
+        # most-recent position (keeps FIFO order meaningful).
+        del _AST_CACHE[file_path]
+    elif len(_AST_CACHE) >= _AST_CACHE_MAX_ENTRIES:
+        del _AST_CACHE[next(iter(_AST_CACHE))]
+    _AST_CACHE[file_path] = (content_key, tree)
 
 
 # ADR-076 D5: structural excludes are directory names whose contents are
@@ -220,12 +244,13 @@ class AuditorContext:
         # enforcement_loader; both can change on reload_governance, so
         # invalidate alongside the file cache.
         self._per_file_scopes_cache = None
-        # ADR-039 supplement 2026-05-16: clear parsed-tree cache so
-        # ast_gate rules evaluate post-write content, not prior-cycle
-        # ASTs. Race surface (shared AuditorContext across sensors) is
-        # identical to _file_list_cache — degraded perf on collision,
-        # not correctness.
-        _AST_CACHE.clear()
+        # ADR-039 (Option E, 2026-06-15): _AST_CACHE is intentionally NOT
+        # cleared here. The 2026-05-16 supplement wiped it wholesale every
+        # cycle so ast_gate rules never evaluated a pre-write tree; Option E
+        # instead keys the cache on content identity (mtime_ns, size) in
+        # get_tree(), so a changed file misses and re-parses while unchanged
+        # files stay cached across cycles. This removes the dominant
+        # per-cycle full-tree reparse cost without re-introducing staleness.
 
     # ID: 2704ca91-45bd-420e-be0b-d3f4bb798683
     def reload_governance(self) -> None:
@@ -439,18 +464,37 @@ class AuditorContext:
 
     # ID: 182db297-46ce-4b24-9b05-e496f932769c
     def get_tree(self, file_path: Path) -> ast.AST | None:
-        """Retrieve a parsed AST from cache, or parse and cache on first access."""
-        if file_path in _AST_CACHE:
-            return _AST_CACHE[file_path]
+        """Retrieve a parsed AST from cache, or parse and cache on first access.
+
+        ADR-039 (Option E): the cache hit is gated on file *content identity*
+        — (mtime_ns, size) — not path alone. A hit requires the bytes to be
+        unchanged since they were parsed; any change yields a different key
+        and forces a re-parse. A stale tree is therefore impossible by
+        construction, which is why ``invalidate_file_cache`` no longer wipes
+        this cache every cycle.
+        """
+        try:
+            stat = file_path.stat()
+            content_key = (stat.st_mtime_ns, stat.st_size)
+        except OSError as e:
+            logger.warning("Failed to stat %s: %s", file_path.name, e)
+            return None
+
+        cached = _AST_CACHE.get(file_path)
+        if cached is not None and cached[0] == content_key:
+            return cached[1]
 
         try:
             source = file_path.read_text(encoding="utf-8")
             tree = ast.parse(source, filename=str(file_path))
-            _AST_CACHE[file_path] = tree
-            return tree
         except Exception as e:
             logger.warning("Failed to parse %s: %s", file_path.name, e)
+            # Drop any now-stale entry so a later successful read repopulates.
+            _AST_CACHE.pop(file_path, None)
             return None
+
+        _store_ast(file_path, content_key, tree)
+        return tree
 
     # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
     async def load_knowledge_graph(self, force: bool = False) -> None:
