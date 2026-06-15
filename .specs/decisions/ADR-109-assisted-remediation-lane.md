@@ -2,14 +2,14 @@
 kind: adr
 id: ADR-109
 title: ADR-109 — Assisted Remediation Lane
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-109-assisted-remediation-lane.md -->
 
 # ADR-109 — Assisted Remediation Lane
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-15
 **Authors:** Darek (Dariusz Newecki)
 **Relates to:** ADR-035 (One Finding, One Proposal), ADR-029 (non-automatable
