@@ -13,6 +13,7 @@ via DI, complying with the constitution.
 from __future__ import annotations
 
 from body.atomic.executor import ActionExecutor
+from body.services.file_service import FileService
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
@@ -119,6 +120,7 @@ def create_core_context(service_registry) -> CoreContext:
         settings=settings,
         git_service=GitService(repo_path),
         file_handler=FileHandler(str(repo_path)),
+        file_service=FileService(repo_path),
         planner_config=PlannerConfig(),
         knowledge_service=KnowledgeService(repo_path),
     )

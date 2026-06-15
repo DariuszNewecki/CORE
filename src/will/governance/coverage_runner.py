@@ -356,7 +356,7 @@ async def run_and_persist_coverage_generation(
         result = await remediate_coverage_enhanced(
             cognitive_service=context.cognitive_service,
             auditor_context=context.auditor_context,
-            file_handler=context.file_handler,
+            file_handler=context.file_service,
             repo_root=repo_root,
             file_path=file_path,
         )
@@ -418,7 +418,7 @@ async def run_and_persist_coverage_batch(
         result = await remediate_coverage_enhanced(
             cognitive_service=context.cognitive_service,
             auditor_context=context.auditor_context,
-            file_handler=context.file_handler,
+            file_handler=context.file_service,
             repo_root=repo_root,
             target_coverage=target_coverage,
         )
@@ -595,7 +595,7 @@ async def run_tests_interactive(
         result = await remediate_coverage_enhanced(
             cognitive_service=context.cognitive_service,
             auditor_context=context.auditor_context,
-            file_handler=context.file_handler,
+            file_handler=context.file_service,
             repo_root=repo_root,
             file_path=file_path,
         )

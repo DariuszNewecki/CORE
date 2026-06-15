@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any
 
 from body.atomic.modularity_splitter import ModularitySplitter, SplitResult
 from body.atomic.split_plan import SplitPlan, SplitPlanError
-from body.services.file_service import FileService
 from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
 from shared.infrastructure.context.service import ContextService
@@ -65,10 +64,10 @@ class CodeGenerationPhase:
             agent_name="CodeGenerationPhase",
         )
 
-        self.file_service = FileService(core_context.git_service.repo_path)
+        self.file_service = core_context.file_service
 
         self.execution_sensor = PytestSandboxRunner(
-            file_handler=core_context.file_handler,
+            file_handler=self.file_service,
             repo_root=str(core_context.git_service.repo_path),
         )
 

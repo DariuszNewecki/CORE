@@ -146,7 +146,7 @@ async def run_and_persist_audit_remediation(
 
     try:
         service = AuditRemediationService(
-            file_handler=context.file_handler,
+            file_handler=context.file_service,
             auditor_context=context.auditor_context,
             repo_root=context.git_service.repo_path,
         )

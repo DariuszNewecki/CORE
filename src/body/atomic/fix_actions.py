@@ -708,7 +708,7 @@ async def action_fix_vulture_heal(
     try:
         await heal_dead_code(
             context=core_context,
-            file_handler=core_context.file_handler,
+            file_handler=core_context.file_service,
             repo_root=core_context.git_service.repo_path,
             write=write,
         )

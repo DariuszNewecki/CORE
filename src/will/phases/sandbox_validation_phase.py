@@ -37,10 +37,10 @@ class SandboxValidationPhase:
 
     def __init__(self, context: CoreContext):
         self.context = context
-        self.file_handler = context.file_handler
+        self.file_service = context.file_service
         repo_root = str(context.git_service.repo_path)
         self.sandbox = PytestSandboxRunner(
-            file_handler=self.file_handler, repo_root=repo_root
+            file_handler=self.file_service, repo_root=repo_root
         )
 
     # ID: 3902df50-3fc5-4b54-971c-3f3b7f36ce8c

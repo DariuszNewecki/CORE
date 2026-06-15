@@ -19,6 +19,7 @@ async def update_system_memory(file_path: str, write: bool):
     """Ensures the State (DB) and Mind (Vectors) match the Body (Code)."""
     from body.introspection.sync_service import run_sync_with_db
     from body.introspection.vectorization_service import run_vectorize
+    from body.services.file_service import FileService
     from shared.context import CoreContext
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
     from shared.infrastructure.git_service import GitService
@@ -26,14 +27,16 @@ async def update_system_memory(file_path: str, write: bool):
 
     async with service_registry.session() as session:
         await run_sync_with_db(session)
-        # git_service / knowledge_service / file_handler are mandatory on
-        # CoreContext (#643); wire them so the context is fully constructed.
+        # git_service / knowledge_service / file_handler / file_service are
+        # mandatory on CoreContext (#643, #645); wire them so the context is
+        # fully constructed.
         repo_path = BootstrapRegistry.get_repo_path()
         ctx = CoreContext(
             registry=service_registry,
             git_service=GitService(repo_path=repo_path),
             knowledge_service=KnowledgeService(repo_path=repo_path),
             file_handler=service_registry.get_file_handler(),
+            file_service=FileService(repo_path),
         )
         await run_vectorize(context=ctx, session=session, dry_run=not write)
 

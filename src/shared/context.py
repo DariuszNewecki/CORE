@@ -17,6 +17,7 @@ from shared.config import settings
 
 
 if TYPE_CHECKING:
+    from body.services.file_service import FileService
     from shared.infrastructure.git_service import GitService
     from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
     from shared.infrastructure.storage.file_handler import FileHandler
@@ -46,6 +47,10 @@ class CoreContext:
     git_service: GitService
     knowledge_service: KnowledgeService
     file_handler: FileHandler
+    # ADR-097 D4 Will-tier write door: the sanctioned FileService wrapper so
+    # Will-tier consumers receive it (not a raw FileHandler) for `file_service:
+    # FileService` slots. file_handler stays for Body/infra consumers (#645).
+    file_service: FileService
 
     # --- Configuration SSOT ---
     # FIXED: Uses default_factory to avoid "mutable default" ValueError

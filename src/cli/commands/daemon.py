@@ -622,6 +622,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
     # constructor keeps the same fail-fast behaviour and satisfies the required
     # fields. The genuinely-degradable services (cognitive/qdrant/auditor) stay
     # post-construction in try/except below.
+    from body.services.file_service import FileService
     from shared.infrastructure.git_service import GitService
 
     ctx = CoreContext(
@@ -629,6 +630,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
         git_service=GitService(repo_path=BootstrapRegistry.get_repo_path()),
         knowledge_service=KnowledgeService(repo_path=BootstrapRegistry.get_repo_path()),
         file_handler=service_registry.get_file_handler(),
+        file_service=FileService(BootstrapRegistry.get_repo_path()),
     )
 
     cog_svc: Any = None
