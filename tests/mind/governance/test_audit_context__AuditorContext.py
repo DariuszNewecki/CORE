@@ -225,3 +225,61 @@ def test_invalidate_file_cache_preserves_ast_cache(tmp_path):
 
     assert first is not None
     assert second is first  # cache survived invalidate_file_cache
+
+
+# ---------------------------------------------------------------------------
+# ADR-076 D5 / ADR-039 (2026-06-15) — derived-walk directory pruning.
+# These two pure helpers carry the silent-inert risk: if pruning ever drops a
+# directory that could contain an in-scope file, a rule goes blind. Pin them.
+# ---------------------------------------------------------------------------
+
+
+def test_scope_fixed_prefixes_extracts_literal_roots():
+    from mind.governance.audit_context import _scope_fixed_prefixes
+
+    prefixes, broad = _scope_fixed_prefixes(
+        ["src/**/*.py", "var/logs/*.jsonl", ".intent/**/*.json", "src/api/main.py"]
+    )
+    assert broad is False
+    assert ("src",) in prefixes
+    assert ("var", "logs") in prefixes
+    assert (".intent",) in prefixes
+    # Exact-file scope (no metachar) keeps all components — prefix logic still
+    # walks down to it.
+    assert ("src", "api", "main.py") in prefixes
+
+
+def test_scope_fixed_prefixes_broad_scope_forces_full_walk():
+    from mind.governance.audit_context import _scope_fixed_prefixes
+
+    # A scope whose FIRST component is a wildcard can match anywhere, so no
+    # directory may be pruned.
+    prefixes, broad = _scope_fixed_prefixes(["**/*.py", "src/**/*.py"])
+    assert broad is True
+    assert prefixes == []
+
+
+def test_scope_fixed_prefixes_tolerates_non_path_scope():
+    from mind.governance.audit_context import _scope_fixed_prefixes
+
+    # Malformed/non-path scopes (observed live: "@command_meta decorators")
+    # have no glob metachar and no separator: they become a single literal
+    # component that matches no real directory — not broad, just inert.
+    prefixes, broad = _scope_fixed_prefixes(["@command_meta decorators"])
+    assert broad is False
+    assert prefixes == [("@command_meta decorators",)]
+
+
+def test_dir_descendable_keeps_scope_paths_and_prunes_others():
+    from mind.governance.audit_context import _dir_descendable
+
+    prefixes = [("src",), ("var", "logs"), ("tests",)]
+    # On the path to / inside a scope root → descend.
+    assert _dir_descendable(("src",), prefixes) is True
+    assert _dir_descendable(("src", "mind"), prefixes) is True
+    assert _dir_descendable(("var",), prefixes) is True  # on the way to var/logs
+    assert _dir_descendable(("var", "logs"), prefixes) is True
+    # No scope can match underneath → prune.
+    assert _dir_descendable(("var", "tmp"), prefixes) is False
+    assert _dir_descendable((".specs",), prefixes) is False
+    assert _dir_descendable(("reports",), prefixes) is False

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -99,19 +100,6 @@ _STRUCTURAL_DIR_PARTS: frozenset[str] = frozenset(
 )
 
 
-def _is_under_structural_exclude(p: Path, root: Path) -> bool:
-    """Return True if ``p`` falls under a structural-excluded directory.
-
-    Component check on the relative path; cheaper than fnmatch on every
-    file at scan time.
-    """
-    try:
-        rel = p.relative_to(root)
-    except ValueError:
-        return False
-    return any(part in _STRUCTURAL_DIR_PARTS for part in rel.parts)
-
-
 def _include_matches(rel_posix: str, pattern: str) -> bool:
     """Match ``rel_posix`` against ``pattern`` with correct ``**`` semantics.
 
@@ -133,6 +121,49 @@ def _include_matches(rel_posix: str, pattern: str) -> bool:
         return True
     if "/**" in pattern and fnmatch.fnmatch(rel_posix, pattern.replace("/**", "")):
         return True
+    return False
+
+
+def _scope_fixed_prefixes(
+    scopes: Iterable[str],
+) -> tuple[list[tuple[str, ...]], bool]:
+    """Fixed (pre-wildcard) directory-prefix component-tuples for each scope.
+
+    Returns ``(prefixes, broad)``. ``broad`` is True when some scope's first
+    path component already contains a glob metacharacter (``*?[``) — such a
+    scope can match under any directory, so no pruning is safe and the caller
+    must walk the whole tree. Used by the derived walker (ADR-076 D5) to decide
+    which directories could contain a file any active scope would retain.
+    """
+    prefixes: list[tuple[str, ...]] = []
+    for s in scopes:
+        fixed: list[str] = []
+        for comp in s.split("/"):
+            if not comp or any(ch in comp for ch in "*?["):
+                break
+            fixed.append(comp)
+        if not fixed:
+            return [], True
+        prefixes.append(tuple(fixed))
+    return prefixes, False
+
+
+def _dir_descendable(
+    dir_comps: tuple[str, ...], prefixes: list[tuple[str, ...]]
+) -> bool:
+    """True iff some scope prefix shares a full common-length prefix with this
+    directory — i.e. the directory is on the path to, or already inside, a
+    scope's fixed root.
+
+    A directory failing this can hold no file any scope retains, so the derived
+    walker prunes it. Conservative by construction: it returns False only when
+    *no* scope prefix is path-compatible, so a file that is in scope can never
+    be pruned (the silent-inert failure ADR-076 D5 guards against).
+    """
+    for fc in prefixes:
+        n = min(len(dir_comps), len(fc))
+        if dir_comps[:n] == fc[:n]:
+            return True
     return False
 
 
@@ -415,27 +446,43 @@ class AuditorContext:
         if cache_key in self._pattern_cache:
             return self._pattern_cache[cache_key]
 
-        root = self.repo_path
-
         if self._file_list_cache is None:
-            logger.debug("⚡ Cold start: Scanning filesystem once...")
-            # ADR-076 D5: candidate walk — only structural excludes
-            # prune the rglob result. Extensions, application roots, and
-            # exclusion of subtrees like ``.intent/`` or ``var/`` are NOT
-            # hardcoded here; the retention pass below derives them from
-            # the active per-file rules' scopes.
+            logger.debug("⚡ Cold start: deriving scoped file set via os.walk...")
+            # ADR-076 D5 + ADR-039 (file-discovery, 2026-06-15): the walked set
+            # is the union of active per-file rule scopes. We derive the
+            # directories worth descending from those scopes' fixed prefixes and
+            # prune everything else in-place during os.walk — so the ~500k-entry
+            # repo (var/tmp sandboxes, .git objects, reports, …) is never
+            # traversed. Retention still uses _include_matches, so membership is
+            # byte-for-byte the prior rglob-and-filter result; only the mechanics
+            # change. Relative paths come from slicing the root prefix (no
+            # per-file Path.relative_to), and a Path is built only for the files
+            # a scope actually retains.
             per_file_scopes = self._active_per_file_rule_scopes()
+            prefixes, broad = _scope_fixed_prefixes(per_file_scopes)
+            root_str = str(self.repo_path)
+            prefix_len = len(root_str) + 1
             self._file_list_cache = []
-            for p in self.repo_path.rglob("*"):
-                if not p.is_file():
-                    continue
-                if _is_under_structural_exclude(p, root):
-                    continue
-                rel_posix = str(p.relative_to(root)).replace("\\", "/")
-                # Retain iff some active per-file rule scopes this path.
-                if any(_include_matches(rel_posix, sc) for sc in per_file_scopes):
-                    self._file_list_cache.append(p)
-                    self._rel_path_map[p] = rel_posix
+            for dirpath, dirnames, filenames in os.walk(root_str):
+                rel_dir = (
+                    dirpath[prefix_len:].replace(os.sep, "/")
+                    if len(dirpath) > len(root_str)
+                    else ""
+                )
+                base_comps = tuple(rel_dir.split("/")) if rel_dir else ()
+                dirnames[:] = [
+                    d
+                    for d in dirnames
+                    if d not in _STRUCTURAL_DIR_PARTS
+                    and (broad or _dir_descendable((*base_comps, d), prefixes))
+                ]
+                for fn in filenames:
+                    rel_posix = f"{rel_dir}/{fn}" if rel_dir else fn
+                    # Retain iff some active per-file rule scopes this path.
+                    if any(_include_matches(rel_posix, sc) for sc in per_file_scopes):
+                        p = Path(dirpath, fn)
+                        self._file_list_cache.append(p)
+                        self._rel_path_map[p] = rel_posix
 
         # #593 fix: delegate exclude matching to _include_matches so the
         # include and exclude sides agree on `**` zero-directory semantics.
