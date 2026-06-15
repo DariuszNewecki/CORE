@@ -28,7 +28,12 @@ mandate:
       - compliance
   approval_required: false
   schedule:
-    max_interval: 1200
+    # 2026-06-15 (ADR-039 rev. d): the derived-walk fix (49bf4c0d) cut an audit
+    # cycle from ~90s to ~seconds, so max_interval is now a detection-latency
+    # knob, not a CPU defense. Set to 300s — remediators poll every 60s, so the
+    # sensor interval is the bottleneck on time-to-detect; 300s is ~30x the
+    # cycle time (no back-to-back overlap) and ~30% of one core fleet-wide.
+    max_interval: 300
 
 implementation:
   module: will.workers.audit_violation_sensor
