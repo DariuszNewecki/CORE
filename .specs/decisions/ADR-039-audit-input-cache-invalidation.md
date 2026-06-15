@@ -552,3 +552,70 @@ Mechanism of record for ADR-039's efficiency concern. Implementation pending
 under proposal flow; Level 1 first. The `max_interval` stopgap (committed
 `d12c1e51`) remains orthogonal interim relief and is reversible once Level 1
 lands.
+
+> **Corrected by the 2026-06-15 (rev. c) measurement supplement below.** Option
+> E (Level 1) was implemented in `98c9f592`, but measurement afterwards showed
+> its impact is ~2% of a cycle, not the dominant cost. The framing above (and
+> the `98c9f592` commit message) overstated it. See rev. c for the real
+> breakdown.
+
+
+## Supplement — 2026-06-15 (rev. c) — Measurement correction: parsing was never the bottleneck
+
+**The "rescanned 969 files" log line misattributed the cost. Option E (and the
+2026-05-16 supplement before it) optimised input *parsing*; the dominant
+per-cycle cost is rule *execution*.**
+
+After committing Option E Level 1 (`98c9f592`), a measurement of one isolated
+single-namespace audit (`style`, 2 rules, no cross-process contention)
+produced:
+
+| component | median per cycle | share |
+| --- | --- | --- |
+| `reload_governance` (`.intent/` reload) | ~1.3 s | ~1.4% |
+| `src/` AST parse — COLD (pre-Option-E) | ~1.6 s | ~1.7% |
+| `src/` AST parse — WARM (post-Option-E) | ~6 ms | ~0% |
+| **rule execution** | **~91 s** | **~97%** |
+| **total cold cycle** | **~94 s** | — |
+
+(Standalone reference points: cold full-tree parse of 969 files ≈ 1613 ms,
+warm ≈ 6 ms — a real 278× drop, but on a slice that is ~2% of the cycle.)
+
+### Corrections to the record
+
+1. **Option E / Level 1 is correct but minor.** It cuts parsing from ~1.6 s to
+   ~6 ms per cycle — real, harmless, and it preserves the trust guarantee — but
+   that is ~2% of a ~94 s cycle, **not** "the dominant cost." The `98c9f592`
+   commit message and the rev. b framing above overstated its impact. Level 1
+   is kept (the saving is real and the fail-safe property is worth having), but
+   it is not the fix for the CPU problem.
+2. **Level 1b (`.intent/` reload gate) is withdrawn as not worth doing
+   standalone.** Measured at ~1.3 s/cycle (~1.4%); gating it would save about
+   what Level 1 saves. The earlier claim that `.intent/` reload is "much
+   cheaper than the parse" was wrong (it is comparable), but both are dwarfed
+   by rule execution.
+3. **The `max_interval` stopgap (`d12c1e51`) was the proportionate lever, not a
+   sticking-plaster.** Halving cycle *frequency* cuts the ~91 s of rule
+   execution proportionally — far more than removing the ~3 s of input-prep.
+   Its standing should be upgraded from "interim relief" to "the actual
+   first-order mitigation until rule-execution cost is addressed."
+
+### Where the real cost is (not yet diagnosed)
+
+Two `style` rules take ~91 s over the scoped file set. The cause is **not yet
+established** and must be profiled, not assumed — candidates include per-rule
+full-tree walks, per-file knowledge-graph or DB lookups inside the engines, or
+redundant re-derivation across the two rules. The next investigation is to
+profile `run_filtered_audit` rule execution for one namespace and attribute the
+~91 s before proposing any further mechanism. No new optimisation should be
+designed against the "parsing" narrative this supplement retires.
+
+### Method note
+
+Measured via direct timing of `AuditorContext.reload_governance`,
+`get_tree` over `src/**/*.py`, and `run_filtered_audit(rule_patterns=[...])`
+on the live repo (969 source files, 236 policies / 209 rules indexed), single
+process. Wall-clock per sensor in production is larger again due to ~9-way
+process contention on a 4-core host — which is why frequency reduction
+(`max_interval`) and the cross-process redundancy are the levers that scale,
+not input-prep caching.
