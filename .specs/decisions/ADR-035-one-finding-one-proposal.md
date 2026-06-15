@@ -145,3 +145,33 @@ logic is unchanged.
 - ADR-015 — consequence chain attribution (D4 of this ADR completes the
   chain integrity ADR-015 established)
 - Issue #284 — observed instance (proposal 946be9e0, 8-file batch)
+
+
+## Amendment — 2026-06-15 — Assisted-lane multi-file exception (ADR-109 D3)
+
+**This ADR's one-finding-one-proposal scoping remains the rule for the
+*autonomous* loop. ADR-109 (Assisted Remediation Lane) D3 adds a narrow,
+human-gated exception for the *assisted* lane.**
+
+ADR-035's per-file scoping exists for **approval granularity under autonomous
+trust** — the governor could not be asked to approve a bundle the daemon
+assembled (the §"Why batching violates the governance model" argument). That
+concern is dissolved when a human reviews the actual multi-file diff: the unit
+of approval becomes the coherent change the human inspected, not a
+machine-assembled batch.
+
+Therefore, in the assisted remediation lane only (ADR-109), a single proposal
+MAY span N interdependent files and be approved as one unit, on these
+conditions:
+
+- `approval_required = true` is **mandatory** — the human diff-review is the
+  precondition that licenses the multi-file scope.
+- The diff must clear the in-sandbox validation gate (ADR-109 §Mechanism 4)
+  before it is approvable.
+- The commit set derives from sandbox production with joint authorship
+  (ADR-101 D1/D5).
+
+The autonomous remediator (`ViolationRemediatorWorker`) is **unchanged**: it
+still emits one proposal per `(action, file)`. The exception is unreachable
+without a human at the gate. See ADR-109 D3 for the full decision; tracked in
+issue #655.
