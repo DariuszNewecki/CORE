@@ -279,6 +279,13 @@ not widened by it.
 
 ## Supplement — 2026-06-15 — Change-gated invalidation (Option B′)
 
+> **SUPERSEDED by the 2026-06-15 (rev. b) supplement below — Content-addressed
+> parse cache (Option E).** B′ (a cycle-level digest gate) was found to be a
+> coarse approximation of content-addressed caching, which CORE's existing
+> `_AST_CACHE` already wants to be. Retained here for the reasoning trail; the
+> measured cost and trust analysis below remain valid, but the *mechanism* of
+> record is Option E, not B′.
+
 **The per-cycle reparse cost, ruled "trivial" above, became the dominant
 load at fleet scale.**
 
@@ -402,3 +409,146 @@ implemented, the unconditional per-cycle reparse remains in force; the
 operational stopgap (raising `max_interval` on the 600s sensors, or
 renicing the sensor processes) is orthogonal and does not require this
 change.
+
+**Superseded same day by the supplement below.** See Option E.
+
+
+## Supplement — 2026-06-15 (rev. b) — Content-addressed parse cache (Option E)
+
+**Supersedes the Option B′ supplement above as the mechanism of record.**
+Same observed cost (~244% CPU, ~9 sensors re-parsing the full 969-file tree
+every cycle); a sharper root cause; a mechanism that is cheaper than B′ and
+fail-safe by construction rather than by guard.
+
+### Root cause, restated
+
+CORE already has a parse cache and throws it away every cycle. In
+`src/mind/governance/audit_context.py`:
+
+- `_AST_CACHE: dict[Path, ast.AST]` (L53) — keyed by **`Path`**.
+- `get_tree()` (L441–449) — returns the cached tree on a path hit, else
+  parses and stores by path.
+- `invalidate_file_cache()` (L228) — calls `_AST_CACHE.clear()`, a
+  **wholesale wipe at every cycle entry** (the 2026-05-16 supplement added
+  this clear).
+
+So the cache cannot help across cycles: every cycle re-parses all 969 files
+even when one (or zero) changed. The blunt clear was chosen for
+*correctness* — a path-keyed cache can return a parse from before a file
+changed (the 2026-05-11 incident this ADR closed) — but it buys correctness
+by discarding the entire reuse benefit. B′ then tried to recover some of that
+benefit with a cycle-level "did anything change?" guard.
+
+### Decision
+
+**Option E — content-addressed parse cache.** Key the parse cache on the
+*content identity* of each file, not its path, and stop clearing it
+wholesale:
+
+```
+key = (path, content-hash)          # canonical
+     | (path, mtime_ns, size)       # cheap stat proxy, same residual as B′
+```
+
+`get_tree()` returns a hit only when the key — i.e. the bytes — match;
+otherwise it parses and stores under the new key. Eviction is by
+capacity/LRU and on key-miss, never an unconditional per-cycle `clear()`.
+`invalidate_file_cache()` no longer wipes `_AST_CACHE`; staleness is handled
+by the key, not by clearing. Optionally, memoize one layer higher — cache
+*findings* keyed `(content-hash, rule-id)` — to also skip rule evaluation on
+unchanged files, not just parsing.
+
+Effect: "rescanned 969 files" becomes "stat/hash 969, parse only the files
+whose bytes changed." A typical commit touching a handful of files reparses a
+handful, not the whole tree.
+
+### Why Option E over B′ and over Option D (the watcher)
+
+This ADR's invariant posture is: **detection must fail toward doing the
+audit, never toward suppressing it.** Ranked against that posture:
+
+- **Option D (filesystem watcher, rejected in the original ADR):** fails
+  toward *silence* — a missed/overflowed/dead watcher means no audit fires,
+  fleet-wide, while looking alive. Wrong direction for a trust system.
+- **Option B′ (cycle-level digest gate):** safe *only if the guard is
+  written correctly* — it is a predicate someone can get wrong, and it is
+  coarse (any one changed file forces a full-tree reparse).
+- **Option E (content-addressed cache):** **fail-safe by construction.** The
+  cache never decides "should I audit?" — it only answers "have I already
+  parsed *these exact bytes*?" A changed file has a different key and is
+  *forced* to re-parse; a stale parse is impossible. Safety is a property of
+  the data structure, not of a guard. And it is fine-grained: only changed
+  files pay.
+
+The one-sensor-interval drift guarantee is therefore preserved structurally:
+the cache can only ever *save* re-parsing of byte-identical inputs, never
+suppress the audit of a changed one.
+
+**Residual.** With the cheap stat-proxy key, a content change at identical
+`(mtime, size)` would hit a stale entry — the same residual B′ carried, and
+the same data git trusts for dirty-detection. The canonical content-hash key
+removes even that (read-and-hash is far cheaper than parse). Choose per
+paranoia level; both fail safe relative to the watcher.
+
+### Two levels (the #518 process-isolation wrinkle)
+
+`_AST_CACHE` is a **per-process** global, and the audit fleet runs ~9
+isolated sensor processes (#518). So:
+
+- **Level 1 — content-key the existing per-process cache, drop the
+  wholesale clear.** Smallest change, localised to `audit_context.py`.
+  Eliminates the *per-sensor* redundancy immediately (each process reparses a
+  changed file at most once). This is the recommended first step and likely
+  the bulk of the win.
+- **Level 2 — a shared content-addressed cache** across processes
+  (DB- or disk-backed, `content-hash → parsed-or-findings`). Each changed
+  file is parsed/evaluated **once for the whole fleet**, eliminating the ~9×
+  cross-process duplication that is the true root of the measured load.
+  Bigger lift — an `ast.AST` is not trivially serializable, so this most
+  naturally caches *findings* keyed `(content-hash, rule-id)` rather than
+  trees. `_KNOWLEDGE_GRAPH_CACHE`'s existing DB-backed posture (see the
+  2026-05-16 note) is the precedent for where this lives.
+
+### Relationship to the other mechanisms
+
+- **B′ is withdrawn as a mechanism.** Option E dominates it: B′'s only edge
+  was skipping rule-evaluation on a fully-static cycle, which the optional
+  findings-cache in Option E recovers at per-file granularity.
+- **The watcher (Option D) is optional and latency-only.** With Level 1 in
+  place, cycles are cheap enough that a change-watcher buys only *promptness*
+  (sub-interval detection), never correctness or efficiency. If ever added,
+  it stays an accelerator atop the unconditional timer floor — never a
+  replacement for it — for the fail-toward-silence reason above.
+
+### Implementation guidance
+
+1. **`audit_context.py`:** change `_AST_CACHE` key from `Path` to
+   `(path, content-key)`; `get_tree()` computes the key (stat or hash) and
+   hits only on match; remove `_AST_CACHE.clear()` from
+   `invalidate_file_cache()` (file-list/pattern invalidation may remain — it
+   is cheap and unrelated). Add capacity-bounded eviction so the cache cannot
+   grow without limit across a long-lived daemon.
+2. **Concurrency:** the shared-context race noted in the 2026-05-16
+   supplement is unchanged in kind — a race degrades to a redundant parse,
+   not a stale result, because the key is content-derived. Not widened.
+3. **Level 2 (if pursued):** a `(content-hash, rule-id) → findings` table
+   synced like other DB-backed caches; cache-miss path is the current full
+   evaluation, so it fails safe.
+
+### Test obligation
+
+- The original runtime-invariant test (a file written *during the same
+  daemon process* must appear in the next scan) MUST still pass — it remains
+  the regression guard for the trust guarantee.
+- Add a parse-reuse test: `get_tree(f)` twice with no change ⇒ second call is
+  a cache hit (no reparse); mutate `f`'s bytes ⇒ next `get_tree(f)` reparses.
+  This asserts both the saving (hit on identical bytes) and the safety
+  (forced miss on changed bytes).
+- Level 2 needs its own cross-process hit/miss test.
+
+### Status
+
+Mechanism of record for ADR-039's efficiency concern. Implementation pending
+under proposal flow; Level 1 first. The `max_interval` stopgap (committed
+`d12c1e51`) remains orthogonal interim relief and is reversible once Level 1
+lands.
