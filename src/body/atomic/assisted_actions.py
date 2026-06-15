@@ -208,3 +208,81 @@ async def action_assisted_validate_diff(
         )
     finally:
         worktree.cleanup()
+
+
+@register_action(
+    action_id="assisted.apply_diff",
+    description=(
+        "Apply a validated, governor-approved agent diff to the working tree "
+        "(assisted-lane execution half; runs only post-approval)"
+    ),
+    category=ActionCategory.FIX,
+    policies=["rules/code/purity"],
+    requires_db=False,
+    requires_vectors=False,
+)
+@atomic_action(
+    action_id="assisted.apply_diff",
+    intent=(
+        "Apply a validated, governor-approved diff; the touched paths commit as "
+        "the production set (ADR-101 D2)"
+    ),
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: a4b16ca5-e96e-4781-8466-089cae9150e9
+async def action_assisted_apply_diff(
+    *,
+    patch: str | None = None,
+    core_context: CoreContext | None = None,
+    **kwargs: Any,
+) -> ActionResult:
+    """Apply a candidate diff to the tree (ADR-109 / #652 execution half).
+
+    Runs only after the diff cleared ``assisted.validate_diff`` and the governor
+    approved the proposal. ActionExecutor sandboxes this WRITE_CODE action
+    (ADR-071): ``core_context.git_service.repo_path`` is the hermetic worktree,
+    so we ``git apply`` the patch there; SandboxLifecycle.propagate_changes then
+    copies the touched files back to the main tree through FileHandler and the
+    production set is committed (ADR-101 D2). The touched paths are declared in
+    ``files_produced`` so they reach the commit set.
+    """
+    started = time.perf_counter()
+    aid = "assisted.apply_diff"
+    if not patch:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={"error": "assisted.apply_diff requires 'patch'"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+    if core_context is None or core_context.git_service is None:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "error": "assisted.apply_diff requires a core_context with git_service"
+            },
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+
+    repo = Path(core_context.git_service.repo_path)
+    applied = _git(repo, "apply", "--whitespace=nowarn", stdin=patch)
+    if applied.returncode != 0:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={"error": f"git apply failed: {applied.stderr.strip()[:400]}"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+    touched = [p for p in _git(repo, "diff", "--name-only").stdout.splitlines() if p]
+    return ActionResult(
+        action_id=aid,
+        ok=True,
+        data={"files_produced": touched},
+        impact=ActionImpact.WRITE_CODE,
+        duration_sec=time.perf_counter() - started,
+    )

@@ -15,7 +15,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from body.atomic.assisted_actions import action_assisted_validate_diff
+from body.atomic.assisted_actions import (
+    action_assisted_apply_diff,
+    action_assisted_validate_diff,
+)
 
 
 @pytest.mark.asyncio
@@ -46,5 +49,23 @@ async def test_refuses_without_git_service() -> None:
     result = await fn(
         patch="--- a/x\n+++ b/x\n", finding_rule="purity.no_orphan_files", core_context=ctx
     )
+    assert result.ok is False
+    assert "git_service" in result.data["error"]
+
+
+@pytest.mark.asyncio
+async def test_apply_diff_refuses_without_patch() -> None:
+    fn = action_assisted_apply_diff.__wrapped__
+    result = await fn(patch=None, core_context=MagicMock())
+    assert result.ok is False
+    assert "patch" in result.data["error"]
+
+
+@pytest.mark.asyncio
+async def test_apply_diff_refuses_without_git_service() -> None:
+    fn = action_assisted_apply_diff.__wrapped__
+    ctx = MagicMock()
+    ctx.git_service = None
+    result = await fn(patch="--- a/x\n+++ b/x\n", core_context=ctx)
     assert result.ok is False
     assert "git_service" in result.data["error"]
