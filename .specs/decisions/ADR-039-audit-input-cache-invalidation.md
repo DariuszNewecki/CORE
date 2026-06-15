@@ -610,6 +610,9 @@ profile `run_filtered_audit` rule execution for one namespace and attribute the
 ~91 s before proposing any further mechanism. No new optimisation should be
 designed against the "parsing" narrative this supplement retires.
 
+> **Resolved by the 2026-06-15 (rev. d) supplement below.** Profiled: the ~91 s
+> was `get_files()`, not the rule engines.
+
 ### Method note
 
 Measured via direct timing of `AuditorContext.reload_governance`,
@@ -619,3 +622,75 @@ process. Wall-clock per sensor in production is larger again due to ~9-way
 process contention on a 4-core host — which is why frequency reduction
 (`max_interval`) and the cross-process redundancy are the levers that scale,
 not input-prep caching.
+
+
+## Supplement — 2026-06-15 (rev. d) — Profiled: the cost was `get_files`, fixed by a derived-pruned walk
+
+**Closes the open question rev. c left ("profile, don't assume"). The ~91 s was
+neither parsing nor rule logic — it was file *discovery*.**
+
+### What the profile found
+
+`cProfile` of one isolated `style` audit (2 rules) attributed essentially the
+entire cost to `AuditorContext.get_files()`:
+
+| frame | cumulative | note |
+| --- | --- | --- |
+| `execute_rule` | 269 s | ≈ the whole run… |
+| `get_files` (one call) | 267 s | …which is almost entirely this |
+| `pathlib.relative_to` | 125 s | `relative_to(root)` per candidate |
+| `_include_matches` → `fnmatch` | 77 s / **27.2 M calls** | every candidate × every scope |
+| `Path.__init__` | (8.1 M calls) | a `Path` per candidate |
+
+(Times inflated ~3× by the profiler; proportions hold.) Root cause: `get_files`
+did `repo_path.rglob("*")` over the **entire** repo (~500 k entries — `var/tmp`
+sandboxes, `.git` objects, `reports/`), then per candidate paid `relative_to`
+and an `any(_include_matches(...))` across all ~70 active scopes — re-deriving an
+identical ~1.4 k-file set **every cycle**. The rule engines themselves were
+cheap; they just called `get_files`.
+
+This also explains rev. c's own puzzle (input-prep measured at ~3 s but cycles
+ran ~94 s): the ~91 s lived inside `get_files`, which rev. c's `reload`/`parse`
+timings did not isolate.
+
+### Fix (committed `49bf4c0d`)
+
+Derive the walk's *descent* from the active scopes' fixed prefixes — the
+ADR-076 D5 derived-walker principle, applied to traversal rather than only to
+retention:
+
+- `_scope_fixed_prefixes` / `_dir_descendable`: a directory is descended only if
+  some scope's fixed (pre-wildcard) prefix is path-compatible with it. `var/tmp`,
+  `.git`, `.specs`, `reports/` are never entered; `var/prompts` and `var/logs`
+  still are (they are scoped — `ai.prompt.artifact.*`, `data.security.no_raw_secrets`).
+  Conservative by construction: a directory is pruned only when *no* scope prefix
+  is compatible, so an in-scope file can never be dropped. A scope whose first
+  component is a wildcard disables pruning (full walk).
+- `os.walk` with in-place pruning; relative paths by slicing the root prefix (no
+  per-file `relative_to`); a `Path` built only for retained files.
+
+### Result and trust check
+
+- **Membership proven byte-for-byte identical** to the prior rglob-and-filter
+  derivation: 1412 == 1412 files on the live repo, empty symmetric difference.
+  The silent-inert risk (ADR-076 D5's concern) is closed by that equality plus
+  unit tests on the two pruning helpers.
+- **Rebuild: ~90,000 ms → 118 ms (~760×).**
+
+### Why no cross-cycle cache/gate (the earlier "Level 1" / Option E framing)
+
+At 118 ms/cycle, gating the rebuild behind a tree-change signature would save
+nothing meaningful and would introduce a `var/tmp`-churn failure mode (sandbox
+dirs created/removed mid-run would constantly invalidate the signature). So the
+gate is deliberately **not** built. The content-addressed AST cache
+(`98c9f592`) stays — a real, fail-safe ~1.6 s/cycle saving that compounds — but
+it was never the dominant cost. The `max_interval` stopgap (`d12c1e51`) remains
+valid interim relief and may be reverted once `49bf4c0d` is live and verified
+post-restart.
+
+### Status
+
+ADR-039's efficiency concern is **closed**: the per-cycle full-repo walk that
+caused it is gone, membership is unchanged, and the trust guarantee (a violation
+hides at most one sensor interval) is untouched. Activation requires a
+`core-daemon` restart (module import cache).
