@@ -28,7 +28,12 @@ mandate:
       - compliance
   approval_required: false
   schedule:
-    max_interval: 600
+    # 2026-06-15 stopgap (ADR-039 Supplement, Option B′ pending): unified to
+    # 1200s — the cadence architecture/cli/governance/purity already run at —
+    # to halve redundant full-tree reparse load and break the 600s-tier
+    # overlap that pinned the host. Adopts an already-accepted drift window,
+    # not a new boundary. Reversible to 600.
+    max_interval: 1200
 
 implementation:
   module: will.workers.audit_violation_sensor

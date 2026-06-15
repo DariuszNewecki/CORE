@@ -275,3 +275,130 @@ shared-context race surface as `_file_list_cache` (two concurrent
 sensors, one `AuditorContext`). Result of a race: degraded performance
 on re-parse, not correctness. This surface pre-exists this fix and is
 not widened by it.
+
+
+## Supplement — 2026-06-15 — Change-gated invalidation (Option B′)
+
+**The per-cycle reparse cost, ruled "trivial" above, became the dominant
+load at fleet scale.**
+
+### Observed cost
+
+On a 4-core host, the running daemon fleet (~9 process-isolated audit
+sensors, one process per rule namespace) sat at **~244% aggregate CPU**,
+load average ~3.3. Each sensor's per-cycle line read
+`rescanned 969 files, 209 rules loaded`; a single `audit_sensor_style`
+scan measured 2.5–5 min of CPU-bound AST parsing inside its 600s cycle
+(~30–50% duty cycle, matching its measured ~32%). With five sensors on
+the 600s cadence their multi-minute scans overlap, so 2–4 sensors are
+parsing the full tree at almost any instant. `WARNING:asyncio:Executing
+<Task ...> took ...` slow-callback warnings confirm the synchronous parse
+blocks the event loop.
+
+This is the cost Option B accepted as "~10ms / cycle, trivial" (rglob
+only) and the 2026-05-16 supplement re-affirmed as "trivial against
+rule-execution wall-time" (after adding `_AST_CACHE.clear()`, i.e. a full
+969-file reparse). Both estimates held for *one* sensor; neither
+anticipated **~9 process-isolated sensors each independently re-parsing
+the same tree with no shared cache between processes**. The N× redundancy
+is the regression.
+
+### The waste
+
+Over a 6-hour window the findings output barely moved: the modal cycle
+reported `0 findings`, and the non-zero cycles reported *stable* counts
+(the same 6/7/8/17 violations re-discovered identically every cycle).
+Because `invalidate_file_cache()` is called **unconditionally** at cycle
+entry (`audit_violation_sensor.py:152`), the fleet re-derives — at full
+cost — an answer that did not change. On a mostly-static tree, ~100% of
+the CPU produces zero new signal.
+
+### Decision
+
+Refine Option B to **Option B′ — per-cycle invalidation gated on a
+change-probe.** Before invalidating and reparsing, the cycle computes a
+cheap **input digest** over its audited surfaces. If the digest is
+unchanged from the prior cycle, the cycle **skips** `invalidate_file_cache()`
+and the reparse, and re-posts the prior cycle's findings (or a
+`no-change` report). If the digest advanced, it invalidates and reparses
+exactly as Option B does today.
+
+This is Option D (invalidate-on-change) realized in **pull** form: the
+probe runs inline in the existing cycle, so there is no separate watcher
+process to die silently — the failure mode for which Option D was
+originally rejected. It is not a TTL (Option C): there is no tunable; the
+source of truth is the filesystem state itself.
+
+### Trust analysis (load-bearing — this supplement stands or falls here)
+
+ADR-039's guarantee is unchanged: **a violation hides for at most one
+sensor interval, never the daemon's lifetime.** The gate preserves it:
+
+- The reparse is skipped **only when the audited inputs are provably
+  identical** to the prior cycle. Rule execution is deterministic over
+  its inputs, so identical inputs ⇒ identical findings; re-posting the
+  prior result is the *same* answer, not a weaker one.
+- On any real change the digest advances, and the **next** cycle reparses.
+  The drift window is still exactly one sensor interval — it is **not**
+  widened. The silent-blindness failure mode this ADR closed stays closed.
+
+The gate is trust-preserving **if and only if** the digest is *sound*,
+which imposes two non-negotiable conditions:
+
+1. **Both surfaces.** The digest MUST cover both audited inputs ADR-039
+   separates: the source-file set/content reachable through the sensor's
+   artifact globs **and** the `.intent/` policy + rule content loaded via
+   `IntentRepository`. A git-`HEAD` check alone is **unsound** — the
+   daemon also observes uncommitted working-tree edits — so the probe is a
+   stat manifest (sorted `(relpath, size, mtime_ns)` over both trees,
+   including additions and deletions), not a commit check.
+2. **Fail toward reparse.** Any error, ambiguity, or unreadable input in
+   computing the digest MUST force the full reparse. The gate may only
+   ever *save* work, never *suppress* an audit under uncertainty.
+
+**Accepted residual:** a file whose content changes while its size *and*
+mtime both stay identical would be missed. This is the same data git
+itself trusts for dirty-detection, and the originating 2026-05-11 incident
+(a newly-added file) is detected by it. We accept this boundary; a
+governor wanting zero residual can escalate the manifest from stat to a
+content hash (read-and-hash, no parse — still far cheaper than parsing),
+which this supplement permits but does not require.
+
+### Implementation guidance
+
+1. Add an `AuditorContext.input_digest(globs)` (or equivalent) that stats
+   the artifact-glob files and the `.intent/` tree and returns a stable
+   digest. Stat-only by default; no parse.
+2. In `AuditViolationSensor.run`, compute the digest **before**
+   `audit_violation_sensor.py:152`. Persist the prior digest on the
+   sensor instance (each sensor worker holds its own `core_context`, so no
+   cross-worker synchronisation is needed — same assumption as the
+   original Option B `reload()` note above).
+3. On match: skip `invalidate_file_cache()` + reparse; re-post prior
+   findings or a `no-change` report; **still `post_heartbeat()`** so
+   liveness and the ADR-104 lease are unaffected.
+4. On miss (or any digest error): proceed exactly as today.
+5. **Observability:** the existing `rescanned N files, M rules loaded`
+   line MUST distinguish the two paths — e.g. emit
+   `audit_sensor_X: inputs unchanged (digest <short>), reparse skipped`
+   on the skip path — so an operator can confirm the cycle saw fresh state
+   and *decided* not to reparse, rather than silently doing nothing. A
+   skip that looks identical to a stall would itself be a trust regression.
+
+### Test obligation
+
+The runtime-invariant test mandated by the original ADR (a file written
+*during the same daemon process* must appear in the next scan) MUST
+continue to pass unchanged — it is the regression guard for the trust
+guarantee and the gate must not weaken it. Add a companion test: two
+consecutive cycles over an untouched tree reparse once, not twice
+(asserts the gate actually fires); and a third cycle after a single
+`write_text` reparses (asserts the gate releases on change).
+
+### Status
+
+Decision recorded; implementation pending under proposal flow. Until
+implemented, the unconditional per-cycle reparse remains in force; the
+operational stopgap (raising `max_interval` on the 600s sensors, or
+renicing the sensor processes) is orthogonal and does not require this
+change.
