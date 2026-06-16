@@ -329,7 +329,40 @@ class KnowledgeGateEngine(BaseEngine):
                         if resolved:
                             imports.append(resolved)
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module:
+                    level = node.level or 0
+                    if level > 0:
+                        # Explicit relative import (`from .x` / `from ..x`).
+                        # `level` is the dot-count: the base package is `level`
+                        # levels up from the importing module. Resolving from
+                        # src-root or the file's own directory (the level==0
+                        # paths below) cannot reach a `..`-relative target, so
+                        # such files were falsely flagged orphan when reachable
+                        # only via relative imports.
+                        base = file_path.parent
+                        for _ in range(level - 1):
+                            base = base.parent
+                        if node.module:
+                            mod_parts = node.module.split(".")
+                            for cand in (
+                                base.joinpath(*mod_parts).with_suffix(".py"),
+                                base.joinpath(*mod_parts, "__init__.py"),
+                            ):
+                                if cand.exists():
+                                    imports.append(cand)
+                            sub_base = base.joinpath(*mod_parts)
+                        else:
+                            # `from . import x` — names are submodules of base.
+                            sub_base = base
+                        for alias in node.names:
+                            if alias.name == "*":
+                                continue
+                            for cand in (
+                                sub_base.joinpath(alias.name).with_suffix(".py"),
+                                sub_base.joinpath(alias.name, "__init__.py"),
+                            ):
+                                if cand.exists():
+                                    imports.append(cand)
+                    elif node.module:
                         resolved = resolve_import(node.module, file_path)
                         if resolved:
                             imports.append(resolved)

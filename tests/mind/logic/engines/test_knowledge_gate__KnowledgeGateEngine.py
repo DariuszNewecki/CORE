@@ -64,3 +64,54 @@ def test_capability_assignment_flags_unassigned_when_not_excluded():
     assert len(findings) == 1
     assert findings[0].check_id == "linkage.capability.unassigned"
     assert findings[0].file_path == "src/api/public.py"
+
+
+class _NoWorkers:
+    """intent_repo stand-in: orphan_file_check seeds from declared workers."""
+
+    def list_workers(self):
+        return []
+
+
+class _OrphanContext:
+    """Minimal AuditorContext stand-in for _check_orphan_files — only
+    repo_path and intent_repo.list_workers() are consulted."""
+
+    def __init__(self, repo_path) -> None:
+        self.repo_path = repo_path
+        self.intent_repo = _NoWorkers()
+
+
+def test_orphan_check_resolves_dotdot_relative_imports(tmp_path):
+    """Regression: a file reachable only via `from ..x import y` must NOT be
+    flagged orphan.
+
+    Before the fix, get_imports ignored ``ast.ImportFrom.level``, so a
+    ``..``-relative target never resolved and any file reachable only that way
+    was falsely flagged — exactly how src/mind/coherence/llm_judge.py (reached
+    via ``from ..llm_judge import judge_contradiction_pair`` in the CCC checks)
+    landed in the assisted-remediation lane. The level-aware resolution closes
+    the gap; the true orphan below proves detection still fires.
+    """
+    src = tmp_path / "src"
+    (src / "pkg" / "deep").mkdir(parents=True)
+    (src / "pkg" / "__init__.py").write_text("")
+    (src / "pkg" / "deep" / "__init__.py").write_text("")
+    # The entry point reaches `shared` only through a 2-level relative import.
+    # The bare module name "shared" does NOT resolve from src-root, so only
+    # level-aware resolution (base = src/pkg/) finds src/pkg/shared.py.
+    (src / "pkg" / "deep" / "entry.py").write_text("from ..shared import thing\n")
+    (src / "pkg" / "shared.py").write_text("thing = 1\n")
+    (src / "orphan.py").write_text("x = 1\n")
+
+    engine = KnowledgeGateEngine()
+    findings = engine._check_orphan_files(
+        _OrphanContext(tmp_path),
+        {"entry_points": ["src/pkg/deep/entry.py"]},
+    )
+    flagged = {f.file_path for f in findings}
+    assert "src/pkg/shared.py" not in flagged, (
+        "relative-import-reachable file falsely flagged orphan — "
+        "ImportFrom.level not honored"
+    )
+    assert "src/orphan.py" in flagged, "a genuinely unreachable file must still be flagged"
