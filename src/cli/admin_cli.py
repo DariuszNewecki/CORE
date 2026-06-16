@@ -30,6 +30,7 @@ from cli.resources.context import app as context_app
 from cli.resources.database import app as database_app
 from cli.resources.dev import app as dev_app
 from cli.resources.intent import app as intent_app
+from cli.resources.lane import app as lane_app
 from cli.resources.project import app as project_app
 from cli.resources.proposals import app as proposals_app
 from cli.resources.runtime import app as runtime_app
@@ -66,6 +67,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(constitution_app, name="constitution")
     app_instance.add_typer(coherence_app, name="coherence")
     app_instance.add_typer(proposals_app, name="proposals")
+    app_instance.add_typer(lane_app, name="lane")
     app_instance.add_typer(project_app, name="project")
     app_instance.add_typer(dev_app, name="dev")
     app_instance.add_typer(intent_app, name="intent")

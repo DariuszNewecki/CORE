@@ -385,3 +385,57 @@ class BlackboardQueryService:
                 }
             )
         return findings
+
+    # ID: 7a1656e3-2772-45f5-b07f-aaecc180919a
+    async def fetch_delegated_findings(self, limit: int) -> list[dict[str, Any]]:
+        """
+        Return up to *limit* delegated findings — the Assisted Remediation
+        Lane work queue (ADR-109 D1/D5, issue #652).
+
+        A delegated finding is the canonical governor-inbox predicate:
+        ``entry_type = 'finding' AND status = 'indeterminate' AND
+        resolution_mechanism = 'human'`` (post-ADR-091 D2 the machine-handled
+        reaudit queue lives under ``resolution_mechanism = 'reaudit'`` and is
+        deliberately excluded here). This is the SAME predicate
+        ``GOVERNOR_INBOX_SQL`` counts, so ``lane list`` cannot drift from the
+        dashboard inbox panel or the F-19 convergence operand.
+
+        Ordered oldest-first so the lane drains FIFO. Payload is always
+        returned as a dict.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, subject, payload, created_at
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'indeterminate'
+                      AND resolution_mechanism = 'human'
+                    ORDER BY created_at ASC
+                    LIMIT :limit
+                    """
+                ),
+                {"limit": limit},
+            )
+            rows = result.fetchall()
+
+        findings = []
+        for row in rows:
+            raw_payload = row[2]
+            payload = (
+                raw_payload
+                if isinstance(raw_payload, dict)
+                else json.loads(raw_payload)
+            )
+            findings.append(
+                {
+                    "id": str(row[0]),
+                    "subject": row[1],
+                    "payload": payload or {},
+                    "created_at": row[3].isoformat() if row[3] else None,
+                }
+            )
+        return findings
