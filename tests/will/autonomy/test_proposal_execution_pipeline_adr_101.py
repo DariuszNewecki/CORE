@@ -197,3 +197,52 @@ def test_check_scope_collision_retired() -> None:
     assert not hasattr(ProposalExecutor, "_check_scope_collision"), (
         "ADR-101 D4: _check_scope_collision must be retired"
     )
+
+
+def test_post_execution_sha_is_always_branch_reachable(
+    repo_with_target: Path,
+) -> None:
+    """#658 ask #1: the sha recorded as ``post_execution_sha`` is structurally
+    always reachable from a branch — there is no window that orphans a commit.
+
+    ProposalExecutor records ``post_execution_sha = git rev-parse HEAD`` of the
+    MAIN repo, captured *after* ``commit_proposal_changes`` (proposal_executor
+    .py:336-361). ``commit_proposal_changes`` commits the production set on the
+    main branch (advancing HEAD) and is fail-soft. So whether a commit is
+    emitted (HEAD = new commit) or not (HEAD = prior commit), the captured HEAD
+    is reachable from a branch — the exact invariant CommitReachabilityAuditor
+    checks. The pre-ADR-106 orphans came from recording a *sandbox-worktree*
+    commit that went unreachable after teardown; this pins that the current
+    path records main HEAD only.
+    """
+    git_service = GitService(repo_with_target)
+
+    # Case 1 — non-empty production: a commit is emitted, HEAD advances.
+    (repo_with_target / "target.py").write_text("# action-produced reformatting\n")
+    commit_proposal_changes(
+        git_service=git_service,
+        proposal_id="reach-nonempty",
+        proposal_goal="fix.format",
+        action_results={
+            "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": ["target.py"]}}
+        },
+    )
+    post_sha = git_service.get_current_commit()
+    assert _run(["git", "branch", "--contains", post_sha], repo_with_target).strip(), (
+        "post_execution_sha (HEAD after commit) must be branch-reachable — no orphan"
+    )
+
+    # Case 2 — empty production: fail-soft, no commit; the HEAD that would be
+    # recorded is the prior commit, which is likewise reachable.
+    pre = git_service.get_current_commit()
+    commit_proposal_changes(
+        git_service=git_service,
+        proposal_id="reach-empty",
+        proposal_goal="fix.format",
+        action_results={"fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}},
+    )
+    post_sha_2 = git_service.get_current_commit()
+    assert post_sha_2 == pre, "empty production must emit no commit (ADR-101 D2)"
+    assert _run(["git", "branch", "--contains", post_sha_2], repo_with_target).strip(), (
+        "the no-commit path still records a branch-reachable HEAD — no orphan"
+    )

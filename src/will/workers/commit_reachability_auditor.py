@@ -30,6 +30,38 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 
+async def _capture_commit_meta(repo_path: str, sha: str) -> dict[str, str]:
+    """Capture an orphan commit's metadata before git gc erases it (#658).
+
+    ``git show -s`` still resolves a *dangling* (branch-unreachable) commit
+    until ``git gc`` prunes the object, so the orphan finding can carry the
+    commit subject / author / date. This lets the governor resolve a
+    ``governance.edge5.orphan_sha`` finding from the finding itself rather
+    than via manual git archaeology — and preserves the audit trail past the
+    point where the sha would otherwise point at nothing. Returns a sentinel
+    subject when the object is already gone.
+    """
+    proc = await asyncio.create_subprocess_exec(
+        "git",
+        "show",
+        "-s",
+        "--format=%s%n%an%n%cI",
+        sha,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd=repo_path,
+    )
+    out, _ = await proc.communicate()
+    if proc.returncode != 0:
+        return {"commit_subject": "<object not in store — gc'd before reconcile>"}
+    lines = out.decode().splitlines()
+    return {
+        "commit_subject": lines[0] if len(lines) > 0 else "",
+        "commit_author": lines[1] if len(lines) > 1 else "",
+        "commit_date": lines[2] if len(lines) > 2 else "",
+    }
+
+
 # ID: c4a5b6d7-8e9f-4a1b-9c2d-3e4f5a6b7c8d
 class CommitReachabilityAuditor(Worker):
     """
@@ -110,12 +142,17 @@ class CommitReachabilityAuditor(Worker):
                     sha,
                     proposal_id,
                 )
+                # #658: capture the dangling commit's metadata now, before
+                # git gc prunes it — so the finding is self-describing and the
+                # audit trail survives even after the sha points at nothing.
+                meta = await _capture_commit_meta(repo_path, sha)
                 await self.post_observation(
                     subject=subject,
                     payload={
                         "proposal_id": proposal_id,
                         "orphan_sha": sha,
                         "detected_at": datetime.now(UTC).isoformat(),
+                        **meta,
                     },
                     status="indeterminate",
                 )
