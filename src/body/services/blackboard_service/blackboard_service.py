@@ -404,7 +404,6 @@ class BlackboardService:
                     updated += result.rowcount
         return updated
 
-    # ID: 8d586156-b04f-4d7a-a7b9-5a52b099b9b1
     # ID: a091392a-11e2-4ee5-be56-b01e864f404d
     async def resolve_findings_with_retired_rules(
         self,
@@ -520,6 +519,7 @@ class BlackboardService:
             "scanned": len(candidates),
         }
 
+    # ID: 466173fe-4d83-47a8-981d-f8760ad2a927
     async def resolve_indeterminate_entry(
         self,
         entry_id: str,
