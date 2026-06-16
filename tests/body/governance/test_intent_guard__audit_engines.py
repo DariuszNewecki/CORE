@@ -51,6 +51,22 @@ CROSS_ARTIFACT_ENGINES = [
     "taxonomy_gate",
 ]
 
+# Context-level-only engines (ADR-076): every check_type walks the live
+# whole-system substrate (Typer app, system state, data contracts, runtime
+# graph) and the per-file ``verify()`` explicitly rejects per-file dispatch as
+# a mapping error. Absent from the skip set, a write to any matching path
+# surfaces their rules — and for constitutional-authority ``cli_gate`` rules,
+# hard-blocks it. This is #659: every ``src/cli/**`` write blocked, the
+# ConstitutionalViolationError rendering ``quality.type_safety`` (the first
+# surfaced violation) as a misleading "MyPy" cause. Same class as #142, which
+# added the ``runtime_check`` alias but never ``cli_gate`` itself.
+CONTEXT_LEVEL_ENGINES = [
+    "cli_gate",
+    "workflow_gate",
+    "contracts_gate",
+    "runtime_gate",
+]
+
 
 def _bare_guard(rules: list[PolicyRule]) -> IntentGuard:
     """Construct an ``IntentGuard`` instance without invoking ``__init__``.
@@ -136,9 +152,30 @@ def test_cross_artifact_engine_remains_in_audit_set(engine: str) -> None:
 # ---- Skip behaviour: _check_against_rules honours the set ----------------
 
 
+@pytest.mark.parametrize("engine", CONTEXT_LEVEL_ENGINES)
+def test_context_level_engine_remains_in_audit_set(engine: str) -> None:
+    """Context-level-only engines must stay in ``_AUDIT_ENGINES``.
+
+    Removing any re-opens #659: a constitutional ``cli_gate`` rule
+    (``cli.resource_first`` et al.) hard-blocks every ``src/cli/**`` write,
+    with the ConstitutionalViolationError rendering ``quality.type_safety``
+    (the first surfaced violation) as a misleading "MyPy" block reason. These
+    engines declare themselves context-level and their per-file ``verify()``
+    rejects per-file dispatch — they have no write-time check.
+    """
+    assert engine in _AUDIT_ENGINES, (
+        f"{engine!r} was removed from _AUDIT_ENGINES — this re-opens the #659 "
+        f"regression (constitutional cli_gate rules hard-blocking src/cli/** "
+        f"writes). See src/body/governance/intent_guard.py."
+    )
+
+
 @pytest.mark.parametrize(
     "engine",
-    PASSIVE_MARKER_ENGINES + CONTENT_ANALYSIS_ENGINES + CROSS_ARTIFACT_ENGINES,
+    PASSIVE_MARKER_ENGINES
+    + CONTENT_ANALYSIS_ENGINES
+    + CROSS_ARTIFACT_ENGINES
+    + CONTEXT_LEVEL_ENGINES,
 )
 def test_rule_with_audit_engine_produces_no_write_time_violation(
     engine: str,

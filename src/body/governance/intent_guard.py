@@ -15,6 +15,7 @@ from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.governance.policy_rule import PolicyRule
 from mind.governance.rule_extractor import extract_executable_rules
 from mind.governance.violation_report import ViolationReport
+from mind.logic.engines.registry import PASSIVE_ALIASES
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapability,
@@ -39,39 +40,51 @@ CORE_ROLE = "facade"  # ADR-095 D3
 #
 # Two distinct categories share this property:
 #
-# 1. Content-analysis engines (need file content, only available at audit phase):
-#       ast_gate, glob_gate, knowledge_gate, llm_gate, regex_gate
+# 1. Content-analysis / context-level engines: they walk file content or
+#    whole-system state at the audit phase, never a single write target. Each
+#    declares itself context-level (``is_context_level_for``) and its per-file
+#    ``verify()`` explicitly rejects per-file dispatch as a mapping error:
+#       ast_gate, glob_gate, knowledge_gate, llm_gate, regex_gate,
+#       taxonomy_gate, cli_gate, workflow_gate, contracts_gate, runtime_gate
 #
 # 2. Passive-marker engines (no write-time check exists; enforcement happens
-#    elsewhere — at runtime, at parse time, at decoration, or by code review):
-#       runtime_check        → enforced by cli_gate at audit/self-check time
-#       python_runtime       → enforced by Python at module import
-#       dataclass_validation → enforced by Pydantic __post_init__
-#       type_system          → enforced by Python enum type-checking
-#       advisory             → enforced by code review (by design)
-#       runtime_metric       → tracked, not enforced
+#    elsewhere — at runtime, at parse time, at decoration, or by code review).
+#    Single-sourced from ``EngineRegistry.PASSIVE_ALIASES`` so the membership
+#    cannot drift from the registry's own definition:
+#       python_runtime, type_system, runtime_metric,
+#       advisory, runtime_check, dataclass_validation
 #
 # Evaluating either category here produces false positives: the rule has no
-# applicable check, and check_transaction would emit the rule's statement as
-# a block reason. See issue #142 — fix.placeholders failures (128/129 of all
-# autonomous failures, 2026-04-22 → 2026-04-23) traced to runtime_check rules
-# being treated as write-time gates.
-_AUDIT_ENGINES = frozenset(
+# applicable write-time check, and check_transaction would surface the rule's
+# statement — and, for constitutional-authority rules, hard-block the write.
+# Two regressions of this exact class:
+#   #142 — fix.placeholders failures (128/129 of all autonomous failures,
+#          2026-04-22 → 2026-04-23) traced to runtime_check rules treated as
+#          write-time gates.
+#   #659 — fix.format blocked on every src/cli/** write because cli_gate and
+#          workflow_gate were absent here; the surfaced constitutional cli_gate
+#          rules hard-blocked the transaction, while the error rendered
+#          quality.type_safety (list-order[0]) as a misleading "MyPy" cause.
+# Note: the membership cannot be derived from is_context_level_for(None) — it
+# returns False for cli_gate (its context-levelness is per-check_type) and
+# would silently un-skip ast_gate/glob_gate/llm_gate/regex_gate/taxonomy_gate.
+# The content-analysis list is therefore curated by necessity, not neglect.
+_CONTEXT_LEVEL_ENGINES = frozenset(
     {
         "ast_gate",
         "glob_gate",
         "knowledge_gate",
         "llm_gate",
         "regex_gate",
-        "runtime_check",
-        "python_runtime",
-        "dataclass_validation",
-        "type_system",
-        "advisory",
-        "runtime_metric",
         "taxonomy_gate",
+        "cli_gate",
+        "workflow_gate",
+        "contracts_gate",
+        "runtime_gate",
     }
 )
+
+_AUDIT_ENGINES = _CONTEXT_LEVEL_ENGINES | frozenset(PASSIVE_ALIASES)
 
 # Severity value assigned to constitutional-authority violations.
 # Using a dedicated string (rather than reusing "error") lets check_transaction
