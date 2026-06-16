@@ -129,14 +129,35 @@ class ProposalService:
     async def reject(self, proposal_id: str, reason: str) -> int:
         """Reject proposal and revive deferred findings (ADR-010 §7a).
 
+        Two revival paths by proposal lineage:
+
+        - Assisted-lane proposals (ADR-109; ``constitutional_constraints
+          ['assisted_lane']``) revive their delegated finding straight back to
+          ``indeterminate+human`` — the lane queue — for another attempt.
+          Rejecting the agent's diff does not rescind the delegation (ADR-109
+          D4). The generic path would never match these (it requires
+          ``resolution_mechanism='reaudit'``), so they must route here.
+        - Autonomous proposals revive deferred findings to ``awaiting_reaudit``
+          for the audit sensor to re-adjudicate (ADR-045).
+
         Returns revived_count (0 if no findings were deferred).
         """
         await self._state_manager.reject(proposal_id, reason)
+        proposal = await self._repository.get(proposal_id)
         bb_service = await service_registry.get_blackboard_service()
-        revival = await bb_service.revive_findings_for_failed_proposal(
-            proposal_id=proposal_id,
-            failure_reason=f"rejected: {reason}",
-        )
+
+        if proposal is not None and proposal.constitutional_constraints.get(
+            "assisted_lane"
+        ):
+            revival = await bb_service.revive_delegated_findings_for_rejected_proposal(
+                proposal_id=proposal_id,
+                reason=reason,
+            )
+        else:
+            revival = await bb_service.revive_findings_for_failed_proposal(
+                proposal_id=proposal_id,
+                failure_reason=f"rejected: {reason}",
+            )
         return revival["revived_count"] if revival else 0
 
     # -------------------------

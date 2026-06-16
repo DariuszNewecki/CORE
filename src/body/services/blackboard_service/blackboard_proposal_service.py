@@ -123,6 +123,69 @@ class BlackboardProposalService:
                 )
                 return result.rowcount
 
+    # ID: d4f68a3e-5138-4e99-8b4b-7e9d2e43c415
+    async def revive_delegated_findings_for_rejected_proposal(
+        self, proposal_id: str, reason: str
+    ) -> dict[str, Any] | None:
+        """Revive an assisted-lane finding when its proposal is rejected (ADR-109 D4).
+
+        The assisted-lane analogue of ``revive_findings_for_failed_proposal``.
+        That method's predicate requires ``resolution_mechanism='reaudit'`` and
+        lands findings in ``awaiting_reaudit`` for machine re-adjudication — the
+        autonomous-loop contract. A delegated finding carries
+        ``resolution_mechanism='human'``, so the generic path would match zero
+        rows and strand it at ``deferred_to_proposal`` forever.
+
+        ADR-109 D4 is explicit: rejecting the agent's *diff* does not rescind the
+        *delegation*. The finding returns straight to the lane queue
+        (``indeterminate+human``) for another attempt — it does NOT round-trip
+        through machine re-checking. We flip status back to 'indeterminate',
+        keep ``resolution_mechanism='human'``, clear any claim, and re-stamp
+        ``resolved_at`` so the row matches a freshly-delegated finding (the
+        governor-inbox predicate is status='indeterminate' AND
+        resolution_mechanism='human'). ``payload.proposal_id`` is left as-is; the
+        next ``defer_delegated_finding_to_proposal`` overwrites it (last-writer
+        -wins) if the finding is proposed again.
+
+        Returns None if nothing matched (the proposal was not an assisted-lane
+        proposal, or its finding already moved on); otherwise a dict with
+        ``proposal_id``, ``reason``, ``revived_count``, ``revived_finding_ids``,
+        ``revived_subjects``.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                update_result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'indeterminate',
+                            claimed_by = NULL,
+                            claimed_at = NULL,
+                            resolved_at = now(),
+                            updated_at = now()
+                        WHERE entry_type = 'finding'
+                          AND resolution_mechanism = 'human'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        RETURNING id, subject
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                rows = update_result.fetchall()
+
+        if not rows:
+            return None
+        return {
+            "proposal_id": proposal_id,
+            "reason": reason,
+            "revived_count": len(rows),
+            "revived_finding_ids": [str(row[0]) for row in rows],
+            "revived_subjects": [str(row[1]) for row in rows],
+        }
+
     # ID: 5e2d8f1a-94c3-4b07-a8f2-3c7e9b1d6a45
     async def resolve_entries_for_proposal(
         self, entry_ids: list[str], proposal_id: str
