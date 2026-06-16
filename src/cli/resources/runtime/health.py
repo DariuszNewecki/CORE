@@ -598,10 +598,15 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     # Pre-fix: this query returned 8,764 (8,437 loop_hold.sample::* +
     #          327 *.scope_collision::* + Type B); the "daemon cannot
     #          self-heal" framing was wrong for Type A.
+    #
+    # Count DISTINCT subject, not rows (2026-06-16): a finding the daemon cannot
+    # heal is re-abandoned every cycle, so COUNT(*) amplified the headline ~15x
+    # (389 rows = 26 distinct findings). The governor acts on a subject, not each
+    # recycled abandonment — mirrors health_log_service.governor_inbox.
     abandoned = (
         await session.execute(
             text("""
-            SELECT COUNT(*) AS cnt
+            SELECT COUNT(DISTINCT subject) AS cnt
             FROM core.blackboard_entries
             WHERE entry_type = 'finding'
             AND status = 'abandoned'
