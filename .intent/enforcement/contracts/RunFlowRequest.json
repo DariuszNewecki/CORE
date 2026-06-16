@@ -1,0 +1,32 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.run_flow_request",
+        "title": "FixAllRequest — body of POST /fix/all and POST /fix/modularity",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body shared by the flow-dispatch endpoints POST /v1/fix/all and POST /v1/fix/modularity (src/api/v1/fix_routes.py, class RunFlowRequest). The issue names this FixAllRequest; the live class RunFlowRequest backs both endpoints, so the contract governs the actual symbol. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 D7 (#454).",
+    "governed_classes": [
+        "RunFlowRequest"
+    ],
+    "required": [
+        "write"
+    ],
+    "properties": {
+        "write": {
+            "type": "boolean",
+            "description": "Dry-run safety flag (ADR-014). Defaults to false; true persists the run."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Attribution recorded on the core.fix_runs row. Defaults to 'api'."
+        },
+        "params": {
+            "type": "object",
+            "description": "Operation-specific kwargs (e.g. /fix/modularity's `min_score`, `limit`). /fix/all currently ignores params."
+        }
+    }
+}

@@ -1,0 +1,73 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.fix_run_result",
+        "title": "FixRunResult — aggregated outcome persisted to core.fix_runs.result",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "The run-level aggregate persisted to the core.fix_runs.result JSONB column (ADR-056 D7 criterion 3, persistence boundary; src/will/governance/fix_runner.py, class FixRunResult). Heterogeneous by `kind`: `ok` and `kind` are the shared nucleus; the remaining fields are kind-specific and omitted when inapplicable (loose-superset shape, INFO severity per ADR-056 D7 — enforcement tightens as coverage matures). DISTINCT from FixResult (contracts.fix_result), which is the per-fix outcome dataclass; FixRunResult is the whole-run summary. Authority: ADR-056 D7 (#454).",
+    "governed_classes": [
+        "FixRunResult"
+    ],
+    "required": [
+        "kind",
+        "ok"
+    ],
+    "properties": {
+        "kind": {
+            "type": "string",
+            "enum": [
+                "atomic",
+                "flow",
+                "modularity",
+                "quality_check"
+            ],
+            "description": "Closed vocabulary for core.fix_runs.kind — the discriminator selecting which optional fields are populated. (Field-presence is enforced today; the enum is recorded for future value-enforcement.)"
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "True if the run completed successfully. The result-shape nucleus shared with FixResult, ActionResult, et al."
+        },
+        "data": {
+            "type": "object",
+            "description": "kind=atomic — the ActionResult.data structured payload (dict | None)."
+        },
+        "duration_sec": {
+            "type": "number",
+            "description": "kind=atomic|flow — wall-clock execution time in seconds (float | None)."
+        },
+        "flow_id": {
+            "type": "string",
+            "description": "kind=flow — the registered Flow id that was executed (str | None)."
+        },
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "kind=flow — per-step summaries (ref_id, kind, ok, required, duration_sec) (list | None)."
+        },
+        "count": {
+            "type": "integer",
+            "description": "kind=modularity — total files the remediation batch touched (int | None)."
+        },
+        "successes": {
+            "type": "integer",
+            "description": "kind=modularity — count of files remediated successfully (int | None)."
+        },
+        "failures": {
+            "type": "integer",
+            "description": "kind=modularity — count of files that failed remediation (int | None)."
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "kind=modularity — per-file remediation results (file, original_score, success, message) (list | None)."
+        }
+    }
+}

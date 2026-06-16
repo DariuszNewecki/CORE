@@ -938,6 +938,38 @@ mappings:
       to be built.
     status: PENDING
 
+  data.contracts.run_fix_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Schema conformance for RunFixRequest (POST /fix/run/{fix_id} body)
+      under ADR-056 D7 (#454). Fixer to be built.
+    status: PENDING
+
+  data.contracts.run_flow_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Schema conformance for RunFlowRequest (POST /fix/all and
+      /fix/modularity body) under ADR-056 D7 (#454). Fixer to be built.
+    status: PENDING
+
+  data.contracts.fix_run_result_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Schema conformance for FixRunResult (core.fix_runs.result aggregate)
+      under ADR-056 D7 (#454). Fixer to be built.
+    status: PENDING
+
+  data.contracts.quality_gate_result_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Schema conformance for QualityGateResult (/quality/gates outcome)
+      under ADR-056 D7 (#454). Fixer to be built.
+    status: PENDING
+
   data.contracts.flow_definition_conforms:
     action: fix.contract_conformance
     confidence: 0.40

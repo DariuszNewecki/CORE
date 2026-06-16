@@ -40,9 +40,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from body.atomic.executor import ActionExecutor
@@ -54,6 +55,8 @@ from shared.logger import getLogger
 
 
 __all__ = [
+    "FixRunResult",
+    "QualityGateResult",
     "bootstrap_ir",
     "list_action_definitions",
     "list_registered_action_ids",
@@ -68,6 +71,63 @@ __all__ = [
 
 
 logger = getLogger(__name__)
+
+
+# Closed vocabulary for core.fix_runs.kind (ADR-056 D7 / #454). Each
+# dispatch surface stamps its row with one of these — the discriminator
+# that selects which optional FixRunResult fields are populated.
+FixRunKind = Literal["atomic", "flow", "modularity", "quality_check"]
+
+
+# ID: b75b0577-eddd-4d19-b26e-dd3cd5708c01
+class FixRunResult(BaseModel):
+    """Aggregated outcome persisted to core.fix_runs.result (ADR-056 D7.3).
+
+    The result JSONB is heterogeneous by `kind`: atomic carries
+    `data`/`duration_sec`; flow adds `flow_id`/`steps`; modularity carries
+    `count`/`successes`/`failures`/`files`. This is the loose-superset
+    governing shape — `ok` and `kind` are the shared nucleus; every other
+    field is kind-specific and omitted (exclude_none) when not applicable.
+    Distinct from FixResult (the per-fix outcome dataclass); FixRunResult
+    is the run-level aggregate. Governed by
+    .intent/enforcement/contracts/FixRunResult.json.
+    """
+
+    kind: FixRunKind
+    ok: bool
+    data: dict[str, Any] | None = None
+    duration_sec: float | None = None
+    flow_id: str | None = None
+    steps: list[dict[str, Any]] | None = None
+    count: int | None = None
+    successes: int | None = None
+    failures: int | None = None
+    files: list[dict[str, Any]] | None = None
+
+    # ID: 9d2a4b6c-1e7f-4a3d-8c2b-5f0e1d6a7b94
+    def as_payload(self) -> dict[str, Any]:
+        """Serialise to the JSONB shape, dropping inapplicable fields."""
+        return self.model_dump(exclude_none=True)
+
+
+# ID: 3073ce6e-8f4b-4c69-a5bd-45e6599fd00f
+class QualityGateResult(BaseModel):
+    """Outcome of the /quality/gates run persisted to fix_runs.result.
+
+    Mirrors `_run_quality_gates`'s shape: `check` is always 'gates', `ok`
+    is the critical-gate verdict, and `components` maps each gate name to
+    its subprocess summary (exit_code, stdout/stderr tails, is_warning).
+    Governed by .intent/enforcement/contracts/QualityGateResult.json.
+    """
+
+    check: str = "gates"
+    ok: bool
+    components: dict[str, Any] = Field(default_factory=dict)
+
+    # ID: 6b1c8f02-2d49-4e1a-9f7c-3a8d0e5b2c61
+    def as_payload(self) -> dict[str, Any]:
+        """Serialise to the JSONB shape for the fix_runs row."""
+        return self.model_dump()
 
 
 _IR_DIR = Path(".intent") / "mind" / "ir"
@@ -229,11 +289,12 @@ async def run_and_persist_fix(
         status,
         finished=True,
         error=error_text,
-        result={
-            "ok": action_result.ok,
-            "data": action_result.data,
-            "duration_sec": action_result.duration_sec,
-        },
+        result=FixRunResult(
+            kind="atomic",
+            ok=action_result.ok,
+            data=action_result.data,
+            duration_sec=action_result.duration_sec,
+        ).as_payload(),
     )
 
     logger.info(
@@ -293,11 +354,12 @@ async def run_and_persist_flow(
         status,
         finished=True,
         error=error_text,
-        result={
-            "ok": flow_result.ok,
-            "flow_id": flow_result.flow_id,
-            "duration_sec": flow_result.duration_sec,
-            "steps": [
+        result=FixRunResult(
+            kind="flow",
+            ok=flow_result.ok,
+            flow_id=flow_result.flow_id,
+            duration_sec=flow_result.duration_sec,
+            steps=[
                 {
                     "ref_id": step.ref_id,
                     "kind": step.kind,
@@ -307,7 +369,7 @@ async def run_and_persist_flow(
                 }
                 for step in flow_result.steps
             ],
-        },
+        ).as_payload(),
     )
 
     logger.info(
@@ -375,13 +437,14 @@ async def run_and_persist_modularity(
         run_id,
         "completed" if ok else "failed",
         finished=True,
-        result={
-            "ok": ok,
-            "count": len(results),
-            "successes": successes,
-            "failures": failures,
-            "files": results,
-        },
+        result=FixRunResult(
+            kind="modularity",
+            ok=ok,
+            count=len(results),
+            successes=successes,
+            failures=failures,
+            files=results,
+        ).as_payload(),
     )
 
     logger.info(
@@ -615,11 +678,11 @@ async def _run_quality_gates(context: CoreContext) -> dict:
         if not sub["ok"] and not is_warning:
             any_critical_failed = True
 
-    return {
-        "check": "gates",
-        "ok": not any_critical_failed,
-        "components": components,
-    }
+    return QualityGateResult(
+        check="gates",
+        ok=not any_critical_failed,
+        components=components,
+    ).as_payload()
 
 
 # ID: d001f68f-363e-43cf-9bac-3984d5d334dc

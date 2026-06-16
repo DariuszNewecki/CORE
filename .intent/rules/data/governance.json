@@ -228,6 +228,34 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.run_fix_request_conforms",
+            "statement": "The Pydantic class `RunFixRequest` MUST declare fields that conform to `.intent/enforcement/contracts/RunFixRequest.json`. RunFixRequest is the POST /v1/fix/run/{fix_id} request body crossing the API boundary. Authority: ADR-056 D7 (#454).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.run_flow_request_conforms",
+            "statement": "The Pydantic class `RunFlowRequest` MUST declare fields that conform to `.intent/enforcement/contracts/RunFlowRequest.json`. RunFlowRequest is the request body shared by POST /v1/fix/all and POST /v1/fix/modularity. Authority: ADR-056 D7 (#454).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.fix_run_result_conforms",
+            "statement": "The Pydantic class `FixRunResult` MUST declare fields that conform to `.intent/enforcement/contracts/FixRunResult.json`. FixRunResult is the run-level aggregate persisted to core.fix_runs.result; distinct from FixResult, the per-fix outcome. Authority: ADR-056 D7 (#454).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.quality_gate_result_conforms",
+            "statement": "The Pydantic class `QualityGateResult` MUST declare fields that conform to `.intent/enforcement/contracts/QualityGateResult.json`. QualityGateResult is the /quality/gates outcome persisted to core.fix_runs.result. Authority: ADR-056 D7 (#454).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.auto_fixable_pattern_conforms",
             "statement": "The dataclass `AutoFixablePattern` MUST declare fields that conform to `.intent/enforcement/contracts/AutoFixablePattern.json`. Authority: ADR-056 Wave 2 Session 2.",
             "authority": "policy",

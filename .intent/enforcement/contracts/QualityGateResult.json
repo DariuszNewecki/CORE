@@ -1,0 +1,33 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.quality_gate_result",
+        "title": "QualityGateResult — outcome of the /quality/gates run",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "The outcome of POST /v1/quality/gates, persisted to core.fix_runs.result on the kind='quality_check', fix_id='gates' row (ADR-056 D7 criteria 3 and 6; src/will/governance/fix_runner.py, class QualityGateResult). `ok` is the critical-gate verdict (warning gates record their result without flipping the verdict); `components` maps each industry-standard gate name to its subprocess summary. Authority: ADR-056 D7 (#454).",
+    "governed_classes": [
+        "QualityGateResult"
+    ],
+    "required": [
+        "check",
+        "ok"
+    ],
+    "properties": {
+        "check": {
+            "type": "string",
+            "description": "The quality-check discriminator; always 'gates' for this shape."
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "The critical-gate verdict — false when any non-warning gate failed."
+        },
+        "components": {
+            "type": "object",
+            "description": "Per-gate subprocess summaries keyed by gate name (ruff, mypy, pytest, pip-audit, radon, vulture); each carries ok, exit_code, stdout_tail, stderr_tail, is_warning."
+        }
+    }
+}

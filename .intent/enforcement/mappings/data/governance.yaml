@@ -321,6 +321,42 @@ mappings:
       applies_to:
         - "src/body/self_healing/remediation_models.py"
 
+  data.contracts.run_fix_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: RunFixRequest
+    scope:
+      applies_to:
+        - "src/api/v1/fix_routes.py"
+
+  data.contracts.run_flow_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: RunFlowRequest
+    scope:
+      applies_to:
+        - "src/api/v1/fix_routes.py"
+
+  data.contracts.fix_run_result_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: FixRunResult
+    scope:
+      applies_to:
+        - "src/will/governance/fix_runner.py"
+
+  data.contracts.quality_gate_result_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: QualityGateResult
+    scope:
+      applies_to:
+        - "src/will/governance/fix_runner.py"
+
   data.contracts.auto_fixable_pattern_conforms:
     engine: ast_gate
     params:

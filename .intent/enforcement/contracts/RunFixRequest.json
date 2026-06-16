@@ -1,0 +1,39 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.run_fix_request",
+        "title": "FixRunRequest — body of POST /fix/run/{fix_id}",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body for the atomic-fix dispatch endpoint POST /v1/fix/run/{fix_id} (src/api/v1/fix_routes.py, class RunFixRequest). Crosses the API boundary (ADR-056 D7 criterion 6), so it is constitutionally required to carry a governing schema. An empty body is valid and equals a default-constructed model (dry-run, no file restriction). Authority: ADR-056 D7 (#454).",
+    "governed_classes": [
+        "RunFixRequest"
+    ],
+    "required": [
+        "write"
+    ],
+    "properties": {
+        "target_files": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Optional list of files to restrict the fix to (list[str] | None). None applies the action's default scope."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "Dry-run safety flag (ADR-014). Defaults to false; true persists the fix."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Attribution recorded on the core.fix_runs row. Defaults to 'api'."
+        },
+        "params": {
+            "type": "object",
+            "description": "Action-specific kwargs forwarded as **kwargs to ActionExecutor.execute (e.g. fix.docstrings's `limit`)."
+        }
+    }
+}
