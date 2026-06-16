@@ -24,6 +24,11 @@ from __future__ import annotations
 from typing import Any
 
 from body.services.service_registry import service_registry
+from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.remediation_guidance import (
+    load_remediation_guidance,
+)
 from shared.logger import getLogger
 from will.autonomy.proposal import (
     Proposal,
@@ -83,15 +88,73 @@ class LaneService:
 
     # ID: 504fdfe1-cc1a-4da9-beee-c1161d480c84
     async def next_delegated_finding(self) -> dict[str, Any] | None:
-        """Return the oldest delegated finding (the FIFO head), or None if empty.
+        """Return the oldest delegated finding WITH its context bundle, or None.
 
-        The lane's "pull the next piece of work" surface. The rich context
-        bundle (related files, guidance, rule text) is the deferred #653
-        exporter; for now this returns the raw finding the same shape as the
-        list.
+        The lane's "pull the next piece of work" surface (ADR-109 §1). Returns
+        the finding enriched with the context bundle (rule rationale +
+        remediation guidance) so an external agent can understand the finding
+        without blind exploration.
         """
         findings = await self.list_delegated_findings(limit=1)
-        return findings[0] if findings else None
+        if not findings:
+            return None
+        return self._with_bundle(findings[0])
+
+    # ID: 205be253-f4df-4301-8691-5a35ed6211b3
+    async def get_finding_bundle(self, finding_id: str) -> dict[str, Any] | None:
+        """Return a single delegated finding WITH its context bundle, or None.
+
+        The detail view: the raw finding plus the #653 context bundle. None if
+        the finding is not a live delegated lane item.
+        """
+        finding = await self.get_delegated_finding(finding_id)
+        if finding is None:
+            return None
+        return self._with_bundle(finding)
+
+    def _with_bundle(self, finding: dict[str, Any]) -> dict[str, Any]:
+        """Attach the ADR-109 #653 context bundle to a finding.
+
+        The bundle gives an external agent enough to draft a coherent fix
+        without blind exploration:
+          - ``rule.rationale`` — why the rule exists (what a fix must achieve);
+          - ``rule.in_registry`` — False flags a finding whose rule id is no
+            longer live (e.g. renamed out from under it, cf. #657) — such a
+            finding should be resolved, not worked;
+          - ``remediation`` — the remediation-map hint (DELEGATE description /
+            status), when present.
+
+        Multi-file ``ContextService`` evidence (callers/base/siblings) is a
+        deferred enrichment: it needs ``core_context`` + vector/AST machinery
+        and an external agent (Claude Code) can derive related files with its
+        own repo tooling. Bundle assembly is best-effort — a missing rule or
+        map never fails the read.
+        """
+        payload = finding.get("payload") or {}
+        rule_id = payload.get("rule") or payload.get("rule_id")
+
+        rule_section: dict[str, Any] = {
+            "id": rule_id,
+            "rationale": None,
+            "in_registry": False,
+        }
+        if rule_id:
+            try:
+                ref = get_intent_repository().get_rule(rule_id)
+                rule_section["rationale"] = ref.content.get("rationale")
+                rule_section["in_registry"] = True
+            except GovernanceError:
+                # Rule id absent from the active registry — stale/renamed
+                # finding (cf. #657). Surfacing this is itself useful signal.
+                rule_section["in_registry"] = False
+
+        return {
+            **finding,
+            "bundle": {
+                "rule": rule_section,
+                "remediation": load_remediation_guidance(rule_id),
+            },
+        }
 
     # ID: 04b486b9-7d1a-432f-8fc5-a434ec1b8e58
     async def claim_delegated_finding(self, finding_id: str, agent: str) -> bool:

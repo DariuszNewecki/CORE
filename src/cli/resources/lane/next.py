@@ -37,7 +37,11 @@ async def next_finding() -> None:
         raise
 
     payload = finding.get("payload") or {}
-    rule = payload.get("rule") or payload.get("rule_id") or "—"
+    bundle = finding.get("bundle") or {}
+    rule_info = bundle.get("rule") or {}
+    remediation = bundle.get("remediation") or {}
+
+    rule = rule_info.get("id") or payload.get("rule") or payload.get("rule_id") or "—"
     file = payload.get("file") or payload.get("file_path") or "—"
     message = payload.get("message") or payload.get("description") or ""
     claimed_by = payload.get("lane_claimed_by")
@@ -54,6 +58,24 @@ async def next_finding() -> None:
         lines.append(f"[bold]Claimed[/bold]  [yellow]{claimed_by}[/yellow]")
     if message:
         lines.append(f"\n{message}")
+
+    # #653 context bundle — why the rule exists + the remediation hint.
+    if rule_info.get("in_registry") is False:
+        lines.append(
+            "\n[yellow]⚠ This rule id is not in the active registry[/yellow] — "
+            "likely renamed/retired (cf. #657). This finding should be "
+            "[bold]resolved[/bold], not worked: no fix can clear a dead rule id."
+        )
+    if rule_info.get("rationale"):
+        lines.append(f"\n[bold]Why this rule[/bold]\n{rule_info['rationale']}")
+    if remediation.get("description"):
+        status = remediation.get("status") or ""
+        suffix = f" [dim]({status})[/dim]" if status else ""
+        lines.append(
+            f"\n[bold]Remediation guidance[/bold]{suffix}\n"
+            f"{remediation['description']}"
+        )
+
     console.print(Panel("\n".join(lines), title="Assisted Lane — next finding"))
     console.print(
         "[dim]Claim it with `core-admin lane claim <id> --agent <you>`, then "

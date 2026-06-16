@@ -112,20 +112,21 @@ async def next_delegated_finding() -> dict:
 
 @router.get(
     "/{finding_id}",
-    summary="Get a single delegated finding",
+    summary="Get a single delegated finding with its context bundle",
     description=(
         "Return one delegated finding by id (same governor-inbox predicate as "
-        "the list). 404 if it is not a live lane item — already worked, "
-        "resolved, or never delegated. The agent reads the finding's rule from "
-        "here before validating a candidate diff."
+        "the list) enriched with the #653 context bundle — rule rationale, "
+        "whether the rule is still in the active registry, and the "
+        "remediation-map guidance. 404 if it is not a live lane item — already "
+        "worked, resolved, or never delegated."
     ),
 )
 # ID: 22240f3e-72c0-433f-8f93-e29cb3462f82
 async def get_delegated_finding(
     finding_id: str = Path(..., description="Blackboard finding id (uuid)."),
 ) -> dict:
-    """Return a single delegated finding, or 404 if not a live lane item."""
-    finding = await LaneService().get_delegated_finding(finding_id)
+    """Return a single delegated finding + bundle, or 404 if not a live lane item."""
+    finding = await LaneService().get_finding_bundle(finding_id)
     if finding is None:
         raise HTTPException(
             status_code=404,

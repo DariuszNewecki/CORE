@@ -11,10 +11,11 @@ forwarded and the rows passed straight back.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from shared.infrastructure.intent.errors import GovernanceError
 from will.autonomy.lane_service import LaneProposeError, LaneService
 
 
@@ -141,8 +142,10 @@ async def test_propose_raises_when_finding_not_live():
 
 
 @pytest.mark.asyncio
-async def test_next_delegated_finding_returns_fifo_head():
-    """next_delegated_finding asks for limit=1 and returns the single row."""
+async def test_next_delegated_finding_returns_fifo_head_with_bundle():
+    """next_delegated_finding asks for limit=1 and returns the head enriched
+    with the #653 context bundle. A payload-less finding has no rule, so the
+    bundle's rule id is None and remediation is None (no external deps hit)."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_findings = AsyncMock(return_value=[{"id": "f-1"}])
 
@@ -152,8 +155,95 @@ async def test_next_delegated_finding_returns_fifo_head():
     ):
         out = await LaneService().next_delegated_finding()
 
-    assert out == {"id": "f-1"}
+    assert out["id"] == "f-1"
+    assert out["bundle"]["rule"]["id"] is None
+    assert out["bundle"]["remediation"] is None
     bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=1)
+
+
+def _patch_bundle_sources(rationale: str | None, raises: bool, guidance):
+    """Patch the bundle's intent reads: IntentRepository + remediation map."""
+    repo = MagicMock()
+    if raises:
+        repo.get_rule.side_effect = GovernanceError("no such rule")
+    else:
+        rule_ref = MagicMock()
+        rule_ref.content = {"rationale": rationale}
+        repo.get_rule.return_value = rule_ref
+    return (
+        patch(
+            "will.autonomy.lane_service.get_intent_repository",
+            return_value=repo,
+        ),
+        patch(
+            "will.autonomy.lane_service.load_remediation_guidance",
+            return_value=guidance,
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_finding_bundle_includes_rationale_and_remediation():
+    """A live-rule finding's bundle carries rule rationale (in_registry True)
+    and the remediation-map guidance."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_finding = AsyncMock(
+        return_value={
+            "id": "f-1",
+            "subject": "s",
+            "payload": {"rule": "modularity.class_too_large"},
+            "created_at": None,
+        }
+    )
+    guidance = {"description": "class refactor — human judgment", "status": "DELEGATE"}
+    p_repo, p_rem = _patch_bundle_sources("classes must stay small", False, guidance)
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ), p_repo, p_rem:
+        out = await LaneService().get_finding_bundle("f-1")
+
+    assert out["bundle"]["rule"]["in_registry"] is True
+    assert out["bundle"]["rule"]["rationale"] == "classes must stay small"
+    assert out["bundle"]["remediation"] == guidance
+
+
+@pytest.mark.asyncio
+async def test_get_finding_bundle_flags_orphan_when_rule_absent():
+    """A finding whose rule id is no longer in the registry (renamed/retired,
+    cf. #657) is flagged in_registry=False rather than crashing."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_finding = AsyncMock(
+        return_value={
+            "id": "f-2",
+            "subject": "s",
+            "payload": {"rule": "architecture.intent.non_gateway_no_direct_resolution"},
+            "created_at": None,
+        }
+    )
+    p_repo, p_rem = _patch_bundle_sources(None, True, None)
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ), p_repo, p_rem:
+        out = await LaneService().get_finding_bundle("f-2")
+
+    assert out["bundle"]["rule"]["in_registry"] is False
+    assert out["bundle"]["rule"]["rationale"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_finding_bundle_none_when_not_live():
+    """get_finding_bundle returns None when the finding is not a live lane item."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_finding = AsyncMock(return_value=None)
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ):
+        assert await LaneService().get_finding_bundle("missing") is None
 
 
 @pytest.mark.asyncio
