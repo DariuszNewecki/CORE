@@ -93,6 +93,25 @@ class EngineRegistry:
         cls._discovered = True
 
     @classmethod
+    # ID: 8ef22fc4-2090-41a6-b59c-f6167a0f832c
+    def engine_source_files(cls) -> frozenset[str]:
+        """Repo-relative POSIX source paths of every registered engine module.
+
+        The canonical answer to "which source files ARE audit engines." Used by
+        the assisted lane to detect a self-referential fix: a diff that patches
+        an engine cannot be validated by the in-process auditor, because the
+        worktree patch does not change the engine logic the validator runs
+        (#661). Derived from the registered classes' modules, so it tracks the
+        registry rather than a hardcoded engines-directory literal. Discovery is
+        idempotent and needs no path_resolver (it only reads class modules).
+        """
+        cls._discover_engines()
+        return frozenset(
+            "src/" + klass.__module__.replace(".", "/") + ".py"
+            for klass in cls._engine_classes.values()
+        )
+
+    @classmethod
     # ID: 69a7916b-b8f4-4509-bb2c-897eec528adf
     def get(cls, engine_id: str) -> Any:
         if cls._path_resolver is None:

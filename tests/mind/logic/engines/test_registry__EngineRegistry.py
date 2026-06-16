@@ -85,6 +85,24 @@ def test_get_all_supported_engines():
         assert EngineRegistry._instances[engine_id] == instance
 
 
+def test_engine_source_files_lists_registered_engine_modules():
+    """engine_source_files() returns repo-relative POSIX source paths for every
+    registered engine, derived from class modules (not a hardcoded dir).
+
+    Consumed by the assisted lane to detect a self-referential fix — a diff
+    that patches an audit engine cannot be validated by the in-process auditor
+    (#661).
+    """
+    files = EngineRegistry.engine_source_files()
+    assert files, "registry must expose at least one engine source file"
+    # The orphan/duplication detector that surfaced #661 must be in the set.
+    assert "src/mind/logic/engines/knowledge_gate.py" in files
+    # Every entry is a repo-relative .py path under the engines package.
+    for path in files:
+        assert path.startswith("src/mind/logic/engines/")
+        assert path.endswith(".py")
+
+
 def test_initialize_clears_engine_class_cache_and_rediscovers():
     """initialize() MUST clear ``_engine_classes`` AND reset ``_discovered``
     so engine modules added between calls become visible.

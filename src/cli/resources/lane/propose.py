@@ -83,6 +83,15 @@ async def propose(
     data = result.get("data") or {}
 
     if not result.get("ok"):
+        # A diff that patches an audit engine is self-referential to the
+        # validator (#661) — surface that distinctly, not as "the fix is wrong".
+        if data.get("self_referential_engines"):
+            console.print(
+                "[yellow]This finding's fix modifies an audit engine — the "
+                "assisted lane cannot validate it.[/yellow]"
+            )
+            console.print(f"  [dim]{data.get('error', '')}[/dim]")
+            raise typer.Exit(code=1)
         console.print("[red]Validation failed — diff is not approvable.[/red]")
         for check, passed in (data.get("validation_results") or {}).items():
             mark = "[green]✓[/green]" if passed else "[red]✗[/red]"

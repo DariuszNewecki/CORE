@@ -18,6 +18,7 @@ import pytest
 
 from body.atomic.assisted_actions import (
     _rule_cleared,
+    _touches_audit_engine,
     action_assisted_apply_diff,
     action_assisted_validate_diff,
 )
@@ -114,6 +115,33 @@ def test_rule_cleared_normalizes_dot_slash_prefix() -> None:
 
 def test_rule_cleared_true_when_nothing_guarded() -> None:
     assert _rule_cleared([{"file_path": "x.py"}], subject_files=[], touched_py=[]) is True
+
+
+_ENGINES = frozenset(
+    {
+        "src/mind/logic/engines/knowledge_gate.py",
+        "src/mind/logic/engines/ast_gate.py",
+    }
+)
+
+
+def test_touches_audit_engine_flags_engine_fix() -> None:
+    # A diff patching the orphan detector is self-referential to the validator.
+    assert _touches_audit_engine(
+        ["src/mind/logic/engines/knowledge_gate.py"], _ENGINES
+    ) == ["src/mind/logic/engines/knowledge_gate.py"]
+
+
+def test_touches_audit_engine_clears_non_engine_fix() -> None:
+    assert (
+        _touches_audit_engine(["src/cli/resources/lane/next.py"], _ENGINES) == []
+    )
+
+
+def test_touches_audit_engine_normalizes_dot_slash() -> None:
+    assert _touches_audit_engine(
+        ["./src/mind/logic/engines/ast_gate.py"], _ENGINES
+    ) == ["./src/mind/logic/engines/ast_gate.py"]
 
 
 @pytest.mark.asyncio

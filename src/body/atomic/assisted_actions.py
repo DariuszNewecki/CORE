@@ -98,6 +98,20 @@ def _rule_cleared(
     return not (guarded & flagged)
 
 
+def _touches_audit_engine(
+    touched_py: list[str], engine_files: frozenset[str]
+) -> list[str]:
+    """Return the touched files that are themselves audit-engine modules.
+
+    A non-empty result means the diff is self-referential to the validator:
+    the lane runs the IN-PROCESS auditor, so patching an engine in the worktree
+    cannot change the logic that validates the patch (#661). Such a finding is
+    a direct governed commit, not lane work.
+    """
+    engine_norm = {_norm_path(p) for p in engine_files}
+    return sorted(p for p in touched_py if _norm_path(p) in engine_norm)
+
+
 @register_action(
     action_id="assisted.validate_diff",
     description=(
@@ -196,6 +210,41 @@ async def action_assisted_validate_diff(
             p for p in _git(wt_path, "diff", "--name-only").stdout.splitlines() if p
         ]
         touched_py = [p for p in touched if p.endswith(".py")]
+
+        # 1b. A fix that patches an audit engine is self-referential: the lane
+        #     validates with the in-process auditor, so the worktree patch does
+        #     not change the engine logic that runs the validation (#661). Such
+        #     a finding is a direct governed commit, not lane work — refuse with
+        #     guidance rather than the misleading "rule still fires" a vacuous
+        #     in-process audit would produce. Engine module set is derived from
+        #     EngineRegistry (no hardcoded engines-dir literal).
+        from mind.logic.engines.registry import EngineRegistry
+
+        self_referential = _touches_audit_engine(
+            touched_py, EngineRegistry.engine_source_files()
+        )
+        checks["not_audit_engine"] = not self_referential
+        if self_referential:
+            return ActionResult(
+                action_id=aid,
+                ok=False,
+                data={
+                    "validation_results": checks,
+                    "production_set": touched,
+                    "self_referential_engines": self_referential,
+                    "error": (
+                        "Diff modifies audit engine module(s): "
+                        + ", ".join(self_referential)
+                        + ". The assisted lane validates with the in-process "
+                        "auditor, so it cannot confirm a fix to the auditor "
+                        "itself — the worktree patch does not change the "
+                        "validating engine. Disposition this finding as a "
+                        "direct governed commit and resolve it (see #661)."
+                    ),
+                },
+                impact=ActionImpact.WRITE_DATA,
+                duration_sec=time.perf_counter() - started,
+            )
 
         # 2. ruff must pass on the touched Python files.
         checks["ruff"] = _ruff_ok(wt_path, touched_py) if touched_py else True
