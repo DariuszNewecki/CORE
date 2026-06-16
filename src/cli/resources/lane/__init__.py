@@ -13,8 +13,10 @@ app = typer.Typer(
 )
 
 from . import list as list_mod
+from . import propose as propose_mod
 
 
 app.command("list")(list_mod.list_delegated)
+app.command("propose")(propose_mod.propose)
 
 __all__ = ["app"]

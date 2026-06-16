@@ -439,3 +439,48 @@ class BlackboardQueryService:
                 }
             )
         return findings
+
+    # ID: d505b762-9b10-4f2b-b7cf-a234b92f1df6
+    async def fetch_delegated_finding(self, entry_id: str) -> dict[str, Any] | None:
+        """
+        Return a single delegated finding by id, or None if it is not a
+        delegated finding (ADR-109 #652).
+
+        Same predicate as ``fetch_delegated_findings`` — ``entry_type='finding'
+        AND status='indeterminate' AND resolution_mechanism='human'`` — so a
+        finding that has already been worked (deferred/resolved) or that was
+        never delegated returns None. ``lane propose`` reads this to recover
+        the finding's rule (for the validation gate and the proposal's
+        constitutional constraints) and to confirm the target is still an open
+        lane item before creating a proposal against it.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, subject, payload, created_at
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'indeterminate'
+                      AND resolution_mechanism = 'human'
+                      AND id = cast(:entry_id as uuid)
+                    """
+                ),
+                {"entry_id": entry_id},
+            )
+            row = result.fetchone()
+
+        if row is None:
+            return None
+        raw_payload = row[2]
+        payload = (
+            raw_payload if isinstance(raw_payload, dict) else json.loads(raw_payload)
+        )
+        return {
+            "id": str(row[0]),
+            "subject": row[1],
+            "payload": payload or {},
+            "created_at": row[3].isoformat() if row[3] else None,
+        }

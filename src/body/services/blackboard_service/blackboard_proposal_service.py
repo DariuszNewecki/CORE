@@ -76,6 +76,53 @@ class BlackboardProposalService:
                     deferred_count += result.rowcount
         return deferred_count
 
+    # ID: 96677af7-969f-4c5b-8271-87bf885b1d33
+    async def defer_delegated_finding_to_proposal(
+        self, entry_id: str, proposal_id: str
+    ) -> int:
+        """
+        Defer a DELEGATED finding to an assisted-lane proposal (ADR-109 D4).
+
+        The assisted-lane analogue of ``defer_entries_to_proposal``. A
+        delegated finding lives at ``status='indeterminate'`` with
+        ``resolution_mechanism='human'`` — the governor-inbox predicate — NOT
+        at 'open'/'claimed'. The autonomous defer predicate would therefore
+        silently match zero rows on it. This method owns the
+        delegated→deferred transition for the lane so the assisted and
+        autonomous paths stay distinct surfaces (the autonomous
+        ``defer_entries_to_proposal`` predicate is left untouched).
+
+        Writes ``proposal_id`` into the finding payload (CORE-Finding §7 row 4)
+        and moves the finding out of the governor inbox into
+        'deferred_to_proposal' (tracked, not parked). On proposal reject the
+        lane revives it back to ``indeterminate+human`` (ADR-109 D4, ADR-010
+        §7a) rather than the autonomous ``awaiting_reaudit`` path.
+
+        Returns the count of rows actually updated (0 or 1).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'deferred_to_proposal',
+                            resolved_at = now(),
+                            updated_at = now(),
+                            payload = payload || jsonb_build_object(
+                                'proposal_id', cast(:proposal_id as text)
+                            )
+                        WHERE id = cast(:entry_id as uuid)
+                          AND status = 'indeterminate'
+                          AND resolution_mechanism = 'human'
+                        """
+                    ),
+                    {"entry_id": entry_id, "proposal_id": proposal_id},
+                )
+                return result.rowcount
+
     # ID: 5e2d8f1a-94c3-4b07-a8f2-3c7e9b1d6a45
     async def resolve_entries_for_proposal(
         self, entry_ids: list[str], proposal_id: str

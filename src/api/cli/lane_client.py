@@ -35,3 +35,27 @@ class LaneClient:
             "/v1/lane",
             params={"limit": limit},
         )
+
+    # ID: bbfbfc6b-1ad5-40cc-b396-db7e93a9ec20
+    async def get_delegated(self, finding_id: str) -> dict:
+        """GET /v1/lane/{finding_id} — one delegated finding (404 if not live)."""
+        return await self._facade._request(
+            "GET",
+            f"/v1/lane/{finding_id}",
+        )
+
+    # ID: 4779d328-4aa3-4ef0-8e67-2f289baf8b85
+    async def propose(
+        self, finding_id: str, patch: str, validation_run_id: str
+    ) -> dict:
+        """POST /v1/lane/{finding_id}/propose — ingest a validated diff as a proposal.
+
+        `validation_run_id` is the id of the `assisted.validate_diff` run
+        (dispatched via run_fix) that cleared this patch; the endpoint re-reads
+        its persisted verdict before creating the proposal.
+        """
+        return await self._facade._request(
+            "POST",
+            f"/v1/lane/{finding_id}/propose",
+            json={"patch": patch, "validation_run_id": validation_run_id},
+        )

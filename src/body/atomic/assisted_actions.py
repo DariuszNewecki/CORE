@@ -23,6 +23,7 @@ against the throwaway worktree, never the main tree.
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import time
 from pathlib import Path
@@ -202,6 +203,11 @@ async def action_assisted_validate_diff(
                 "production_set": touched,
                 "finding_rule": finding_rule,
                 "tests_run": existing_tests,
+                # Bind this verdict to the exact bytes validated. `lane propose`
+                # re-checks this hash against the patch it submits, so an agent
+                # who edits the diff after validating cannot ride a stale PASS
+                # into the approval queue (ADR-109 mechanism §4).
+                "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
             },
             impact=ActionImpact.WRITE_DATA,
             duration_sec=time.perf_counter() - started,
