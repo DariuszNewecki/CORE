@@ -126,6 +126,24 @@ bytes; the governor authorized the merge. Assisted-lane commits carry a
 `Co-Authored-By` trailer and derive their commit set from the sandbox
 production (ADR-101 D2), not from `scope.files`.
 
+**D6 — The lane cannot validate a fix to an audit engine; it refuses such
+diffs rather than validating them vacuously.** The validation oracle
+(mechanism §4) runs the *in-process* auditor against the worktree's files
+(`EngineRegistry.get`), so a diff that patches an audit engine itself
+(`src/mind/logic/engines/*`) does not change the logic that validates it — the
+worktree patch is invisible to the validator. This is self-referential: the
+finding's true fix and the validator are the same code. Because the signal is
+the diff's *touched files* (not the finding's subject), it is detectable only
+at propose time. `assisted.validate_diff` therefore detects engine-touching
+diffs — via `EngineRegistry.engine_source_files()`, so the boundary tracks the
+registry, not a hardcoded path — and refuses with explicit guidance: such a
+finding is dispositioned as a direct governed commit, not lane work. The
+heavier alternative — running the validation audit in a subprocess that loads
+the worktree's code, which would remove the boundary — is deferred (#663) as
+disproportionate to how rarely engine-bug findings occur. (Surfaced working
+the lane's FIFO head, a `no_orphan_files` false positive whose fix was a
+detector bug in `knowledge_gate.py`; #661.)
+
 ---
 
 ## Mechanism (implementation guidance — not frozen)
@@ -213,3 +231,6 @@ computing it from `actions`). Everything else reuses existing infrastructure.
   (multi-file context, reused)
 - `GOVERNOR_INBOX_SQL` (`health_log_service.py`) — the inbox predicate
 - Observed inbox state, 2026-06-15: 110 items, ~90% stale, 11 confirmed-real
+- #661 — the self-referential audit-engine boundary + the D6 guard
+- #662 — oracle full-scope fix (context-level rules were validated vacuously)
+- #663 — deferred: validate engine fixes via subprocess audit (closes D6's boundary)
