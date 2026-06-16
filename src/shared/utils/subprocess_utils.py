@@ -62,8 +62,11 @@ async def run_command_async(
 
 # ID: f555860f-aeb3-4a20-92ff-eee51b7f4501
 def run_poetry_command(
-    description: str, command: list[str], cwd: Path | str | None = None
-):
+    description: str,
+    command: list[str],
+    cwd: Path | str | None = None,
+    allowed_returncodes: tuple[int, ...] = (0,),
+) -> SubprocessResult:
     """Helper to run a command via Poetry, log it, and handle errors (Synchronous).
 
     ``cwd`` (#638 / ADR-106): when supplied, the subprocess runs in that
@@ -72,6 +75,22 @@ def run_poetry_command(
     external tools (ruff) operate on the sandbox tree, not the real one.
     Default ``None`` preserves the legacy process-cwd behaviour for the
     CLI/audit callers that run against the working tree directly.
+
+    ``allowed_returncodes`` (#660): the exit codes that count as success.
+    Many wrapped tools use a non-zero exit to report *findings*, not execution
+    failure — ruff returns ``1`` for "would reformat" / lint findings /
+    residual unfixable issues, reserving ``2`` for a genuine tool error. A
+    caller wrapping such a tool passes the informative codes (e.g. ``(0, 1)``)
+    so a findings result is not misreported as a command failure. The previous
+    blanket ``check=True`` conflated the two and surfaced every formattable
+    file as ``"poetry command failed."`` (#660).
+
+    A disallowed exit raises ``SubprocessCommandError`` carrying the captured
+    stderr/stdout, so the failure is diagnosable from the persisted
+    ``ActionResult`` rather than only the ephemeral daemon log.
+
+    Returns:
+        SubprocessResult with the command's returncode and captured streams.
     """
     POETRY_EXECUTABLE = shutil.which("poetry")
     if not POETRY_EXECUTABLE:
@@ -80,25 +99,36 @@ def run_poetry_command(
 
     logger.info(description)
     full_command = [POETRY_EXECUTABLE, "run", *command]
-    try:
-        result = subprocess.run(
-            full_command,
-            check=True,
-            text=True,
-            capture_output=True,
-            cwd=str(cwd) if cwd else None,
+    result = subprocess.run(
+        full_command,
+        check=False,
+        text=True,
+        capture_output=True,
+        cwd=str(cwd) if cwd else None,
+    )
+    if result.stdout:
+        logger.info(result.stdout)
+    if result.stderr:
+        logger.warning(result.stderr)
+
+    if result.returncode not in allowed_returncodes:
+        logger.error(
+            "❌ Command failed (exit %s): %s",
+            result.returncode,
+            " ".join(full_command),
         )
-        if result.stdout:
-            logger.info(result.stdout)
-        if result.stderr:
-            logger.warning(result.stderr)
-    except subprocess.CalledProcessError as e:
-        logger.error("❌ Command failed: %s", " ".join(full_command))
-        if e.stdout:
-            logger.info(e.stdout)
-        if e.stderr:
-            logger.error(e.stderr)
-        raise SubprocessCommandError("poetry command failed.", exit_code=1) from e
+        detail = (result.stderr or result.stdout or "").strip()
+        raise SubprocessCommandError(
+            f"poetry command failed (exit {result.returncode}): {' '.join(command)}"
+            + (f" — {detail}" if detail else ""),
+            exit_code=result.returncode or 1,
+        )
+
+    return SubprocessResult(
+        stdout=result.stdout or "",
+        stderr=result.stderr or "",
+        returncode=result.returncode or 0,
+    )
 
 
 # ID: b58e3f7a-c12d-4856-9430-7d9e2c5a8b46

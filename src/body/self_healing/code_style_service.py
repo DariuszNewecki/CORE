@@ -49,14 +49,20 @@ def format_code(
         pass
     ruff_cmd.extend(targets)
 
-    # Execute
+    # Execute. #660: ruff exits 1 to report findings (would-reformat in
+    # --check mode, lint findings, or residual unfixable issues after --fix) and
+    # reserves 2 for a genuine tool error. Both ruff steps are advisory to the
+    # format action's purpose, so (0, 1) count as success; only exit 2+ raises.
+    # Without this, every formattable file failed as "poetry command failed".
     run_poetry_command(
         f"✨ Ruff Format ({'Write' if write else 'Check'}): {' '.join(targets)}",
         ruff_format_cmd,
         cwd=cwd,
+        allowed_returncodes=(0, 1),
     )
     run_poetry_command(
         f"✨ Ruff Check ({'Fix' if write else 'Check'}): {' '.join(targets)}",
         ruff_cmd,
         cwd=cwd,
+        allowed_returncodes=(0, 1),
     )
