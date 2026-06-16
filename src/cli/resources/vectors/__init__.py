@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 # Register all neurons
-from . import cleanup, query, status, sync, sync_code
+from . import cleanup, query, rebuild, status, sync, sync_code
 from .hub import app
 
 
