@@ -3,14 +3,24 @@
 """
 StrategicAuditor — campaign side effects on the world.
 
-Two operations, both gated by StrategicAuditor.run()'s write /
-execute_autonomous flags and both taking a finished StrategicCampaign:
+Two operations, both taking a finished StrategicCampaign or its persisted
+parent and both governed by the per-cluster governor review surface
+(ADR-110 D4 — self-extension is a Governor-role capability):
 
-- persist_campaign: write a parent Task plus one child Task per
-  autonomous cluster and one escalation Task per amendment-required
-  cluster, via TaskRepository. Two session commits.
-- execute_autonomous_tasks: iterate the campaign's autonomous clusters,
-  gate on confidence >= 0.7, dispatch each to develop_from_goal.
+- persist_campaign: write a parent Task plus one child Task per autonomous
+  cluster (status='pending', requires_approval=True — nothing runs until the
+  governor clears requires_approval) and one escalation Task per
+  amendment-required cluster (status='blocked'), via TaskRepository. Returns
+  the parent Task id (the review handle).
+- execute_approved_clusters: load a campaign's child Tasks, run only the
+  autonomous ones the governor has cleared (status='pending',
+  requires_approval=False) via develop_from_goal. There is no blanket
+  confidence gate — the governor's per-cluster acceptance is the gate.
+
+Approval is carried by the Task.requires_approval flag (its purpose), kept
+orthogonal to the status lifecycle, which stays within core.tasks'
+closed-vocab CHECK (pending/planning/executing/validating/completed/failed/
+blocked). A rejected cluster is moved to 'blocked'.
 
 Both share one reason to change: how a finished campaign acts on the
 system. Splitting them apart would fragment that single answer.
@@ -30,6 +40,8 @@ from will.agents.strategic_auditor.models import StrategicCampaign
 
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from shared.context import CoreContext
@@ -39,14 +51,19 @@ logger = getLogger(__name__)
 
 
 # ID: f4d82377-ffce-4794-9bc3-754a48eed83d
-async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -> None:
-    """Store campaign as parent Task + child Tasks in PostgreSQL."""
+async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -> UUID:
+    """Store campaign as parent Task + child Tasks; return the parent Task id.
+
+    Autonomous clusters persist as ``awaiting_approval`` / ``requires_approval``
+    — nothing executes until the governor accepts the cluster through the review
+    surface (ADR-110 D4). The returned parent id is the review handle.
+    """
     repo = TaskRepository(session)
 
     parent = await repo.create(
         intent=f"[StrategicCampaign:{campaign.campaign_id}] {campaign.system_summary[:200]}",
         assigned_role="StrategicAuditor",
-        status="campaign_ready",
+        status="planning",
     )
     parent.context = {
         "campaign_id": campaign.campaign_id,
@@ -64,7 +81,7 @@ async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -
             status="pending",
         )
         child.parent_task_id = parent.id
-        child.requires_approval = False
+        child.requires_approval = True
         child.context = {
             "cluster_id": cluster.cluster_id,
             "root_cause": cluster.root_cause,
@@ -72,13 +89,14 @@ async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -
             "finding_ids": cluster.finding_ids,
             "confidence": cluster.confidence,
             "estimated_impact": cluster.estimated_impact,
+            "workflow_type": cluster.workflow_type,
         }
 
     for cluster in campaign.escalations:
         child = await repo.create(
             intent=f"[ESCALATION] {cluster.proposed_fix}",
             assigned_role="Human",
-            status="awaiting_approval",
+            status="blocked",
         )
         child.parent_task_id = parent.id
         child.requires_approval = True
@@ -91,48 +109,61 @@ async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -
 
     await session.commit()
     logger.info(
-        "Campaign persisted: parent=%s, %d tasks, %d escalations",
+        "Campaign persisted (awaiting per-cluster review): parent=%s, %d clusters, %d escalations",
         parent.id,
         campaign.autonomous_task_count,
         campaign.escalation_count,
     )
+    return parent.id
 
 
 # ID: b63d2bae-56c3-4f98-80e3-f1c9cc170ca3
-async def execute_autonomous_tasks(
-    ctx: CoreContext, campaign: StrategicCampaign
-) -> None:
-    """Execute non-escalation clusters via develop_from_goal.
+async def execute_approved_clusters(
+    ctx: CoreContext, session: AsyncSession, parent_task_id: UUID
+) -> list[tuple[str, bool, str]]:
+    """Execute the governor-approved autonomous clusters of one campaign.
 
-    Clusters below the 0.7 confidence threshold are skipped — they remain
-    persisted as pending Tasks for a human to review rather than being
-    autonomously executed.
+    Only autonomous child Tasks the governor has cleared run — ``status='pending'``
+    with ``requires_approval=False``. The governor's per-cluster acceptance
+    (clearing requires_approval) is the gate; there is no blanket confidence
+    floor. Each executed cluster's Task is moved to ``completed`` or ``failed``.
 
     develop_from_goal owns its own WorkflowOrchestrator and does not accept a
-    session; the caller's session governs persistence only (persist_campaign).
+    session; the caller's session governs persistence only.
+
+    Returns a (cluster_task_id, ok, message) tuple per executed cluster.
     """
     from will.autonomy.autonomous_developer import develop_from_goal
 
-    logger.info("Executing %d autonomous tasks...", campaign.autonomous_task_count)
+    repo = TaskRepository(session)
+    children = await repo.list_children(parent_task_id)
+    approved = [
+        c
+        for c in children
+        if c.assigned_role == "AutonomousDeveloper"
+        and c.status == "pending"
+        and not c.requires_approval
+    ]
 
-    for i, cluster in enumerate(campaign.clusters, 1):
-        logger.info(
-            "  [%d/%d] %s (impact=%s, confidence=%.2f)",
-            i,
-            campaign.autonomous_task_count,
-            cluster.root_cause[:80],
-            cluster.estimated_impact,
-            cluster.confidence,
+    logger.info(
+        "Executing %d approved cluster(s) of campaign parent=%s",
+        len(approved),
+        parent_task_id,
+    )
+
+    results: list[tuple[str, bool, str]] = []
+    for child in approved:
+        workflow_type = (child.context or {}).get(
+            "workflow_type", "full_feature_development"
         )
-
-        if cluster.confidence < 0.7:
-            logger.info("    Skipping (confidence too low — staged for review)")
-            continue
-
         success, message = await develop_from_goal(
             context=ctx,
-            goal=cluster.proposed_fix,
-            workflow_type=cluster.workflow_type,
+            goal=child.intent,
+            workflow_type=workflow_type,
             write=True,
         )
+        await repo.update_status(child.id, "completed" if success else "failed")
         logger.info("    %s %s", "OK" if success else "FAIL", message)
+        results.append((str(child.id), success, message))
+
+    return results

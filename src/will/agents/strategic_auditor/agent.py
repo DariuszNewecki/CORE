@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 from shared.logger import getLogger
 from will.agents.strategic_auditor.context_gatherer import SystemContextGatherer
 from will.agents.strategic_auditor.effects import (
-    execute_autonomous_tasks,
+    execute_approved_clusters,
     persist_campaign,
 )
 from will.agents.strategic_auditor.models import StrategicCampaign
@@ -75,8 +75,11 @@ class StrategicAuditor(TracedAgentMixin):
 
         Args:
             session: Database session
-            write: Persist campaign to PostgreSQL
-            execute_autonomous: Immediately execute non-escalation tasks (implies write)
+            write: Persist campaign to PostgreSQL (clusters await per-cluster review)
+            execute_autonomous: After persisting, run the campaign's already-approved
+                clusters (implies write). A freshly produced campaign has none yet, so
+                this runs zero until the governor accepts clusters via the review
+                surface — per-cluster acceptance is the gate (ADR-110 D4).
 
         Returns:
             StrategicCampaign with clusters, escalations, and human report
@@ -91,10 +94,18 @@ class StrategicAuditor(TracedAgentMixin):
         campaign = await synthesize_campaign(self._cognitive, system_context)
 
         if write:
-            await persist_campaign(session, campaign)
+            parent_task_id = await persist_campaign(session, campaign)
+            campaign.parent_task_id = str(parent_task_id)
 
-        if write and execute_autonomous:
-            await execute_autonomous_tasks(self._ctx, campaign)
+            if execute_autonomous:
+                executed = await execute_approved_clusters(
+                    self._ctx, session, parent_task_id
+                )
+                logger.info(
+                    "Executed %d approved cluster(s) for campaign %s.",
+                    len(executed),
+                    campaign.campaign_id,
+                )
 
         self._log_summary(campaign)
 

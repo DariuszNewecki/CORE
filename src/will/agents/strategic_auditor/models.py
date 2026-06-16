@@ -64,3 +64,7 @@ class StrategicCampaign:
     total_findings: int = 0
     autonomous_task_count: int = 0
     escalation_count: int = 0
+
+    parent_task_id: str | None = None
+    """Set after persist_campaign — the parent Task UUID, used as the review
+    handle for the per-cluster accept/reject/execute commands."""

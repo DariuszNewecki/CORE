@@ -57,3 +57,21 @@ class TaskRepository:
             await self.session.commit()
             await self.session.refresh(task)
         return task
+
+    # ID: e7a4c0b1-9f23-4d56-8a7b-3c5d0f2e1a98
+    async def set_approval(self, task_id: UUID, requires_approval: bool) -> Task | None:
+        """Set a task's requires_approval flag (the governor-approval gate)."""
+        task = await self.get_by_id(task_id)
+        if task:
+            task.requires_approval = requires_approval
+            await self.session.commit()
+            await self.session.refresh(task)
+        return task
+
+    # ID: 9d6f1c84-2b07-4e3a-9f5c-8a1d0e7b62f4
+    async def list_children(self, parent_task_id: UUID) -> list[Task]:
+        """Return all child tasks of a parent, ordered by id for stable output."""
+        result = await self.session.execute(
+            select(Task).where(Task.parent_task_id == parent_task_id).order_by(Task.id)
+        )
+        return list(result.scalars().all())

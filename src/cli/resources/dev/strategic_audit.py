@@ -42,7 +42,11 @@ async def strategic_audit_cmd(
     execute: bool = typer.Option(
         False,
         "--execute",
-        help="Immediately execute autonomous tasks (implies --write).",
+        help=(
+            "Run this campaign's already-approved clusters (implies --write). A new "
+            "campaign has none yet — review and accept per cluster first via "
+            "'dev campaign'."
+        ),
     ),
 ) -> None:
     """
@@ -103,9 +107,28 @@ async def strategic_audit_cmd(
             console.print(
                 f"\n[green]✅ Campaign persisted.[/green] [dim]ID: {campaign.campaign_id}[/dim]"
             )
+            if campaign.autonomous_task_count:
+                console.print(
+                    f"\n[bold]{campaign.autonomous_task_count} autonomous cluster(s) "
+                    "await your per-cluster review.[/bold]"
+                )
+                console.print(
+                    f"  [dim]Review:[/dim]  core-admin dev campaign list {campaign.parent_task_id}"
+                )
+                console.print(
+                    "  [dim]Accept:[/dim]  core-admin dev campaign accept <cluster task id>"
+                )
+                console.print(
+                    f"  [dim]Execute:[/dim] core-admin dev campaign execute {campaign.parent_task_id}"
+                )
+            if execute:
+                console.print(
+                    "\n[dim]--execute ran only already-approved clusters; a new campaign "
+                    "has none until you accept them above.[/dim]"
+                )
         else:
             console.print(
-                "\n[dim]Dry-run complete. Use --write to persist, --execute to act.[/dim]"
+                "\n[dim]Dry-run complete. Use --write to persist for per-cluster review.[/dim]"
             )
     except Exception as e:
         logger.exception("Strategic audit failed")
