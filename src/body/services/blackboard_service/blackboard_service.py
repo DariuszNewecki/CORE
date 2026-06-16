@@ -4,10 +4,45 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import text
+
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 
 
 CORE_ROLE = "facade"  # ADR-095 D3
+
+
+def _retired_rule_in_subject(
+    subject: str, known_rule_ids: set[str], known_namespaces: set[str]
+) -> str | None:
+    """Return the retired rule id embedded in an audit-violation *subject*, or None.
+
+    The safety-critical targeting predicate for the #657 retired-rule sweep,
+    extracted pure so it is unit-testable without a database. A subject is a
+    retired-rule orphan iff ALL hold:
+      - canonical ``<lang>::<rule>::<identity>`` shape (>=3 ``::`` segments);
+      - the rule segment is dotted (a rule id, not a bare identity);
+      - the rule's namespace is still governed (``known_namespaces``);
+      - the full rule id is absent from the live registry (``known_rule_ids``).
+    Worker observations (``loop_hold.sample::x``, ``governance.edge5.orphan_sha
+    ::<id>``) and live-rule findings return None.
+    """
+    parts = subject.split("::")
+    if len(parts) < 3:
+        return None
+    rule = parts[1]
+    if "." not in rule:
+        return None
+    if rule.split(".", 1)[0] not in known_namespaces:
+        return None
+    if rule in known_rule_ids:
+        return None
+    return rule
 
 
 # ID: a3842b9b-9285-49d3-bd7e-4fb8f8cbf6b7
@@ -370,6 +405,121 @@ class BlackboardService:
         return updated
 
     # ID: 8d586156-b04f-4d7a-a7b9-5a52b099b9b1
+    # ID: a091392a-11e2-4ee5-be56-b01e864f404d
+    async def resolve_findings_with_retired_rules(
+        self,
+        known_rule_ids: set[str],
+        known_namespaces: set[str],
+    ) -> dict[str, Any]:
+        """Resolve non-terminal findings whose rule id has left the registry (#657).
+
+        When a rule is renamed or retired (e.g. #490), in-flight findings keep
+        the dead rule id. The audit sensor's resolution pass keys on *live* rule
+        ids, so those findings can never be cleared and strand forever in the
+        governor inbox / lane. This sweep closes that gap.
+
+        Safety rails:
+        - **Fail-closed**: an empty ``known_rule_ids`` means the registry did not
+          load; the sweep no-ops rather than mass-resolving every finding.
+        - **Precise targeting**: only canonical audit-violation subjects of the
+          form ``<lang>::<rule>::<identity>`` (>=3 ``::`` segments) where the
+          rule segment carries a dot AND its namespace is still governed
+          (``known_namespaces``) AND the full rule id is absent from
+          ``known_rule_ids``. Worker observations like ``loop_hold.sample::x``
+          or ``governance.edge5.orphan_sha::<id>`` (no rule segment) are
+          structurally excluded.
+        - **Scope**: active statuses only — open/claimed/indeterminate/
+          awaiting_reaudit. ``deferred_to_proposal`` is left to the proposal
+          lifecycle; terminal rows are untouched.
+
+        Stamps a ``resolution`` payload key (authority ``system.rule_registry
+        _sweep``) so the close is auditable. Returns
+        ``{resolved, retired_rules, scanned}``.
+        """
+        if not known_rule_ids:
+            logger.warning(
+                "retired-rule sweep skipped: empty rule registry (fail-closed)."
+            )
+            return {"resolved": 0, "retired_rules": [], "scanned": 0, "skipped": True}
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                candidates = (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT id, subject FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND status IN ('open', 'claimed', 'indeterminate',
+                                             'awaiting_reaudit')
+                              AND subject LIKE '%::%::%'
+                            """
+                        )
+                    )
+                ).fetchall()
+
+                orphan_ids: list[str] = []
+                retired_rules: set[str] = set()
+                for entry_id, subject in candidates:
+                    rule = _retired_rule_in_subject(
+                        subject, known_rule_ids, known_namespaces
+                    )
+                    if rule is None:
+                        continue
+                    orphan_ids.append(str(entry_id))
+                    retired_rules.add(rule)
+
+                if orphan_ids:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = jsonb_set(
+                                    payload,
+                                    '{resolution}',
+                                    jsonb_build_object(
+                                        'reason', cast(:reason as text),
+                                        'resolved_by', 'rule_registry_sweep',
+                                        'resolution_authority',
+                                            'system.rule_registry_sweep',
+                                        'resolved_at', to_char(
+                                            now() at time zone 'UTC',
+                                            'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                    ),
+                                    true
+                                )
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                            """
+                        ),
+                        {
+                            "ids": orphan_ids,
+                            "reason": (
+                                "Rule id no longer in the active registry "
+                                "(renamed/retired); orphaned finding with no live "
+                                "rule to clear it. Auto-resolved by the retired-rule "
+                                "sweep (#657)."
+                            ),
+                        },
+                    )
+
+        if orphan_ids:
+            logger.info(
+                "retired-rule sweep: resolved %d orphaned findings across "
+                "retired rules %s",
+                len(orphan_ids),
+                sorted(retired_rules),
+            )
+        return {
+            "resolved": len(orphan_ids),
+            "retired_rules": sorted(retired_rules),
+            "scanned": len(candidates),
+        }
+
     async def resolve_indeterminate_entry(
         self,
         entry_id: str,

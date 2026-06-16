@@ -216,6 +216,19 @@ class BlackboardShopManager(Worker):
                 len(reaped["abandoned"]),
             )
 
+        # #657 — resolve findings whose rule id has left the registry
+        # (renamed/retired). The audit sensor's resolution pass keys on live
+        # rule ids, so these orphans can never self-clear. Fail-closed inside
+        # the service when the registry is empty.
+        retired = await self._sweep_retired_rule_findings()
+        if retired["resolved"]:
+            logger.info(
+                "BlackboardShopManager: #657 retired-rule sweep — resolved %d "
+                "orphaned finding(s) across rules %s",
+                retired["resolved"],
+                retired["retired_rules"],
+            )
+
         stale = await self._fetch_stale_entries()
         existing = await self._fetch_existing_findings()
 
@@ -270,6 +283,11 @@ class BlackboardShopManager(Worker):
                     "released_ids": reaped["released"],
                     "abandoned_ids": reaped["abandoned"],
                 },
+                "retired_rule_sweep": {
+                    "resolved": retired["resolved"],
+                    "retired_rules": retired["retired_rules"],
+                    "skipped": retired.get("skipped", False),
+                },
             },
         )
         logger.info(
@@ -317,6 +335,29 @@ class BlackboardShopManager(Worker):
 
         svc = await service_registry.get_blackboard_service()
         return await svc.resolve_stale_alerts_for_terminal_targets()
+
+    async def _sweep_retired_rule_findings(self) -> dict[str, Any]:
+        """Resolve findings whose rule id has left the active registry (#657).
+
+        Reads the live rule set from the IntentRepository gateway (the
+        sanctioned `.intent` consumer path) and hands it to the BlackboardService
+        sweep, which fail-closes on an empty set. Cross-namespace by design: the
+        per-namespace AuditViolationSensor cannot adjudicate a finding whose rule
+        namespace is no longer governed — which is exactly why these orphans
+        strand — so the sweep lives here in the cross-cutting hygiene worker.
+        """
+        from body.services.service_registry import service_registry
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        known_rule_ids = repo.known_rule_ids()
+        known_namespaces = repo.rule_namespaces()
+        svc = await service_registry.get_blackboard_service()
+        return await svc.resolve_findings_with_retired_rules(
+            known_rule_ids, known_namespaces
+        )
 
     async def _sweep_telemetry_ttl(self) -> int:
         """ADR-082 Mechanism 1 — hard-DELETE terminal telemetry past TTL.

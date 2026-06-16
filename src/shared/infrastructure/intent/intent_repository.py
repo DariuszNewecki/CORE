@@ -491,6 +491,23 @@ class IntentRepository(RootedRepository):
             raise GovernanceError(f"Rule ID not found: {rule_id}")
         return ref
 
+    # ID: 91baba20-e413-410f-a98e-66dc38732138
+    def known_rule_ids(self) -> set[str]:
+        """Return the set of every rule ID currently in the active registry.
+
+        The authoritative "does this rule still exist?" source. Used by the
+        retired-rule finding sweep (#657): a finding whose rule id is absent
+        from this set is an orphan (its rule was renamed/retired and the audit
+        sensor's resolution pass — which keys on live rule ids — can never
+        clear it). Derived from `_rule_index` at call time, so it tracks
+        adds/removes automatically. A non-empty result is the sweep's
+        fail-closed precondition: an empty set means the registry failed to
+        load, and the caller MUST NOT sweep.
+        """
+        self._ensure_index()
+        assert self._rule_index is not None
+        return set(self._rule_index)
+
     # ID: c3b33ec1-97ec-419e-8969-1c5da96ca7d2
     def rule_namespaces(self) -> set[str]:
         """Return the set of top-level dot segments across all known rule IDs.
