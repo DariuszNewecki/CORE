@@ -43,7 +43,7 @@ def _scaffold_repo(
     return tmp_path
 
 
-_ACTION_SOURCE_TEMPLATE = '''\
+_ACTION_SOURCE_TEMPLATE = """\
 from body.atomic.registry import register_action
 
 
@@ -54,7 +54,7 @@ from body.atomic.registry import register_action
 )
 def {func_name}():
     pass
-'''
+"""
 
 
 # ID: 08f9672d-3864-443f-a334-5ceec1cf8fb3
@@ -89,12 +89,7 @@ def test_active_entry_with_unclaimed_rule_violates(tmp_path: Path) -> None:
     """ACTIVE entry whose action's remediates list does NOT claim the rule
     produces one violation. This is the #580 shape.
     """
-    yaml_doc = (
-        "mappings:\n"
-        "  rule.alpha:\n"
-        "    action: fix.alpha\n"
-        "    status: ACTIVE\n"
-    )
+    yaml_doc = "mappings:\n  rule.alpha:\n    action: fix.alpha\n    status: ACTIVE\n"
     atomic = {
         "alpha.py": _ACTION_SOURCE_TEMPLATE.format(
             action_id="fix.alpha",
@@ -153,10 +148,7 @@ def test_pending_entry_with_unclaimed_rule_is_exempt(tmp_path: Path) -> None:
     claims.
     """
     yaml_doc = (
-        "mappings:\n"
-        "  some.future_rule:\n"
-        "    action: fix.future\n"
-        "    status: PENDING\n"
+        "mappings:\n  some.future_rule:\n    action: fix.future\n    status: PENDING\n"
     )
     # Intentionally no file declaring fix.future — that's the PENDING shape.
     repo = _scaffold_repo(tmp_path, yaml_doc, atomic_files={})
@@ -173,12 +165,7 @@ def test_flow_entry_is_exempt(tmp_path: Path) -> None:
     """Entries dispatching through ``flow:`` (FlowExecutor) instead of an
     atomic action have no ``remediates`` list to check; exempt by design.
     """
-    yaml_doc = (
-        "mappings:\n"
-        "  some.rule:\n"
-        "    flow: some.flow_id\n"
-        "    status: ACTIVE\n"
-    )
+    yaml_doc = "mappings:\n  some.rule:\n    flow: some.flow_id\n    status: ACTIVE\n"
     repo = _scaffold_repo(tmp_path, yaml_doc, atomic_files={})
 
     result = _check_active_routing_claimed_by_action(
@@ -195,10 +182,7 @@ def test_active_entry_routing_to_missing_action_violates(tmp_path: Path) -> None
     own message so the operator sees what to fix.)
     """
     yaml_doc = (
-        "mappings:\n"
-        "  rule.alpha:\n"
-        "    action: fix.does_not_exist\n"
-        "    status: ACTIVE\n"
+        "mappings:\n  rule.alpha:\n    action: fix.does_not_exist\n    status: ACTIVE\n"
     )
     repo = _scaffold_repo(tmp_path, yaml_doc, atomic_files={})
 

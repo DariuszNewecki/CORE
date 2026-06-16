@@ -63,7 +63,9 @@ async def test_worker_shop_manager_classifies_worker_silent_as_self_resolve(
 
     post_finding = AsyncMock()
     monkeypatch.setattr(worker, "post_heartbeat", AsyncMock())
-    monkeypatch.setattr(worker, "_fetch_registered_workers", AsyncMock(return_value=[silent_worker]))
+    monkeypatch.setattr(
+        worker, "_fetch_registered_workers", AsyncMock(return_value=[silent_worker])
+    )
     monkeypatch.setattr(worker, "_fetch_existing_findings", AsyncMock(return_value={}))
     monkeypatch.setattr(worker, "post_finding", post_finding)
     monkeypatch.setattr(worker, "post_report", AsyncMock())
@@ -103,11 +105,19 @@ async def test_blackboard_shop_manager_classifies_entry_stale_as_self_resolve(
 
     post_finding = AsyncMock()
     monkeypatch.setattr(worker, "post_heartbeat", AsyncMock())
-    monkeypatch.setattr(worker, "_sweep_resolved_stale_alerts", AsyncMock(return_value=0))
+    monkeypatch.setattr(
+        worker, "_sweep_resolved_stale_alerts", AsyncMock(return_value=0)
+    )
     monkeypatch.setattr(worker, "_sweep_telemetry_ttl", AsyncMock(return_value=0))
-    monkeypatch.setattr(worker, "_sweep_delegate_findings_ttl", AsyncMock(return_value=0))
-    monkeypatch.setattr(worker, "_fetch_stale_entries", AsyncMock(return_value=[stale_entry]))
-    monkeypatch.setattr(worker, "_fetch_existing_findings", AsyncMock(return_value=set()))
+    monkeypatch.setattr(
+        worker, "_sweep_delegate_findings_ttl", AsyncMock(return_value=0)
+    )
+    monkeypatch.setattr(
+        worker, "_fetch_stale_entries", AsyncMock(return_value=[stale_entry])
+    )
+    monkeypatch.setattr(
+        worker, "_fetch_existing_findings", AsyncMock(return_value=set())
+    )
     monkeypatch.setattr(worker, "_count_active_entries", AsyncMock(return_value=1))
     monkeypatch.setattr(worker, "post_finding", post_finding)
     monkeypatch.setattr(worker, "post_report", AsyncMock())
@@ -150,7 +160,9 @@ async def test_proposal_pipeline_classifies_all_three_subjects_as_self_resolve(
     proposal_svc = MagicMock()
     proposal_svc.fetch_stuck_approved = AsyncMock(return_value=[stuck_approved_row])
     proposal_svc.fetch_stuck_executing = AsyncMock(return_value=[stuck_executing_row])
-    proposal_svc.fetch_repeated_failures = AsyncMock(return_value=[repeated_failure_row])
+    proposal_svc.fetch_repeated_failures = AsyncMock(
+        return_value=[repeated_failure_row]
+    )
 
     blackboard_svc = MagicMock()
     blackboard_svc.resolve_entries = AsyncMock()

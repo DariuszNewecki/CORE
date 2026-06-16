@@ -9,6 +9,7 @@ guards via the underlying function (``.__wrapped__``): the gate must REFUSE
 (ok=False) on missing inputs — never silently pass, since a missing patch or rule
 reading as success would defeat the gate.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -47,7 +48,9 @@ async def test_refuses_without_git_service() -> None:
     ctx = MagicMock()
     ctx.git_service = None
     result = await fn(
-        patch="--- a/x\n+++ b/x\n", finding_rule="purity.no_orphan_files", core_context=ctx
+        patch="--- a/x\n+++ b/x\n",
+        finding_rule="purity.no_orphan_files",
+        core_context=ctx,
     )
     assert result.ok is False
     assert "git_service" in result.data["error"]

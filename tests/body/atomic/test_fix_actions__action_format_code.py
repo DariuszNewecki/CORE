@@ -98,9 +98,7 @@ async def test_action_format_code_threads_worktree_cwd():
     tree, not the real one — otherwise the working tree is polluted.
     """
     worktree = Path("/var/tmp/core-action-sandbox-deadbeef")
-    core_context = SimpleNamespace(
-        git_service=SimpleNamespace(repo_path=worktree)
-    )
+    core_context = SimpleNamespace(git_service=SimpleNamespace(repo_path=worktree))
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with authorize_execution("format.code"):
             result = await action_format_code(core_context=core_context, write=True)

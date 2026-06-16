@@ -141,5 +141,7 @@ def test_linter_compliance_silent_skips_ruff_then_runs_black_on_mixed_absence() 
     with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
         result = asyncio.run(check.verify(None, {}))
 
-    assert result == [], f"Expected empty violations (ruff skip + black pass); got {result}"
+    assert result == [], (
+        f"Expected empty violations (ruff skip + black pass); got {result}"
+    )
     assert call_count["n"] == 2, "Expected both subprocess calls to be attempted"

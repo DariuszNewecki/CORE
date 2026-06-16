@@ -89,9 +89,7 @@ def test_no_commit_when_production_empty_preserves_architect_bytes(
     )
 
     post_sha = _run(["git", "rev-parse", "HEAD"], repo_with_target)
-    assert post_sha == pre_sha, (
-        "ADR-101 D2: empty production set must emit no commit"
-    )
+    assert post_sha == pre_sha, "ADR-101 D2: empty production set must emit no commit"
     assert (repo_with_target / "target.py").read_text() == architect_bytes, (
         "ADR-101 D1: architect's uncommitted bytes must survive byte-for-byte"
     )
@@ -137,9 +135,7 @@ def test_commit_proposal_changes_attributes_only_action_bytes(
 
     msg = _run(["git", "log", "-1", "--format=%s"], repo_with_target)
     assert "fix.format" in msg, "commit message must name the action"
-    assert proposal_id[:16] in msg, (
-        "commit message must carry the proposal_id prefix"
-    )
+    assert proposal_id[:16] in msg, "commit message must carry the proposal_id prefix"
 
 
 def test_rollback_proposal_restores_only_action_touched_paths(

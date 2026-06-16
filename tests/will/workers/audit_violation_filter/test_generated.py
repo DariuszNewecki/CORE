@@ -5,10 +5,7 @@ Covers filter_actionable_violations public function with happy paths,
 error paths, and edge cases.
 """
 
-import logging
 from unittest.mock import patch
-
-import pytest
 
 from will.workers.audit_violation_filter import filter_actionable_violations
 
@@ -40,9 +37,21 @@ def test_actionable_violation_preserved():
 def test_multiple_actionable_violations_preserved():
     """Multiple valid violations should all be returned."""
     violations = [
-        {"file_path": "src/module.py", "rule_id": "quality.no_dead_code", "message": "msg1"},
-        {"file_path": "src/utils.py", "rule_id": "purity.pure_function", "message": "msg2"},
-        {"file_path": "tests/test_utils.py", "rule_id": "style.naming", "message": "msg3"},
+        {
+            "file_path": "src/module.py",
+            "rule_id": "quality.no_dead_code",
+            "message": "msg1",
+        },
+        {
+            "file_path": "src/utils.py",
+            "rule_id": "purity.pure_function",
+            "message": "msg2",
+        },
+        {
+            "file_path": "tests/test_utils.py",
+            "rule_id": "style.naming",
+            "message": "msg3",
+        },
     ]
     result = filter_actionable_violations(violations)
     assert result == violations

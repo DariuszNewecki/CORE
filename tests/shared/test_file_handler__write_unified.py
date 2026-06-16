@@ -75,9 +75,7 @@ def test_write_strips_dot_slash_prefix(fh: FileHandler, repo_root: Path) -> None
     assert (repo_root / "reports" / "p.txt").exists()
 
 
-def test_write_overwrites_existing_atomically(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_write_overwrites_existing_atomically(fh: FileHandler, repo_root: Path) -> None:
     fh.write("reports/v.txt", "first")
     fh.write("reports/v.txt", "second")
     assert (repo_root / "reports" / "v.txt").read_text() == "second\n"
@@ -96,18 +94,14 @@ def test_repo_source_py_injects_id_anchor(fh: FileHandler, repo_root: Path) -> N
     assert any(line.strip().startswith("# ID:") for line in written.splitlines())
 
 
-def test_repo_source_py_invalid_syntax_raises(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_repo_source_py_invalid_syntax_raises(fh: FileHandler, repo_root: Path) -> None:
     """Syntax-invalid .py under repo-source raises; file not written."""
     with pytest.raises(ValueError, match="Syntax Error"):
         fh.write("src/bad.py", "def broken(:\n")
     assert not (repo_root / "src" / "bad.py").exists()
 
 
-def test_repo_source_private_defs_no_anchor(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_repo_source_private_defs_no_anchor(fh: FileHandler, repo_root: Path) -> None:
     """Private symbols still skip ID anchor injection."""
     fh.write("src/foo.py", "def _helper():\n    return 1\n")
     written = (repo_root / "src" / "foo.py").read_text()
@@ -146,9 +140,7 @@ def test_ephemeral_scratch_no_id_anchor_injection(
     assert not any(line.strip().startswith("# ID:") for line in written.splitlines())
 
 
-def test_ephemeral_scratch_skips_syntax_gate(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_ephemeral_scratch_skips_syntax_gate(fh: FileHandler, repo_root: Path) -> None:
     """Syntax-invalid .py under var/tmp/ writes WITHOUT raising.
     ADR-097 D3: ephemeral tier has no schema/syntax gates."""
     fh.write("var/tmp/scratch/bad.py", "def broken(:\n")
@@ -191,9 +183,9 @@ def test_runtime_output_trailing_newline_added(
 @pytest.mark.parametrize(
     "rel_path",
     [
-        "src/blob.py",            # would be repo-source if str
-        "reports/blob.bin",       # runtime-output
-        "var/tmp/scratch.bin",    # ephemeral-scratch
+        "src/blob.py",  # would be repo-source if str
+        "reports/blob.bin",  # runtime-output
+        "var/tmp/scratch.bin",  # ephemeral-scratch
     ],
 )
 def test_bytes_writes_exact_bytes_no_transforms(

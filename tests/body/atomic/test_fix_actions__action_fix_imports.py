@@ -20,9 +20,7 @@ from shared.governance_token import authorize_execution
 @pytest.mark.asyncio
 async def test_action_fix_imports_no_context_uses_process_cwd():
     """No core_context → run_poetry_command receives cwd=None (CLI default)."""
-    with patch(
-        "shared.utils.subprocess_utils.run_poetry_command"
-    ) as mock_run:
+    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_run:
         with authorize_execution("fix.imports"):
             result = await action_fix_imports(write=True)
         assert result.ok
@@ -34,12 +32,8 @@ async def test_action_fix_imports_no_context_uses_process_cwd():
 async def test_action_fix_imports_threads_worktree_cwd():
     """#638: a scoped core_context routes ruff's cwd into the flow worktree."""
     worktree = Path("/var/tmp/core-action-sandbox-deadbeef")
-    core_context = SimpleNamespace(
-        git_service=SimpleNamespace(repo_path=worktree)
-    )
-    with patch(
-        "shared.utils.subprocess_utils.run_poetry_command"
-    ) as mock_run:
+    core_context = SimpleNamespace(git_service=SimpleNamespace(repo_path=worktree))
+    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_run:
         with authorize_execution("fix.imports"):
             result = await action_fix_imports(core_context=core_context, write=True)
         assert result.ok

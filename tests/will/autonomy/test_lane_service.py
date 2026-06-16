@@ -84,10 +84,13 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     bb_service.defer_delegated_finding_to_proposal = AsyncMock(return_value=1)
     create = AsyncMock(return_value="prop-abc")
 
-    with patch(
-        "will.autonomy.lane_service.service_registry.get_blackboard_service",
-        AsyncMock(return_value=bb_service),
-    ), _patch_proposals(create):
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        _patch_proposals(create),
+    ):
         proposal_id = await LaneService().propose_validated_diff(
             finding_id="f-1",
             patch="--- a/src/x.py\n+++ b/src/x.py\n",
@@ -126,10 +129,13 @@ async def test_propose_raises_when_finding_not_live():
     bb_service.defer_delegated_finding_to_proposal = AsyncMock()
     create = AsyncMock()
 
-    with patch(
-        "will.autonomy.lane_service.service_registry.get_blackboard_service",
-        AsyncMock(return_value=bb_service),
-    ), _patch_proposals(create):
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        _patch_proposals(create),
+    ):
         with pytest.raises(LaneProposeError):
             await LaneService().propose_validated_diff(
                 finding_id="missing",
@@ -198,10 +204,14 @@ async def test_get_finding_bundle_includes_rationale_and_remediation():
     guidance = {"description": "class refactor — human judgment", "status": "DELEGATE"}
     p_repo, p_rem = _patch_bundle_sources("classes must stay small", False, guidance)
 
-    with patch(
-        "will.autonomy.lane_service.service_registry.get_blackboard_service",
-        AsyncMock(return_value=bb_service),
-    ), p_repo, p_rem:
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        p_repo,
+        p_rem,
+    ):
         out = await LaneService().get_finding_bundle("f-1")
 
     assert out["bundle"]["rule"]["in_registry"] is True
@@ -224,10 +234,14 @@ async def test_get_finding_bundle_flags_orphan_when_rule_absent():
     )
     p_repo, p_rem = _patch_bundle_sources(None, True, None)
 
-    with patch(
-        "will.autonomy.lane_service.service_registry.get_blackboard_service",
-        AsyncMock(return_value=bb_service),
-    ), p_repo, p_rem:
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        p_repo,
+        p_rem,
+    ):
         out = await LaneService().get_finding_bundle("f-2")
 
     assert out["bundle"]["rule"]["in_registry"] is False

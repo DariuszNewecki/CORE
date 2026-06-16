@@ -32,9 +32,7 @@ def test_file_service_resolves_symlinked_repo_path(tmp_path: Path) -> None:
     assert service.repo_path == real_repo.resolve()
 
 
-def test_file_service_resolves_relative_repo_path(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_file_service_resolves_relative_repo_path(tmp_path: Path, monkeypatch) -> None:
     """A relative-form repo_path is stored as an absolute resolved path."""
     real_repo = tmp_path / "rel_repo"
     real_repo.mkdir()

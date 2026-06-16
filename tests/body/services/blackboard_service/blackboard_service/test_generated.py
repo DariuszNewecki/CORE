@@ -110,7 +110,9 @@ class TestBlackboardService:
         # Source uses ``async with session.begin():`` inside the session;
         # both context managers need __aenter__/__aexit__ on the same mock.
         mock_session.begin = MagicMock()
-        mock_session.begin.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.begin.return_value.__aenter__ = AsyncMock(
+            return_value=mock_session
+        )
         mock_session.begin.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(

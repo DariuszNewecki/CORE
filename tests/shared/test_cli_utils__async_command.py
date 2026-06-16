@@ -49,6 +49,7 @@ def test_async_command_returns_coroutine_in_running_loop():
         # The decorator returns the coroutine; the caller awaits it.
         result_coro = sample_async_func()
         import inspect as _inspect
+
         assert _inspect.iscoroutine(result_coro)
         return await result_coro
 

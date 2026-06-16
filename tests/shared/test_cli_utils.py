@@ -301,6 +301,7 @@ def test_async_command():
         # coroutine cleanly (avoids "coroutine was never awaited" warnings).
         result_coro = nested_async_func()
         import inspect as _inspect
+
         assert _inspect.iscoroutine(result_coro), (
             "async_command inside a running loop should return a coroutine"
         )

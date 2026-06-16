@@ -86,9 +86,7 @@ def repo_root() -> Path:
 
 
 @pytest.fixture
-def fh(
-    repo_root: Path, monkeypatch: pytest.MonkeyPatch
-) -> FileHandler:
+def fh(repo_root: Path, monkeypatch: pytest.MonkeyPatch) -> FileHandler:
     """FileHandler instance with IntentGuard interaction stubbed.
 
     The regression matrix pins post-guard behavior. Guard semantics
@@ -122,7 +120,9 @@ def test_write_runtime_text_appends_trailing_newline_when_absent(
 ) -> None:
     """Content lacking '\\n' gains exactly one — pins ensure_trailing_newline."""
     fh.write_runtime_text("reports/a.txt", "no newline")
-    assert (repo_root / "reports" / "a.txt").read_text(encoding="utf-8") == "no newline\n"
+    assert (repo_root / "reports" / "a.txt").read_text(
+        encoding="utf-8"
+    ) == "no newline\n"
 
 
 def test_write_runtime_text_collapses_multiple_trailing_newlines(
@@ -195,7 +195,9 @@ def test_write_runtime_text_non_py_skips_syntax_gate(
 ) -> None:
     """Non-.py files are not parsed; invalid Python content writes fine."""
     fh.write_runtime_text("reports/note.txt", "def broken(:")
-    assert (repo_root / "reports" / "note.txt").read_text(encoding="utf-8") == "def broken(:\n"
+    assert (repo_root / "reports" / "note.txt").read_text(
+        encoding="utf-8"
+    ) == "def broken(:\n"
 
 
 # ---------------------------------------------------------------------------
@@ -213,9 +215,7 @@ def test_write_runtime_text_non_py_skips_syntax_gate(
 # change its assertion deliberately — that flip IS the bug fix.
 
 
-def test_id_anchor_injected_for_src_paths(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_id_anchor_injected_for_src_paths(fh: FileHandler, repo_root: Path) -> None:
     """Public def in src/ without preceding '# ID:' gets one injected."""
     fh.write_runtime_text(
         "src/foo.py",
@@ -235,13 +235,13 @@ def test_id_anchor_not_reinjected_when_present(
     content = "# ID: 11111111-2222-3333-4444-555555555555\ndef hello():\n    return 1\n"
     fh.write_runtime_text("src/foo.py", content)
     written = (repo_root / "src" / "foo.py").read_text(encoding="utf-8")
-    id_lines = [line for line in written.splitlines() if line.strip().startswith("# ID:")]
+    id_lines = [
+        line for line in written.splitlines() if line.strip().startswith("# ID:")
+    ]
     assert len(id_lines) == 1, f"Expected exactly one '# ID:' line, got:\n{written}"
 
 
-def test_id_anchor_skipped_for_private_defs(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_id_anchor_skipped_for_private_defs(fh: FileHandler, repo_root: Path) -> None:
     """Private symbols ('_name') do not receive auto-anchors."""
     fh.write_runtime_text(
         "src/foo.py",
@@ -251,9 +251,7 @@ def test_id_anchor_skipped_for_private_defs(
     assert not any(line.strip().startswith("# ID:") for line in written.splitlines())
 
 
-def test_id_anchor_injected_for_tests_paths(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_id_anchor_injected_for_tests_paths(fh: FileHandler, repo_root: Path) -> None:
     """tests/ paths now DO get ID anchors (ADR-097 step 4 behavior).
 
     Before the flip: tests/ paths did NOT receive ID anchor injection
@@ -325,9 +323,7 @@ def test_write_runtime_bytes_skips_syntax_gate(
     assert (repo_root / "src" / "raw.py").read_bytes() == b"def broken(:"
 
 
-def test_write_runtime_bytes_returns_success(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_write_runtime_bytes_returns_success(fh: FileHandler, repo_root: Path) -> None:
     """Return shape: 'Wrote runtime bytes' / rel_path."""
     result = fh.write_runtime_bytes("reports/b.bin", b"x")
     assert result == FileOpResult("success", "Wrote runtime bytes", "reports/b.bin")
@@ -411,18 +407,14 @@ def test_add_pending_write_creates_pw_file_in_pending_dir(
 # ---------------------------------------------------------------------------
 
 
-def test_ensure_dir_creates_nested_path(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_ensure_dir_creates_nested_path(fh: FileHandler, repo_root: Path) -> None:
     """Multi-level dirs created in one call (mkdir parents=True)."""
     result = fh.ensure_dir("reports/audit/2026")
     assert result.status == "success"
     assert (repo_root / "reports" / "audit" / "2026").is_dir()
 
 
-def test_ensure_dir_idempotent_when_exists(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_ensure_dir_idempotent_when_exists(fh: FileHandler, repo_root: Path) -> None:
     """Calling twice does not error (mkdir exist_ok=True)."""
     fh.ensure_dir("reports/x")
     result = fh.ensure_dir("reports/x")
@@ -430,9 +422,7 @@ def test_ensure_dir_idempotent_when_exists(
     assert (repo_root / "reports" / "x").is_dir()
 
 
-def test_ensure_dir_strips_trailing_slash(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_ensure_dir_strips_trailing_slash(fh: FileHandler, repo_root: Path) -> None:
     """'reports/x/' is equivalent to 'reports/x'."""
     fh.ensure_dir("reports/x/")
     assert (repo_root / "reports" / "x").is_dir()
@@ -443,9 +433,7 @@ def test_ensure_dir_strips_trailing_slash(
 # ---------------------------------------------------------------------------
 
 
-def test_remove_file_deletes_existing(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_remove_file_deletes_existing(fh: FileHandler, repo_root: Path) -> None:
     target = repo_root / "reports" / "to_del.txt"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("x", encoding="utf-8")
@@ -454,17 +442,13 @@ def test_remove_file_deletes_existing(
     assert not target.exists()
 
 
-def test_remove_file_missing_ok_on_absent(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_remove_file_missing_ok_on_absent(fh: FileHandler, repo_root: Path) -> None:
     """No error if target doesn't exist (Path.unlink(missing_ok=True))."""
     result = fh.remove_file("reports/never_existed.txt")
     assert result.status == "success"
 
 
-def test_remove_tree_deletes_directory(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_remove_tree_deletes_directory(fh: FileHandler, repo_root: Path) -> None:
     target = repo_root / "reports" / "tree_to_del"
     (target / "a" / "b").mkdir(parents=True)
     (target / "f.txt").write_text("x", encoding="utf-8")
@@ -473,9 +457,7 @@ def test_remove_tree_deletes_directory(
     assert not target.exists()
 
 
-def test_remove_tree_ignore_errors_on_absent(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_remove_tree_ignore_errors_on_absent(fh: FileHandler, repo_root: Path) -> None:
     """shutil.rmtree(ignore_errors=True) — absent target is a no-op."""
     result = fh.remove_tree("reports/no_such_tree")
     assert result.status == "success"
@@ -486,9 +468,7 @@ def test_remove_tree_ignore_errors_on_absent(
 # ---------------------------------------------------------------------------
 
 
-def test_copy_tree_replicates_structure(
-    fh: FileHandler, repo_root: Path
-) -> None:
+def test_copy_tree_replicates_structure(fh: FileHandler, repo_root: Path) -> None:
     src = repo_root / "reports" / "src_tree"
     (src / "a").mkdir(parents=True)
     (src / "a" / "x.txt").write_text("hello", encoding="utf-8")

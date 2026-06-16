@@ -283,9 +283,7 @@ class TestPathResolver:
             assert "Missing required directory: var/" in result.errors[0]
             # Intent root and governance config are both surfaced; the
             # governance config now lands last.
-            assert any(
-                "Missing constitutional intent root" in e for e in result.errors
-            )
+            assert any("Missing constitutional intent root" in e for e in result.errors)
             assert "Missing governance config" in result.errors[-1]
             assert "checked_paths" in result.metadata
 

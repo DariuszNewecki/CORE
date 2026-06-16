@@ -79,8 +79,12 @@ def test_walk_registry_normalises_in_repo_commands_to_relative_paths() -> None:
     path_resolver.repo_root = repo_root
 
     fake_commands = [
-        _make_command("admin.health", "/opt/dev/CORE/src/cli/resources/admin/health.py"),
-        _make_command("context.build", "/opt/dev/CORE/src/cli/resources/context/build.py"),
+        _make_command(
+            "admin.health", "/opt/dev/CORE/src/cli/resources/admin/health.py"
+        ),
+        _make_command(
+            "context.build", "/opt/dev/CORE/src/cli/resources/context/build.py"
+        ),
     ]
 
     with (

@@ -215,8 +215,7 @@ def test_mixed_transaction_respects_per_path_class(guard: IntentGuard) -> None:
     assert result.is_valid is False
     # The blocking violation comes from src/real.py, not var/tmp/scratch.py.
     blocking_paths = {
-        v.path for v in result.violations
-        if v.rule_name == "test.adr097.always_block"
+        v.path for v in result.violations if v.rule_name == "test.adr097.always_block"
     }
     assert "src/real.py" in blocking_paths
     assert "var/tmp/scratch.py" not in blocking_paths

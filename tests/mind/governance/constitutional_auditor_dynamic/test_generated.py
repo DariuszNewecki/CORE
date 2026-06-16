@@ -111,9 +111,7 @@ class TestFindUnmappedRuleIds:
         assert unmapped == []
 
     def test_some_rules_unmapped(self):
-        policies = {
-            "p1": {"rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]}
-        }
+        policies = {"p1": {"rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]}}
         executable = {"r1", "r3"}
         unmapped = _find_unmapped_rule_ids(policies, executable)
         assert unmapped == ["r2"]
@@ -279,9 +277,7 @@ class TestGetDynamicExecutionStats:
         assert stats["crashed_rule_ids"] == []
 
     def test_all_rules_executed_none_crashed(self, monkeypatch):
-        ctx = self.make_mock_context(
-            {"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}]}}
-        )
+        ctx = self.make_mock_context({"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}]}})
         monkeypatch.setattr(
             "mind.governance.constitutional_auditor_dynamic.extract_executable_rules",
             lambda *a, **k: [_make_executable_rule("r1"), _make_executable_rule("r2")],
@@ -294,11 +290,7 @@ class TestGetDynamicExecutionStats:
 
     def test_with_crashed_rules(self, monkeypatch):
         ctx = self.make_mock_context(
-            {
-                "pol1": {
-                    "rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]
-                }
-            }
+            {"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]}}
         )
         monkeypatch.setattr(
             "mind.governance.constitutional_auditor_dynamic.extract_executable_rules",
@@ -311,9 +303,7 @@ class TestGetDynamicExecutionStats:
         assert stats["unmapped_rule_ids"] == ["r3"]
 
     def test_crashed_rule_also_unmapped_not_counted_twice(self, monkeypatch):
-        ctx = self.make_mock_context(
-            {"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}]}}
-        )
+        ctx = self.make_mock_context({"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}]}})
         monkeypatch.setattr(
             "mind.governance.constitutional_auditor_dynamic.extract_executable_rules",
             lambda *a, **k: [_make_executable_rule("r1"), _make_executable_rule("r2")],
@@ -335,11 +325,7 @@ class TestGetDynamicExecutionStats:
 
     def test_mixed_scenario(self, monkeypatch):
         ctx = self.make_mock_context(
-            {
-                "pol1": {
-                    "rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]
-                }
-            }
+            {"pol1": {"rules": [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]}}
         )
         monkeypatch.setattr(
             "mind.governance.constitutional_auditor_dynamic.extract_executable_rules",

@@ -72,8 +72,7 @@ async def next_finding() -> None:
         status = remediation.get("status") or ""
         suffix = f" [dim]({status})[/dim]" if status else ""
         lines.append(
-            f"\n[bold]Remediation guidance[/bold]{suffix}\n"
-            f"{remediation['description']}"
+            f"\n[bold]Remediation guidance[/bold]{suffix}\n{remediation['description']}"
         )
 
     console.print(Panel("\n".join(lines), title="Assisted Lane — next finding"))

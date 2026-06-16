@@ -29,9 +29,7 @@ def test_hallucinated_module_produces_must_resolve_violation() -> None:
     module in the violation message.
     """
     code = "from shared.domain.engine import EngineResult\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 1
     assert out[0].rule_name == "code.imports.generated_must_resolve"
     assert "shared.domain.engine" in out[0].message
@@ -45,9 +43,7 @@ def test_valid_imports_produce_no_violations() -> None:
         "import pytest\n"
         "from shared.path_resolver import PathResolver\n"
     )
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert out == []
 
 
@@ -58,9 +54,7 @@ def test_future_imports_always_skipped() -> None:
     short-circuits on it explicitly.
     """
     code = "from __future__ import annotations\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert out == []
 
 
@@ -70,9 +64,7 @@ def test_relative_import_is_no_relative_violation() -> None:
     ``code.imports.generated_no_relative``.
     """
     code = "from .helpers import setup\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 1
     assert out[0].rule_name == "code.imports.generated_no_relative"
 
@@ -81,9 +73,7 @@ def test_relative_import_is_no_relative_violation() -> None:
 def test_double_dot_relative_import_is_no_relative_violation() -> None:
     """``from ..pkg import x`` (level=2) is reported the same way as level=1."""
     code = "from ..pkg import Thing\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 1
     assert out[0].rule_name == "code.imports.generated_no_relative"
 
@@ -95,9 +85,7 @@ def test_relative_import_skips_resolve_check() -> None:
     name ``find_spec`` could meaningfully resolve.
     """
     code = "from .helpers import setup\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     rule_names = {v.rule_name for v in out}
     assert rule_names == {"code.imports.generated_no_relative"}
 
@@ -112,9 +100,7 @@ def test_mixed_valid_and_hallucinated_reports_only_hallucinated() -> None:
         "from shared.path_resolver import PathResolver\n"
         "from shared.domain.engine import EngineResult\n"
     )
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 1
     assert out[0].rule_name == "code.imports.generated_must_resolve"
     assert "shared.domain.engine" in out[0].message
@@ -129,13 +115,9 @@ def test_multiple_hallucinated_modules_each_reported_separately() -> None:
         "from shared.domain.engine import EngineResult\n"
         "from shared.fake.thing import Thing\n"
     )
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 2
-    assert all(
-        v.rule_name == "code.imports.generated_must_resolve" for v in out
-    )
+    assert all(v.rule_name == "code.imports.generated_must_resolve" for v in out)
 
 
 # ID: e9bf2c6e-1994-46c3-a241-e4a7c579d333
@@ -144,9 +126,7 @@ def test_plain_import_alias_form_resolves() -> None:
     the ImportFrom path. A hallucinated dotted import must be flagged.
     """
     code = "import shared.domain.engine\n"
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert len(out) == 1
     assert out[0].rule_name == "code.imports.generated_must_resolve"
     assert "shared.domain.engine" in out[0].message
@@ -159,9 +139,7 @@ def test_syntax_error_returns_empty_list() -> None:
     re-emitting from this validator would duplicate the violation.
     """
     code = "from shared import (\n"  # unterminated paren
-    out = PatternValidators.validate_test_file_pattern(
-        code, "tests/test_generated.py"
-    )
+    out = PatternValidators.validate_test_file_pattern(code, "tests/test_generated.py")
     assert out == []
 
 

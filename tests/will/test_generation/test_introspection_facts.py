@@ -26,9 +26,7 @@ def test_file_path_to_import_path_handles_no_src_prefix() -> None:
 
 
 def test_file_path_to_import_path_collapses_init() -> None:
-    assert (
-        _file_path_to_import_path("src/body/services/__init__.py") == "body.services"
-    )
+    assert _file_path_to_import_path("src/body/services/__init__.py") == "body.services"
 
 
 def test_has_governance_decorator_matches_atomic_action() -> None:

@@ -27,9 +27,7 @@ async def test_empty_prefixes_is_no_op() -> None:
     allowlist must not result in an over-broad delete.
     """
     svc = BlackboardService()
-    with patch(
-        "body.services.service_registry.ServiceRegistry"
-    ) as mock_registry:
+    with patch("body.services.service_registry.ServiceRegistry") as mock_registry:
         n = await svc.sweep_telemetry_keep_last_n_per_subject(
             subject_prefixes=(), keep_last=100, batch_max=500
         )
@@ -45,9 +43,7 @@ async def test_keep_last_zero_is_no_op() -> None:
     misconfigured the YAML rather than intending to wipe all telemetry.
     """
     svc = BlackboardService()
-    with patch(
-        "body.services.service_registry.ServiceRegistry"
-    ) as mock_registry:
+    with patch("body.services.service_registry.ServiceRegistry") as mock_registry:
         n = await svc.sweep_telemetry_keep_last_n_per_subject(
             subject_prefixes=("loop_hold.sample::",), keep_last=0, batch_max=500
         )
@@ -60,9 +56,7 @@ async def test_keep_last_zero_is_no_op() -> None:
 async def test_keep_last_negative_is_no_op() -> None:
     """Negative ``keep_last`` follows the same fail-closed branch as zero."""
     svc = BlackboardService()
-    with patch(
-        "body.services.service_registry.ServiceRegistry"
-    ) as mock_registry:
+    with patch("body.services.service_registry.ServiceRegistry") as mock_registry:
         n = await svc.sweep_telemetry_keep_last_n_per_subject(
             subject_prefixes=("loop_hold.sample::",), keep_last=-5, batch_max=500
         )
@@ -101,9 +95,7 @@ async def test_valid_inputs_dispatch_sql_with_correct_params() -> None:
         async def __aexit__(self, *a):
             return False
 
-    with patch(
-        "body.services.service_registry.ServiceRegistry"
-    ) as mock_registry:
+    with patch("body.services.service_registry.ServiceRegistry") as mock_registry:
         mock_registry.session.return_value = _SessionCM()
         n = await svc.sweep_telemetry_keep_last_n_per_subject(
             subject_prefixes=("loop_hold.sample::", "other.telemetry::"),
@@ -148,9 +140,7 @@ async def test_returns_zero_when_rowcount_is_none() -> None:
         async def __aexit__(self, *a):
             return False
 
-    with patch(
-        "body.services.service_registry.ServiceRegistry"
-    ) as mock_registry:
+    with patch("body.services.service_registry.ServiceRegistry") as mock_registry:
         mock_registry.session.return_value = _SessionCM()
         n = await svc.sweep_telemetry_keep_last_n_per_subject(
             subject_prefixes=("loop_hold.sample::",),

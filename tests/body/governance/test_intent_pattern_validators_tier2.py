@@ -90,9 +90,7 @@ def test_x():
     assert Widget()
 """
     tree = ast.parse(code)
-    assert (
-        PatternValidators.check_no_imported_symbol_redeclared(tree, "test.py") == []
-    )
+    assert PatternValidators.check_no_imported_symbol_redeclared(tree, "test.py") == []
 
 
 # ---------------------------------------------------------------------------

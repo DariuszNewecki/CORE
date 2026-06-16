@@ -231,7 +231,9 @@ def test_core_command_with_context_object():
     mock_core_context.registry.get_cognitive_service = AsyncMock(
         return_value=mock_cognitive
     )
-    mock_core_context.registry.get_auditor_context = AsyncMock(return_value=mock_auditor)
+    mock_core_context.registry.get_auditor_context = AsyncMock(
+        return_value=mock_auditor
+    )
 
     captured: dict[str, object] = {}
 

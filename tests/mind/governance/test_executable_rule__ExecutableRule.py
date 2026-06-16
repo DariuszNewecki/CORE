@@ -143,7 +143,10 @@ def test_executable_rule_repr_method():
     # 2026-06-07 (#572 batch 18): repr format gained an authority axis —
     # source now emits ``ExecutableRule(<id>, engine=<engine>, authority=<lvl>)``
     # (defaults to ``policy``).
-    assert repr(rule) == "ExecutableRule(test.repr.rule, engine=llm_gate, authority=policy)"
+    assert (
+        repr(rule)
+        == "ExecutableRule(test.repr.rule, engine=llm_gate, authority=policy)"
+    )
 
 
 def test_executable_rule_with_context_level_engines():

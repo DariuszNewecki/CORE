@@ -51,7 +51,9 @@ def tmp_py_file():
     p.unlink(missing_ok=True)
 
 
-def _engine_with_mocked_prompt(path_resolver, invoke_return_value=None, invoke_side_effect=None):
+def _engine_with_mocked_prompt(
+    path_resolver, invoke_return_value=None, invoke_side_effect=None
+):
     """Construct an LLMGateEngine and replace its ``_audit_prompt_model``
     with a mock exposing AsyncMock invoke(). Returns (engine, invoke_mock).
 
@@ -128,7 +130,11 @@ async def test_verify_with_violation_no_finding(path_resolver, tmp_py_file):
     engine, _ = _engine_with_mocked_prompt(
         path_resolver,
         invoke_return_value=json.dumps(
-            {"violation": True, "reasoning": "Function lacks docstring", "finding": None}
+            {
+                "violation": True,
+                "reasoning": "Function lacks docstring",
+                "finding": None,
+            }
         ),
     )
     tmp_py_file.write_text("def foo(): pass", encoding="utf-8")

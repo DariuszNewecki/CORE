@@ -99,9 +99,7 @@ def test_invalid_structured_value_falls_through_to_regex() -> None:
         message="Line 88: violation", details={"line_number": "not-a-number"}
     )
     assert out == 88
-    out = extract_line_number(
-        message="Line 88: violation", details={"line_number": 0}
-    )
+    out = extract_line_number(message="Line 88: violation", details={"line_number": 0})
     assert out == 88
 
 

@@ -40,9 +40,7 @@ class TestExecutionTask:
         with pytest.raises(ValidationError):
             ExecutionTask(step="step_1", action="test_action")
         # And: explicitly providing an empty TaskParams works.
-        task = ExecutionTask(
-            step="step_1", action="test_action", params=TaskParams()
-        )
+        task = ExecutionTask(step="step_1", action="test_action", params=TaskParams())
         assert isinstance(task.params, TaskParams)
 
     def test_step_required(self):

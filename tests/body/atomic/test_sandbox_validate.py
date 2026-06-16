@@ -9,6 +9,7 @@ guard via the underlying function: a sandbox-validate with no resolvable target
 must refuse (ok=False), never silently pass — a missing target reading as success
 would defeat the gate.
 """
+
 from __future__ import annotations
 
 import pytest

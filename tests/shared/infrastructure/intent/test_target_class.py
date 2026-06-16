@@ -112,7 +112,12 @@ def test_load_target_class_boundaries_returns_non_empty() -> None:
     """The live taxonomy must have at least one boundary and a default."""
     b = load_target_class_boundaries()
     assert len(b.boundaries) > 0
-    assert b.default in {"repo-source", "runtime-output", "ephemeral-scratch", "governed-artifact"}
+    assert b.default in {
+        "repo-source",
+        "runtime-output",
+        "ephemeral-scratch",
+        "governed-artifact",
+    }
 
 
 def test_every_boundary_target_class_is_in_enum() -> None:
@@ -145,12 +150,16 @@ def _build_minimal_repo(
     (root / ".intent" / "taxonomies" / "target_class_boundaries.yaml").write_text(
         boundaries_yaml, encoding="utf-8"
     )
-    enum = enum_values if enum_values is not None else [
-        "repo-source",
-        "runtime-output",
-        "ephemeral-scratch",
-        "governed-artifact",
-    ]
+    enum = (
+        enum_values
+        if enum_values is not None
+        else [
+            "repo-source",
+            "runtime-output",
+            "ephemeral-scratch",
+            "governed-artifact",
+        ]
+    )
     enums_doc = {
         "definitions": {
             "target_class": {
@@ -189,7 +198,9 @@ def test_load_raises_on_missing_enum_file(tmp_path: Path) -> None:
 def test_load_raises_on_malformed_yaml(tmp_path: Path) -> None:
     """YAML parse failure → raise."""
     _build_minimal_repo(tmp_path, ":\n:not yaml:")
-    with pytest.raises(TargetClassBoundariesError, match=r"malformed YAML|must be a mapping"):
+    with pytest.raises(
+        TargetClassBoundariesError, match=r"malformed YAML|must be a mapping"
+    ):
         load_target_class_boundaries(tmp_path)
 
 
@@ -202,7 +213,9 @@ def test_load_raises_on_target_class_drift(tmp_path: Path) -> None:
         "default: repo-source\n"
     )
     _build_minimal_repo(tmp_path, yaml_text)
-    with pytest.raises(TargetClassBoundariesError, match="not in the target_class enum"):
+    with pytest.raises(
+        TargetClassBoundariesError, match="not in the target_class enum"
+    ):
         load_target_class_boundaries(tmp_path)
 
 
@@ -222,11 +235,7 @@ def test_load_raises_on_unknown_field(tmp_path: Path) -> None:
 
 def test_load_raises_on_missing_default(tmp_path: Path) -> None:
     """No 'default:' key → raise."""
-    yaml_text = (
-        "boundaries:\n"
-        "  - prefix: 'src/'\n"
-        "    target_class: repo-source\n"
-    )
+    yaml_text = "boundaries:\n  - prefix: 'src/'\n    target_class: repo-source\n"
     _build_minimal_repo(tmp_path, yaml_text)
     with pytest.raises(TargetClassBoundariesError, match="'default:'"):
         load_target_class_boundaries(tmp_path)
@@ -241,7 +250,9 @@ def test_load_raises_on_bad_default(tmp_path: Path) -> None:
         "default: not-a-real-class\n"
     )
     _build_minimal_repo(tmp_path, yaml_text)
-    with pytest.raises(TargetClassBoundariesError, match=r"default=.*not in the target_class enum"):
+    with pytest.raises(
+        TargetClassBoundariesError, match=r"default=.*not in the target_class enum"
+    ):
         load_target_class_boundaries(tmp_path)
 
 
