@@ -123,6 +123,48 @@ class BlackboardProposalService:
                 )
                 return result.rowcount
 
+    # ID: 6b658019-7399-466b-bfc9-642f144cc03a
+    async def claim_delegated_finding(self, entry_id: str, agent: str) -> int:
+        """Mark a delegated finding as being worked by an external agent (ADR-109 §2).
+
+        Claiming is a sub-state of 'delegated', not a status transition: the
+        finding stays at ``indeterminate+human`` (still in the governor inbox /
+        lane queue per the D4 lifecycle — ``indeterminate+human`` → agent claims
+        and submits → ``deferred_to_proposal``), so the queue predicate is
+        unchanged. We only stamp ``lane_claimed_by`` / ``lane_claimed_at`` into
+        the payload so the work is visibly in-progress rather than parked.
+
+        ``claimed_by`` (the column) is deliberately untouched: it is a worker
+        UUID for the autonomous claim machinery, whereas an external agent
+        identity is a free-form string that belongs in the payload. Last-writer
+        -wins — re-claiming overwrites the prior agent stamp.
+
+        Returns the count of rows updated (0 if the finding is not a live lane
+        item).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET updated_at = now(),
+                            payload = payload || jsonb_build_object(
+                                'lane_claimed_by', cast(:agent as text),
+                                'lane_claimed_at', cast(now() as text)
+                            )
+                        WHERE entry_type = 'finding'
+                          AND status = 'indeterminate'
+                          AND resolution_mechanism = 'human'
+                          AND id = cast(:entry_id as uuid)
+                        """
+                    ),
+                    {"entry_id": entry_id, "agent": agent},
+                )
+                return result.rowcount
+
     # ID: d4f68a3e-5138-4e99-8b4b-7e9d2e43c415
     async def revive_delegated_findings_for_rejected_proposal(
         self, proposal_id: str, reason: str

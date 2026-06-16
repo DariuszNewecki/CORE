@@ -17,7 +17,9 @@ from fastapi import HTTPException
 
 from api.v1.lane_routes import (
     ProposeRequest,
+    claim_delegated_finding,
     list_delegated_findings,
+    next_delegated_finding,
     propose_diff,
 )
 
@@ -182,3 +184,53 @@ async def test_propose_happy_path_creates_proposal():
         patch=_PATCH,
         production_set=["src/x.py", "src/base.py"],
     )
+
+
+# --- next / claim -------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_next_returns_head():
+    """next surfaces the FIFO head finding verbatim."""
+    service = AsyncMock()
+    service.next_delegated_finding = AsyncMock(return_value=_mk_finding())
+    with patch("api.v1.lane_routes.LaneService", return_value=service):
+        out = await next_delegated_finding()
+    assert out == _mk_finding()
+
+
+@pytest.mark.asyncio
+async def test_next_404_when_lane_empty():
+    """An empty lane is a 404, not a null body."""
+    service = AsyncMock()
+    service.next_delegated_finding = AsyncMock(return_value=None)
+    with patch("api.v1.lane_routes.LaneService", return_value=service):
+        with pytest.raises(HTTPException) as exc:
+            await next_delegated_finding()
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_claim_success_returns_envelope():
+    """A claimed live finding returns the claim envelope (status unchanged)."""
+    service = AsyncMock()
+    service.claim_delegated_finding = AsyncMock(return_value=True)
+    with patch("api.v1.lane_routes.LaneService", return_value=service):
+        out = await claim_delegated_finding(finding_id="f-1", agent="claude-code")
+    assert out == {
+        "finding_id": "f-1",
+        "claimed_by": "claude-code",
+        "status": "indeterminate",
+    }
+    service.claim_delegated_finding.assert_awaited_once_with("f-1", "claude-code")
+
+
+@pytest.mark.asyncio
+async def test_claim_404_when_not_live():
+    """Claiming a non-live lane item is a 404."""
+    service = AsyncMock()
+    service.claim_delegated_finding = AsyncMock(return_value=False)
+    with patch("api.v1.lane_routes.LaneService", return_value=service):
+        with pytest.raises(HTTPException) as exc:
+            await claim_delegated_finding(finding_id="gone", agent="x")
+    assert exc.value.status_code == 404

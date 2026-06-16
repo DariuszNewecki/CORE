@@ -12,11 +12,15 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+from . import claim as claim_mod
 from . import list as list_mod
+from . import next as next_mod
 from . import propose as propose_mod
 
 
 app.command("list")(list_mod.list_delegated)
+app.command("next")(next_mod.next_finding)
+app.command("claim")(claim_mod.claim)
 app.command("propose")(propose_mod.propose)
 
 __all__ = ["app"]

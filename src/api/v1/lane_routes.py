@@ -92,6 +92,25 @@ async def list_delegated_findings(
 
 
 @router.get(
+    "/next",
+    summary="Pull the next delegated finding (FIFO head)",
+    description=(
+        "Return the oldest delegated finding — the lane's 'pull next work' "
+        "surface — or 404 if the lane is empty. The rich context bundle (#653) "
+        "will enrich this later; for now the raw finding is returned. Declared "
+        "before /{finding_id} so 'next' is not captured as an id."
+    ),
+)
+# ID: 4480959b-2563-4b04-94bc-35fab10b67e4
+async def next_delegated_finding() -> dict:
+    """Return the oldest delegated finding, or 404 if the lane is empty."""
+    finding = await LaneService().next_delegated_finding()
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Lane is empty.")
+    return finding
+
+
+@router.get(
     "/{finding_id}",
     summary="Get a single delegated finding",
     description=(
@@ -113,6 +132,31 @@ async def get_delegated_finding(
             detail=f"Not a live delegated lane item: {finding_id}",
         )
     return finding
+
+
+@router.post(
+    "/{finding_id}/claim",
+    summary="Mark a delegated finding as being worked",
+    description=(
+        "Stamp a delegated finding as in-progress by an external agent (ADR-109 "
+        "§2). Claiming does not change the finding's status — it stays a live "
+        "lane item — it only records who is working it so it is visibly tracked, "
+        "not parked. 404 if it is not a live lane item."
+    ),
+)
+# ID: 501609c9-9d61-454f-b452-a48463e2978c
+async def claim_delegated_finding(
+    finding_id: str = Path(..., description="Delegated finding id (uuid)."),
+    agent: str = Query(..., description="Identity of the working agent."),
+) -> dict:
+    """Mark a delegated finding as being worked; 404 if not a live lane item."""
+    claimed = await LaneService().claim_delegated_finding(finding_id, agent)
+    if not claimed:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Not a live delegated lane item: {finding_id}",
+        )
+    return {"finding_id": finding_id, "claimed_by": agent, "status": "indeterminate"}
 
 
 @router.post(

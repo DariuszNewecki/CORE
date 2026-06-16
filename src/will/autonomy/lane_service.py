@@ -81,6 +81,29 @@ class LaneService:
         bb_service = await service_registry.get_blackboard_service()
         return await bb_service.fetch_delegated_finding(finding_id)
 
+    # ID: 504fdfe1-cc1a-4da9-beee-c1161d480c84
+    async def next_delegated_finding(self) -> dict[str, Any] | None:
+        """Return the oldest delegated finding (the FIFO head), or None if empty.
+
+        The lane's "pull the next piece of work" surface. The rich context
+        bundle (related files, guidance, rule text) is the deferred #653
+        exporter; for now this returns the raw finding the same shape as the
+        list.
+        """
+        findings = await self.list_delegated_findings(limit=1)
+        return findings[0] if findings else None
+
+    # ID: 04b486b9-7d1a-432f-8fc5-a434ec1b8e58
+    async def claim_delegated_finding(self, finding_id: str, agent: str) -> bool:
+        """Mark a delegated finding as being worked by *agent* (ADR-109 §2).
+
+        Returns True if the finding was a live lane item and is now stamped
+        claimed; False if it is not a live delegated finding.
+        """
+        bb_service = await service_registry.get_blackboard_service()
+        updated = await bb_service.claim_delegated_finding(finding_id, agent)
+        return updated > 0
+
     # ID: 16bde5bd-d258-419a-9a55-f621de9e1020
     async def propose_validated_diff(
         self,

@@ -138,3 +138,60 @@ async def test_propose_raises_when_finding_not_live():
 
     create.assert_not_awaited()
     bb_service.defer_delegated_finding_to_proposal.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_next_delegated_finding_returns_fifo_head():
+    """next_delegated_finding asks for limit=1 and returns the single row."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_findings = AsyncMock(return_value=[{"id": "f-1"}])
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ):
+        out = await LaneService().next_delegated_finding()
+
+    assert out == {"id": "f-1"}
+    bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=1)
+
+
+@pytest.mark.asyncio
+async def test_next_delegated_finding_empty_returns_none():
+    """An empty lane yields None, not an IndexError."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_findings = AsyncMock(return_value=[])
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ):
+        assert await LaneService().next_delegated_finding() is None
+
+
+@pytest.mark.asyncio
+async def test_claim_delegated_finding_true_when_row_updated():
+    """claim returns True when the blackboard updated a live lane item."""
+    bb_service = AsyncMock()
+    bb_service.claim_delegated_finding = AsyncMock(return_value=1)
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ):
+        assert await LaneService().claim_delegated_finding("f-1", "claude-code") is True
+
+    bb_service.claim_delegated_finding.assert_awaited_once_with("f-1", "claude-code")
+
+
+@pytest.mark.asyncio
+async def test_claim_delegated_finding_false_when_not_live():
+    """claim returns False when no row matched (not a live lane item)."""
+    bb_service = AsyncMock()
+    bb_service.claim_delegated_finding = AsyncMock(return_value=0)
+
+    with patch(
+        "will.autonomy.lane_service.service_registry.get_blackboard_service",
+        AsyncMock(return_value=bb_service),
+    ):
+        assert await LaneService().claim_delegated_finding("missing", "x") is False
