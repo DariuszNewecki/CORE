@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from body.atomic.assisted_actions import (
+    _rule_cleared,
     action_assisted_apply_diff,
     action_assisted_validate_diff,
 )
@@ -54,6 +55,65 @@ async def test_refuses_without_git_service() -> None:
     )
     assert result.ok is False
     assert "git_service" in result.data["error"]
+
+
+def test_rule_cleared_true_when_subject_not_flagged() -> None:
+    # Fix lives in the detector (touched), subject file is unchanged; the
+    # full-scope audit no longer flags the subject → cleared.
+    findings = [{"file_path": "src/other/unrelated.py"}]
+    assert (
+        _rule_cleared(
+            findings,
+            subject_files=["src/mind/coherence/llm_judge.py"],
+            touched_py=["src/mind/logic/engines/knowledge_gate.py"],
+        )
+        is True
+    )
+
+
+def test_rule_cleared_false_when_subject_still_flagged() -> None:
+    # The subject is still among the flagged paths → the gate must NOT clear,
+    # even though the touched file is clean. This is the case a touched-files-
+    # only check would have passed vacuously.
+    findings = [{"file_path": "src/mind/coherence/llm_judge.py"}]
+    assert (
+        _rule_cleared(
+            findings,
+            subject_files=["src/mind/coherence/llm_judge.py"],
+            touched_py=["src/mind/logic/engines/knowledge_gate.py"],
+        )
+        is False
+    )
+
+
+def test_rule_cleared_false_when_touched_file_flagged() -> None:
+    findings = [{"file_path": "src/cli/resources/lane/next.py"}]
+    assert (
+        _rule_cleared(
+            findings,
+            subject_files=None,
+            touched_py=["src/cli/resources/lane/next.py"],
+        )
+        is False
+    )
+
+
+def test_rule_cleared_normalizes_dot_slash_prefix() -> None:
+    # Finding paths and git-diff paths can differ by a leading "./"; the
+    # guarded/flagged comparison must still match.
+    findings = [{"file_path": "./src/mind/coherence/llm_judge.py"}]
+    assert (
+        _rule_cleared(
+            findings,
+            subject_files=["src/mind/coherence/llm_judge.py"],
+            touched_py=[],
+        )
+        is False
+    )
+
+
+def test_rule_cleared_true_when_nothing_guarded() -> None:
+    assert _rule_cleared([{"file_path": "x.py"}], subject_files=[], touched_py=[]) is True
 
 
 @pytest.mark.asyncio

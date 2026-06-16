@@ -52,13 +52,30 @@ async def propose(
     payload = finding.get("payload") or {}
     rule = payload.get("rule") or payload.get("rule_id") or "unknown"
 
+    # The finding's subject file — the gate validates that the rule no longer
+    # flags *this* file, not just the diff's touched files (ADR-109 mechanism
+    # §4; needed when the fix lives in a different file than the subject, e.g.
+    # a detector-bug fix). Prefer the payload; fall back to the subject's
+    # trailing "lang::rule::path" segment.
+    subject_file = payload.get("file") or payload.get("file_path")
+    if not subject_file:
+        subject = finding.get("subject") or ""
+        if "::" in subject:
+            subject_file = subject.rsplit("::", 1)[-1] or None
+    subject_files = [subject_file] if subject_file else []
+
     patch = patch_file.read_text(encoding="utf-8")
 
     # 2. Validate the diff in a hermetic worktree via the general action-run
     #    surface (decoupled from this command's process).
     console.print(f"[dim]Validating diff against rule [cyan]{rule}[/cyan]…[/dim]")
     run = await client.run_fix(
-        _VALIDATE_ACTION, params={"patch": patch, "finding_rule": rule}
+        _VALIDATE_ACTION,
+        params={
+            "patch": patch,
+            "finding_rule": rule,
+            "subject_files": subject_files,
+        },
     )
     run_id = run["run_id"]
     terminal = await client._poll_run(run_id)

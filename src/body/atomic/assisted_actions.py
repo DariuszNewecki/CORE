@@ -67,6 +67,37 @@ def _ruff_ok(worktree: Path, files: list[str]) -> bool:
     return proc.returncode == 0
 
 
+def _norm_path(path: str | None) -> str:
+    """Normalize a repo-relative path to POSIX for set comparison."""
+    p = (path or "").replace("\\", "/")
+    return p[2:] if p.startswith("./") else p
+
+
+def _rule_cleared(
+    findings: list[dict[str, Any]],
+    subject_files: list[str] | None,
+    touched_py: list[str],
+) -> bool:
+    """Decide whether the offending rule still flags the work's guarded files.
+
+    The *guarded* set is the finding's subject file(s) plus the diff's touched
+    Python files. ``findings`` is the result of running the offending rule at
+    FULL repo scope (no file filter) — full scope is mandatory because
+    ``run_filtered_audit`` SKIPS context-level rules when a file filter is set
+    (``knowledge_gate``: orphan / ast_duplication / semantic_duplication /
+    duplicate_ids …), which is exactly the finding-class this lane exists to
+    drain. The verdict is whether any guarded path is still among the flagged
+    paths: this validates a fix that lives in a *different* file than the
+    finding's subject (e.g. a detector-bug fix) against the subject itself,
+    not merely against the edited file.
+    """
+    guarded = {_norm_path(p) for p in (*(subject_files or []), *touched_py)}
+    if not guarded:
+        return True
+    flagged = {_norm_path(f.get("file_path")) for f in findings}
+    return not (guarded & flagged)
+
+
 @register_action(
     action_id="assisted.validate_diff",
     description=(
@@ -92,6 +123,7 @@ async def action_assisted_validate_diff(
     *,
     patch: str | None = None,
     finding_rule: str | None = None,
+    subject_files: list[str] | None = None,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
@@ -100,7 +132,13 @@ async def action_assisted_validate_diff(
     Args:
         patch: a unified diff (the agent's candidate change) to validate.
         finding_rule: the rule id the delegated finding fired on; the gate
-            requires this rule to NO LONGER fire on the touched files.
+            requires this rule to NO LONGER flag the finding's subject (or any
+            touched file).
+        subject_files: the file(s) the delegated finding fired on. Required for
+            findings whose fix lives in a different file than the subject (e.g.
+            a detector-bug fix, where the engine is patched but the flagged file
+            is unchanged): the gate confirms the rule no longer flags the
+            subject, which a touched-files-only check could not.
         core_context: injected by ActionExecutor; supplies ``git_service``
             for worktree creation.
 
@@ -162,20 +200,32 @@ async def action_assisted_validate_diff(
         # 2. ruff must pass on the touched Python files.
         checks["ruff"] = _ruff_ok(wt_path, touched_py) if touched_py else True
 
-        # 3. The offending rule must no longer fire on the touched files.
-        #    Body invokes the Mind auditor against the worktree path — the
-        #    established canary pattern (crate_processing_service,
-        #    constitutional_evaluator). Deferred import keeps module load clean.
-        if touched_py:
+        # 3. The offending rule must no longer flag the finding's subject or
+        #    any touched file. Body invokes the Mind auditor against the
+        #    worktree path — the established canary pattern
+        #    (crate_processing_service, constitutional_evaluator). Deferred
+        #    import keeps module load clean.
+        #
+        #    Run the rule at FULL scope (files=None): run_filtered_audit skips
+        #    context-level rules under a file filter (the knowledge_gate family
+        #    — orphan / duplication — which is the lane's core caseload), so a
+        #    file-scoped check would pass them vacuously. _rule_cleared then
+        #    confirms none of the guarded files (subject + touched) is still
+        #    flagged. Full-scope is one rule, once, on a governor-initiated
+        #    worktree validation — not the hot write-time gate.
+        guarded = bool((subject_files or []) or touched_py)
+        if guarded:
             from mind.governance.audit_context import AuditorContext
             from mind.governance.filtered_audit import run_filtered_audit
 
             actx = AuditorContext(wt_path)
             await actx.load_knowledge_graph()
             findings, _, _ = await run_filtered_audit(
-                actx, rule_ids=[finding_rule], files=touched_py
+                actx, rule_ids=[finding_rule], files=None
             )
-            checks["audit_rule_cleared"] = len(findings) == 0
+            checks["audit_rule_cleared"] = _rule_cleared(
+                findings, subject_files, touched_py
+            )
         else:
             checks["audit_rule_cleared"] = True
 
