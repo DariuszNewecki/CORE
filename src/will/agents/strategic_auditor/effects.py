@@ -100,13 +100,16 @@ async def persist_campaign(session: AsyncSession, campaign: StrategicCampaign) -
 
 # ID: b63d2bae-56c3-4f98-80e3-f1c9cc170ca3
 async def execute_autonomous_tasks(
-    ctx: CoreContext, session: AsyncSession, campaign: StrategicCampaign
+    ctx: CoreContext, campaign: StrategicCampaign
 ) -> None:
     """Execute non-escalation clusters via develop_from_goal.
 
     Clusters below the 0.7 confidence threshold are skipped — they remain
     persisted as pending Tasks for a human to review rather than being
     autonomously executed.
+
+    develop_from_goal owns its own WorkflowOrchestrator and does not accept a
+    session; the caller's session governs persistence only (persist_campaign).
     """
     from will.autonomy.autonomous_developer import develop_from_goal
 
@@ -131,6 +134,5 @@ async def execute_autonomous_tasks(
             goal=cluster.proposed_fix,
             workflow_type=cluster.workflow_type,
             write=True,
-            session=session,
         )
         logger.info("    %s %s", "OK" if success else "FAIL", message)

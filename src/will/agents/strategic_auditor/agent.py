@@ -94,7 +94,7 @@ class StrategicAuditor(TracedAgentMixin):
             await persist_campaign(session, campaign)
 
         if write and execute_autonomous:
-            await execute_autonomous_tasks(self._ctx, session, campaign)
+            await execute_autonomous_tasks(self._ctx, campaign)
 
         self._log_summary(campaign)
 

@@ -37,6 +37,11 @@ class RootCauseCluster:
     estimated_impact: str = "medium"
     """low / medium / high — how much does fixing this improve CORE?"""
 
+    workflow_type: str = "full_feature_development"
+    """Which autonomous workflow remediates this cluster. Set by
+    reasoning._resolve_workflow_type (constrained to _VALID_WORKFLOW_TYPES);
+    consumed by effects.execute_autonomous_tasks and agent.format_machine."""
+
 
 @dataclass
 # ID: 75de5708-f567-46e4-a350-bfadc21c6e19
