@@ -1182,6 +1182,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/CORE-API-capability-map-2026-05-16.md
     governance_namespace: project::core
+  - path: .specs/planning/CORE-BYOR-Program-Backlog.md
+    governance_namespace: project::core
   - path: .specs/planning/CORE-GitHub-Project-Management.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-band-E-planning-input-2026-05-16.md
