@@ -203,6 +203,7 @@ class BlackboardProposalService:
                         """
                         UPDATE core.blackboard_entries
                         SET status = 'indeterminate',
+                            resolution_mechanism = 'human',  -- ADR-091 D2-A1: indeterminate is governor-closed; co-assign at the mutation site, not only in the filter guard below
                             claimed_by = NULL,
                             claimed_at = NULL,
                             resolved_at = now(),
