@@ -172,5 +172,5 @@ When a new commercial feature is stamped (per the ADR-083 pattern), update this 
 - ADR-084 — three-shape taxonomy + open-core honesty contract
 - ADR-093 — F-NN / E-NN class split + URS-line discipline (D2 retains F-NN for engine-shape and not-software entries; D3 migrates six interface-attaching commercial entries to E-NN; D6 preserves prior ADR references under original names)
 - GitHub Project #6 "CORE Roadmap" — queryable surface (Tier, Scope, Shape, Status custom fields)
-- `planning/CORE-GitHub-Project-Management.md` — operational governance of the Project board
-- `planning/CORE-A3-plan.md` — band-level milestone planning
+- `planning/archive/CORE-GitHub-Project-Management.md` — operational governance of the Project board
+- `planning/archive/CORE-A3-plan.md` — band-level milestone planning

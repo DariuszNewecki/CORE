@@ -1,7 +1,7 @@
 # Data Contracts Inventory
 
 **Path:** `.specs/planning/data-contracts-inventory.md`
-**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07 — no Wave 2/3 progress in the interim, see Status section)
+**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07; counts + #367 reconciled 2026-06-17 — no Wave 2/3 progress in the interim, see Status section)
 **Status:** Planning artifact — not constitutional
 **Authority:** ADR-056
 
@@ -21,15 +21,17 @@ rule authoring, and mapping authoring across three waves.
 ## Status as of 2026-05-24
 
 Wave 1 has landed substantially. The `.intent/enforcement/contracts/`
-directory currently holds **40 contract files**. The authoritative status
-record is the ADR-056 row in the (now-archived) `archive/CORE-A3-plan.md
-§Architectural Decisions Made`, frozen at 2026-05-19 Wave 1 Session 3;
-per that record, D1, D2, D3, D5, D6, D7 are complete (2026-05-18), and
-Wave 1 Session 3 (2026-05-19) added ProposalConsequence,
-ConstitutionalViolationPayload, and WorkerDeclaration as dataclass +
-contract + governance rule + enforcement mapping triples. D4 (Proposal
-state-conditional contract with `allOf`/`if`/`then` per `ProposalStatus`)
-is the residual Wave 1 follow-up tracked as #367.
+directory currently holds **43 contract files** (verified 2026-06-17). The
+authoritative status record is the ADR-056 row in the (now-archived)
+`archive/CORE-A3-plan.md §Architectural Decisions Made`, frozen at
+2026-05-19 Wave 1 Session 3; per that record, D1, D2, D3, D5, D6, D7 are
+complete (2026-05-18), and Wave 1 Session 3 (2026-05-19) added
+ProposalConsequence, ConstitutionalViolationPayload, and WorkerDeclaration
+as dataclass + contract + governance rule + enforcement mapping triples.
+D4 (Proposal state-conditional contract with `allOf`/`if`/`then` per
+`ProposalStatus`), formerly the residual Wave 1 follow-up tracked as #367,
+is **closed** — #367 CLOSED. Full ADR-056 implementation (Wave 2/3)
+remains tracked at #366 (OPEN).
 
 **Staleness note (2026-06-07):** no Wave 2 or Wave 3 progress between
 2026-05-24 and 2026-06-07. Full ADR-056 implementation
@@ -77,7 +79,7 @@ findings from the audit loop.
 | `BlackboardEntry.payload.run_complete.schema.json` | multiple workers | worker boundary | ❌ Core nucleus for *.run.complete subjects. Not yet authored. |
 | `BlackboardEntry.payload.sync_db_complete.schema.json` | `src/body/workers/` | worker boundary | ❌ Not yet authored. |
 | `BlackboardEntry.payload.repo_crawl_complete.schema.json` | `src/body/workers/` | worker boundary | ❌ Not yet authored. |
-| `Proposal.json` | `src/will/autonomy/proposal.py:201` | consequence chain | ✅ Schema landed. State-conditional invariants per ADR-056 D4 / ProposalStatus are the residual Wave 1 follow-up (#367). |
+| `Proposal.json` | `src/will/autonomy/proposal.py:201` | consequence chain | ✅ Schema landed. State-conditional invariants per ADR-056 D4 / ProposalStatus landed — #367 CLOSED. |
 | `ProposalScope.json` | `src/will/autonomy/proposal.py:47` | consequence chain | ✅ Schema landed. Sub-object; files non-emptiness invariant (ADR-026). |
 | `ProposalAction.json` | `src/will/autonomy/proposal.py:105` | consequence chain | ✅ Schema landed. action_id XOR flow_id invariant. |
 | `RiskAssessment.json` | `src/will/autonomy/proposal.py:78` | consequence chain | ✅ Schema landed. `overall_risk` `$ref`s `proposal_risk` per ADR-059 D1 (commit `13055f38`). |

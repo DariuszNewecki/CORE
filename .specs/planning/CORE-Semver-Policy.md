@@ -5,7 +5,7 @@
 **Status:** Authoritative (operational surface — implements ADR-086 D7 + ADR-088 D5; deliverable of F-48.5 #541)
 **Authority:** governor
 **Audience:** Anyone installing, depending on, or releasing `core-runtime` — and future-you deciding the next version number.
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-17
 
 ---
 
@@ -28,9 +28,10 @@ bump higher. Honest-and-consistent beats clever.
 There is **one** version line. `pyproject.toml`'s `version` is canonical; the PyPI release,
 the GitHub release tag, and the OEM wire `info.version` (ADR-087) all mirror it.
 
-- **Baseline:** `2.6.0` (PyPI + GitHub latest, 2026-06-02).
-- **Next release:** `2.7.0` — a **minor** bump (additive features and fixes since `2.6.0`;
-  no removed or renamed CLI command, no removed API route, no public-surface break).
+- **Baseline:** `2.7.0` (PyPI + GitHub latest, tagged 2026-06-14) — a **minor** bump over
+  `2.6.0` (additive features and fixes; no removed or renamed CLI command, no removed API
+  route, no public-surface break).
+- **Prior baseline:** `2.6.0` (2026-06-02).
 
 The `v0.1.0`–`v0.1.6` tags are **bootstrap artifacts** from the first PyPI publish, not a
 pre-1.0 track (ADR-088 D3). They are preserved unchanged per the standing tag-collision
@@ -41,8 +42,8 @@ policy; no further `0.x` tags are created. **CORE is not in a pre-1.0 phase** �
 
 From `2.6.0` forward, every bump follows standard SemVer with CORE-specific definitions:
 
-- **MAJOR (`2.x → 3.x`)** — a breaking change to the **Python public surface** (per F-48.4
-  once that surface is declared) **OR** a wire-surface major bump per ADR-087 D6
+- **MAJOR (`2.x → 3.x`)** — a breaking change to the **Python public surface** (declared per
+  F-48.4: the `__all__` exports in the six top-level packages) **OR** a wire-surface major bump per ADR-087 D6
   (`/v1/` → `/v2/`). One trigger is sufficient; the two bumps are coordinated.
 - **MINOR (`2.6 → 2.7`)** — additive features, new public symbols, new public routes, new
   optional response fields, new additive exit codes. ADR-087 D2's additive-only wire rules apply.
@@ -66,9 +67,10 @@ runtime schema change that needs a manual `ALTER` on an *existing* install ships
 ## 4. Cross-channel contract (ADR-086 D7)
 
 - **PyPI ⟺ Docker.** A PyPI release `X.Y.Z` exists **if and only if** Docker image
-  `core-engine:X.Y.Z` exists. *Current state: the Docker `core-engine` channel is not yet
-  shipped (#539 open) — the PyPI line runs ahead of it. The invariant binds once that channel
-  ships; until then it is unmet-by-absence, recorded here honestly rather than asserted.*
+  `core-engine:X.Y.Z` exists. *Current state: the Docker `core-engine` channel shipped
+  2026-06-14 (#539 closed — `.github/workflows/publish-docker-core-engine.yml`, wheel-from-PyPI
+  per ADR-086 D7). The invariant now binds: every PyPI release must have its matching
+  `core-engine` image.*
 - **No implicit "latest".** The install script pulls **pinned** versions; it never resolves
   "latest" implicitly.
 - **Monotonic increase.** Every release version is strictly greater than the last.
@@ -88,11 +90,17 @@ to its final `X.Y.Z` by a new release, never by re-tagging the candidate.
 ## 7. The 2.x stability posture (honesty, per ADR-088 D2)
 
 Strict SemVer reads `2.x` as "stable public API." CORE's actual posture is **"API approaching
-stability; the public surface contract is under active definition"** — two vectors still open:
-the **OEM wire surface** (ADR-087; v1 baseline grandfathered, OpenAPI spec pending) and the
-**Python public surface** (F-48.4, not yet shipped). The PyPI `Development Status` classifier is
-**`4 - Beta`**; promotion to `5 - Production/Stable` is a future decision gated on F-40 and
-F-48.4. The v2.x line is kept because it reflects CORE's real one-year maturity arc — resetting
+stability; the public surface contract is under active definition"** — one vector still open:
+the **OEM wire surface** (ADR-087; v1 baseline grandfathered, OpenAPI spec generated on disk
+per F-40.3 #552, Phase B publication pending #555). The **Python public surface** shipped
+2026-06-02 (F-48.4 #540 closed — `__all__` declared in all six top-level packages). The PyPI
+`Development Status` classifier is **`4 - Beta`**. Its literal Beta→`5 - Production/Stable`
+gate (F-40 + F-48.4) is **met** (both closed), but promotion is **held by governor decision
+(2026-06-17)** until the OEM wire surface reaches comparable maturity — Phase B hardening
+(auth, rate limiting, host binding, OpenAPI publication; #555). The gate was scoped to the
+Python surface alone; the governor elected to wait on the wire surface so `Production/Stable`
+holds across both stability vectors. The v2.x line is kept because it
+reflects CORE's real one-year maturity arc — resetting
 to `0.x` would erase real history to chase a convention CORE is approaching, not below.
 
 ## 8. Cadence (informational)
