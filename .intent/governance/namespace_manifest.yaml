@@ -355,6 +355,8 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Blackboard.md
     governance_namespace: framework
+  - path: .specs/papers/CORE-BYOR.md
+    governance_namespace: framework
   - path: .specs/papers/CORE-Canary.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Capability-Taxonomy.md
