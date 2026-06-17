@@ -6,7 +6,7 @@
 Author: Dariusz Newecki
 Status: Canonical · Non-negotiable · Intent-defining
 Scope: CORE internal only
-Depends on: `.intent/northstar/core_northstar.md`
+Depends on: `.specs/northstar/core_northstar.md`
 
 ---
 
@@ -49,13 +49,23 @@ The constitution is the same for everyone.
 
 ### UR-01: Universal Input Acceptance
 
-CORE accepts any software artifact as input.
+CORE accepts any artifact as input.
+
+An artifact is anything a governed process produces or is bound by.
+Source code is the first instance; the same obligation extends to
+documentation, internal procedures (SOPs), regulatory requirements,
+compliance records, or any structured artifact.
 
 This includes, without limitation:
 - A conversation or verbal description of intent
 - A written specification of any length or format
-- A single source file
-- A repository of any size, language, or structure
+- A single artifact (a source file, a procedure, a control record)
+- A Repository of any size, type, or structure
+
+"Repository" here is domain-typed. To an engineer it is a source tree;
+to a governance librarian it is a controlled library of records. CORE
+treats it as the artifact corpus to be governed, whatever its domain —
+a code repository being the first such type.
 
 CORE makes no assumptions about the quality, completeness,
 or structure of the input.
@@ -94,27 +104,30 @@ It is a blocker CORE will not cross.
 
 ---
 
-### UR-04: Constitution Before Code
+### UR-04: Constitution Before Artifact
 
-If the input has no `.intent/`, CORE creates one before writing a single line of code.
+If the input has no `.intent/`, CORE creates one before producing a single artifact.
 
 The target system's constitution is CORE's first deliverable.
-It is not a byproduct of implementation.
-It is the precondition for implementation.
+It is not a byproduct of production.
+It is the precondition for it — whether the artifact produced is code,
+a procedure, or a compliance record.
 
-Implementation without an established constitution is malpractice.
+Production without an established constitution is malpractice.
 CORE will not commit it.
 
 ---
 
-### UR-05: Output is Working Software
+### UR-05: Output is a Working Artifact
 
-CORE delivers software that does what the requirements say it should do.
+CORE delivers an artifact that does what the requirements say it should do.
 
 "Working" means: satisfies the stated requirements.
 Nothing more. Nothing less.
 
-Technology stack is the user's choice, not CORE's constraint.
+For software — the first artifact type — the technology stack is the
+user's choice, not CORE's constraint. For other artifact types the same
+principle holds: the form follows the declared intent, not CORE's preference.
 Perfection is not the goal — it is a quality indicator, not a deliverable.
 Correctness against declared intent is the only measure that matters.
 
@@ -145,7 +158,7 @@ Every output CORE produces must be traceable to:
 If none of these exist, CORE does not produce the output.
 CORE stops and asks.
 
-CORE will never produce software it cannot defend — technically,
+CORE will never produce work it cannot defend — technically,
 legally, epistemically, and historically.
 
 ---
@@ -183,7 +196,7 @@ They are constitutional exclusions.
 All eight requirements above derive from one invariant,
 declared in the NorthStar:
 
-> **CORE must never produce software it cannot defend.**
+> **CORE must never produce work it cannot defend.**
 
 Any requirement that conflicts with this invariant is not a valid requirement.
 Any capability that violates this invariant is not a valid capability.

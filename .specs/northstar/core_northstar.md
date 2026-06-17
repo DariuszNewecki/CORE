@@ -247,7 +247,8 @@ If CORE can:
 then it has proven that its principles are real.
 
 Self-rewrite is a stress test.
-The goal is **constitution-based software evolution**—for any system.
+The goal is **constitution-based evolution under law**—for any
+artifact-producing system, software being the first.
 
 ---
 
@@ -275,7 +276,7 @@ This exclusion is intentional.
 
 There is one invariant CORE will never violate:
 
-> **CORE must never produce software it cannot defend.**
+> **CORE must never produce work it cannot defend.**
 
 Not defend emotionally.
 Not defend rhetorically.
