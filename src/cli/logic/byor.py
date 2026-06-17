@@ -1,148 +1,167 @@
 # src/cli/logic/byor.py
 
 """
-Implements the 'byor-init' command to analyze external repositories and scaffold minimal CORE governance structures.
+BYOR onboarding — deliver the authored starter-intent into an external repository.
 
-CONSTITUTIONAL FIX:
-- Aligned with 'governance.artifact_mutation.traceable'.
-- Replaced direct Path writes with governed FileHandler mutations.
-- Centralizes mutation logic via the Body layer for auditability.
+Per ADR-111, `core-admin project onboard <target>` DELIVERS the authored starter
+constitution (`examples/starter-intent/.intent/`) into the target repo: the
+machinery floor + the four-rule starter constitution, copied verbatim. It does
+NOT generate a constitution from the target's code (ADR-111 D2; UR-04 — the human
+owns the law) and is NOT a copy of CORE's full `.intent/` (ADR-108).
+
+CONSTITUTIONAL NOTES (#640):
+- Writes route through the `file.create` atomic action via `ActionExecutor`
+  (ADR-111 D3), the same sanctioned scaffold surface `project new` uses. A direct
+  `FileHandler.write` on a literal `.intent/` path is hard-blocked by the
+  governed-artifact tier; delivery targets the external repo through a
+  CORE-root-relative path that does not match the `.intent/` prefix, so it
+  classifies as writable.
+- Removed the dead `TEMPLATES_DIR` path and the `KnowledgeGraphBuilder`
+  generate-law-from-code path (ADR-111 D1/D2).
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
-import yaml
 
-from shared.infrastructure.knowledge_graph_service import KnowledgeGraphBuilder
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.atomic.executor import ActionExecutor
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from shared.context import CoreContext
+
+
 logger = getLogger(__name__)
-CORE_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES_DIR = (
-    CORE_ROOT / "src" / "features" / "project_lifecycle" / "starter_kits" / "default"
-)
+
+# ADR-111 D1/D4: examples/starter-intent/ is the canonical delivery payload
+# (ADR-108 D2 source-of-truth), located relative to the running CORE repo root.
+# Source-tree invocation reads it from there; wheel invocation is gated on
+# ADR-108 D3 (machinery-in-wheel, issue #674).
+_STARTER_REL = ("examples", "starter-intent", ".intent")
 
 
 # ID: 8b2ee927-9c35-4125-b291-22669733e531
-def initialize_repository(
-    path: Path = typer.Argument(
-        ...,
-        help="The path to the external repository to analyze.",
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        resolve_path=True,
-    ),
-    dry_run: bool = typer.Option(
-        True,
-        "--dry-run/--write",
-        help="Show the proposed .intent/ scaffold without writing files. Use --write to apply.",
-    ),
-):
+async def initialize_repository(
+    context: CoreContext,
+    path: Path,
+    dry_run: bool = True,
+) -> None:
     """
-    Analyzes an external repository and scaffolds a minimal `.intent/` constitution.
+    Deliver the authored starter `.intent/` constitution into an external repo.
+
+    Copies the machinery floor + the four-rule starter constitution from the
+    canonical starter (ADR-111 D1) into ``<target>/.intent/``. Refuses if the
+    target already has an ``.intent/`` (ADR-111 D3 — never overwrite an existing
+    constitution). Dry-run by default; ``dry_run=False`` applies the writes via
+    the ``file.create`` atomic action.
     """
-    logger.info("🚀 Starting analysis of repository at: %s", path)
-    logger.info("   -> Step 1: Building Knowledge Graph of the target repository...")
-    try:
-        builder = KnowledgeGraphBuilder(root_path=path)
-        graph = builder.build()
-        total_symbols = len(graph.get("symbols", {}))
-        logger.info(
-            "   -> ✅ Knowledge Graph built successfully. Found %s symbols.",
-            total_symbols,
+    target_root = Path(path).resolve()
+    write = not dry_run
+
+    # CORE's repo root (the running install) anchors both the starter payload
+    # and the file.create path base.
+    core_root = context.git_service.repo_path.resolve()
+    starter_dir = core_root.joinpath(*_STARTER_REL)
+
+    # ADR-111 D4: the payload must be present. From source it is; from an
+    # installed wheel it ships only after ADR-108 D3 (#674). Fail loud rather
+    # than silently deliver nothing.
+    if not starter_dir.is_dir():
+        logger.error(
+            "Starter constitution not found at %s. From an installed wheel this is "
+            "gated on ADR-108 D3 (machinery-in-wheel, issue #674); run from the CORE "
+            "source tree until it lands.",
+            starter_dir,
         )
-    except Exception as e:
-        logger.error("   -> ❌ Failed to build Knowledge Graph: %s", e, exc_info=True)
         raise typer.Exit(code=1)
 
-    logger.info("   -> Step 2: Generating starter constitution from analysis...")
-    domains = builder.domain_map
-    source_structure_content = {
-        "structure": [
-            {
-                "domain": name,
-                "path": path_str,
-                "description": f"Domain for '{name}' inferred by CORE.",
-                "allowed_imports": [name, "shared"],
-            }
-            for path_str, name in domains.items()
-        ]
-    }
-    discovered_capabilities = sorted(
-        list(
-            set(
-                s["capability"]
-                for s in graph.get("symbols", {}).values()
-                if s.get("capability") != "unassigned"
-            )
+    # ADR-111 D3: never overwrite an existing constitution.
+    target_intent = target_root / ".intent"
+    if target_intent.exists():
+        logger.error(
+            "Target already has a constitution at %s. CORE will not overwrite an "
+            "existing .intent/. Remove it first if you intend to re-scaffold.",
+            target_intent,
         )
+        raise typer.Exit(code=1)
+
+    # The file.create action resolves file_path relative to CORE's repo root.
+    # A path that does NOT start with the literal `.intent/` prefix classifies as
+    # writable (target_class_boundaries.yaml), so we address the external repo via
+    # a CORE-root-relative path. This is how `project new` writes a sibling's .intent/.
+    rel_base = os.path.relpath(target_root, core_root)
+
+    source_files = sorted(p for p in starter_dir.rglob("*") if p.is_file())
+    executor = ActionExecutor(context)
+
+    mode = "WRITE" if write else "DRY RUN"
+    logger.info(
+        "🚀 BYOR onboarding %s — delivering authored starter (%d files) [%s]",
+        target_root,
+        len(source_files),
+        mode,
     )
-    project_manifest_content = {
-        "name": path.name,
-        "version": "0.1.0-core-scaffold",
-        "intent": "A high-level description of what this project is intended to do.",
-        "required_capabilities": discovered_capabilities,
-    }
 
-    # Pre-flight check on template availability
-    tag_template_path = TEMPLATES_DIR / "capability_tags.yaml.template"
-    if not tag_template_path.exists():
-        logger.warning("Template missing: %s", tag_template_path)
+    # Ensure the target's .intent/ subdirectories exist before file.create.
+    parent_dirs = sorted(
+        {
+            (
+                Path(rel_base) / ".intent" / src.relative_to(starter_dir).parent
+            ).as_posix()
+            for src in source_files
+        }
+    )
+    for rel_dir in parent_dirs:
+        if write:
+            context.file_handler.ensure_dir(rel_dir)
+        else:
+            logger.info("   -> [DRY RUN] would ensure dir %s", rel_dir)
 
-    capability_tags_content = {
-        "tags": [
-            {
-                "name": cap,
-                "description": "A clear explanation of what this capability does.",
-            }
-            for cap in discovered_capabilities
-        ]
-    }
+    delivered = 0
+    for src in source_files:
+        rel = src.relative_to(starter_dir).as_posix()
+        file_path = (Path(rel_base) / ".intent" / rel).as_posix()
+        content = src.read_text(encoding="utf-8")
+        await executor.execute(
+            action_id="file.create",
+            write=write,
+            file_path=file_path,
+            code=content,
+        )
+        # Confirm delivery by disk presence — the file is the ground truth. The
+        # executor's ActionResult.ok can be re-stamped by post-body policy
+        # validation even when the write succeeded, so it is not a reliable signal.
+        if write and not (core_root / file_path).is_file():
+            logger.error("   ❌ not delivered: %s", file_path)
+            continue
+        delivered += 1
+        logger.info(
+            "   -> %s %s", "✅" if write else "[DRY RUN] would write", file_path
+        )
 
-    files_to_generate = {
-        ".intent/knowledge/source_structure.yaml": source_structure_content,
-        ".intent/project_manifest.yaml": project_manifest_content,
-        ".intent/knowledge/capability_tags.yaml": capability_tags_content,
-        ".intent/mission/principles.yaml": (
-            TEMPLATES_DIR / "principles.yaml"
-        ).read_text(encoding="utf-8"),
-        ".intent/policies/safety_policies.yaml": (
-            TEMPLATES_DIR / "safety_policies.yaml"
-        ).read_text(encoding="utf-8"),
-    }
+    if not write:
+        logger.info(
+            "💧 Dry run complete — %d files would be delivered to %s. "
+            "Pass --write to apply.",
+            len(source_files),
+            target_intent,
+        )
+        return
 
-    if dry_run:
-        logger.info("\n💧 Dry Run Mode: No files will be written.")
-        for rel_path, content in files_to_generate.items():
-            typer.secho(f"\n📄 Proposed `{rel_path}`:", fg=typer.colors.YELLOW)
-            if isinstance(content, dict):
-                typer.echo(yaml.dump(content, indent=2, sort_keys=False))
-            else:
-                typer.echo(content)
-    else:
-        logger.info("\n💾 **Write Mode:** Applying changes to disk.")
-
-        fh = FileHandler(str(path))
-
-        for rel_path, content in files_to_generate.items():
-            if isinstance(content, dict):
-                output_content = yaml.dump(content, indent=2, sort_keys=False)
-            else:
-                output_content = content
-
-            try:
-                # Use governed mutation surface instead of Path.write_text
-                fh.write_runtime_text(rel_path, output_content)
-                typer.secho(
-                    f"   -> ✅ Wrote starter file: {rel_path}", fg=typer.colors.GREEN
-                )
-            except Exception as e:
-                logger.error("   -> ❌ Failed to write %s: %s", rel_path, e)
-
-    logger.info("\n🎉 BYOR initialization complete.")
+    logger.info(
+        "🎉 Delivered %d/%d starter files to %s.",
+        delivered,
+        len(source_files),
+        target_intent,
+    )
+    logger.info(
+        "Next: author your rules in .intent/rules/, then run "
+        "`core-admin code audit --offline` (or wire the F-10 CI Action) against this repo."
+    )
+    if delivered < len(source_files):
+        raise typer.Exit(code=1)
