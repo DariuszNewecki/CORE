@@ -17,7 +17,11 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from body.services.grc import GRCGapAnalysisService, RequirementResult
+from body.services.grc import (
+    GRCGapAnalysisService,
+    RequirementResult,
+    load_catalog,
+)
 from cli.utils import core_command
 from shared.models import EvidenceClass
 
@@ -103,16 +107,29 @@ async def gap_analysis(
         file_okay=False,
         dir_okay=True,
     ),
+    catalog: str = typer.Option(
+        "nist_800_171_min",
+        "--catalog",
+        "-c",
+        help="Requirements catalog to check against (see src/body/services/grc/catalogs/).",
+    ),
 ) -> None:
-    """Run the demo compliance catalog against a folder of documents.
+    """Run a compliance requirements catalog against a folder of documents.
 
     Produces a gap report where each requirement is labelled by how its verdict
     was established: proven (deterministic), judged (AI), or attested (needs a
-    human). The demo catalog is illustrative; the maintained, regulation-derived
-    catalog is the product.
+    human). The default catalog is a minimal, regulation-derived NIST SP 800-171
+    subset; statements are CORE-authored paraphrases citing control IDs, not the
+    standard's text.
     """
     console.print(
-        f"[bold cyan]🔎 GRC gap-analysis[/bold cyan] over [bold]{corpus}[/bold]"
+        f"[bold cyan]🔎 GRC gap-analysis[/bold cyan] over [bold]{corpus}[/bold] "
+        f"[dim](catalog: {catalog})[/dim]"
     )
-    results = await GRCGapAnalysisService().run(corpus.resolve())
+    try:
+        rules = load_catalog(catalog)
+    except FileNotFoundError as exc:
+        console.print(f"[bold red]{exc}[/bold red]")
+        raise typer.Exit(2) from exc
+    results = await GRCGapAnalysisService().run(corpus.resolve(), catalog=rules)
     _render_report(corpus, results)

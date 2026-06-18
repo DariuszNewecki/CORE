@@ -1,0 +1,121 @@
+# src/body/services/grc/catalogs/nist_800_171_min.yaml
+#
+# A maintained, regulation-derived GRC requirements catalog (minimal subset).
+#
+# COPYRIGHT / PROVENANCE: NIST publications are works of the U.S. Government and
+# are not subject to copyright in the United States. The requirement statements
+# below are CORE-authored paraphrases of control *intent*, bound to checkable
+# verification engines and citing control identifiers. NIST's full control text
+# is NOT reproduced here, and this catalog is not a substitute for the
+# authoritative publication.
+#
+# HONESTY (CORE-BYOR §5 parameter 2): the lanes are split deliberately —
+#   proven   = deterministic document-quality gates (the completeness skeleton)
+#   judged   = control *substance*, an AI reading of the evidence (opinion, labelled)
+#   attested = irreducibly human controls (a reviewer must sign)
+# CORE reports only what it can defend; it never sells a judged opinion as proven.
+
+catalog:
+  id: nist_800_171_min
+  title: "NIST SP 800-171 Rev. 2 — minimal demo subset"
+  source: "NIST SP 800-171 Rev. 2 — Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations"
+  source_authority: "U.S. National Institute of Standards and Technology"
+  source_revision: "Rev. 2 (February 2020)"
+  license: "U.S. Government work — public domain; control identifiers cited, control text not reproduced"
+  catalog_version: "0.1.0"
+  maintained_by: "CORE GRC"
+  note: >
+    Illustrative subset for the gap-analysis service. Keeping this catalog
+    current against the authoritative publication is a standing maintenance
+    obligation — a stale catalog yields a confidently-wrong report.
+
+requirements:
+  # --- proven: deterministic document-quality gates -----------------------
+  - id: nist_800_171.doc_finalized
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: blocking
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Compliance documents MUST be finalized — no placeholder, TODO, TBD,
+      DRAFT, or FIXME text remaining.
+    params:
+      forbidden_patterns:
+        - '\bTBD\b'
+        - '\bTODO\b'
+        - '\bDRAFT\b'
+        - '\bFIXME\b'
+        - '<placeholder>'
+
+  - id: nist_800_171.no_superseded_revision
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Documents MUST cite the current standard revision — no reference to the
+      superseded "Rev. 1" of SP 800-171.
+    params:
+      forbidden_patterns:
+        - '800-171\s+Rev\.?\s*1\b'
+
+  # --- judged: control substance (AI reading; verdict labelled 'judged') --
+  - id: nist_800_171.3_1_1_authorized_access
+    control: "3.1.1"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      System access is limited to authorized users, processes, and devices
+      (NIST SP 800-171 control 3.1.1).
+    params:
+      instruction: >-
+        Does this document establish that access to systems is limited to
+        authorized users, processes, or devices (e.g. least-privilege, access
+        approval, account management)? Report a violation if the document is
+        silent on or contradicts this.
+      rationale: "NIST SP 800-171 Rev. 2, control 3.1.1 (Access Control)."
+
+  - id: nist_800_171.3_5_3_mfa_network_access
+    control: "3.5.3"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Multifactor authentication is required for network and remote access
+      (NIST SP 800-171 control 3.5.3).
+    params:
+      instruction: >-
+        Does this document require multifactor authentication (MFA / two-factor)
+        for network or remote access? Report a violation if remote/network
+        access is described without an MFA requirement.
+      rationale: "NIST SP 800-171 Rev. 2, control 3.5.3 (Identification and Authentication)."
+
+  # --- attested: irreducibly human controls -------------------------------
+  - id: nist_800_171.3_11_1_risk_assessment
+    control: "3.11.1"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Risk to organizational operations and assets is periodically assessed,
+      and controls are appropriate to that risk (NIST SP 800-171 control 3.11.1).
+    params:
+      prompt: >-
+        Confirm that a current risk assessment exists and that the documented
+        security controls are appropriate to the organization's assessed risk.
+      reference: "NIST SP 800-171 Rev. 2, control 3.11.1 (Risk Assessment)."
+
+  - id: nist_800_171.3_12_4_ssp_approved
+    control: "3.12.4"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      A system security plan is documented and approved by management
+      (NIST SP 800-171 control 3.12.4).
+    params:
+      prompt: >-
+        Confirm that a system security plan exists and has been reviewed and
+        approved by the accountable management authority.
+      reference: "NIST SP 800-171 Rev. 2, control 3.12.4 (Security Assessment)."
