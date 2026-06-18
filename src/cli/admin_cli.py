@@ -29,6 +29,7 @@ from cli.resources.constitution import app as constitution_app
 from cli.resources.context import app as context_app
 from cli.resources.database import app as database_app
 from cli.resources.dev import app as dev_app
+from cli.resources.grc import app as grc_app
 from cli.resources.intent import app as intent_app
 from cli.resources.lane import app as lane_app
 from cli.resources.project import app as project_app
@@ -69,6 +70,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(proposals_app, name="proposals")
     app_instance.add_typer(lane_app, name="lane")
     app_instance.add_typer(project_app, name="project")
+    app_instance.add_typer(grc_app, name="grc")
     app_instance.add_typer(dev_app, name="dev")
     app_instance.add_typer(intent_app, name="intent")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
