@@ -26,6 +26,8 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.rule_executor import execute_rule
 from shared.logger import getLogger
@@ -33,6 +35,11 @@ from shared.models import AuditFinding, EvidenceClass
 
 
 logger = getLogger(__name__)
+
+_CATALOG_DIR = Path(__file__).parent / "catalogs"
+# Engines that evaluate the corpus as a whole (one finding per requirement)
+# rather than once per file. The catalog loader marks their rules context-level.
+_CONTEXT_LEVEL_ENGINES = frozenset({"attestation_gate"})
 
 
 # ID: 5128f744-4412-467e-89a6-d5e9f748ff6e
@@ -110,7 +117,7 @@ def load_demo_catalog() -> list[ExecutableRule]:
             enforcement="blocking",
             statement=(
                 "Compliance policy documents MUST be finalized — no placeholder, "
-                "TODO, TBD, DRAFT, or FIXME text."
+                "FUTURE, pending, DRAFT, or PENDING text."
             ),
             scope=["**/*.md", "**/*.txt"],
         ),
@@ -154,6 +161,42 @@ def load_demo_catalog() -> list[ExecutableRule]:
     ]
 
 
+# ID: 26b8b9bb-2b52-40c1-a144-c8614394bbf6
+def load_catalog(name: str = "nist_800_171_min") -> list[ExecutableRule]:
+    """Load a maintained, regulation-derived requirements catalog by name.
+
+    Reads ``catalogs/<name>.yaml`` and builds one ``ExecutableRule`` per
+    requirement. The YAML is the product surface — versioned, provenance-bearing
+    data — so the catalog can be kept current without code changes. Each
+    requirement binds a verification engine (regex_gate/llm_gate/attestation_gate);
+    its ADR-113 evidence class is the engine's, derived at execution time, not
+    declared in the catalog.
+    """
+    path = _CATALOG_DIR / f"{name}.yaml"
+    if not path.is_file():
+        available = sorted(p.stem for p in _CATALOG_DIR.glob("*.yaml"))
+        raise FileNotFoundError(f"Unknown GRC catalog {name!r}. Available: {available}")
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    requirements = data.get("requirements") or []
+    return [_build_rule(entry) for entry in requirements]
+
+
+# ID: dbe15a99-9e83-4423-8725-bb38867d459b
+def _build_rule(entry: dict[str, Any]) -> ExecutableRule:
+    """Build an ``ExecutableRule`` from one catalog requirement entry."""
+    engine = entry["engine"]
+    return ExecutableRule(
+        rule_id=entry["id"],
+        engine=engine,
+        params=dict(entry.get("params") or {}),
+        enforcement=entry.get("enforcement", "reporting"),
+        statement=" ".join(str(entry.get("statement", "")).split()),
+        scope=list(entry.get("scope") or ["**/*"]),
+        exclusions=list(entry.get("exclusions") or []),
+        is_context_level=engine in _CONTEXT_LEVEL_ENGINES,
+    )
+
+
 # ID: fcf7ed3d-ea95-43c6-8333-ca0555387217
 class GRCGapAnalysisService:
     """Runs a requirements catalog against a document corpus → gap report.
@@ -192,7 +235,7 @@ class GRCGapAnalysisService:
 
         context = _CorpusContext(corpus_root)
         results: list[RequirementResult] = []
-        for rule in catalog or load_demo_catalog():
+        for rule in catalog or load_catalog():
             findings = await execute_rule(rule, context)  # type: ignore[arg-type]
             results.append(self._classify(rule, findings))
         return results
