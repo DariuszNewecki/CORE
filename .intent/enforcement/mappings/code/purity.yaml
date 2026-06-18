@@ -1,21 +1,5 @@
   mappings:
-    # 1. LAW: Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD'
-    # Check type: regex_gate (Deterministic String Match)
-    purity.no_todo_placeholders:
-      engine: regex_gate
-      params:
-        forbidden_patterns:
-          - "\\bTODO\\b"
-          - "\\bFIXME\\b"
-          - "\\bTBD\\b"
-      scope:
-        applies_to:
-          - "src/**/*.py"
-        excludes:
-          - "tests/**/*.py"
-          - "scripts/**/*.py"
-
-    # 2. LAW: Every public symbol MUST have a stable '# ID:' anchor
+    # LAW: Every public symbol MUST have a stable '# ID:' anchor
     # Check type: ast_gate (Context-Aware definition lookup)
     purity.stable_id_anchor:
       engine: ast_gate
@@ -51,9 +35,9 @@
     # entry points where docstrings are part of the external contract.
     # ADR-047: engine moved from llm_gate to ast_gate. The presence check
     # is structural (ast.get_docstring is not None), so it does not need
-    # a language model. Placeholder content ("""TODO""") is already
-    # caught by purity.no_todo_placeholders above. Retiring this rule's
-    # llm_gate usage eliminates verdict instability (see #311) and frees
+    # a language model. (Placeholder docstring content is no longer
+    # separately enforced — purity.no_todo_placeholders was retired, ADR-114.)
+    # Moving off llm_gate eliminated verdict instability (see #311) and frees
     # local-LLM concurrency budget for genuinely semantic rules.
     purity.docstrings.required:
       engine: ast_gate

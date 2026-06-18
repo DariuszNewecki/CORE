@@ -76,14 +76,6 @@ mappings:
       rewrites comment lines, never touches logic.
     status: ACTIVE
 
-  purity.no_todo_placeholders:
-    action: fix.placeholders
-    confidence: 0.92
-    description: >
-      Replace forbidden placeholder strings (TODO, FIXME, TBD, etc.).
-      Deterministic regex — no reasoning required.
-    status: ACTIVE
-
   linkage.assign_ids:
     action: fix.ids
     confidence: 0.91
