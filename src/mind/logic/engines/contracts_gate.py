@@ -53,7 +53,7 @@ from sqlalchemy import text
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 if TYPE_CHECKING:
@@ -136,6 +136,7 @@ class ContractsGateEngine(BaseEngine):
     """
 
     engine_id = _ENGINE_ID
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: effd788b-b7b5-4d1e-ab2a-24d8d829e2f7

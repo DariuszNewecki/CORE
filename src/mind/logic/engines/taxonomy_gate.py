@@ -44,7 +44,7 @@ from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
 from shared.processors.yaml_processor import strict_yaml_processor
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 if TYPE_CHECKING:
@@ -99,6 +99,7 @@ class TaxonomyGateEngine(BaseEngine):
     """
 
     engine_id = "taxonomy_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: f3a8d672-5c19-4e2b-b481-6d9e7f3a2c14

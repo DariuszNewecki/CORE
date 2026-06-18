@@ -6,8 +6,34 @@ Defines the Pydantic models for representing the results of a constitutional aud
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import Any
+
+
+# ID: 3f9b1d52-8a4e-4c17-b0d6-2e7f9a4c1b83
+class EvidenceClass(str, Enum):
+    """How a finding's verdict was established (ADR-113).
+
+    Orthogonal to ``AuditSeverity`` (how *bad* the gap is): this records how
+    the verdict was *reached*, which is the honesty surface CORE's GRC
+    gap-analysis is sold on. Stored as its lowercase string value.
+
+    - ``proven``   — established by a deterministic method (presence, pattern,
+      structure, date arithmetic). Reproducible; no judgment.
+    - ``judged``   — established by an AI/semantic reading. An opinion, labelled
+      as one — never a fact.
+    - ``attested`` — cannot be established automatically; a human must decide.
+      Also the fail-closed default: an undeclared engine, a crashed check, or a
+      muted check degrades to ``attested`` (never to a false ``proven``), per
+      ADR-113 D3. Absence of a claim is never read as the strongest claim.
+    """
+
+    PROVEN = "proven"
+    JUDGED = "judged"
+    ATTESTED = "attested"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 # ID: 5ccdae76-2214-413d-8551-13d4b224b694
@@ -56,6 +82,11 @@ class AuditFinding:
     file_path: str | None = None
     line_number: int | None = None
     context: dict[str, Any] = field(default_factory=dict)
+    # ADR-113: how this verdict was established. Fail-closed default is
+    # ATTESTED ("unknown / needs a human") — never a false PROVEN. The
+    # rule_executor overwrites this with the producing engine's declared
+    # class for genuine verdicts; crash/unknown findings keep the default.
+    evidence_class: EvidenceClass = EvidenceClass.ATTESTED
 
     def __init__(
         self,
@@ -67,12 +98,14 @@ class AuditFinding:
         context: dict[str, Any] | None = None,
         *,
         details: dict[str, Any] | None = None,
+        evidence_class: EvidenceClass = EvidenceClass.ATTESTED,
     ) -> None:
         self.check_id = check_id
         self.severity = severity
         self.message = message
         self.file_path = file_path
         self.line_number = line_number
+        self.evidence_class = evidence_class
 
         base_context: dict[str, Any] = dict(context or {})
         if details:
@@ -86,6 +119,7 @@ class AuditFinding:
         return {
             "check_id": self.check_id,
             "severity": str(self.severity),
+            "evidence_class": str(self.evidence_class),  # ADR-113
             "message": self.message,
             "file_path": self.file_path,
             "line_number": self.line_number,

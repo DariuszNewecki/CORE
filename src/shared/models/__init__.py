@@ -5,7 +5,7 @@ Makes all Pydantic models in this directory available for easy import.
 
 from __future__ import annotations
 
-from .audit_models import AuditFinding, AuditSeverity
+from .audit_models import AuditFinding, AuditSeverity, EvidenceClass
 from .capability_models import CapabilityMeta
 from .drift_models import DriftReport
 from .embedding_payload import EmbeddingPayload
@@ -35,6 +35,7 @@ __all__ = [
     "DetailedPlanStep",
     "DriftReport",
     "EmbeddingPayload",
+    "EvidenceClass",
     "ExecutionResults",
     "ExecutionTask",
     "PhaseResult",

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from mind.logic.engines.base import extract_line_number, normalize_violation
 from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
+from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 
 
 # #306/#307: marker the llm_gate engine emits when an LLM call fails for
@@ -115,6 +115,13 @@ async def execute_rule(
             )
         ]
 
+    # ADR-113: the producing engine is the authority on how it establishes a
+    # verdict. Stamp its declared class onto every genuine-verdict finding
+    # below. Crash / unknown findings are NOT stamped — they keep the
+    # AuditFinding default (ATTESTED = "needs a human"), which is the honest
+    # label for a verdict we could not actually reach (D3 fail-closed).
+    engine_evidence_class = getattr(engine, "evidence_class", EvidenceClass.ATTESTED)
+
     if rule.is_context_level:
         # ADR-279 / #279: --files scopes per-file checks; context-level
         # rules look at the whole repo and can't be meaningfully filtered
@@ -137,6 +144,7 @@ async def execute_rule(
             )
             for f in engine_findings:
                 f.severity = severity
+                f.evidence_class = engine_evidence_class  # ADR-113
                 # Restore check_id == rule.rule_id invariant (#485). The per-file
                 # path at the bottom of this function constructs AuditFinding with
                 # check_id=rule.rule_id; the context-level path historically passed
@@ -237,6 +245,7 @@ async def execute_rule(
                             file_path=str(file_path.relative_to(context.repo_path)),
                             line_number=line_number,
                             context=details,
+                            evidence_class=engine_evidence_class,  # ADR-113
                         )
                     )
         except Exception as e:

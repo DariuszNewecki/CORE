@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING, Any
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 if TYPE_CHECKING:
@@ -65,6 +65,7 @@ class LLMGateEngine(BaseEngine):
     """
 
     engine_id = "llm_gate"
+    evidence_class = EvidenceClass.JUDGED  # ADR-113: AI/semantic verdict
 
     def __init__(
         self,

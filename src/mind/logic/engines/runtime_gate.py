@@ -40,7 +40,7 @@ from sqlalchemy import text
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 if TYPE_CHECKING:
@@ -78,6 +78,7 @@ class RuntimeGateEngine(BaseEngine):
     """
 
     engine_id = _ENGINE_ID
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: 1f2e3d4c-5b6a-7980-1234-5678abcdef01

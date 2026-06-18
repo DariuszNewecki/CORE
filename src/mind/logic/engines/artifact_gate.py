@@ -54,7 +54,7 @@ from shared.infrastructure.intent.vocabulary_projection import (
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 if TYPE_CHECKING:
@@ -935,6 +935,7 @@ class ArtifactGateEngine(BaseEngine):
     """
 
     engine_id = "artifact_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: 3c7b9d12-58a4-4e6f-8c1d-2a9e6b4f3d70

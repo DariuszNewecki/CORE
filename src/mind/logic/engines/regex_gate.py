@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 # ID: 76df2589-c0fd-48e3-b359-7c58e1c5ff71
@@ -27,6 +27,7 @@ class RegexGateEngine(BaseEngine):
     """
 
     engine_id = "regex_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     # ID: 53cc3e25-0d0c-41a7-8ad3-32f8e6963a1a
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

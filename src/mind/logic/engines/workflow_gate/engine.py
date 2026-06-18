@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from mind.logic.engines.base import BaseEngine, EngineResult
+from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.workflow_gate.base_check import (
     StructuredViolation,
     WorkflowCheck,
@@ -52,6 +52,7 @@ class WorkflowGateEngine(BaseEngine):
     """
 
     engine_id = "workflow_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: 2b8e4f3d-1a9c-4b65-9d7e-3f8a1c5e2b04

@@ -21,7 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from mind.logic.engines.base import BaseEngine, EngineResult
+from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.cli_gate.base_check import CliCheck
 from mind.logic.engines.cli_gate.checks import (
     AsyncExecutionCheck,
@@ -62,6 +62,7 @@ class CliGateEngine(BaseEngine):
     """Context-level auditor for the Typer command registry."""
 
     engine_id = "cli_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: 060dc0c2-6d54-4544-aaec-86e1ef978243
