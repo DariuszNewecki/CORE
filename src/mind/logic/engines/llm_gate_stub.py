@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from mind.logic.engines.base import BaseEngine, EngineResult
+from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from shared.logger import getLogger
 
 
@@ -34,6 +34,7 @@ class LLMGateStubEngine(BaseEngine):
     # is only reachable through the explicit fallback path in
     # EngineRegistry.get() when no LLM client is wired.
     engine_id = "llm_gate_stub"
+    evidence_class = EvidenceClass.JUDGED  # ADR-113: stands in for the judged llm_gate
 
     def __init__(self):
         """Initialize stub engine - no LLM client needed."""

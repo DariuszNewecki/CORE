@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 # ID: 480ac80d-4928-4408-ad9b-f4d77f1b3b25
@@ -24,6 +24,7 @@ class ActionGateEngine(BaseEngine):
     """
 
     engine_id = "action_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     # ID: cc81843f-33db-479a-9c5c-52d90e14134f
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

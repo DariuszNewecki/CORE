@@ -16,7 +16,7 @@ import fnmatch
 from pathlib import Path
 from typing import Any
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 # ID: 3af1be62-fd37-41f9-b842-8029e8fba49d
@@ -35,6 +35,7 @@ class GlobGateEngine(BaseEngine):
     """
 
     engine_id = "glob_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     # ID: 6576f3e8-c1f6-4180-bcd2-076f7cd7a491
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

@@ -16,11 +16,25 @@ from rich.panel import Panel
 from rich.table import Table
 
 from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
+from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 
 
 logger = getLogger(__name__)
 console = Console()
+
+
+# ADR-113: how a verdict was established, rendered for the gap report.
+_EVIDENCE_STYLES = {
+    EvidenceClass.PROVEN: "[green]proven[/green]",
+    EvidenceClass.JUDGED: "[yellow]judged[/yellow]",
+    EvidenceClass.ATTESTED: "[magenta]needs human[/magenta]",
+}
+
+
+# ID: 7b5e2a91-3c64-4d8f-9a1e-6f2b8c4d7e03
+def _evidence_label(evidence_class: EvidenceClass) -> str:
+    """Render a finding's evidence class (ADR-113) for the Rich tables."""
+    return _EVIDENCE_STYLES.get(evidence_class, str(evidence_class))
 
 
 # ID: b0dc9c82-dd40-4970-94e8-911fd3354930
@@ -32,6 +46,7 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
         header_style="bold magenta",
     )
     table.add_column("Severity", style="cyan")
+    table.add_column("Evidence", style="green")  # ADR-113
     table.add_column("Check ID", style="magenta")
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("File:Line", style="yellow")
@@ -46,6 +61,7 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
             location += f":{finding.line_number}"
         table.add_row(
             severity_styles.get(finding.severity, str(finding.severity)),
+            _evidence_label(finding.evidence_class),
             finding.check_id,
             finding.message,
             location,
@@ -68,6 +84,7 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
         header_style="bold magenta",
     )
     table.add_column("Severity", style="cyan")
+    table.add_column("Evidence", style="green")  # ADR-113
     table.add_column("Check ID", style="magenta")
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("Occurrences", style="yellow", justify="right")
@@ -85,6 +102,7 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
         representative_message = finding_list[0].message
         table.add_row(
             severity_styles.get(severity, str(severity)),
+            _evidence_label(finding_list[0].evidence_class),
             check_id,
             representative_message,
             str(len(finding_list)),

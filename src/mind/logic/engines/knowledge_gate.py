@@ -25,7 +25,7 @@ from mind.logic.engines._knowledge_gate_duplication import (
     _check_semantic_duplication,
     _resolve_symbol_path,
 )
-from mind.logic.engines.base import BaseEngine, EngineResult
+from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -42,6 +42,7 @@ class KnowledgeGateEngine(BaseEngine):
     """
 
     engine_id = "knowledge_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     @classmethod
     # ID: 9e3a7d51-6b2f-4c89-a04d-1e8b5c3f9a26

@@ -30,7 +30,7 @@ from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import 
 from mind.logic.engines.ast_gate.checks.runtime_import_boundary import (
     RuntimeImportBoundaryCheck,
 )
-from mind.logic.engines.base import BaseEngine, EngineResult
+from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from shared.infrastructure.intent.filesystem_operations import (
     FsOperationTaxonomy,
     load_filesystem_operations,
@@ -41,6 +41,7 @@ from shared.path_resolver import PathResolver
 # ID: 0b7d0813-a8e0-4901-b7fa-6c57b48c543d
 class ASTGateEngine(BaseEngine):
     engine_id = "ast_gate"
+    evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
 
     def __init__(self, path_resolver: PathResolver):
         self._paths = path_resolver

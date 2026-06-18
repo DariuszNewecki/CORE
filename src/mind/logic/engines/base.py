@@ -16,7 +16,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
+
+from shared.models.audit_models import EvidenceClass
 
 
 # Pattern for "Line N:" or "(line N)" embedded in engine violation messages —
@@ -126,6 +128,14 @@ class BaseEngine(ABC):
     Now natively async to support the Database-as-SSOT principle
     without violating loop-hijacking rules.
     """
+
+    # ADR-113: how this engine establishes a verdict. The engine is the
+    # authority on its own evidence class — the rule_executor stamps it onto
+    # every genuine-verdict finding the engine produces. Fail-closed default
+    # is ATTESTED ("needs a human"): an engine that forgets to declare its
+    # class degrades to the weakest, never to a false PROVEN (ADR-113 D3).
+    # Deterministic gates override to PROVEN; llm_gate to JUDGED.
+    evidence_class: ClassVar[EvidenceClass] = EvidenceClass.ATTESTED
 
     @abstractmethod
     # ID: db4c48d2-4ccc-4182-bb37-29973471b8bb
