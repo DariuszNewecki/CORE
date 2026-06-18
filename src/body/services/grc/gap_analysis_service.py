@@ -110,7 +110,7 @@ def load_demo_catalog() -> list[ExecutableRule]:
             enforcement="blocking",
             statement=(
                 "Compliance policy documents MUST be finalized — no placeholder, "
-                "FUTURE, pending, DRAFT, or PENDING text."
+                "TODO, TBD, DRAFT, or FIXME text."
             ),
             scope=["**/*.md", "**/*.txt"],
         ),

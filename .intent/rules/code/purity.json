@@ -18,13 +18,6 @@
             "enforcement": "blocking"
         },
         {
-            "id": "purity.no_todo_placeholders",
-            "statement": "Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD' strings; use the constitutional 'FUTURE' or 'PENDING' markers.",
-            "authority": "policy",
-            "phase": "audit",
-            "enforcement": "reporting"
-        },
-        {
             "id": "purity.stable_id_anchor",
             "statement": "Every public symbol MUST be preceded by a stable '# ID:' anchor comment.",
             "authority": "policy",

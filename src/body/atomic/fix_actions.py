@@ -286,7 +286,7 @@ async def action_fix_logging(
     description="Replace FUTURE/PENDING placeholders",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    remediates=["purity.no_todo_placeholders"],
+    remediates=[],  # ADR-114: purity.no_todo_placeholders retired
 )
 @atomic_action(
     action_id="fix.placeholders",
