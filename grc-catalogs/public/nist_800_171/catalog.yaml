@@ -1,13 +1,11 @@
-# src/body/services/grc/catalogs/nist_800_171_min.yaml
+# grc-catalogs/public/nist_800_171/catalog.yaml
 #
 # A maintained, regulation-derived GRC requirements catalog (minimal subset).
-#
-# COPYRIGHT / PROVENANCE: NIST publications are works of the U.S. Government and
-# are not subject to copyright in the United States. The requirement statements
-# below are CORE-authored paraphrases of control *intent*, bound to checkable
-# verification engines and citing control identifiers. NIST's full control text
-# is NOT reproduced here, and this catalog is not a substitute for the
-# authoritative publication.
+# Public tier (ADR-116): NIST publications are U.S. Government works, public
+# domain in the United States. Full IP/derivation provenance is in the sibling
+# provenance.yaml. Requirement statements below are CORE-authored paraphrases of
+# control *intent*, bound to checkable engines and citing control identifiers;
+# NIST's full control text is NOT reproduced.
 #
 # HONESTY (CORE-BYOR §5 parameter 2): the lanes are split deliberately —
 #   proven   = deterministic document-quality gates (the completeness skeleton)
@@ -16,7 +14,7 @@
 # CORE reports only what it can defend; it never sells a judged opinion as proven.
 
 catalog:
-  id: nist_800_171_min
+  id: nist_800_171
   title: "NIST SP 800-171 Rev. 2 — minimal demo subset"
   source: "NIST SP 800-171 Rev. 2 — Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations"
   source_authority: "U.S. National Institute of Standards and Technology"

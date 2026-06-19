@@ -36,7 +36,6 @@ from shared.models import AuditFinding, EvidenceClass
 
 logger = getLogger(__name__)
 
-_CATALOG_DIR = Path(__file__).parent / "catalogs"
 # Engines that evaluate the corpus as a whole (one finding per requirement)
 # rather than once per file. The catalog loader marks their rules context-level.
 _CONTEXT_LEVEL_ENGINES = frozenset({"attestation_gate"})
@@ -162,20 +161,21 @@ def load_demo_catalog() -> list[ExecutableRule]:
 
 
 # ID: 26b8b9bb-2b52-40c1-a144-c8614394bbf6
-def load_catalog(name: str = "nist_800_171_min") -> list[ExecutableRule]:
+def load_catalog(name: str = "nist_800_171") -> list[ExecutableRule]:
     """Load a maintained, regulation-derived requirements catalog by name.
 
-    Reads ``catalogs/<name>.yaml`` and builds one ``ExecutableRule`` per
+    Resolves ``grc-catalogs/<tier>/<name>/catalog.yaml`` through
+    ``catalog_resolver`` (ADR-116) — the corpus is licensed law-as-data CORE
+    consumes, not code it contains — and builds one ``ExecutableRule`` per
     requirement. The YAML is the product surface — versioned, provenance-bearing
     data — so the catalog can be kept current without code changes. Each
     requirement binds a verification engine (regex_gate/llm_gate/attestation_gate);
     its ADR-113 evidence class is the engine's, derived at execution time, not
     declared in the catalog.
     """
-    path = _CATALOG_DIR / f"{name}.yaml"
-    if not path.is_file():
-        available = sorted(p.stem for p in _CATALOG_DIR.glob("*.yaml"))
-        raise FileNotFoundError(f"Unknown GRC catalog {name!r}. Available: {available}")
+    from body.services.grc.catalog_resolver import resolve_catalog_path
+
+    path = resolve_catalog_path(name)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     requirements = data.get("requirements") or []
     return [_build_rule(entry) for entry in requirements]

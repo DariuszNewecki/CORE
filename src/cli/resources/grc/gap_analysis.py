@@ -108,10 +108,10 @@ async def gap_analysis(
         dir_okay=True,
     ),
     catalog: str = typer.Option(
-        "nist_800_171_min",
+        "nist_800_171",
         "--catalog",
         "-c",
-        help="Requirements catalog to check against (see src/body/services/grc/catalogs/).",
+        help="Requirements catalog to check against (a framework under grc-catalogs/).",
     ),
 ) -> None:
     """Run a compliance requirements catalog against a folder of documents.

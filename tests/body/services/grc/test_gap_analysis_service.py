@@ -63,7 +63,7 @@ async def test_clean_corpus_reports_proven_met(tmp_path: Path) -> None:
 
 def test_nist_catalog_loads_with_all_three_lanes() -> None:
     """The regulation-derived catalog loads as data and binds all three lanes."""
-    rules = load_catalog("nist_800_171_min")
+    rules = load_catalog("nist_800_171")
     assert len(rules) >= 5
     engines = {r.engine for r in rules}
     assert {"regex_gate", "llm_gate", "attestation_gate"} <= engines
@@ -95,3 +95,60 @@ async def test_nist_catalog_runs_against_corpus() -> None:
         EvidenceClass.ATTESTED,
     }
     assert "needs_human" in statuses
+
+
+# --- catalog_resolver: residency + tier behaviour (ADR-116) -----------------
+
+
+def _make_catalog(root: Path, tier: str, framework: str) -> Path:
+    """Plant a minimal valid catalog.yaml under <root>/<tier>/<framework>/."""
+    path = root / tier / framework / "catalog.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "catalog:\n  id: x\nrequirements: []\n", encoding="utf-8"
+    )
+    return path
+
+
+def test_resolver_discovers_across_tiers_agnostically(tmp_path: Path) -> None:
+    """discover_catalogs globs every tier; the tier is not part of the key."""
+    from body.services.grc.catalog_resolver import discover_catalogs
+
+    _make_catalog(tmp_path, "public", "nist_800_171")
+    _make_catalog(tmp_path, "licensed", "gdpr")
+
+    found = discover_catalogs(tmp_path)
+    assert set(found) == {"nist_800_171", "gdpr"}
+    assert found["gdpr"].parent.parent.name == "licensed"
+
+
+def test_resolver_tolerates_absent_licensed_tier(tmp_path: Path) -> None:
+    """A public-only corpus (no licensed/ tier) yields fewer catalogs, not an error."""
+    from body.services.grc.catalog_resolver import (
+        discover_catalogs,
+        resolve_catalog_path,
+    )
+
+    _make_catalog(tmp_path, "public", "nist_800_171")
+    assert not (tmp_path / "licensed").exists()
+
+    found = discover_catalogs(tmp_path)
+    assert set(found) == {"nist_800_171"}
+    assert resolve_catalog_path("nist_800_171", tmp_path).is_file()
+
+
+def test_resolver_absent_root_is_empty_not_error(tmp_path: Path) -> None:
+    """An absent corpus root (public clone, credential-less CI) is empty, never raises."""
+    from body.services.grc.catalog_resolver import discover_catalogs
+
+    assert discover_catalogs(tmp_path / "does_not_exist") == {}
+
+
+def test_resolver_licensed_overrides_public_same_framework(tmp_path: Path) -> None:
+    """When a framework exists in both tiers, the entitled (licensed) one wins."""
+    from body.services.grc.catalog_resolver import resolve_catalog_path
+
+    _make_catalog(tmp_path, "public", "nist_800_171")
+    _make_catalog(tmp_path, "licensed", "nist_800_171")
+    resolved = resolve_catalog_path("nist_800_171", tmp_path)
+    assert resolved.parent.parent.name == "licensed"

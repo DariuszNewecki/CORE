@@ -121,6 +121,18 @@ class PathResolver:
         return self._repo_root / "var"
 
     @property
+    # ID: 05626f59-3b79-48b1-aba1-c75955683ade
+    def grc_catalogs_dir(self) -> Path:
+        """Root of the GRC requirements-catalog corpus (ADR-116).
+
+        A read-only, tiered data corpus (``public/`` committed, ``licensed/``
+        a deploy-time entitlement) — *not* runtime output. Declared here so
+        catalog path construction routes through PathResolver instead of a bare
+        string literal (architecture.path_access.no_hardcoded_runtime_dirs).
+        """
+        return self._repo_root / "grc-catalogs"
+
+    @property
     # ID: d35865f7-b5f0-4e33-804e-cd7aa13f3cba
     def workflows_dir(self) -> Path:
         return self._repo_root.joinpath(*self._DEFAULT_WORKFLOWS_SUBDIR)
