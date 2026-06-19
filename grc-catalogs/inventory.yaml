@@ -64,3 +64,28 @@ frameworks:
     revision: "ISO/IEC 27001:2022 (third edition, 2022-10)"
     status: authored          # catalog+provenance written (licensed/iso_27001/); copyrighted source not auto-verifiable → source_verified=false; publish needs licensed-access title verification
     version: null
+
+  - id: eu_annex_11
+    title: "EudraLex Vol. 4 Annex 11 — Computerised Systems"
+    tier: licensed
+    ip_status: official-eu-reusable   # EU GMP guideline (European Commission); freely available & reusable
+    fetch: full-text
+    sources:
+      - "https://health.ec.europa.eu/medicinal-products/eudralex/eudralex-volume-4_en"
+      # the EC's own direct download of the Annex 11 PDF, verified against:
+      - "https://health.ec.europa.eu/document/download/8d305550-dd22-4dad-8463-2ddb4a1345f1_en?filename=annex11_01-2011_en.pdf"
+    revision: "revision 1 (effective 30 June 2011)"
+    status: published         # verified against the official EC Annex 11 PDF; provenance.source_verified=true
+    version: "0.1.0"
+
+  - id: gamp5
+    title: "ISPE GAMP 5 (2nd ed.) — A Risk-Based Approach to Compliant GxP Computerised Systems"
+    tier: licensed
+    ip_status: copyrighted    # ISPE guide — text NOT reproduced; derive + concept-level cite only
+    fetch: metadata-only      # paywalled ISPE guide, never fetched/reproduced
+    sources:
+      - "https://ispe.org/publications/guidance-documents/gamp-5-guide-2nd-edition"
+    revision: "GAMP 5 Second Edition (July 2022)"
+    note: "Methodology guidance, not a control list → deliberately thin, advisor-mode, mostly-attested catalog. Companion to eu_annex_11 + cfr_part_11."
+    status: authored          # derive+cite from published methodology; copyrighted+paywalled → source_verified=false; advisor-mode by design
+    version: null
