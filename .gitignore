@@ -54,6 +54,14 @@ ITAM
 !.specs/commercial/.gitkeep
 
 # -----------------------------------------------------------------------------
+# GRC licensed catalog tier (ADR-116) — the proprietary moat. Populated by the
+# private core-grc-catalogs repo (clone/mount), never committed to this public
+# repo. Gitignored so neither a manual add nor the autonomous daemon can scoop
+# licensed bytes into a public commit. The public tier IS versioned here.
+# -----------------------------------------------------------------------------
+grc-catalogs/licensed/
+
+# -----------------------------------------------------------------------------
 # Exploratory CORE-NG candidate spec — not binding for current CORE
 # -----------------------------------------------------------------------------
 .specs/core-ng/

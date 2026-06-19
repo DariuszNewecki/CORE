@@ -128,6 +128,25 @@ frameworks in the public manifest is intentional — coverage is not the moat (t
 authored requirement content is), so the registry doubles as a public
 product-coverage view.
 
+### D8 — Licensed-tier wiring resolved: tier boundary = repo boundary (appended 2026-06-19)
+Closing the D2/D3 open choices, the licensed tier is wired so the access-control
+boundary coincides 1:1 with GitHub repository visibility:
+
+- The licensed catalogs live in a dedicated **private** repo, `core-grc-catalogs`
+  (closes the repo-name choice), whose layout is `<framework>/{catalog,provenance}.yaml`.
+- It is **cloned/mounted into `grc-catalogs/licensed/`**, which is **gitignored** in
+  this public repo — **no git submodule, no committed `.gitmodules`** (closes the
+  disclosure choice in D3's favour: the private repo is not disclosed in public
+  CORE). Gitignoring also prevents a manual `add` or the autonomous daemon from
+  scooping licensed bytes into a public commit.
+
+Rejected the alternative ("one private repo holds *all* catalogs, free subset
+*published* into CORE's public tier"): it duplicates the free catalogs across two
+repos and needs a sync step + drift-guard. Tier-boundary = repo-boundary keeps
+every catalog single-homed with zero duplication and no sync machinery — each
+tier's home matches its visibility. No change to D2's model; this only selects the
+mechanism D3 left open.
+
 ## Consequences
 
 - The moat never enters public git; its existence and contents are gated by
