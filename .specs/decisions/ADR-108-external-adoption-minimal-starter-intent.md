@@ -107,6 +107,45 @@ claim becomes literally true. D1's machinery/rules split is drawn precisely so t
 to adopters — the starter and the demo shrink, nothing else changes. Implementation is its own
 change-set; this ADR records the direction and the floor it must preserve.
 
+### D4 — The delivered starter actually enforces: one law root, and the gate fails closed
+
+D1 promises the starter "produces inline annotations and a blocking exit on a planted violation."
+Verifying that promise (the T1 gate of the BYOR program backlog) surfaced two ways the consumer
+audit could *silently* not enforce. Both are closed here as invariants of the audit gate, not just
+of this starter.
+
+1. **Law is sourced from a single root.** A rule and its enforcement mapping are one corpus and
+   MUST be read from the same root — the `IntentRepository` root — never split across the
+   code-under-audit root (`repo_path`). The audit had rooted policies at the IntentRepository but
+   the enforcement mappings at `repo_path`. When those diverged — a BYOR consumer audited from
+   CORE's source tree, where the `.env` `REPO_PATH`/`MIND` pin separates law-root from cwd — every
+   rule loaded but none mapped, and the gate returned a false-green PASS. This is the same lesson
+   OPA encodes with bundles (policy and data load together from one source) and matches the
+   project's two-surface principle: `repo_path` is the *artifact* axis; the constitution is the
+   *law* axis, and the two halves of the law share its root.
+
+2. **The gate fails closed on governance collapse.** If the constitution declares rules but **zero**
+   of them map to an enforceable engine, the audit can evaluate nothing; it MUST NOT return PASS.
+   The stateless runner returns a distinct `ERROR` verdict (CLI exit 2 — operator action, not
+   developer action). This is the application of the existing `governance.no_governance_bypass`
+   rule ("if a precondition cannot be evaluated, block") to the F-10 offline path, and mirrors the
+   Kubernetes admission-control default (`failurePolicy: Fail`) for a security-critical gate: a
+   check that cannot run denies, it does not wave through.
+
+   **Boundary.** This fires only on *total* collapse (declared rules > 0, mapped rules = 0). A
+   partial declared-only set — CORE's own Class-A unmapped rules — and the all-skipped-in-stateless
+   case (rules mapped, but every engine needs the graph or LLM) are honest coverage gaps already
+   surfaced in `skipped_rules`; they remain non-blocking. Fail-closed is reserved for "a
+   constitution that enforces nothing," not "a constitution that enforces less here."
+
+This is gate behavior, so it lives on the audit path (`AuditorContext`, `stateless_audit`), not in
+the starter content. It was anchored here rather than on ADR-085 (which scopes *what* engineering
+builds, not *how* the gate behaves) because T1 — "does the delivered starter actually enforce?" —
+is this ADR's promise to keep. Verified by a co-pointed consumer that blocks on a planted violation,
+a divergent-root case that now binds all four rules, and a no-mappings case that returns `ERROR`;
+regression-pinned in `tests/mind/governance/test_audit_context__enforcement_root.py` and
+`tests/mind/governance/test_stateless_audit__fails_closed.py`.
+
 ---
 
 ## Consequences

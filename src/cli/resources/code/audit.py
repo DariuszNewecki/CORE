@@ -224,7 +224,9 @@ async def _run_offline_audit(
 
     - EXIT_OK (0)             : no findings >= severity floor
     - EXIT_FINDINGS (1)       : N findings >= severity floor; merge-block
-    - EXIT_CONFIG_ERROR (2)   : .intent/ unreachable or IntentRepository fails
+    - EXIT_CONFIG_ERROR (2)   : .intent/ unreachable, IntentRepository fails,
+                                or governance collapse (ADR-108 D4 — rules
+                                declared but none map to an enforceable engine)
     - EXIT_INTERNAL_ERROR (64): caught here as the top-level guard
 
     Per ADR-085 §D5, exit code 1 vs 64 is constitutionally meaningful for
@@ -258,6 +260,21 @@ async def _run_offline_audit(
         logger.exception("Stateless audit crashed")
         _emit_error(output_format, "internal error", exc)
         raise typer.Exit(EXIT_INTERNAL_ERROR) from exc
+
+    # ADR-108 D4: governance collapse fails closed with a distinct ERROR
+    # verdict (the gate could enforce nothing). This is operator action
+    # (exit 2), not developer action (exit 1) — the constitution declared
+    # rules but none mapped to an engine.
+    if result.get("verdict") == "ERROR":
+        msg = result.get("error", "audit could not enforce any declared rule")
+        if output_format == "json":
+            sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
+        elif output_format == "github-annotations":
+            safe = str(msg).replace("%", "%25").replace("\n", "%0A")
+            sys.stdout.write(f"::error title=CORE audit governance error::{safe}\n")
+        else:
+            console.print(f"[bold red]Governance error:[/bold red] {msg}")
+        raise typer.Exit(EXIT_CONFIG_ERROR)
 
     blocking_findings = [
         f for f in result["findings"] if to_audit_finding(f).severity >= min_severity

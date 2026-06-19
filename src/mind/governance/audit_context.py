@@ -226,7 +226,14 @@ class AuditorContext:
 
         self.last_findings: list[Any] = []
         self.policies: dict[str, Any] = self._load_governance_resources()
-        self.enforcement_loader = EnforcementMappingLoader(self.paths.intent_root)
+        # ADR-108 D4: enforcement mappings are part of the law corpus and MUST
+        # share the root the policies are loaded from — the IntentRepository
+        # root — never the code-under-audit root (repo_path). When the two
+        # diverged (a BYOR consumer audited from CORE's source tree, where the
+        # .env REPO_PATH/MIND pin splits law-root from cwd-root) every rule
+        # loaded but none mapped, silently collapsing the gate to a false-green
+        # PASS. Law follows intent_repo; repo_path stays the artifact axis.
+        self.enforcement_loader = EnforcementMappingLoader(self.intent_repo.root)
 
         self.knowledge_graph: dict[str, Any] = {"symbols": {}}
         self.symbols_list: list[Any] = []
@@ -295,7 +302,9 @@ class AuditorContext:
         """
         self.intent_repo.reload()
         self.policies = self._load_governance_resources()
-        self.enforcement_loader = EnforcementMappingLoader(self.paths.intent_root)
+        # ADR-108 D4: keep enforcement rooted with the policies (intent_repo),
+        # not repo_path — see the note in __init__.
+        self.enforcement_loader = EnforcementMappingLoader(self.intent_repo.root)
 
     # ID: 3e8a1b6c-5d4f-49a2-b71c-8e2d0f4a9c5b
     async def sweep_llm_gate_cache(self) -> int:

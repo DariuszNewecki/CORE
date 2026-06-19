@@ -166,6 +166,47 @@ async def run_stateless_audit(
         len(skipped_rules),
     )
 
+    # ADR-108 D4 / governance.no_governance_bypass: fail closed on governance
+    # collapse. If the constitution declares rules but ZERO of them mapped to
+    # an enforceable engine, the gate can evaluate nothing — returning PASS
+    # would be a false-green (the BYOR root-split or an empty/unreachable
+    # enforcement directory). Distinct "ERROR" verdict so the caller blocks on
+    # operator action (the governance setup is broken), not developer action.
+    # Boundary: this fires only on TOTAL collapse. A partial declared-only set
+    # (CORE's Class-A unmapped rules) and the all-skipped-in-stateless case
+    # (rules mapped but every engine is knowledge/llm) are both honest and stay
+    # non-blocking — they are surfaced as coverage, not failure.
+    declared_rule_count = _count_declared_rules(context.policies)
+    if declared_rule_count > 0 and not all_rules:
+        logger.error(
+            "stateless_audit: governance collapse — %d rule(s) declared but 0 "
+            "mapped to an enforceable engine; refusing to PASS "
+            "(no_governance_bypass)",
+            declared_rule_count,
+        )
+        return {
+            "verdict": "ERROR",
+            "passed": False,
+            "stats": {
+                "total_rules": 0,
+                "runnable_rules": 0,
+                "skipped_rules_count": len(skipped_rules),
+                "declared_rules": declared_rule_count,
+            },
+            "findings": [],
+            "executed_rule_ids": [],
+            "skipped_rules": skipped_rules,
+            "error": (
+                f"governance collapse: {declared_rule_count} rule(s) declared but "
+                "none map to an enforceable engine (enforcement mappings "
+                "unreachable or empty); the audit can enforce nothing"
+            ),
+            "duration_sec": 0.0,
+            "run_id": None,
+            "finished_at": datetime.now(UTC).isoformat(),
+            "mode": "stateless",
+        }
+
     start_time = time.perf_counter()
     raw_findings, executed_ids, stats_dict = await run_filtered_audit(
         context,
@@ -201,6 +242,23 @@ async def run_stateless_audit(
         "finished_at": datetime.now(UTC).isoformat(),
         "mode": "stateless",
     }
+
+
+def _count_declared_rules(policies: dict[str, Any]) -> int:
+    """Count canonical rules declared across all loaded policies.
+
+    Distinguishes "the constitution is empty" (legitimately nothing to
+    enforce — PASS) from "rules are declared but none mapped to an engine"
+    (governance collapse — fail closed). See ADR-108 D4.
+    """
+    total = 0
+    for policy_data in policies.values():
+        if not isinstance(policy_data, dict):
+            continue
+        rules = policy_data.get("rules", [])
+        if isinstance(rules, list):
+            total += sum(1 for r in rules if isinstance(r, dict) and r.get("id"))
+    return total
 
 
 __all__ = ["run_stateless_audit"]
