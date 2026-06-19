@@ -1,0 +1,40 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.var_tmp_janitor
+  title: var/tmp Janitor
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-117. var/tmp is the repo-internal ephemeral-scratch surface and nothing
+    reaps it (974 entries / 17MB observed 2026-06-19, mostly one-time probe
+    residue from 2026-06-07). Phase 1 is report-only: it scans var/tmp and posts
+    the stale reap candidates (age > 7 days, excluding pinned .keep entries)
+    without deleting anything, proving the age/boundary predicate before any
+    destructive Phase-2 follow-up (tmp.reap). Deterministic, no LLM, read-only.
+
+identity:
+  uuid: "45b47235-9572-4dc8-af7c-d75ef0ef7d8f"
+  class: governance
+
+mandate:
+  responsibility: >
+    Scan var/tmp/ and post a Blackboard report of stale reap candidates (entries
+    older than the retention threshold, excluding pinned .keep entries). Phase 1
+    deletes nothing.
+  phase: audit
+  permitted_tools: []
+  scope:
+    domains:
+      - governance
+  approval_required: false
+  schedule:
+    max_interval: 21600
+    glide_off: 2160
+
+implementation:
+  module: will.workers.var_tmp_janitor
+  class: VarTmpJanitorWorker
+  requires_core_context: false
