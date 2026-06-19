@@ -320,47 +320,24 @@ def _seed_rule_document(
 
 
 async def test_all_rules_mapped_fires_when_mapping_missing(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     """ADR-066 invariant: a rule with no auto_remediation mapping must fire.
 
     This is the firing-coverage proof for the live provocation the
     governor performs against the real repo: the check_type is wired
-    so it produces a finding when the invariant is violated. The
-    fixture mocks the IntentRepository singleton at the artifact_gate
-    call-site so the check reads from the fixture .intent/ rather than
-    the real one.
+    so it produces a finding when the invariant is violated.
+
+    Post-#591, ``_check_all_rules_mapped`` reads rules directly from
+    ``repo_root/.intent/rules/**/*.json`` (NOT via the
+    ``get_intent_repository()`` singleton — see the source docstring), so
+    the provocation must live on disk. We plant one active reporting rule
+    and leave ``auto_remediation.yaml`` empty so it resolves as unmapped —
+    mirroring the disk-only shape of the sibling vocabulary/namespace tests.
     """
     repo = _scaffold_repo(tmp_path)
-    _seed_auto_remediation_yaml(repo, mapped_ids=[])  # empty → unmapped
-
-    # Mock the process-global IntentRepository to expose one active
-    # reporting rule with no mapping. The check's filesystem checks
-    # (map_file / rules_dir existence) read from repo_root directly,
-    # so we still need the fixture auto_remediation.yaml on disk.
-    fake_ref = MagicMock()
-    fake_ref.policy_id = "rules/test_rule"
-    fake_ref.path = Path("rules/test_rule.json")
-    fake_repo = MagicMock()
-    fake_repo.load_text = MagicMock(return_value="")
-    fake_repo.list_policies = MagicMock(return_value=[fake_ref])
-    fake_repo.load_document = MagicMock(
-        return_value={
-            "metadata": {"status": "active"},
-            "rules": [
-                {
-                    "id": "test.unmapped.rule",
-                    "enforcement": "reporting",
-                }
-            ],
-        }
-    )
-    # Also seed rules_dir on disk so the check's preflight passes.
-    (repo / ".intent" / "rules").mkdir(parents=True, exist_ok=True)
-
-    from mind.logic.engines import artifact_gate as agate
-
-    monkeypatch.setattr(agate, "get_intent_repository", lambda: fake_repo)
+    _seed_auto_remediation_yaml(repo, mapped_ids=[])  # empty → nothing mapped
+    _seed_rule_document(repo, "test.unmapped.rule")  # active + reporting, on disk
 
     ctx = AuditorContext(repo)
     rule = _build_context_level_rule(

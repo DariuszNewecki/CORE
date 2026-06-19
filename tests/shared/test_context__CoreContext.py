@@ -19,6 +19,7 @@ def test_corecontext_with_registry():
         git_service=object(),
         knowledge_service=object(),
         file_handler=object(),
+        file_service=object(),
     )
     assert context.registry == test_registry
 
@@ -44,6 +45,7 @@ def test_corecontext_repr_excludes_sensitive_fields():
         git_service=object(),
         knowledge_service=object(),
         file_handler=object(),
+        file_service=object(),
         context_service_factory=factory,
     )
     repr_str = repr(context)

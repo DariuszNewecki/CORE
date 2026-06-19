@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 00:56:13
 """
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -102,11 +101,17 @@ def test_settings_extra_fields_allowed():
     assert settings.EXTRA_FIELD == "extra_value"
 
 
-def test_settings_case_sensitive():
-    """Test that Settings is case-sensitive."""
-    os.environ["core_env"] = "lowercase"
+def test_settings_case_sensitive(monkeypatch):
+    """Settings is case-sensitive (model_config case_sensitive=True): a
+    lowercase env var must NOT populate its uppercase field.
+
+    Uses QDRANT_COLLECTION_NAME rather than CORE_ENV: Settings.__init__
+    force-sets CORE_ENV=TEST under pytest (#592, to keep the suite off the
+    prod DB), so CORE_ENV can never reach its 'development' default here.
+    .env.test does not set QDRANT_COLLECTION_NAME, so its default survives a
+    lowercase override — proving the lowercase variant was ignored."""
+    monkeypatch.setenv("qdrant_collection_name", "should-be-ignored")
     settings = Settings(
         DATABASE_URL="sqlite:///test.db", QDRANT_URL="http://localhost:6333"
     )
-    assert settings.CORE_ENV == "development"
-    del os.environ["core_env"]
+    assert settings.QDRANT_COLLECTION_NAME == "core-code"
