@@ -57,6 +57,11 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
 - **T5a** — Repository adapter interface (the concrete F-41/F-42/F-43 binding).
 - **T5b** — GRC document/records Repository type + regulation→checkable-Intent
   representation. The commercial centerpiece; also the hardest part (RegTech).
+  - *Regulation→Intent residency split decided in **ADR-116** (proposed 2026-06-19):*
+    the catalog is licensed law-as-data, consumed not bundled — `grc-catalogs/{public,
+    licensed}`, `licensed/` never in this public repo. Advances T5b's catalog side.
+    *Still open:* the document/records **sensor type** (F-42 binding that reads a
+    customer's records library) — a sibling slice, not covered by ADR-116.
 - **T5c** — Per-finding attestation (proven / judged / attested) — the honesty
   guardrail made mechanical.
 
