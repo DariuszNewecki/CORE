@@ -224,8 +224,14 @@ class ConstitutionalEvaluator(Component):
 
             auditor_context = AuditorContext(self.repo_root)
             await auditor_context.load_knowledge_graph()
+            # Scope the audit to the file under evaluation. Without `files`,
+            # run_filtered_audit scans the entire repo (~90-120s) only for the
+            # per-file findings below to discard everything but `file_path` — a
+            # full-repo audit to check one file. `files=[file_path]` scopes at
+            # the source; context-level rules skip gracefully (they were already
+            # excluded by the file_path filter), so the result is unchanged.
             findings, _, _ = await run_filtered_audit(
-                auditor_context, rule_patterns=[r".*"]
+                auditor_context, rule_patterns=[r".*"], files=[file_path]
             )
             return [
                 {

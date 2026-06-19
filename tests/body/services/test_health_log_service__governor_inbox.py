@@ -19,6 +19,8 @@ Real WHERE clause + real round-trip on the test DB, not mocked.
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,11 +37,39 @@ def _prime_service_registry() -> None:
     service_registry.prime(get_session)
 
 
-async def _insert_finding(
-    session: AsyncSession, subject: str, status: str, mechanism: str
+async def _ensure_worker_registry_row(
+    session: AsyncSession, worker_uuid: uuid.UUID
 ) -> None:
-    # worker_uuid + phase are NOT NULL; resolution_mechanism CHECK requires a
-    # finding to carry one of (reaudit, self_resolve, human).
+    """Seed a worker_registry row so blackboard_entries.worker_uuid FK is
+    satisfied. On a freshly-seeded DB worker_registry is empty, so a finding
+    inserted with an unregistered worker_uuid violates the FK (and aborts the
+    transaction). Mirrors the sibling blackboard tests."""
+    await session.execute(
+        text(
+            """
+            INSERT INTO core.worker_registry
+                (worker_uuid, worker_name, worker_class, phase)
+            VALUES (:worker_uuid, :worker_name, 'sensing', 'audit')
+            ON CONFLICT (worker_uuid) DO NOTHING
+            """
+        ),
+        {
+            "worker_uuid": worker_uuid,
+            "worker_name": f"test_worker_{str(worker_uuid)[:8]}",
+        },
+    )
+
+
+async def _insert_finding(
+    session: AsyncSession,
+    worker_uuid: uuid.UUID,
+    subject: str,
+    status: str,
+    mechanism: str,
+) -> None:
+    # worker_uuid + phase are NOT NULL; worker_uuid carries an FK to
+    # worker_registry; resolution_mechanism CHECK requires a finding to carry
+    # one of (reaudit, self_resolve, human).
     await session.execute(
         text(
             """
@@ -47,11 +77,16 @@ async def _insert_finding(
                 (worker_uuid, entry_type, phase, subject, status,
                  resolution_mechanism, payload)
             VALUES
-                (gen_random_uuid(), 'finding', 'audit', :subject, :status,
+                (:worker_uuid, 'finding', 'audit', :subject, :status,
                  :mechanism, '{}'::jsonb)
             """
         ),
-        {"subject": subject, "status": status, "mechanism": mechanism},
+        {
+            "worker_uuid": worker_uuid,
+            "subject": subject,
+            "status": status,
+            "mechanism": mechanism,
+        },
     )
 
 
@@ -69,6 +104,7 @@ async def test_governor_inbox_counts_distinct_human_delegated_subjects(
     """governor_inbox adds exactly one distinct subject for a human-delegated
     finding (two rows, one subject) and ignores a reaudit-mechanism control."""
     svc = HealthLogService()
+    worker_uuid = uuid.uuid4()
     human_subject = "test.governor_inbox::human-delegated-001"
     reaudit_subject = "test.governor_inbox::reaudit-control-001"
 
@@ -76,12 +112,19 @@ async def test_governor_inbox_counts_distinct_human_delegated_subjects(
     assert isinstance(baseline, int)
 
     try:
+        await _ensure_worker_registry_row(db_session, worker_uuid)
         # Two rows, same subject → must count as ONE distinct subject.
-        await _insert_finding(db_session, human_subject, "indeterminate", "human")
-        await _insert_finding(db_session, human_subject, "indeterminate", "human")
+        await _insert_finding(
+            db_session, worker_uuid, human_subject, "indeterminate", "human"
+        )
+        await _insert_finding(
+            db_session, worker_uuid, human_subject, "indeterminate", "human"
+        )
         # Control: reaudit mechanism must NOT count toward governor_inbox
         # (it belongs to the machine backlog, not the human inbox).
-        await _insert_finding(db_session, reaudit_subject, "indeterminate", "reaudit")
+        await _insert_finding(
+            db_session, worker_uuid, reaudit_subject, "indeterminate", "reaudit"
+        )
         await db_session.commit()
 
         after = (await svc.collect_system_state())["governor_inbox"]
@@ -92,6 +135,11 @@ async def test_governor_inbox_counts_distinct_human_delegated_subjects(
     finally:
         await _cleanup_subject(db_session, human_subject)
         await _cleanup_subject(db_session, reaudit_subject)
+        await db_session.execute(
+            text("DELETE FROM core.worker_registry WHERE worker_uuid = :worker_uuid"),
+            {"worker_uuid": worker_uuid},
+        )
+        await db_session.commit()
 
 
 async def test_write_health_log_persists_governor_inbox_in_payload(
