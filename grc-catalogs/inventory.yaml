@@ -38,3 +38,18 @@ frameworks:
     revision: "consolidated 2016-05-04"
     status: authored        # catalog+provenance written (licensed/gdpr/); publish gated on live source verification (EUR-Lex unreachable at authoring; provenance.source_verified=false)
     version: null
+
+  - id: cfr_part_11
+    title: "21 CFR Part 11 — Electronic Records; Electronic Signatures"
+    tier: licensed
+    ip_status: public-domain   # U.S. Government work (Code of Federal Regulations)
+    fetch: full-text
+    sources:
+      # eCFR is the primary official source but anti-bot-redirects automated
+      # clients; govinfo.gov (GPO official CFR) is the equally-authoritative
+      # source that served verification. Both governor-approved.
+      - "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11"
+      - "https://www.govinfo.gov/content/pkg/CFR-2024-title21-vol1/xml/CFR-2024-title21-vol1-part11.xml"
+    revision: "2024 annual edition (revised as of April 1, 2024)"
+    status: published       # verified against govinfo.gov; provenance.source_verified=true
+    version: "0.1.0"
