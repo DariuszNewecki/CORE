@@ -1,0 +1,40 @@
+# grc-catalogs/inventory.yaml
+#
+# The GRC framework registry (ADR-116 D7). One public manifest declaring every
+# framework CORE catalogs: its tier, the approved retrieval sources
+# (whitelist-as-data — this governs every fetch), IP status, and authoring
+# status. `tier` (public/licensed = the commercial/access axis) is ORTHOGONAL
+# to `ip_status` (the source's copyright): GDPR is a licensed product built over
+# a public, reusable EU-law source.
+#
+# A `published` entry MUST have a matching catalog.yaml + provenance.yaml whose
+# source agrees with the `sources` listed here (auditable; drift is a finding).
+#
+# status lifecycle: planned -> approved (sources governor-approved, no fetch yet)
+#   -> authored (catalog written) -> published (live + provenance + tests).
+# Approving an entry's `sources` authorizes fetching FROM THEM ONLY; it is not
+# itself a fetch.
+
+frameworks:
+  - id: nist_800_171
+    title: "NIST SP 800-171 Rev. 2"
+    tier: public
+    ip_status: public-domain
+    fetch: full-text
+    sources:
+      - "https://csrc.nist.gov/pubs/sp/800/171/r2/final"
+    revision: "Rev. 2 (February 2020)"
+    status: published
+    version: "0.1.0"
+
+  - id: gdpr
+    title: "Regulation (EU) 2016/679 — GDPR"
+    tier: licensed
+    ip_status: official-eu-law-reusable   # Decision 2011/833/EU
+    fetch: full-text
+    sources:
+      - "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02016R0679-20160504"
+      - "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    revision: "consolidated 2016-05-04"
+    status: approved        # sources approved; authoring blocked on licensed-tier infra
+    version: null

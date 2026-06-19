@@ -111,6 +111,23 @@ with the resolver's absent-tier behavior (D3) covered by a test. Whether the
 adopters can run the demo) is a packaging decision settled in implementation, not a
 property of this ADR.
 
+### D7 — A declared inventory governs the corpus (appended 2026-06-19)
+`grc-catalogs/inventory.yaml` is a single public manifest declaring every
+framework CORE catalogs: its `tier` (`public` / `licensed` — confirming D2's
+vocabulary), `ip_status`, approved `sources`, `fetch` depth, `revision`, and
+`status` (`planned → approved → authored → published`). The `sources` list **is**
+the retrieval whitelist as data — it operationalizes the rule that sources are
+governor-approved before any fetch, replacing per-session approval with a
+reviewed registry. `tier` (the commercial/access axis) is **orthogonal** to
+`ip_status` (the source's copyright): GDPR is a `licensed` product built over an
+`official-eu-law-reusable` source, so it may be fetched full-text while its
+authored catalog stays in the licensed tier. A `published` entry MUST have a
+matching `catalog.yaml` + `provenance.yaml` whose source agrees with the
+manifest; an audit checks this and drift is a finding. Listing licensed-tier
+frameworks in the public manifest is intentional — coverage is not the moat (the
+authored requirement content is), so the registry doubles as a public
+product-coverage view.
+
 ## Consequences
 
 - The moat never enters public git; its existence and contents are gated by
