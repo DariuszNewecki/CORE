@@ -34,8 +34,8 @@ _TMP_RELPATH = ("var", "tmp")
 _SECONDS_PER_DAY = 86400.0
 
 
-# ID: 7f82fcda-bf42-4f8f-a082-e52eadb8c1c0
 @dataclass(frozen=True)
+# ID: 6550a504-7a08-4aac-8040-84cbab31749f
 class ReapCandidate:
     """A stale var/tmp entry selected for (eventual, Phase-2) reaping."""
 
