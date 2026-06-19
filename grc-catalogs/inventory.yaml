@@ -36,5 +36,5 @@ frameworks:
       - "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02016R0679-20160504"
       - "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
     revision: "consolidated 2016-05-04"
-    status: approved        # sources approved; authoring blocked on licensed-tier infra
+    status: authored        # catalog+provenance written (licensed/gdpr/); publish gated on live source verification (EUR-Lex unreachable at authoring; provenance.source_verified=false)
     version: null
