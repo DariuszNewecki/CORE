@@ -53,3 +53,14 @@ frameworks:
     revision: "2024 annual edition (revised as of April 1, 2024)"
     status: published       # verified against govinfo.gov; provenance.source_verified=true
     version: "0.1.0"
+
+  - id: iso_27001
+    title: "ISO/IEC 27001:2022 — Information security management systems — Requirements"
+    tier: licensed
+    ip_status: copyrighted   # ISO/IEC standard — text NOT reproduced; derive + cite clause/control IDs only
+    fetch: metadata-only      # edition/title only; full text paywalled, never fetched/reproduced (iso.org also 403s automated clients)
+    sources:
+      - "https://www.iso.org/standard/27001"
+    revision: "ISO/IEC 27001:2022 (third edition, 2022-10)"
+    status: authored          # catalog+provenance written (licensed/iso_27001/); copyrighted source not auto-verifiable → source_verified=false; publish needs licensed-access title verification
+    version: null
