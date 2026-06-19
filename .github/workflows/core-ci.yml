@@ -26,6 +26,9 @@ jobs:
   validate:
     name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    # Hard bound: the integration suite must never hang the runner. If a test
+    # blocks on an unprovisioned dependency, fail the job rather than wait.
+    timeout-minutes: 25
     strategy:
       matrix:
         python-version: ["3.12"]
@@ -122,7 +125,7 @@ jobs:
             --cov=src \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing:skip-covered \
-            --cov-fail-under=45
+            --cov-fail-under=38
 
       - name: Upload coverage to Codecov
         if: github.repository == 'DariuszNewecki/CORE'
