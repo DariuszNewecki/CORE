@@ -22,6 +22,7 @@ def test_context_builder_raises_when_factory_not_configured() -> None:
         git_service=object(),
         knowledge_service=object(),
         file_handler=object(),
+        file_service=object(),
     )
 
     with pytest.raises(RuntimeError, match="ArchitecturalContextBuilder factory"):
@@ -44,6 +45,7 @@ def test_context_builder_routes_through_factory_and_caches() -> None:
         git_service=object(),
         knowledge_service=object(),
         file_handler=object(),
+        file_service=object(),
         context_builder_factory=factory,
     )
 

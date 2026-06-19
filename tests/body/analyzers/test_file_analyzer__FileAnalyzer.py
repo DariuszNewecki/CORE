@@ -11,8 +11,13 @@
   with a MockContext and is left untouched.
 
   Additionally, every NamedTemporaryFile call now passes
-  ``dir="/opt/dev/CORE/var/tmp"`` per CLAUDE.md — pytest's default temp
-  paths leak into /tmp which is constitutionally forbidden in this repo.
+  ``dir=_REPO_TMP_DIR`` per CLAUDE.md — pytest's default temp paths leak
+  into /tmp which is constitutionally forbidden in this repo.
+- 2026-06-19 (#675 smoke fix): _REPO_TMP_DIR was hardcoded to the server's
+  ``/opt/dev/CORE/var/tmp`` and broke on any other checkout (CI runs at
+  ``/home/runner/work/CORE/CORE``). Now resolved relative to this file's
+  location, and the dir is created on demand (``var/tmp`` is gitignored, so
+  it is absent on a fresh checkout).
 """
 
 from __future__ import annotations
@@ -27,7 +32,11 @@ import pytest
 from body.analyzers.file_analyzer import FileAnalyzer
 
 
-_REPO_TMP_DIR = "/opt/dev/CORE/var/tmp"
+# Repo root resolved from this file: tests/body/analyzers/<this> → parents[3].
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_REPO_TMP_DIR = str(_REPO_ROOT / "var" / "tmp")
+# var/tmp is gitignored, so it does not exist on a fresh checkout (e.g. CI).
+os.makedirs(_REPO_TMP_DIR, exist_ok=True)
 
 
 @pytest.fixture
@@ -39,7 +48,7 @@ def analyzer():
     tests below exercise. Pointing at the repo root means tempfiles
     written under ``var/tmp/`` resolve to a clean rel_path."""
     ctx = MagicMock()
-    ctx.git_service.repo_path = Path("/opt/dev/CORE")
+    ctx.git_service.repo_path = _REPO_ROOT
     return FileAnalyzer(context=ctx)
 
 

@@ -21,6 +21,7 @@ from api.v1.coverage_routes import (
     GenerateBatchRequest,
     GenerateRequest,
     InteractiveTestsRequest,
+    ReportRequest,
     coverage_check,
     coverage_gaps,
     coverage_history,
@@ -31,6 +32,7 @@ from api.v1.coverage_routes import (
     generate_coverage_batch,
     get_coverage_run,
     interactive_tests,
+    request_coverage_report,
 )
 
 
@@ -192,38 +194,93 @@ async def test_coverage_check_delegates_to_facade():
 
 
 @pytest.mark.asyncio
-async def test_coverage_report_passes_show_missing():
-    request = _mock_request_with_context()
+async def test_coverage_report_returns_latest_persisted_report():
+    """GET /coverage/report reads the latest completed run of the requested
+    format via get_latest_coverage_report (#608: no inline pytest)."""
+    session = AsyncMock()
     with patch(
-        "api.v1.coverage_routes.get_coverage_report",
-        new=AsyncMock(return_value={"ok": True}),
+        "api.v1.coverage_routes.get_latest_coverage_report",
+        new=AsyncMock(return_value={"ok": True, "format": "text"}),
     ) as facade:
-        out = await coverage_report(request=request, show_missing=True)
+        out = await coverage_report(format="text", session=session)
     facade.assert_awaited_once()
     _, kwargs = facade.call_args
-    assert kwargs.get("show_missing") is True
-    assert out == {"ok": True}
+    assert kwargs.get("format") == "text"
+    assert out == {"ok": True, "format": "text"}
 
 
 @pytest.mark.asyncio
-async def test_coverage_report_html_format_dispatches_to_html_runner():
-    """format='html' routes to get_coverage_html_report instead of the text path. Closes #358."""
+async def test_coverage_report_404_when_no_persisted_report():
+    """GET /coverage/report 404s (with a POST hint) when no completed run
+    of the requested format exists yet."""
+    session = AsyncMock()
+    with patch(
+        "api.v1.coverage_routes.get_latest_coverage_report",
+        new=AsyncMock(return_value=None),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await coverage_report(format="html", session=session)
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_request_coverage_report_html_format_propagates_to_runner():
+    """POST /coverage/reports inserts a pending run, schedules the background
+    job, and propagates format='html' + show_missing to the runner. The html
+    dispatch (#358) now lives on the background POST path after #608 moved
+    pytest off the GET request thread."""
     request = _mock_request_with_context()
-    html_payload = {"ok": True, "html_path": "htmlcov", "exit_code": 0}
+    response = MagicMock(spec=Response)
+    response.status_code = 200
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    background_tasks.add_task = MagicMock()
+
+    new_id = uuid4()
+    session = AsyncMock()
+    result_obj = MagicMock()
+    result_obj.scalar_one = MagicMock(return_value=new_id)
+    session.execute = AsyncMock(return_value=result_obj)
+    session.commit = AsyncMock()
+
+    payload = ReportRequest(format="html", show_missing=True)
+
+    out = await request_coverage_report(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert out["run_id"] == str(new_id)
+    assert out["status"] == "pending"
+    assert response.status_code == 202
+    background_tasks.add_task.assert_called_once()
+
+    # Drive the scheduled closure to confirm it propagates the run's format
+    # and show_missing through to run_and_persist_coverage_report.
+    drive_report = background_tasks.add_task.call_args[0][0]
+
+    async def _fake_bg_session():
+        yield AsyncMock()
+
     with (
         patch(
-            "api.v1.coverage_routes.get_coverage_html_report",
-            new=AsyncMock(return_value=html_payload),
-        ) as html_facade,
+            "api.v1.coverage_routes.open_background_session",
+            new=_fake_bg_session,
+        ),
         patch(
-            "api.v1.coverage_routes.get_coverage_report",
-            new=AsyncMock(return_value={"ok": True, "stdout_tail": []}),
-        ) as text_facade,
+            "api.v1.coverage_routes.run_and_persist_coverage_report",
+            new=AsyncMock(),
+        ) as runner,
     ):
-        out = await coverage_report(request=request, show_missing=False, format="html")
-    html_facade.assert_awaited_once()
-    text_facade.assert_not_awaited()
-    assert out == html_payload
+        await drive_report()
+
+    runner.assert_awaited_once()
+    _, kwargs = runner.call_args
+    assert kwargs.get("format") == "html"
+    assert kwargs.get("show_missing") is True
+    assert kwargs.get("run_id") == new_id
 
 
 def test_coverage_targets_returns_facade_payload():

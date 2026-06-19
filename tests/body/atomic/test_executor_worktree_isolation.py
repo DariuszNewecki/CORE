@@ -46,11 +46,20 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _make_context(repo: Path) -> CoreContext:
+    file_handler = FileHandler(str(repo))
+    # Unit-level: these tests verify worktree copy-back mechanics, not
+    # IntentGuard governance. The bare tmp repo carries no .intent/
+    # vocabulary projection, so the real guard's tier-1 invariant would
+    # block every propagated write (it loads the projection from the
+    # FileHandler's own repo_path). Neutralize the guard chokepoint — the
+    # module's action fixture already bypasses it on the sandbox-write side.
+    file_handler._guard_paths = lambda *a, **k: None  # type: ignore[method-assign]
     ctx = CoreContext(
         registry=MagicMock(),
         git_service=GitService(repo),
         knowledge_service=MagicMock(),
-        file_handler=FileHandler(str(repo)),
+        file_handler=file_handler,
+        file_service=MagicMock(),
     )
     return ctx
 

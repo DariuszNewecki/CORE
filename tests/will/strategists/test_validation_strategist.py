@@ -336,12 +336,16 @@ class TestMetadata:
 
     @pytest.mark.asyncio
     async def test_suggests_next_component(self, strategist):
-        """Should suggest ConstitutionalEvaluator as next component."""
+        """Should suggest ConstitutionalEvaluator as next component.
+
+        next_suggested carries the bare component_id (lowercased class name,
+        no underscore) so ProcessOrchestrator.run_adaptive() can dispatch on
+        it — same convention as component_id ("validationstrategist")."""
         result = await strategist.execute(
             operation_type="refactor", file_path="src/models/user.py"
         )
 
-        assert result.next_suggested == "constitutional_evaluator"
+        assert result.next_suggested == "constitutionalevaluator"
 
     @pytest.mark.asyncio
     async def test_tracks_duration(self, strategist):
