@@ -88,12 +88,16 @@ jobs:
     steps:
       - name: Check PR Body for Intent & Justification
         id: check_body
+        # PR body is passed via env, never interpolated inline into the script:
+        # an inline ${{ ... }} breaks on quotes/backticks/HTML in the body and is a
+        # shell script-injection vector.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          if echo "$PR_BODY" | grep -q "> REQUIRED:"; then
-            echo "missing_justification=true" >> $GITHUB_OUTPUT
+          if printf '%s' "$PR_BODY" | grep -q "> REQUIRED:"; then
+            echo "missing_justification=true" >> "$GITHUB_OUTPUT"
           else
-            echo "missing_justification=false" >> $GITHUB_OUTPUT
+            echo "missing_justification=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Post Nudge Comment

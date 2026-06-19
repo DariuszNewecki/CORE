@@ -254,6 +254,51 @@ def test_core_command_with_context_object():
     assert mock_core_context.auditor_context is None
 
 
+def test_core_command_skips_brain_services_when_not_required():
+    """``requires_brain_services=False`` must NOT eagerly resolve
+    qdrant/cognitive/auditor. An inherently stateless command (e.g.
+    ``intent sync vocabulary``) runs in a CI runner with no DB/Qdrant, where
+    warming Qdrant raises (``QDRANT_URL`` unset) and warming the cognitive
+    service opens a DB session that hangs when the DB is unreachable. The
+    warm-up block must be skipped entirely, leaving the three attrs None."""
+    mock_ctx = Mock(spec=typer.Context)
+    mock_core_context = Mock()
+    mock_core_context.registry = Mock()
+    mock_core_context.qdrant_service = None
+    mock_core_context.cognitive_service = None
+    mock_core_context.auditor_context = None
+    mock_ctx.obj = mock_core_context
+
+    # Getters that would blow up if the warm-up path touched them.
+    mock_core_context.registry.get_qdrant_service = AsyncMock(
+        side_effect=ValueError("QDRANT_URL is not configured")
+    )
+    mock_core_context.registry.get_cognitive_service = AsyncMock(
+        side_effect=AssertionError("cognitive warm-up must be skipped")
+    )
+    mock_core_context.registry.get_auditor_context = AsyncMock(
+        side_effect=AssertionError("auditor warm-up must be skipped")
+    )
+
+    captured: dict[str, object] = {}
+
+    @core_command(requires_context=True, requires_brain_services=False)
+    async def stateless_func(ctx: typer.Context):
+        captured["qdrant"] = ctx.obj.qdrant_service
+        captured["cognitive"] = ctx.obj.cognitive_service
+        captured["auditor"] = ctx.obj.auditor_context
+
+    # Must not raise despite the raising getters — warm-up is skipped entirely.
+    stateless_func(mock_ctx)
+
+    assert captured["qdrant"] is None
+    assert captured["cognitive"] is None
+    assert captured["auditor"] is None
+    mock_core_context.registry.get_qdrant_service.assert_not_called()
+    mock_core_context.registry.get_cognitive_service.assert_not_called()
+    mock_core_context.registry.get_auditor_context.assert_not_called()
+
+
 def test_core_command_preserves_function_metadata():
     """Test that core_command preserves the wrapped function's metadata."""
 

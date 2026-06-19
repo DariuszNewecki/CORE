@@ -51,6 +51,7 @@ def core_command(
     confirmation: bool = False,
     requires_context: bool = True,
     offline_capable: bool = False,
+    requires_brain_services: bool = True,
 ):
     """
     Primary constitutional wrapper for CORE CLI commands.
@@ -62,6 +63,16 @@ def core_command(
     `auditor_context` — those services connect to PostgreSQL/Qdrant on
     construction and would crash for a pip-installed runtime that has no
     DB available. See #544.
+
+    `requires_brain_services=False` declares that a command is *inherently*
+    stateless — it never reads `qdrant_service` / `cognitive_service` /
+    `auditor_context` (e.g. file-only projections like `intent sync
+    vocabulary` or `check`-style verifiers). Unlike `offline_capable`, which
+    is gated on a runtime `--offline` flag, this unconditionally skips the
+    eager warm-up: warming Qdrant raises when `QDRANT_URL` is unset, and
+    warming the cognitive service opens a DB session that hangs when the DB
+    is unreachable — neither of which such a command should ever incur. This
+    lets these commands run in a stateless CI runner with no DB/Qdrant.
     """
 
     # ID: e5c51712-e73d-44d2-97a9-82b48817646d
@@ -125,6 +136,7 @@ def core_command(
                 try:
                     if (
                         not offline_run
+                        and requires_brain_services
                         and ctx
                         and ctx.obj
                         and hasattr(ctx.obj, "registry")

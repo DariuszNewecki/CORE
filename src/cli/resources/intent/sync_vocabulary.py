@@ -254,7 +254,7 @@ def _build_projection(
     summary="Regenerate a .intent/ projection from its source paper (ADR-023).",
     dangerous=True,
 )
-@core_command(requires_context=True, dangerous=True)
+@core_command(requires_context=True, dangerous=True, requires_brain_services=False)
 # ID: a1f4e8c2-3b7d-4f9e-a2c1-8d6b5e3a4f0c
 async def sync_intent(
     ctx: typer.Context,
