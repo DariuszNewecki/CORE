@@ -59,6 +59,7 @@ frameworks:
     tier: licensed
     ip_status: copyrighted   # ISO/IEC standard — text NOT reproduced; derive + cite clause/control IDs only
     fetch: metadata-only      # edition/title only; full text paywalled, never fetched/reproduced (iso.org also 403s automated clients)
+    internal_use_licence: required   # gate (copyrighted only): holding full text in CORE's INTERNAL audit corpus needs a commercial/internal-use licence from the rightsholder — NOT yet held. Orthogonal to the shipped catalog (metadata-only) above.
     sources:
       - "https://www.iso.org/standard/27001"
     revision: "ISO/IEC 27001:2022 (third edition, 2022-10)"
@@ -83,6 +84,7 @@ frameworks:
     tier: licensed
     ip_status: copyrighted    # ISPE guide — text NOT reproduced; derive + concept-level cite only
     fetch: metadata-only      # paywalled ISPE guide, never fetched/reproduced
+    internal_use_licence: required   # gate (copyrighted only): holding full text in CORE's INTERNAL audit corpus needs a commercial/internal-use licence from ISPE — NOT yet held. Orthogonal to the shipped catalog (metadata-only) above.
     sources:
       - "https://ispe.org/publications/guidance-documents/gamp-5-guide-2nd-edition"
     revision: "GAMP 5 Second Edition (July 2022)"
@@ -108,6 +110,7 @@ frameworks:
     tier: licensed
     ip_status: copyrighted    # CCB freely distributes the PDFs but states no reuse grant; atwork.safeonweb.be footer asserts "© All Rights Reserved" (checked 2026-06-20) — no confirmed permission to reproduce/redistribute control text. Treated as copyrighted; upgradeable to official-*-reusable if CCB licence is confirmed.
     fetch: metadata-only      # conservative pending explicit CCB licence: derive+cite control IDs, do NOT reproduce text (cf. iso_27001 / gamp5)
+    internal_use_licence: required   # gate (copyrighted only): holding full text in CORE's INTERNAL audit corpus needs CCB reuse terms confirmed — NOT yet held. Orthogonal to the shipped catalog (metadata-only) above.
     sources:
       - "https://atwork.safeonweb.be/tools-resources/cyberfundamentals-framework"
       - "https://ccb.belgium.be"
