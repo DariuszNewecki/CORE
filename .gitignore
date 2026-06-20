@@ -67,8 +67,8 @@ grc-catalogs/licensed/
 # (distinct from the shipped catalogs above; never served as source text). Held
 # only under a satisfied internal_use_licence; ships to NO tier — not public,
 # not licensed-customers. Gitignored so these bytes never enter any committed
-# repo, manually or via the autonomous daemon. (Pending ADR ratification — see
-# the proposed ADR-116 D9 / internal-corpus boundary.)
+# repo, manually or via the autonomous daemon. (ADR-116 D9 — internal-corpus
+# boundary, licence-gated; populate only under a satisfied internal_use_licence.)
 # -----------------------------------------------------------------------------
 grc-catalogs/internal/
 

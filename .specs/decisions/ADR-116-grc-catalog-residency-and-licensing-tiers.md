@@ -147,6 +147,52 @@ every catalog single-homed with zero duplication and no sync machinery — each
 tier's home matches its visibility. No change to D2's model; this only selects the
 mechanism D3 left open.
 
+### D9 — The internal audit corpus: a third boundary, licence-gated (appended 2026-06-20)
+D5 governs the *shipped catalog*: for copyrighted sources the catalog cites
+clause identifiers and CORE-authored paraphrases only — the source's full text is
+never reproduced there. D9 adds a boundary D5 did not contemplate: CORE's
+**internal audit corpus** — the source PDF, its extracted text, and the vector
+inputs CORE holds *internally* to reason against customer documents. This corpus
+is an **input to findings, never an output**: CORE emits findings + clause
+citations; it never serves the stored source text. D5's no-reproduction
+discipline is therefore preserved unchanged — D9 permits *internal holding only*,
+and only behind a satisfied licence gate.
+
+- **Three boundaries, not two.** Orthogonal to D2's `public`/`licensed` tier
+  axis (which is about *who receives a shipped catalog*), the internal corpus is
+  about *what CORE holds to compute*. It ships to **no** tier — not public, not
+  licensed-customers — and is **CORE-only**.
+  - `public/<framework>/` — reusable catalogs, committed in CORE, everyone (D2).
+  - `licensed/<framework>/` — metadata-only catalogs, paying customers; separate
+    private repo, gitignored here (D8).
+  - `internal/<framework>/` — full text + vector inputs, CORE-only; gitignored,
+    never committed to any repo, populated only under a satisfied licence.
+
+- **The licence gate.** For a `copyrighted` framework, populating `internal/`
+  requires CORE to hold a **commercial/internal-use licence** from the
+  rightsholder permitting use in an audit service — a stronger grant than a
+  single-reader licence. The precondition is recorded as `internal_use_licence:
+  required` on the framework's `inventory.yaml` entry (set on the copyrighted
+  entries; absent where no licence applies, i.e. `public-domain` /
+  `official-*-reusable`, which may be ingested freely). Ingesting copyrighted
+  full text into `internal/` without a satisfied gate is a violation.
+
+- **Per-framework internal layout.**
+  ```
+  internal/<framework>/
+    source/        # the licensed source (e.g. PDF) — never shipped
+    text/          # extracted plain text
+    licence.yaml   # which internal_use_licence is satisfied, and its terms
+  ```
+  Vectors live in a per-framework Qdrant collection, not as files, queryable only
+  by CORE's audit engine. The corpus is gitignored at `grc-catalogs/internal/`,
+  mirroring D8's protection so neither a manual `add` nor the autonomous daemon
+  can scoop the bytes into a commit.
+
+This is a decision boundary only; the internal-corpus ingestion pipeline,
+licence-gate enforcement, and Qdrant wiring are implementation work that follows
+from this ratification.
+
 ## Consequences
 
 - The moat never enters public git; its existence and contents are gated by
@@ -159,6 +205,11 @@ mechanism D3 left open.
   not `var/` (runtime data), not `src/` (code)).
 - Operational cost: dev clones, CI, and the daemon must tolerate an absent/partial
   `licensed/`; the submodule (dev) adds checkout ceremony. Bounded and accepted.
+- The internal audit corpus (D9) is a third residency boundary, `grc-catalogs/internal/`,
+  gitignored and CORE-only; like `licensed/` it may be absent/partial and the
+  resolver must tolerate that. Holding copyrighted full text there is gated on a
+  satisfied `internal_use_licence`; without it, CORE runs cite-only and the
+  gap-analysis still functions (degraded, honest), never silently ungated.
 
 ## Alternatives considered
 
