@@ -11,6 +11,7 @@ Read-only: it reads the corpus and reports; it never modifies the documents.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import typer
@@ -20,18 +21,26 @@ from rich.table import Table
 from body.services.grc import (
     GRCGapAnalysisService,
     RequirementResult,
+    build_framework_descriptor,
     load_catalog,
+    load_catalog_meta,
 )
 from cli.utils import core_command
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
-from shared.models import EvidenceClass
+from shared.models import Applicability, ApplicabilityAssessment, EvidenceClass
 
 from . import app
 
 
 logger = getLogger(__name__)
 console = Console()
+
+_APPLICABILITY_STYLE = {
+    Applicability.IN_SCOPE: "[green]in scope[/green]",
+    Applicability.OUT_OF_SCOPE: "[bold red]out of scope[/bold red]",
+    Applicability.UNCERTAIN: "[yellow]uncertain[/yellow]",
+}
 
 _EVIDENCE_STYLE = {
     EvidenceClass.PROVEN: "[green]proven[/green]",
@@ -49,6 +58,22 @@ _STATUS_STYLE = {
 
 # Findings that mark "could not evaluate" rather than "the document fails".
 _UNAVAILABLE_TYPES = {"LLM_TRANSIENT_FAILURE", "ENFORCEMENT_FAILURE"}
+
+
+# ID: 89ed39b5-d619-4489-99e9-9b1c9852b29e
+def _render_applicability(catalog: str, assessment: ApplicabilityAssessment) -> None:
+    """Surface the applicability gate's verdict (the 'suggest' step, ADR-118 D2)."""
+    domains = ", ".join(assessment.detected_domains) or "undetermined"
+    verdict = _APPLICABILITY_STYLE.get(
+        assessment.applicability, str(assessment.applicability)
+    )
+    console.print(
+        f"[bold]Applicability[/bold] [dim](judged)[/dim] — catalog "
+        f"[bold]{catalog}[/bold] is {verdict} for this corpus "
+        f"[dim](reads as: {domains})[/dim]"
+    )
+    if assessment.rationale:
+        console.print(f"  [dim]{assessment.rationale}[/dim]")
 
 
 # ID: 00bb5176-1308-4695-a0c2-02ffbcbe5295
@@ -138,6 +163,15 @@ async def gap_analysis(
         "-c",
         help="Requirements catalog to check against (a framework under grc-catalogs/).",
     ),
+    assume_applicable: bool = typer.Option(
+        False,
+        "--assume-applicable",
+        "-y",
+        help=(
+            "Skip the applicability confirm step — score even if the framework "
+            "reads as out of domain for this corpus."
+        ),
+    ),
 ) -> None:
     """Run a compliance requirements catalog against a folder of documents.
 
@@ -175,7 +209,33 @@ async def gap_analysis(
             "'AI evaluation pending'.[/dim]"
         )
 
-    results = await GRCGapAnalysisService(llm_client=llm_client).run(
-        corpus.resolve(), catalog=rules
+    service = GRCGapAnalysisService(llm_client=llm_client)
+
+    # Applicability gate (ADR-118 D2): detect → suggest → confirm domain fit
+    # BEFORE scoring, so CORE never produces a confidently-useless "not covered
+    # everywhere" report for an out-of-domain pairing.
+    descriptor = build_framework_descriptor(load_catalog_meta(catalog))
+    assessment = await service.assess_applicability(
+        corpus.resolve(), framework_id=catalog, framework_descriptor=descriptor
     )
+    _render_applicability(catalog, assessment)
+
+    # Only a clear out-of-domain verdict blocks; "uncertain" warns but proceeds
+    # (blocking every thin corpus would cripple the tool). The confirm step is
+    # skipped under --assume-applicable.
+    if assessment.applicability is Applicability.OUT_OF_SCOPE and not assume_applicable:
+        proceed = sys.stdin.isatty() and typer.confirm(
+            "This framework reads as out of domain for the corpus. " "Score it anyway?",
+            default=False,
+        )
+        if not proceed:
+            console.print(
+                f"\n[bold]{len(rules)} requirements were not assessed[/bold] — "
+                f"this corpus reads as a different domain than [bold]{catalog}[/bold] "
+                "governs. Re-run with [bold]--assume-applicable[/bold] to override "
+                "if the domain detection is wrong."
+            )
+            return
+
+    results = await service.run(corpus.resolve(), catalog=rules)
     _render_report(corpus, results)

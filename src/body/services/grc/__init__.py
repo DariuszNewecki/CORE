@@ -14,7 +14,9 @@ from __future__ import annotations
 from body.services.grc.gap_analysis_service import (
     GRCGapAnalysisService,
     RequirementResult,
+    build_framework_descriptor,
     load_catalog,
+    load_catalog_meta,
     load_demo_catalog,
 )
 
@@ -22,6 +24,8 @@ from body.services.grc.gap_analysis_service import (
 __all__ = [
     "GRCGapAnalysisService",
     "RequirementResult",
+    "build_framework_descriptor",
     "load_catalog",
+    "load_catalog_meta",
     "load_demo_catalog",
 ]

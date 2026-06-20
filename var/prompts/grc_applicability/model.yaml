@@ -1,0 +1,26 @@
+id: grc_applicability
+version: "0.1.0"
+role: ConstitutionalCoherenceAnalyst
+description: >
+  The GRC applicability gate (ADR-118 D2). Reads an excerpt of a customer's
+  document corpus and a description of a compliance framework, and judges
+  whether the framework is in domain for that corpus — before any requirement
+  is scored. Names the corpus's apparent domain(s) and labels the framework as
+  in_scope / out_of_scope / uncertain, with reasoning. This is a judged call,
+  not a fact (evidence class JUDGED); it never silently assumes domain fit.
+input:
+  required:
+    - framework
+    - corpus_excerpt
+output:
+  format: json
+  schema:
+    applicability: string
+    detected_domains: string
+    reasoning: string
+success_criteria: >
+  Returns valid JSON. `applicability` is exactly one of "in_scope",
+  "out_of_scope", or "uncertain". `detected_domains` names the subject domain(s)
+  the corpus reads as (comma-separated). `reasoning` explains the domain-fit
+  judgment in one or two sentences. When the corpus is too thin or mixed to
+  decide, return "uncertain" rather than guessing either way.

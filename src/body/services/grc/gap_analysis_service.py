@@ -31,7 +31,12 @@ import yaml
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.rule_executor import execute_rule
 from shared.logger import getLogger
-from shared.models import AuditFinding, EvidenceClass
+from shared.models import (
+    Applicability,
+    ApplicabilityAssessment,
+    AuditFinding,
+    EvidenceClass,
+)
 
 
 logger = getLogger(__name__)
@@ -39,6 +44,13 @@ logger = getLogger(__name__)
 # Engines that evaluate the corpus as a whole (one finding per requirement)
 # rather than once per file. The catalog loader marks their rules context-level.
 _CONTEXT_LEVEL_ENGINES = frozenset({"attestation_gate"})
+
+# Corpus sampling bounds for the applicability gate (ADR-118 D2). The gate needs
+# a representative excerpt, not the whole corpus — domain fit is legible from a
+# sample, and an excerpt keeps the single pre-scoring AI call cheap.
+_SAMPLE_MAX_FILES = 8
+_SAMPLE_PER_FILE_CHARS = 2000
+_SAMPLE_GLOBS = ("**/*.md", "**/*.txt")
 
 
 # ID: 5128f744-4412-467e-89a6-d5e9f748ff6e
@@ -186,6 +198,42 @@ def load_catalog(name: str = "nist_800_171") -> list[ExecutableRule]:
     return [_build_rule(entry) for entry in requirements]
 
 
+# ID: c4414ad0-33ab-4d27-98b7-965e72496436
+def load_catalog_meta(name: str = "nist_800_171") -> dict[str, Any]:
+    """Load a catalog's ``catalog:`` metadata block (title / source / authority).
+
+    The applicability gate (ADR-118 D2) needs a description of *what domain the
+    framework governs* to judge corpus fit. The existing catalog header already
+    carries that (title, source, source_authority) — no new schema field is
+    required for the lean gate; richer per-framework domain descriptors are a
+    governor-authored catalog-schema follow-up. Returns an empty dict when the
+    block is absent so callers degrade gracefully.
+    """
+    from body.services.grc.catalog_resolver import resolve_catalog_path
+
+    path = resolve_catalog_path(name)
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    meta = data.get("catalog")
+    return dict(meta) if isinstance(meta, dict) else {}
+
+
+# ID: 6b67e7de-d1e5-43bc-91c6-176c0ff15872
+def build_framework_descriptor(meta: dict[str, Any]) -> str:
+    """Render a catalog's metadata into a human-readable framework description.
+
+    Feeds the applicability gate's prompt — what the framework is and what
+    domain it governs. Uses only fields already present in the catalog header.
+    """
+    fields = (
+        ("Title", meta.get("title") or meta.get("id")),
+        ("Source", meta.get("source")),
+        ("Authority", meta.get("source_authority")),
+        ("Revision", meta.get("source_revision")),
+    )
+    lines = [f"{label}: {value}" for label, value in fields if value]
+    return "\n".join(lines) or "An unspecified compliance framework."
+
+
 # ID: dbe15a99-9e83-4423-8725-bb38867d459b
 def _build_rule(entry: dict[str, Any]) -> ExecutableRule:
     """Build an ``ExecutableRule`` from one catalog requirement entry."""
@@ -215,6 +263,72 @@ class GRCGapAnalysisService:
         # When an LLM client is wired, the judged requirement produces a real
         # AI verdict; without one it degrades honestly to "pending_ai".
         self._llm_client = llm_client
+
+    # ID: 851c5ac2-f68c-4457-9d68-e461937cb371
+    async def assess_applicability(
+        self,
+        corpus_root: Path,
+        framework_id: str,
+        framework_descriptor: str,
+    ) -> ApplicabilityAssessment:
+        """Judge whether the framework is in domain for the corpus (ADR-118 D2).
+
+        The "detect" step of the applicability gate: samples the corpus (Body
+        I/O) and hands the excerpt to the Mind gate, which reasons via the
+        injected LLM client. Without a client wired the verdict degrades to
+        ``uncertain`` — CORE never silently assumes domain fit.
+        """
+        if self._llm_client is None:
+            return ApplicabilityAssessment(
+                framework_id=framework_id,
+                applicability=Applicability.UNCERTAIN,
+                evidence_class=EvidenceClass.JUDGED,
+                detected_domains=[],
+                rationale="No LLM judge wired — domain fit was not assessed.",
+            )
+
+        from mind.logic.grc_applicability import GRCApplicabilityGate
+
+        excerpt = self._sample_corpus(corpus_root)
+        if not excerpt.strip():
+            return ApplicabilityAssessment(
+                framework_id=framework_id,
+                applicability=Applicability.UNCERTAIN,
+                evidence_class=EvidenceClass.JUDGED,
+                detected_domains=[],
+                rationale="Corpus held no readable text to sample for domain fit.",
+            )
+
+        gate = GRCApplicabilityGate(llm_client=self._llm_client)
+        return await gate.assess(
+            framework_id=framework_id,
+            framework_descriptor=framework_descriptor,
+            corpus_excerpt=excerpt,
+        )
+
+    # ID: 3da2a438-8ac4-4f14-a900-289d0dec5191
+    def _sample_corpus(self, corpus_root: Path) -> str:
+        """Read a bounded, representative text sample of the corpus.
+
+        Reads up to ``_SAMPLE_MAX_FILES`` documents, truncating each — enough
+        for a domain-fit judgment, cheap enough for one pre-scoring AI call.
+        """
+        root = corpus_root.resolve()
+        paths: set[Path] = set()
+        for pattern in _SAMPLE_GLOBS:
+            for path in root.glob(pattern):
+                if path.is_file():
+                    paths.add(path)
+        chunks: list[str] = []
+        for path in sorted(paths)[:_SAMPLE_MAX_FILES]:
+            try:
+                text = path.read_text(encoding="utf-8")[:_SAMPLE_PER_FILE_CHARS]
+            except (OSError, UnicodeDecodeError) as e:
+                logger.debug("Skipping unreadable corpus file %s: %s", path, e)
+                continue
+            rel = path.relative_to(root).as_posix()
+            chunks.append(f"### {rel}\n{text}")
+        return "\n\n".join(chunks)
 
     # ID: 483bbcf4-2f5f-4dea-9542-2b18689adf33
     async def run(

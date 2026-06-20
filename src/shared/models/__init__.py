@@ -15,6 +15,13 @@ from .execution_models import (
     PlannerConfig,
     TaskParams,
 )
+from .grc_verdict import (
+    Applicability,
+    ApplicabilityAssessment,
+    EvidenceItem,
+    RequirementStatus,
+    RequirementVerdict,
+)
 from .validation_result import ValidationResult
 from .workflow_models import (
     DetailedPlan,
@@ -27,6 +34,9 @@ from .workflow_models import (
 
 
 __all__ = [
+    # GRC verdict contract (ADR-118)
+    "Applicability",
+    "ApplicabilityAssessment",
     "AuditFinding",
     "AuditSeverity",
     "CapabilityMeta",
@@ -36,12 +46,15 @@ __all__ = [
     "DriftReport",
     "EmbeddingPayload",
     "EvidenceClass",
+    "EvidenceItem",
     "ExecutionResults",
     "ExecutionTask",
     "PhaseResult",
     "PhaseWorkflowResult",
     "PlanExecutionError",
     "PlannerConfig",
+    "RequirementStatus",
+    "RequirementVerdict",
     "TaskParams",
     "ValidationResult",
     "WorkflowResult",
