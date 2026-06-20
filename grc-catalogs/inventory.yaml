@@ -14,6 +14,17 @@
 #   -> authored (catalog written) -> published (live + provenance + tests).
 # Approving an entry's `sources` authorizes fetching FROM THEM ONLY; it is not
 # itself a fetch.
+#
+# `internal_use_licence` (ADR-116 D9, copyrighted frameworks only): the gate on
+# CORE's INTERNAL audit corpus (grc-catalogs/internal/ — source full text +
+# vectors CORE holds to reason against documents; ships to NO tier). Holding a
+# copyrighted source's full text there needs a commercial/internal-use licence
+# from the rightsholder; `required` means that licence is not yet held. ABSENT on
+# public-domain / official-*-reusable frameworks, which may be ingested freely.
+# Orthogonal to BOTH axes above: tier is who receives the shipped catalog,
+# ip_status is reproduction in that catalog, internal_use_licence is what CORE may
+# hold internally to compute. Ingesting copyrighted full text without a satisfied
+# gate is a violation.
 
 frameworks:
   - id: nist_800_171
