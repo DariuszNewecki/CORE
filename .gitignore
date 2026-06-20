@@ -62,6 +62,17 @@ ITAM
 grc-catalogs/licensed/
 
 # -----------------------------------------------------------------------------
+# GRC internal audit corpus — CORE's licence-gated reasoning substrate: source
+# PDFs, extracted text, and vector inputs CORE holds INTERNALLY to audit against
+# (distinct from the shipped catalogs above; never served as source text). Held
+# only under a satisfied internal_use_licence; ships to NO tier — not public,
+# not licensed-customers. Gitignored so these bytes never enter any committed
+# repo, manually or via the autonomous daemon. (Pending ADR ratification — see
+# the proposed ADR-116 D9 / internal-corpus boundary.)
+# -----------------------------------------------------------------------------
+grc-catalogs/internal/
+
+# -----------------------------------------------------------------------------
 # Exploratory CORE-NG candidate spec — not binding for current CORE
 # -----------------------------------------------------------------------------
 .specs/core-ng/
