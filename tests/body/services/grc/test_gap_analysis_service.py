@@ -66,7 +66,9 @@ def test_nist_catalog_loads_with_all_three_lanes() -> None:
     rules = load_catalog("nist_800_171")
     assert len(rules) >= 5
     engines = {r.engine for r in rules}
-    assert {"regex_gate", "llm_gate", "attestation_gate"} <= engines
+    # judged lane uses the GRC compliance judge (grc_judge), not the
+    # constitutional code auditor (llm_gate).
+    assert {"regex_gate", "grc_judge", "attestation_gate"} <= engines
     # attestation rules are context-level; the loader must mark them so.
     assert all(r.is_context_level for r in rules if r.engine == "attestation_gate")
     # every requirement cites a control identifier or doc-quality lane.

@@ -60,7 +60,7 @@ requirements:
   # --- judged: control substance (AI reading; verdict labelled 'judged') --
   - id: nist_800_171.3_1_1_authorized_access
     control: "3.1.1"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -76,7 +76,7 @@ requirements:
 
   - id: nist_800_171.3_5_3_mfa_network_access
     control: "3.5.3"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-

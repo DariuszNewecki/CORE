@@ -23,11 +23,14 @@ from body.services.grc import (
     load_catalog,
 )
 from cli.utils import core_command
+from shared.ai.prompt_model import PromptModel
+from shared.logger import getLogger
 from shared.models import EvidenceClass
 
 from . import app
 
 
+logger = getLogger(__name__)
 console = Console()
 
 _EVIDENCE_STYLE = {
@@ -96,7 +99,7 @@ def _render_report(corpus: Path, results: list[RequirementResult]) -> None:
 
 
 @app.command("gap-analysis")
-@core_command(dangerous=False, requires_context=False, offline_capable=True)
+@core_command(dangerous=False, requires_context=True)
 # ID: 67729121-d5f3-4fd5-95ae-62eac24a1e8e
 async def gap_analysis(
     ctx: typer.Context,
@@ -131,5 +134,26 @@ async def gap_analysis(
     except FileNotFoundError as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(2) from exc
-    results = await GRCGapAnalysisService().run(corpus.resolve(), catalog=rules)
+
+    # Wire the GRC judge: resolve an LLM client for the grc_judge prompt's
+    # cognitive role via the cognitive service (Will owns client construction;
+    # Body receives it by DI). Best-effort — if no client can be obtained,
+    # judged requirements degrade honestly to "AI evaluation pending" rather
+    # than failing the run.
+    llm_client = None
+    try:
+        role = PromptModel.load("grc_judge").manifest.role
+        cognitive = getattr(ctx.obj, "cognitive_service", None)
+        if cognitive is not None:
+            llm_client = await cognitive.aget_client_for_role(role)
+    except Exception as exc:  # degrade honestly, never hard-fail
+        logger.warning("GRC judge LLM client unavailable: %s", exc)
+        console.print(
+            "[dim]No LLM judge wired — judged requirements will report "
+            "'AI evaluation pending'.[/dim]"
+        )
+
+    results = await GRCGapAnalysisService(llm_client=llm_client).run(
+        corpus.resolve(), catalog=rules
+    )
     _render_report(corpus, results)

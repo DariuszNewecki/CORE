@@ -1,0 +1,23 @@
+id: grc_judge
+version: "0.1.0"
+role: ConstitutionalCoherenceAnalyst
+description: >
+  Assesses whether a document satisfies a single compliance requirement, for
+  GRC gap-analysis. Returns a structured verdict labelling the document as
+  compliant or as carrying a gap, with a regulation-grounded explanation.
+input:
+  required:
+    - instruction
+    - rationale
+    - content
+output:
+  format: json
+  schema:
+    violation: boolean
+    reasoning: string
+    finding: string_or_null
+success_criteria: >
+  Returns valid JSON. `violation` is true when the document does NOT satisfy the
+  requirement (a compliance gap), false when it does. `reasoning` explains the
+  verdict in compliance terms, citing what the document does or fails to say.
+  `finding` states the specific gap (or null when satisfied).

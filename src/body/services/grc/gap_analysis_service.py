@@ -123,12 +123,17 @@ def load_demo_catalog() -> list[ExecutableRule]:
         # JUDGED — semantic: needs an AI reading of the policy text.
         ExecutableRule(
             rule_id="grc.demo.requires_mfa_for_remote_access",
-            engine="llm_gate",
+            engine="grc_judge",
             params={
-                "check_type": "semantic_requirement",
-                "requirement": (
-                    "The access-control policy requires multi-factor "
-                    "authentication for all remote access."
+                "instruction": (
+                    "Does this document require multi-factor authentication "
+                    "for all remote access? Report a gap if remote access is "
+                    "described without an MFA requirement, or if the document "
+                    "is silent on it."
+                ),
+                "rationale": (
+                    "Demonstration requirement (access control / MFA), "
+                    "illustrative — not from a real standard."
                 ),
             },
             enforcement="reporting",

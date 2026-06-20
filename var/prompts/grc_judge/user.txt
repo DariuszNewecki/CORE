@@ -1,0 +1,12 @@
+COMPLIANCE REQUIREMENT:
+{instruction}
+
+CONTROL REFERENCE:
+{rationale}
+
+DOCUMENT CONTENT:
+---
+{content}
+---
+
+Decide whether the document above satisfies the compliance requirement. Return your verdict in STRICT JSON format.
