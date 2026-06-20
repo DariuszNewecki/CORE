@@ -1,0 +1,27 @@
+id: scout_rule_inducer
+version: "0.1.0"
+role: ConstitutionalCoherenceAnalyst
+description: >
+  Scout rule induction (ADR-119 D3). Reads structural signals extracted from a
+  target Python repository and proposes candidate governance rules in CORE's
+  enforcement vocabulary. Each candidate maps to an existing CORE engine (no
+  new engines), states a scope and enforcement level, and gives a rationale
+  grounded in observed code patterns. Candidates are proposals for human
+  ratification — not law until the operator confirms each one (ADR-119 D5).
+input:
+  required:
+    - code_signals
+output:
+  format: json
+  schema:
+    candidates: array
+success_criteria: >
+  Returns valid JSON with a top-level "candidates" array. Each element has:
+  rule_id ("scout.<name>"), statement (MUST/MUST NOT language), enforcement
+  ("blocking"|"reporting"|"advisory"), rationale (one to three sentences from
+  observed evidence), engine (exactly one listed engine name), params
+  (engine-specific object), scope (applies_to list + optional excludes list),
+  evidence_sample (optional), ramp_note (optional — non-empty when blocking
+  would halt CI due to widespread violations). At most 6 candidates. Do not
+  propose rules for patterns the code does not exhibit. Prefer "reporting"
+  over "blocking" when violations are widespread.

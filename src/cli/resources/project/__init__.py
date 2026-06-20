@@ -13,7 +13,7 @@ app = typer.Typer(
 )
 
 # Standard Verbs
-from . import docs, new, onboard
+from . import docs, new, onboard, scout
 
 
 __all__ = ["app"]

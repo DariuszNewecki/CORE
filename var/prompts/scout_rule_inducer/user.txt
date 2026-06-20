@@ -1,0 +1,6 @@
+REPOSITORY SIGNALS (sampled from the target repository):
+---
+{code_signals}
+---
+
+Observe the patterns above and propose candidate governance rules. Use only the engine names and check_types from the vocabulary in your system prompt. Return strict JSON only.

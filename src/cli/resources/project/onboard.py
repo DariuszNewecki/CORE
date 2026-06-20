@@ -25,13 +25,16 @@ async def onboard_project(
     ),
 ) -> None:
     """
-    Onboard an existing repository into CORE governance (BYOR).
+    Onboard an existing repository into CORE governance — Phase A (BYOR).
 
-    Delivers the authored starter constitution (machinery floor + the four-rule
-    starter) into the target's .intent/. Does not generate a constitution from
-    the target's code (ADR-111). Dry-run by default; pass --write to apply.
+    Delivers the machinery floor (META schemas, taxonomies, constitution stub,
+    enforcement/config) into the target's .intent/. No rules are included; run
+    `project scout` afterwards to induce and ratify rules for this repo (ADR-119).
+    Dry-run by default; pass --write to apply.
     """
     core_context: CoreContext = ctx.obj
     mode = "Onboarding" if write else "Previewing onboarding for"
-    console.print(f"[bold cyan]⚓ {mode} repository at:[/bold cyan] {path}")
+    console.print(
+        f"[bold cyan]⚓ {mode} repository (Phase A — machinery floor):[/bold cyan] {path}"
+    )
     await initialize_repository(context=core_context, path=path, dry_run=not write)

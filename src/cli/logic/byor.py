@@ -1,13 +1,12 @@
 # src/cli/logic/byor.py
 
 """
-BYOR onboarding — deliver the authored starter-intent into an external repository.
+BYOR onboarding — deliver the machinery floor into an external repository.
 
-Per ADR-111, `core-admin project onboard <target>` DELIVERS the authored starter
-constitution (`examples/starter-intent/.intent/`) into the target repo: the
-machinery floor + the four-rule starter constitution, copied verbatim. It does
-NOT generate a constitution from the target's code (ADR-111 D2; UR-04 — the human
-owns the law) and is NOT a copy of CORE's full `.intent/` (ADR-108).
+Per ADR-111 (amended by ADR-119 D2/D6), `core-admin project onboard <target>`
+delivers ONLY the machinery floor — META schemas, taxonomies, constitution stub,
+and enforcement/config — into the target repo's `.intent/`. No rules, no mappings.
+Rules are per-repo-inducted by `project scout` (Phase B) or authored manually.
 
 CONSTITUTIONAL NOTES (#640):
 - Writes route through the `file.create` atomic action via `ActionExecutor`
@@ -38,11 +37,19 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-# ADR-111 D1/D4: examples/starter-intent/ is the canonical delivery payload
-# (ADR-108 D2 source-of-truth), located relative to the running CORE repo root.
-# Source-tree invocation reads it from there; wheel invocation is gated on
-# ADR-108 D3 (machinery-in-wheel, issue #674).
+# ADR-111 D1/D4: examples/starter-intent/ is the canonical source for the
+# machinery floor (ADR-108 D2; ADR-119 D8). Located relative to the running
+# CORE repo root. Wheel delivery is gated on ADR-108 D3 / ADR-119 D9 (#674).
 _STARTER_REL = ("examples", "starter-intent", ".intent")
+
+# ADR-119 D2: machinery floor = META + constitution + enforcement/config + taxonomies.
+# Rules and enforcement/mappings are Phase B (project scout), never delivered here.
+_MACHINERY_FLOOR_PREFIXES = (
+    "META/",
+    "constitution/",
+    "enforcement/config/",
+    "taxonomies/",
+)
 
 
 # ID: 8b2ee927-9c35-4125-b291-22669733e531
@@ -52,13 +59,13 @@ async def initialize_repository(
     dry_run: bool = True,
 ) -> None:
     """
-    Deliver the authored starter `.intent/` constitution into an external repo.
+    Deliver the machinery floor into an external repo (BYOR Phase A).
 
-    Copies the machinery floor + the four-rule starter constitution from the
-    canonical starter (ADR-111 D1) into ``<target>/.intent/``. Refuses if the
-    target already has an ``.intent/`` (ADR-111 D3 — never overwrite an existing
-    constitution). Dry-run by default; ``dry_run=False`` applies the writes via
-    the ``file.create`` atomic action.
+    Copies META schemas, taxonomies, constitution stub, and enforcement/config
+    from ``examples/starter-intent/.intent/`` into ``<target>/.intent/``. Rules
+    and mappings are excluded — those are Phase B (``project scout``). Refuses if
+    the target already has an ``.intent/`` (ADR-111 D3). Dry-run by default;
+    ``dry_run=False`` applies the writes via the ``file.create`` atomic action.
     """
     target_root = Path(path).resolve()
     write = not dry_run
@@ -96,12 +103,21 @@ async def initialize_repository(
     # a CORE-root-relative path. This is how `project new` writes a sibling's .intent/.
     rel_base = os.path.relpath(target_root, core_root)
 
-    source_files = sorted(p for p in starter_dir.rglob("*") if p.is_file())
+    # ADR-119 D2: machinery floor only — exclude rules/ and enforcement/mappings/.
+    source_files = sorted(
+        p
+        for p in starter_dir.rglob("*")
+        if p.is_file()
+        and any(
+            p.relative_to(starter_dir).as_posix().startswith(prefix)
+            for prefix in _MACHINERY_FLOOR_PREFIXES
+        )
+    )
     executor = ActionExecutor(context)
 
     mode = "WRITE" if write else "DRY RUN"
     logger.info(
-        "🚀 BYOR onboarding %s — delivering authored starter (%d files) [%s]",
+        "🚀 BYOR onboarding %s — delivering machinery floor (%d files) [%s]",
         target_root,
         len(source_files),
         mode,
@@ -146,7 +162,7 @@ async def initialize_repository(
 
     if not write:
         logger.info(
-            "💧 Dry run complete — %d files would be delivered to %s. "
+            "💧 Dry run complete — %d machinery-floor files would be delivered to %s. "
             "Pass --write to apply.",
             len(source_files),
             target_intent,
@@ -154,14 +170,14 @@ async def initialize_repository(
         return
 
     logger.info(
-        "🎉 Delivered %d/%d starter files to %s.",
+        "🎉 Delivered %d/%d machinery-floor files to %s.",
         delivered,
         len(source_files),
         target_intent,
     )
     logger.info(
-        "Next: author your rules in .intent/rules/, then run "
-        "`core-admin code audit --offline` (or wire the F-10 CI Action) against this repo."
+        "Next: run `core-admin project scout <target> [--write]` to induce and ratify "
+        "rules for this repo, then `core-admin code audit --offline` to enforce them."
     )
     if delivered < len(source_files):
         raise typer.Exit(code=1)
