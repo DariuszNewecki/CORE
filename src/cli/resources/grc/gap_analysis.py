@@ -225,7 +225,7 @@ async def gap_analysis(
     # skipped under --assume-applicable.
     if assessment.applicability is Applicability.OUT_OF_SCOPE and not assume_applicable:
         proceed = sys.stdin.isatty() and typer.confirm(
-            "This framework reads as out of domain for the corpus. " "Score it anyway?",
+            "This framework reads as out of domain for the corpus. Score it anyway?",
             default=False,
         )
         if not proceed:
