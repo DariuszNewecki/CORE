@@ -27,11 +27,11 @@ WHY A SEPARATE ENGINE (not llm_gate):
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.ai.prompt_model import PromptModel
+from shared.ai.response_parser import extract_json
 from shared.logger import getLogger
 
 from .base import BaseEngine, EngineResult, EvidenceClass
@@ -110,7 +110,11 @@ class GRCJudgeEngine(BaseEngine):
                 client=self.llm,
                 user_id="grc_judge_engine",
             )
-            result_data = json.loads(response_text)
+            # Canonical extractor: tolerates ```-fenced / wrapped JSON that a
+            # raw json.loads would reject (which would otherwise surface as a
+            # false "AI offline"). Raises on genuinely unparseable output →
+            # caught below as ENFORCEMENT_UNAVAILABLE.
+            result_data = extract_json(response_text)
 
             satisfied = not result_data.get("violation", False)
             reasoning = result_data.get("reasoning", "")

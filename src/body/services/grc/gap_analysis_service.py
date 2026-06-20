@@ -79,7 +79,7 @@ class RequirementResult:
     rule: ExecutableRule
     evidence_class: EvidenceClass
     findings: list[AuditFinding]
-    status: str  # "gap" | "met" | "needs_human" | "pending_ai"
+    status: str  # "gap" | "met" | "needs_human" | "pending_ai" | "unavailable"
 
     @property
     # ID: bbb2aaa4-d607-4191-8d54-06dc5b2470e3
@@ -252,22 +252,39 @@ class GRCGapAnalysisService:
         """Derive the requirement's status + its declared evidence class.
 
         The declared class comes from the producing engine (proven/judged/
-        attested). A judged requirement whose AI pass did not run (llm_gate fell
-        back to the stub, no client wired) is reported honestly as ``pending_ai``
-        — never as met and never as a real judged verdict.
+        attested). A judged requirement whose AI pass did not run (the engine
+        fell back to the stub, no client wired) is reported honestly as
+        ``pending_ai``. A judged requirement whose AI pass *ran but failed*
+        (transient LLM failure, or an engine crash) is reported as
+        ``unavailable`` — a verdict could not be established. Neither is ever a
+        ``gap``: "could not evaluate" is not the same as "the document fails",
+        and conflating them would manufacture a false finding.
         """
         from mind.logic.engines.registry import EngineRegistry
 
         engine = EngineRegistry.get(rule.engine)
         declared = getattr(engine, "evidence_class", EvidenceClass.ATTESTED)
 
+        # rule_executor marks non-verdict findings with a finding_type: a
+        # transient LLM failure or an engine crash means the verdict is UNKNOWN,
+        # not that the requirement is violated. Keep them out of the gap signal.
+        _UNAVAILABLE = {"LLM_TRANSIENT_FAILURE", "ENFORCEMENT_FAILURE"}
+        real_findings = [
+            f for f in findings if f.context.get("finding_type") not in _UNAVAILABLE
+        ]
+        had_unavailable = any(
+            f.context.get("finding_type") in _UNAVAILABLE for f in findings
+        )
+
         is_stub = any(f.context.get("stub") for f in findings)
         if declared is EvidenceClass.ATTESTED:
             status = "needs_human"
         elif is_stub:
             status = "pending_ai"
-        elif findings:
+        elif real_findings:
             status = "gap"
+        elif had_unavailable:
+            status = "unavailable"
         else:
             status = "met"
 

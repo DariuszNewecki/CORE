@@ -44,7 +44,11 @@ _STATUS_STYLE = {
     "met": "[green]met[/green]",
     "needs_human": "[magenta]needs human sign-off[/magenta]",
     "pending_ai": "[yellow]AI evaluation pending[/yellow]",
+    "unavailable": "[bold yellow]verdict unavailable[/bold yellow]",
 }
+
+# Findings that mark "could not evaluate" rather than "the document fails".
+_UNAVAILABLE_TYPES = {"LLM_TRANSIENT_FAILURE", "ENFORCEMENT_FAILURE"}
 
 
 # ID: 00bb5176-1308-4695-a0c2-02ffbcbe5295
@@ -62,7 +66,23 @@ def _render_report(corpus: Path, results: list[RequirementResult]) -> None:
 
     for r in results:
         if r.status == "gap":
-            detail = r.findings[0].message if r.findings else ""
+            # show the first genuine-verdict finding, not an unavailable marker
+            real = next(
+                (
+                    f
+                    for f in r.findings
+                    if f.context.get("finding_type") not in _UNAVAILABLE_TYPES
+                ),
+                None,
+            )
+            detail = real or (r.findings[0] if r.findings else None)
+            detail = detail.message if detail else ""
+        elif r.status == "unavailable":
+            detail = (
+                r.findings[0].message
+                if r.findings
+                else "Verdict could not be established (AI evaluation unavailable)."
+            )
         elif r.status == "needs_human":
             prompt = (
                 r.findings[0].context.get("attestation_prompt", "")
@@ -86,11 +106,13 @@ def _render_report(corpus: Path, results: list[RequirementResult]) -> None:
     gaps = sum(1 for r in results if r.status == "gap")
     human = sum(1 for r in results if r.status == "needs_human")
     pending = sum(1 for r in results if r.status == "pending_ai")
+    unavailable = sum(1 for r in results if r.status == "unavailable")
     console.print(
         f"\n[bold]{len(results)} requirements[/bold] · "
-        f"[red]{gaps} gap(s) proven[/red] · "
+        f"[red]{gaps} gap(s)[/red] · "
         f"[magenta]{human} need human sign-off[/magenta] · "
-        f"[yellow]{pending} pending AI[/yellow]"
+        f"[yellow]{pending} pending AI[/yellow] · "
+        f"[bold yellow]{unavailable} verdict unavailable[/bold yellow]"
     )
     console.print(
         "[dim]Every line states how its verdict was reached. CORE reports only "

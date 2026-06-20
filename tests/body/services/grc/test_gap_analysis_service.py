@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from body.services.grc import GRCGapAnalysisService, load_catalog, load_demo_catalog
-from shared.models import EvidenceClass
+from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 
 
 _CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "corpus"
@@ -78,6 +78,32 @@ def test_nist_catalog_loads_with_all_three_lanes() -> None:
 def test_unknown_catalog_raises() -> None:
     with pytest.raises(FileNotFoundError):
         load_catalog("does_not_exist")
+
+
+def test_transient_llm_failure_classifies_unavailable_not_gap() -> None:
+    """Honesty mapping: a judged requirement whose AI pass *ran but failed*
+    (transient LLM failure) must be reported as `unavailable` — a verdict that
+    could not be established — never as a `gap`. Conflating "could not evaluate"
+    with "the document fails" would manufacture a false finding."""
+    from mind.logic.engines.registry import EngineRegistry
+    from shared.config import settings
+
+    EngineRegistry.initialize(settings.paths)
+    service = GRCGapAnalysisService()
+    rule = next(r for r in load_catalog("nist_800_171") if r.engine == "grc_judge")
+
+    transient = AuditFinding(
+        check_id=rule.rule_id,
+        severity=AuditSeverity.HIGH,
+        message="LLM evaluation failed transiently on 2 file(s).",
+        file_path="none",
+        context={"finding_type": "LLM_TRANSIENT_FAILURE", "failure_count": 2},
+    )
+
+    result = service._classify(rule, [transient])
+
+    assert result.status == "unavailable"
+    assert result.evidence_class is EvidenceClass.JUDGED
 
 
 @pytest.mark.asyncio
