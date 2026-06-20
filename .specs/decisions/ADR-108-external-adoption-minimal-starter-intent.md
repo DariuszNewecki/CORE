@@ -158,3 +158,39 @@ regression-pinned in `tests/mind/governance/test_audit_context__enforcement_root
   `sync-to-demo.sh`), so it does not drift between source and mirror within a release.
 - **Follow-up.** D3 implementation (wheel packaging + loader fallback). The reference starter's rule
   set is intentionally tiny; adopters are expected to grow `rules/starter.json`, not edit machinery.
+
+---
+
+## Amendment — 2026-06-20 (ADR-119)
+
+### A1 — D1 revised: the four-rule set is illustrative and Scout-fallback, not the default output
+
+ADR-119 (Scout) establishes that nobody can know the right constitution for an alien
+repository until its code is read. The four universal rules in D1 (`symbol_ids`,
+`docstrings`, `no_print`, `no_bare_except`) were the correct artifact for the T1
+verification task — proving the audit gate works end-to-end — but they are not the honest
+default for an arbitrary adopter's `project onboard` run.
+
+**D1 is amended as follows:**
+
+`examples/starter-intent/` retains its current content. Its role narrows to three functions:
+
+1. **Illustrative** — shows a minimal, legible four-rule constitution in CORE's enforcement
+   vocabulary. Referenced in docs; used as onboarding reading material.
+2. **Scout LLM-fallback** — when `project scout` runs without an LLM (ADR-119 D7), this
+   rule set is the curated menu presented to the operator for ratification.
+3. **T1 regression fixture** — the enforcement-root test and consumer-mode verification
+   remain pinned against it.
+
+The four rules are **no longer the default output of `project onboard`**. `project onboard`
+delivers the machinery floor only (see ADR-119 D6 and the ADR-111 amendment). Rules are
+inducted by Scout (`project scout`) and ratified by the human before delivery.
+
+### A2 — D3 scope corrected: wheel bundles machinery floor only, never preset rules
+
+ADR-108 D3 called for bundling the "starter" in the `core-runtime` wheel. "Starter"
+originally meant machinery floor + four-rule constitution. After ADR-119, the bundled
+artifact is **machinery floor only** — the ~27 CORE-substrate files (META, taxonomies,
+enforcement/config). The rules layer is never bundled: it is per-repo-inducted or
+per-repo-authored, with no canonical wheel-bundleable default. Issue #674 and its
+implementation must be scoped to machinery floor only.

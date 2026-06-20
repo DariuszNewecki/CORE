@@ -29,24 +29,37 @@ that parametrized the obligation layer and ratified + implemented ADR-111.
 
 ---
 
+## 1b. Done 2026-06-20
+
+- **T1 closed** — consumer-mode enforcement verified (see T1 above). Bug B fixed
+  (`action_risk.yaml` in starter). T2 unblocked.
+- **ADR-119 (Scout) accepted** — BYOR Path 1 renamed Scout; two-phase delivery
+  model: `project onboard` (machinery floor) + `project scout` (LLM induction +
+  human ratification). Four BYOR path codenames: Scout / Guard / Counsel /
+  Generate (sibling). T3 scope corrected to machinery floor only. ADR-108 D1 and
+  ADR-111 D1 amended. CORE-BYOR.md §4 table and §8/§9 updated.
+
 ## 2. Open threads
 
-### T1 — Verify consumer-mode enforcement  **[GATE]**
-Does the delivered starter actually *enforce* in a consumer repo? `code audit
---offline` from inside an onboarded repo *loaded* the four starter rules but logged
-them as "no enforcement mappings." Confirm enforcement (or fix the starter /
-F-10 consumer-audit path) **before** any doc promises self-serve. Domain: F-10 /
-ADR-108. **Gates T2.**
+### T1 — Verify consumer-mode enforcement  **[DONE — 2026-06-20]**
+Confirmed. `code audit --offline` from inside a consumer repo enforces all four
+starter rules: 5 blocking + 8 reporting findings, verdict FAIL on planted
+violations. Root cause (Bug B): `assisted.apply_diff` / `assisted.validate_diff`
+absent from starter's `action_risk.yaml`; fix applied to
+`examples/starter-intent/.intent/enforcement/config/action_risk.yaml` and
+committed. T2 unblocked.
 
 ### T2 — #640 step 2: newcomer docs  **[blocked on T1]**
 Point `docs/cold-reviewer.md`'s "no `.intent/`" dead-end at `project onboard`; add a
 "govern your own repo" step to README / getting-started. Per ADR-111 D6, MUST NOT
 promise the self-serve path until T1 is confirmed (and #674 for `pip install` users).
 
-### T3 — #674: ADR-108 D3 machinery-in-wheel
-Bundle the machinery floor in the `core-runtime` wheel + loader fallback so
-`pip install` adopters can onboard, not only source-tree runs. Unblocks wheel-user
-BYOR. Tracked: issue #674.
+### T3 — #674: ADR-108 D3 machinery-in-wheel  **[SCOPE CORRECTED — ADR-119 D9]**
+Bundle the **machinery floor only** in the `core-runtime` wheel + loader fallback
+so `pip install` adopters can run `project onboard` (Phase A), not only source-tree
+runs. The rules layer is never bundled — it is per-repo-inducted by `project scout`
+or per-repo-authored; there is no canonical rule set to ship. Unblocks wheel-user
+BYOR Phase A. Tracked: issue #674.
 
 ### T4 — `work/`-staging airlock for onboard  **[design, deferred by governor]**
 Decision deferred: keep "write into the named repo" (dry-run + refuse-if-exists as

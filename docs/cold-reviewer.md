@@ -4,15 +4,26 @@ If you want to see CORE govern code in CI without installing anything locally, t
 
 **One honest prerequisite, stated up front:** the Action audits your repo against the `.intent/` constitution **in that repo** (see below). If your repo doesn't have one yet, scaffold it first — then come back here.
 
-**Govern your own repo (BYOR — Bring Your Own Repository).** From the CORE source tree, one command delivers the starter constitution (machinery floor + 4-rule starter) into your repo:
+**Govern your own repo (BYOR — Bring Your Own Repository).** Two commands bootstrap a fitted constitution into your repo:
+
+**Step 1 — Deliver the machinery floor** (schemas, taxonomies, enforcement config):
 
 ```bash
 core-admin project onboard <path-to-your-repo> --write
 ```
 
-This copies the authored starter into `<your-repo>/.intent/`. Dry-run (no `--write`) previews what would be written. Once the files are there, add the workflow below and open a pull request — the audit gate enforces the four starter rules immediately.
+**Step 2 — Induce and ratify rules** (LLM reads your source, proposes candidates, you confirm each):
 
-> **`pip install core-runtime` users:** the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)). Run `project onboard` from the CORE source tree until that lands.
+```bash
+core-admin project scout <path-to-your-repo> --write
+```
+
+`project scout` requires an LLM resource. Without one it presents a curated menu of four
+universal rules for you to accept, reject, or adjust — ratification is always required.
+Dry-run (no `--write`) previews what would be written in either command. Once both steps are
+done, add the workflow below and open a pull request.
+
+> **`pip install core-runtime` users:** the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)), and `project scout` is not yet shipped. Run both commands from the CORE source tree until those land.
 
 To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 

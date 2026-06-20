@@ -262,7 +262,7 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 > **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
 >
-> **Govern your own repo (BYOR):** from the CORE source tree, `core-admin project onboard <path> --write` delivers the starter constitution (4 rules, no LLM, no database) into any repo. `core-admin code audit --offline` inside that repo enforces them immediately. Source-tree only for now — the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)).
+> **Govern your own repo (BYOR):** from the CORE source tree, two commands bootstrap a fitted constitution. (1) `core-admin project onboard <path> --write` delivers the machinery floor (no LLM, no database). (2) `core-admin project scout <path> --write` reads your source, proposes candidate rules via LLM, and requires you to ratify each before delivery — no LLM means a curated four-rule menu instead. `core-admin code audit --offline` inside that repo enforces the ratified rules immediately. Source-tree only for now — the machinery floor and `project scout` are not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)).
 >
 > **Fastest way to see CORE today: run it on itself, below.**
 

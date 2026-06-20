@@ -1,8 +1,9 @@
 # Starter Intent — minimal `.intent/` for adopting CORE
 
-This directory is the **source of truth** for the smallest constitution that lets
-an external repository be governed by the
-[**CORE Constitutional Audit**](https://github.com/DariuszNewecki/CORE).
+This directory is an **illustrative example** of a minimal constitution in CORE's
+enforcement vocabulary, and the **LLM-unavailable fallback** for
+[`project scout`](https://github.com/DariuszNewecki/CORE) — CORE's Path 1
+(Scout) induction command.
 
 It is published, as a runnable repository, at
 **https://github.com/DariuszNewecki/core-audit-demo** — that repo is a *mirror*
@@ -10,30 +11,36 @@ of this directory plus repo scaffolding (LICENSE, its own README). Edit the
 starter **here**, in CORE, then run `sync-to-demo.sh` to publish it. Never edit
 the mirror directly.
 
-## Why this exists
+## How this fits into the BYOR on-ramp
 
-CORE's own `.intent/` has ~250 files — most of them govern CORE's self-hosting
-runtime (workers, flows, proposal lifecycle) and mean nothing to a project that
-is merely being audited. Copying all of that into your repo is the wrong move: it
-drifts the moment CORE evolves, and it speaks CORE's internal dialect.
+CORE's onboarding is two steps:
 
-This starter is the honest minimum instead. Two layers live here:
+1. **`project onboard <path> --write`** — delivers the machinery floor into your
+   repo (the `META/`, `taxonomies/`, and `enforcement/config/` subtrees from this
+   directory). No rules, no LLM.
+2. **`project scout <path> --write`** — reads your source code, proposes candidate
+   rules that fit your codebase via LLM analysis, and requires you to ratify each
+   before delivery. If no LLM is available, it presents the four rules from this
+   directory as a curated menu — you still ratify each one.
 
-| Layer | What it is | Do you edit it? |
-|-------|------------|-----------------|
-| **Rules** — `constitution/`, `rules/starter.json`, `enforcement/mappings/starter.yaml` | The four universal rules you actually care about, in plain language | **Yes** — this is yours to grow |
-| **Machinery** — `META/`, `taxonomies/`, `enforcement/config/` | Schemas, enums, and fail-closed taxonomies the runtime needs to load | **No** — copied verbatim from CORE |
+This directory serves two roles in that model:
 
-> The machinery is the bulk of the file count and none of the value. A future
-> CORE release bundles it into the `core-runtime` wheel, after which your
-> `.intent/` shrinks to just the rules layer. The split above is already drawn so
-> that change is invisible to adopters.
+| Role | What it means |
+|------|---------------|
+| **Illustrative** | Shows what a minimal, four-rule constitution looks like in CORE's vocabulary — good onboarding reading |
+| **Scout LLM-fallback** | The four rules here are the curated menu `project scout` presents when no LLM is available |
 
-## What it enforces
+> The machinery layer (`META/`, `taxonomies/`, `enforcement/config/`) will be
+> bundled into the `core-runtime` wheel in a future release ([#674](https://github.com/DariuszNewecki/CORE/issues/674)),
+> after which `project onboard` will not need to copy those files.
+
+## What the four rules enforce
 
 See [`.intent/constitution/CONSTITUTION.md`](.intent/constitution/CONSTITUTION.md).
 Four deterministic, LLM-free rules: `# ID:` anchors on public symbols (blocking),
 docstrings, no `print()` in library code, and no silently-swallowed exceptions.
+These are illustrative universal rules — `project scout` may propose different or
+additional rules fitted to your specific codebase.
 
 ## Try it locally
 

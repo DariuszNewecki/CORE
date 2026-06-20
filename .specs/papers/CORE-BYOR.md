@@ -90,19 +90,25 @@ Repository and the rest is already general.**
 A would-be adopter arrives holding some of the (Intent, Artifact) pair. Which part
 is present determines the entry:
 
-| Adopter brings | Lacks | Mode | Operation | Surface |
-|---|---|---|---|---|
-| Artifact (a repo) | Intent | establish | **Induce** a candidate constitution for the human to ratify | **BYOR** |
-| Both | — | maintain | **Gap-analysis** of corpus against law | **BYOR** |
-| Intent (URS, prose) | Artifact | establish | **Generate** the artifact; dialogue to close gaps | `project new` (sibling) |
+| Path | Codename | Adopter brings | Lacks | Mode | Operation | Surface |
+|---|---|---|---|---|---|---|
+| 1 | **Scout** | Code repo | Intent | establish | Induction: LLM reads source → candidate rules → human ratifies → delivery | **BYOR** (`project onboard` + `project scout`) |
+| 2 | **Guard** | Code repo + `.intent/` | — | maintain | Ongoing audit; gap-analysis of artifact against law | **BYOR** (`code audit --offline`) |
+| 3 | **Generate** | Intent (URS, prose) | Artifact | establish | Generate the artifact; dialogue to close gaps | `project new` (sibling) |
+| 4 | **Counsel** | Document corpus | Regulation-as-Intent | maintain | Gap-analysis of corpus against regulatory requirements | **BYOR** (T5b — forthcoming) |
 
 **Naming boundary (resolved).** "Bring Your Own *Repository*" presupposes a
-corpus exists. So BYOR proper is the two configurations where the adopter brings
-an existing Repository — **Induce** and **Gap-analysis**. The **Generate**
+corpus exists. So BYOR proper is the three configurations where the adopter brings
+an existing Repository — **Scout** (code, no constitution), **Guard** (code +
+constitution), and **Counsel** (document corpus + regulatory law). The **Generate**
 configuration has no corpus yet; CORE *creates* it. That is the adjacent
 greenfield surface (`project new`) — the *same conformance engine*, not BYOR.
 Keeping them distinct avoids the category error of calling a from-scratch build
-"bring your own." One engine, three configurations, two named entry surfaces.
+"bring your own." One engine, four configurations, two named entry surfaces
+(BYOR and `project new`). The GRC path (Counsel) is confirmed as BYOR Path 4 —
+it shares the same Repository abstraction (F-41/F-42/F-43); the artifact type
+changes from code to document corpus, the governance loop is structurally
+identical (ADR-119 D1).
 
 ## 5. Domain parameters (the genuine asymmetries)
 
@@ -200,10 +206,15 @@ the deliberate direction.
 
 ## 8. Relationship to existing decisions
 
-- **ADR-108 (minimal authored starter).** The Induce configuration *delivers* a
-  small authored constitution (`examples/starter-intent/`) into the target
-  Repository; it does not synthesize one from analysis. The legacy code-analysis
-  path is demoted to an optional, clearly-labelled *suggestion*, never authority.
+- **ADR-108 + ADR-119 (Scout — Path 1).** The Scout configuration induces a fitted
+  constitution: first `project onboard` delivers the machinery floor; then
+  `project scout` runs LLM analysis of the target's source, proposes candidate
+  rules in CORE's enforcement vocabulary, and requires human ratification before
+  delivery. `examples/starter-intent/` is the illustrative reference and
+  LLM-unavailable fallback — its four-rule set is the menu when no LLM is
+  available, not the default output. ADR-119 D3 is the canonical form of what
+  ADR-111 D2 anticipated as "explicitly-labelled, non-authoritative suggestion
+  for the human to consider" — with mandatory ratification making it law.
 - **ADR-075 (framework/project namespace).** A BYOR deployment is `framework`
   (CORE's machinery floor) + `project::<external>` (the adopter's authored law).
   The Repository carries the project layer; the floor is shared.
@@ -227,10 +238,13 @@ guardrail.
 
 **Grounds (future ADRs, separate change-sets):**
 1. The **Repository adapter interface** — the concrete F-41/F-42/F-43 binding.
-2. **Onboard delivers the starter** (#640) — the code × Induce first cell,
-   reconciled with ADR-108.
+2. **Scout — the code × Induce cell (ADR-119, ratified 2026-06-20).** Machinery
+   floor delivery (`project onboard`) + LLM-assisted rule induction with mandatory
+   human ratification (`project scout`). Closes #640 step 1; defines the two-phase
+   model and the reference grammar constraint (CORE's `.intent/` is vocabulary, not
+   template).
 3. The **document/records Repository type** + **regulation→Intent representation**
-   — the GRC second domain.
+   — the GRC second domain (Counsel / Path 4).
 4. **Per-finding attestation** (proven / judged / attested) as a first-class
    evidence-trail field — the honesty guardrail made mechanical.
 

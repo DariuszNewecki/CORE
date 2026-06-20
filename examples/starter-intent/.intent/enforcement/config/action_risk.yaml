@@ -27,6 +27,8 @@
 actions:
   action.execute: moderate
   admin.meta: safe
+  assisted.apply_diff: moderate
+  assisted.validate_diff: safe
   build.tests: safe
   check.body_contracts: safe
   check.imports: safe

@@ -134,3 +134,44 @@ follows in a separate change; it MUST NOT promise the self-serve path until D1�
 - `examples/starter-intent/.intent/` — the canonical delivery payload.
 - `src/cli/logic/byor.py`, `src/cli/resources/project/onboard.py` — the implementation to rewrite.
 - #640 — BYOR non-functional (step 1 closed by this ADR; step 2 unblocked).
+
+---
+
+## Amendment — 2026-06-20 (ADR-119)
+
+### A1 — D1 revised: `project onboard` delivers machinery floor only
+
+ADR-119 establishes that `project onboard` is Phase A of Scout's two-phase delivery. It
+delivers the machinery floor only; it no longer delivers the four-rule starter constitution.
+
+**D1 is amended:**
+
+`project onboard <target> [--write]` copies the machinery floor from
+`examples/starter-intent/.intent/` into `<target>/.intent/`. Specifically:
+
+- `META/` (bootstrap schemas, enums.json, vocabulary.json and schema)
+- `taxonomies/` (operational_capabilities.yaml, cognitive_roles.yaml,
+  filesystem_operations.yaml)
+- `enforcement/config/` (action_risk.yaml and companions)
+
+It does **not** copy `constitution/`, `rules/`, or `enforcement/mappings/` (the rules
+layer). Those are Scout's domain (`project scout`, Phase B).
+
+An operator who wants rules follows with `project scout <target> [--write]` (Phase B), or
+authors rules manually (Guard path). The delivery is still a copy of authored artifacts,
+never a synthesis from the target's code — D1's original "not generated, authored" invariant
+is preserved and tightened.
+
+### A2 — D6 revised: the on-ramp now has two explicit steps
+
+ADR-111 D6 stated: "With D1–D5, `project onboard` produces a `.intent/` that the F-10
+offline audit can run against." This is no longer fully true after the scope narrowing.
+After machinery-only delivery, the offline audit finds no rules and returns a
+governance-collapse `ERROR` (per ADR-108 D4) — which is the correct signal: machinery is
+present, no law has been ratified yet.
+
+D6 is amended: `project onboard` completes the first step; `project scout` (or manual rule
+authoring) completes the second. Together they produce a `.intent/` the F-10 audit can run
+against productively. The `docs/cold-reviewer.md` newcomer docs (T2) must describe both
+steps. ADR-111 D6's invariant that docs MUST NOT promise the self-serve path until delivery
+is complete is preserved — the bar is now Phase A + Phase B shipped, not Phase A alone.
