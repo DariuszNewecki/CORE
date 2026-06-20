@@ -64,6 +64,28 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
     customer's records library) — a sibling slice, not covered by ADR-116.
 - **T5c** — Per-finding attestation (proven / judged / attested) — the honesty
   guardrail made mechanical.
+- **T5d** — GRC internal audit corpus pipeline (**ADR-116 D9**, ratified 2026-06-20).
+  The reasoning substrate the audit engine runs against — distinct from T5b's
+  *shipped* catalog. Scope:
+  - **Ingestion:** source (e.g. PDF) → extracted text → vector inputs, into a
+    per-framework Qdrant collection. Layout fixed by D9
+    (`grc-catalogs/internal/<framework>/{source,text,licence.yaml}`); path is
+    gitignored + reserved (`131f888b`).
+  - **Licence-gate enforcement:** block ingest of a `copyrighted` source's full
+    text unless its `internal_use_licence` is satisfied (recorded in
+    `inventory.yaml` + `internal/<framework>/licence.yaml`). `public-domain` /
+    `official-*-reusable` ingest freely. Ungated copyrighted ingest is a violation,
+    not a warning.
+  - **Corpus-as-input invariant:** the engine consumes the corpus to produce
+    findings + clause citations; it MUST NOT serve stored source text back out
+    (preserves D5). Needs an enforceable check, not just intent.
+  - **Resolver tolerance:** like `licensed/`, `internal/` may be absent/partial;
+    without it CORE runs cite-only and gap-analysis still functions — degraded,
+    honest, never silently ungated.
+  - *Depends on T5b* (the catalog gives the requirement set the corpus answers
+    against) and the Qdrant collection-per-tenant isolation model (per-customer
+    licensed corpora never co-mingle). Procurement precondition for copyrighted
+    frameworks: CORE holds the commercial/internal-use licence (currently none held).
 
 ---
 
@@ -72,7 +94,10 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
 T1 first — cheap, and it gates the on-ramp's honesty. Then T2 (docs) and T3 (#674)
 complete code-BYOR end-to-end for all users. T5b is the commercial payoff (GRC) and
 the largest effort — where the real RegTech value and the hard intent-representation
-problem live; T5a is its prerequisite. T4 is a parallel design call. The commercial
+problem live; T5a is its prerequisite. T5d (internal corpus) follows T5b and turns
+the catalog from a checklist into an evaluable substrate; its copyrighted path is
+also gated on a procurement step (licence acquisition), not just engineering. T4 is
+a parallel design call. The commercial
 center of gravity is GRC (governor decision 2026-06-17); code self-development runs
 on a maintenance track meanwhile.
 
@@ -82,5 +107,6 @@ on a maintenance track meanwhile.
 
 - `CORE-BYOR.md` — the program's shape (grounds the ADRs below)
 - ADR-111 — `project onboard` delivers the authored starter (#640 step 1)
+- ADR-116 (D7 inventory registry, D8 tier=repo boundary, D9 internal audit corpus → T5d)
 - ADR-108 (D3 → #674), ADR-075 (namespace), ADR-090 (multi-domain)
 - #640 (BYOR), #674 (wheel packaging)
