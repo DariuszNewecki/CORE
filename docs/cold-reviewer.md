@@ -2,7 +2,19 @@
 
 If you want to see CORE govern code in CI without installing anything locally, the shortest path is to add CORE as a GitHub Action and open a pull request.
 
-**One honest prerequisite, stated up front:** the Action audits your repo against the `.intent/` constitution **in that repo** (see below). If your repo doesn't have one yet, the Action fails — and CORE **cannot yet scaffold a starter constitution for you self-serve** (BYOR is [in progress](https://github.com/DariuszNewecki/CORE/issues/640)). So today this path is for a repo that **already has a `.intent/`**, or for trying it against CORE's own. To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
+**One honest prerequisite, stated up front:** the Action audits your repo against the `.intent/` constitution **in that repo** (see below). If your repo doesn't have one yet, scaffold it first — then come back here.
+
+**Govern your own repo (BYOR — Bring Your Own Repository).** From the CORE source tree, one command delivers the starter constitution (machinery floor + 4-rule starter) into your repo:
+
+```bash
+core-admin project onboard <path-to-your-repo> --write
+```
+
+This copies the authored starter into `<your-repo>/.intent/`. Dry-run (no `--write`) previews what would be written. Once the files are there, add the workflow below and open a pull request — the audit gate enforces the four starter rules immediately.
+
+> **`pip install core-runtime` users:** the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)). Run `project onboard` from the CORE source tree until that lands.
+
+To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 
 For verifying CORE's claims *about itself* (single gateway, no bypass, no untracked mutation), see the [Proof Index](proof-index.md) instead — that page assumes a running CORE.
 
@@ -18,7 +30,7 @@ No daemon runs. No database is provisioned. The action is the stateless audit pa
 
 ## Minimum setup
 
-Your repository needs a `.intent/` directory at the root. If you don't have one, the action will fail with a clear error pointing you here.
+Your repository needs a `.intent/` directory at the root. If you don't have one, scaffold it with `core-admin project onboard` (see above) before adding the workflow.
 
 Add this workflow at `.github/workflows/core-audit.yml`:
 

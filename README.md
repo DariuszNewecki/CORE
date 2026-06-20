@@ -260,7 +260,11 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 ## Quick Start
 
-> **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **already has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI. **Not yet self-serve:** pointing CORE at your *own* repo from scratch — scaffolding that first constitution (BYOR, [#640](https://github.com/DariuszNewecki/CORE/issues/640)). Until that lands, `core-admin code audit --offline` in a repo with no `.intent/` won't help you (it currently hangs — fix tracked in #640). We'd rather say so than let you hit a wall. **Fastest way to see CORE today: run it on itself, below.**
+> **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
+>
+> **Govern your own repo (BYOR):** from the CORE source tree, `core-admin project onboard <path> --write` delivers the starter constitution (4 rules, no LLM, no database) into any repo. `core-admin code audit --offline` inside that repo enforces them immediately. Source-tree only for now — the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)).
+>
+> **Fastest way to see CORE today: run it on itself, below.**
 
 **Full local runtime** — one command. Clone, then run the installer:
 
