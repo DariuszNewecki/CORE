@@ -3,8 +3,10 @@
 
 Points the constitutional engine at a folder of documents (the customer's
 "documentation stack") and prints a gap report against a compliance
-requirements catalog, with every line honestly labelled by how its verdict was
-established — proven / judged / needs-human (ADR-113).
+requirements catalog. Each requirement is evaluated corpus-wide (ADR-118 D1)
+and every verdict is honestly labelled by how it was established — proven /
+judged / needs-human (ADR-113) — and what it found — satisfied / deficient /
+not covered / needs human / unavailable (ADR-118 D3).
 
 Read-only: it reads the corpus and reports; it never modifies the documents.
 """
@@ -20,7 +22,6 @@ from rich.table import Table
 
 from body.services.grc import (
     GRCGapAnalysisService,
-    RequirementResult,
     build_framework_descriptor,
     load_catalog,
     load_catalog_meta,
@@ -28,7 +29,13 @@ from body.services.grc import (
 from cli.utils import core_command
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
-from shared.models import Applicability, ApplicabilityAssessment, EvidenceClass
+from shared.models import (
+    Applicability,
+    ApplicabilityAssessment,
+    EvidenceClass,
+    RequirementStatus,
+    RequirementVerdict,
+)
 
 from . import app
 
@@ -49,15 +56,20 @@ _EVIDENCE_STYLE = {
 }
 
 _STATUS_STYLE = {
-    "gap": "[bold red]GAP[/bold red]",
-    "met": "[green]met[/green]",
-    "needs_human": "[magenta]needs human sign-off[/magenta]",
-    "pending_ai": "[yellow]AI evaluation pending[/yellow]",
-    "unavailable": "[bold yellow]verdict unavailable[/bold yellow]",
+    RequirementStatus.SATISFIED: "[green]satisfied[/green]",
+    RequirementStatus.DEFICIENT: "[bold red]DEFICIENT[/bold red]",
+    RequirementStatus.NOT_COVERED: "[bold red]NOT COVERED[/bold red]",
+    RequirementStatus.COVERED_UNAUTHORITATIVELY: "[red]covered (unauthoritatively)[/red]",
+    RequirementStatus.NOT_APPLICABLE: "[dim]not applicable[/dim]",
+    RequirementStatus.NEEDS_HUMAN: "[magenta]needs human sign-off[/magenta]",
+    RequirementStatus.UNAVAILABLE: "[bold yellow]verdict unavailable[/bold yellow]",
 }
 
-# Findings that mark "could not evaluate" rather than "the document fails".
-_UNAVAILABLE_TYPES = {"LLM_TRANSIENT_FAILURE", "ENFORCEMENT_FAILURE"}
+_GAP_STATUSES = {
+    RequirementStatus.DEFICIENT,
+    RequirementStatus.NOT_COVERED,
+    RequirementStatus.COVERED_UNAUTHORITATIVELY,
+}
 
 
 # ID: 89ed39b5-d619-4489-99e9-9b1c9852b29e
@@ -77,8 +89,8 @@ def _render_applicability(catalog: str, assessment: ApplicabilityAssessment) -> 
 
 
 # ID: 00bb5176-1308-4695-a0c2-02ffbcbe5295
-def _render_report(corpus: Path, results: list[RequirementResult]) -> None:
-    """Print the traceability matrix: requirement → evidence class → status."""
+def _render_report(corpus: Path, results: list[RequirementVerdict]) -> None:
+    """Print the traceability matrix: requirement → evidence class → status → detail."""
     table = Table(
         title=f"[bold]GRC Gap Report[/bold] — {corpus}",
         show_header=True,
@@ -90,54 +102,37 @@ def _render_report(corpus: Path, results: list[RequirementResult]) -> None:
     table.add_column("Detail", style="white", overflow="fold")
 
     for r in results:
-        if r.status == "gap":
-            # show the first genuine-verdict finding, not an unavailable marker
-            real = next(
-                (
-                    f
-                    for f in r.findings
-                    if f.context.get("finding_type") not in _UNAVAILABLE_TYPES
-                ),
-                None,
-            )
-            detail = real or (r.findings[0] if r.findings else None)
-            detail = detail.message if detail else ""
-        elif r.status == "unavailable":
-            detail = (
-                r.findings[0].message
-                if r.findings
-                else "Verdict could not be established (AI evaluation unavailable)."
-            )
-        elif r.status == "needs_human":
-            prompt = (
-                r.findings[0].context.get("attestation_prompt", "")
-                if r.findings
-                else ""
-            )
-            detail = prompt
-        elif r.status == "pending_ai":
-            detail = "Requires an AI evaluation pass (run with an LLM provider wired)."
+        if r.status in _GAP_STATUSES:
+            # Surface the first evidence cite, fall back to rationale.
+            detail = r.evidence[0].cite if r.evidence else r.rationale
+        elif r.status is RequirementStatus.UNAVAILABLE:
+            detail = r.rationale
+        elif r.status is RequirementStatus.NEEDS_HUMAN:
+            detail = r.rationale
         else:
-            detail = "No gap found by the deterministic check."
+            detail = r.rationale or ""
+
         table.add_row(
             r.statement,
             _EVIDENCE_STYLE.get(r.evidence_class, str(r.evidence_class)),
-            _STATUS_STYLE.get(r.status, r.status),
+            _STATUS_STYLE.get(r.status, str(r.status)),
             detail,
         )
 
     console.print(table)
 
-    gaps = sum(1 for r in results if r.status == "gap")
-    human = sum(1 for r in results if r.status == "needs_human")
-    pending = sum(1 for r in results if r.status == "pending_ai")
-    unavailable = sum(1 for r in results if r.status == "unavailable")
+    gaps = sum(1 for r in results if r.is_gap)
+    human = sum(1 for r in results if r.status is RequirementStatus.NEEDS_HUMAN)
+    unavailable = sum(1 for r in results if r.status is RequirementStatus.UNAVAILABLE)
+    not_applicable = sum(
+        1 for r in results if r.status is RequirementStatus.NOT_APPLICABLE
+    )
     console.print(
         f"\n[bold]{len(results)} requirements[/bold] · "
         f"[red]{gaps} gap(s)[/red] · "
         f"[magenta]{human} need human sign-off[/magenta] · "
-        f"[yellow]{pending} pending AI[/yellow] · "
         f"[bold yellow]{unavailable} verdict unavailable[/bold yellow]"
+        + (f" · [dim]{not_applicable} not applicable[/dim]" if not_applicable else "")
     )
     console.print(
         "[dim]Every line states how its verdict was reached. CORE reports only "
@@ -175,11 +170,10 @@ async def gap_analysis(
 ) -> None:
     """Run a compliance requirements catalog against a folder of documents.
 
-    Produces a gap report where each requirement is labelled by how its verdict
-    was established: proven (deterministic), judged (AI), or attested (needs a
-    human). The default catalog is a minimal, regulation-derived NIST SP 800-171
-    subset; statements are CORE-authored paraphrases citing control IDs, not the
-    standard's text.
+    Produces a gap report where each requirement is evaluated corpus-wide
+    (ADR-118 D1) and labelled by how its verdict was established: proven
+    (deterministic), judged (AI), or attested (needs a human). Silence from
+    individual documents is not a gap — only corpus-level non-coverage is (D4).
     """
     console.print(
         f"[bold cyan]🔎 GRC gap-analysis[/bold cyan] over [bold]{corpus}[/bold] "
@@ -194,7 +188,7 @@ async def gap_analysis(
     # Wire the GRC judge: resolve an LLM client for the grc_judge prompt's
     # cognitive role via the cognitive service (Will owns client construction;
     # Body receives it by DI). Best-effort — if no client can be obtained,
-    # judged requirements degrade honestly to "AI evaluation pending" rather
+    # judged requirements degrade honestly to "verdict unavailable" rather
     # than failing the run.
     llm_client = None
     try:
@@ -206,7 +200,7 @@ async def gap_analysis(
         logger.warning("GRC judge LLM client unavailable: %s", exc)
         console.print(
             "[dim]No LLM judge wired — judged requirements will report "
-            "'AI evaluation pending'.[/dim]"
+            "'verdict unavailable'.[/dim]"
         )
 
     service = GRCGapAnalysisService(llm_client=llm_client)

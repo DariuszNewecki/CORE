@@ -8,20 +8,18 @@ live in different places:
   expressed as ``ExecutableRule``s (each bound to a verification engine).
 - **Artifact** — a folder of the customer's documents (the corpus).
 
-Each requirement runs through the real ``execute_rule`` path, so findings carry
-their ADR-113 ``evidence_class`` (proven / judged / attested) with no audit-loop
-duplication. The corpus is read by a purpose-built context whose ``get_files``
-globs the corpus directly — the standard ``AuditorContext`` derives its file walk
-from the *loaded* intent's rule scopes, which would not see an external corpus.
+Each requirement is evaluated corpus-wide and produces one ``RequirementVerdict``
+per requirement (ADR-118 D1). Evidence class (proven / judged / attested) is the
+engine's declared class; status is the corpus-level outcome (D3). Silence from an
+individual document is absence of evidence — not a gap (D4).
 
-The catalog here is a small demo (``load_demo_catalog``). The maintained,
-regulation-derived catalog — the product — is a later build (the RegTech work);
+The catalog here includes a small demo (``load_demo_catalog``) and the maintained
+NIST SP 800-171 catalog. The internal-corpus pipeline (T5d) is a follow-on build;
 this proves the engine shape on documents.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
@@ -36,6 +34,9 @@ from shared.models import (
     ApplicabilityAssessment,
     AuditFinding,
     EvidenceClass,
+    EvidenceItem,
+    RequirementStatus,
+    RequirementVerdict,
 )
 
 
@@ -51,6 +52,10 @@ _CONTEXT_LEVEL_ENGINES = frozenset({"attestation_gate"})
 _SAMPLE_MAX_FILES = 8
 _SAMPLE_PER_FILE_CHARS = 2000
 _SAMPLE_GLOBS = ("**/*.md", "**/*.txt")
+
+# Marker the grc_judge and llm_gate emit when an LLM call fails for
+# infrastructure reasons (timeout, connection error). Not a gap verdict.
+_AI_OFFLINE_MARKER = "SYSTEM_ERROR_AI_OFFLINE"
 
 
 # ID: 5128f744-4412-467e-89a6-d5e9f748ff6e
@@ -81,27 +86,6 @@ class _CorpusContext:
                     continue
                 out.add(path)
         return sorted(out)
-
-
-@dataclass
-# ID: b8fdcb87-2b2d-4425-8b25-301295aa84b7
-class RequirementResult:
-    """One requirement's gap-analysis outcome, with its honesty label."""
-
-    rule: ExecutableRule
-    evidence_class: EvidenceClass
-    findings: list[AuditFinding]
-    status: str  # "gap" | "met" | "needs_human" | "pending_ai" | "unavailable"
-
-    @property
-    # ID: bbb2aaa4-d607-4191-8d54-06dc5b2470e3
-    def requirement_id(self) -> str:
-        return self.rule.rule_id
-
-    @property
-    # ID: 8683f78b-0711-479a-ad33-dc0e833319b7
-    def statement(self) -> str:
-        return self.rule.statement
 
 
 # ID: b4172354-bcf6-4a94-9e36-a78bb47a8c28
@@ -261,10 +245,10 @@ class GRCGapAnalysisService:
     # ID: 40434806-a71e-45cf-912f-762db4613c65
     def __init__(self, llm_client: Any | None = None) -> None:
         # When an LLM client is wired, the judged requirement produces a real
-        # AI verdict; without one it degrades honestly to "pending_ai".
+        # AI verdict; without one it degrades honestly to UNAVAILABLE.
         self._llm_client = llm_client
 
-    # ID: 851c5ac2-f68c-4457-9d68-e461937cb371
+    # ID: b746e762-1ce6-46e0-8c52-dc676fbbe69c
     async def assess_applicability(
         self,
         corpus_root: Path,
@@ -333,16 +317,16 @@ class GRCGapAnalysisService:
     # ID: 483bbcf4-2f5f-4dea-9542-2b18689adf33
     async def run(
         self, corpus_root: Path, catalog: list[ExecutableRule] | None = None
-    ) -> list[RequirementResult]:
-        """Evaluate every requirement against the corpus.
+    ) -> list[RequirementVerdict]:
+        """Evaluate every requirement against the corpus (ADR-118 D1).
 
         Args:
             corpus_root: folder holding the customer's documents (the Artifact).
             catalog: the requirements to check (the Intent). Defaults to the
-                demo catalog.
+                NIST SP 800-171 catalog.
 
-        Returns one ``RequirementResult`` per requirement, each carrying its
-        findings and an honest status.
+        Returns one ``RequirementVerdict`` per requirement, each carrying its
+        corpus-level status, evidence class, and localized evidence (D1/D3/D5/D6).
         """
         from mind.logic.engines.registry import EngineRegistry
         from shared.config import settings
@@ -353,35 +337,203 @@ class GRCGapAnalysisService:
         EngineRegistry.initialize(settings.paths, llm_client=self._llm_client)
 
         context = _CorpusContext(corpus_root)
-        results: list[RequirementResult] = []
-        for rule in catalog or load_catalog():
-            findings = await execute_rule(rule, context)  # type: ignore[arg-type]
-            results.append(self._classify(rule, findings))
-        return results
+        return [
+            await self._evaluate_corpus_requirement(rule, context)
+            for rule in (catalog or load_catalog())
+        ]
 
-    # ID: ece0623b-502c-41e0-9cd6-1f8dfd7fe69b
-    def _classify(
-        self, rule: ExecutableRule, findings: list[AuditFinding]
-    ) -> RequirementResult:
-        """Derive the requirement's status + its declared evidence class.
+    # ID: 4d2fc2b1-7f46-459c-9f39-0e342eb62785
+    async def _evaluate_corpus_requirement(
+        self, rule: ExecutableRule, context: _CorpusContext
+    ) -> RequirementVerdict:
+        """Produce a corpus-level RequirementVerdict for one requirement (ADR-118 D1).
 
-        The declared class comes from the producing engine (proven/judged/
-        attested). A judged requirement whose AI pass did not run (the engine
-        fell back to the stub, no client wired) is reported honestly as
-        ``pending_ai``. A judged requirement whose AI pass *ran but failed*
-        (transient LLM failure, or an engine crash) is reported as
-        ``unavailable`` — a verdict could not be established. Neither is ever a
-        ``gap``: "could not evaluate" is not the same as "the document fails",
-        and conflating them would manufacture a false finding.
+        Dispatches to the right evaluation path per engine type:
+        - attestation_gate  → always NEEDS_HUMAN (irreducibly human)
+        - grc_judge         → three-way per-file signals → corpus verdict (D4)
+        - deterministic     → binary gap/satisfied from execute_rule
         """
+        from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
         from mind.logic.engines.registry import EngineRegistry
 
         engine = EngineRegistry.get(rule.engine)
-        declared = getattr(engine, "evidence_class", EvidenceClass.ATTESTED)
 
-        # rule_executor marks non-verdict findings with a finding_type: a
-        # transient LLM failure or an engine crash means the verdict is UNKNOWN,
-        # not that the requirement is violated. Keep them out of the gap signal.
+        if rule.is_context_level:
+            # attestation_gate: always NEEDS_HUMAN; attestation_prompt → rationale.
+            findings = await execute_rule(rule, context)
+            rationale = next(
+                (
+                    f.context.get("attestation_prompt", "")
+                    for f in findings
+                    if f.context.get("attestation_prompt")
+                ),
+                "",
+            )
+            if not rationale and findings:
+                rationale = findings[0].message
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.NEEDS_HUMAN,
+                evidence_class=EvidenceClass.ATTESTED,
+                rationale=rationale or "Attestation required.",
+                statement=rule.statement,
+                evidence=[],
+            )
+
+        if rule.engine == "grc_judge":
+            if isinstance(engine, LLMGateStubEngine):
+                return RequirementVerdict(
+                    requirement_id=rule.rule_id,
+                    applicability=Applicability.IN_SCOPE,
+                    status=RequirementStatus.UNAVAILABLE,
+                    evidence_class=EvidenceClass.JUDGED,
+                    rationale="No LLM judge wired — AI verdict unavailable.",
+                    statement=rule.statement,
+                    evidence=[],
+                )
+            return await self._evaluate_judged_requirement(rule, context, engine)
+
+        # Deterministic engines (regex_gate, etc.)
+        findings = await execute_rule(rule, context)
+        return self._classify_deterministic(rule, findings, engine)
+
+    # ID: 4555210b-5a8c-4031-9063-976e587c7155
+    async def _evaluate_judged_requirement(
+        self,
+        rule: ExecutableRule,
+        context: _CorpusContext,
+        engine: Any,
+    ) -> RequirementVerdict:
+        """Three-way corpus evaluation for grc_judge rules (ADR-118 D4).
+
+        Calls the engine per file and collects per-file coverage signals
+        (satisfied / gap / silent) from ``EngineResult.extra``. Silence
+        contributes nothing to the evidence pool. Corpus verdict emerges from
+        the pool (D3 + D4):
+
+        - Empty pool (all silent) → NOT_COVERED
+        - All positive, no gaps  → SATISFIED
+        - Any gaps               → DEFICIENT (incl. mixed satisfied+gap)
+
+        Transient AI failures are counted but never inflate to NOT_COVERED: if
+        every evaluated file failed, the verdict is UNAVAILABLE (honest).
+        """
+        files = context.get_files(include=rule.scope, exclude=rule.exclusions)
+
+        params = {
+            **rule.params,
+            "_context": context,
+            "_rule_id": rule.rule_id,
+            "_rule_content_hash": rule.rule_content_hash,
+            "_force_llm": getattr(context, "force_llm", False),
+        }
+
+        satisfied_evidence: list[EvidenceItem] = []
+        gap_evidence: list[EvidenceItem] = []
+        had_transient_failure = False
+
+        for file_path in files:
+            try:
+                result = await engine.verify(file_path, params)
+            except Exception as exc:
+                logger.warning("grc_judge crashed on %s: %s", file_path, exc)
+                had_transient_failure = True
+                continue
+
+            rel = file_path.relative_to(context.repo_path).as_posix()
+            extra = result.extra
+            coverage = extra.get("coverage", "gap" if not result.ok else "satisfied")
+            reasoning = str(extra.get("reasoning") or "").strip()
+
+            if not result.ok and any(
+                _AI_OFFLINE_MARKER in str(v) for v in result.violations
+            ):
+                had_transient_failure = True
+                continue
+
+            if coverage == "satisfied":
+                satisfied_evidence.append(
+                    EvidenceItem(
+                        document=rel,
+                        relevance=1.0,
+                        cite=reasoning[:300] if reasoning else "",
+                    )
+                )
+            elif coverage == "gap":
+                find_msg = str(extra.get("finding") or result.message or "").strip()
+                gap_evidence.append(
+                    EvidenceItem(
+                        document=rel,
+                        relevance=1.0,
+                        cite=find_msg[:300] if find_msg else reasoning[:300],
+                    )
+                )
+            # coverage == "silent": no evidence contribution (ADR-118 D4)
+
+        if had_transient_failure and not satisfied_evidence and not gap_evidence:
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.UNAVAILABLE,
+                evidence_class=EvidenceClass.JUDGED,
+                rationale="AI verdict unavailable — transient LLM failure during evaluation.",
+                statement=rule.statement,
+                evidence=[],
+            )
+
+        if not satisfied_evidence and not gap_evidence:
+            # All files were silent — no document in the corpus addresses this.
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.NOT_COVERED,
+                evidence_class=EvidenceClass.JUDGED,
+                rationale="No document in the corpus addresses this requirement.",
+                statement=rule.statement,
+                evidence=[],
+            )
+
+        if gap_evidence:
+            rationale = (
+                gap_evidence[0].cite or "Requirement addressed but not satisfied."
+            )
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.DEFICIENT,
+                evidence_class=EvidenceClass.JUDGED,
+                rationale=rationale,
+                statement=rule.statement,
+                evidence=gap_evidence + satisfied_evidence,
+            )
+
+        return RequirementVerdict(
+            requirement_id=rule.rule_id,
+            applicability=Applicability.IN_SCOPE,
+            status=RequirementStatus.SATISFIED,
+            evidence_class=EvidenceClass.JUDGED,
+            rationale="Requirement is covered by the corpus.",
+            statement=rule.statement,
+            evidence=satisfied_evidence,
+        )
+
+    # ID: d4e77704-f693-4dcb-b0fb-4330243c40d0
+    def _classify_deterministic(
+        self,
+        rule: ExecutableRule,
+        findings: list[AuditFinding],
+        engine: Any,
+    ) -> RequirementVerdict:
+        """Corpus-level verdict for deterministic rules (regex_gate etc.).
+
+        Binary: gap findings present → DEFICIENT (the document contains what it
+        must not, or lacks what it must have); no gap findings → SATISFIED.
+        NOT_COVERED does not apply to deterministic checks — a regex either
+        fires or it doesn't; an empty scope resolves to SATISFIED (vacuous pass).
+        """
+        declared = getattr(engine, "evidence_class", EvidenceClass.PROVEN)
+
         _UNAVAILABLE = {"LLM_TRANSIENT_FAILURE", "ENFORCEMENT_FAILURE"}
         real_findings = [
             f for f in findings if f.context.get("finding_type") not in _UNAVAILABLE
@@ -390,21 +542,42 @@ class GRCGapAnalysisService:
             f.context.get("finding_type") in _UNAVAILABLE for f in findings
         )
 
-        is_stub = any(f.context.get("stub") for f in findings)
-        if declared is EvidenceClass.ATTESTED:
-            status = "needs_human"
-        elif is_stub:
-            status = "pending_ai"
-        elif real_findings:
-            status = "gap"
-        elif had_unavailable:
-            status = "unavailable"
-        else:
-            status = "met"
+        if real_findings:
+            evidence = [
+                EvidenceItem(
+                    document=f.file_path or "corpus",
+                    relevance=1.0,
+                    cite=f.message[:300] if f.message else "",
+                )
+                for f in real_findings
+            ]
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.DEFICIENT,
+                evidence_class=declared,
+                rationale=real_findings[0].message or "Requirement not satisfied.",
+                statement=rule.statement,
+                evidence=evidence,
+            )
 
-        return RequirementResult(
-            rule=rule,
+        if had_unavailable:
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.UNAVAILABLE,
+                evidence_class=declared,
+                rationale="Verdict could not be established (enforcement failure).",
+                statement=rule.statement,
+                evidence=[],
+            )
+
+        return RequirementVerdict(
+            requirement_id=rule.rule_id,
+            applicability=Applicability.IN_SCOPE,
+            status=RequirementStatus.SATISFIED,
             evidence_class=declared,
-            findings=findings,
-            status=status,
+            rationale="No gap found by the deterministic check.",
+            statement=rule.statement,
+            evidence=[],
         )

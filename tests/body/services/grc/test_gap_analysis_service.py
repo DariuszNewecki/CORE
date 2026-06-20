@@ -2,24 +2,26 @@
 
 Proves the engine runs a compliance requirements catalog (Intent) against a
 document corpus (Artifact) and returns a gap report where each requirement is
-honestly labelled by how its verdict was established (ADR-113):
+one corpus-level ``RequirementVerdict`` (ADR-118 D1) honestly labelled by how
+its verdict was established (ADR-113):
 
-- a deterministic check finds a real gap and labels it **proven**;
-- an irreducibly-human requirement is surfaced as **attested** / needs-human,
+- a deterministic check finds a real gap → DEFICIENT, evidence class PROVEN;
+- an irreducibly-human requirement is surfaced as NEEDS_HUMAN / ATTESTED,
   never silently skipped;
-- the AI-judgment requirement is labelled **judged** and, with no LLM wired in
-  the test, degrades honestly to `pending_ai` — never a fabricated verdict and
-  never silently "met".
+- the AI-judgment requirement, with no LLM wired in the test, degrades
+  honestly to UNAVAILABLE (never a fabricated verdict, never silently satisfied).
+- document silence is NOT a gap — corpus-wide non-coverage is NOT_COVERED (D4).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from body.services.grc import GRCGapAnalysisService, load_catalog, load_demo_catalog
-from shared.models import AuditFinding, AuditSeverity, EvidenceClass
+from shared.models import AuditFinding, AuditSeverity, EvidenceClass, RequirementStatus
 
 
 _CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "corpus"
@@ -31,34 +33,34 @@ async def test_gap_analysis_produces_labelled_trio() -> None:
     by_id = {r.requirement_id: r for r in results}
     assert len(results) == 3
 
-    # PROVEN — the planted "TBD" in the encryption section is a real gap.
+    # PROVEN — the planted "TBD" is a real gap → DEFICIENT.
     proven = by_id["grc.demo.policy_is_finalized"]
     assert proven.evidence_class is EvidenceClass.PROVEN
-    assert proven.status == "gap"
-    assert proven.findings
-    assert any("TBD" in f.message for f in proven.findings)
+    assert proven.status is RequirementStatus.DEFICIENT
+    assert proven.evidence
+    assert any("TBD" in e.cite for e in proven.evidence)
 
-    # JUDGED — AI dimension, no LLM wired in the test → honest pending, not met.
+    # JUDGED — AI dimension, no LLM wired in the test → honest UNAVAILABLE.
     judged = by_id["grc.demo.requires_mfa_for_remote_access"]
     assert judged.evidence_class is EvidenceClass.JUDGED
-    assert judged.status == "pending_ai"
+    assert judged.status is RequirementStatus.UNAVAILABLE
 
     # ATTESTED — surfaced for a human, never skipped.
     attested = by_id["grc.demo.controls_appropriate_to_risk"]
     assert attested.evidence_class is EvidenceClass.ATTESTED
-    assert attested.status == "needs_human"
-    assert attested.findings
+    assert attested.status is RequirementStatus.NEEDS_HUMAN
+    assert attested.rationale
 
 
 @pytest.mark.asyncio
-async def test_clean_corpus_reports_proven_met(tmp_path: Path) -> None:
+async def test_clean_corpus_reports_proven_satisfied(tmp_path: Path) -> None:
     """A finalized policy (no placeholder text) yields no proven gap."""
     doc = tmp_path / "policy.md"
     doc.write_text("# Policy\n\nAll controls are documented and finalized.\n", encoding="utf-8")
     results = await GRCGapAnalysisService().run(tmp_path, catalog=load_demo_catalog())
     proven = next(r for r in results if r.requirement_id == "grc.demo.policy_is_finalized")
-    assert proven.status == "met"
-    assert not proven.findings
+    assert proven.status is RequirementStatus.SATISFIED
+    assert not proven.evidence
 
 
 def test_nist_catalog_loads_with_all_three_lanes() -> None:
@@ -80,30 +82,64 @@ def test_unknown_catalog_raises() -> None:
         load_catalog("does_not_exist")
 
 
-def test_transient_llm_failure_classifies_unavailable_not_gap() -> None:
-    """Honesty mapping: a judged requirement whose AI pass *ran but failed*
-    (transient LLM failure) must be reported as `unavailable` — a verdict that
-    could not be established — never as a `gap`. Conflating "could not evaluate"
-    with "the document fails" would manufacture a false finding."""
+def test_transient_failure_classifies_unavailable_not_deficient() -> None:
+    """Honesty: an enforcement failure must not be reported as DEFICIENT.
+
+    ``_classify_deterministic`` is the deterministic path; an ENFORCEMENT_FAILURE
+    finding means a verdict could not be established — UNAVAILABLE, not a gap.
+    """
     from mind.logic.engines.registry import EngineRegistry
     from shared.config import settings
 
     EngineRegistry.initialize(settings.paths)
     service = GRCGapAnalysisService()
-    rule = next(r for r in load_catalog("nist_800_171") if r.engine == "grc_judge")
+    rule = next(r for r in load_catalog("nist_800_171") if r.engine == "regex_gate")
+    engine = EngineRegistry.get(rule.engine)
 
-    transient = AuditFinding(
+    enforcement_failure = AuditFinding(
         check_id=rule.rule_id,
-        severity=AuditSeverity.HIGH,
-        message="LLM evaluation failed transiently on 2 file(s).",
+        severity=AuditSeverity.BLOCK,
+        message="ENFORCEMENT_FAILURE: Rule crashed.",
         file_path="none",
-        context={"finding_type": "LLM_TRANSIENT_FAILURE", "failure_count": 2},
+        context={"finding_type": "ENFORCEMENT_FAILURE"},
     )
 
-    result = service._classify(rule, [transient])
+    verdict = service._classify_deterministic(rule, [enforcement_failure], engine)
+    assert verdict.status is RequirementStatus.UNAVAILABLE
+    assert verdict.evidence_class is EvidenceClass.PROVEN
 
-    assert result.status == "unavailable"
-    assert result.evidence_class is EvidenceClass.JUDGED
+
+@pytest.mark.asyncio
+async def test_judged_silence_is_not_covered_not_gap() -> None:
+    """Core ADR-118 D4 invariant: a corpus where every document is silent on a
+    requirement must yield NOT_COVERED, never DEFICIENT.
+
+    Uses a mock grc_judge engine that returns coverage='silent' for every file,
+    exercising the three-way aggregation logic directly.
+    """
+    from mind.logic.engines.base import EngineResult
+
+    silent_result = EngineResult(
+        ok=True,
+        message="Document does not address this requirement (silent).",
+        violations=[],
+        engine_id="grc_judge",
+        extra={"coverage": "silent", "reasoning": ""},
+    )
+    mock_engine = MagicMock()
+    mock_engine.verify = AsyncMock(return_value=silent_result)
+
+    service = GRCGapAnalysisService(llm_client=MagicMock())
+    rule = next(r for r in load_demo_catalog() if r.engine == "grc_judge")
+
+    from body.services.grc.gap_analysis_service import _CorpusContext
+
+    context = _CorpusContext(_CORPUS)
+    verdict = await service._evaluate_judged_requirement(rule, context, mock_engine)
+
+    assert verdict.status is RequirementStatus.NOT_COVERED
+    assert not verdict.evidence
+    assert verdict.evidence_class is EvidenceClass.JUDGED
 
 
 @pytest.mark.asyncio
@@ -115,14 +151,14 @@ async def test_nist_catalog_runs_against_corpus() -> None:
     # the planted TBD trips the deterministic doc-quality gate
     proven = next(r for r in results if r.requirement_id == "nist_800_171.doc_finalized")
     assert proven.evidence_class is EvidenceClass.PROVEN
-    assert proven.status == "gap"
+    assert proven.status is RequirementStatus.DEFICIENT
     # all three honesty lanes are represented
     assert classes == {
         EvidenceClass.PROVEN,
         EvidenceClass.JUDGED,
         EvidenceClass.ATTESTED,
     }
-    assert "needs_human" in statuses
+    assert RequirementStatus.NEEDS_HUMAN in statuses
 
 
 # --- catalog_resolver: residency + tier behaviour (ADR-116) -----------------

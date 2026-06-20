@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -47,12 +47,18 @@ class EngineResult:
     entries. Widened from ``list[str]`` so downstream consumers
     (``rule_executor``, ``AuditFinding.context``) can propagate the
     structural signal sensors already produce.
+
+    ``extra`` carries engine-specific signals that are not violations — e.g.
+    the GRC judge's three-way ``coverage`` field (satisfied / gap / silent).
+    Consumers that don't recognise the key ignore it; ``rule_executor`` does
+    not read it.
     """
 
     ok: bool
     message: str
     violations: list[str | dict[str, Any]]
     engine_id: str
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 # ID: a7f3c9d2-5e1b-4f8a-b6d4-9c7e2a1b3f8d

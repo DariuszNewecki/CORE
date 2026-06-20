@@ -116,23 +116,43 @@ class GRCJudgeEngine(BaseEngine):
             # caught below as ENFORCEMENT_UNAVAILABLE.
             result_data = extract_json(response_text)
 
-            satisfied = not result_data.get("violation", False)
-            reasoning = result_data.get("reasoning", "")
-            finding = result_data.get("finding")
+            violation = bool(result_data.get("violation", False))
+            reasoning = str(result_data.get("reasoning") or "").strip()
+            finding_text = result_data.get("finding")
 
-            if satisfied:
+            # Three-way coverage from the prompt (ADR-118 D4): satisfied / gap / silent.
+            # "silent" means the document does not address this requirement — absence
+            # of evidence, not a gap. Fall back to deriving from violation flag so
+            # old-schema responses (without "coverage") degrade correctly.
+            raw_coverage = result_data.get("coverage")
+            if raw_coverage in ("satisfied", "gap", "silent"):
+                coverage = raw_coverage
+            else:
+                coverage = "gap" if violation else "satisfied"
+
+            extra: dict[str, object] = {"coverage": coverage, "reasoning": reasoning}
+            if coverage == "gap":
+                extra["finding"] = finding_text
+
+            if coverage in ("satisfied", "silent"):
                 return EngineResult(
                     ok=True,
-                    message="Requirement satisfied by the document corpus.",
+                    message=(
+                        "Document does not address this requirement (silent)."
+                        if coverage == "silent"
+                        else "Requirement satisfied by the document."
+                    ),
                     violations=[],
                     engine_id=self.engine_id,
+                    extra=extra,
                 )
-            gap = finding or reasoning or "Requirement not satisfied."
+            gap = finding_text or reasoning or "Requirement not satisfied."
             return EngineResult(
                 ok=False,
                 message=f"Compliance gap: {gap}",
                 violations=[gap],
                 engine_id=self.engine_id,
+                extra=extra,
             )
         except Exception as e:
             # AI unavailable / unparseable → enforcement UNAVAILABLE, not a gap.
