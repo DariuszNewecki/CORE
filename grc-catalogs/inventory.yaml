@@ -89,3 +89,29 @@ frameworks:
     note: "Methodology guidance, not a control list → deliberately thin, advisor-mode, mostly-attested catalog. Companion to eu_annex_11 + cfr_part_11."
     status: authored          # derive+cite from published methodology; copyrighted+paywalled → source_verified=false; advisor-mode by design
     version: null
+
+  - id: nis2
+    title: "Directive (EU) 2022/2555 — NIS2 (high common level of cybersecurity across the Union)"
+    tier: licensed
+    ip_status: official-eu-law-reusable   # Decision 2011/833/EU — same posture as gdpr
+    fetch: full-text
+    sources:
+      - "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555"
+      - "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+    revision: "OJ L 333, 27.12.2022"
+    note: "Directive (transposed via national law), not a regulation — catalog tracks the Union-level text. EUR-Lex is WebFetch-hostile (cf. gdpr): expect authoring to stall at source_verified=false pending human-paste verification. tier mirrors gdpr precedent (EU-law-reusable source, licensed product)."
+    status: planned         # sources PROPOSED, not yet governor-approved → no fetch authorized
+    version: null
+
+  - id: cyfun
+    title: "CCB CyberFundamentals Framework"
+    tier: licensed
+    ip_status: copyrighted    # CCB freely distributes the PDFs but states no reuse grant; atwork.safeonweb.be footer asserts "© All Rights Reserved" (checked 2026-06-20) — no confirmed permission to reproduce/redistribute control text. Treated as copyrighted; upgradeable to official-*-reusable if CCB licence is confirmed.
+    fetch: metadata-only      # conservative pending explicit CCB licence: derive+cite control IDs, do NOT reproduce text (cf. iso_27001 / gamp5)
+    sources:
+      - "https://atwork.safeonweb.be/tools-resources/cyberfundamentals-framework"
+      - "https://ccb.belgium.be"
+    revision: "CyberFundamentals 2025 (launched Oct 2025); 2023 edition coexists until 2027-04-18"
+    note: "Belgian CCB control framework mapped onto NIST CSF / ISO 27001 / IEC 62443 / CIS Controls / ETSI TR 103 305-1; four assurance levels (Small/Basic/Important/Essential). Source is NOT EUR-Lex → likely fetchable for verification once sources are approved. fetch/ip_status upgradeable to full-text if CCB reuse terms are confirmed."
+    status: planned         # sources PROPOSED, not yet governor-approved → no fetch authorized
+    version: null
