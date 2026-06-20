@@ -86,6 +86,14 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
     against) and the Qdrant collection-per-tenant isolation model (per-customer
     licensed corpora never co-mingle). Procurement precondition for copyrighted
     frameworks: CORE holds the commercial/internal-use licence (currently none held).
+- **T5e** — GRC verdict unit: requirement-over-corpus (**ADR-118**, accepted 2026-06-20).
+  Spans T5b+T5d: the reported unit is one `RequirementVerdict` per requirement over the
+  whole corpus, fronted by an applicability gate (detect→suggest→confirm domain;
+  out-of-scope surfaced, not dropped). Replaces the per-document judged roll-up shipped in
+  Scenario-4 — "silent" stops being a verdict (it's absence-of-evidence), and corpus-level
+  `not_covered` / `covered_unauthoritatively` become first-class. Generalizes the ITAM
+  heatmap's coverage + authority model. Implementation: the `RequirementVerdict` contract,
+  the applicability gate, evidence retrieval/localization, and the engine reshape.
 
 ---
 
@@ -96,7 +104,10 @@ complete code-BYOR end-to-end for all users. T5b is the commercial payoff (GRC) 
 the largest effort — where the real RegTech value and the hard intent-representation
 problem live; T5a is its prerequisite. T5d (internal corpus) follows T5b and turns
 the catalog from a checklist into an evaluable substrate; its copyrighted path is
-also gated on a procurement step (licence acquisition), not just engineering. T4 is
+also gated on a procurement step (licence acquisition), not just engineering. T5e
+(verdict unit, ADR-118 accepted) is the contract both T5b and T5d produce verdicts
+under — the engine reshape that makes corpus-level coverage honest; it can begin
+ahead of the internal-corpus procurement since it is pure engine/design. T4 is
 a parallel design call. The commercial
 center of gravity is GRC (governor decision 2026-06-17); code self-development runs
 on a maintenance track meanwhile.
@@ -108,5 +119,6 @@ on a maintenance track meanwhile.
 - `CORE-BYOR.md` — the program's shape (grounds the ADRs below)
 - ADR-111 — `project onboard` delivers the authored starter (#640 step 1)
 - ADR-116 (D7 inventory registry, D8 tier=repo boundary, D9 internal audit corpus → T5d)
+- ADR-118 (GRC verdict unit: requirement-over-corpus + applicability gate → T5e)
 - ADR-108 (D3 → #674), ADR-075 (namespace), ADR-090 (multi-domain)
 - #640 (BYOR), #674 (wheel packaging)
