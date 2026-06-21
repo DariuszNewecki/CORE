@@ -3405,6 +3405,14 @@ ALTER TABLE ONLY core.feedback
 
 
 --
+-- Name: fix_runs fix_runs_kind_check; Type: CHECK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.fix_runs
+    ADD CONSTRAINT fix_runs_kind_check CHECK (kind = ANY (ARRAY['atomic'::text, 'flow'::text, 'modularity'::text, 'quality_check'::text]));
+
+
+--
 -- Name: fix_runs fix_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 

@@ -38,6 +38,21 @@ that parametrized the obligation layer and ratified + implemented ADR-111.
   human ratification). Four BYOR path codenames: Scout / Guard / Counsel /
   Generate (sibling). T3 scope corrected to machinery floor only. ADR-108 D1 and
   ADR-111 D1 amended. CORE-BYOR.md §4 table and §8/§9 updated.
+- **T5e closed** — ADR-118 fully implemented: `RequirementVerdict` contract (`ae36aa6f`
+  D1/D3/D4/D5) + applicability gate detect→suggest→confirm (`1587ebad` D2). Engine
+  reshaped to corpus-level verdict unit; silence ≠ verdict; `not_covered` /
+  `covered_unauthoritatively` / `not_applicable` / `unavailable` first-class.
+
+## 1c. Done 2026-06-21
+
+- **T5a closed** — ADR-120 accepted + implemented (`a9b19264`): `DocumentRepository`
+  adapter interface + `RepositoryAdapterBase` abstract contract (F-41/F-42/F-43
+  binding). The seam that decouples domain-specific corpus reading from the engine.
+- **T5b closed** — ADR-121 accepted + implemented (`a9b19264`): `document_corpus`
+  artifact type, `document_corpus_sensor` worker, `document.run.gap_analysis` action.
+  Domain-agnostic rename: `GRCGapAnalysisService` → `DocumentCorpusAnalysisService`
+  (alias kept). Pre-existing cross-validation bug in `intent_repository` fixed (identity
+  nesting). 7 tests authored, tree clean.
 
 ## 2. Open threads
 
@@ -49,10 +64,10 @@ absent from starter's `action_risk.yaml`; fix applied to
 `examples/starter-intent/.intent/enforcement/config/action_risk.yaml` and
 committed. T2 unblocked.
 
-### T2 — #640 step 2: newcomer docs  **[blocked on T1]**
+### T2 — #640 step 2: newcomer docs  **[UNBLOCKED — T1 done 2026-06-20]**
 Point `docs/cold-reviewer.md`'s "no `.intent/`" dead-end at `project onboard`; add a
-"govern your own repo" step to README / getting-started. Per ADR-111 D6, MUST NOT
-promise the self-serve path until T1 is confirmed (and #674 for `pip install` users).
+"govern your own repo" step to README / getting-started. T1 confirmed → self-serve path
+can be documented. #674 (T3) still open; docs may note `pip install` path is a WIP.
 
 ### T3 — #674: ADR-108 D3 machinery-in-wheel  **[SCOPE CORRECTED — ADR-119 D9]**
 Bundle the **machinery floor only** in the `core-runtime` wheel + loader fallback
@@ -66,64 +81,44 @@ Decision deferred: keep "write into the named repo" (dry-run + refuse-if-exists 
 the rails) vs. add a `work/<name>/` staging airlock the operator promotes. If
 adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regulated path.
 
-### T5 — Remaining BYOR-grounded ADRs (`CORE-BYOR.md` §9)
-- **T5a** — Repository adapter interface (the concrete F-41/F-42/F-43 binding).
-- **T5b** — GRC document/records Repository type + regulation→checkable-Intent
-  representation. The commercial centerpiece; also the hardest part (RegTech).
-  - *Regulation→Intent residency split decided in **ADR-116** (proposed 2026-06-19):*
-    the catalog is licensed law-as-data, consumed not bundled — `grc-catalogs/{public,
-    licensed}`, `licensed/` never in this public repo. Advances T5b's catalog side.
-    *Still open:* the document/records **sensor type** (F-42 binding that reads a
-    customer's records library) — a sibling slice, not covered by ADR-116.
-- **T5c** — Per-finding attestation (proven / judged / attested) — the honesty
-  guardrail made mechanical.
-- **T5d** — GRC internal audit corpus pipeline (**ADR-116 D9**, ratified 2026-06-20).
-  The reasoning substrate the audit engine runs against — distinct from T5b's
-  *shipped* catalog. Scope:
-  - **Ingestion:** source (e.g. PDF) → extracted text → vector inputs, into a
-    per-framework Qdrant collection. Layout fixed by D9
-    (`grc-catalogs/internal/<framework>/{source,text,licence.yaml}`); path is
-    gitignored + reserved (`131f888b`).
-  - **Licence-gate enforcement:** block ingest of a `copyrighted` source's full
-    text unless its `internal_use_licence` is satisfied (recorded in
-    `inventory.yaml` + `internal/<framework>/licence.yaml`). `public-domain` /
-    `official-*-reusable` ingest freely. Ungated copyrighted ingest is a violation,
-    not a warning.
-  - **Corpus-as-input invariant:** the engine consumes the corpus to produce
-    findings + clause citations; it MUST NOT serve stored source text back out
-    (preserves D5). Needs an enforceable check, not just intent.
-  - **Resolver tolerance:** like `licensed/`, `internal/` may be absent/partial;
-    without it CORE runs cite-only and gap-analysis still functions — degraded,
-    honest, never silently ungated.
-  - *Depends on T5b* (the catalog gives the requirement set the corpus answers
-    against) and the Qdrant collection-per-tenant isolation model (per-customer
-    licensed corpora never co-mingle). Procurement precondition for copyrighted
-    frameworks: CORE holds the commercial/internal-use licence (currently none held).
-- **T5e** — GRC verdict unit: requirement-over-corpus (**ADR-118**, accepted 2026-06-20).
-  Spans T5b+T5d: the reported unit is one `RequirementVerdict` per requirement over the
-  whole corpus, fronted by an applicability gate (detect→suggest→confirm domain;
-  out-of-scope surfaced, not dropped). Replaces the per-document judged roll-up shipped in
-  Scenario-4 — "silent" stops being a verdict (it's absence-of-evidence), and corpus-level
-  `not_covered` / `covered_unauthoritatively` become first-class. Generalizes the ITAM
-  heatmap's coverage + authority model. Implementation: the `RequirementVerdict` contract,
-  the applicability gate, evidence retrieval/localization, and the engine reshape.
+### T5 — BYOR-grounded ADRs (`CORE-BYOR.md` §9)
+
+- **T5a** ✅ **DONE 2026-06-21** — Repository adapter interface (ADR-120, `a9b19264`).
+- **T5b** ✅ **DONE 2026-06-21** — GRC `document_corpus` type (ADR-121, `a9b19264`).
+  Includes `document_corpus_sensor` + `document.run.gap_analysis` action.
+  Regulation→Intent residency boundary decided in ADR-116 (catalog as data; `public/`,
+  `licensed/`, `internal/` tiers). Domain-agnostic: any document corpus, not GRC-only.
+- **T5c** — **OPEN** — Per-finding attestation (proven / judged / attested). The
+  honesty guardrail made mechanical; gates the "trusted output" claim.
+- **T5d** — **OPEN, gated on licence procurement** — GRC internal audit corpus pipeline
+  (ADR-116 D9). Layout reserved (`grc-catalogs/internal/`, gitignored). Ingestion,
+  licence-gate enforcement, corpus-as-input invariant, resolver tolerance. Depends on
+  T5b ✅ (provides requirement set). Copyrighted frameworks need held licence; public-domain
+  ingest is ungated. No engineering blockers except procuring licences.
+- **T5e** ✅ **DONE 2026-06-20** — Verdict unit: requirement-over-corpus (ADR-118,
+  `ae36aa6f` D1/D3/D4/D5 + `1587ebad` D2). `RequirementVerdict` + applicability gate.
+  (See §1b above.)
 
 ---
 
 ## 3. Sequencing
 
-T1 first — cheap, and it gates the on-ramp's honesty. Then T2 (docs) and T3 (#674)
-complete code-BYOR end-to-end for all users. T5b is the commercial payoff (GRC) and
-the largest effort — where the real RegTech value and the hard intent-representation
-problem live; T5a is its prerequisite. T5d (internal corpus) follows T5b and turns
-the catalog from a checklist into an evaluable substrate; its copyrighted path is
-also gated on a procurement step (licence acquisition), not just engineering. T5e
-(verdict unit, ADR-118 accepted) is the contract both T5b and T5d produce verdicts
-under — the engine reshape that makes corpus-level coverage honest; it can begin
-ahead of the internal-corpus procurement since it is pure engine/design. T4 is
-a parallel design call. The commercial
-center of gravity is GRC (governor decision 2026-06-17); code self-development runs
-on a maintenance track meanwhile.
+**As of 2026-06-21:** T1/T5a/T5b/T5e are all shipped. The core BYOR engine — Scout
+induction, document_corpus type, repository adapter, corpus-level verdict — is live.
+
+Remaining open in priority order:
+1. **T2** (docs) — unblocked; short effort; gates the self-serve on-ramp being
+   honestly advertised to newcomers.
+2. **T3** (#674, wheel packaging) — unblocks `pip install` adopters for Phase A
+   (`project onboard`). Engineering only, no ADR needed.
+3. **T5c** (attestation) — the honesty guardrail that makes findings externally
+   trustworthy; blocks "trusted output" positioning.
+4. **T5d** (internal corpus) — procurement-gated; no engineering block once a
+   licence is held. Can spec the pipeline now.
+5. **T4** (airlock) — governor-deferred design decision.
+
+The commercial center of gravity is GRC (governor decision 2026-06-17). Code
+self-development runs on a maintenance track.
 
 ---
 
@@ -132,6 +127,10 @@ on a maintenance track meanwhile.
 - `CORE-BYOR.md` — the program's shape (grounds the ADRs below)
 - ADR-111 — `project onboard` delivers the authored starter (#640 step 1)
 - ADR-116 (D7 inventory registry, D8 tier=repo boundary, D9 internal audit corpus → T5d)
-- ADR-118 (GRC verdict unit: requirement-over-corpus + applicability gate → T5e)
-- ADR-108 (D3 → #674), ADR-075 (namespace), ADR-090 (multi-domain)
-- #640 (BYOR), #674 (wheel packaging)
+- ADR-118 (GRC verdict unit: requirement-over-corpus + applicability gate → T5e ✅)
+- ADR-119 (Scout — BYOR Path 1 induction ✅)
+- ADR-120 (repository adapter interface — T5a ✅)
+- ADR-121 (document_corpus type — T5b ✅)
+- ADR-108 (D3 → #674 → T3)
+- ADR-075 (namespace), ADR-090 (multi-domain)
+- #640 (BYOR newcomer docs — T2), #674 (wheel packaging — T3)
