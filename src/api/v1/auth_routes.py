@@ -188,6 +188,7 @@ async def register(
             token=result["email_verify_token"],
             base_url=settings.APP_BASE_URL,
             api_key=settings.RESEND_API_KEY,
+            from_address=settings.MAIL_FROM,
         )
 
     return {
@@ -308,6 +309,7 @@ async def password_reset_request(
             token=raw_token,
             base_url=settings.APP_BASE_URL,
             api_key=settings.RESEND_API_KEY,
+            from_address=settings.MAIL_FROM,
         )
 
     return {
@@ -419,6 +421,7 @@ async def invite(
             org_name=org_name,
             base_url=settings.APP_BASE_URL,
             api_key=settings.RESEND_API_KEY,
+            from_address=settings.MAIL_FROM,
         )
 
     return {

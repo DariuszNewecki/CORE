@@ -129,6 +129,9 @@ class Settings(BaseSettings):
     )
     RESEND_API_KEY: str | None = Field(None, validation_alias="RESEND_API_KEY")
     APP_BASE_URL: str = Field("http://localhost:8000", validation_alias="APP_BASE_URL")
+    MAIL_FROM: str = Field(
+        "CORE <noreply@core-governance.com>", validation_alias="MAIL_FROM"
+    )
     # T6b: allowed CORS origins. Defaults to the Vite dev server; override in
     # production via CORS_ORIGINS='["https://app.example.com"]' (JSON array).
     CORS_ORIGINS: list[str] = Field(
