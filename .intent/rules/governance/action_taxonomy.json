@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.action_taxonomy",
+        "title": "Action-to-Artifact-Type Coherence",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.taxonomy.action_supported_by_declaration",
+            "statement": "Every atomic action declaring `artifact_types: [X]` in action_risk.yaml MUST appear in artifact_type X's `supported_actions` array, and every entry in an artifact_type's `supported_actions` MUST correspond to a registered atomic action whose action_risk.yaml entry declares `artifact_types: [X]`. The two sets — authored (artifact_type `supported_actions`) and registered (action_risk.yaml `artifact_types`) — MUST be equal for each type.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-092-A (triggered by ADR-121 T5b). F-43 cognate of `sensor_supported_by_declaration` (F-42, sensor_taxonomy.json). Ships at `reporting`; promotes to `blocking` at Phase 7 alongside the sensor rule. Completes the F-41 ↔ F-42 ↔ F-43 coherence triad."
+        }
+    ]
+}

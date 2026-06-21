@@ -1,0 +1,38 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.document_corpus_sensor
+  title: Document Corpus Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "9aada7cb-7dd2-4d12-b1c0-b7bdee019588"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Reads the configured document corpus against one or more requirements
+    catalogs and posts gap findings to the blackboard (ADR-121 D2). Domain
+    is expressed through catalog selection: GRC projects configure
+    catalog_names pointing at grc-catalogs/; other domains supply their
+    own catalog_root. Project-authored configuration required (ADR-121 D3):
+    corpus_root must be set before findings are produced.
+  phase: audit
+  permitted_tools: []
+  scope:
+    artifact_type:
+      - document_corpus
+    corpus_root: ""          # REQUIRED: project configures path to document library
+    catalog_root: ""         # optional: empty uses grc-catalogs/ default
+    catalog_names: []        # optional: empty = all available catalogs at catalog_root
+  approval_required: false
+  schedule:
+    max_interval: 3600
+
+implementation:
+  class: DocumentCorpusSensor
+  module: will.workers.document_corpus_sensor
+  requires_core_context: false

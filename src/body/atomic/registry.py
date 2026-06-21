@@ -22,6 +22,7 @@ import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 from shared.action_types import ActionResult
 from shared.logger import getLogger
@@ -88,17 +89,15 @@ class ActionDefinition:
 
     artifact_type: tuple[str, ...] = ()
     """
-    F-41 artifact_type IDs this action mutates (ADR-091 D6 item 3, ADR-092 D1).
+    F-41 artifact_type IDs this action targets (ADR-120 D1).
 
-    Defaults to () — overlaid at executor init from
-    .intent/taxonomies/operational_capabilities.yaml via
-    ActionRegistry.apply_artifact_type_config(). Never authored in code.
+    Overlaid at executor init from .intent/enforcement/config/action_risk.yaml
+    via ActionRegistry.apply_risk_config(). Never authored in code.
 
-    Empty tuple means the action does not engage the F-43 registry-coupling
-    chokepoint (the ~13 infrastructure capabilities — DB-only, dispatcher,
-    read-only — legitimately have no artifact target per ADR-092
-    sub-question (i)). Non-empty tuple means ActionExecutor.execute() refuses
-    dispatch when any declared ID is not present in the F-41 registry.
+    Empty tuple means the action is unconstrained — infrastructure actions
+    (DB-only, dispatcher, read-only) legitimately have no artifact target.
+    Non-empty tuple means ActionExecutor.execute() refuses dispatch when any
+    declared ID is not present in the F-41 registry (ADR-092 D1).
     """
 
     requires_db: bool = False
@@ -187,15 +186,23 @@ class ActionRegistry:
         return list(self._actions.values())
 
     # ID: 7f1e3a8c-2b9d-4f6e-a5c1-3b7e9d2f4a6b
-    def apply_risk_config(self, mapping: dict[str, str]) -> None:
+    def apply_risk_config(self, mapping: dict[str, Any]) -> None:
         """
-        Overlay impact_level on every registered action from the policy
-        mapping loaded from .intent/enforcement/config/action_risk.yaml.
+        Overlay impact_level and artifact_type on every registered action from
+        .intent/enforcement/config/action_risk.yaml (ADR-120 D1).
 
-        Raises ConstitutionalError if any registered action_id is absent
-        from the mapping — every action must have a governed
-        classification.
+        Accepts both the old flat-string format (action_id: impact_level) and
+        the new dict format (action_id: {impact_level: ..., artifact_types: [...]}).
+        Entries without artifact_types leave the action unconstrained (empty tuple).
+
+        Raises ConstitutionalError if any registered action_id is absent from
+        the mapping — every action must have a governed classification.
         """
+        from shared.infrastructure.intent.action_risk import (
+            _extract_artifact_types,
+            _extract_impact_level,
+        )
+
         missing: list[str] = [
             action_id for action_id in self._actions if action_id not in mapping
         ]
@@ -207,23 +214,9 @@ class ActionRegistry:
             )
 
         for action_id, definition in self._actions.items():
-            definition.impact_level = mapping[action_id]
-
-    # ID: 4e8a1c7d-3b6f-49a2-9e51-7d2c8b4f6a9e
-    def apply_artifact_type_config(self, mapping: dict[str, tuple[str, ...]]) -> None:
-        """
-        Overlay artifact_type on every registered action from the capability
-        mapping loaded from .intent/taxonomies/operational_capabilities.yaml
-        (ADR-091 D6 item 3, ADR-092 D1 + D4 Option B).
-
-        Unlike apply_risk_config, the mapping is permitted to omit actions
-        whose capability declares no artifact_type — per ADR-092 sub-question
-        (i), the ~13 infrastructure capabilities (DB-only, dispatcher,
-        read-only) legitimately have no artifact target. Missing entries
-        leave the action's artifact_type at its default empty tuple.
-        """
-        for action_id, definition in self._actions.items():
-            definition.artifact_type = mapping.get(action_id, ())
+            raw = mapping[action_id]
+            definition.impact_level = _extract_impact_level(action_id, raw)
+            definition.artifact_type = _extract_artifact_types(raw)
 
 
 # Global singleton registry

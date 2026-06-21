@@ -23,15 +23,24 @@
 #   src/shared/infrastructure/intent/operational_capabilities.py.
 #
 # VALUES: safe | moderate | dangerous
+#
+# FORMAT (ADR-120 D1): entries may be a plain impact_level string (unconstrained
+# actions) or a mapping with impact_level + artifact_types (type-constrained).
+#
+#   fix.format: safe                          # unconstrained — old format, still valid
+#   fix.format:                               # constrained — new dict format
+#     impact_level: safe
+#     artifact_types: [python]
+#
+# artifact_types values are F-41 artifact_type IDs. Actions whose artifact_types
+# is absent or empty are unconstrained and may be dispatched for any artifact type.
 
 actions:
+  # ── Infrastructure / state machine / cross-artifact (unconstrained) ─────────
   action.execute: moderate
   admin.meta: safe
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
-  build.tests: safe
-  check.body_contracts: safe
-  check.imports: safe
   claim.proposal: safe
   cleanup.action_results: moderate
   cleanup.agent_memory: moderate
@@ -41,22 +50,6 @@ actions:
   file.edit: moderate
   file.read: safe
   file.tag_metadata: safe
-  fix.atomic_actions: moderate
-  fix.body_ui: dangerous
-  fix.capability_tagging: moderate
-  fix.docstrings: moderate
-  fix.duplicate_ids: moderate
-  fix.format: safe
-  fix.headers: safe
-  fix.ids: safe
-  fix.imports: safe
-  fix.logging: safe
-  fix.modularity: moderate
-  fix.path_resolver: moderate
-  fix.placeholders: safe
-  fix.purge_legacy_tags: dangerous
-  fix.settings_access: dangerous
-  fix.vulture_heal: dangerous
   logging.reconfigure: safe
   manage.define_symbols: moderate
   remediate.cognitive_role: moderate
@@ -68,6 +61,74 @@ actions:
   sync.knowledge_graph: moderate
   sync.vectors_code: moderate
   sync.vectors_constitution: moderate
-  test.execute: moderate
-  test.sandbox_validate: safe
   test.system: safe
+
+  # ── Document corpus actions (artifact_types: [document_corpus]) ─────────────
+  document.run.gap_analysis:
+    impact_level: safe
+    artifact_types: [document_corpus]
+
+  # ── Python-specific actions (artifact_types: [python]) ──────────────────────
+  build.tests:
+    impact_level: safe
+    artifact_types: [python]
+  check.body_contracts:
+    impact_level: safe
+    artifact_types: [python]
+  check.imports:
+    impact_level: safe
+    artifact_types: [python]
+  fix.atomic_actions:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.body_ui:
+    impact_level: dangerous
+    artifact_types: [python]
+  fix.capability_tagging:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.docstrings:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.duplicate_ids:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.format:
+    impact_level: safe
+    artifact_types: [python]
+  fix.headers:
+    impact_level: safe
+    artifact_types: [python]
+  fix.ids:
+    impact_level: safe
+    artifact_types: [python]
+  fix.imports:
+    impact_level: safe
+    artifact_types: [python]
+  fix.logging:
+    impact_level: safe
+    artifact_types: [python]
+  fix.modularity:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.path_resolver:
+    impact_level: moderate
+    artifact_types: [python]
+  fix.placeholders:
+    impact_level: safe
+    artifact_types: [python]
+  fix.purge_legacy_tags:
+    impact_level: dangerous
+    artifact_types: [python]
+  fix.settings_access:
+    impact_level: dangerous
+    artifact_types: [python]
+  fix.vulture_heal:
+    impact_level: dangerous
+    artifact_types: [python]
+  test.execute:
+    impact_level: moderate
+    artifact_types: [python]
+  test.sandbox_validate:
+    impact_level: safe
+    artifact_types: [python]

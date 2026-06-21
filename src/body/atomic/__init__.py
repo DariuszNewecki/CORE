@@ -17,6 +17,7 @@ from body.atomic import (
     build_tests_action,
     check_actions,
     crate_ops,
+    document,
     file_ops,
     fix_actions,
     metadata_ops,
@@ -33,6 +34,7 @@ from body.atomic.assisted_actions import (
 from body.atomic.build_tests_action import action_build_tests
 from body.atomic.check_actions import action_check_imports
 from body.atomic.crate_ops import action_create_crate
+from body.atomic.document.gap_analysis_action import action_run_gap_analysis
 from body.atomic.file_ops import (
     action_create_file,
     action_edit_file,
@@ -73,6 +75,7 @@ __all__ = [
     "action_fix_modularity",
     "action_read_file",
     "action_registry",
+    "action_run_gap_analysis",
     "action_sync_code_vectors",
     "action_sync_constitutional_vectors",
     "action_sync_database",

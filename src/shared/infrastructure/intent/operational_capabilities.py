@@ -289,7 +289,11 @@ def _load_action_risk(root: Path) -> Mapping[str, str]:
             f"{ACTION_RISK_REL}: 'actions:' block declares no entries."
         )
 
-    return {str(k): str(v) for k, v in actions_block.items()}
+    # Normalise both flat-string (old) and dict (ADR-120 D1 new) entry formats.
+    result: dict[str, str] = {}
+    for k, v in actions_block.items():
+        result[str(k)] = v.get("impact_level", "") if isinstance(v, dict) else str(v)
+    return result
 
 
 def _build_capability(

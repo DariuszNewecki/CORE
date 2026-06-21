@@ -1,0 +1,26 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: document_corpus
+title: Governed document corpus
+description: >
+  A collection of documents (policies, procedures, records, contracts, or any
+  structured artifact set) evaluated against a requirements catalog. The Artifact
+  side of CORE's corpus governance model (CORE-BYOR §3): CORE supplies the Intent
+  (a catalog of checkable requirements); the project brings the Artifact (their
+  document library). Domain is expressed through catalog selection — no new
+  artifact type is needed when adding a new domain; a new catalog suffices.
+  Discovery is project-authored (ADR-120 D5, ADR-121 D3): the framework ships
+  the sensor; the project configures the corpus path.
+
+discovery: []                # project-authored (ADR-120 D5)
+identity_key: path
+schema_ref: null
+change_record: text_diff
+vector_collection: document-corpus
+crawler_indexed: false       # DocumentCorpusSensor handles enumeration; repo_crawler does not
+
+supported_sensors:
+  - document_corpus_sensor
+supported_actions:
+  - document.run.gap_analysis

@@ -30,11 +30,8 @@ from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.governance_token import authorize_execution
-from shared.infrastructure.intent.action_risk import load_action_risk
+from shared.infrastructure.intent.action_risk import load_action_risk_raw
 from shared.infrastructure.intent.intent_repository import get_intent_repository
-from shared.infrastructure.intent.operational_capabilities import (
-    load_operational_capabilities,
-)
 from shared.logger import _current_run_id, getLogger
 
 
@@ -128,23 +125,12 @@ class ActionExecutor:
         self.registry = action_registry
         self._sandbox = SandboxLifecycle(core_context)
 
-        # Overlay impact_level from .intent/enforcement/config/action_risk.yaml
-        # onto every registered ActionDefinition. @register_action no longer
-        # accepts impact_level — it is governed externally. See ADR-008.
-        risk_mapping = load_action_risk()
-        self.registry.apply_risk_config(risk_mapping)
-
-        # ADR-091 D6 item 3 + ADR-092 D1 + D4 Option B: overlay artifact_type
-        # from .intent/taxonomies/operational_capabilities.yaml. Capabilities
-        # without an artifact target legitimately omit the field (ADR-092
-        # sub-question (i)); their actions stay at the default empty tuple
-        # and bypass the registry-coupling refusal check.
-        capability_artifact_map = {
-            cap.id: cap.artifact_type
-            for cap in load_operational_capabilities()
-            if cap.artifact_type
-        }
-        self.registry.apply_artifact_type_config(capability_artifact_map)
+        # Overlay both impact_level and artifact_type from
+        # .intent/enforcement/config/action_risk.yaml (ADR-120 D1).
+        # The raw mapping supports both the old flat-string format and the new
+        # dict format; apply_risk_config normalises internally.
+        raw_risk = load_action_risk_raw()
+        self.registry.apply_risk_config(raw_risk)
 
         logger.debug("ActionExecutor initialized")
 

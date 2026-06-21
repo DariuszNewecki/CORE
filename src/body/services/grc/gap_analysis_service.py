@@ -162,10 +162,13 @@ def load_demo_catalog() -> list[ExecutableRule]:
 
 
 # ID: 26b8b9bb-2b52-40c1-a144-c8614394bbf6
-def load_catalog(name: str = "nist_800_171") -> list[ExecutableRule]:
+def load_catalog(
+    name: str = "nist_800_171",
+    catalog_root: Path | None = None,
+) -> list[ExecutableRule]:
     """Load a maintained, regulation-derived requirements catalog by name.
 
-    Resolves ``grc-catalogs/<tier>/<name>/catalog.yaml`` through
+    Resolves ``<catalog_root>/<tier>/<name>/catalog.yaml`` through
     ``catalog_resolver`` (ADR-116) — the corpus is licensed law-as-data CORE
     consumes, not code it contains — and builds one ``ExecutableRule`` per
     requirement. The YAML is the product surface — versioned, provenance-bearing
@@ -173,10 +176,13 @@ def load_catalog(name: str = "nist_800_171") -> list[ExecutableRule]:
     requirement binds a verification engine (regex_gate/llm_gate/attestation_gate);
     its ADR-113 evidence class is the engine's, derived at execution time, not
     declared in the catalog.
+
+    ``catalog_root`` overrides the default ``grc-catalogs/`` root (ADR-121 D3):
+    non-GRC domains point at their own catalog tree; ``None`` uses the default.
     """
     from body.services.grc.catalog_resolver import resolve_catalog_path
 
-    path = resolve_catalog_path(name)
+    path = resolve_catalog_path(name, catalog_root=catalog_root)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     requirements = data.get("requirements") or []
     return [_build_rule(entry) for entry in requirements]
@@ -235,7 +241,7 @@ def _build_rule(entry: dict[str, Any]) -> ExecutableRule:
 
 
 # ID: fcf7ed3d-ea95-43c6-8333-ca0555387217
-class GRCGapAnalysisService:
+class DocumentCorpusAnalysisService:
     """Runs a requirements catalog against a document corpus → gap report.
 
     Read-only: it reads the corpus and reports gaps; it never modifies the
@@ -581,3 +587,8 @@ class GRCGapAnalysisService:
             statement=rule.statement,
             evidence=[],
         )
+
+
+# Backward-compat alias (ADR-121 D7). External callers that imported the
+# original name continue to work; new code should use DocumentCorpusAnalysisService.
+GRCGapAnalysisService = DocumentCorpusAnalysisService

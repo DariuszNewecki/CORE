@@ -11,7 +11,8 @@ judged / attested — and localized evidence (D5).
 from __future__ import annotations
 
 from body.services.grc.gap_analysis_service import (
-    GRCGapAnalysisService,
+    DocumentCorpusAnalysisService,
+    GRCGapAnalysisService,  # backward-compat alias (ADR-121 D7)
     build_framework_descriptor,
     load_catalog,
     load_catalog_meta,
@@ -20,6 +21,7 @@ from body.services.grc.gap_analysis_service import (
 
 
 __all__ = [
+    "DocumentCorpusAnalysisService",
     "GRCGapAnalysisService",
     "build_framework_descriptor",
     "load_catalog",

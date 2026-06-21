@@ -56,6 +56,7 @@ logger = getLogger(__name__)
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
 _SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"
 _SELF_RESOLVE_RESOLVER_OWNED_CHECK = "self_resolve_resolver_owned"
+_ACTION_SUPPORT_CHECK = "action_supported_by_declaration"
 
 # All three rules this engine evaluates declare enforcement: blocking,
 # which rule_executor._map_enforcement_to_severity maps to BLOCK at
@@ -104,11 +105,12 @@ class TaxonomyGateEngine(BaseEngine):
     @classmethod
     # ID: f3a8d672-5c19-4e2b-b481-6d9e7f3a2c14
     def is_context_level_for(cls, check_type: str | None) -> bool:
-        """All three checks are cross-artifact, not per-file."""
+        """All four checks are cross-artifact, not per-file."""
         return check_type in (
             _DECORATOR_BACKING_CHECK,
             _SENSOR_SUPPORT_CHECK,
             _SELF_RESOLVE_RESOLVER_OWNED_CHECK,
+            _ACTION_SUPPORT_CHECK,
         )
 
     def __init__(self, path_resolver: PathResolver) -> None:
@@ -156,6 +158,8 @@ class TaxonomyGateEngine(BaseEngine):
             return self._build_sensor_support_findings(context.repo_path)
         if check_type == _SELF_RESOLVE_RESOLVER_OWNED_CHECK:
             return self._build_self_resolve_findings(context.repo_path)
+        if check_type == _ACTION_SUPPORT_CHECK:
+            return self._build_action_support_findings(context.repo_path)
         return [
             AuditFinding(
                 check_id="taxonomy_gate.unknown_check_type",
@@ -164,7 +168,8 @@ class TaxonomyGateEngine(BaseEngine):
                     f"taxonomy_gate: unknown check_type {check_type!r}; "
                     f"valid values: {_DECORATOR_BACKING_CHECK!r}, "
                     f"{_SENSOR_SUPPORT_CHECK!r}, "
-                    f"{_SELF_RESOLVE_RESOLVER_OWNED_CHECK!r}"
+                    f"{_SELF_RESOLVE_RESOLVER_OWNED_CHECK!r}, "
+                    f"{_ACTION_SUPPORT_CHECK!r}"
                 ),
                 file_path="none",
             )
@@ -302,6 +307,93 @@ class TaxonomyGateEngine(BaseEngine):
             )
         return findings
 
+    def _build_action_support_findings(self, repo_root: Path) -> list[AuditFinding]:
+        """Compute action↔artifact_type set difference; one finding per asymmetry.
+
+        Per ADR-092-A (triggered by ADR-121 T5b): the introspected set
+        ``{(artifact_type_id, action_id)}`` is built from every action_risk.yaml
+        entry that carries a non-empty ``artifact_types`` list. The authored set
+        is built from every artifact_type's ``supported_actions`` array. The two
+        sets must be equal (ADR-121 D5a).
+
+        Ships at ``reporting`` per ADR-121 D5a; promotes to ``blocking`` at Phase 7
+        alongside ``sensor_supported_by_declaration``.
+        """
+        intent_repo = get_intent_repository()
+        try:
+            intent_repo.initialize()
+        except Exception as exc:
+            return [
+                AuditFinding(
+                    check_id=(
+                        "governance.taxonomy.action_supported_by_declaration"
+                        ".load_failed"
+                    ),
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"taxonomy_gate: cannot initialize IntentRepository for "
+                        f"action_supported_by_declaration: {exc}"
+                    ),
+                    file_path=_ARTIFACT_TYPES_REL_DIR,
+                )
+            ]
+
+        authored: set[tuple[str, str]] = set()
+        for ref in intent_repo.list_artifact_types():
+            for action_id in ref.content.get("supported_actions", []) or []:
+                if isinstance(action_id, str) and action_id.strip():
+                    authored.add((ref.id, action_id))
+
+        action_risk_path = (
+            repo_root / ".intent" / "enforcement" / "config" / "action_risk.yaml"
+        )
+        introspected = _collect_action_artifact_pairs(action_risk_path)
+
+        findings: list[AuditFinding] = []
+        for artifact_type_id, action_id in sorted(introspected - authored):
+            findings.append(
+                AuditFinding(
+                    check_id="governance.taxonomy.action_supported_by_declaration",
+                    severity=_DEFAULT_FINDING_SEVERITY,
+                    message=(
+                        f"Action '{action_id}' declares artifact_type "
+                        f"'{artifact_type_id}' in action_risk.yaml but is not "
+                        f"listed in that artifact_type's supported_actions array. "
+                        f"Per ADR-092-A, add '{action_id}' to "
+                        f".intent/artifact_types/{artifact_type_id}.yaml under "
+                        f"supported_actions."
+                    ),
+                    file_path=f"{_ARTIFACT_TYPES_REL_DIR}/{artifact_type_id}.yaml",
+                    context={
+                        "artifact_type_id": artifact_type_id,
+                        "action_id": action_id,
+                        "direction": "introspected_not_authored",
+                    },
+                )
+            )
+        for artifact_type_id, action_id in sorted(authored - introspected):
+            findings.append(
+                AuditFinding(
+                    check_id="governance.taxonomy.action_supported_by_declaration",
+                    severity=_DEFAULT_FINDING_SEVERITY,
+                    message=(
+                        f"artifact_type '{artifact_type_id}' lists action "
+                        f"'{action_id}' in supported_actions but action_risk.yaml "
+                        f"entry for '{action_id}' does not declare "
+                        f"artifact_types: [{artifact_type_id}]. "
+                        f"Per ADR-092-A, add artifact_types: [{artifact_type_id}] "
+                        f"to the action_risk.yaml entry for '{action_id}'."
+                    ),
+                    file_path=f"{_ARTIFACT_TYPES_REL_DIR}/{artifact_type_id}.yaml",
+                    context={
+                        "artifact_type_id": artifact_type_id,
+                        "action_id": action_id,
+                        "direction": "authored_not_introspected",
+                    },
+                )
+            )
+        return findings
+
     def _build_self_resolve_findings(self, repo_root: Path) -> list[AuditFinding]:
         """Compute the ADR-091 D2 Revision B (d) resolver-ownership findings.
 
@@ -406,6 +498,35 @@ def _collect_sensor_artifact_pairs(workers_dir: Path) -> set[tuple[str, str]]:
         for artifact_type_id in artifact_types:
             if isinstance(artifact_type_id, str) and artifact_type_id.strip():
                 pairs.add((artifact_type_id, sensor_id))
+    return pairs
+
+
+def _collect_action_artifact_pairs(action_risk_path: Path) -> set[tuple[str, str]]:
+    """Read action_risk.yaml; emit (artifact_type_id, action_id) pairs.
+
+    Only entries that carry a non-empty ``artifact_types`` list contribute.
+    Entries without ``artifact_types`` (legacy Python-only actions from before
+    ADR-092-A) contribute nothing.
+    """
+    pairs: set[tuple[str, str]] = set()
+    if not action_risk_path.is_file():
+        return pairs
+    try:
+        data = strict_yaml_processor.load_strict(action_risk_path)
+    except Exception as exc:
+        logger.debug("taxonomy_gate: cannot load %s: %s", action_risk_path, exc)
+        return pairs
+    if not isinstance(data, dict):
+        return pairs
+    for action_id, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        artifact_types = entry.get("artifact_types")
+        if not isinstance(artifact_types, list):
+            continue
+        for artifact_type_id in artifact_types:
+            if isinstance(artifact_type_id, str) and artifact_type_id.strip():
+                pairs.add((artifact_type_id, action_id))
     return pairs
 
 

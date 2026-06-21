@@ -587,6 +587,10 @@ class IntentRepository(RootedRepository):
             rule_index = self._build_rule_index(policy_index)
             artifact_type_index = self._build_artifact_type_index()
 
+            # ADR-120 D3: cross-validate supported_sensors ↔ worker declarations
+            # before committing the index. Fail closed in strict mode.
+            self._validate_sensor_cross_references(artifact_type_index)
+
             self._policy_index = policy_index
             self._rule_index = rule_index
             self._hierarchy = hierarchy
@@ -599,6 +603,103 @@ class IntentRepository(RootedRepository):
                 len(self._rule_index),
                 len(self._artifact_type_index),
             )
+
+    # ID: e76e3d0e-b0c6-4b6a-bb9e-20a2bc8d5134
+    def _validate_sensor_cross_references(
+        self, artifact_type_index: dict[str, ArtifactTypeRef]
+    ) -> None:
+        """Cross-validate supported_sensors ↔ worker declarations (ADR-120 D3).
+
+        Four predicates must hold:
+          P1: every sensor named in artifact_type.supported_sensors has a
+              worker declaration in .intent/workers/.
+          P2: every such sensor's mandate.scope.artifact_type includes the
+              type that lists it.
+          P3: every sensing-class worker's declared artifact_type IDs are
+              registered in the F-41 index.
+          P4: every sensing-class worker appears in the supported_sensors
+              list of each type it claims.
+
+        Fails closed (raises GovernanceError) in strict mode; logs warnings
+        in lenient mode. Worker declarations that cannot be loaded are
+        skipped with a warning rather than failing the entire init.
+        """
+        # Load all worker declarations keyed by bare name (strip "workers/" prefix).
+        worker_decls: dict[str, dict[str, Any]] = {}
+        for worker_path_id in self.list_workers():
+            bare = worker_path_id.split("/")[-1]
+            try:
+                worker_decls[bare] = self.load_worker(worker_path_id)
+            except GovernanceError as exc:
+                logger.warning(
+                    "sensor cross-validation: could not load worker %s: %s",
+                    worker_path_id,
+                    exc,
+                )
+
+        errors: list[str] = []
+
+        # P1 + P2: for each type's supported_sensors list.
+        for type_ref in artifact_type_index.values():
+            type_id = type_ref.id
+            supported: list[str] = type_ref.content.get("supported_sensors") or []
+            for sensor_name in supported:
+                if sensor_name not in worker_decls:
+                    errors.append(
+                        f"[P1] artifact_type '{type_id}' lists sensor "
+                        f"'{sensor_name}' in supported_sensors but no worker "
+                        f"declaration exists for it"
+                    )
+                    continue
+                declared_types: list[str] = (
+                    worker_decls[sensor_name]
+                    .get("mandate", {})
+                    .get("scope", {})
+                    .get("artifact_type")
+                    or []
+                )
+                if type_id not in declared_types:
+                    errors.append(
+                        f"[P2] artifact_type '{type_id}' lists sensor "
+                        f"'{sensor_name}' but that worker's "
+                        f"mandate.scope.artifact_type does not include '{type_id}'"
+                    )
+
+        # P3 + P4: for each sensing-class worker.
+        for bare_name, decl in worker_decls.items():
+            identity = decl.get("identity") or {}
+            if identity.get("class") != "sensing":
+                continue
+            declared_types = (
+                decl.get("mandate", {}).get("scope", {}).get("artifact_type") or []
+            )
+            for type_id in declared_types:
+                if type_id not in artifact_type_index:
+                    errors.append(
+                        f"[P3] sensor '{bare_name}' declares artifact_type "
+                        f"'{type_id}' but no such artifact type is registered"
+                    )
+                    continue
+                type_supported: list[str] = (
+                    artifact_type_index[type_id].content.get("supported_sensors") or []
+                )
+                if bare_name not in type_supported:
+                    errors.append(
+                        f"[P4] sensor '{bare_name}' declares artifact_type "
+                        f"'{type_id}' but artifact_type '{type_id}'.supported_sensors "
+                        f"does not list '{bare_name}'"
+                    )
+
+        if not errors:
+            return
+
+        msg = (
+            f"IntentRepository sensor cross-validation failed "
+            f"({len(errors)} error(s)):\n" + "\n".join(f"  {e}" for e in errors)
+        )
+        if self._strict:
+            raise GovernanceError(msg)
+        logger.warning(msg)
 
     def _build_artifact_type_index(self) -> dict[str, ArtifactTypeRef]:
         """Walk .intent/artifact_types/ and load each declaration.

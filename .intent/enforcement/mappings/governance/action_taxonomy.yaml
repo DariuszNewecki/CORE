@@ -1,0 +1,29 @@
+# .intent/enforcement/mappings/governance/action_taxonomy.yaml
+#
+# Enforcement mappings for action↔artifact_type coherence.
+# Based on: .intent/rules/governance/action_taxonomy.json
+#
+# ADR-092-A (triggered by ADR-121 T5b). The F-43 cognate of the sensor
+# taxonomy mapping (sensor_taxonomy.yaml). The taxonomy_gate engine
+# (extended in ADR-121 D5d) walks action_risk.yaml entries with
+# artifact_types and each artifact_type's supported_actions array,
+# emitting one finding per asymmetric entry.
+#
+# Promotion path: ships at `reporting`. Promotes to `blocking` at Phase 7
+# alongside sensor_supported_by_declaration.
+
+mappings:
+  # Rule: governance.taxonomy.action_supported_by_declaration
+  # Engine: taxonomy_gate (context-level; cross-artifact action↔artifact_type sweep)
+  #
+  # Context-level check — substrate is the cross-product of all action_risk.yaml
+  # entries with artifact_types and all artifact_type supported_actions arrays.
+  # applies_to anchors at action_risk.yaml so an edit on either surface triggers
+  # re-evaluation (mirrors the sensor_taxonomy.yaml anchoring pattern).
+  governance.taxonomy.action_supported_by_declaration:
+    engine: taxonomy_gate
+    params:
+      check_type: action_supported_by_declaration
+    scope:
+      applies_to:
+        - ".intent/enforcement/config/action_risk.yaml"
