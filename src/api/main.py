@@ -23,9 +23,10 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
-from fastapi import FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.dependencies import get_current_user
 from api.errors import register_exception_handlers
 from api.v1 import (
     audit_routes,
@@ -157,29 +158,35 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(auth_routes.router)
-    app.include_router(knowledge_routes.router, prefix="/v1", tags=["Knowledge"])
-    app.include_router(development_routes.router, prefix="/v1", tags=["Development"])
-    app.include_router(proposals_routes.router, prefix="/v1", tags=["Proposals"])
-    app.include_router(lane_routes.router, prefix="/v1", tags=["Lane"])
-    app.include_router(audit_routes.router, prefix="/v1", tags=["Audit"])
-    app.include_router(integration_routes.router, prefix="/v1", tags=["Integration"])
-    app.include_router(lint_routes.router, prefix="/v1", tags=["Lint"])
-    app.include_router(fix_routes.router, prefix="/v1", tags=["Fix"])
-    app.include_router(fix_routes.actions_router, prefix="/v1", tags=["Actions"])
-    app.include_router(quality_routes.router, prefix="/v1", tags=["quality"])
-    app.include_router(coverage_routes.router, prefix="/v1", tags=["Coverage"])
-    app.include_router(coverage_routes.tests_router, prefix="/v1", tags=["Coverage"])
-    app.include_router(refactor_routes.router, prefix="/v1", tags=["Refactor"])
-    app.include_router(inspect_routes.status_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(inspect_routes.decisions_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(inspect_routes.refusals_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(inspect_routes.analysis_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(inspect_routes.components_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(inspect_routes.search_router, prefix="/v1", tags=["Inspect"])
-    app.include_router(census_routes.router, prefix="/v1", tags=["Census"])
-    app.include_router(sync_routes.router, prefix="/v1", tags=["Sync"])
-    app.include_router(integrity_routes.router, prefix="/v1", tags=["Integrity"])
-    app.include_router(daemon_routes.router, prefix="/v1", tags=["Daemon"])
+
+    # T6c — all /v1/ routes require a valid session (Option 1 gate).
+    # To migrate to per-route role checks (Option 2): remove the
+    # dependency here and add Depends(require_role(...)) per sub-router.
+    v1 = APIRouter(prefix="/v1", dependencies=[Depends(get_current_user)])
+    v1.include_router(knowledge_routes.router, tags=["Knowledge"])
+    v1.include_router(development_routes.router, tags=["Development"])
+    v1.include_router(proposals_routes.router, tags=["Proposals"])
+    v1.include_router(lane_routes.router, tags=["Lane"])
+    v1.include_router(audit_routes.router, tags=["Audit"])
+    v1.include_router(integration_routes.router, tags=["Integration"])
+    v1.include_router(lint_routes.router, tags=["Lint"])
+    v1.include_router(fix_routes.router, tags=["Fix"])
+    v1.include_router(fix_routes.actions_router, tags=["Actions"])
+    v1.include_router(quality_routes.router, tags=["quality"])
+    v1.include_router(coverage_routes.router, tags=["Coverage"])
+    v1.include_router(coverage_routes.tests_router, tags=["Coverage"])
+    v1.include_router(refactor_routes.router, tags=["Refactor"])
+    v1.include_router(inspect_routes.status_router, tags=["Inspect"])
+    v1.include_router(inspect_routes.decisions_router, tags=["Inspect"])
+    v1.include_router(inspect_routes.refusals_router, tags=["Inspect"])
+    v1.include_router(inspect_routes.analysis_router, tags=["Inspect"])
+    v1.include_router(inspect_routes.components_router, tags=["Inspect"])
+    v1.include_router(inspect_routes.search_router, tags=["Inspect"])
+    v1.include_router(census_routes.router, tags=["Census"])
+    v1.include_router(sync_routes.router, tags=["Sync"])
+    v1.include_router(integrity_routes.router, tags=["Integrity"])
+    v1.include_router(daemon_routes.router, tags=["Daemon"])
+    app.include_router(v1)
     register_exception_handlers(app)
 
     @app.get(
