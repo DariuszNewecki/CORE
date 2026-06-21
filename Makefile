@@ -253,3 +253,19 @@ nuke: ## Danger! Remove ALL untracked files
 	@echo "☢️  Running 'git clean -fdx' in 3s..."
 	@sleep 3
 	git clean -fdx
+
+# ---- Web dashboard (ADR-125) ------------------------------------------------
+web-install: ## Install web/ npm dependencies
+	cd web && npm install
+
+web-dev: ## Start Vite dev server (proxies /v1 and /auth to :8000)
+	cd web && npm run dev
+
+web-build: ## Production build → web/dist/
+	cd web && npm run build
+
+web-generate-schema: ## Snapshot live FastAPI OpenAPI spec → web/openapi.json
+	curl -s http://localhost:8000/openapi.json | jq -S . > web/openapi.json
+
+web-generate-api: ## Run Orval to regenerate web/src/api/ from web/openapi.json
+	cd web && npx orval

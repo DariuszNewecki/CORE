@@ -208,6 +208,29 @@ def create_app() -> FastAPI:
 
     app.openapi = _openapi_with_stability_policy  # type: ignore[method-assign]
 
+    # ADR-125 D11: SPA catch-all — MUST be the last registration in create_app().
+    # Only activates when web/dist/ exists (i.e. after `make web-build`). During
+    # development the SPA is served by Vite on port 5173 via `make web-dev`.
+    from pathlib import Path as _Path
+
+    _dist = _Path(__file__).parents[2] / "web" / "dist"
+    if _dist.exists():
+        from fastapi.responses import FileResponse
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount(
+            "/assets", StaticFiles(directory=str(_dist / "assets")), name="web_assets"
+        )
+
+        # ID: f4a2c8e1-3b5d-4f7a-9c6e-1d2e3f4a5b6c
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def _serve_spa(full_path: str) -> FileResponse:
+            if full_path.startswith(("v1/", "auth/")):
+                from fastapi import HTTPException as _HTTPException
+
+                raise _HTTPException(status_code=404)
+            return FileResponse(str(_dist / "index.html"))
+
     return app
 
 
