@@ -1,0 +1,48 @@
+# .intent/enforcement/config/test_coverage.yaml
+#
+# Test Coverage Scanning Configuration
+# Authority: policy
+# Phase: audit
+# Status: active
+#
+# PURPOSE:
+#   Governs how TestCoverageSensor scans for untested source files.
+#   Changing what gets scanned or excluded is an .intent/ edit, not
+#   a code change.
+#
+# RULE: TestCoverageSensor MUST read scan parameters from this file.
+#   No paths or exclusions may be hardcoded in src/.
+
+source_root: "src"
+test_root: "tests"
+test_file_suffix: "/test_generated.py"
+
+excluded_filenames:
+  - "__init__.py"
+
+# Scope limiter — if non-empty, only these files are scanned.
+# Remove or leave empty to scan the full source_root.
+#
+# Scope re-opened to the 1->4 widening (2026-06-14, restoring 3c6482ff after
+# the three rails the prior widening run surfaced all landed):
+#   - #629 / ADR-106: flow proposals execute in a hermetic worktree, so a
+#     failed run discards everything (no tests/-tree reformat, no staged
+#     rejected test) — live-verified, main-tree dirty-count 0.
+#   - #630 / ADR-107: on success the commit set is the steps' declared
+#     production (files_produced), not the worktree diff — incidental fix.*
+#     churn never reaches the commit.
+#   - #637 / ADR-104 D9: a generation that perpetually fails its gate is
+#     abandoned (terminal Type-B) after remediation_cap_n (3) attempts
+#     instead of churning generate->fail->revive forever.
+# The prior cap-exercise set (blackboard_shop_manager / audit_violation_filter /
+# audit_violation_normalizer / circuit_breaker) completed its purpose: #637's
+# remediation cap is now LIVE-VERIFIED — those findings abandoned terminal
+# Type-B at remediation_cap_n=3 with blackboard.remediation_cap_reached
+# attestations (2026-06-14). The remaining unproven item is the #638/#630
+# SUCCESS path — a tree-clean run that actually reaches the fix.* heal steps.
+# The single pure-function file below (fix_placeholders_in_content: str -> str,
+# stdlib-only `re` import) generates a clean passing test reliably, so it
+# exercises that path and demonstrates the #638 fix (fix.* now run inside the
+# hermetic worktree, not the real tree). Open in small batches.
+include_files:
+  - "src/body/self_healing/placeholder_fixer_service.py"

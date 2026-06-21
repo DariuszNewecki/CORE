@@ -1,0 +1,572 @@
+{
+  "$schema": "META/vocabulary.schema.json",
+  "kind": "vocabulary",
+  "metadata": {
+    "id": "core.vocabulary",
+    "title": "CORE Canonical Vocabulary",
+    "version": "1.0.0",
+    "authority": "meta",
+    "status": "active",
+    "source_hash": "24d4878bb9f1c123fadc7d292287869f2601b40ea847f5b6f1b6dbe4e936a025",
+    "generated_at": "2026-05-05T19:24:27Z",
+    "generator_version": "core-admin@2.3.0"
+  },
+  "terms": [
+    {
+      "term": "Acting Worker",
+      "definition": "A Worker whose responsibility is to consume Blackboard Findings and produce governed outputs — Proposals, reports, or remediation artifacts. It reacts; it does not sense.",
+      "not": "An Acting Worker must not run the auditor or scan the filesystem for new violations. Sensing is not its role.",
+      "authoritative_paper": ".specs/papers/CORE-Workers-and-Governance-Model.md",
+      "aliases": [],
+      "see_also": [
+        "Sensing Worker | Worker | Proposal"
+      ]
+    },
+    {
+      "term": "Action",
+      "definition": "A single-purpose unit of work with a declared contract.",
+      "not": "Action is not a function call or an arbitrary execution step. In CORE, Action names the abstract concept; AtomicAction is its constitutional implementation. An Action without a declared contract is an untracked mutation.",
+      "authoritative_paper": ".specs/papers/CORE-Action.md",
+      "aliases": [],
+      "see_also": [
+        "AtomicAction | ActionExecutor"
+      ]
+    },
+    {
+      "term": "ActionExecutor",
+      "definition": "The Body-layer dispatcher that resolves an action_id to its registered AtomicAction and invokes it.",
+      "not": "ActionExecutor is not a generic executor or task runner. It is the sole sanctioned dispatcher for AtomicActions. Code that invokes an AtomicAction implementation directly — bypassing ActionExecutor — violates the constitutional action contract and circumvents enforcement gates.",
+      "authoritative_paper": ".specs/papers/CORE-Action.md",
+      "aliases": [],
+      "see_also": [
+        "AtomicAction | ProposalExecutor"
+      ]
+    },
+    {
+      "term": "ActionResult",
+      "definition": "The structured contract every AtomicAction must return: action_id, ok, data, duration_sec.",
+      "not": "ActionResult is not a generic return value or an HTTP response object. It is the constitutional fulfillment contract for AtomicActions. An AtomicAction that does not return an ActionResult is not a governed action — it is an untracked execution.",
+      "authoritative_paper": ".specs/papers/CORE-Action.md",
+      "aliases": [],
+      "see_also": [
+        "AtomicAction | ActionExecutor"
+      ]
+    },
+    {
+      "term": "AtomicAction",
+      "definition": "A registered, governed, deterministic operation that produces a Crate. Declared with @atomic_action, registered in the ActionRegistry, and executed exclusively via ActionExecutor. The unit of constitutional remediation.",
+      "not": "AtomicAction is not a ProposalAction line item and is not a generic verb for what a Worker does. The statement 'all actions must go through ActionExecutor' applies only to AtomicActions — not to Worker run-loop steps or Component invocations.",
+      "authoritative_paper": ".specs/papers/CORE-Action.md",
+      "aliases": [],
+      "see_also": [
+        "ProposalAction | ActionExecutor | Crate"
+      ]
+    },
+    {
+      "term": "Audit",
+      "definition": "Inspection of system state against declared Rules. Produces Findings.",
+      "not": "Audit is not a test run, a lint pass, or a code review. Audit is systematic constitutional inspection: it evaluates every in-scope file against every declared Rule and produces Findings that enter the remediation loop.",
+      "authoritative_paper": ".specs/papers/CORE-Rule-Evaluation-Semantics.md",
+      "aliases": [],
+      "see_also": [
+        "Finding | Rule | Remediation"
+      ]
+    },
+    {
+      "term": "Authority",
+      "definition": "Who has the final right to decide. Every Rule has exactly one Authority.",
+      "not": "Authority is not rank or seniority in the human sense. Authority is a declared field on a Rule that names the source with final say: Meta, Constitution, Policy, or Code. Informal authority — assumed from experience or seniority — has no constitutional standing.",
+      "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Constitution | Policy"
+      ]
+    },
+    {
+      "term": "Blackboard",
+      "definition": "The shared ledger. The only communication channel between Workers.",
+      "not": "Blackboard is not a message queue, event bus, or logging system. It is the coordination surface for the autonomous loop: Workers do not communicate with each other — they communicate through the Blackboard. No Worker may act on information received directly from another Worker.",
+      "authoritative_paper": ".specs/papers/CORE-Blackboard.md",
+      "aliases": [],
+      "see_also": [
+        "Worker | Finding | Proposal"
+      ]
+    },
+    {
+      "term": "Body",
+      "definition": "The execution surface: atomic actions, gates, file writes.",
+      "not": "Body is not the daemon or the runtime. Body is the execution surface: AtomicActions, Gates, and FileHandler constitute it. Body executes what Will authorizes; it does not plan, propose, or reason about what to do.",
+      "authoritative_paper": ".specs/papers/CORE-Mind-Body-Will-Separation.md",
+      "aliases": [],
+      "see_also": [
+        "Mind | Will | AtomicAction"
+      ]
+    },
+    {
+      "term": "Canary",
+      "definition": "The execution Gate that validates a Crate before it is applied.",
+      "not": "Canary is not a test runner or a syntax validator in isolation. It is the Gate that validates a complete Crate — as a package — before it is applied to the filesystem. A Crate that fails the Canary is not applied and the Proposal is marked failed.",
+      "authoritative_paper": ".specs/papers/CORE-Canary.md",
+      "aliases": [],
+      "see_also": [
+        "Gate | Crate | IntentGuard"
+      ]
+    },
+    {
+      "term": "Component",
+      "definition": "A phase-bound execution unit invoked within a single phase of a command lifecycle. Components return a ComponentResult and operate within the phase boundaries declared in CORE-Phases-as-Governance-Boundaries.md.",
+      "not": "A Component is not a Worker. Components are short-lived, phase-scoped, and invoked by orchestrators — not by the daemon. A Component does not claim Blackboard entries.",
+      "authoritative_paper": ".specs/papers/CORE-Adaptive-Workflow-Pattern.md",
+      "aliases": [
+        "Handler | Processor"
+      ],
+      "see_also": [
+        "Worker | Phase"
+      ]
+    },
+    {
+      "term": "ConservationGate",
+      "definition": "The runtime Gate that ensures LLM-produced code preserves the logic it replaces.",
+      "not": "ConservationGate is not a diff tool or a code formatter. It is the Gate that detects logic evaporation: syntactically valid code that silently deletes existing behavior. Syntactic validity does not imply behavioral preservation.",
+      "authoritative_paper": ".specs/papers/CORE-ConservationGate.md",
+      "aliases": [],
+      "see_also": [
+        "Gate | Logic evaporation | IntentGuard"
+      ]
+    },
+    {
+      "term": "Constitution",
+      "definition": "The authority level immediately below Meta. A Rule or paper at constitution authority declares non-negotiable structural constraints that cannot be overridden by Policy or Code authority artifacts. Also used informally to refer to the full .intent/ governance layer.",
+      "not": "Constitution is not a folder path and not a synonym for Rule. 'Constitutional rule' means a Rule with authority: constitution — not a rule located in a folder named constitution.",
+      "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
+      "aliases": [],
+      "see_also": [
+        "Authority | Policy | Rule"
+      ]
+    },
+    {
+      "term": "ConstitutionalEnvelope",
+      "definition": "The set of Rules injected into an LLM prompt to constrain its output.",
+      "not": "ConstitutionalEnvelope is not a system prompt or a style guideline. It is the governed set of constitutional Rules injected into every LLM invocation that produces governed outputs. An LLM invoked without a ConstitutionalEnvelope produces ungoverned output regardless of its actual content.",
+      "authoritative_paper": ".specs/papers/CORE-ConstitutionalEnvelope.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | IntentGuard"
+      ]
+    },
+    {
+      "term": "ConsumerWorker",
+      "definition": "An acting Worker that executes approved Proposals via ActionExecutor.",
+      "not": "ConsumerWorker is not a Proposal author. It only executes Proposals that have already passed enforcement gates and been approved. ConsumerWorker has no Proposal creation authority; it executes, it does not propose.",
+      "authoritative_paper": ".specs/papers/CORE-ConsumerWorker.md",
+      "aliases": [],
+      "see_also": [
+        "Acting Worker | ProposalExecutor | Proposal"
+      ]
+    },
+    {
+      "term": "ContextPacket",
+      "definition": "The minimal evidence set required to evaluate Rules at a specific Phase.",
+      "not": "ContextPacket is not a cache or a configuration bundle. It is the scoped evidence set required for a specific Phase. Over-inclusion violates the Evidence-as-Input discipline by introducing untrusted evidence; under-inclusion produces evaluation failures.",
+      "authoritative_paper": ".specs/papers/CORE-Context-Packet-Doctrine.md",
+      "aliases": [],
+      "see_also": [
+        "Evidence | Phase | Audit"
+      ]
+    },
+    {
+      "term": "Convergence",
+      "definition": "The state where Finding resolution exceeds Finding creation. The operational goal.",
+      "not": "Convergence is not a state of zero violations. It is a dynamic rate condition: resolution must outpace creation. A system with violations that is resolving faster than it discovers new ones is converging. A system with no violations today but accelerating debt is diverging.",
+      "authoritative_paper": ".specs/papers/CORE-Remediation.md",
+      "aliases": [],
+      "see_also": [
+        "Remediation | Finding | Audit"
+      ]
+    },
+    {
+      "term": "Crate",
+      "definition": "A staged, sandboxed package of changes. The unit of governed mutation.",
+      "not": "Crate is not a file diff, a patch, or a commit. A Crate is staged before any file is written — it is validated by the Canary Gate and applied only if it passes. A mutation applied to the filesystem without a Crate is ungoverned.",
+      "authoritative_paper": ".specs/papers/CORE-Crate.md",
+      "aliases": [],
+      "see_also": [
+        "Gate | Canary | AtomicAction"
+      ]
+    },
+    {
+      "term": "Document",
+      "definition": "A persisted artifact that CORE may load. Has no implicit meaning.",
+      "not": "Document is not a synonym for Rule, Paper, or Policy. A Document is any loadable artifact — including Rules, schemas, worker declarations, and papers. Its meaning is determined by the system that reads it, not by its content alone.",
+      "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Authority"
+      ]
+    },
+    {
+      "term": "dry_run (evaluation_only)",
+      "definition": "An audit or rule evaluation that runs the check logic and records whether a violation would be found, but generates no fix and posts no actionable Finding. The rule is evaluated; the system is not changed.",
+      "not": "evaluation_only dry-run does not produce a finding with dry_run=true. It produces no finding at all, or a finding explicitly tagged dry_run_scope: evaluation_only that must not enter the remediation pipeline.",
+      "authoritative_paper": ".specs/papers/CORE-Action.md",
+      "aliases": [],
+      "see_also": [
+        "dry_run (fix_generated) | dry_run (finding_suppressed)"
+      ]
+    },
+    {
+      "term": "dry_run (finding_suppressed)",
+      "definition": "A boolean field on a Blackboard Finding that marks it as produced in a dry-run context. A Finding with dry_run_scope: finding_suppressed must not be claimed by an Acting Worker for autonomous remediation.",
+      "not": "finding_suppressed is a property of the Finding record, not a mode of execution. It is set by the Sensing Worker at post time and is distinct from the execution mode of any downstream action.",
+      "authoritative_paper": ".specs/papers/CORE-Finding.md",
+      "aliases": [],
+      "see_also": [
+        "dry_run (evaluation_only) | dry_run (fix_generated) | Finding"
+      ]
+    },
+    {
+      "term": "dry_run (fix_generated)",
+      "definition": "An execution mode in which an AtomicAction or ViolationExecutor generates the full fix artifact (Crate) but does not apply it to the filesystem. The output is inspectable; the system is not changed.",
+      "not": "fix_generated dry-run is not the same as evaluation_only. A fix has been computed. The distinction matters for consequence logging and audit reconstruction.",
+      "authoritative_paper": ".specs/papers/CORE-ViolationExecutor.md",
+      "aliases": [],
+      "see_also": [
+        "dry_run (evaluation_only) | dry_run (finding_suppressed) | Crate"
+      ]
+    },
+    {
+      "term": "Evidence",
+      "definition": "The minimal set of inputs required to evaluate a Rule at a declared Phase.",
+      "not": "Evidence is not context, metadata, or documentation in general. Evidence is the minimum declared inputs for a specific Rule at a specific Phase. Over-supplying evidence does not improve evaluation; missing evidence is an evaluation failure.",
+      "authoritative_paper": ".specs/papers/CORE-Evidence-as-Input.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Phase | ContextPacket"
+      ]
+    },
+    {
+      "term": "FileHandler",
+      "definition": "The only governed write path for file system mutations in CORE. All writes pass through it and through IntentGuard.",
+      "not": "FileHandler is not a file utility library or a wrapper around Python's open(). It is the sole constitutional write path. Any filesystem mutation that does not pass through FileHandler and IntentGuard is an ungoverned write — a constitutional violation regardless of the mutation's content.",
+      "authoritative_paper": ".specs/papers/CORE-IntentGuard.md",
+      "aliases": [],
+      "see_also": [
+        "IntentGuard | Gate | Crate"
+      ]
+    },
+    {
+      "term": "Finding",
+      "definition": "An observation posted to the Blackboard by a sensing Worker. It names a specific rule violation: the rule ID, the file path, and the severity. It is the input to the remediation loop.",
+      "not": "A Finding is not a Proposal and not a report. A Finding describes a detected problem; it does not prescribe a fix.",
+      "authoritative_paper": ".specs/papers/CORE-Finding.md",
+      "aliases": [],
+      "see_also": [
+        "Blackboard | Sensing Worker | Proposal"
+      ]
+    },
+    {
+      "term": "Gate",
+      "definition": "A validation point that must pass before execution continues.",
+      "not": "Gate is not a check, a warning, or an advisory. A Gate is a constitutional stop: failure halts execution. Gates do not produce warnings — they produce pass or fail. The three gates in order are: ConservationGate, IntentGuard, Canary.",
+      "authoritative_paper": ".specs/papers/CORE-Gate.md",
+      "aliases": [],
+      "see_also": [
+        "ConservationGate | IntentGuard | Canary"
+      ]
+    },
+    {
+      "term": "GovernanceDecider",
+      "definition": "The Will-layer component that evaluates a proposed change against constitutional constraints and returns an authorization decision.",
+      "not": "GovernanceDecider is not the auditor or the IntentGuard. It evaluates proposed changes — not file states — against constitutional constraints before execution. The audit evaluates the current codebase; GovernanceDecider evaluates a proposed future state.",
+      "authoritative_paper": ".specs/papers/CORE-Mind-Body-Will-Separation.md",
+      "aliases": [],
+      "see_also": [
+        "IntentGuard | Proposal | Will"
+      ]
+    },
+    {
+      "term": "Indeterminate",
+      "definition": "An evaluation outcome where a Rule cannot be determined to hold or violate. Treated as blocking for blocking rules.",
+      "not": "Indeterminate is not equivalent to Pass or to unknown. It is a distinct evaluation outcome: the available evidence was insufficient to evaluate the Rule. For blocking rules, Indeterminate is treated as a violation — it does not pass.",
+      "authoritative_paper": ".specs/papers/CORE-Rule-Evaluation-Semantics.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Audit | Evidence"
+      ]
+    },
+    {
+      "term": "IntentGuard",
+      "definition": "The runtime Gate that evaluates every file write against constitutional Rules.",
+      "not": "IntentGuard is not a linter, a style checker, or an advisory layer. It is a blocking Gate: every file write is evaluated against constitutional Rules before it is applied. Failure blocks the write unconditionally. IntentGuard does not warn — it passes or blocks.",
+      "authoritative_paper": ".specs/papers/CORE-IntentGuard.md",
+      "aliases": [],
+      "see_also": [
+        "Gate | FileHandler | ConservationGate"
+      ]
+    },
+    {
+      "term": "IntentRepository",
+      "definition": "The runtime index of all constitutional documents, rules, and policies in `.intent/`.",
+      "not": "IntentRepository is not a document store or a file reader. It is the trusted access path to `.intent/`: code that reads `.intent/` files directly — bypassing IntentRepository — is operating outside the governed access contract and in violation of the architecture rules.",
+      "authoritative_paper": ".specs/papers/CORE-IntentRepository.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Constitution | Mind"
+      ]
+    },
+    {
+      "term": "Logic evaporation",
+      "definition": "LLM-produced code that is syntactically valid but silently deletes existing behavior.",
+      "not": "Logic evaporation is not a syntax error, a test failure, or a runtime exception. It is a behavioral deletion: code that parses and executes without error but silently removes or corrupts existing logic. It is the primary failure mode ConservationGate exists to detect.",
+      "authoritative_paper": ".specs/papers/CORE-ConservationGate.md",
+      "aliases": [],
+      "see_also": [
+        "ConservationGate | Crate"
+      ]
+    },
+    {
+      "term": "Mind",
+      "definition": "`.intent/` and the governance machinery that reads it.",
+      "not": "Mind is not the AI or the LLM. Mind is the governance layer: the constitutional rules, policies, and the machinery that reads and enforces them. AI operates as labor inside Body and Will — it has no constitutional authority.",
+      "authoritative_paper": ".specs/papers/CORE-Mind-Body-Will-Separation.md",
+      "aliases": [],
+      "see_also": [
+        "Body | Will | IntentRepository"
+      ]
+    },
+    {
+      "term": "NorthStar",
+      "definition": "The reason CORE exists: use AI to write code in a controlled way. Law outranks intelligence. Defensibility outranks productivity.",
+      "not": "NorthStar is not a strategy document or a feature roadmap. It is a governing law: the reference against which all CORE design decisions are evaluated. When a design decision conflicts with NorthStar, the decision changes, not the star.",
+      "authoritative_paper": ".specs/northstar/core_northstar.md",
+      "aliases": [],
+      "see_also": [
+        "Constitution | Authority"
+      ]
+    },
+    {
+      "term": "Octopus",
+      "definition": "Distributed intelligence, central law. Arms act locally. Brain governs intent. Nervous system is the only channel.",
+      "not": "Octopus is not a metaphor for parallel execution or microservices. It is a governance metaphor: autonomous agents are constitutionally constrained by a central law they do not own. The arms are Workers; the nervous system is the Blackboard; the brain is `.intent/`.",
+      "authoritative_paper": ".specs/papers/CORE-The-Octopus-UNIX-Synthesis.md",
+      "aliases": [],
+      "see_also": [
+        "UNIX | Worker | Blackboard"
+      ]
+    },
+    {
+      "term": "OptimizerWorker",
+      "definition": "An acting Worker. Observes repeated ViolationExecutor patterns and proposes AtomicAction codification for graduation to the constitutional path. Not yet designed.",
+      "not": "OptimizerWorker is not a performance optimizer. Its job is governance progression: graduating ViolationExecutor patterns into constitutional AtomicActions, shrinking the fallback path toward zero. It does not optimize code — it optimizes the remediation pipeline.",
+      "authoritative_paper": ".specs/papers/CORE-OptimizerWorker.md",
+      "aliases": [],
+      "see_also": [
+        "ViolationExecutor | AtomicAction | RemediationMap"
+      ]
+    },
+    {
+      "term": "Phase",
+      "definition": "When a Rule is evaluated. Every Rule belongs to exactly one Phase.",
+      "not": "Phase is not a deployment environment, a pipeline stage, or an execution mode. Phase is the declared temporal context that determines which Rules apply to a given evaluation. A Rule evaluated outside its declared Phase produces an invalid result.",
+      "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
+      "aliases": [],
+      "see_also": [
+        "Rule | Authority | WorkflowStage"
+      ]
+    },
+    {
+      "term": "Policy",
+      "definition": "The authority level below Constitution. Rules at policy authority declare architectural standards and conventions that may be adjusted within the bounds set by constitution-authority rules.",
+      "not": "Policy is not a folder path. The presence of a rule in .intent/rules/ does not determine its authority — the authority field in the rule document does.",
+      "authoritative_paper": ".specs/papers/CORE-Authority-Without-Registries.md",
+      "aliases": [],
+      "see_also": [
+        "Authority | Constitution | Rule"
+      ]
+    },
+    {
+      "term": "Proposal",
+      "definition": "A declared, authorized intent to execute one or more Actions.",
+      "not": "Proposal is not a suggestion or a request. A Proposal is a constitutional artifact declaring intent to execute specific Actions on specific files. It must pass enforcement gates before execution and is traceable from Finding through execution.",
+      "authoritative_paper": ".specs/papers/CORE-Proposal.md",
+      "aliases": [],
+      "see_also": [
+        "ProposalAction | ProposalExecutor | Finding"
+      ]
+    },
+    {
+      "term": "Proposal Path",
+      "definition": "The constitutional remediation path: Finding → RemediationMap → Proposal → AtomicAction. No LLM in the remediation logic. Deterministic, traceable, and the target state for all rules.",
+      "not": "The Proposal Path is not equivalent to the ViolationExecutor Path. They are not peers. The Proposal Path is the target architecture; the ViolationExecutor Path is a temporary fallback that must shrink to zero.",
+      "authoritative_paper": ".specs/papers/CORE-Remediation.md",
+      "aliases": [],
+      "see_also": [
+        "ViolationExecutor Path | RemediationMap | AtomicAction"
+      ]
+    },
+    {
+      "term": "ProposalAction",
+      "definition": "A line item inside a Proposal that names an AtomicAction ID, its parameters, and its execution order. ProposalAction is a declaration of intent, not an execution. It is resolved to an AtomicAction at execution time by ConsumerWorker.",
+      "not": "ProposalAction is not the same as AtomicAction. A ProposalAction references an AtomicAction by ID; it does not execute it.",
+      "authoritative_paper": ".specs/papers/CORE-Proposal.md",
+      "aliases": [],
+      "see_also": [
+        "AtomicAction | Proposal | ConsumerWorker"
+      ]
+    },
+    {
+      "term": "ProposalExecutor",
+      "definition": "The Will-layer component that executes an approved Proposal by dispatching its actions via ActionExecutor.",
+      "not": "ProposalExecutor is not ActionExecutor. ProposalExecutor coordinates the execution of a complete Proposal — dispatching each ProposalAction to ActionExecutor in declared order, managing the Crate lifecycle, and recording consequences. ActionExecutor resolves a single AtomicAction.",
+      "authoritative_paper": ".specs/papers/CORE-Proposal.md",
+      "aliases": [],
+      "see_also": [
+        "ActionExecutor | ConsumerWorker | Proposal"
+      ]
+    },
+    {
+      "term": "ProposalScope",
+      "definition": "The declared files and domains a Proposal will touch.",
+      "not": "ProposalScope is not a description of intent. It is a binding commitment: a Proposal may only touch files and domains it has declared in its scope. Touching out-of-scope files is a constitutional violation. An empty scope is a validation failure per ADR-026.",
+      "authoritative_paper": ".specs/papers/CORE-Proposal.md",
+      "aliases": [],
+      "see_also": [
+        "Proposal | FileHandler"
+      ]
+    },
+    {
+      "term": "Remediation",
+      "definition": "The governed process of resolving a Finding by applying a fix through the constitutional pipeline: Finding → RemediationMap lookup → Proposal → AtomicAction → Crate → Gates → Apply. Every step is declared, authorized, traced, and reversible.",
+      "not": "Remediation is not repair. Repair is ad hoc. Remediation is governed. A fix applied outside the Proposal → AtomicAction path is repair, not remediation, regardless of whether it produces the correct result.",
+      "authoritative_paper": ".specs/papers/CORE-Remediation.md",
+      "aliases": [],
+      "see_also": [
+        "Proposal Path | ViolationExecutor Path | AtomicAction"
+      ]
+    },
+    {
+      "term": "RemediationMap",
+      "definition": "The declared mapping from Rule to AtomicAction. Lives in `.intent/`.",
+      "not": "RemediationMap is not a routing table or a registry. It is a constitutional declaration: a specific AtomicAction is authorized to remediate a specific Rule. Rules without a RemediationMap entry have no constitutional fixer and flow to the ViolationExecutor Path.",
+      "authoritative_paper": ".specs/papers/CORE-RemediationMap.md",
+      "aliases": [],
+      "see_also": [
+        "Proposal Path | AtomicAction | Rule"
+      ]
+    },
+    {
+      "term": "RemediatorWorker",
+      "definition": "An acting Worker that claims Findings and creates Proposals via the RemediationMap.",
+      "not": "RemediatorWorker is not ViolationExecutor. RemediatorWorker operates on the constitutional Proposal Path: it looks up a Finding's check_id in the RemediationMap and creates a Proposal deterministically. It does not invoke LLMs to discover fixes.",
+      "authoritative_paper": ".specs/papers/CORE-RemediatorWorker.md",
+      "aliases": [],
+      "see_also": [
+        "Acting Worker | Proposal Path | RemediationMap"
+      ]
+    },
+    {
+      "term": "Rule",
+      "definition": "An atomic normative statement that evaluates to holds or violates.",
+      "not": "Rule is not synonymous with Constitution or Policy. Constitution and Policy are authority levels that a Rule may carry. A Rule at constitution authority is a constitutional rule — but 'Rule' and 'Constitution' are not interchangeable terms.",
+      "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
+      "aliases": [
+        "Check | Constraint | Policy"
+      ],
+      "see_also": [
+        "Authority | Constitution | Policy"
+      ]
+    },
+    {
+      "term": "Sensing Worker",
+      "definition": "A Worker whose sole responsibility is perception: it reads the world (filesystem, database, auditor output) and posts Findings to the Blackboard. It makes no decisions and takes no actions.",
+      "not": "A Sensing Worker must not write files, create Proposals, or invoke LLMs. It is read-only with respect to the governed system.",
+      "authoritative_paper": ".specs/papers/CORE-Workers-and-Governance-Model.md",
+      "aliases": [],
+      "see_also": [
+        "Acting Worker | Worker | Finding"
+      ]
+    },
+    {
+      "term": "ShopManager",
+      "definition": "A Worker whose single job is supervising other Workers.",
+      "not": "ShopManager is not a domain Worker. It does not perform remediation, propose fixes, or execute actions. Its only authority is to observe Worker health via the Blackboard and escalate. A ShopManager that performs domain work is in constitutional violation.",
+      "authoritative_paper": ".specs/papers/CORE-ShopManager.md",
+      "aliases": [],
+      "see_also": [
+        "Worker | Blackboard"
+      ]
+    },
+    {
+      "term": "UNIX",
+      "definition": "One component, one job. Composition is the only legitimate source of complexity.",
+      "not": "UNIX is not a rule about file layout, process isolation, or OS primitives. It is an architectural discipline: a component that does two things is two components that have not yet been separated.",
+      "authoritative_paper": ".specs/papers/CORE-The-Octopus-UNIX-Synthesis.md",
+      "aliases": [],
+      "see_also": [
+        "Octopus | Worker"
+      ]
+    },
+    {
+      "term": "ViolationExecutor",
+      "definition": "An acting Worker. Discovers remediation patterns for unmapped rules via LLM reasoning. Surfaces AtomicAction candidates for codification. The goal is to reduce this path to zero.",
+      "not": "ViolationExecutor is not the constitutional remediation path. It is a discovery fallback for rules with no registered AtomicAction. Its outputs are candidates, not authoritative fixes. Every rule it handles is a rule awaiting constitutional codification on the Proposal Path.",
+      "authoritative_paper": ".specs/papers/CORE-ViolationExecutor.md",
+      "aliases": [],
+      "see_also": [
+        "ViolationExecutor Path | Proposal Path | RemediationMap"
+      ]
+    },
+    {
+      "term": "ViolationExecutor Path",
+      "definition": "The legacy remediation fallback: Finding → LLM invocation → Crate. Used only for rules that have no registered AtomicAction in the RemediationMap. Every rule handled by this path is a rule awaiting constitutional remediation. The goal is to reduce this path to zero.",
+      "not": "The ViolationExecutor Path is not a peer of the Proposal Path. It is a fallback. It must not claim findings whose rules are mapped in the RemediationMap — those belong to the Proposal Path.",
+      "authoritative_paper": ".specs/papers/CORE-ViolationExecutor.md",
+      "aliases": [],
+      "see_also": [
+        "Proposal Path | RemediationMap | ViolationExecutor"
+      ]
+    },
+    {
+      "term": "ViolationSensor",
+      "definition": "A sensing Worker that posts audit violations as Findings to the Blackboard.",
+      "not": "ViolationSensor is not the audit engine. It is a Worker wrapper: it invokes the audit engine and posts the output as Findings. A ViolationSensor that creates Proposals or executes actions is in constitutional violation of its Sensing Worker mandate.",
+      "authoritative_paper": ".specs/papers/CORE-ViolationSensor.md",
+      "aliases": [],
+      "see_also": [
+        "Sensing Worker | Finding | Blackboard"
+      ]
+    },
+    {
+      "term": "Will",
+      "definition": "The autonomous layer: workers, proposals, the remediation loop.",
+      "not": "Will is not the scheduler or the event loop. Will is the autonomous governance layer: Workers, the Proposal system, and the remediation loop that drives the codebase toward constitutional compliance.",
+      "authoritative_paper": ".specs/papers/CORE-Mind-Body-Will-Separation.md",
+      "aliases": [],
+      "see_also": [
+        "Mind | Body | Worker"
+      ]
+    },
+    {
+      "term": "Worker",
+      "definition": "A daemon-resident autonomous unit that runs continuously, claims Blackboard entries, and performs sensing or acting. Workers are declared in .intent/workers/ and loaded by the daemon at startup.",
+      "not": "A Worker is not a Component. Workers are long-lived, daemon-resident, and claim work from the Blackboard. A Worker may contain or invoke Components, but is not itself phase-bound.",
+      "authoritative_paper": ".specs/papers/CORE-Workers-and-Governance-Model.md",
+      "aliases": [
+        "Agent | Service | Processor"
+      ],
+      "see_also": [
+        "Component | Sensing Worker | Acting Worker"
+      ]
+    },
+    {
+      "term": "WorkflowStage",
+      "definition": "A bounded operational step inside a Phase that groups related Actions.",
+      "not": "WorkflowStage is not a Phase. A Phase is when a Rule is evaluated; a WorkflowStage is an operational grouping of Actions within a Phase. Multiple WorkflowStages may exist within one Phase. Stages are execution structure; Phases are governance structure.",
+      "authoritative_paper": ".specs/papers/CORE-Workflow-Stages.md",
+      "aliases": [],
+      "see_also": [
+        "Phase | Action | Component"
+      ]
+    }
+  ]
+}

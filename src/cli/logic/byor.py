@@ -21,6 +21,7 @@ CONSTITUTIONAL NOTES (#640):
 
 from __future__ import annotations
 
+import importlib.resources
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -39,7 +40,7 @@ logger = getLogger(__name__)
 
 # ADR-111 D1/D4: examples/starter-intent/ is the canonical source for the
 # machinery floor (ADR-108 D2; ADR-119 D8). Located relative to the running
-# CORE repo root. Wheel delivery is gated on ADR-108 D3 / ADR-119 D9 (#674).
+# CORE repo root. ADR-108 D3 / #674: wheel fallback via shared._machinery_floor.
 _STARTER_REL = ("examples", "starter-intent", ".intent")
 
 # ADR-119 D2: machinery floor = META + constitution + enforcement/config + taxonomies.
@@ -50,6 +51,32 @@ _MACHINERY_FLOOR_PREFIXES = (
     "enforcement/config/",
     "taxonomies/",
 )
+
+
+# ID: 3f7a1c82-e4d9-4b6e-9c21-d58f02a7b3e1
+def _resolve_machinery_floor(core_root: Path) -> Path:
+    """
+    Locate the machinery floor directory (ADR-108 D3).
+
+    Resolution order:
+    1. Source tree — ``examples/starter-intent/.intent/`` relative to *core_root*.
+       Present on dev and editable installs; takes priority.
+    2. Wheel package data — ``shared/_machinery_floor/`` bundled in the
+       ``core-runtime`` wheel (ADR-108 D3 / ADR-119 D9, issue #674).
+    """
+    source = core_root.joinpath(*_STARTER_REL)
+    if source.is_dir():
+        return source
+    bundled = Path(
+        str(importlib.resources.files("shared").joinpath("_machinery_floor"))
+    )
+    if bundled.is_dir():
+        logger.info("Using bundled machinery floor from wheel package data.")
+        return bundled
+    raise RuntimeError(
+        f"Machinery floor not found at {source} or in wheel package data. "
+        "This is a packaging error — please report it."
+    )
 
 
 # ID: 8b2ee927-9c35-4125-b291-22669733e531
@@ -70,22 +97,13 @@ async def initialize_repository(
     target_root = Path(path).resolve()
     write = not dry_run
 
-    # CORE's repo root (the running install) anchors both the starter payload
-    # and the file.create path base.
+    # CORE's repo root (the running install) anchors the file.create path base.
     core_root = context.git_service.repo_path.resolve()
-    starter_dir = core_root.joinpath(*_STARTER_REL)
-
-    # ADR-111 D4: the payload must be present. From source it is; from an
-    # installed wheel it ships only after ADR-108 D3 (#674). Fail loud rather
-    # than silently deliver nothing.
-    if not starter_dir.is_dir():
-        logger.error(
-            "Starter constitution not found at %s. From an installed wheel this is "
-            "gated on ADR-108 D3 (machinery-in-wheel, issue #674); run from the CORE "
-            "source tree until it lands.",
-            starter_dir,
-        )
-        raise typer.Exit(code=1)
+    try:
+        starter_dir = _resolve_machinery_floor(core_root)
+    except RuntimeError as exc:
+        logger.error("%s", exc)
+        raise typer.Exit(code=1) from exc
 
     # ADR-111 D3: never overwrite an existing constitution.
     target_intent = target_root / ".intent"

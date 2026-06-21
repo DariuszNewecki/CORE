@@ -1,0 +1,100 @@
+  {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "core.intent.enforcement_mapping.schema.json",
+      "title": "CORE Enforcement Mapping Entry",
+      "description": "Schema for each entry under `mappings:` in any .intent/enforcement/mappings/**/*.yaml file. An entry pairs a rule_id (the dict key) with the enforcement strategy that resolves it. A non-empty `scope.applies_to` glob list is mandatory — without it, the loader silently widened scope to all of src/**/*.py and over-applied rules across unrelated layers (issue #158).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+          "engine",
+          "scope"
+      ],
+      "properties": {
+          "engine": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The execution engine that resolves this rule. Examples: ast_gate, regex_gate, knowledge_gate, llm_gate, glob_gate, workflow_gate, passive_gate, advisory."
+          },
+          "params": {
+              "type": "object",
+              "description": "Engine-specific parameters. Shape is determined by the engine and is not constrained by this schema."
+          },
+          "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                  "applies_to"
+              ],
+              "description": "Defines which files this rule examines. Required so that rule extraction never falls back to a repo-wide default (issue #158).",
+              "properties": {
+                  "applies_to": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                          "type": "string",
+                          "minLength": 1
+                      },
+                      "description": "Glob patterns (relative to repo root) for files this rule applies to. At least one pattern is required; an empty list is rejected as a misconfiguration."
+                  },
+                  "excludes": {
+                      "type": "array",
+                      "items": {
+                          "type": "string",
+                          "minLength": 1
+                      },
+                      "description": "Optional glob patterns to exclude from applies_to."
+                  }
+              }
+          },
+          "governed_exclusions": {
+              "type": "array",
+              "description": "Per-file exemption register introduced by ADR-042. Each entry documents why a specific file/class is exempt from this rule and what condition would trigger removal of the exemption. The audit pipeline honors each entry's `file` value as if it were listed under scope.excludes; the additional fields are documentation that constitution validate enforces.",
+              "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                      "file",
+                      "class",
+                      "category",
+                      "rationale",
+                      "removal_condition"
+                  ],
+                  "properties": {
+                      "file": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Repo-relative path of the exempted source file."
+                      },
+                      "class": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of the exempted top-level class within the file."
+                      },
+                      "category": {
+                          "type": "string",
+                          "enum": ["facade", "algorithm", "catalog"],
+                          "description": "Why the class exceeds the LOC pre-selector despite single-responsibility status. facade: gateway whose size reflects surface breadth. algorithm: cohesive algorithm whose passes share state. catalog: collection of trivial parallel members (e.g. dataclass register or property table)."
+                      },
+                      "rationale": {
+                          "type": "string",
+                          "minLength": 10,
+                          "description": "Why this class fits its declared category and why decomposition would not improve modularity."
+                      },
+                      "removal_condition": {
+                          "type": "string",
+                          "minLength": 10,
+                          "description": "The observable change that retires this exemption — typically the emergence of a second responsibility, or the llm_gate audit path becoming operational (ADR-042 D4)."
+                      }
+                  }
+              }
+          },
+          "requires_findings_from": {
+              "type": "array",
+              "description": "Pre-selector dependency list introduced by ADR-043 D2. When non-empty, the rule's per-file scope is intersected with the set of files that have findings under the listed rule IDs in the current audit run. Empty intersection produces no work and no findings. Each entry must reference a rule ID declared elsewhere in `.intent/rules/`; cycles across these edges are rejected at rule extraction time. Not permitted on context-level engines (workflow_gate, knowledge_gate) — such rules do not iterate per-file and cannot be narrowed by a file set.",
+              "items": {
+                  "type": "string",
+                  "minLength": 1
+              }
+          }
+      }
+  }

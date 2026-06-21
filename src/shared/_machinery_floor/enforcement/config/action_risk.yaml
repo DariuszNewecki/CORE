@@ -1,0 +1,73 @@
+# .intent/enforcement/config/action_risk.yaml
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: active
+#
+# PURPOSE:
+#   Single source of truth for action impact classification.
+#   Governs which actions auto-execute (safe) versus which require
+#   human approval (moderate) or are blocked unless explicitly
+#   authorized (dangerous).
+#
+#   Consumed by src/body/atomic/executor.py via the helper
+#   shared.infrastructure.intent.action_risk.
+#
+# RULE: impact_level for every registered action MUST be declared
+#   here. No impact_level literals permitted in @register_action
+#   decorators in src/. See ADR-008.
+#
+#   ADR-078 amendment (2026-05-30): risk values declared here are
+#   cross-referenced by .intent/taxonomies/operational_capabilities.yaml
+#   per ADR-078 D3. Any operational capability whose risk field does
+#   not resolve to a defined entry here is a load-time failure of
+#   src/shared/infrastructure/intent/operational_capabilities.py.
+#
+# VALUES: safe | moderate | dangerous
+
+actions:
+  action.execute: moderate
+  admin.meta: safe
+  assisted.apply_diff: moderate
+  assisted.validate_diff: safe
+  build.tests: safe
+  check.body_contracts: safe
+  check.imports: safe
+  claim.proposal: safe
+  cleanup.action_results: moderate
+  cleanup.agent_memory: moderate
+  crate.create: safe
+  crate.create_from_spec: moderate
+  file.create: moderate
+  file.edit: moderate
+  file.read: safe
+  file.tag_metadata: safe
+  fix.atomic_actions: moderate
+  fix.body_ui: dangerous
+  fix.capability_tagging: moderate
+  fix.docstrings: moderate
+  fix.duplicate_ids: moderate
+  fix.format: safe
+  fix.headers: safe
+  fix.ids: safe
+  fix.imports: safe
+  fix.logging: safe
+  fix.modularity: moderate
+  fix.path_resolver: moderate
+  fix.placeholders: safe
+  fix.purge_legacy_tags: dangerous
+  fix.settings_access: dangerous
+  fix.vulture_heal: dangerous
+  logging.reconfigure: safe
+  manage.define_symbols: moderate
+  remediate.cognitive_role: moderate
+  secrets.delete: dangerous
+  secrets.get: safe
+  secrets.list: safe
+  secrets.set: moderate
+  sync.db: moderate
+  sync.knowledge_graph: moderate
+  sync.vectors_code: moderate
+  sync.vectors_constitution: moderate
+  test.execute: moderate
+  test.sandbox_validate: safe
+  test.system: safe

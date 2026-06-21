@@ -64,10 +64,11 @@ absent from starter's `action_risk.yaml`; fix applied to
 `examples/starter-intent/.intent/enforcement/config/action_risk.yaml` and
 committed. T2 unblocked.
 
-### T2 — #640 step 2: newcomer docs  **[UNBLOCKED — T1 done 2026-06-20]**
-Point `docs/cold-reviewer.md`'s "no `.intent/`" dead-end at `project onboard`; add a
-"govern your own repo" step to README / getting-started. T1 confirmed → self-serve path
-can be documented. #674 (T3) still open; docs may note `pip install` path is a WIP.
+### T2 — #640 step 2: newcomer docs  **[DONE — 2026-06-20]**
+Three surfaces updated in `5f15ded7`: `docs/cold-reviewer.md` dead-end replaced with
+`project onboard` + `project scout` instructions; `getting-started.md` BYOR table row +
+callout added; `README.md` Quick Start callout updated. `pip install` users caveated
+until #674 lands (T3).
 
 ### T3 — #674: ADR-108 D3 machinery-in-wheel  **[SCOPE CORRECTED — ADR-119 D9]**
 Bundle the **machinery floor only** in the `core-runtime` wheel + loader fallback
