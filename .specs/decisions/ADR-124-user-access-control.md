@@ -1,6 +1,6 @@
 # ADR-124 — User Access Control (UAC)
 
-**Status:** Draft
+**Status:** accepted
 **Date:** 2026-06-21
 **Deciders:** Governor
 
@@ -68,6 +68,21 @@ supplied, the user is VISITOR with no org until promoted.
 
 One user belongs to at most one organisation (multi-org membership is deferred).
 
+**Phase 2 constraint — org-name squatting:** self-register-creates-org is acceptable for
+Phase 1 (governor dogfooding; controlled registrant). It is not safe for customer-facing
+deployment: the first person to type a real company name becomes its ORG_ADMIN, and
+legitimate employees who self-register thereafter join as VISITORs pending that squatter's
+approval. Before Phase 2 ships, the governor must choose one of two paths:
+
+- **Domain-verified self-register:** org creation requires the registrant's email domain
+  to match a pre-declared `allowed_domains` list on the org record. The column is added to
+  the schema now (nullable; not enforced in Phase 1).
+- **Governor-mediated creation:** PLATFORM_ADMIN creates orgs and distributes invitations;
+  the self-register-creates-org path is disabled for non-PLATFORM_ADMIN registrants.
+
+The `organisations.allowed_domains` column (`text[] NULLABLE`) is added to the schema now
+so Phase 2 does not require a migration. Enforcement is deferred.
+
 ### D3 — UserGroup (role) model
 
 Five roles, ordered by privilege:
@@ -100,20 +115,66 @@ PLATFORM_ADMIN. PLATFORM_ADMIN promotion is governor-only.
 
 ### D4 — Authentication mechanics
 
-**Tokens:** short-lived JWT access token (1 hour) + long-lived refresh token (30 days),
-stored in `refresh_tokens` table (id, user_id, token_hash, expires_at, revoked). On logout
-or account suspension the refresh token is revoked immediately; the access JWT expires
-naturally within its window (acceptable given 1-hour ceiling).
+**Password hashing:** argon2id with parameters (memory=64 MiB, iterations=3,
+parallelism=1). Neither bcrypt nor scrypt is used. Parameters satisfy OWASP's minimum
+argon2id recommendations; increase if deployment hardware is significantly more capable.
 
-**Google OAuth:** standard OAuth2 Authorization Code flow via Google. On first OAuth login,
-a user record is created with `auth_method=google`, `password_hash=NULL`. Email is taken
-from the Google profile and treated as verified.
+**Tokens:** short-lived JWT access token (1 hour) + long-lived refresh token (30 days).
+Token transport is governed by D10 (httpOnly cookies). Refresh tokens are stored in the
+`refresh_tokens` table — see schema below under *Refresh token rotation*.
+
+**Refresh token rotation and reuse detection:** refresh tokens rotate on every use.
+On a `/auth/refresh` call:
+
+1. Look up token by hash. Not found → 401.
+2. `used_at IS NOT NULL` → **reuse detected** → revoke the entire token family (all rows
+   sharing `family_id`) → 401. The session is treated as compromised; the user must
+   log in again.
+3. `revoked = true` or `expires_at < now()` → 401.
+4. Set `used_at = now()` on the current token (atomic). Insert a new token with the same
+   `family_id`. Return the new token.
+
+`refresh_tokens` schema: `(id, user_id, token_hash, family_id, used_at NULLABLE,
+expires_at, revoked)`. `family_id` is a UUID generated at login and shared by every
+token in a rotation chain. `used_at` is null until the token is consumed.
+
+Reuse of an already-used token is a theft signal: the legitimate user has already
+rotated past it, so only an attacker (or a replay) would present it.
+
+**Per-account lockout:** the per-IP rate limit (D4 *Rate limiting*) is weak behind NAT
+and evadable by IP rotation. The `login_failed` audit event (D7) provides the
+per-account signal. After 10 consecutive `login_failed` events for the same `email`
+within 15 minutes the account is locked for 15 minutes. Stored as `locked_until
+timestamptz NULLABLE` on `users`. `/auth/login` checks `locked_until > now()` before
+credential verification; a locked account returns 423 with a `Retry-After` header.
+
+**Suspension immediacy:** revoking the refresh token on suspension blocks new sessions
+but the existing access JWT remains valid for up to 1 hour. For a security-sensitive
+suspension (compromised account) this is too long. An in-memory deny-list keyed by
+`user_id` closes the gap: on suspension the user_id is added; the JWT middleware checks
+the deny-list before accepting any token; deny-list entries expire at
+`max(jwt_expiry, suspend_time + 1 hour)`. Implementation (Redis, Postgres-backed cache,
+or in-process LRU) is deferred to implementation; the required interface is
+`deny_list.is_denied(user_id: UUID) -> bool`.
+
+**Google OAuth:** standard OAuth2 Authorization Code flow via Google. On first OAuth
+login, a user record is created with `auth_method=google`, `password_hash=NULL`. Email
+is taken from the Google profile and treated as verified.
 
 **Password reset:** time-limited token (1 hour) sent to verified email. Implemented as a
 `password_reset_tokens` table (id, user_id, token_hash, expires_at, used).
 
-**Rate limiting:** login and register endpoints limited to 10 attempts per IP per minute.
-Password reset limited to 3 requests per email per hour.
+**Rate limiting:**
+
+| Endpoint | Limit |
+|---|---|
+| `/auth/login` | 10 attempts per IP per minute |
+| `/auth/register` | 10 attempts per IP per minute |
+| `/auth/refresh` | 60 attempts per IP per hour |
+| `/auth/password-reset/*` | 3 requests per email per hour |
+
+Per-account lockout (above) is a separate mechanism that applies in addition to
+per-IP limits, not instead of them.
 
 ### D5 — Registration and invitation flows
 
@@ -136,8 +197,22 @@ Invitations expire after 7 days. A single invitation is single-use.
 
 ORG_ADMINs may generate API keys for programmatic/integration access within their org's
 scope. API keys are stored as hashed values in an `api_keys` table (id, org_id, created_by,
-key_hash, label, last_used_at, expires_at NULLABLE, revoked). API key auth is a parallel
-path to JWT auth — the middleware accepts either.
+key_hash, label, role, last_used_at, expires_at NULLABLE, revoked). API key auth is a
+parallel path to JWT auth — the middleware accepts either.
+
+**Role/scope:** every API key carries an explicit `role` field. Constraints:
+
+- Permitted values: `ANALYST`, `AUDITOR`. Keys cannot be granted `ORG_ADMIN` or
+  `PLATFORM_ADMIN` — service keys access data; they do not perform administrative
+  operations.
+- The granted role must be ≤ the creating ORG_ADMIN's highest role within the org.
+- The middleware resolves API key auth to `(org_id, role)` and applies the same
+  role-enforcement dependency chain as JWT auth. A key with `role=ANALYST` has
+  identical access boundaries as a human ANALYST in the same org.
+
+Implicit privilege (key inherits creator's role) is forbidden: an unscoped key that
+silently acts as ORG_ADMIN is an escalation surface for any integration that is
+compromised.
 
 ### D7 — Audit trail
 
@@ -158,6 +233,9 @@ An `auth_events` table records:
 | `password_reset_completed` | Password changed via reset |
 | `api_key_created` | API key generated |
 | `api_key_revoked` | API key revoked |
+| `token_refresh_rejected` | Refresh token reuse detected; family revoked (theft signal) |
+| `account_locked` | Per-account lockout triggered (failed attempt threshold reached) |
+| `account_unlocked` | Lockout expired or cleared by PLATFORM_ADMIN |
 
 Fields: id, user_id, event_type, actor_id (who triggered it — null for self-actions),
 ip_address, user_agent, metadata (jsonb), created_at.
@@ -179,6 +257,57 @@ The middleware resolves `current_user` and `current_org_membership` and injects 
 the request context. Role checks are enforced at the route level via dependency injection,
 not scattered inline.
 
+### D10 — Token transport and browser security
+
+Access tokens reach the browser as **httpOnly cookies**, not `Authorization` headers
+and not `localStorage`. This is a one-way door: once the frontend is built against
+cookies, switching transport requires rewriting the auth client.
+
+**Cookie specifications:**
+
+| Cookie | Name | httpOnly | Secure | SameSite | Path | Max-Age |
+|--------|------|----------|--------|----------|------|---------|
+| Access JWT | `core_access` | yes | yes | `Lax` | `/` | 3600 |
+| Refresh token | `core_refresh` | yes | yes | `Strict` | `/auth/refresh` | 2592000 |
+
+**Attribute rationale:**
+
+- **httpOnly** — JavaScript cannot read or exfiltrate the token. XSS cannot steal the
+  session, only make same-origin requests on the user's behalf (which httpOnly does not
+  prevent, but which SameSite and short-lived access tokens bound in time).
+- **Secure** — cookie is only sent over HTTPS. Mandatory in production. Dev environments
+  may relax to `http://localhost`; this must never be disabled in staging or production.
+- **SameSite=Lax for `core_access`** — cookie is sent on top-level GET navigations from
+  external sites (needed for bookmarked/linked authenticated pages) but not on cross-site
+  subresource requests (POST/PUT/DELETE). This blocks the classical CSRF vector for all
+  mutating endpoints. Read-only cross-site requests that carry the cookie are benign.
+- **SameSite=Strict for `core_refresh`** — the refresh endpoint is called programmatically
+  (by `fetch-client.ts` on 401), never from a top-level navigation. `Strict` blocks all
+  cross-site sending with no UX cost.
+- **Path=/auth/refresh for `core_refresh`** — the refresh token is scoped to the one
+  endpoint that consumes it. It cannot be accidentally included in API calls.
+
+**No tokens in localStorage or sessionStorage.** These are readable by any JavaScript
+on the page including injected scripts, and are the primary XSS token-theft vector.
+
+**`fetch-client.ts` (ADR-125 D12) does not attach tokens manually.** The browser sends
+`core_access` automatically on every same-origin request. The wrapper's only auth
+concern is detecting 401 responses and triggering a refresh.
+
+**CSRF residual risk and Phase 2 hardening:**
+
+SameSite=Lax mitigates CSRF on modern browsers for mutating endpoints. Residual risk:
+- Old browsers without SameSite support: negligible in 2026. A minimum-browser policy
+  can be enforced at the CDN/load-balancer level for the customer-facing deployment.
+- CORS misconfiguration: a permissive `allow_origins` setting would allow a malicious
+  origin to make credentialed cross-site requests. The `allow_origins` tightening
+  required by ADR-125 T6b is a hard pre-condition for Phase 2, not a post-launch task.
+- Subdomain takeover: a compromised `*.coredomain.com` subdomain could set cookies on
+  the parent domain. The `__Host-` cookie prefix (forces `Secure`, removes `Domain`,
+  forces `Path=/`) eliminates this. Adoption of `__Host-` is recommended for Phase 2;
+  deferred from Phase 1 because Phase 1 serves the governor on a controlled host with
+  no external subdomains.
+
 ---
 
 ## Consequences
@@ -186,8 +315,28 @@ not scattered inline.
 - The `users`, `organisations`, `org_memberships`, `refresh_tokens`, `invitations`,
   `api_keys`, `password_reset_tokens`, and `auth_events` tables are new schema surfaces.
   They belong in `infra/sql/db_schema_live.sql` (schema-as-truth; no migration framework).
+- Schema additions beyond the original design:
+  - `users.locked_until timestamptz NULLABLE` — per-account lockout.
+  - `organisations.allowed_domains text[] NULLABLE` — Phase 2 domain verification; not
+    enforced in Phase 1.
+  - `refresh_tokens.family_id UUID NOT NULL` and `refresh_tokens.used_at timestamptz
+    NULLABLE` — token rotation and reuse detection. These columns are load-bearing; the
+    reuse-detection logic must not be simplified or bypassed.
+  - `api_keys.role` enum NOT NULL — explicit bounded scope for every API key.
 - All auth logic lives in `src/api/` (routes) and `src/body/services/auth/` (service layer).
+- Password hashing uses argon2id. The parameters (memory=64 MiB, iterations=3,
+  parallelism=1) are not tunable at runtime; changing them requires a decision.
+- A deny-list service is required for immediate account suspension. Implementation
+  (Redis, Postgres-backed cache, in-process LRU) is an infrastructure decision; the
+  interface contract is `deny_list.is_denied(user_id: UUID) -> bool`.
+- Access tokens travel as httpOnly cookies (`core_access`, `core_refresh`). The frontend
+  does not manage token attachment; the browser does. `Authorization` header auth is not
+  used for the browser client.
 - The upcoming web frontend calls `/auth/*` endpoints; this ADR defines their contract.
+  ADR-125 D12's `fetch-client.ts` is the browser-side counterpart; it relies on the
+  cookie model specified in D10.
+- Phase 2 org creation path (domain verification or governor-mediated) is a governor
+  decision before Phase 2 ships. The schema column exists; the enforcement is deferred.
 - Google OAuth requires a Google Cloud project + OAuth 2.0 credentials (governor action,
   out of scope here).
 - Email sending (verification, password reset, invitations) requires an SMTP/transactional
