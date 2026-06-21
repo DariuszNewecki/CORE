@@ -84,10 +84,10 @@ runs. The rules layer is never bundled — it is per-repo-inducted by `project s
 or per-repo-authored; there is no canonical rule set to ship. Unblocks wheel-user
 BYOR Phase A. Tracked: issue #674.
 
-### T4 — `work/`-staging airlock for onboard  **[design, deferred by governor]**
-Decision deferred: keep "write into the named repo" (dry-run + refuse-if-exists as
-the rails) vs. add a `work/<name>/` staging airlock the operator promotes. If
-adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regulated path.
+### T4 — `work/`-staging airlock for onboard  **[DONE — 2026-06-21]**
+ADR-123 accepted + implemented. `--stage` flag on `project onboard` redirects writes to
+`work/staged/<name>/`. `project onboard promote <path>` completes delivery and cleans up
+the stage dir. Direct-write path (`--write` without `--stage`) unchanged.
 
 ### T5 — BYOR-grounded ADRs (`CORE-BYOR.md` §9)
 
@@ -98,11 +98,13 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
   `licensed/`, `internal/` tiers). Domain-agnostic: any document corpus, not GRC-only.
 - **T5c** ✅ **DONE 2026-06-21** — Per-finding attestation (ADR-113). All 6 decisions
   shipped; 16 engines declared; registry-sweep test enforces completeness going forward.
-- **T5d** — **OPEN, gated on licence procurement** — GRC internal audit corpus pipeline
-  (ADR-116 D9). Layout reserved (`grc-catalogs/internal/`, gitignored). Ingestion,
-  licence-gate enforcement, corpus-as-input invariant, resolver tolerance. Depends on
-  T5b ✅ (provides requirement set). Copyrighted frameworks need held licence; public-domain
-  ingest is ungated. No engineering blockers except procuring licences.
+- **T5d** ✅ **DONE 2026-06-21** — GRC internal audit corpus pipeline (ADR-122,
+  ADR-116 D9). `core-admin grc ingest <framework_id>`: licence gate → chunk → embed →
+  Qdrant upsert (`grc-internal-{framework_id}`) → provenance write. `grc_judge`
+  augmented with top-3 passage injection (degrades gracefully on absent collection;
+  `EvidenceClass` stays JUDGED). `framework_id` injected into `grc_judge` params by
+  `load_catalog`. Copyrighted frameworks (iso_27001/gamp5/cyfun) remain procurement-gated;
+  ungated frameworks (nist_800_171/gdpr/cfr_part_11/eu_annex_11) can be ingested now.
 - **T5e** ✅ **DONE 2026-06-20** — Verdict unit: requirement-over-corpus (ADR-118,
   `ae36aa6f` D1/D3/D4/D5 + `1587ebad` D2). `RequirementVerdict` + applicability gate.
   (See §1b above.)
@@ -111,14 +113,12 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
 
 ## 3. Sequencing
 
-**As of 2026-06-21:** T1/T2/T3/T5a/T5b/T5c/T5e are all shipped. The full honesty
-stack — Scout induction, document_corpus type, repository adapter, corpus-level
-verdict, per-finding provenance label — is live.
+**As of 2026-06-21:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e are all shipped. The full BYOR
+program engineering is complete.
 
-Remaining open in priority order:
-1. **T5d** (internal corpus) — procurement-gated; no engineering block once a
-   licence is held. Can spec the pipeline now.
-2. **T4** (airlock) — governor-deferred design decision.
+Remaining operator action:
+- **T5d procurement** — iso_27001/gamp5/cyfun require a commercial licence before
+  `core-admin grc ingest` will run. Engineering done; blocker is procurement.
 
 The commercial center of gravity is GRC (governor decision 2026-06-17). Code
 self-development runs on a maintenance track.

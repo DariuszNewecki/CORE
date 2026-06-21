@@ -12,6 +12,9 @@ CONSTITUTIONAL ALIGNMENT:
   shared SYSTEM_ERROR_AI_OFFLINE marker so rule_executor aggregates transient
   failures rather than miscounting them as gaps.
 - Prompt governed via var/prompts/grc_judge/ PromptModel artifact.
+- Internal corpus augmentation (ADR-122 D4): queries grc-internal-{framework_id}
+  for top-3 passages; degrades gracefully when collection is absent or Qdrant
+  is unreachable (EvidenceClass stays JUDGED regardless of augmentation).
 
 WHY A SEPARATE ENGINE (not llm_gate):
 - llm_gate is the constitutional *code* auditor; its prompt frames the model as
@@ -48,6 +51,10 @@ logger = getLogger(__name__)
 # WARNING instead of a per-file pseudo-gap (see _TRANSIENT_LLM_FAILURE_MARKER).
 _AI_OFFLINE_MARKER = "SYSTEM_ERROR_AI_OFFLINE"
 
+# Number of internal corpus passages injected into the judge prompt (ADR-122 D4).
+# Conservative: grounding without distortion. Code constant, not operator-tunable.
+_INTERNAL_CORPUS_TOP_K = 3
+
 
 # ID: 01d96d5a-7a9f-4c7d-93f8-7fc40542010a
 class GRCJudgeEngine(BaseEngine):
@@ -60,6 +67,12 @@ class GRCJudgeEngine(BaseEngine):
     so a catalog requirement need only point its ``engine`` at ``grc_judge`` —
     no param rewrite — while the prompt reframes the task from code audit to
     compliance assessment.
+
+    When ``params["framework_id"]`` is present (injected by ``load_catalog``),
+    the engine queries the internal Qdrant corpus for up to 3 authoritative
+    passages and prepends them to the prompt as "AUTHORITATIVE SOURCE CONTEXT"
+    (ADR-122 D4). Absent/unreachable collection → silent degradation; the verdict
+    remains valid and EvidenceClass stays JUDGED.
     """
 
     engine_id = "grc_judge"
@@ -73,6 +86,67 @@ class GRCJudgeEngine(BaseEngine):
         self._paths = path_resolver
         self.llm = llm_client
         self._prompt_model = PromptModel.load("grc_judge")
+        # Lazy-init: Qdrant + embedding clients created on first augmentation attempt.
+        self._qdrant: Any | None = None
+        self._embedder: Any | None = None
+
+    # ID: 487eb9a1-e9bc-4359-8418-e900b2959569
+    def _get_corpus_clients(self) -> tuple[Any, Any] | None:
+        """Lazy-init QdrantService + EmbeddingService for corpus augmentation (ADR-122 D4).
+
+        Returns None and logs DEBUG when unavailable (Qdrant not configured, embedding
+        service unreachable, etc.) — caller degrades gracefully.
+        """
+        try:
+            from shared.infrastructure.clients.qdrant_client import QdrantService
+            from shared.utils.embedding_utils import EmbeddingService
+
+            if self._qdrant is None:
+                self._qdrant = QdrantService()
+            if self._embedder is None:
+                self._embedder = EmbeddingService()
+            return self._qdrant, self._embedder
+        except Exception as e:
+            logger.debug("Corpus augmentation clients unavailable: %s", e)
+            return None
+
+    # ID: ebe70319-3ab2-4367-bdd0-918e9ddde4d3
+    async def _retrieve_source_context(
+        self, framework_id: str, instruction: str
+    ) -> str:
+        """Query ``grc-internal-{framework_id}`` for top-3 passages (ADR-122 D4).
+
+        Returns a pre-formatted block suitable for ``{source_context}`` template
+        substitution, or an empty string when the collection is absent, empty,
+        or any error occurs (graceful degradation — D4 invariant).
+        """
+        clients = self._get_corpus_clients()
+        if clients is None:
+            return ""
+        qdrant, embedder = clients
+        try:
+            query_vec = await embedder.get_embedding(instruction)
+            hits = await qdrant.search(
+                collection_name=f"grc-internal-{framework_id}",
+                query_vector=query_vec,
+                limit=_INTERNAL_CORPUS_TOP_K,
+            )
+            if not hits:
+                return ""
+            passages: list[str] = []
+            for i, hit in enumerate(hits, 1):
+                payload = hit.payload or {}
+                text = payload.get("text", "")
+                if not text:
+                    continue
+                label = (
+                    payload.get("source_ref") or payload.get("section_id") or "excerpt"
+                )
+                passages.append(f"[{i}] {label}\n{text}")
+            return "\n\n".join(passages)
+        except Exception as e:
+            logger.debug("Internal corpus search failed for %s: %s", framework_id, e)
+            return ""
 
     # ID: 4d47dd81-0bb4-4d98-82bf-50d8df0208e4
     async def verify(
@@ -85,9 +159,13 @@ class GRCJudgeEngine(BaseEngine):
         ``params["instruction"]`` is the requirement question (what the document
         must establish); ``params["rationale"]`` cites the control. A "violation"
         here means the document does NOT satisfy the requirement — i.e. a gap.
+
+        When ``params["framework_id"]`` is present, the internal corpus is queried
+        first and its top passages are injected into the prompt (ADR-122 D4).
         """
         instruction = params.get("instruction", "")
         rationale = params.get("rationale", "No control reference provided.")
+        framework_id = params.get("framework_id", "")
 
         # Read the document safely off the event loop (ASYNC230).
         try:
@@ -100,12 +178,22 @@ class GRCJudgeEngine(BaseEngine):
                 engine_id=self.engine_id,
             )
 
+        # Augment with internal corpus passages (ADR-122 D4; degrades gracefully).
+        source_context_block = ""
+        if framework_id:
+            passages = await self._retrieve_source_context(framework_id, instruction)
+            if passages:
+                source_context_block = (
+                    "AUTHORITATIVE SOURCE CONTEXT:\n" "---\n" f"{passages}\n" "---\n\n"
+                )
+
         try:
             response_text = await self._prompt_model.invoke(
                 context={
                     "instruction": instruction,
                     "rationale": rationale,
                     "content": content,
+                    "source_context": source_context_block,
                 },
                 client=self.llm,
                 user_id="grc_judge_engine",

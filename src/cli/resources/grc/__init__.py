@@ -12,7 +12,10 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-from . import gap_analysis  # registers the gap-analysis command on `app`
+from . import (
+    gap_analysis,  # registers the gap-analysis command on `app`
+    ingest,  # registers the ingest command on `app`
+)
 
 
 __all__ = ["app"]

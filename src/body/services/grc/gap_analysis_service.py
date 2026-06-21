@@ -185,7 +185,15 @@ def load_catalog(
     path = resolve_catalog_path(name, catalog_root=catalog_root)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     requirements = data.get("requirements") or []
-    return [_build_rule(entry) for entry in requirements]
+    rules = [_build_rule(entry) for entry in requirements]
+    # Inject framework_id into grc_judge params so the engine can query the
+    # internal corpus for augmentation (ADR-122 D4). Params are a plain dict
+    # (ExecutableRule is not frozen) and setdefault never overwrites catalog-
+    # authored values.
+    for rule in rules:
+        if rule.engine == "grc_judge":
+            rule.params.setdefault("framework_id", name)
+    return rules
 
 
 # ID: c4414ad0-33ab-4d27-98b7-965e72496436

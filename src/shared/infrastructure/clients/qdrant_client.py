@@ -129,6 +129,29 @@ class QdrantService:
             )
             raise
 
+    # ID: 935badae-6577-429a-8465-6e491aff143b
+    async def drop_and_recreate_collection(
+        self, collection_name: str, vector_size: int | None = None
+    ) -> None:
+        """Drop the named collection (if it exists) and recreate it fresh (ADR-122 D1).
+
+        Idempotent: safe to call whether or not the collection currently exists.
+        Used by the internal GRC corpus ingester for clean re-ingestion.
+        """
+        target_size = vector_size or self.vector_size
+        logger.info(
+            "Recreating Qdrant collection %s (dim=%s, distance=cosine)",
+            collection_name,
+            target_size,
+        )
+        await self.client.recreate_collection(
+            collection_name=collection_name,
+            vectors_config=qm.VectorParams(
+                size=target_size, distance=qm.Distance.COSINE
+            ),
+            on_disk_payload=True,
+        )
+
     # ========================================================================
     # CORE PRIMITIVES (The only places where raw client calls are allowed)
     # ========================================================================

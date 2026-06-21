@@ -1,5 +1,5 @@
 id: grc_judge
-version: "0.2.0"
+version: "0.3.0"
 role: ConstitutionalCoherenceAnalyst
 description: >
   Assesses whether a document satisfies a single compliance requirement, for
@@ -11,6 +11,9 @@ input:
     - instruction
     - rationale
     - content
+  optional:
+    - source_context   # Pre-formatted "AUTHORITATIVE SOURCE CONTEXT" block from the
+                       # internal corpus (ADR-122 D4); empty string when unavailable.
 output:
   format: json
   schema:
