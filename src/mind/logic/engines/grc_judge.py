@@ -184,7 +184,7 @@ class GRCJudgeEngine(BaseEngine):
             passages = await self._retrieve_source_context(framework_id, instruction)
             if passages:
                 source_context_block = (
-                    "AUTHORITATIVE SOURCE CONTEXT:\n" "---\n" f"{passages}\n" "---\n\n"
+                    f"AUTHORITATIVE SOURCE CONTEXT:\n---\n{passages}\n---\n\n"
                 )
 
         try:
