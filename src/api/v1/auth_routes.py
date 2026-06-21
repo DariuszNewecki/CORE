@@ -123,6 +123,7 @@ def get_auth_service(
 # ---------------------------------------------------------------------------
 
 
+# ID: c3737fa5-4055-4d1c-9fdc-e99229c1e02c
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
@@ -130,20 +131,24 @@ class RegisterRequest(BaseModel):
     invitation_token: str | None = None
 
 
+# ID: 5c1d9013-482a-40be-aee4-1cedc51d4058
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
+# ID: ec18c598-5202-4e32-ba63-2a6773b3c796
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 
 
+# ID: c97ee217-099e-483f-8454-05b57b634709
 class PasswordResetConfirmRequest(BaseModel):
     token: str
     new_password: str
 
 
+# ID: 1c205eca-e484-44fd-a52d-3e1d0d228052
 class PromoteRequest(BaseModel):
     user_id: str
     org_id: str | None = None
@@ -350,6 +355,7 @@ async def me(
 # ---------------------------------------------------------------------------
 
 
+# ID: 7acce499-3f53-47aa-aa96-e6210a161067
 class InviteRequest(BaseModel):
     email: EmailStr
     role: str
@@ -423,6 +429,7 @@ async def invite(
 # ---------------------------------------------------------------------------
 
 
+# ID: d41ea1b4-45b2-4c13-b91f-a1a6345dcf5d
 class PromoteUserRequest(BaseModel):
     org_id: str | None = None
     role: str
@@ -487,6 +494,7 @@ async def reactivate_user(
 # ---------------------------------------------------------------------------
 
 
+# ID: f8709a34-6a7a-4898-8085-9b7769cc1a4a
 class CreateApiKeyRequest(BaseModel):
     label: str
     expires_at: str | None = None
