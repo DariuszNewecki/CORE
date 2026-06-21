@@ -47,6 +47,7 @@ from api.v1 import (
     sync_routes,
 )
 from body.infrastructure.lifespan import core_lifespan
+from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -150,7 +151,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.CORS_ORIGINS,  # T6b — set CORS_ORIGINS env var in prod
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -129,6 +129,12 @@ class Settings(BaseSettings):
     )
     RESEND_API_KEY: str | None = Field(None, validation_alias="RESEND_API_KEY")
     APP_BASE_URL: str = Field("http://localhost:8000", validation_alias="APP_BASE_URL")
+    # T6b: allowed CORS origins. Defaults to the Vite dev server; override in
+    # production via CORS_ORIGINS='["https://app.example.com"]' (JSON array).
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: ["http://localhost:5173"],
+        validation_alias="CORS_ORIGINS",
+    )
 
     LLM_ENABLED: bool = True
     QDRANT_COLLECTION_NAME: str = "core-code"

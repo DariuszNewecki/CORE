@@ -1,13 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { meAuthMeGet } from '@/api'
 
 export const Route = createFileRoute('/')({
-  component: IndexPage,
+  beforeLoad: async () => {
+    try {
+      await meAuthMeGet()
+      throw redirect({ to: '/dashboard' })
+    } catch (e) {
+      if (e && typeof e === 'object' && 'to' in e) throw e
+      throw redirect({ to: '/login' })
+    }
+  },
 })
-
-function IndexPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <h1 className="text-2xl font-semibold tracking-tight">CORE</h1>
-    </div>
-  )
-}
