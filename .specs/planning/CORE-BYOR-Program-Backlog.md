@@ -162,9 +162,14 @@ Auth backend live. Frontend + auth gate shipped. Remaining before external users
 - **T6b** ✅ **DONE 2026-06-22** — CORS narrowed to `settings.CORS_ORIGINS` (`c0d7dbda`).
 - **T6c** ✅ **DONE 2026-06-22** — All `/v1/` routes gated; `/health` + `/auth/*` public
   (`4e1a199f`).
-- **T6d — Resend setup** — set `RESEND_API_KEY` and `APP_BASE_URL` in `.env` (and
-  `APP_DOMAIN` in Resend dashboard) when a Resend account is provisioned. Dev mode already
-  returns tokens in JSON response as fallback.
+- **T6d — Resend setup** — engineering done (`11e27fb6`); pure operator steps remaining:
+  1. Sign up at resend.com → add domain `core-governance.com` → copy SPF + DKIM + DMARC
+     DNS records to registrar → wait for Resend to verify (usually minutes).
+  2. Add two lines to `.env`: `RESEND_API_KEY=re_...` and `APP_BASE_URL=https://core-governance.com`
+  3. `core-admin daemon restart`
+  4. Register a test account and confirm email arrives in inbox — that's the close signal.
+  Note: `APP_BASE_URL` can stay as LAN IP until the domain is pointed at the server;
+  dev-mode token fallback (`_dev_verify_token` in register response) works without Resend.
 - **T6e — Google OAuth** — stub column (`auth_method`) already in `core.users`. Needs:
   Google Cloud project, OAuth 2.0 credentials, `authlib` or `httpx-oauth` flow,
   `/auth/google` + `/auth/google/callback` routes. Separate ADR recommended.
