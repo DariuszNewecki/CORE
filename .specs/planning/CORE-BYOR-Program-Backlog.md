@@ -53,6 +53,13 @@ that parametrized the obligation layer and ratified + implemented ADR-111.
   Domain-agnostic rename: `GRCGapAnalysisService` → `DocumentCorpusAnalysisService`
   (alias kept). Pre-existing cross-validation bug in `intent_repository` fixed (identity
   nesting). 7 tests authored, tree clean.
+- **T5c closed** — ADR-113 fully implemented: `EvidenceClass` enum (PROVEN/JUDGED/ATTESTED)
+  + field on `AuditFinding` (D1); derived from `BaseEngine.evidence_class` class var,
+  stamped in `rule_executor` (D2); fail-closed to ATTESTED (D3); `attestation_gate`
+  engine surfaces "ATTESTATION REQUIRED" (D4); orthogonal to severity (D5); general
+  — code audit + GRC both label findings (D6). All 16 registered engines carry an
+  explicit declaration; registry-sweep test enforces this going forward. Surfaces in
+  CLI via `check/formatters.py` and `grc/gap_analysis.py`.
 
 ## 2. Open threads
 
@@ -89,8 +96,8 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
   Includes `document_corpus_sensor` + `document.run.gap_analysis` action.
   Regulation→Intent residency boundary decided in ADR-116 (catalog as data; `public/`,
   `licensed/`, `internal/` tiers). Domain-agnostic: any document corpus, not GRC-only.
-- **T5c** — **OPEN** — Per-finding attestation (proven / judged / attested). The
-  honesty guardrail made mechanical; gates the "trusted output" claim.
+- **T5c** ✅ **DONE 2026-06-21** — Per-finding attestation (ADR-113). All 6 decisions
+  shipped; 16 engines declared; registry-sweep test enforces completeness going forward.
 - **T5d** — **OPEN, gated on licence procurement** — GRC internal audit corpus pipeline
   (ADR-116 D9). Layout reserved (`grc-catalogs/internal/`, gitignored). Ingestion,
   licence-gate enforcement, corpus-as-input invariant, resolver tolerance. Depends on
@@ -104,19 +111,14 @@ adopted → amend ADR-111 D3 + the implementation. Most relevant to the GRC/regu
 
 ## 3. Sequencing
 
-**As of 2026-06-21:** T1/T5a/T5b/T5e are all shipped. The core BYOR engine — Scout
-induction, document_corpus type, repository adapter, corpus-level verdict — is live.
+**As of 2026-06-21:** T1/T2/T3/T5a/T5b/T5c/T5e are all shipped. The full honesty
+stack — Scout induction, document_corpus type, repository adapter, corpus-level
+verdict, per-finding provenance label — is live.
 
 Remaining open in priority order:
-1. **T2** (docs) — unblocked; short effort; gates the self-serve on-ramp being
-   honestly advertised to newcomers.
-2. **T3** (#674, wheel packaging) — unblocks `pip install` adopters for Phase A
-   (`project onboard`). Engineering only, no ADR needed.
-3. **T5c** (attestation) — the honesty guardrail that makes findings externally
-   trustworthy; blocks "trusted output" positioning.
-4. **T5d** (internal corpus) — procurement-gated; no engineering block once a
+1. **T5d** (internal corpus) — procurement-gated; no engineering block once a
    licence is held. Can spec the pipeline now.
-5. **T4** (airlock) — governor-deferred design decision.
+2. **T4** (airlock) — governor-deferred design decision.
 
 The commercial center of gravity is GRC (governor decision 2026-06-17). Code
 self-development runs on a maintenance track.

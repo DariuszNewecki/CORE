@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .base import BaseEngine, EngineResult
+from .base import BaseEngine, EngineResult, EvidenceClass
 
 
 # ID: 8f3431f3-5ede-4088-a279-d0c1cab89f28
@@ -25,6 +25,9 @@ class PassiveGateEngine(BaseEngine):
     """
 
     engine_id = "passive_gate"
+    evidence_class = (
+        EvidenceClass.PROVEN
+    )  # ADR-113: substrate enforcement is deterministic
 
     # ID: 2f24dd30-e6d6-4d2e-8e8f-1081a48ca85f
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

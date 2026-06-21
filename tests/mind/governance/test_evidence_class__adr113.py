@@ -233,3 +233,31 @@ async def test_grc_trio_produces_all_three_labels(
         EvidenceClass.JUDGED,
         EvidenceClass.ATTESTED,
     }
+
+
+# --------------------------------------------------------------------------
+# Registry sweep — every registered engine must declare its evidence_class
+# explicitly (ADR-113 D3 / Consequences: "the linter/test surface should flag
+# an undeclared engine so the omission is visible, not silent").
+# --------------------------------------------------------------------------
+
+
+def test_all_registered_engines_declare_evidence_class() -> None:
+    """No registered engine may rely silently on the BaseEngine default.
+
+    The fail-closed default (ATTESTED) makes *forgetting* safe, but silent
+    omission is invisible.  This test requires an explicit class-level
+    ``evidence_class`` attribute in the engine's own ``__dict__`` so the
+    omission is a CI failure, not a quiet degradation.
+    """
+    from mind.logic.engines.registry import EngineRegistry
+
+    EngineRegistry._discover_engines()
+    missing = [
+        engine_id
+        for engine_id, cls in EngineRegistry._engine_classes.items()
+        if "evidence_class" not in cls.__dict__
+    ]
+    assert missing == [], (
+        f"Engine(s) missing explicit evidence_class declaration (ADR-113 D3): {missing}"
+    )
