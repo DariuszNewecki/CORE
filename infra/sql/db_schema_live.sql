@@ -5967,6 +5967,7 @@ CREATE TABLE core.users (
     auth_method core.auth_method NOT NULL DEFAULT 'email',
     email_verified boolean DEFAULT false NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
+    locked_until timestamptz,
     mfa_secret text,
     created_at timestamptz DEFAULT now() NOT NULL,
     last_login_at timestamptz,
@@ -5981,6 +5982,7 @@ CREATE TABLE core.organisations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     slug text NOT NULL,
+    allowed_domains text[],
     created_at timestamptz DEFAULT now() NOT NULL,
     created_by uuid,
     CONSTRAINT organisations_pkey PRIMARY KEY (id),
@@ -6010,6 +6012,8 @@ CREATE TABLE core.refresh_tokens (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash text NOT NULL,
+    family_id uuid NOT NULL DEFAULT gen_random_uuid(),
+    used_at timestamptz,
     expires_at timestamptz NOT NULL,
     revoked boolean DEFAULT false NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
@@ -6052,12 +6056,14 @@ CREATE TABLE core.api_keys (
     created_by uuid NOT NULL,
     key_hash text NOT NULL,
     label text NOT NULL,
+    role core.user_role NOT NULL DEFAULT 'analyst',
     last_used_at timestamptz,
     expires_at timestamptz,
     revoked boolean DEFAULT false NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
     CONSTRAINT api_keys_pkey PRIMARY KEY (id),
-    CONSTRAINT api_keys_hash_key UNIQUE (key_hash)
+    CONSTRAINT api_keys_hash_key UNIQUE (key_hash),
+    CONSTRAINT api_keys_role_check CHECK (role IN ('analyst', 'auditor'))
 );
 
 COMMENT ON TABLE core.api_keys IS 'Long-lived API keys for programmatic/integration access. Stored hashed; raw key shown once at creation. (ADR-124)';
@@ -6087,6 +6093,7 @@ CREATE INDEX org_memberships_user_id_idx ON core.org_memberships USING btree (us
 CREATE INDEX org_memberships_org_id_idx ON core.org_memberships USING btree (organisation_id);
 CREATE INDEX refresh_tokens_user_id_idx ON core.refresh_tokens USING btree (user_id);
 CREATE INDEX refresh_tokens_expires_at_idx ON core.refresh_tokens USING btree (expires_at);
+CREATE INDEX refresh_tokens_family_id_idx ON core.refresh_tokens USING btree (family_id);
 
 --
 -- Foreign keys

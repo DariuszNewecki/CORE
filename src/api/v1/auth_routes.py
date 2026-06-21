@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
+from datetime import UTC, datetime
 from threading import Lock
 from typing import Annotated
 
@@ -27,7 +28,7 @@ from body.services.auth.email import (
     send_password_reset_email,
     send_verification_email,
 )
-from body.services.auth.service import AuthService
+from body.services.auth.service import AuthLockedError, AuthService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -46,6 +47,7 @@ _rate_buckets: dict[str, list[float]] = defaultdict(list)
 _RATE_LIMITS: dict[str, tuple[int, int]] = {
     "login": (10, 60),
     "register": (5, 60),
+    "refresh": (60, 3600),
     "password_reset": (3, 3600),
 }
 
@@ -77,7 +79,7 @@ def _set_auth_cookies(
     response: Response, access_token: str, refresh_token: str
 ) -> None:
     response.set_cookie(
-        "access_token",
+        "core_access",
         access_token,
         httponly=True,
         secure=_SECURE,
@@ -85,7 +87,7 @@ def _set_auth_cookies(
         max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     response.set_cookie(
-        "refresh_token",
+        "core_refresh",
         refresh_token,
         httponly=True,
         secure=_SECURE,
@@ -97,8 +99,8 @@ def _set_auth_cookies(
 
 # ID: 8a3f1c6e-2d4b-4a9c-b7e0-1f5d3a8c6f2e
 def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token", path="/auth/refresh")
+    response.delete_cookie("core_access")
+    response.delete_cookie("core_refresh", path="/auth/refresh")
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +229,17 @@ async def login(
     ua = request.headers.get("user-agent")
     _check_rate(ip or "unknown", "login")
 
-    tokens = await svc.login(str(body.email), body.password, ip=ip, ua=ua)
+    try:
+        tokens = await svc.login(str(body.email), body.password, ip=ip, ua=ua)
+    except AuthLockedError as exc:
+        retry_after = max(
+            0, int((exc.locked_until - datetime.now(UTC)).total_seconds())
+        )
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail="Account temporarily locked due to repeated failed login attempts.",
+            headers={"Retry-After": str(retry_after)},
+        )
     if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -241,30 +253,26 @@ async def login(
 @router.post("/refresh")
 # ID: 9f4c2e7a-1b3d-4e8c-b5f0-6a2d1c9e4f7b
 async def refresh(
+    request: Request,
     response: Response,
     svc: Annotated[AuthService, Depends(get_auth_service)],
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    core_refresh: Annotated[str | None, Cookie()] = None,
 ) -> dict:
-    """Exchange a valid refresh cookie for a new access JWT cookie."""
-    if not refresh_token:
+    """Exchange a valid refresh cookie for new access + refresh cookies (rotation)."""
+    ip = request.client.host if request.client else "unknown"
+    _check_rate(ip, "refresh")
+    if not core_refresh:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token."
         )
-    new_access = await svc.refresh(refresh_token)
-    if not new_access:
+    tokens = await svc.refresh(core_refresh)
+    if not tokens:
         _clear_auth_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token invalid or expired.",
         )
-    response.set_cookie(
-        "access_token",
-        new_access,
-        httponly=True,
-        secure=_SECURE,
-        samesite="lax",
-        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+    _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
     return {"message": "Token refreshed."}
 
 
@@ -273,11 +281,11 @@ async def refresh(
 async def logout(
     response: Response,
     svc: Annotated[AuthService, Depends(get_auth_service)],
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    core_refresh: Annotated[str | None, Cookie()] = None,
 ) -> dict:
     """Revoke refresh token and clear auth cookies."""
-    if refresh_token:
-        await svc.logout(refresh_token)
+    if core_refresh:
+        await svc.logout(core_refresh)
     _clear_auth_cookies(response)
     return {"message": "Logged out."}
 
@@ -497,6 +505,7 @@ async def reactivate_user(
 # ID: f8709a34-6a7a-4898-8085-9b7769cc1a4a
 class CreateApiKeyRequest(BaseModel):
     label: str
+    role: str = "analyst"
     expires_at: str | None = None
 
 
@@ -518,15 +527,20 @@ async def create_api_key(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No organisation associated with this account.",
         )
-    result = await svc.create_api_key(
-        org_id=current_user["org_id"],
-        created_by_id=current_user["sub"],
-        label=body.label,
-        expires_at=body.expires_at,
-    )
+    try:
+        result = await svc.create_api_key(
+            org_id=current_user["org_id"],
+            created_by_id=current_user["sub"],
+            label=body.label,
+            role=body.role,
+            expires_at=body.expires_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return {
         "key_id": result["key_id"],
         "label": body.label,
+        "role": body.role,
         "raw_key": result["raw_key"],
         "message": "Store this key securely — it will not be shown again.",
     }

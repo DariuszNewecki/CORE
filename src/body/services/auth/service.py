@@ -14,11 +14,12 @@ import re
 import unicodedata
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.services.auth.deny_list import deny_list
 from body.services.auth.password import hash_password, verify_password
 from body.services.auth.tokens import (
     create_access_token,
@@ -33,6 +34,21 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+_LOCKOUT_THRESHOLD = 10
+_LOCKOUT_WINDOW_MINUTES = 15
+_LOCKOUT_DURATION_MINUTES = 15
+
+
+# ID: b2f4e7c1-3a8d-4f9e-b5c0-6d1a3f7e2c9b
+class AuthLockedError(Exception):
+    """Raised when a login attempt is made on a temporarily locked account."""
+
+    def __init__(self, locked_until: datetime) -> None:
+        self.locked_until = locked_until
+        super().__init__(f"Account locked until {locked_until.isoformat()}")
+
+
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
@@ -245,11 +261,12 @@ class AuthService:
         """Verify credentials and issue tokens.
 
         Returns dict with access_token and refresh_token, or None on failure.
+        Raises AuthLockedError if the account is temporarily locked.
         """
         email = email.strip().lower()
         row = await self._session.execute(
             text(
-                "SELECT id, password_hash, email_verified, is_active"
+                "SELECT id, password_hash, email_verified, is_active, locked_until"
                 " FROM core.users WHERE email = :email"
             ),
             {"email": email},
@@ -264,7 +281,10 @@ class AuthService:
             )
             return None
 
-        user_id, pw_hash, email_verified, is_active = user
+        user_id, pw_hash, email_verified, is_active, locked_until = user
+
+        if locked_until and locked_until > datetime.now(UTC):
+            raise AuthLockedError(locked_until)
 
         if not is_active:
             await self._log_event(
@@ -284,6 +304,8 @@ class AuthService:
                 ip=ip,
                 ua=ua,
             )
+            await self._maybe_lock_account(user_id)
+            await self._session.commit()
             return None
 
         if not email_verified:
@@ -311,17 +333,27 @@ class AuthService:
             self._access_expire_minutes,
         )
         raw_refresh, hashed_refresh = generate_opaque_token()
+        family_id = uuid4()
         expires_at = datetime.now(UTC) + timedelta(days=self._refresh_expire_days)
 
         await self._session.execute(
             text(
-                "INSERT INTO core.refresh_tokens (user_id, token_hash, expires_at)"
-                " VALUES (:uid, :hash, :exp)"
+                "INSERT INTO core.refresh_tokens"
+                " (user_id, token_hash, family_id, expires_at)"
+                " VALUES (:uid, :hash, :fid, :exp)"
             ),
-            {"uid": user_id, "hash": hashed_refresh, "exp": expires_at},
+            {
+                "uid": user_id,
+                "hash": hashed_refresh,
+                "fid": family_id,
+                "exp": expires_at,
+            },
         )
         await self._session.execute(
-            text("UPDATE core.users SET last_login_at = now() WHERE id = :uid"),
+            text(
+                "UPDATE core.users SET last_login_at = now(), locked_until = NULL"
+                " WHERE id = :uid"
+            ),
             {"uid": user_id},
         )
         await self._log_event("login", user_id=user_id, ip=ip, ua=ua)
@@ -351,12 +383,20 @@ class AuthService:
     # ------------------------------------------------------------------
 
     # ID: 5b2e9c4a-1f7d-4a3e-8c0b-6d2f1a5e9c3b
-    async def refresh(self, raw_refresh_token: str) -> str | None:
-        """Exchange a valid refresh token for a new access JWT."""
+    async def refresh(self, raw_refresh_token: str) -> dict[str, str] | None:
+        """Exchange a valid refresh token for a new access JWT + rotated refresh token.
+
+        Implements token family rotation (ADR-124 D4):
+        - Marks the consumed token as used.
+        - Inserts a new token in the same family.
+        - Reuse of an already-used token revokes the entire family (theft signal).
+        Returns None on any validation failure.
+        """
         token_hash = hash_token(raw_refresh_token)
         row = await self._session.execute(
             text(
-                "SELECT rt.user_id, u.email, u.is_active"
+                "SELECT rt.id, rt.user_id, rt.family_id, rt.used_at,"
+                "       u.email, u.is_active"
                 " FROM core.refresh_tokens rt"
                 " JOIN core.users u ON u.id = rt.user_id"
                 " WHERE rt.token_hash = :hash"
@@ -368,9 +408,42 @@ class AuthService:
         if not rec:
             return None
 
-        user_id, email, is_active = rec
+        token_id, user_id, family_id, used_at, email, is_active = rec
+
+        if used_at is not None:
+            await self._session.execute(
+                text(
+                    "UPDATE core.refresh_tokens SET revoked = true"
+                    " WHERE family_id = :fid"
+                ),
+                {"fid": family_id},
+            )
+            await self._log_event(
+                "token_refresh_rejected",
+                user_id=user_id,
+                metadata={"reason": "reuse_detected", "family_id": str(family_id)},
+            )
+            await self._session.commit()
+            return None
+
         if not is_active:
             return None
+
+        await self._session.execute(
+            text("UPDATE core.refresh_tokens SET used_at = now() WHERE id = :tid"),
+            {"tid": token_id},
+        )
+
+        raw_new, hashed_new = generate_opaque_token()
+        expires_at = datetime.now(UTC) + timedelta(days=self._refresh_expire_days)
+        await self._session.execute(
+            text(
+                "INSERT INTO core.refresh_tokens"
+                " (user_id, token_hash, family_id, expires_at)"
+                " VALUES (:uid, :hash, :fid, :exp)"
+            ),
+            {"uid": user_id, "hash": hashed_new, "fid": family_id, "exp": expires_at},
+        )
 
         membership = await self._get_membership(user_id)
         role = membership["role"] if membership else "visitor"
@@ -381,14 +454,17 @@ class AuthService:
         await self._log_event("token_refreshed", user_id=user_id)
         await self._session.commit()
 
-        return create_access_token(
-            str(user_id),
-            email,
-            role,
-            org_id,
-            self._jwt_secret,
-            self._access_expire_minutes,
-        )
+        return {
+            "access_token": create_access_token(
+                str(user_id),
+                email,
+                role,
+                org_id,
+                self._jwt_secret,
+                self._access_expire_minutes,
+            ),
+            "refresh_token": raw_new,
+        }
 
     # ------------------------------------------------------------------
     # Password reset
@@ -536,6 +612,12 @@ class AuthService:
                 ),
                 {"uid": user_id},
             )
+            deny_list.add(
+                user_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+            )
+        else:
+            deny_list.remove(user_id)
         event = "account_reactivated" if active else "account_suspended"
         await self._log_event(event, user_id=UUID(user_id), actor_id=UUID(actor_id))
         await self._session.commit()
@@ -590,15 +672,22 @@ class AuthService:
         org_id: str,
         created_by_id: str,
         label: str,
+        role: str,
         expires_at: str | None = None,
     ) -> dict:
-        """Create an API key.  Returns key_id and raw_key (shown once)."""
+        """Create an API key.  Returns key_id and raw_key (shown once).
+
+        role must be 'analyst' or 'auditor' — enforced by DB CHECK constraint.
+        """
+        _ALLOWED_KEY_ROLES = {"analyst", "auditor"}
+        if role not in _ALLOWED_KEY_ROLES:
+            raise ValueError(f"API key role must be one of {_ALLOWED_KEY_ROLES}.")
         raw, hashed = generate_opaque_token()
         result = await self._session.execute(
             text(
                 "INSERT INTO core.api_keys"
-                " (organisation_id, created_by, key_hash, label, expires_at)"
-                " VALUES (:oid, :by, :hash, :label, :exp)"
+                " (organisation_id, created_by, key_hash, label, role, expires_at)"
+                " VALUES (:oid, :by, :hash, :label, :role, :exp)"
                 " RETURNING id"
             ),
             {
@@ -606,6 +695,7 @@ class AuthService:
                 "by": created_by_id,
                 "hash": hashed,
                 "label": label,
+                "role": role,
                 "exp": expires_at,
             },
         )
@@ -613,7 +703,7 @@ class AuthService:
         await self._log_event(
             "api_key_created",
             actor_id=UUID(created_by_id),
-            metadata={"key_id": key_id, "label": label, "org_id": org_id},
+            metadata={"key_id": key_id, "label": label, "org_id": org_id, "role": role},
         )
         await self._session.commit()
         return {"key_id": key_id, "raw_key": raw}
@@ -665,6 +755,32 @@ class AuthService:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    # ID: c4e1f8a2-5b3d-4f9c-b7e0-2a6d1c4e8f3b
+    async def _maybe_lock_account(self, user_id: object) -> None:
+        """Lock the account if the recent failure count crosses the threshold."""
+        count_row = await self._session.execute(
+            text(
+                "SELECT COUNT(*) FROM core.auth_events"
+                " WHERE user_id = :uid AND event_type = 'login_failed'"
+                " AND created_at > now() - interval '15 minutes'"
+            ),
+            {"uid": user_id},
+        )
+        count = count_row.scalar_one()
+        if count >= _LOCKOUT_THRESHOLD:
+            locked_until = datetime.now(UTC) + timedelta(
+                minutes=_LOCKOUT_DURATION_MINUTES
+            )
+            await self._session.execute(
+                text("UPDATE core.users SET locked_until = :lu WHERE id = :uid"),
+                {"lu": locked_until, "uid": user_id},
+            )
+            await self._log_event(
+                "account_locked",
+                user_id=UUID(str(user_id)),
+                metadata={"locked_until": locked_until.isoformat()},
+            )
 
     # ID: 3d9b5e2a-1c4f-4a7e-b8d0-6c2a1f5e3b7d
     async def _get_membership(self, user_id: object) -> dict | None:

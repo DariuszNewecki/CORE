@@ -43,14 +43,15 @@ async def open_background_session() -> AsyncGenerator[AsyncSession, None]:
 
 # ID: c3f7a2e9-1d4b-4e8c-b6f0-5a2d1c3e7f9b
 async def get_current_user(
-    access_token: Annotated[str | None, Cookie()] = None,
+    core_access: Annotated[str | None, Cookie()] = None,
 ) -> dict:
-    """Validate the access_token cookie and return the JWT payload.
+    """Validate the core_access cookie and return the JWT payload.
 
-    Raises 401 if the token is absent, expired, or invalid.
+    Raises 401 if the token is absent, expired, invalid, or the user is
+    on the suspension deny-list (ADR-124 D4 — immediate suspension).
     Use as a FastAPI dependency on any protected route.
     """
-    if not access_token:
+    if not core_access:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated.",
@@ -59,7 +60,7 @@ async def get_current_user(
     try:
         from body.services.auth.tokens import decode_access_token
 
-        payload = decode_access_token(access_token, settings.JWT_SECRET_KEY)
+        payload = decode_access_token(core_access, settings.JWT_SECRET_KEY)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -70,6 +71,15 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials.",
         )
+
+    from body.services.auth.deny_list import deny_list
+
+    if deny_list.is_denied(payload["sub"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account suspended.",
+        )
+
     return payload
 
 
