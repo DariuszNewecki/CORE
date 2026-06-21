@@ -5938,6 +5938,208 @@ GRANT ALL ON SEQUENCE core.vector_sync_log_id_seq TO core;
 GRANT ALL ON TABLE core.worker_registry TO core;
 
 
+-- ============================================================
+-- UAC: User Access Control (ADR-124)
+-- ============================================================
+
+--
+-- ENUMs
+--
+
+CREATE TYPE core.auth_method AS ENUM ('email', 'google');
+
+CREATE TYPE core.user_role AS ENUM (
+    'visitor',
+    'analyst',
+    'auditor',
+    'org_admin',
+    'platform_admin'
+);
+
+--
+-- Tables
+--
+
+CREATE TABLE core.users (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    password_hash text,
+    auth_method core.auth_method NOT NULL DEFAULT 'email',
+    email_verified boolean DEFAULT false NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    mfa_secret text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    last_login_at timestamptz,
+    CONSTRAINT users_pkey PRIMARY KEY (id),
+    CONSTRAINT users_email_key UNIQUE (email)
+);
+
+COMMENT ON TABLE core.users IS 'CORE SaaS user accounts. One row per authenticated identity. (ADR-124)';
+COMMENT ON COLUMN core.users.mfa_secret IS 'TOTP seed for MFA. NULL until user enrolls MFA (v2).';
+
+CREATE TABLE core.organisations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid,
+    CONSTRAINT organisations_pkey PRIMARY KEY (id),
+    CONSTRAINT organisations_slug_key UNIQUE (slug)
+);
+
+COMMENT ON TABLE core.organisations IS 'Tenant units — one per company or team. (ADR-124)';
+
+-- Case-insensitive unique on org name enforced via functional index (not inline UNIQUE).
+CREATE UNIQUE INDEX organisations_name_ci_key ON core.organisations USING btree (lower(name));
+
+CREATE TABLE core.org_memberships (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    organisation_id uuid,
+    role core.user_role NOT NULL DEFAULT 'visitor',
+    promoted_by uuid,
+    promoted_at timestamptz,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT org_memberships_pkey PRIMARY KEY (id),
+    CONSTRAINT org_memberships_user_org_key UNIQUE (user_id, organisation_id)
+);
+
+COMMENT ON TABLE core.org_memberships IS 'Role grants scoped to an organisation. PLATFORM_ADMIN rows have organisation_id=NULL. (ADR-124)';
+
+CREATE TABLE core.refresh_tokens (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamptz NOT NULL,
+    revoked boolean DEFAULT false NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
+    CONSTRAINT refresh_tokens_hash_key UNIQUE (token_hash)
+);
+
+COMMENT ON TABLE core.refresh_tokens IS 'Opaque refresh tokens stored hashed. Short-lived access JWTs are stateless; this table enables explicit revocation on logout/suspension. (ADR-124)';
+
+CREATE TABLE core.password_reset_tokens (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    token_hash text NOT NULL,
+    expires_at timestamptz NOT NULL,
+    used boolean DEFAULT false NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id),
+    CONSTRAINT password_reset_tokens_hash_key UNIQUE (token_hash)
+);
+
+CREATE TABLE core.invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    organisation_id uuid,
+    role core.user_role NOT NULL DEFAULT 'visitor',
+    token_hash text NOT NULL,
+    created_by uuid NOT NULL,
+    expires_at timestamptz NOT NULL,
+    accepted_at timestamptz,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT invitations_pkey PRIMARY KEY (id),
+    CONSTRAINT invitations_token_hash_key UNIQUE (token_hash)
+);
+
+COMMENT ON TABLE core.invitations IS 'Pre-assigned role invitations. Recipient registers via link and lands directly in the specified role, bypassing VISITOR. (ADR-124)';
+
+CREATE TABLE core.api_keys (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organisation_id uuid NOT NULL,
+    created_by uuid NOT NULL,
+    key_hash text NOT NULL,
+    label text NOT NULL,
+    last_used_at timestamptz,
+    expires_at timestamptz,
+    revoked boolean DEFAULT false NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT api_keys_pkey PRIMARY KEY (id),
+    CONSTRAINT api_keys_hash_key UNIQUE (key_hash)
+);
+
+COMMENT ON TABLE core.api_keys IS 'Long-lived API keys for programmatic/integration access. Stored hashed; raw key shown once at creation. (ADR-124)';
+
+CREATE TABLE core.auth_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    event_type text NOT NULL,
+    actor_id uuid,
+    ip_address text,
+    user_agent text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT auth_events_pkey PRIMARY KEY (id)
+);
+
+COMMENT ON TABLE core.auth_events IS 'Immutable auth audit trail — logins, promotions, suspensions, resets. (ADR-124)';
+
+--
+-- Indexes
+--
+
+CREATE INDEX auth_events_user_id_idx ON core.auth_events USING btree (user_id);
+CREATE INDEX auth_events_created_at_idx ON core.auth_events USING btree (created_at DESC);
+CREATE INDEX auth_events_event_type_idx ON core.auth_events USING btree (event_type);
+CREATE INDEX org_memberships_user_id_idx ON core.org_memberships USING btree (user_id);
+CREATE INDEX org_memberships_org_id_idx ON core.org_memberships USING btree (organisation_id);
+CREATE INDEX refresh_tokens_user_id_idx ON core.refresh_tokens USING btree (user_id);
+CREATE INDEX refresh_tokens_expires_at_idx ON core.refresh_tokens USING btree (expires_at);
+
+--
+-- Foreign keys
+--
+
+ALTER TABLE ONLY core.organisations
+    ADD CONSTRAINT organisations_created_by_fkey FOREIGN KEY (created_by) REFERENCES core.users(id);
+
+ALTER TABLE ONLY core.org_memberships
+    ADD CONSTRAINT org_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES core.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.org_memberships
+    ADD CONSTRAINT org_memberships_org_id_fkey FOREIGN KEY (organisation_id) REFERENCES core.organisations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.org_memberships
+    ADD CONSTRAINT org_memberships_promoted_by_fkey FOREIGN KEY (promoted_by) REFERENCES core.users(id);
+
+ALTER TABLE ONLY core.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES core.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES core.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.invitations
+    ADD CONSTRAINT invitations_organisation_id_fkey FOREIGN KEY (organisation_id) REFERENCES core.organisations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.invitations
+    ADD CONSTRAINT invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES core.users(id);
+
+ALTER TABLE ONLY core.api_keys
+    ADD CONSTRAINT api_keys_organisation_id_fkey FOREIGN KEY (organisation_id) REFERENCES core.organisations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY core.api_keys
+    ADD CONSTRAINT api_keys_created_by_fkey FOREIGN KEY (created_by) REFERENCES core.users(id);
+
+--
+-- Grants
+--
+
+GRANT ALL ON TABLE core.users TO core;
+GRANT ALL ON TABLE core.organisations TO core;
+GRANT ALL ON TABLE core.org_memberships TO core;
+GRANT ALL ON TABLE core.refresh_tokens TO core;
+GRANT ALL ON TABLE core.password_reset_tokens TO core;
+GRANT ALL ON TABLE core.invitations TO core;
+GRANT ALL ON TABLE core.api_keys TO core;
+GRANT ALL ON TABLE core.auth_events TO core;
+
+-- ============================================================
+-- End UAC
+-- ============================================================
+
+
 --
 -- PostgreSQL database dump complete
 --

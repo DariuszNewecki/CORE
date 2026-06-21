@@ -24,10 +24,12 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.errors import register_exception_handlers
 from api.v1 import (
     audit_routes,
+    auth_routes,
     census_routes,
     coverage_routes,
     daemon_routes,
@@ -146,6 +148,14 @@ def create_app() -> FastAPI:
             },
         ],
     )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(auth_routes.router)
     app.include_router(knowledge_routes.router, prefix="/v1", tags=["Knowledge"])
     app.include_router(development_routes.router, prefix="/v1", tags=["Development"])
     app.include_router(proposals_routes.router, prefix="/v1", tags=["Proposals"])

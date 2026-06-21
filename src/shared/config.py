@@ -117,6 +117,19 @@ class Settings(BaseSettings):
     CORE_MASTER_KEY: str | None = Field(None, validation_alias="CORE_MASTER_KEY")
     LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
 
+    # UAC — auth token secrets and email delivery (ADR-124)
+    JWT_SECRET_KEY: str = Field(
+        "change-me-in-production", validation_alias="JWT_SECRET_KEY"
+    )
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
+        60, validation_alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
+        30, validation_alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS"
+    )
+    RESEND_API_KEY: str | None = Field(None, validation_alias="RESEND_API_KEY")
+    APP_BASE_URL: str = Field("http://localhost:8000", validation_alias="APP_BASE_URL")
+
     LLM_ENABLED: bool = True
     QDRANT_COLLECTION_NAME: str = "core-code"
     LOCAL_EMBEDDING_DIM: int = 768

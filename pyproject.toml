@@ -50,6 +50,9 @@ dependencies = [
     "python-dotenv>=1.0.0,<2.0.0",
     # Security
     "cryptography>=48.0.1,<49.0.0",
+    "PyJWT>=2.8,<3.0",
+    "passlib[bcrypt]>=1.7,<2.0",
+    "email-validator>=2.0,<3.0",
     # CLI & UI
     "typer>=0.16.1,<0.17.0",
     "rich>=13,<16",

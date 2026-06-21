@@ -1,0 +1,572 @@
+# src/api/v1/auth_routes.py
+"""UAC auth endpoints (ADR-124).
+
+All auth routes live under /auth/ (no /v1/ prefix — these are identity
+infrastructure, not OEM API).  Tokens are delivered as httpOnly cookies;
+the frontend never touches them in JavaScript.
+
+Rate limiting is enforced in-process via a sliding-window counter.
+This is adequate for single-process deployments; replace with Redis-backed
+limiting if running multiple API workers.
+"""
+
+from __future__ import annotations
+
+import time
+from collections import defaultdict
+from threading import Lock
+from typing import Annotated
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.dependencies import get_api_session, get_current_user
+from body.services.auth.email import (
+    send_invitation_email,
+    send_password_reset_email,
+    send_verification_email,
+)
+from body.services.auth.service import AuthService
+from shared.config import settings
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+# ---------------------------------------------------------------------------
+# In-process rate limiter (sliding window, per-IP)
+# ---------------------------------------------------------------------------
+
+_rate_lock = Lock()
+_rate_buckets: dict[str, list[float]] = defaultdict(list)
+
+_RATE_LIMITS: dict[str, tuple[int, int]] = {
+    "login": (10, 60),
+    "register": (5, 60),
+    "password_reset": (3, 3600),
+}
+
+
+# ID: 2b7e4c1f-9a3d-4f8c-b5e0-6d1a3c7f9e2b
+def _check_rate(key: str, limit_key: str) -> None:
+    max_calls, window_seconds = _RATE_LIMITS[limit_key]
+    now = time.monotonic()
+    with _rate_lock:
+        bucket = _rate_buckets[key]
+        bucket[:] = [t for t in bucket if now - t < window_seconds]
+        if len(bucket) >= max_calls:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests. Please try again later.",
+            )
+        bucket.append(now)
+
+
+# ---------------------------------------------------------------------------
+# Cookie helpers
+# ---------------------------------------------------------------------------
+
+_SECURE = settings.CORE_ENV.upper() in {"PROD", "PRODUCTION"}
+
+
+# ID: 5f9d2a7e-3c1b-4e8a-b0f6-4d2c1a5e9f7b
+def _set_auth_cookies(
+    response: Response, access_token: str, refresh_token: str
+) -> None:
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=_SECURE,
+        samesite="lax",
+        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=_SECURE,
+        samesite="strict",
+        path="/auth/refresh",
+        max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+    )
+
+
+# ID: 8a3f1c6e-2d4b-4a9c-b7e0-1f5d3a8c6f2e
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token", path="/auth/refresh")
+
+
+# ---------------------------------------------------------------------------
+# Dependency: auth service instance
+# ---------------------------------------------------------------------------
+
+
+# ID: 1d6b4f9c-3e2a-4c8e-b0d7-5a1c3f6b9d4e
+def get_auth_service(
+    session: Annotated[AsyncSession, Depends(get_api_session)],
+) -> AuthService:
+    return AuthService(
+        session=session,
+        jwt_secret=settings.JWT_SECRET_KEY,
+        access_expire_minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+        refresh_expire_days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Request / response models
+# ---------------------------------------------------------------------------
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    org_name: str | None = None
+    invitation_token: str | None = None
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class PromoteRequest(BaseModel):
+    user_id: str
+    org_id: str | None = None
+    role: str
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+# ID: 4c9e2b7f-1a3d-4f8c-b5e0-2d6a1c4e9f7b
+async def register(
+    body: RegisterRequest,
+    request: Request,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Register a new user.  Returns a verification token to send via email."""
+    _check_rate(request.client.host if request.client else "unknown", "register")
+    try:
+        result = await svc.register(
+            email=str(body.email),
+            password=body.password,
+            org_name=body.org_name,
+            invitation_token=body.invitation_token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    email_sent = False
+    if settings.RESEND_API_KEY:
+        email_sent = await send_verification_email(
+            to=str(body.email),
+            token=result["email_verify_token"],
+            base_url=settings.APP_BASE_URL,
+            api_key=settings.RESEND_API_KEY,
+        )
+
+    return {
+        "user_id": result["user_id"],
+        "message": "Registration successful. Check your email to verify your account.",
+        **(
+            {"_dev_verify_token": result["email_verify_token"]}
+            if not email_sent
+            and settings.CORE_ENV.upper() not in {"PROD", "PRODUCTION"}
+            else {}
+        ),
+    }
+
+
+@router.get("/verify-email")
+# ID: 7e1f4b9c-2a3d-4c8e-b6f0-3d1a5c7e4f2b
+async def verify_email(
+    token: str,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Verify email address via the token from the registration email."""
+    try:
+        await svc.verify_email(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return {"message": "Email verified. You may now log in."}
+
+
+@router.post("/login")
+# ID: 3b8d6c2f-1e4a-4f9c-b7a0-5c2d1a6e8f3b
+async def login(
+    body: LoginRequest,
+    request: Request,
+    response: Response,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Authenticate and set httpOnly auth cookies."""
+    ip = request.client.host if request.client else None
+    ua = request.headers.get("user-agent")
+    _check_rate(ip or "unknown", "login")
+
+    tokens = await svc.login(str(body.email), body.password, ip=ip, ua=ua)
+    if not tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials or account not active.",
+        )
+
+    _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
+    return {"message": "Login successful."}
+
+
+@router.post("/refresh")
+# ID: 9f4c2e7a-1b3d-4e8c-b5f0-6a2d1c9e4f7b
+async def refresh(
+    response: Response,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> dict:
+    """Exchange a valid refresh cookie for a new access JWT cookie."""
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token."
+        )
+    new_access = await svc.refresh(refresh_token)
+    if not new_access:
+        _clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token invalid or expired.",
+        )
+    response.set_cookie(
+        "access_token",
+        new_access,
+        httponly=True,
+        secure=_SECURE,
+        samesite="lax",
+        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return {"message": "Token refreshed."}
+
+
+@router.post("/logout")
+# ID: 6d1a3c8f-5e2b-4f7c-b9a0-2c4d1a6e3f5b
+async def logout(
+    response: Response,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> dict:
+    """Revoke refresh token and clear auth cookies."""
+    if refresh_token:
+        await svc.logout(refresh_token)
+    _clear_auth_cookies(response)
+    return {"message": "Logged out."}
+
+
+@router.post("/password-reset/request")
+# ID: 2a5f8e1c-4b3d-4a9e-b7c0-1d5a3f8c2e4b
+async def password_reset_request(
+    body: PasswordResetRequest,
+    request: Request,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Request a password reset token (sent via email by the caller)."""
+    _check_rate(str(body.email), "password_reset")
+    raw_token = await svc.request_password_reset(str(body.email))
+
+    email_sent = False
+    if raw_token and settings.RESEND_API_KEY:
+        email_sent = await send_password_reset_email(
+            to=str(body.email),
+            token=raw_token,
+            base_url=settings.APP_BASE_URL,
+            api_key=settings.RESEND_API_KEY,
+        )
+
+    return {
+        "message": "If that email is registered, a reset link will be sent.",
+        **(
+            {"_dev_reset_token": raw_token}
+            if not email_sent
+            and raw_token
+            and settings.CORE_ENV.upper() not in {"PROD", "PRODUCTION"}
+            else {}
+        ),
+    }
+
+
+@router.post("/password-reset/confirm")
+# ID: 8e3c1f6b-2a4d-4c9e-b5f0-7d1a3e8c6f2b
+async def password_reset_confirm(
+    body: PasswordResetConfirmRequest,
+    response: Response,
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Apply a password reset and revoke all existing sessions."""
+    try:
+        ok = await svc.reset_password(body.token, body.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token invalid or expired.",
+        )
+    _clear_auth_cookies(response)
+    return {"message": "Password reset successful. Please log in again."}
+
+
+@router.get("/me")
+# ID: 5c7f2a9e-1d3b-4e8c-b6a0-4f2d1c5e7f3b
+async def me(
+    user: Annotated[dict, Depends(get_current_user)],
+) -> dict:
+    """Return the current user's identity from their JWT (no DB hit)."""
+    return {
+        "user_id": user["sub"],
+        "email": user["email"],
+        "role": user["role"],
+        "org_id": user["org_id"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Admin — invite
+# ---------------------------------------------------------------------------
+
+
+class InviteRequest(BaseModel):
+    email: EmailStr
+    role: str
+    org_id: str | None = None
+
+
+@router.post("/invite", status_code=status.HTTP_201_CREATED)
+# ID: 9b4e2f7c-1a3d-4c8e-b5f0-3d1a6c9e2f7b
+async def invite(
+    body: InviteRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Create an invitation link for a new user (ORG_ADMIN or PLATFORM_ADMIN)."""
+    _ORG_ADMIN_MAX = {"visitor", "analyst", "auditor"}
+    if user["role"] == "org_admin":
+        if body.role not in _ORG_ADMIN_MAX:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="ORG_ADMIN may only invite up to AUDITOR.",
+            )
+        target_org = body.org_id or user["org_id"]
+        if target_org != user["org_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="ORG_ADMIN may only invite into their own organisation.",
+            )
+    elif user["role"] != "platform_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions.",
+        )
+    else:
+        target_org = body.org_id
+
+    try:
+        raw_token = await svc.create_invitation(
+            email=str(body.email),
+            org_id=target_org,
+            role=body.role,
+            created_by_id=user["sub"],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    org_name = target_org or "CORE"
+    email_sent = False
+    if settings.RESEND_API_KEY:
+        email_sent = await send_invitation_email(
+            to=str(body.email),
+            token=raw_token,
+            role=body.role,
+            org_name=org_name,
+            base_url=settings.APP_BASE_URL,
+            api_key=settings.RESEND_API_KEY,
+        )
+
+    return {
+        "message": f"Invitation created for {body.email}.",
+        **(
+            {"_dev_invitation_token": raw_token}
+            if not email_sent
+            and settings.CORE_ENV.upper() not in {"PROD", "PRODUCTION"}
+            else {}
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Admin — promote / suspend
+# ---------------------------------------------------------------------------
+
+
+class PromoteUserRequest(BaseModel):
+    org_id: str | None = None
+    role: str
+
+
+@router.post("/users/{user_id}/promote")
+# ID: 4d8b2e9f-1c3a-4f7e-b5c0-6a2d1c8e4f3b
+async def promote_user(
+    user_id: str,
+    body: PromoteUserRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Promote a user to a new role (ORG_ADMIN or PLATFORM_ADMIN only)."""
+    try:
+        await svc.promote_user(
+            user_id=user_id,
+            org_id=body.org_id or current_user["org_id"],
+            role=body.role,
+            promoted_by_id=current_user["sub"],
+            promoter_role=current_user["role"],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    return {"message": f"User {user_id} promoted to {body.role}."}
+
+
+@router.post("/users/{user_id}/suspend")
+# ID: 7f1c4a9e-2d3b-4e8c-b6f0-1a5d3c7e2f4b
+async def suspend_user(
+    user_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Suspend a user account (PLATFORM_ADMIN only)."""
+    if current_user["role"] != "platform_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="PLATFORM_ADMIN only."
+        )
+    await svc.set_active(user_id=user_id, active=False, actor_id=current_user["sub"])
+    return {"message": f"User {user_id} suspended."}
+
+
+@router.post("/users/{user_id}/reactivate")
+# ID: 2e6c9f4b-1a3d-4c8e-b7f0-5d2a1c6e9f3b
+async def reactivate_user(
+    user_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Reactivate a suspended account (PLATFORM_ADMIN only)."""
+    if current_user["role"] != "platform_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="PLATFORM_ADMIN only."
+        )
+    await svc.set_active(user_id=user_id, active=True, actor_id=current_user["sub"])
+    return {"message": f"User {user_id} reactivated."}
+
+
+# ---------------------------------------------------------------------------
+# Admin — API keys
+# ---------------------------------------------------------------------------
+
+
+class CreateApiKeyRequest(BaseModel):
+    label: str
+    expires_at: str | None = None
+
+
+@router.post("/api-keys", status_code=status.HTTP_201_CREATED)
+# ID: 5a3f8e2c-1b4d-4c9e-b7a0-6d1f3a5e8c2b
+async def create_api_key(
+    body: CreateApiKeyRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Generate a new API key for the current user's organisation (ORG_ADMIN+)."""
+    if current_user["role"] not in {"org_admin", "platform_admin"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ORG_ADMIN or PLATFORM_ADMIN required.",
+        )
+    if not current_user.get("org_id"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No organisation associated with this account.",
+        )
+    result = await svc.create_api_key(
+        org_id=current_user["org_id"],
+        created_by_id=current_user["sub"],
+        label=body.label,
+        expires_at=body.expires_at,
+    )
+    return {
+        "key_id": result["key_id"],
+        "label": body.label,
+        "raw_key": result["raw_key"],
+        "message": "Store this key securely — it will not be shown again.",
+    }
+
+
+@router.get("/api-keys")
+# ID: 8c1f4e7a-3d2b-4a9c-b5e0-2f6d1c4e8a3b
+async def list_api_keys(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """List active API keys for the current organisation (ORG_ADMIN+)."""
+    if current_user["role"] not in {"org_admin", "platform_admin"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ORG_ADMIN or PLATFORM_ADMIN required.",
+        )
+    if not current_user.get("org_id"):
+        return {"keys": []}
+    keys = await svc.list_api_keys(org_id=current_user["org_id"])
+    return {"keys": keys}
+
+
+@router.delete("/api-keys/{key_id}", status_code=status.HTTP_200_OK)
+# ID: 3b7e1c9f-4a2d-4f8e-b6c0-5d1a3f7e2c9b
+async def revoke_api_key(
+    key_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Revoke an API key (ORG_ADMIN+ within their own org)."""
+    if current_user["role"] not in {"org_admin", "platform_admin"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ORG_ADMIN or PLATFORM_ADMIN required.",
+        )
+    if not current_user.get("org_id"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No organisation."
+        )
+    ok = await svc.revoke_api_key(
+        key_id=key_id,
+        org_id=current_user["org_id"],
+        actor_id=current_user["sub"],
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found or already revoked.",
+        )
+    return {"message": f"API key {key_id} revoked."}
