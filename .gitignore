@@ -97,11 +97,8 @@ work/*
 # -----------------------------------------------------------------------------
 # Runtime output — generated at runtime, never versioned
 # -----------------------------------------------------------------------------
-logs/*
-!logs/.gitkeep
-
-reports/*
-!reports/.gitkeep
+logs/
+reports/
 
 tests/reports/
 

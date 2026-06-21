@@ -81,7 +81,7 @@ class DecisionTracer:
         self.decisions: list[Decision] = []
         self.start_time = datetime.now()
 
-        self.trace_dir = Path("reports") / "decisions"
+        self.trace_dir = Path("var/reports/decisions")
 
         # Safe path resolution: use repo_root from resolver if available,
         # fall back to cwd for uninitialized bootstrap contexts.

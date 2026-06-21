@@ -184,6 +184,7 @@ class ViolationRemediatorWorker(Worker):
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
         entries_circuit_broken: int = 0
+        entries_held_uncommitted: int = 0
 
         for (ref_id, file_path), findings in action_groups.items():
             ref_kind = ref_kinds[ref_id]
@@ -202,6 +203,29 @@ class ViolationRemediatorWorker(Worker):
                     group_label,
                     subsuming_proposal_id,
                     resolved,
+                )
+                continue
+
+            # Gate: skip proposal creation when the target file is not yet
+            # committed.  Sandbox worktrees are created at HEAD (ADR-071 D2.2),
+            # so a proposal for an uncommitted file will always fail with ENOENT.
+            # Releasing the entries back to open lets the next cycle retry; once
+            # the governor commits, the file appears in HEAD and the proposal
+            # succeeds.  Flows (ref_kind=="flow") target no specific file and are
+            # not affected.
+            if (
+                ref_kind == "action"
+                and file_path
+                and not self._is_file_committed(file_path)
+            ):
+                released = await self._release_entries(entry_ids)
+                entries_held_uncommitted += released
+                logger.info(
+                    "ViolationRemediatorWorker: holding '%s' — '%s' not in HEAD "
+                    "commit; released %d finding(s) to retry after commit",
+                    group_label,
+                    file_path,
+                    released,
                 )
                 continue
 
@@ -299,6 +323,7 @@ class ViolationRemediatorWorker(Worker):
                 "entries_released": entries_released,
                 "entries_delegated": entries_delegated,
                 "entries_circuit_broken": entries_circuit_broken,
+                "entries_held_uncommitted": entries_held_uncommitted,
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "circuit_broken_actions": proposals_circuit_broken,
@@ -312,7 +337,8 @@ class ViolationRemediatorWorker(Worker):
             "ViolationRemediatorWorker: done — %d proposals created "
             "(%d entries deferred), %d skipped (dedup, %d subsumed entries "
             "resolved), %d circuit-broken (%d entries delegated), "
-            "%d unmappable findings, %d entries released after failure",
+            "%d unmappable findings, %d entries released after failure, "
+            "%d held (target not committed)",
             len(proposals_created),
             entries_deferred,
             len(proposals_skipped),
@@ -321,6 +347,7 @@ class ViolationRemediatorWorker(Worker):
             entries_circuit_broken,
             len(unmappable),
             entries_released_after_failure,
+            entries_held_uncommitted,
         )
 
     # -------------------------------------------------------------------------
@@ -395,3 +422,24 @@ class ViolationRemediatorWorker(Worker):
     # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
         return await mark_delegated(await self._blackboard_service(), findings)
+
+    # ID: 83df33cb-6d2a-46c3-82c3-6132f14ced39
+    def _is_file_committed(self, file_path: str) -> bool:
+        """Return True if file_path exists in the HEAD commit.
+
+        Delegates to GitService.is_committed; on any failure (missing
+        git_service, runtime error) returns True so the proposal is created
+        rather than silently dropped — fail-open is safer than fail-closed.
+        """
+        try:
+            git = self._core_context.git_service
+            if git is None:
+                return True
+            return git.is_committed(file_path)
+        except Exception:
+            logger.warning(
+                "ViolationRemediatorWorker: could not check HEAD status for %s; "
+                "assuming committed (fail open)",
+                file_path,
+            )
+            return True

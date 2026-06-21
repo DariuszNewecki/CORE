@@ -42,7 +42,7 @@ def test_create_worktree_returns_scoped_service_at_sha(repo: GitService) -> None
     try:
         assert isinstance(scoped, ScopedGitService)
         assert scoped.repo_path.exists()
-        assert scoped.repo_path.parent == SANDBOX_PARENT
+        assert scoped.repo_path.parent == (repo.repo_path / SANDBOX_PARENT).resolve()
         assert scoped.repo_path.name.startswith(SANDBOX_PREFIX)
         assert scoped.get_current_commit() == sha
         assert (scoped.repo_path / "file.txt").read_text() == "hello\n"
@@ -163,3 +163,40 @@ def test_sweep_skips_non_sandbox_worktrees(repo: GitService, tmp_path: Path) -> 
 
 def test_sweep_returns_zero_when_no_sandboxes(repo: GitService) -> None:
     assert repo.sweep_orphan_worktrees() == 0
+
+
+# ---------------------------------------------------------------------------
+# is_committed
+# ---------------------------------------------------------------------------
+
+
+def test_is_committed_returns_true_for_committed_file(repo: GitService) -> None:
+    assert repo.is_committed("file.txt") is True
+
+
+def test_is_committed_returns_false_for_untracked_file(
+    repo: GitService, tmp_path: Path
+) -> None:
+    (repo.repo_path / "new_untracked.py").write_text("x = 1\n")
+    assert repo.is_committed("new_untracked.py") is False
+
+
+def test_is_committed_returns_false_for_staged_but_not_committed(
+    repo: GitService,
+) -> None:
+    (repo.repo_path / "staged_only.py").write_text("y = 2\n")
+    _run(["git", "add", "staged_only.py"], repo.repo_path)
+    assert repo.is_committed("staged_only.py") is False
+
+
+def test_is_committed_returns_true_after_commit(repo: GitService) -> None:
+    (repo.repo_path / "soon_committed.py").write_text("z = 3\n")
+    _run(["git", "add", "soon_committed.py"], repo.repo_path)
+    _run(["git", "commit", "-m", "add soon_committed"], repo.repo_path)
+    assert repo.is_committed("soon_committed.py") is True
+
+
+def test_is_committed_returns_false_for_nonexistent_path(
+    repo: GitService,
+) -> None:
+    assert repo.is_committed("src/does/not/exist.py") is False

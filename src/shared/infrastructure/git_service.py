@@ -29,10 +29,11 @@ logger = getLogger(__name__)
 _CFG_GIT = load_operational_config().git
 
 # ADR-071 D2.2 Phase 1: hermetic action execution via git worktree.
-# Sandbox worktrees live under SANDBOX_PARENT with names beginning
-# SANDBOX_PREFIX so the orphan sweep on daemon boot can identify and
-# reclaim them without touching unrelated worktrees.
-SANDBOX_PARENT = Path("/tmp")
+# Sandbox worktrees live under SANDBOX_PARENT (repo-relative) with names
+# beginning SANDBOX_PREFIX so the orphan sweep on daemon boot can identify
+# and reclaim them without touching unrelated worktrees.
+# /tmp is prohibited per CLAUDE.md; all temp writes use var/tmp/.
+SANDBOX_PARENT = Path("var/tmp")
 SANDBOX_PREFIX = "core-action-sandbox-"
 
 
@@ -115,6 +116,22 @@ class GitService:
     def is_git_repo(self) -> bool:
         """Returns True if a '.git' directory exists."""
         return (self.repo_path / ".git").exists()
+
+    # ID: 1fdc163e-5305-462d-8fb2-7097172a1f40
+    def is_committed(self, rel_path: str | Path) -> bool:
+        """Return True if rel_path exists in the HEAD commit tree.
+
+        Uses ``git ls-tree HEAD`` rather than ``ls-files`` so that staged-but-
+        not-committed files return False — matching the set of files that would
+        be present in a sandbox worktree created at HEAD (ADR-071 D2.2).
+        """
+        try:
+            output = self._run_command(
+                ["ls-tree", "--name-only", "HEAD", "--", str(rel_path)]
+            )
+            return bool(output.strip())
+        except RuntimeError:
+            return False
 
     # ID: 715fe14e-e905-4032-9721-35bc67639ed7
     def status_porcelain(self) -> str:
@@ -313,7 +330,9 @@ class GitService:
 
         ADR-071 D2.2 Phase 1.
         """
-        worktree_path = SANDBOX_PARENT / f"{SANDBOX_PREFIX}{uuid.uuid4().hex}"
+        sandbox_parent = (self.repo_path / SANDBOX_PARENT).resolve()
+        sandbox_parent.mkdir(parents=True, exist_ok=True)
+        worktree_path = sandbox_parent / f"{SANDBOX_PREFIX}{uuid.uuid4().hex}"
         self._run_command(["worktree", "add", "--detach", str(worktree_path), sha])
         logger.info(
             "GitService: created worktree %s at sha %s",
@@ -341,13 +360,14 @@ class GitService:
             logger.warning("GitService.sweep_orphan_worktrees: list failed: %s", exc)
             return 0
 
+        sandbox_parent = (self.repo_path / SANDBOX_PARENT).resolve()
         removed = 0
         for line in output.splitlines():
             if not line.startswith("worktree "):
                 continue
             path_str = line[len("worktree ") :].strip()
             path = Path(path_str)
-            if path.parent != SANDBOX_PARENT or not path.name.startswith(
+            if path.parent != sandbox_parent or not path.name.startswith(
                 SANDBOX_PREFIX
             ):
                 continue

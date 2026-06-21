@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_FORMAT = "json"
 _DEFAULT_FAIL_ON = "any"
-_DEFAULT_EVIDENCE_PATH = Path("reports") / "guard_drift.json"
+_DEFAULT_EVIDENCE_PATH = Path("var/reports") / "guard_drift.json"
 
 
 # ID: 206eca11-fb40-4c24-af72-2c29376638c4
