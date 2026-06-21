@@ -61,6 +61,50 @@ that parametrized the obligation layer and ratified + implemented ADR-111.
   explicit declaration; registry-sweep test enforces this going forward. Surfaces in
   CLI via `check/formatters.py` and `grc/gap_analysis.py`.
 
+## 1e. Done 2026-06-22 (SaaS delivery — T6a/T6b/T6c)
+
+- **ADR-125 accepted + implemented** (`6b577d66`) — Full SPA frontend scaffold: Vite 8,
+  React 19, TypeScript 6, Tailwind v4, shadcn/ui, TanStack Router v1 (file-based routing),
+  TanStack Query v5, Orval v8 (typed API client generated from OpenAPI). Single-flight
+  refresh mutator (`fetch-client.ts`). Makefile targets: `web-install`, `web-dev`,
+  `web-build`, `web-generate-schema`, `web-generate-api`. FastAPI serves `web/dist/` via
+  `/{full_path:path}` catch-all (ADR-125 D11); SPA active only when `web/dist/` exists.
+- **T6a closed** (`c0d7dbda`) — Auth screens: login, register, forgot-password,
+  reset-password. TanStack Router pathless layout routes (`_public` for auth,
+  `_app` for protected). `beforeLoad` guard on `_app.tsx` redirects to `/login` on 401.
+  Dashboard stub with user email + sign-out. Password min 12 chars; no-leak pattern on
+  forgot-password.
+- **T6b closed** (`c0d7dbda`) — CORS narrowed from `["*"]` to `settings.CORS_ORIGINS`
+  (default `["http://localhost:5173"]`; JSON env var override in prod). `CORS_ORIGINS`
+  field added to `src/shared/config.py`.
+- **T6c closed** (`4e1a199f`) — All `/v1/` routes gated with `Depends(get_current_user)`
+  via intermediate `APIRouter(prefix="/v1", dependencies=[...])`. Option 1 (blanket gate);
+  migration to per-route role checks (Option 2) is ~25 lines. `/health` and `/auth/*`
+  remain public. Verified: unauthenticated POST `/v1/audit/runs` → 401.
+
+---
+
+## 1d. Done 2026-06-21 (UAC / SaaS foundation)
+
+- **ADR-124 accepted + implemented** (`4c961772`) — User Access Control foundation for SaaS
+  delivery. Full auth stack: bcrypt password hashing (passlib, cost 12), JWT access tokens
+  (1 hr, HS256, httpOnly cookie), opaque refresh tokens (30 d, SHA-256 stored), 5-role model
+  (VISITOR/ANALYST/AUDITOR/ORG_ADMIN/PLATFORM_ADMIN), org + org_membership tables, invitation
+  flow, API key management, audit event log. 14 REST endpoints under `/auth/` registered in
+  core-api. Transactional email via Resend (graceful dev-mode degradation — tokens returned
+  in response when `RESEND_API_KEY` absent). In-process sliding-window rate limiting on
+  login/register/password-reset. `get_current_user` + `require_role` FastAPI dependency
+  providers in `api/dependencies.py`. 10 unit tests for password + token primitives.
+  DB schema applied to 192.168.20.23/core.
+- **DB additions** — 2 ENUMs (`core.auth_method`, `core.user_role`), 8 tables:
+  `core.users`, `core.organisations`, `core.org_memberships`, `core.refresh_tokens`,
+  `core.password_reset_tokens`, `core.invitations`, `core.api_keys`, `core.auth_events`.
+- **Config additions** — `JWT_SECRET_KEY`, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`,
+  `JWT_REFRESH_TOKEN_EXPIRE_DAYS`, `RESEND_API_KEY`, `APP_BASE_URL` in
+  `src/shared/config.py` and `.env`.
+
+---
+
 ## 2. Open threads
 
 ### T1 — Verify consumer-mode enforcement  **[DONE — 2026-06-20]**
@@ -109,19 +153,40 @@ the stage dir. Direct-write path (`--write` without `--stage`) unchanged.
   `ae36aa6f` D1/D3/D4/D5 + `1587ebad` D2). `RequirementVerdict` + applicability gate.
   (See §1b above.)
 
+### T6 — SaaS delivery: remaining auth surfaces  **[PARTIAL — T6a/T6b/T6c done]**
+
+Auth backend live. Frontend + auth gate shipped. Remaining before external users can log in:
+
+- **T6a** ✅ **DONE 2026-06-22** — Auth screens (login/register/forgot/reset) + SPA scaffold
+  (ADR-125). Commits `6b577d66` + `c0d7dbda`.
+- **T6b** ✅ **DONE 2026-06-22** — CORS narrowed to `settings.CORS_ORIGINS` (`c0d7dbda`).
+- **T6c** ✅ **DONE 2026-06-22** — All `/v1/` routes gated; `/health` + `/auth/*` public
+  (`4e1a199f`).
+- **T6d — Resend setup** — set `RESEND_API_KEY` and `APP_BASE_URL` in `.env` (and
+  `APP_DOMAIN` in Resend dashboard) when a Resend account is provisioned. Dev mode already
+  returns tokens in JSON response as fallback.
+- **T6e — Google OAuth** — stub column (`auth_method`) already in `core.users`. Needs:
+  Google Cloud project, OAuth 2.0 credentials, `authlib` or `httpx-oauth` flow,
+  `/auth/google` + `/auth/google/callback` routes. Separate ADR recommended.
+- **T6f — MFA (v2)** — `mfa_secret` column already in `core.users`. TOTP via `pyotp`.
+  Separate ADR. No urgency until T6a–T6d are operational.
+
 ---
 
 ## 3. Sequencing
 
-**As of 2026-06-21:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e are all shipped. The full BYOR
-program engineering is complete.
+**As of 2026-06-22:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e (BYOR program) + UAC foundation
+(ADR-124) + SaaS delivery T6a/T6b/T6c are all shipped.
 
-Remaining operator action:
+Remaining operator actions:
 - **T5d procurement** — iso_27001/gamp5/cyfun require a commercial licence before
   `core-admin grc ingest` will run. Engineering done; blocker is procurement.
+- **T6d** — operator config: set `RESEND_API_KEY` + `APP_BASE_URL` in `.env`.
+- **T6e/T6f** — v2 (Google OAuth, MFA). Separate ADRs; no urgency until T6d is live.
 
 The commercial center of gravity is GRC (governor decision 2026-06-17). Code
-self-development runs on a maintenance track.
+self-development runs on a maintenance track. SaaS delivery (T6) is the next engineering
+epoch.
 
 ---
 
@@ -136,4 +201,6 @@ self-development runs on a maintenance track.
 - ADR-121 (document_corpus type — T5b ✅)
 - ADR-108 (D3 → #674 → T3)
 - ADR-075 (namespace), ADR-090 (multi-domain)
+- ADR-124 (user access control — UAC foundation, T6 precursor ✅)
+- ADR-125 (web/ SPA frontend scaffold — T6a ✅)
 - #640 (BYOR newcomer docs — T2), #674 (wheel packaging — T3)
