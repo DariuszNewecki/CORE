@@ -11,6 +11,9 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-20
 **Date:** 2026-06-20
+**Amended:** 2026-06-22 — D7 fallback menu updated: `symbol_ids` removed (CORE-specific
+UUID anchor, not domain-general); `no_bare_except` promoted to blocking (universal bad
+practice); `no_secrets` added (reporting). Commit `15a3dd67`.
 **Grounding paper:** `CORE-BYOR.md` (§4 code×Induce cell) — primary.
 **Amends:** ADR-108 D1 (rule defaults narrowed); ADR-111 D1 (project onboard scope narrowed)
 **Builds on:** ADR-108 (machinery/rules split), ADR-111 (delivery mechanism),
@@ -190,9 +193,13 @@ writes the ratified rules.
 
 If no LLM is available at `project scout` invocation time, Scout presents a curated menu of
 universal, LLM-free candidate rules. The menu is exactly the four rules from
-`examples/starter-intent/`: `symbol_ids` (blocking), `docstrings` (reporting), `no_print`
-(reporting), `no_bare_except` (reporting). The ratification requirement (D5) still applies —
-the operator accepts, rejects, or adjusts each.
+`examples/starter-intent/`: `no_bare_except` (blocking), `docstrings` (reporting),
+`no_print` (reporting), `no_secrets` (reporting). The ratification requirement (D5) still
+applies — the operator accepts, rejects, or adjusts each.
+
+*(Amended 2026-06-22: `symbol_ids` replaced by `no_secrets`; `no_bare_except` promoted to
+blocking. `symbol_ids` was a CORE-internal UUID anchor convention — not a domain-general
+rule. `no_secrets` is universal. See commit `15a3dd67`.)*
 
 This fallback makes Scout usable in airgapped or LLM-restricted environments. It is
 explicitly the *fallback*, not the default. Its output is `examples/starter-intent/`'s rule
