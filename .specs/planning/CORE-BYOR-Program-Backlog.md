@@ -61,6 +61,15 @@ that parametrized the obligation layer and ratified + implemented ADR-111.
   explicit declaration; registry-sweep test enforces this going forward. Surfaces in
   CLI via `check/formatters.py` and `grc/gap_analysis.py`.
 
+## 1f. Done 2026-06-22 (SaaS delivery — T6d)
+
+- **T6d closed** — Resend transactional email live. `RESEND_API_KEY` + `APP_BASE_URL` in
+  `.env`; `core-governance.com` domain verified; verification email delivered to inbox.
+  Fixed asyncpg `::jsonb` cast bug in `AuthService._log_event`
+  (`src/body/services/auth/service.py`).
+
+---
+
 ## 1e. Done 2026-06-22 (SaaS delivery — T6a/T6b/T6c)
 
 - **ADR-125 accepted + implemented** (`6b577d66`) — Full SPA frontend scaffold: Vite 8,
@@ -162,14 +171,9 @@ Auth backend live. Frontend + auth gate shipped. Remaining before external users
 - **T6b** ✅ **DONE 2026-06-22** — CORS narrowed to `settings.CORS_ORIGINS` (`c0d7dbda`).
 - **T6c** ✅ **DONE 2026-06-22** — All `/v1/` routes gated; `/health` + `/auth/*` public
   (`4e1a199f`).
-- **T6d — Resend setup** — engineering done (`11e27fb6`); pure operator steps remaining:
-  1. Sign up at resend.com → add domain `core-governance.com` → copy SPF + DKIM + DMARC
-     DNS records to registrar → wait for Resend to verify (usually minutes).
-  2. Add two lines to `.env`: `RESEND_API_KEY=re_...` and `APP_BASE_URL=https://core-governance.com`
-  3. `core-admin daemon restart`
-  4. Register a test account and confirm email arrives in inbox — that's the close signal.
-  Note: `APP_BASE_URL` can stay as LAN IP until the domain is pointed at the server;
-  dev-mode token fallback (`_dev_verify_token` in register response) works without Resend.
+- **T6d** ✅ **DONE 2026-06-22** — Resend wired and verified. `RESEND_API_KEY` + `APP_BASE_URL`
+  set in `.env`; `core-governance.com` domain verified in Resend; test registration delivered
+  to inbox. Fixed asyncpg `::jsonb` cast bug in `_log_event` (`cast(:meta as jsonb)`).
 - **T6e — Google OAuth** — stub column (`auth_method`) already in `core.users`. Needs:
   Google Cloud project, OAuth 2.0 credentials, `authlib` or `httpx-oauth` flow,
   `/auth/google` + `/auth/google/callback` routes. Separate ADR recommended.
@@ -181,13 +185,12 @@ Auth backend live. Frontend + auth gate shipped. Remaining before external users
 ## 3. Sequencing
 
 **As of 2026-06-22:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e (BYOR program) + UAC foundation
-(ADR-124) + SaaS delivery T6a/T6b/T6c are all shipped.
+(ADR-124) + SaaS delivery T6a/T6b/T6c/T6d are all shipped.
 
 Remaining operator actions:
 - **T5d procurement** — iso_27001/gamp5/cyfun require a commercial licence before
   `core-admin grc ingest` will run. Engineering done; blocker is procurement.
-- **T6d** — operator config: set `RESEND_API_KEY` + `APP_BASE_URL` in `.env`.
-- **T6e/T6f** — v2 (Google OAuth, MFA). Separate ADRs; no urgency until T6d is live.
+- **T6e/T6f** — v2 (Google OAuth, MFA). Separate ADRs; no urgency.
 
 The commercial center of gravity is GRC (governor decision 2026-06-17). Code
 self-development runs on a maintenance track. SaaS delivery (T6) is the next engineering

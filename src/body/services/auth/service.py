@@ -820,7 +820,7 @@ class AuthService:
             text(
                 "INSERT INTO core.auth_events"
                 " (user_id, event_type, actor_id, ip_address, user_agent, metadata)"
-                " VALUES (:uid, :etype, :actor, :ip, :ua, :meta::jsonb)"
+                " VALUES (:uid, :etype, :actor, :ip, :ua, cast(:meta as jsonb))"
             ),
             {
                 "uid": user_id,
