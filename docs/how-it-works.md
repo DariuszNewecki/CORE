@@ -185,7 +185,7 @@ A Blocking rule that fails halts execution immediately. No partial states. No ex
 
 ## Enforcement Engines
 
-CORE evaluates rules through thirteen engines:
+CORE evaluates rules through fourteen engines:
 
 | Engine | Method |
 |--------|--------|
@@ -200,6 +200,7 @@ CORE evaluates rules through thirteen engines:
 | `passive_gate` | Substrate-enforced rules (DB/runtime marker) |
 | `taxonomy_gate` | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
 | `contracts_gate` | Cross-cutting data-contract coherence (context-level; ADR-102) |
+| `attestation_gate` | Human-attestation surface for requirements no automated engine can honestly decide (context-level; ADR-113) |
 | `llm_gate` | LLM-assisted semantic checks |
 | `runtime_gate` | Runtime write authorization (`IntentGuard` per `CORE-Gate.md`) |
 
