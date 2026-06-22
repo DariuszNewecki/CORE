@@ -1,0 +1,84 @@
+# Scout enforcement catalog — maps governance intents to CORE enforcement mechanisms.
+#
+# The LLM proposes observations (what to govern and why). CORE matches each
+# observation's rule_id against this catalog to find the enforcement engine and
+# params. Human ratification sees both the observation and the proposed enforcement
+# as separate layers.
+#
+# To extend Scout's vocabulary: add an entry here. No prompt changes needed.
+#
+# match_keys: substrings of the proposed rule_id (after stripping the "scout."
+# prefix) that trigger this entry. Exact match on 'id' is tried first;
+# match_keys are tried if no exact match is found. First match wins.
+
+entries:
+
+  - id: no_bare_except
+    match_keys: ["bare_except", "swallow_exception", "silent_except", "except_pass"]
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except:\\s*pass"
+        - "except:\\s*$"
+        - "except Exception:\\s*pass"
+        - "except BaseException:\\s*pass"
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"]
+
+  - id: no_print
+    match_keys: ["no_print_statements", "print_statement", "debug_print", "console_print"]
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["tests/**/*.py", "test/**/*.py", "scripts/**/*.py", "**/venv/**", "**/.venv/**"]
+
+  - id: docstrings
+    match_keys: ["missing_docstring", "no_docstring", "undocumented", "docstrings_required"]
+    engine: ast_gate
+    params:
+      check_type: docstrings_present
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/__init__.py", "tests/**/*.py", "test/**/*.py", "**/venv/**", "**/.venv/**"]
+
+  - id: module_header
+    match_keys: ["file_header", "top_level_docstring", "module_docstring", "missing_header"]
+    engine: ast_gate
+    params:
+      check_type: module_header
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/__init__.py", "**/venv/**", "**/.venv/**"]
+
+  - id: max_file_lines
+    match_keys: ["file_too_long", "file_size", "large_file", "file_length"]
+    engine: ast_gate
+    params:
+      check_type: max_file_lines
+      max_lines: 500
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/venv/**", "**/.venv/**"]
+
+  - id: max_function_length
+    match_keys: ["function_too_long", "long_function", "function_size", "function_length"]
+    engine: ast_gate
+    params:
+      check_type: max_function_length
+      max_lines: 50
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/venv/**", "**/.venv/**"]
+
+  - id: no_secrets
+    match_keys: ["hardcoded_secret", "hardcoded_credential", "password_literal", "api_key_literal", "secret_literal", "credential"]
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?i)\\b(password|passwd|secret_key|api_key|access_token|auth_token)\\s*=\\s*['\"][^'\"\\s]{8,}['\"]"
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["tests/**/*.py", "test/**/*.py", "**/test_*.py", "**/*_test.py", "**/venv/**", "**/.venv/**"]

@@ -4,9 +4,12 @@
 Scout rule inducer — Mind component (ADR-119 D3).
 
 Receives structural signals extracted from a target repository and proposes
-candidate governance rules in CORE's enforcement vocabulary. I/O-free: all
-file sampling is done by the caller (CLI layer). The LLM client is injected
-by the caller; Mind reasons but does not import client infrastructure directly.
+candidate governance observations — what to govern and why, grounded in the
+repo's own patterns. The LLM does not specify enforcement mechanics (engine,
+params, scope); that mapping is the caller's responsibility via the enforcement
+catalog. I/O-free: all file sampling and catalog loading is done by the caller
+(CLI layer). The LLM client is injected by the caller; Mind reasons but does
+not import client infrastructure directly.
 
 Follows the GRCApplicabilityGate pattern: failures degrade to an empty
 candidate list — never a silent proposal set or a crash.
@@ -52,7 +55,12 @@ class ScoutInducer:
 
     # ID: a0ed4bfb-2093-44a6-ac80-5964956ae0a2
     async def propose(self, code_signals: str) -> list[dict[str, Any]]:
-        """Propose candidate rules from repository structural signals.
+        """Propose governance observations from repository structural signals.
+
+        Each candidate describes what to govern and why, grounded in observed
+        code patterns. Enforcement mechanics (engine, params, scope) are absent
+        from the output — the CLI layer maps observations to enforcement via the
+        catalog after this call returns.
 
         Args:
             code_signals: Formatted string of signals extracted from the target
@@ -60,8 +68,9 @@ class ScoutInducer:
                 excerpts. Produced by the CLI detect phase; never read here.
 
         Returns:
-            List of candidate rule dicts. Empty on any AI failure — callers
-            must handle the empty case by falling back to the universal menu.
+            List of candidate observation dicts (rule_id, statement, enforcement,
+            rationale, evidence_sample, ramp_note). Empty on any AI failure —
+            callers must handle the empty case by falling back to the universal menu.
         """
         try:
             response_text = await self._prompt_model.invoke(

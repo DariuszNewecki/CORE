@@ -1,18 +1,12 @@
 [
   {
-    "code_signals": "Python files total: 38\nHas tests directory: yes (pytest)\nHas src/ layout: yes\nprint() calls found: 14 across 8 sampled files\nBare except occurrences: 4\nPublic symbols missing docstrings (estimate): ~45%\nPublic symbols missing # ID: anchor: ~100% (none found)\nType annotations present: yes (-> in 6/10 files)\nfrom __future__ import annotations: present in 9/10 files\n\nSAMPLE (src/utils.py)\n  def parse_config(path):\n      data = yaml.safe_load(open(path))\n      print('loaded config:', data)\n      return data\n\nSAMPLE (src/client.py)\n  class APIClient:\n      def fetch(self, url):\n          try:\n              return requests.get(url)\n          except:\n              pass",
+    "code_signals": "Python files total: 38\nHas tests directory: yes (pytest)\nHas src/ layout: yes\nprint() calls found: 14 across 8 sampled files\nBare except occurrences: 4\nPublic symbols missing docstrings (estimate): ~45%\nType annotations present: yes (-> in 6/10 files)\nfrom __future__ import annotations: present in 9/10 files\n\nSAMPLE (src/utils.py)\n  def parse_config(path):\n      data = yaml.safe_load(open(path))\n      print('loaded config:', data)\n      return data\n\nSAMPLE (src/client.py)\n  class APIClient:\n      def fetch(self, url):\n          try:\n              return requests.get(url)\n          except:\n              pass",
     "candidates": [
       {
-        "rule_id": "scout.no_print_statements",
+        "rule_id": "scout.no_print",
         "statement": "Importable library code MUST NOT use print(). Use the standard logger so output is structured and routable.",
         "enforcement": "reporting",
-        "rationale": "14 print() calls found across 8 sampled files (e.g. src/utils.py). The repo uses logging in some places already — these are likely debugging leftovers. Reporting level surfaces them without blocking CI; the team can migrate incrementally.",
-        "engine": "ast_gate",
-        "params": { "check_type": "no_print_statements" },
-        "scope": {
-          "applies_to": ["src/**/*.py"],
-          "excludes": ["tests/**/*.py"]
-        },
+        "rationale": "14 print() calls found across 8 sampled files (e.g. src/utils.py). The repo uses logging in some places already — these are likely debugging leftovers. Reporting level surfaces them without blocking CI.",
         "evidence_sample": "src/utils.py — print('loaded config:', data)",
         "ramp_note": ""
       },
@@ -21,19 +15,6 @@
         "statement": "Code MUST NOT swallow exceptions with a bare 'except:' or 'except Exception: pass'. Name the exception you expect and handle it explicitly.",
         "enforcement": "reporting",
         "rationale": "4 bare-except occurrences found in sampled files (e.g. src/client.py). Wide enough that blocking would halt CI on day one; reporting surfaces them for incremental cleanup.",
-        "engine": "regex_gate",
-        "params": {
-          "forbidden_patterns": [
-            "except:\\s*$",
-            "except:\\s*pass",
-            "except Exception:\\s*pass",
-            "except BaseException:\\s*pass"
-          ]
-        },
-        "scope": {
-          "applies_to": ["src/**/*.py"],
-          "excludes": ["tests/**/*.py"]
-        },
         "evidence_sample": "src/client.py — except: pass",
         "ramp_note": "4 violations found; promote to blocking after they are resolved."
       },
@@ -42,12 +23,6 @@
         "statement": "Public functions and classes MUST have a docstring that states their intent.",
         "enforcement": "reporting",
         "rationale": "~45% of public symbols are missing docstrings. Reporting level makes the gap visible without blocking; the team can add docstrings incrementally.",
-        "engine": "ast_gate",
-        "params": { "check_type": "docstrings_present" },
-        "scope": {
-          "applies_to": ["src/**/*.py"],
-          "excludes": ["tests/**/*.py", "**/__init__.py"]
-        },
         "evidence_sample": "src/utils.py — def parse_config: missing docstring",
         "ramp_note": "~45% of public symbols lack docstrings; promote to blocking after coverage reaches ~95%."
       }

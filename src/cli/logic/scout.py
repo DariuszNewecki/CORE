@@ -4,15 +4,22 @@
 BYOR Scout — Phase B rule induction (ADR-119 D2/D3/D5/D7).
 
 `core-admin project scout <target> [--write]` samples the target repo's source
-code, calls ScoutInducer (Mind) to propose candidate rules in CORE's enforcement
-vocabulary, walks the operator through per-rule ratification (D5 — no --accept-all),
-and writes the confirmed set to:
+code, calls ScoutInducer (Mind) to produce governance observations, matches each
+observation to an enforcement mechanism via the catalog, walks the operator
+through per-rule ratification (D5 — no --accept-all), and writes the confirmed
+set to:
   <target>/.intent/rules/scout_inducted.json
   <target>/.intent/enforcement/mappings/scout.yaml
 
+Observation and enforcement are separate concerns:
+- The LLM observes what the repo's patterns suggest should be governed.
+- CORE maps each observation to an engine + params via the enforcement catalog.
+- The human ratifies both the governance intent and the proposed enforcement.
+
 LLM-unavailable fallback (D7): when no cognitive_service is reachable, presents
 the four universal rules from examples/starter-intent/ as the candidate menu.
-Per-rule ratification still applies.
+Per-rule ratification still applies. Fallback candidates also go through catalog
+matching for consistency.
 
 CONSTITUTIONAL NOTES:
 - Mind is imported lazily (inside the function body) to keep the layer boundary
@@ -67,14 +74,9 @@ _DETECT_ENTRY_NAMES = frozenset(
 
 # Fallback source — ADR-119 D7
 _FALLBACK_RULES_REL = ("examples", "starter-intent", ".intent", "rules", "starter.json")
-_FALLBACK_MAPPINGS_REL = (
-    "examples",
-    "starter-intent",
-    ".intent",
-    "enforcement",
-    "mappings",
-    "starter.yaml",
-)
+
+# Enforcement catalog — maps governance intents to engine + params
+_CATALOG_REL = ("var", "prompts", "scout_rule_inducer", "enforcement_catalog.yaml")
 
 # Output paths relative to <target>/.intent/
 _RULES_OUTPUT = "rules/scout_inducted.json"
@@ -90,7 +92,7 @@ async def induce_rules(
     path: Path,
     dry_run: bool = True,
 ) -> None:
-    """Run Scout Phase B: detect → suggest → confirm → write.
+    """Run Scout Phase B: detect → suggest → match → confirm → write.
 
     Requires that Phase A (project onboard) has already delivered the machinery
     floor into <path>/.intent/. Refuses if .intent/ is absent.
@@ -132,7 +134,7 @@ async def induce_rules(
             )
 
     if cognitive_service is not None:
-        console.print("[cyan]Suggest[/cyan] — inducing candidate rules via LLM...")
+        console.print("[cyan]Suggest[/cyan] — observing repository patterns via LLM...")
         try:
             client = await cognitive_service.aget_client_for_role(
                 "ConstitutionalCoherenceAnalyst"
@@ -156,6 +158,19 @@ async def induce_rules(
     if not candidates:
         console.print("[red]No candidate rules available. Nothing to ratify.[/red]")
         raise typer.Exit(code=1)
+
+    # ── Match observations to enforcement ─────────────────────────────────────
+    console.print("[cyan]Match[/cyan] — mapping observations to enforcement catalog...")
+    catalog = _load_enforcement_catalog(core_root)
+    candidates = [_match_enforcement(c, catalog) for c in candidates]
+
+    matched = sum(1 for c in candidates if c.get("enforcement_matched"))
+    unmatched = len(candidates) - matched
+    if unmatched:
+        console.print(
+            f"[yellow]  {matched} matched · {unmatched} unmatched "
+            f"(will be declared-only, not enforced)[/yellow]"
+        )
 
     # ── Confirm (ADR-119 D5 — mandatory; no --accept-all) ────────────────────
     console.print(
@@ -188,14 +203,19 @@ async def induce_rules(
             write=write,
         )
 
+    enforced = sum(1 for c in confirmed if c.get("enforcement_matched"))
+    declared_only = len(confirmed) - enforced
+
     if not write:
         console.print(
-            f"\n[yellow]💧 Dry run — {len(confirmed)} rule(s) would be written to "
-            f"{target_intent}. Pass --write to apply.[/yellow]"
+            f"\n[yellow]Dry run — {len(confirmed)} rule(s) would be written to "
+            f"{target_intent} ({enforced} enforced, {declared_only} declared-only). "
+            f"Pass --write to apply.[/yellow]"
         )
     else:
         console.print(
-            f"\n[green]✅ {len(confirmed)} rule(s) written to {target_intent}[/green]"
+            f"\n[green]✅ {len(confirmed)} rule(s) written to {target_intent} "
+            f"({enforced} enforced, {declared_only} declared-only)[/green]"
         )
         console.print(
             "Next: run `core-admin code audit --offline` against this repo to enforce them."
@@ -286,7 +306,6 @@ def _format_signals(signals: dict[str, Any], sample_text: str) -> str:
     pub = signals["public_symbols_estimate"]
     doc = signals["docstrings_present_estimate"]
     doc_pct = f"~{int(doc / pub * 100)}%" if pub else "n/a"
-    id_pct = f"~{int(signals['id_anchors_found'] / pub * 100)}%" if pub else "n/a"
 
     return (
         f"Python files total: {signals['total_py_files']}\n"
@@ -295,7 +314,6 @@ def _format_signals(signals: dict[str, Any], sample_text: str) -> str:
         f"Has tests directory: {'yes' if signals['has_tests'] else 'no'}\n"
         f"Public symbols (estimate from sample): {pub}\n"
         f"  — with docstrings: {doc_pct}\n"
-        f"  — with # ID: anchor: {id_pct}\n"
         f"print() calls found: {signals['print_calls']}\n"
         f"Bare except occurrences: {signals['bare_except_occurrences']}\n"
         f"Type annotations (->): {'present' if signals['type_annotations_present'] else 'absent'}\n"
@@ -306,39 +324,93 @@ def _format_signals(signals: dict[str, Any], sample_text: str) -> str:
     )
 
 
+# ── Enforcement catalog (ADR-119 separation of observation from enforcement) ────
+
+
+def _load_enforcement_catalog(core_root: Path) -> list[dict[str, Any]]:
+    """Load the Scout enforcement catalog.
+
+    Maps governance intent labels to engine + params. Kept separate from the
+    LLM prompt so the vocabulary can grow without prompt changes.
+    """
+    catalog_path = core_root.joinpath(*_CATALOG_REL)
+    if not catalog_path.exists():
+        logger.warning("Scout enforcement catalog not found at %s", catalog_path)
+        return []
+    try:
+        doc = yaml.safe_load(catalog_path.read_text(encoding="utf-8"))
+        return doc.get("entries", []) if isinstance(doc, dict) else []
+    except Exception as e:
+        logger.warning("Could not load enforcement catalog: %s", e)
+        return []
+
+
+def _match_enforcement(
+    candidate: dict[str, Any],
+    catalog: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Match a candidate's rule_id to a catalog entry.
+
+    Strips the 'scout.' prefix, then tries:
+    1. Exact match against the catalog entry's 'id' field.
+    2. Substring match against the entry's 'match_keys'.
+
+    Augments the candidate with engine/params/scope on match and sets
+    'enforcement_matched'. Unmatched candidates are declared-only (rules.json
+    only, no enforcement mapping).
+    """
+    rule_id = candidate.get("rule_id", "")
+    bare = rule_id.split(".", 1)[-1] if "." in rule_id else rule_id
+
+    for entry in catalog:
+        if bare == entry.get("id", ""):
+            return _augment(candidate, entry)
+        for key in entry.get("match_keys", []):
+            if key in bare or bare in key:
+                return _augment(candidate, entry)
+
+    return {**candidate, "enforcement_matched": False}
+
+
+def _augment(candidate: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
+    """Merge catalog enforcement details into a candidate observation."""
+    return {
+        **candidate,
+        "engine": entry["engine"],
+        "params": entry.get("params", {}),
+        "scope": entry.get(
+            "scope_default", {"applies_to": ["**/*.py"], "excludes": []}
+        ),
+        "enforcement_matched": True,
+    }
+
+
 # ── Fallback helpers (ADR-119 D7) ─────────────────────────────────────────────
 
 
 def _load_fallback_candidates(core_root: Path) -> list[dict[str, Any]]:
-    """Load the four universal rules from starter-intent as fallback candidates.
+    """Load the starter rules as fallback candidates.
 
-    Re-namespaces rule IDs from starter.* to scout.* and merges the mapping
-    params so the candidate format is identical to LLM-produced candidates.
+    Produces observation-only candidates (no engine/params) — they go through
+    catalog matching in induce_rules() like LLM-produced candidates.
     """
     rules_path = core_root.joinpath(*_FALLBACK_RULES_REL)
-    mappings_path = core_root.joinpath(*_FALLBACK_MAPPINGS_REL)
-    if not rules_path.exists() or not mappings_path.exists():
+    if not rules_path.exists():
         logger.warning("Fallback starter-intent not found at %s", core_root)
         return []
 
     try:
         rules_doc = json.loads(rules_path.read_text(encoding="utf-8"))
-        mappings_doc = yaml.safe_load(mappings_path.read_text(encoding="utf-8"))
     except Exception as e:
         logger.warning("Could not load fallback candidates: %s", e)
         return []
 
-    raw_rules: list[dict[str, Any]] = rules_doc.get("rules", [])
-    raw_mappings: dict[str, Any] = mappings_doc.get("mappings", {})
-
     candidates: list[dict[str, Any]] = []
-    for rule in raw_rules:
+    for rule in rules_doc.get("rules", []):
         old_id: str = rule.get("id", "")
-        # starter.X → scout.X
         new_id = (
             "scout." + old_id.split(".", 1)[-1] if "." in old_id else f"scout.{old_id}"
         )
-        mapping = raw_mappings.get(old_id, {})
         candidates.append(
             {
                 "rule_id": new_id,
@@ -346,11 +418,6 @@ def _load_fallback_candidates(core_root: Path) -> list[dict[str, Any]]:
                 "enforcement": rule.get("enforcement", "reporting"),
                 "rationale": rule.get("rationale")
                 or "(universal rule — LLM fallback menu)",
-                "engine": mapping.get("engine", "ast_gate"),
-                "params": mapping.get("params", {}),
-                "scope": mapping.get(
-                    "scope", {"applies_to": ["**/*.py"], "excludes": []}
-                ),
                 "evidence_sample": "",
                 "ramp_note": "",
             }
@@ -413,37 +480,56 @@ def _run_confirm_loop(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _display_candidate(candidate: dict[str, Any]) -> None:
-    """Render a single candidate rule for operator review."""
+    """Render a single candidate rule for operator review.
+
+    Shows observation and enforcement as distinct sections so the operator
+    can evaluate each independently.
+    """
     rule_id = candidate.get("rule_id", "<unknown>")
     statement = candidate.get("statement", "")
     enforcement = candidate.get("enforcement", "reporting")
     rationale = candidate.get("rationale", "")
-    engine = candidate.get("engine", "")
-    params = candidate.get("params", {})
-    scope = candidate.get("scope", {})
     evidence = candidate.get("evidence_sample", "")
     ramp = candidate.get("ramp_note", "")
+    matched = candidate.get("enforcement_matched", False)
 
     color = {"blocking": "red", "reporting": "yellow", "advisory": "dim"}.get(
         enforcement, "white"
     )
 
+    console.print("  [bold underline]OBSERVATION[/bold underline]")
     console.print(f"  [bold]ID:[/bold]          {rule_id}")
     console.print(f"  [bold]Statement:[/bold]   {statement}")
     console.print(f"  [bold]Enforcement:[/bold] [{color}]{enforcement}[/{color}]")
     console.print(f"  [bold]Rationale:[/bold]   {rationale}")
-    console.print(
-        f"  [bold]Engine:[/bold]      {engine} {json.dumps(params, separators=(',', ':'))}"
-    )
-    applies = scope.get("applies_to", [])
-    excludes = scope.get("excludes", [])
-    console.print(f"  [bold]Scope:[/bold]       applies_to {applies}")
-    if excludes:
-        console.print(f"               excludes   {excludes}")
     if evidence:
         console.print(f"  [bold]Evidence:[/bold]    {evidence}")
     if ramp:
         console.print(f"  [bold]Ramp note:[/bold]   [yellow]{ramp}[/yellow]")
+
+    console.print()
+    console.print("  [bold underline]ENFORCEMENT[/bold underline]")
+    if matched:
+        engine = candidate.get("engine", "")
+        params = candidate.get("params", {})
+        scope = candidate.get("scope", {})
+        applies = scope.get("applies_to", [])
+        excludes = scope.get("excludes", [])
+        console.print(
+            f"  [bold]Engine:[/bold]      {engine} {json.dumps(params, separators=(',', ':'))}"
+        )
+        console.print(f"  [bold]Scope:[/bold]       applies_to {applies}")
+        if excludes:
+            console.print(f"               excludes   {excludes}")
+    else:
+        console.print(
+            "  [yellow]⚠  No catalog match — rule will be declared but not enforced.[/yellow]"
+        )
+        console.print(
+            "  [dim]To enforce it, add an entry to "
+            "var/prompts/scout_rule_inducer/enforcement_catalog.yaml[/dim]"
+        )
+
     console.print()
     console.print("  [dim]a = accept · r = reject · c = change enforcement level[/dim]")
 
@@ -481,9 +567,15 @@ def _build_rules_document(confirmed: list[dict[str, Any]]) -> str:
 
 
 def _build_mappings_document(confirmed: list[dict[str, Any]]) -> str:
-    """Produce the enforcement/mappings/scout.yaml content from confirmed candidates."""
+    """Produce the enforcement/mappings/scout.yaml content from confirmed candidates.
+
+    Unmatched candidates (enforcement_matched=False) are omitted — they are
+    declared in rules/scout_inducted.json as declared-only rules with no engine.
+    """
     mappings: dict[str, Any] = {}
     for c in confirmed:
+        if not c.get("enforcement_matched"):
+            continue
         scope = c.get("scope", {})
         entry: dict[str, Any] = {
             "engine": c.get("engine", "ast_gate"),
