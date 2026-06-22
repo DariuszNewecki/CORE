@@ -11,12 +11,12 @@
     },
     "rules": [
         {
-            "id": "starter.symbol_ids",
-            "statement": "Every public function and class MUST be preceded by a '# ID:' anchor comment on the line immediately above the def/class keyword. The anchor gives each public symbol a stable identity that survives renames and refactors. Private symbols (names starting with an underscore) are exempt.",
+            "id": "starter.no_bare_except",
+            "statement": "Code MUST NOT swallow exceptions with a bare 'except:' or 'except Exception: pass'. Name the exception you expect and handle it; a silent except hides the bug you most need to see.",
             "authority": "policy",
             "phase": "runtime",
             "enforcement": "blocking",
-            "rationale": "Stable identity is the foundation everything else builds on: traceability, cross-references, and consequence logging all key off the symbol ID rather than its name or line number. This is the rule the demo showcases because it is unambiguous and trivially fixable."
+            "rationale": "A bare except that silently passes is unambiguous bad practice in any Python codebase — it hides failures that would otherwise surface immediately. The fix is always the same: name the exception. This is the starter's blocking rule because it is trivially fixable and has zero false positives."
         },
         {
             "id": "starter.docstrings",
@@ -33,11 +33,12 @@
             "enforcement": "reporting"
         },
         {
-            "id": "starter.no_bare_except",
-            "statement": "Code MUST NOT swallow exceptions with a bare 'except:' or 'except Exception: pass'. Name the exception you expect and handle it; a silent except hides the bug you most need to see.",
+            "id": "starter.no_secrets",
+            "statement": "Source code MUST NOT contain hardcoded credentials — passwords, API keys, or secret tokens assigned directly to a string literal. Hardcoded secrets leak into version control. Move them to environment variables or a secrets manager.",
             "authority": "policy",
             "phase": "runtime",
-            "enforcement": "reporting"
+            "enforcement": "reporting",
+            "rationale": "Hardcoded credentials are the most common cause of secret leaks in version-controlled repositories. Reporting (not blocking) on first adoption gives operators time to confirm exclusions before promoting to blocking."
         }
     ]
 }

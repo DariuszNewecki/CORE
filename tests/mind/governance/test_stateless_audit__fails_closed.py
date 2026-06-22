@@ -89,7 +89,7 @@ async def test_mapped_rules_do_not_fail_closed(tmp_path: Path) -> None:
     with (
         patch(
             "mind.governance.stateless_audit.extract_executable_rules",
-            return_value=[_rule("starter.symbol_ids", "ast_gate")],
+            return_value=[_rule("starter.no_bare_except", "regex_gate")],
         ),
         patch(
             "mind.governance.stateless_audit._count_declared_rules",
@@ -104,4 +104,4 @@ async def test_mapped_rules_do_not_fail_closed(tmp_path: Path) -> None:
 
     assert result["verdict"] != "ERROR"
     mock_runner.assert_called_once()
-    assert mock_runner.call_args.kwargs["rule_ids"] == ["starter.symbol_ids"]
+    assert mock_runner.call_args.kwargs["rule_ids"] == ["starter.no_bare_except"]
