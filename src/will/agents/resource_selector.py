@@ -94,6 +94,7 @@ class ResourceSelector:
         resources: list[LlmResource],
         assignments: list[RoleResourceAssignment] | None = None,
         system_operating_mode: str = "local_only",
+        high_reasoning: bool = False,
     ) -> list[LlmResource]:
         """
         Plural counterpart to ``select_resource_for_role`` — return every
@@ -116,6 +117,12 @@ class ResourceSelector:
         against the effective operating mode — ``role.operating_mode``
         if set, otherwise ``system_operating_mode`` — before assignment
         lookup or capability scoring.
+
+        ``high_reasoning=True``: caller requests the most capable resource.
+        Sorts by DESCENDING cost_rating (highest cost = most capable first)
+        and skips the assignment override — the caller is explicitly
+        escalating beyond the governor's default-operation preference.
+        Locality filter is still applied.
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
@@ -128,6 +135,12 @@ class ResourceSelector:
         )
 
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
+
+        if high_reasoning:
+            # Escalation path: most capable (highest cost_rating) first.
+            # Assignment override is intentionally skipped here.
+            return sorted(qualified, key=ResourceSelector._score_resource, reverse=True)
+
         ordered = sorted(qualified, key=ResourceSelector._score_resource)
 
         primary = _primary_assignment(role_name, assignments)

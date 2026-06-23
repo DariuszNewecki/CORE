@@ -578,3 +578,46 @@ class BlackboardProposalService:
             "resolved_finding_ids": resolved_ids,
             "resolved_subjects": resolved_subjects,
         }
+
+    # ID: fe689169-0fd6-490f-b097-afe69aee3784
+    async def inherit_remediation_attempt_count(
+        self, entry_ids: list[str], count: int
+    ) -> None:
+        """
+        Set remediation_attempt_count = GREATEST(existing, count) in the
+        payload of the given entries (ADR-104 D9 counter inheritance).
+
+        Called by TestRemediatorWorker before deferring fresh findings to a
+        new proposal so the accumulated count from prior abandoned cycles is
+        carried forward. Only updates entries still in a pre-deferral status
+        (open or claimed) to avoid touching entries mid-state-machine.
+        """
+        if not entry_ids or count <= 0:
+            return
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET payload = jsonb_set(
+                            payload,
+                            '{remediation_attempt_count}',
+                            to_jsonb(GREATEST(
+                                COALESCE(
+                                    (payload->>'remediation_attempt_count')::int,
+                                    0
+                                ),
+                                :count
+                            ))
+                        ),
+                        updated_at = now()
+                        WHERE id = ANY(cast(:ids as uuid[]))
+                          AND status IN ('open', 'claimed')
+                        """
+                    ),
+                    {"ids": entry_ids, "count": count},
+                )

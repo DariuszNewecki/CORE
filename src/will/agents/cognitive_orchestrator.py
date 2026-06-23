@@ -107,7 +107,9 @@ class CognitiveOrchestrator:
         )
 
     # ID: a16f98de-17d6-4787-9d94-ab4bf63bc96f
-    async def get_client_for_role(self, role_name: str) -> FallbackAwareLLMClient:
+    async def get_client_for_role(
+        self, role_name: str, high_reasoning: bool = False
+    ) -> FallbackAwareLLMClient:
         """
         Will: choose qualified resources, then return a fallback-aware
         wrapper that constructs each client lazily through the registry
@@ -133,6 +135,7 @@ class CognitiveOrchestrator:
             self._resources,
             self._assignments,
             system_operating_mode=self._system_operating_mode,
+            high_reasoning=high_reasoning,
         )
         if not ordered:
             raise RuntimeError(f"No resource found for role '{role_name}'")

@@ -125,6 +125,12 @@ blackboard:
   # threshold are not separate knobs: per ratification #2 they are
   # health.worker_alive_threshold_sec (one clock).
   reclaim_cap_n: 3
+  # ADR-104 D9 (#637) — remediation-attempt rail. After autonomous
+  # remediation has failed this many times for the same finding it is
+  # abandoned (terminal Type-B). The counter lives in
+  # payload.remediation_attempt_count and persists across revival cycles
+  # and finding renewal via count inheritance in TestRemediatorWorker.
+  remediation_cap_n: 3
 
 # ---------------------------------------------------------------------------
 # Health log

@@ -285,6 +285,57 @@ async def _defer_to_proposal(entry_ids: list[str], proposal_id: str) -> int:
         return 0
 
 
+async def _query_source_file_attempt_count(source_file: str) -> int:
+    """
+    Return the highest remediation_attempt_count from abandoned findings for
+    this source_file so new findings can inherit it (ADR-104 D9).
+
+    When sensors post fresh findings after a prior cycle exhausted the
+    remediation cap and abandoned findings, the new findings start at count=0.
+    This query provides the inherited ceiling so the new cycle continues from
+    where the last one ended, preventing the cap from being bypassed via
+    finding renewal.  Returns 0 on error or when no abandoned findings exist.
+    """
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        return await bb_service.query_max_remediation_attempt_count(source_file)
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: could not query inherited attempt count "
+            "for '%s': %s — defaulting to 0",
+            source_file,
+            e,
+        )
+        return 0
+
+
+async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
+    """
+    Set remediation_attempt_count = GREATEST(existing, count) on each entry.
+
+    Called between _create_proposal and _defer_to_proposal so freshly-posted
+    findings (count=0) inherit the accumulated count from prior abandoned
+    findings for the same source_file (ADR-104 D9 counter inheritance).
+    Fail-soft: errors are logged and suppressed.
+    """
+    if not entry_ids or count <= 0:
+        return
+
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        await bb_service.inherit_remediation_attempt_count(entry_ids, count)
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: failed to inherit attempt count " "(count=%d): %s",
+            count,
+            e,
+        )
+
+
 async def _release_entries(entry_ids: list[str]) -> int:
     """
     Release claimed findings back to open status.

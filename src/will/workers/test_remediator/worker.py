@@ -55,7 +55,9 @@ from ._operations import (
     _create_proposal,
     _defer_to_proposal,
     _get_active_build_tests_source_files,
+    _inherit_attempt_count,
     _load_open_findings,
+    _query_source_file_attempt_count,
     _release_entries,
 )
 
@@ -144,6 +146,13 @@ class TestRemediatorWorker(Worker):
 
             if proposal_id:
                 proposals_created.append(source_file)
+                # ADR-104 D9: carry the remediation_attempt_count forward
+                # from any prior abandoned findings for this source_file so
+                # the cap is not silently bypassed when sensors re-detect
+                # the same unresolved test and post fresh findings at count=0.
+                inherited = await _query_source_file_attempt_count(source_file)
+                if inherited > 0:
+                    await _inherit_attempt_count([f["id"] for f in findings], inherited)
                 # ADR-010 / CORE-Finding.md §7: on successful proposal
                 # creation, transition findings to 'deferred_to_proposal'
                 # and store proposal_id in their payload. The §7a revival

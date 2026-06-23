@@ -4,7 +4,10 @@ ProposalPipelineShopManager - Proposal Pipeline Health Supervisory Worker.
 
 Responsibility (per CORE-ShopManager.md §3.3, issue #170):
 - Detect proposals stuck in 'approved' status beyond SLA.
-- Detect proposals stuck in 'executing' status beyond SLA.
+- Detect proposals stuck in 'executing' status beyond SLA — and TERMINATE
+  them: transition to 'failed' + revive any deferred findings via the §7a
+  revival contract so the remediation-attempt counter accumulates correctly
+  (ADR-104 D9 / #637).
 - Detect repeated failures for the same (action_id, rule_id) pair
   within the lookback window.
 - Post one finding per condition occurrence to the Blackboard, with
@@ -13,21 +16,11 @@ Responsibility (per CORE-ShopManager.md §3.3, issue #170):
 
 Constitutional standing:
 - Declaration:      .intent/workers/proposal_pipeline_shop_manager.yaml
-- Class:            supervision
+- Class:            acting
 - Phase:            audit
-- Permitted tools:  none — deterministic DB reads only
-- Approval:         false — findings are observations only
+- Permitted tools:  none — DB reads + one status-guarded UPDATE
+- Approval:         false — termination is autonomous for stuck_executing
 - Schedule:         max_interval=300s
-
-Out of scope: recovery / unstick logic for the *proposal itself*. The
-worker does not advance, retry, or terminate stuck/failed proposals —
-that's the operator's responsibility. The worker DOES however own the
-open → resolved transition of its OWN findings; see the resolution
-classification block below.
-
-LAYER: will/workers — supervisory worker. Reads core.autonomous_proposals
-via the body-layer ProposalSupervisionService. Writes findings to
-Blackboard via the Worker base class. No LLM. No file writes.
 
 ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:      proposal.stuck_approved::<proposal_id>
@@ -40,16 +33,18 @@ ADR-091 D2 Revision B resolution classification:
                          subject is NOT in this cycle's flagged_subjects
                          set is resolved via
                          BlackboardService.resolve_entries — the finding
-                         clears when the proposal exits its stuck status
-                         (operator unstuck, retry, terminate) or the
-                         repeated-failure window slides past the
-                         threshold. The "out of scope" line above refers
-                         to recovery of the *proposal*, not closure of
-                         the *finding* this worker posted — the latter
-                         is in scope per Revision B (d).
+                         clears when the proposal exits its stuck status.
 - Not eligible for ADR-045 awaiting_reaudit: proposal pipeline state is
   live runtime state; there is no re-readable artifact for a sensor to
   re-evaluate against.
+
+stuck_executing termination contract:
+- _retire_stuck_proposal runs EVERY cycle the proposal appears in
+  fetch_stuck_executing. The UPDATE carries AND status = 'executing',
+  so concurrent completion by ProposalConsumerWorker is a safe no-op
+  (rowcount=0 → revival skipped). Once termination succeeds the
+  proposal exits 'executing'; fetch_stuck_executing won't return it
+  next cycle; the finding resolves via the existing resolve pass.
 """
 
 from __future__ import annotations
@@ -75,7 +70,8 @@ _CFG = load_operational_config().workers.proposal_pipeline_shop
 # ID: fc948532-8f3a-40d2-991e-a7156a22bb91
 class ProposalPipelineShopManager(Worker):
     """
-    Supervisory worker for proposal pipeline health.
+    Pipeline health worker: detect pathologies and terminate stuck-executing
+    proposals so the remediation-attempt counter accumulates correctly.
 
     Reads core.autonomous_proposals via ProposalSupervisionService.
     Posts deduplicated findings to the Blackboard for each detected
@@ -130,9 +126,10 @@ class ProposalPipelineShopManager(Worker):
         One supervisory cycle:
         1. Post heartbeat.
         2. Query the three conditions via ProposalSupervisionService.
-        3. Post deduplicated findings for each occurrence.
-        4. Resolve open findings whose condition has cleared.
-        5. Post completion report.
+        3. Terminate stuck-executing proposals (status-guarded) + revive findings.
+        4. Post deduplicated findings for each occurrence.
+        5. Resolve open findings whose condition has cleared.
+        6. Post completion report.
         """
         from body.services.service_registry import service_registry
 
@@ -159,6 +156,7 @@ class ProposalPipelineShopManager(Worker):
 
         flagged_subjects: set[str] = set()
         flagged = 0
+        terminated_proposals = 0
 
         for row in stuck_approved:
             subject = f"{_SUBJECT_STUCK_APPROVED}::{row['proposal_id']}"
@@ -187,6 +185,13 @@ class ProposalPipelineShopManager(Worker):
         for row in stuck_executing:
             subject = f"{_SUBJECT_STUCK_EXECUTING}::{row['proposal_id']}"
             flagged_subjects.add(subject)
+
+            # Attempt termination + revival every cycle (status-guarded, fail-soft).
+            if await self._retire_stuck_proposal(
+                row["proposal_id"], row["seconds_stuck"]
+            ):
+                terminated_proposals += 1
+
             if subject in existing:
                 continue
             await self.post_finding(
@@ -257,18 +262,92 @@ class ProposalPipelineShopManager(Worker):
                 "repeated_failures": len(repeated_failures),
                 "flagged": flagged,
                 "resolved": resolved,
+                "terminated_proposals": terminated_proposals,
             },
         )
         logger.info(
             "ProposalPipelineShopManager: cycle complete — "
             "stuck_approved=%d stuck_executing=%d repeated_failures=%d "
-            "flagged=%d resolved=%d",
+            "flagged=%d resolved=%d terminated=%d",
             len(stuck_approved),
             len(stuck_executing),
             len(repeated_failures),
             flagged,
             resolved,
+            terminated_proposals,
         )
+
+    async def _retire_stuck_proposal(
+        self, proposal_id: str, seconds_stuck: int
+    ) -> bool:
+        """
+        Terminate a stuck-executing proposal and revive its deferred findings.
+
+        Issues a status-guarded UPDATE (AND status = 'executing') so that a
+        concurrent ProposalConsumerWorker completion is a safe no-op — if the
+        proposal transitioned away from 'executing' between fetch_stuck_executing
+        and this call, rowcount=0 and revival is skipped.
+
+        Called every cycle the proposal appears in fetch_stuck_executing; retries
+        are harmless because the status guard makes the UPDATE idempotent. Once
+        termination succeeds the proposal leaves 'executing' and won't appear in
+        fetch_stuck_executing next cycle, causing the finding to self-resolve.
+
+        Returns True if this call actually terminated the proposal (rowcount=1),
+        False for no-op or error (caller uses this for the cycle counter only).
+        """
+        from sqlalchemy import text
+
+        from body.services.service_registry import service_registry
+        from will.workers.proposal_consumer_revival import revive_and_report
+
+        reason = (
+            f"stuck_executing: terminated by ProposalPipelineShopManager "
+            f"after {seconds_stuck}s (sla={_CFG.stuck_executing_sla_sec}s)"
+        )
+
+        terminated = False
+        try:
+            async with service_registry.session() as session:
+                async with session.begin():
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.autonomous_proposals
+                            SET status = 'failed',
+                                execution_completed_at = now(),
+                                failure_reason = :reason
+                            WHERE proposal_id = cast(:proposal_id as uuid)
+                              AND status = 'executing'
+                            """
+                        ),
+                        {"proposal_id": proposal_id, "reason": reason},
+                    )
+                    terminated = result.rowcount > 0
+        except Exception as term_err:
+            logger.error(
+                "ProposalPipelineShopManager: failed to terminate proposal %s: %s",
+                proposal_id,
+                term_err,
+            )
+            return False
+
+        if not terminated:
+            logger.debug(
+                "ProposalPipelineShopManager: proposal %s no longer executing "
+                "— skipping revival (already completed or failed)",
+                proposal_id,
+            )
+            return False
+
+        logger.warning(
+            "ProposalPipelineShopManager: terminated stuck-executing proposal %s "
+            "after %ds",
+            proposal_id,
+            seconds_stuck,
+        )
+        await revive_and_report(self, proposal_id, reason)
+        return True
 
     async def _fetch_existing_findings(self, blackboard_svc: Any) -> dict[str, str]:
         """

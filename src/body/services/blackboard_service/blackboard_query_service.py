@@ -440,6 +440,38 @@ class BlackboardQueryService:
             )
         return findings
 
+    # ID: 0bad4a36-823e-494b-a1cb-42da1eb5fd19
+    async def query_max_remediation_attempt_count(self, source_file: str) -> int:
+        """
+        Return the highest remediation_attempt_count from abandoned findings
+        for the given source_file.
+
+        Used by TestRemediatorWorker to seed fresh findings with the
+        accumulated count from prior abandoned cycles so the cap cannot be
+        bypassed by finding renewal (ADR-104 D9 counter inheritance).
+        Returns 0 when no abandoned findings exist for this source_file.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT COALESCE(
+                        MAX((payload->>'remediation_attempt_count')::int),
+                        0
+                    )
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'abandoned'
+                      AND payload->>'source_file' = :source_file
+                    """
+                ),
+                {"source_file": source_file},
+            )
+            row = result.fetchone()
+            return int(row[0]) if row and row[0] is not None else 0
+
     # ID: d505b762-9b10-4f2b-b7cf-a234b92f1df6
     async def fetch_delegated_finding(self, entry_id: str) -> dict[str, Any] | None:
         """

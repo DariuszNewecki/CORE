@@ -137,11 +137,20 @@ class CognitiveService:
         return OpenAIProvider(api_url=api_url, api_key=api_key, model_name=model_name)
 
     # ID: 9962386f-4b31-5782-ba52-0b2b1655a43e
-    async def aget_client_for_role(self, role_name: str, **_: Any) -> LLMClient:
-        """Return an LLMClient for the requested cognitive role."""
+    async def aget_client_for_role(
+        self, role_name: str, high_reasoning: bool = False, **_: Any
+    ) -> LLMClient:
+        """Return an LLMClient for the requested cognitive role.
+
+        When ``high_reasoning=True`` the selector picks the highest-cost
+        (most capable) qualified resource for the role rather than the
+        default lowest-cost assignment.  Locality filter still applies.
+        """
         self._require_ready()
         assert self._orch is not None
-        return await self._orch.get_client_for_role(role_name)
+        return await self._orch.get_client_for_role(
+            role_name, high_reasoning=high_reasoning
+        )
 
     # ID: 64a09426-e74e-4547-a08f-3af887085bac
     async def get_embedding_for_code(self, source_code: str) -> list[float] | None:

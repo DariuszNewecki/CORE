@@ -4,20 +4,24 @@ kind: worker
 metadata:
   id: workers.proposal_pipeline_shop_manager
   title: Proposal Pipeline ShopManager
-  version: "1.0.0"
+  version: "1.1.0"
   authority: policy
   status: active
 
 identity:
   uuid: "2942eaa4-c9a7-45b2-ab86-5eda2363b384"
-  class: supervision
+  class: acting
 
 mandate:
   responsibility: >
     Detect proposal-pipeline pathologies per CORE-ShopManager.md §3.3:
     proposals stuck in 'approved' or 'executing' beyond SLA, and
     repeated failures for the same (first action_id, source_check_id).
-    Detection only — recovery is out of scope (issue #170).
+    For stuck-executing proposals: terminates the proposal row
+    (status-guarded UPDATE: AND status = 'executing') and invokes the
+    §7a revival contract so deferred findings are revived and the
+    remediation-attempt counter accumulates correctly (ADR-104 D9).
+    Stuck-approved and repeated-failure conditions remain detection-only.
   phase: audit
   approval_required: false
   scope:

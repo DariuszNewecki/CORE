@@ -146,9 +146,7 @@ class CoderAgent:
 
         model = PromptModel.load("coder_repair")
 
-        client = await self.cognitive_service.aget_client_for_role(
-            model.manifest.role, high_reasoning=True
-        )
+        client = await self.cognitive_service.aget_client_for_role(model.manifest.role)
         response = await model.invoke(
             context={
                 "goal": goal,
