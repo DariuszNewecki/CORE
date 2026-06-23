@@ -665,3 +665,49 @@ class BlackboardProposalService:
                     {"ids": entry_ids, "count": count},
                 )
                 return [row[0] for row in result.fetchall()]
+
+    # ID: a3c2d5e7-f104-4b89-9c61-0d8a7b2e5f93
+    async def abandon_entries_and_increment_attempt_count(
+        self, entry_ids: list[str]
+    ) -> None:
+        """
+        Abandon findings and atomically increment remediation_attempt_count by 1.
+
+        Called by ViolationExecutorWorker._abandon_findings() so each ceremony
+        failure accumulates a counter that the circuit breaker can query via
+        query_max_attempt_count_by_file_path. Without this, ViolationExecutorWorker
+        abandons findings on ceremony failure with no count record — sensors
+        re-detect and the loop runs indefinitely.
+
+        Only touches entries in 'open' or 'claimed' to avoid double-counting
+        entries already in a terminal state.
+        """
+        if not entry_ids:
+            return
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'abandoned',
+                            payload = jsonb_set(
+                                payload,
+                                '{remediation_attempt_count}',
+                                to_jsonb(
+                                    COALESCE(
+                                        (payload->>'remediation_attempt_count')::int,
+                                        0
+                                    ) + 1
+                                )
+                            ),
+                            updated_at = now()
+                        WHERE id = ANY(cast(:ids as uuid[]))
+                          AND status IN ('open', 'claimed')
+                        """
+                    ),
+                    {"ids": entry_ids},
+                )

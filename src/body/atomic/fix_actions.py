@@ -87,6 +87,25 @@ async def action_format_code(
         if core_context is not None and core_context.git_service is not None
         else None
     )
+    # Graceful skip when the target file is absent from the sandbox worktree.
+    # Happens when audit detected a style violation on an uncommitted file and
+    # the sandbox (git worktree at HEAD) doesn't have it yet. Returning ok=True
+    # prevents premature cap exhaustion; the sensor re-fires post-commit and the
+    # next proposal succeeds against the committed file. (ADR-071 D2.2 / #660)
+    if file_path is not None and cwd is not None:
+        resolved = Path(str(cwd)) / file_path
+        if not resolved.exists():
+            return ActionResult(
+                action_id="fix.format",
+                ok=True,
+                data={
+                    "skipped": True,
+                    "reason": "file_not_in_sandbox",
+                    "file_path": file_path,
+                    "write": write,
+                },
+                duration_sec=time.time() - start,
+            )
     try:
         format_code(path=file_path, write=write, cwd=cwd)
     except Exception as e:

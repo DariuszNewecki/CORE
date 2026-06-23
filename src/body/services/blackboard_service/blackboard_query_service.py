@@ -472,6 +472,39 @@ class BlackboardQueryService:
             row = result.fetchone()
             return int(row[0]) if row and row[0] is not None else 0
 
+    # ID: b7e4f2a1-9c38-4d50-8e71-3f2a1b9c8d47
+    async def query_max_attempt_count_by_file_path(self, file_path: str) -> int:
+        """
+        Return the highest remediation_attempt_count from abandoned findings
+        for the given file_path (ViolationExecutorWorker grouping key).
+
+        Mirrors query_max_remediation_attempt_count but queries payload->>'file_path'
+        instead of payload->>'source_file'. Used by ViolationExecutorWorker's
+        circuit breaker to detect when a file's remediation budget is exhausted
+        across finding-renewal cycles (ADR-104 D9 extended to unmapped-rule path).
+        Returns 0 when no abandoned findings exist for this file_path.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT COALESCE(
+                        MAX((payload->>'remediation_attempt_count')::int),
+                        0
+                    )
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'abandoned'
+                      AND payload->>'file_path' = :file_path
+                    """
+                ),
+                {"file_path": file_path},
+            )
+            row = result.fetchone()
+            return int(row[0]) if row and row[0] is not None else 0
+
     # ID: d505b762-9b10-4f2b-b7cf-a234b92f1df6
     async def fetch_delegated_finding(self, entry_id: str) -> dict[str, Any] | None:
         """

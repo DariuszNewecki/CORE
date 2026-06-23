@@ -43,6 +43,7 @@ will.workers.violation_remediator_body.ViolationRemediator.process_file().
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -114,8 +115,12 @@ class ViolationExecutorWorker(Worker):
         mode = "WRITE" if self._write else "DRY-RUN"
         logger.info("ViolationExecutorWorker: starting [%s]", mode)
 
+        cap_n = load_operational_config().blackboard.remediation_cap_n
+
         # Step 2: Load RemediationMap — determine which rules are already mapped
-        mapped_rule_ids = self._load_mapped_rule_ids()
+        # asyncio.to_thread: _load_remediation_map reads YAML from disk synchronously;
+        # without this the event loop blocks for 1-16s per cycle under normal load.
+        mapped_rule_ids = await asyncio.to_thread(self._load_mapped_rule_ids)
         logger.info(
             "ViolationExecutorWorker: %d rule(s) mapped in RemediationMap.",
             len(mapped_rule_ids),
@@ -198,9 +203,29 @@ class ViolationExecutorWorker(Worker):
         succeeded = 0
         failed = 0
         candidates_surfaced = 0
+        capped = 0
 
         # Steps 3-10: Process each file
         for file_path, file_findings in by_file.items():
+            # ADR-104 D9 circuit breaker (unmapped-rule path): query the accumulated
+            # attempt count from prior abandoned findings. If it has already reached
+            # or exceeded cap_n, abandon fresh findings immediately rather than
+            # running a ceremony that will fail again.
+            inherited = await self._query_file_attempt_count(file_path)
+            if inherited >= cap_n:
+                entry_ids = [str(f["id"]) for f in file_findings]
+                await self._abandon_capped_findings(entry_ids, inherited)
+                capped += 1
+                logger.warning(
+                    "ViolationExecutorWorker: '%s' — remediation cap exhausted "
+                    "(inherited=%d, cap=%d); %d finding(s) abandoned without ceremony",
+                    file_path,
+                    inherited,
+                    cap_n,
+                    len(entry_ids),
+                )
+                continue
+
             ok, handled_rule_ids = await self._process_file(
                 file_path, file_findings, mapped_rule_ids
             )
@@ -221,6 +246,7 @@ class ViolationExecutorWorker(Worker):
                 "files": len(by_file),
                 "succeeded": succeeded,
                 "failed": failed,
+                "capped": capped,
                 "candidates_surfaced": candidates_surfaced,
                 "blast_bound": {
                     "cap": self._files_per_cycle_max,
@@ -230,10 +256,12 @@ class ViolationExecutorWorker(Worker):
             },
         )
         logger.info(
-            "ViolationExecutorWorker: done [%s] — %d succeeded, %d failed, %d candidates.",
+            "ViolationExecutorWorker: done [%s] — %d succeeded, %d failed, "
+            "%d capped, %d candidates.",
             mode,
             succeeded,
             failed,
+            capped,
             candidates_surfaced,
         )
 
@@ -434,15 +462,53 @@ class ViolationExecutorWorker(Worker):
 
     # ID: a4fb50f5-af70-45b4-a40b-56ff94d1d937
     async def _abandon_findings(self, findings: list[dict[str, Any]]) -> None:
-        """Mark findings abandoned after an unrecoverable ceremony failure."""
+        """Abandon findings after an unrecoverable ceremony failure.
+
+        Increments remediation_attempt_count so the circuit breaker can detect
+        exhaustion across finding-renewal cycles (ADR-104 D9 unmapped-rule path).
+        """
         try:
             from body.services.service_registry import service_registry
 
             svc = await service_registry.get_blackboard_service()
             entry_ids = [str(f["id"]) for f in findings]
-            await svc.abandon_entries(entry_ids)
+            await svc.abandon_entries_and_increment_attempt_count(entry_ids)
         except Exception as exc:
-            logger.error("ViolationExecutorWorker: abandon_entries failed — %s", exc)
+            logger.error(
+                "ViolationExecutorWorker: abandon_entries_and_increment failed — %s",
+                exc,
+            )
+
+    # ID: c9f3a2b8-7e14-4d60-9b52-1e4c7d3f8a06
+    async def _query_file_attempt_count(self, file_path: str) -> int:
+        """Return the highest remediation_attempt_count from abandoned findings
+        for this file_path. Returns 0 on error or when no abandoned findings exist."""
+        try:
+            from body.services.service_registry import service_registry
+
+            svc = await service_registry.get_blackboard_service()
+            return await svc.query_max_attempt_count_by_file_path(file_path)
+        except Exception as exc:
+            logger.warning(
+                "ViolationExecutorWorker: could not query inherited count "
+                "for '%s': %s — defaulting to 0",
+                file_path,
+                exc,
+            )
+            return 0
+
+    # ID: d5e8b1a4-3f96-4c27-8a73-2b5c9e6f0d12
+    async def _abandon_capped_findings(self, entry_ids: list[str], count: int) -> None:
+        """Abandon findings that have hit the remediation cap, stamping count."""
+        try:
+            from body.services.service_registry import service_registry
+
+            svc = await service_registry.get_blackboard_service()
+            await svc.abandon_remediation_capped_findings(entry_ids, count)
+        except Exception as exc:
+            logger.error(
+                "ViolationExecutorWorker: abandon_capped_findings failed — %s", exc
+            )
 
     # ID: 7e1d8f4a-3c2b-4d5e-9a6f-2c4d8b3e9f1c
     async def _post_blast_bound_finding(
