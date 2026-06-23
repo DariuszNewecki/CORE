@@ -621,3 +621,47 @@ class BlackboardProposalService:
                     ),
                     {"ids": entry_ids, "count": count},
                 )
+
+    # ID: 995d1685-c278-4992-bed8-8bfac48cd4f9
+    async def abandon_remediation_capped_findings(
+        self, entry_ids: list[str], count: int
+    ) -> list[str]:
+        """
+        Immediately abandon findings whose inherited remediation_attempt_count
+        has already reached or exceeded the cap (ADR-104 D9 circuit breaker).
+
+        Called by TestRemediatorWorker when the inherited count for a
+        source_file equals or exceeds cap_n BEFORE a new proposal is created,
+        so the loop terminates without wasting an LLM call on a proposal that
+        would be abandoned immediately on failure.
+
+        Sets status='abandoned' and stamps remediation_attempt_count=count in
+        the payload. Only touches entries in 'open' or 'claimed' status.
+        Returns the list of entry IDs that were actually abandoned (RETURNING).
+        """
+        if not entry_ids:
+            return []
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'abandoned',
+                            payload = jsonb_set(
+                                payload,
+                                '{remediation_attempt_count}',
+                                to_jsonb(:count)
+                            ),
+                            updated_at = now()
+                        WHERE id = ANY(cast(:ids as uuid[]))
+                          AND status IN ('open', 'claimed')
+                        RETURNING id::text
+                        """
+                    ),
+                    {"ids": entry_ids, "count": count},
+                )
+                return [row[0] for row in result.fetchall()]

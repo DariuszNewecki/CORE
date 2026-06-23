@@ -336,6 +336,32 @@ async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
         )
 
 
+async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str]:
+    """
+    Immediately abandon findings whose inherited remediation_attempt_count has
+    reached the cap (ADR-104 D9 circuit breaker).
+
+    Called by TestRemediatorWorker when inherited >= cap_n, so no new proposal
+    is created for a source_file whose remediation budget is exhausted. Returns
+    the entry IDs that were actually abandoned; fail-soft, returns [] on error.
+    """
+    if not entry_ids:
+        return []
+
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        return await bb_service.abandon_remediation_capped_findings(entry_ids, count)
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: failed to abandon capped findings " "(count=%d): %s",
+            count,
+            e,
+        )
+        return []
+
+
 async def _release_entries(entry_ids: list[str]) -> int:
     """
     Release claimed findings back to open status.

@@ -52,6 +52,7 @@ from shared.workers.base import Worker
 
 from ._operations import (
     _TARGET_FLOW_ID,
+    _abandon_capped_findings,
     _create_proposal,
     _defer_to_proposal,
     _get_active_build_tests_source_files,
@@ -95,12 +96,20 @@ class TestRemediatorWorker(Worker):
         Core work unit:
         1. Claim open python::test.runner.missing + python::test.runner.failure findings
         2. Group findings by payload["source_file"]
-        3. For each group: check per-source_file dedup against active
-           flow.build_tests proposals; create a proposal and defer that
-           group's findings to it on success, or release that group's
-           findings on dedup skip
+        3. For each group:
+           a. Dedup skip if an active flow.build_tests proposal already exists
+           b. Circuit breaker (ADR-104 D9): if inherited remediation_attempt_count
+              >= cap_n, abandon findings immediately — no proposal created
+           c. Create a proposal; inherit count from prior abandoned findings;
+              defer findings to the proposal
         4. Post blackboard report
         """
+        from shared.infrastructure.intent.operational_config import (
+            load_operational_config,
+        )
+
+        cap_n = load_operational_config().blackboard.remediation_cap_n
+
         open_findings = await _load_open_findings(self._worker_uuid)
 
         if not open_findings:
@@ -129,8 +138,11 @@ class TestRemediatorWorker(Worker):
         source_files_skipped: list[str] = []
         entries_deferred: int = 0
         entries_released: int = 0
+        proposals_skipped_cap: int = 0
 
         for source_file, findings in by_source.items():
+            entry_ids = [f["id"] for f in findings]
+
             if source_file in active_source_files:
                 logger.info(
                     "TestRemediatorWorker: skipping '%s' — active "
@@ -138,29 +150,59 @@ class TestRemediatorWorker(Worker):
                     source_file,
                 )
                 source_files_skipped.append(source_file)
-                released = await _release_entries([f["id"] for f in findings])
-                entries_released += released
+                entries_released += await _release_entries(entry_ids)
+                continue
+
+            # Query inherited count once — drives both the circuit breaker
+            # and the inheritance step below.
+            inherited = await _query_source_file_attempt_count(source_file)
+
+            # ADR-104 D9 circuit breaker: if the remediation cap is already
+            # exhausted via prior abandoned findings, abandon fresh findings
+            # immediately rather than creating a proposal that would be
+            # abandoned on its first failure anyway. Terminates the
+            # sensor → remediator → fail → abandon → re-detect loop.
+            if inherited >= cap_n:
+                abandoned_ids = await _abandon_capped_findings(entry_ids, inherited)
+                proposals_skipped_cap += 1
+                for entry_id in abandoned_ids:
+                    await self.post_observation(
+                        subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                        payload={
+                            "entry_id": entry_id,
+                            "source_file": source_file,
+                            "reason": "remediation_cap_exhausted_via_inheritance",
+                            "remediation_cap_n": cap_n,
+                            "inherited_count": inherited,
+                        },
+                        status="abandoned",
+                    )
+                logger.warning(
+                    "TestRemediatorWorker: '%s' — remediation cap exhausted "
+                    "via inheritance (inherited=%d, cap=%d); %d finding(s) "
+                    "abandoned immediately",
+                    source_file,
+                    inherited,
+                    cap_n,
+                    len(abandoned_ids),
+                )
                 continue
 
             proposal_id = await _create_proposal(_TARGET_FLOW_ID, findings)
 
             if proposal_id:
                 proposals_created.append(source_file)
-                # ADR-104 D9: carry the remediation_attempt_count forward
-                # from any prior abandoned findings for this source_file so
-                # the cap is not silently bypassed when sensors re-detect
-                # the same unresolved test and post fresh findings at count=0.
-                inherited = await _query_source_file_attempt_count(source_file)
+                # ADR-104 D9: carry the count forward from prior abandoned
+                # findings so the cap accumulates correctly across finding
+                # renewal cycles.
                 if inherited > 0:
-                    await _inherit_attempt_count([f["id"] for f in findings], inherited)
+                    await _inherit_attempt_count(entry_ids, inherited)
                 # ADR-010 / CORE-Finding.md §7: on successful proposal
                 # creation, transition findings to 'deferred_to_proposal'
                 # and store proposal_id in their payload. The §7a revival
                 # contract in ProposalStateManager.mark_failed depends on
                 # this linkage.
-                deferred = await _defer_to_proposal(
-                    [f["id"] for f in findings], proposal_id
-                )
+                deferred = await _defer_to_proposal(entry_ids, proposal_id)
                 entries_deferred += deferred
                 logger.info(
                     "TestRemediatorWorker: created proposal '%s' for flow '%s' "
@@ -178,7 +220,8 @@ class TestRemediatorWorker(Worker):
                 "open_findings": len(open_findings),
                 "source_files": len(by_source),
                 "proposals_created": len(proposals_created),
-                "source_files_skipped_dedup": len(source_files_skipped),
+                "proposals_skipped_dedup": len(source_files_skipped),
+                "proposals_skipped_cap": proposals_skipped_cap,
                 "entries_deferred": entries_deferred,
                 "entries_released": entries_released,
                 "created_for_source_files": proposals_created,
@@ -187,12 +230,11 @@ class TestRemediatorWorker(Worker):
         )
 
         logger.info(
-            "TestRemediatorWorker: done — %d proposals created across %d "
-            "source file group(s), %d skipped (dedup), %d entries deferred, "
-            "%d entries released",
+            "TestRemediatorWorker: done — %d proposals created, %d skipped "
+            "(dedup), %d skipped (cap), %d entries deferred, %d entries released",
             len(proposals_created),
-            len(by_source),
             len(source_files_skipped),
+            proposals_skipped_cap,
             entries_deferred,
             entries_released,
         )
