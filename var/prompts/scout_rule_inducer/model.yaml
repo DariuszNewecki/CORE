@@ -7,6 +7,8 @@ description: >
   The LLM proposes what to govern and why; CORE separately maps each observation
   to an enforcement mechanism via the enforcement catalog. Candidates are proposals
   for human ratification — not law until the operator confirms each one (ADR-119 D5).
+model:
+  temperature: 0.0
 input:
   required:
     - code_signals

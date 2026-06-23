@@ -539,8 +539,9 @@ def _display_candidate(candidate: dict[str, Any]) -> None:
 
 def _build_rules_document(confirmed: list[dict[str, Any]]) -> str:
     """Produce the rules/scout_inducted.json content from confirmed candidates."""
-    rules = [
-        {
+    rules = []
+    for c in confirmed:
+        rule: dict[str, Any] = {
             "id": c["rule_id"],
             "statement": c["statement"],
             "authority": "policy",
@@ -548,8 +549,13 @@ def _build_rules_document(confirmed: list[dict[str, Any]]) -> str:
             "enforcement": c["enforcement"],
             "rationale": c.get("rationale", ""),
         }
-        for c in confirmed
-    ]
+        if not c.get("enforcement_matched"):
+            rule["enforcement_note"] = (
+                "declared-only: no enforcement catalog entry exists for this rule. "
+                "To add enforcement, extend var/prompts/scout_rule_inducer/enforcement_catalog.yaml "
+                "with an entry whose match_keys include a substring of this rule's id."
+            )
+        rules.append(rule)
     doc = {
         "$schema": "META/rule_document.schema.json",
         "kind": "rule_document",

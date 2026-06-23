@@ -37,6 +37,7 @@ actions:
   cleanup.agent_memory: moderate
   crate.create: safe
   crate.create_from_spec: moderate
+  document.run.gap_analysis: safe
   file.create: moderate
   file.edit: moderate
   file.read: safe
