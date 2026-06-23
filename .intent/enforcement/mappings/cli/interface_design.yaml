@@ -54,7 +54,12 @@ mappings:
       # (blackboard, capabilities, commands, search.search) are not
       # added — they are genuine drift and remain architectural-judgment
       # per ADR-095 D1 posture.
+      # 2026-06-23 vocabulary expansion: 9 domain verbs added
+      # (accept, claim, gap-analysis, ingest, next, promote, propose,
+      # scout, search) covering Lane workflow, GRC operations, and Project
+      # lifecycle idioms that were absent from the list.
       allowed_verbs:
+        - accept
         - actions
         - analyze
         - approve
@@ -67,6 +72,7 @@ mappings:
         - check
         - check-imports
         - check-ui
+        - claim
         - clarity
         - cleanup
         - complexity
@@ -87,11 +93,13 @@ mappings:
         - forensics
         - format
         - format-imports
+        - gap-analysis
         - generate
         - get
         - health
         - import
         - info
+        - ingest
         - inspect
         - legacy
         - lint
@@ -99,8 +107,11 @@ mappings:
         - logging
         - migrate
         - new
+        - next
         - onboard
         - patterns
+        - promote
+        - propose
         - purge
         - query
         - rebuild
@@ -118,6 +129,8 @@ mappings:
         - rewire-imports
         - run
         - score
+        - scout
+        - search
         - self-check
         - set
         - show
