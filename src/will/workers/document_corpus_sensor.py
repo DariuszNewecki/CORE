@@ -52,7 +52,7 @@ class DocumentCorpusSensor(Worker):
     Sensing worker. Evaluates a document corpus against requirements catalogs
     and posts gap findings to the blackboard (ADR-121 D2).
 
-    Configuration is project-authored in mandate.scope (ADR-121 D3):
+    Configuration is project-authored in the top-level config block (ADR-121 D3):
     - corpus_root: path to the document library (required; sensor no-ops without it)
     - catalog_root: override the catalog corpus root (default: grc-catalogs/)
     - catalog_names: list of catalog names to run (default: all available at root)
@@ -68,10 +68,10 @@ class DocumentCorpusSensor(Worker):
         super().__init__(
             declaration_name=kwargs.get("declaration_name", "document_corpus_sensor")
         )
-        scope = self._declaration.get("mandate", {}).get("scope", {}) or {}
-        self._corpus_root_str: str = scope.get("corpus_root", "") or ""
-        self._catalog_root_str: str = scope.get("catalog_root", "") or ""
-        self._catalog_names: list[str] = list(scope.get("catalog_names") or [])
+        config = self._declaration.get("config", {}) or {}
+        self._corpus_root_str: str = config.get("corpus_root", "") or ""
+        self._catalog_root_str: str = config.get("catalog_root", "") or ""
+        self._catalog_names: list[str] = list(config.get("catalog_names") or [])
 
     # ID: d67a1720-8253-4d97-b4b5-220ab3787a28
     async def run(self) -> None:
@@ -86,7 +86,7 @@ class DocumentCorpusSensor(Worker):
         if not self._corpus_root_str:
             logger.warning(
                 "DocumentCorpusSensor: corpus_root not configured in "
-                ".intent/workers/document_corpus_sensor.yaml mandate.scope; "
+                ".intent/workers/document_corpus_sensor.yaml config; "
                 "skipping scan. Set corpus_root to the project's document library path."
             )
             return

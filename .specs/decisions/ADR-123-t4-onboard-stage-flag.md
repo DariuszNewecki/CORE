@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-123
-title: ADR-123 — T4: `project onboard --stage` airlock flag and `project onboard promote`
+title: "ADR-123 — T4: `project onboard --stage` airlock flag and `project onboard promote`"
 status: accepted
 ---
 

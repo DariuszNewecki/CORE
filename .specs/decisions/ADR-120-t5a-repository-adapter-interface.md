@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-120
-title: ADR-120 — T5a: Repository adapter interface — the concrete F-41/F-42/F-43 binding
+title: 'ADR-120 — T5a: Repository adapter interface — the concrete F-41/F-42/F-43 binding'
 status: proposed
 ---
 

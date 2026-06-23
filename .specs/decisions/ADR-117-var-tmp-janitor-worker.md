@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-117
-title: ADR-117 — var/tmp is ephemeral scratch with no janitor: a bounded, age-gated reaper worker
+title: 'ADR-117 — var/tmp is ephemeral scratch with no janitor: a bounded, age-gated reaper worker'
 status: proposed
 ---
 

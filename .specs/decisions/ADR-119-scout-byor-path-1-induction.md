@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-119
-title: ADR-119 — Scout: BYOR Path 1 induces a fitted constitution from source code
+title: 'ADR-119 — Scout: BYOR Path 1 induces a fitted constitution from source code'
 status: accepted
 ---
 

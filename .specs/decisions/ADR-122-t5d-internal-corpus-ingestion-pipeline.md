@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-122
-title: ADR-122 — T5d: Internal corpus ingestion pipeline — Qdrant wiring, chunking, CLI surface, and judge augmentation
+title: 'ADR-122 — T5d: Internal corpus ingestion pipeline — Qdrant wiring, chunking, CLI surface, and judge augmentation'
 status: accepted
 ---
 

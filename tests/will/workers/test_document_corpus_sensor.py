@@ -45,11 +45,15 @@ def _make_sensor(
     sensor._declaration = {
         "mandate": {
             "scope": {
-                "corpus_root": corpus_root,
-                "catalog_root": catalog_root,
-                "catalog_names": catalog_names or [],
+                "artifact_type": ["document_corpus"],
+                "rule_namespace": "document_corpus",
             }
-        }
+        },
+        "config": {
+            "corpus_root": corpus_root,
+            "catalog_root": catalog_root,
+            "catalog_names": catalog_names or [],
+        },
     }
     sensor._corpus_root_str = corpus_root
     sensor._catalog_root_str = catalog_root

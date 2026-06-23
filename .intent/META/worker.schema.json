@@ -246,13 +246,14 @@
         },
         "config": {
             "type": "object",
-            "description": "Worker-specific runtime configuration read by the worker via self._declaration.get('config', {}). Values are not passed to the constructor — they are read directly from the declaration at runtime.",
+            "description": "Worker-specific runtime configuration read by the worker via self._declaration.get('config', {}). Values are not passed to the constructor — they are read directly from the declaration at runtime. Arrays of scalars are permitted for multi-value config (e.g. catalog_names).",
             "additionalProperties": {
                 "anyOf": [
                     {"type": "string"},
                     {"type": "boolean"},
                     {"type": "integer"},
-                    {"type": "number"}
+                    {"type": "number"},
+                    {"type": "array"}
                 ]
             }
         }

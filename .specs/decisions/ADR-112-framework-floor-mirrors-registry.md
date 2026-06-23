@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-112
 title: ADR-112 — The framework floor mirrors the framework registry (BYOR floor-sync)
-status: withdrawn
+status: retired
 ---
 
 <!-- path: .specs/decisions/ADR-112-framework-floor-mirrors-registry.md -->

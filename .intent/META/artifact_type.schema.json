@@ -50,8 +50,8 @@
                 "type": "string",
                 "minLength": 1
             },
-            "minItems": 1,
-            "description": "Glob patterns (relative to repo root) selecting instances of this artifact type. Replaces the role of .intent/enforcement/config/crawl_scopes.yaml (ADR-090 D7)."
+            "minItems": 0,
+            "description": "Glob patterns (relative to repo root) selecting instances of this artifact type. Replaces the role of .intent/enforcement/config/crawl_scopes.yaml (ADR-090 D7). Empty array permitted for framework-side types whose discovery is project-authored (ADR-120 D5)."
         },
         "identity_key": {
             "type": "string",

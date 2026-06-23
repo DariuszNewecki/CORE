@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-116
-title: ADR-116 — GRC catalog residency: law-as-data, tiered by license, consumed not bundled
+title: 'ADR-116 — GRC catalog residency: law-as-data, tiered by license, consumed not bundled'
 status: accepted
 ---
 

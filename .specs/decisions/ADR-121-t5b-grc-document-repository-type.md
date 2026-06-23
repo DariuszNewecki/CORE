@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-121
-title: ADR-121 — T5b: Document corpus Repository type — domain-agnostic governed document corpus
+title: 'ADR-121 — T5b: Document corpus Repository type — domain-agnostic governed document corpus'
 status: proposed
 ---
 

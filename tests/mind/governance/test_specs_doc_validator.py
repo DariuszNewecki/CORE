@@ -102,3 +102,36 @@ def test_paper_wrong_kind_const_fails() -> None:
     }
     errs = v.validate_header(_paper_schema(), header, document="sample")
     assert errs
+
+
+# ---- ADR-105 D6 Stage 2b completion gates ----
+
+
+def test_all_modeled_specs_docs_valid() -> None:
+    """Regression gate: every modeled .specs/ doc must have a valid frontmatter header.
+
+    If this fails, a document was added or edited without a conformant YAML header.
+    Fix by adding or correcting the --- ... --- block per the per-class schema in
+    .specs/META/<kind>.header.schema.json.
+    """
+    report = SpecsDocValidator(repo_root=REPO_ROOT).validate_all_documents()
+    assert report.documents_invalid == 0, (
+        f"{report.documents_invalid} invalid .specs/ doc(s):\n"
+        + "\n".join(
+            f"  {e.document}: {e.error_type} — {e.message}" for e in report.errors
+        )
+    )
+
+
+def test_specs_doc_validator_wired_into_constitution_validate() -> None:
+    """Wire check: SpecsDocValidator must be present in the constitution validate module.
+
+    The ADR-105 D6 hook 1 validator is wired at the CLI layer (cli/resources/constitution/
+    validate.py) rather than shared/infrastructure because shared cannot import mind/.
+    """
+    from cli.resources.constitution import validate as validate_module
+
+    assert hasattr(validate_module, "SpecsDocValidator"), (
+        "SpecsDocValidator not imported in cli/resources/constitution/validate.py — "
+        "ADR-105 D6 stage 2b wiring missing"
+    )

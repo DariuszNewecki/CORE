@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-124
+title: 'ADR-124 — User Access Control (UAC)'
+status: accepted
+---
+
 # ADR-124 — User Access Control (UAC)
 
 **Status:** accepted

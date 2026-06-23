@@ -1,3 +1,10 @@
+---
+kind: adr
+id: ADR-125
+title: 'ADR-125 — Web Frontend Architecture'
+status: accepted
+---
+
 # ADR-125 — Web Frontend Architecture
 
 **Status:** accepted

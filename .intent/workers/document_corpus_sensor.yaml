@@ -25,12 +25,15 @@ mandate:
   scope:
     artifact_type:
       - document_corpus
-    corpus_root: ""          # REQUIRED: project configures path to document library
-    catalog_root: ""         # optional: empty uses grc-catalogs/ default
-    catalog_names: []        # optional: empty = all available catalogs at catalog_root
+    rule_namespace: "document_corpus"
   approval_required: false
   schedule:
     max_interval: 3600
+
+config:
+  corpus_root: ""          # REQUIRED: project configures path to document library
+  catalog_root: ""         # optional: empty uses grc-catalogs/ default
+  catalog_names: []        # optional: empty = all available catalogs at catalog_root
 
 implementation:
   class: DocumentCorpusSensor
