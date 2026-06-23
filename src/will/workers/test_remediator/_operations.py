@@ -330,7 +330,7 @@ async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
         await bb_service.inherit_remediation_attempt_count(entry_ids, count)
     except Exception as e:
         logger.warning(
-            "TestRemediatorWorker: failed to inherit attempt count " "(count=%d): %s",
+            "TestRemediatorWorker: failed to inherit attempt count (count=%d): %s",
             count,
             e,
         )
@@ -355,7 +355,7 @@ async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str
         return await bb_service.abandon_remediation_capped_findings(entry_ids, count)
     except Exception as e:
         logger.warning(
-            "TestRemediatorWorker: failed to abandon capped findings " "(count=%d): %s",
+            "TestRemediatorWorker: failed to abandon capped findings (count=%d): %s",
             count,
             e,
         )
