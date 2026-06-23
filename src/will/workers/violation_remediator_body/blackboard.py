@@ -56,8 +56,17 @@ class BlackboardMixin(HostBase):
 
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
         """Batch-update status of a list of findings."""
-        for finding in findings:
-            await self._mark_finding(finding["id"], status)
+        if status == "abandoned":
+            # Must go through the count-incrementing path (ADR-104 D9): plain
+            # update_entry_status() leaves remediation_attempt_count NULL, so the
+            # circuit breaker in ViolationExecutorWorker always reads 0 and the
+            # sensor→remediator→abandon loop runs unbounded.
+            bb = await self._ctx.registry.get_blackboard_service()
+            entry_ids = [str(f["id"]) for f in findings]
+            await bb.abandon_entries_and_increment_attempt_count(entry_ids)
+        else:
+            for finding in findings:
+                await self._mark_finding(finding["id"], status)
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a single blackboard finding by ID."""
