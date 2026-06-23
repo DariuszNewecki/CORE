@@ -65,7 +65,14 @@ When the governor names a deliverable shape, the architect matches it exactly. S
 
 **4.3 No pre-written implementation in Claude Code prompts.** A Claude Code prompt names the problem, the fix sites, and the acceptance conditions. It does not pre-write the functions, helpers, test bodies, or other implementation the executor should produce itself. Pre-written implementation in a prompt collapses the architect–executor separation that §6 establishes — the architect is drafting code instead of delegating it. Reference snippets that orient the executor (e.g. the existing function signature being modified) are permitted; new implementation is not.
 
-**4.4 `.specs/` and `.intent/` files come back as complete files.** Claude Code cannot write to either. Any change to a `.specs/` or `.intent/` file is delivered as a complete corrected file for the governor to apply directly.
+**4.4 `.specs/` and `.intent/` files come back as complete files.** The default posture is **draft-in-response**: Claude Code produces the complete corrected file and the governor applies it directly. Direct writes to either surface are permitted only under one of two confirmation paths, both governor-initiated:
+
+- **Path A — confirmed write:** The governor explicitly confirms a write to a named file in the current turn. Turn-scoped: authorizes only the writes named in that turn; does not carry forward.
+- **Path B — mechanical substitution:** A purely syntactic change the governor named explicitly, where all four hold: (1) explicitly authorized; (2) purely syntactic — a string or regex substitution; (3) no content added or removed; (4) semantically invariant.
+
+**Constitutional core — heightened confirmation.** Changes to `.intent/constitution/`, `.intent/META/`, and `.intent/rules/governance/` require the governor to name the **specific** file (no blanket "go ahead"); Claude Code surfaces the change for review before writing.
+
+When neither path applies, draft-in-response. Direct writes are the exception.
 
 **4.5 Prefer short correct over long comprehensive.** Length is not thoroughness. A short answer that closes the question is better than a long answer that surveys the territory.
 
@@ -123,3 +130,5 @@ This document does not specify:
 *Revised 2026-05-04: §3.2 trimmed to the principle alone — the tooling inventory and preference order moved to SESSION-PROTOCOL.md §3 Step 2 (cross-reference now in §8). §3.6 expanded to cover confident-without-verification as a violation symmetric to hedge-as-filler — the prior wording named only the softening direction. §4 gained a new §4.3 (no pre-written implementation in Claude Code prompts), the prior §4.3–§4.5 renumbered to §4.4–§4.6. §5.1 added "are you sure that's your task" to the recognized drift signal list. §6 first paragraph clarified to name Claude Code on lira as the execution channel. The amendments correct two failure modes observed earlier in this session: an architect-pre-written 400-line implementation buried inside a Claude Code prompt (caught by drift signal), and confident pattern-matched answers delivered without verification (general).*
 
 *Revised 2026-05-08: §5.1 added "why not use heredoc" to recognized drift signals. §6 first paragraph appended: commit deliverable is a single self-contained heredoc block — not a procedure, not a download, not instructions to translate.*
+
+*Revised 2026-06-23: §4.4 updated — the blanket "Claude Code cannot write to either" prohibition replaced with the Path A / Path B confirmation gate now codified in CLAUDE.md. Default posture remains draft-in-response; direct writes are the exception, requiring explicit governor confirmation (Path A, turn-scoped) or a purely syntactic substitution the governor named (Path B). Constitutional core (`.intent/constitution/`, `.intent/META/`, `.intent/rules/governance/`) retains heightened confirmation: governor must name the specific file, and Claude Code surfaces the change for review before writing.*
