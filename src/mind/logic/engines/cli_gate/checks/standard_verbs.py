@@ -38,7 +38,9 @@ class StandardVerbsCheck(CliCheck):
             parts = name.split(".")
             if len(parts) < 2:
                 continue
-            action = parts[1]
+            # Final segment is the action; earlier segments are resource /
+            # sub-resource and MUST NOT be checked against the verb vocabulary.
+            action = parts[-1]
             if action in allowed:
                 continue
             findings.append(
