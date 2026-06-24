@@ -191,11 +191,17 @@ async def gap_analysis(
     # judged requirements degrade honestly to "verdict unavailable" rather
     # than failing the run.
     llm_client = None
+    embedding_client = None
     try:
         role = PromptModel.load("grc_judge").manifest.role
         cognitive = getattr(ctx.obj, "cognitive_service", None)
         if cognitive is not None:
             llm_client = await cognitive.aget_client_for_role(role)
+            from shared.infrastructure.vector.cognitive_adapter import (
+                CognitiveEmbedderAdapter,
+            )
+
+            embedding_client = CognitiveEmbedderAdapter(cognitive)
     except Exception as exc:  # degrade honestly, never hard-fail
         logger.warning("GRC judge LLM client unavailable: %s", exc)
         console.print(
@@ -203,7 +209,9 @@ async def gap_analysis(
             "'verdict unavailable'.[/dim]"
         )
 
-    service = GRCGapAnalysisService(llm_client=llm_client)
+    service = GRCGapAnalysisService(
+        llm_client=llm_client, embedding_client=embedding_client
+    )
 
     # Applicability gate (ADR-118 D2): detect → suggest → confirm domain fit
     # BEFORE scoring, so CORE never produces a confidently-useless "not covered

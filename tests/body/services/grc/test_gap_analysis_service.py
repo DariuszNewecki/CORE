@@ -216,3 +216,39 @@ def test_resolver_licensed_overrides_public_same_framework(tmp_path: Path) -> No
     _make_catalog(tmp_path, "licensed", "nist_800_171")
     resolved = resolve_catalog_path("nist_800_171", tmp_path)
     assert resolved.parent.parent.name == "licensed"
+
+
+def test_service_passes_embedding_client_to_engine_registry(tmp_path: Path) -> None:
+    """embedding_client is threaded through DocumentCorpusAnalysisService → EngineRegistry.
+
+    This is the DB-backed Vectorizer path (CognitiveEmbedderAdapter); the old
+    EmbeddingService() direct construction (env-based) is no longer the injected value.
+    """
+    from unittest.mock import MagicMock, patch
+
+    mock_embedder = MagicMock()
+    service = GRCGapAnalysisService(
+        llm_client=MagicMock(),
+        embedding_client=mock_embedder,
+    )
+
+    captured: list[dict] = []
+
+    original_initialize = __import__(
+        "mind.logic.engines.registry", fromlist=["EngineRegistry"]
+    ).EngineRegistry.initialize
+
+    def _capture_initialize(*args, **kwargs):
+        captured.append({"embedding_client": kwargs.get("embedding_client")})
+        return original_initialize(*args, **kwargs)
+
+    with patch(
+        "body.services.grc.gap_analysis_service.EngineRegistry.initialize",
+        side_effect=_capture_initialize,
+    ):
+        import asyncio
+
+        asyncio.run(service.run(tmp_path, catalog=[]))
+
+    assert captured, "EngineRegistry.initialize was not called"
+    assert captured[0]["embedding_client"] is mock_embedder

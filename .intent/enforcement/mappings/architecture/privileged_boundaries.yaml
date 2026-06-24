@@ -117,6 +117,30 @@ mappings:
         - "src/mind/**/test_*.py"
         - "tests/**"
 
+  # ==========================================================================
+  # EMBEDDING ACCESS
+  # Rule: architecture.boundary.embedding_access
+  # ==========================================================================
+  # Embedding capability must go through CognitiveEmbedderAdapter (Vectorizer role).
+  # Direct import of EmbeddingService or build_embedder_from_env bypasses the
+  # DB-backed resource registry and decouples config from governance.
+
+  architecture.boundary.embedding_access:
+    engine: ast_gate
+    params:
+      check_type: runtime_import_boundary
+      forbidden:
+        - "shared.utils.embedding_utils.EmbeddingService"
+        - "shared.utils.embedding_utils.build_embedder_from_env"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+        - "src/mind/**/*.py"
+        - "src/will/**/*.py"
+        - "src/cli/**/*.py"
+      excludes:
+        - "tests/**"
+
 # ==============================================================================
 # Meta: This mapping enforces constitutional boundaries by preventing
 # direct infrastructure primitive imports. Violations indicate architectural

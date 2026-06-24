@@ -41,6 +41,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "LLM access is decision-making capability. Only Will layer (judgment) may decide. Body (execution) and Mind (law) must not invoke AI."
+        },
+        {
+            "id": "architecture.boundary.embedding_access",
+            "statement": "Embedding capability MUST be obtained through CognitiveEmbedderAdapter (Vectorizer role, DB-backed registry). Direct import of EmbeddingService or build_embedder_from_env from shared.utils.embedding_utils is prohibited outside shared infrastructure. All other layers receive an injected embedder via dependency injection.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "EmbeddingService reads LOCAL_EMBEDDING_API_URL from env/settings, bypassing the DB-backed resource registry (core.llm_resources + role assignments). Constructing it directly decouples resource configuration from governance. All embedding access outside shared infrastructure MUST resolve through CognitiveService → Vectorizer role → CognitiveEmbedderAdapter so that host, model, and timeout are operator-governed and auditable."
         }
     ]
 }

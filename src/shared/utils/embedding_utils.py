@@ -94,7 +94,19 @@ def sha256_hex(text: str) -> str:
 # ID: c3c32fe7-d434-43c6-b6a2-647afe213b4e
 class EmbeddingService:
     """
-    Local-only embeddings client (Vectorizer role contract).
+    Local-only embeddings client — shared infrastructure only.
+
+    CANONICAL PATH FOR ALL OTHER CODE:
+      Use CognitiveEmbedderAdapter(cognitive_service) instead.
+      It resolves through the DB-backed Vectorizer role (core.llm_resources)
+      so host, model, and timeout are operator-governed, not env-bound.
+
+      from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
+      embedder = CognitiveEmbedderAdapter(cognitive_service)
+
+    This class exists for shared infrastructure internals only. Direct
+    construction outside src/shared/ is blocked by the
+    architecture.boundary.embedding_access governance rule.
 
     Expected settings (NO fallbacks):
     - LOCAL_EMBEDDING_API_URL
@@ -146,10 +158,11 @@ class EmbeddingService:
 
 # ID: 14fd20cf-3101-4970-84b0-942ea9fffda3
 def build_embedder_from_env() -> Embeddable:
-    """
-    Backwards-compatible factory name.
+    """Settings-based local embedder factory — shared infrastructure only.
 
-    CORE contract: this is settings-based and local-only.
+    For application code, use CognitiveEmbedderAdapter(cognitive_service)
+    which resolves through the DB-backed Vectorizer role. Direct use of this
+    factory outside src/shared/ is blocked by architecture.boundary.embedding_access.
     """
     return _Adapter(EmbeddingService())
 

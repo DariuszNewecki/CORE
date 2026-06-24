@@ -31,7 +31,7 @@ console = Console()
 
 
 @app.command("ingest")
-@core_command(dangerous=False, requires_context=False, requires_brain_services=False)
+@core_command(dangerous=False, requires_context=True, requires_brain_services=True)
 # ID: fd0b62b8-df95-4bb8-aa82-6a9520e00b2c
 async def ingest(
     ctx: typer.Context,
@@ -64,7 +64,7 @@ async def ingest(
     )
     from shared.config import settings
     from shared.infrastructure.clients.qdrant_client import QdrantService
-    from shared.utils.embedding_utils import EmbeddingService
+    from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
 
     repo_root: Path = settings.paths.repo_root
 
@@ -106,8 +106,16 @@ async def ingest(
     )
 
     # Steps 3-5: chunk, embed, upsert, write provenance
+    cognitive = getattr(ctx.obj, "cognitive_service", None)
+    if cognitive is None:
+        console.print(
+            "[bold red]Error:[/bold red] Cognitive service (Vectorizer role) is required "
+            "for corpus embedding. Ensure brain services are reachable and retry."
+        )
+        raise typer.Exit(1)
+
     qdrant = QdrantService()
-    embedder = EmbeddingService()
+    embedder = CognitiveEmbedderAdapter(cognitive)
     ingester = InternalCorpusIngester(
         qdrant_service=qdrant,
         embedding_service=embedder,

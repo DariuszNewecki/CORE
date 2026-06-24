@@ -25,7 +25,7 @@ from qdrant_client.http import models as qm
 
 from shared.logger import getLogger
 from shared.time import now_iso
-from shared.utils.embedding_utils import EmbeddingService, _chunk_text
+from shared.utils.embedding_utils import _chunk_text
 
 
 if TYPE_CHECKING:
@@ -100,14 +100,14 @@ class InternalCorpusIngester:
     Implements ADR-122 D2 (structure-aware chunking), D1 (collection naming),
     and D3 steps 3-5 (chunk/embed/upsert + provenance write).
 
-    Receives ``QdrantService``, ``EmbeddingService``, and ``repo_root`` via
-    constructor injection (no settings imports; Body DI contract).
+    Receives ``QdrantService``, an embedder (``CognitiveEmbedderAdapter`` from
+    the caller), and ``repo_root`` via constructor injection (Body DI contract).
     """
 
     def __init__(
         self,
         qdrant_service: QdrantService,
-        embedding_service: EmbeddingService,
+        embedding_service: Any,
         repo_root: Path,
     ) -> None:
         self._qdrant = qdrant_service
@@ -259,7 +259,7 @@ class InternalCorpusSearcher:
     def __init__(
         self,
         qdrant_service: QdrantService,
-        embedding_service: EmbeddingService,
+        embedding_service: Any,
     ) -> None:
         self._qdrant = qdrant_service
         self._embedder = embedding_service

@@ -259,6 +259,63 @@ async def test_verify_runtime_import_boundary(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
+@pytest.mark.asyncio
+async def test_embedding_access_rule_catches_direct_import(path_resolver, tmp_py_file):
+    """architecture.boundary.embedding_access: importing EmbeddingService directly
+    in body/mind/will/cli fires; importing _chunk_text (the only permitted symbol)
+    from the same module does not.
+
+    Exercises the runtime_import_boundary check with the exact forbidden patterns
+    declared in .intent/enforcement/mappings/architecture/privileged_boundaries.yaml.
+    """
+    engine = ASTGateEngine(path_resolver=path_resolver)
+    _FORBIDDEN = [
+        "shared.utils.embedding_utils.EmbeddingService",
+        "shared.utils.embedding_utils.build_embedder_from_env",
+    ]
+
+    # Violation: direct EmbeddingService import — the pattern that was the bug
+    tmp_py_file.write_text(
+        "from shared.utils.embedding_utils import EmbeddingService\n"
+    )
+    result = await engine.verify(
+        tmp_py_file,
+        {"check_type": "runtime_import_boundary", "forbidden": _FORBIDDEN},
+    )
+    assert not result.ok, "EmbeddingService direct import must be blocked"
+    assert any("EmbeddingService" in v for v in result.violations)
+
+    # Violation: build_embedder_from_env — settings-based factory, same bypass
+    tmp_py_file.write_text(
+        "from shared.utils.embedding_utils import build_embedder_from_env\n"
+    )
+    result = await engine.verify(
+        tmp_py_file,
+        {"check_type": "runtime_import_boundary", "forbidden": _FORBIDDEN},
+    )
+    assert not result.ok, "build_embedder_from_env direct import must be blocked"
+
+    # Clean: _chunk_text is a pure utility, not a resource-access bypass
+    tmp_py_file.write_text(
+        "from shared.utils.embedding_utils import _chunk_text\n"
+    )
+    result = await engine.verify(
+        tmp_py_file,
+        {"check_type": "runtime_import_boundary", "forbidden": _FORBIDDEN},
+    )
+    assert result.ok, "_chunk_text import must be allowed (not a resource bypass)"
+
+    # Clean: CognitiveEmbedderAdapter — the canonical path
+    tmp_py_file.write_text(
+        "from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter\n"
+    )
+    result = await engine.verify(
+        tmp_py_file,
+        {"check_type": "runtime_import_boundary", "forbidden": _FORBIDDEN},
+    )
+    assert result.ok, "CognitiveEmbedderAdapter import must be allowed"
+
+
 def test_supported_check_types():
     """The canonical surface for the dispatch vocabulary is the class-level
     ``_SUPPORTED_CHECK_TYPES`` ClassVar — a frozenset enumerating every

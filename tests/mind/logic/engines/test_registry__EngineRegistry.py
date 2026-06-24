@@ -140,3 +140,17 @@ def test_initialize_clears_instance_cache():
 
     EngineRegistry.initialize(PathResolver(repo_root=Path("/opt/dev/CORE")))
     assert EngineRegistry._instances == {}
+
+
+def test_initialize_stores_embedding_client():
+    """embedding_client passed to initialize() is stored on the registry class."""
+    from unittest.mock import MagicMock
+
+    mock_embedder = MagicMock()
+    EngineRegistry.initialize(
+        PathResolver(repo_root=Path("/opt/dev/CORE")),
+        embedding_client=mock_embedder,
+    )
+    assert EngineRegistry._embedding_client is mock_embedder
+    # Cleanup so autouse fixture re-initializes without an embedder.
+    EngineRegistry.initialize(PathResolver(repo_root=Path("/opt/dev/CORE")))

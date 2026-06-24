@@ -168,3 +168,43 @@ def test_evidence_class_is_judged(path_resolver):
     engine = GRCJudgeEngine(path_resolver=path_resolver, llm_client=Mock())
     assert engine.evidence_class is EvidenceClass.JUDGED
     assert engine.engine_id == "grc_judge"
+
+
+def test_get_corpus_clients_none_without_injected_embedder(path_resolver):
+    """_get_corpus_clients returns None when no embedding_client was injected."""
+    engine = GRCJudgeEngine(path_resolver=path_resolver, llm_client=Mock())
+    assert engine._embedder is None
+    assert engine._get_corpus_clients() is None
+
+
+def test_get_corpus_clients_uses_injected_embedder(path_resolver):
+    """_get_corpus_clients returns (qdrant, embedder) when embedder was injected."""
+    from unittest.mock import patch
+
+    mock_embedder = MagicMock()
+    mock_qdrant_cls = MagicMock()
+    mock_qdrant_instance = MagicMock()
+    mock_qdrant_cls.return_value = mock_qdrant_instance
+
+    engine = GRCJudgeEngine(
+        path_resolver=path_resolver,
+        llm_client=Mock(),
+        embedding_client=mock_embedder,
+    )
+    assert engine._embedder is mock_embedder
+
+    with patch(
+        "mind.logic.engines.grc_judge.QdrantService",
+        mock_qdrant_cls,
+        create=True,
+    ):
+        pass  # QdrantService is imported inside the method; patch via import target
+    with patch(
+        "shared.infrastructure.clients.qdrant_client.QdrantService",
+        mock_qdrant_cls,
+    ):
+        result = engine._get_corpus_clients()
+    # With embedder injected, the method proceeds to init Qdrant
+    assert result is not None
+    _, returned_embedder = result
+    assert returned_embedder is mock_embedder

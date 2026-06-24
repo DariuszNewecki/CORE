@@ -82,29 +82,33 @@ class GRCJudgeEngine(BaseEngine):
         self,
         path_resolver: PathResolver,
         llm_client: LLMClientProtocol,
+        embedding_client: Any | None = None,
     ):
         self._paths = path_resolver
         self.llm = llm_client
         self._prompt_model = PromptModel.load("grc_judge")
-        # Lazy-init: Qdrant + embedding clients created on first augmentation attempt.
+        # Corpus augmentation: embedder is injected by EngineRegistry (DB-backed
+        # resource registry, Vectorizer role). Absent = no augmentation; the
+        # verdict remains valid and EvidenceClass stays JUDGED (ADR-122 D4).
         self._qdrant: Any | None = None
-        self._embedder: Any | None = None
+        self._embedder: Any | None = embedding_client
 
     # ID: 487eb9a1-e9bc-4359-8418-e900b2959569
     def _get_corpus_clients(self) -> tuple[Any, Any] | None:
-        """Lazy-init QdrantService + EmbeddingService for corpus augmentation (ADR-122 D4).
+        """Return (QdrantService, embedder) for corpus augmentation (ADR-122 D4).
 
-        Returns None and logs DEBUG when unavailable (Qdrant not configured, embedding
-        service unreachable, etc.) — caller degrades gracefully.
+        Embedder must be injected at construction via EngineRegistry — resolves
+        through the DB-backed Vectorizer role, not from env/settings. Returns
+        None when no embedder was injected (augmentation disabled; degrades
+        gracefully — caller produces an unaugmented verdict).
         """
+        if self._embedder is None:
+            return None
         try:
             from shared.infrastructure.clients.qdrant_client import QdrantService
-            from shared.utils.embedding_utils import EmbeddingService
 
             if self._qdrant is None:
                 self._qdrant = QdrantService()
-            if self._embedder is None:
-                self._embedder = EmbeddingService()
             return self._qdrant, self._embedder
         except Exception as e:
             logger.debug("Corpus augmentation clients unavailable: %s", e)

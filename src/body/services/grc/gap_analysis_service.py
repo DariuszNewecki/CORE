@@ -257,10 +257,17 @@ class DocumentCorpusAnalysisService:
     """
 
     # ID: 40434806-a71e-45cf-912f-762db4613c65
-    def __init__(self, llm_client: Any | None = None) -> None:
+    def __init__(
+        self,
+        llm_client: Any | None = None,
+        embedding_client: Any | None = None,
+    ) -> None:
         # When an LLM client is wired, the judged requirement produces a real
         # AI verdict; without one it degrades honestly to UNAVAILABLE.
+        # embedding_client (Vectorizer role, DB-backed) enables internal corpus
+        # augmentation for grc_judge — absent = no augmentation, still valid.
         self._llm_client = llm_client
+        self._embedding_client = embedding_client
 
     # ID: b746e762-1ce6-46e0-8c52-dc676fbbe69c
     async def assess_applicability(
@@ -348,7 +355,11 @@ class DocumentCorpusAnalysisService:
         # Engine internals (e.g. llm_gate prompts under var/prompts/) resolve
         # against CORE's own root; the corpus is addressed only via the
         # _CorpusContext below. Two independent roots — the Intent/Artifact split.
-        EngineRegistry.initialize(settings.paths, llm_client=self._llm_client)
+        EngineRegistry.initialize(
+            settings.paths,
+            llm_client=self._llm_client,
+            embedding_client=self._embedding_client,
+        )
 
         context = _CorpusContext(corpus_root)
         return [

@@ -43,12 +43,16 @@ class EngineRegistry:
     _engine_classes: ClassVar[dict[str, type]] = {}
     _path_resolver: ClassVar[PathResolver | None] = None
     _llm_client: ClassVar[LLMClient | None] = None
+    _embedding_client: ClassVar[Any | None] = None
     _discovered: ClassVar[bool] = False
 
     @classmethod
     # ID: b0cfcefb-27db-4db3-b5e7-754e1d16c958
     def initialize(
-        cls, path_resolver: PathResolver, llm_client: LLMClient | None = None
+        cls,
+        path_resolver: PathResolver,
+        llm_client: LLMClient | None = None,
+        embedding_client: Any | None = None,
     ) -> None:
         """Reset registry state and re-run engine discovery.
 
@@ -62,6 +66,7 @@ class EngineRegistry:
         """
         cls._path_resolver = path_resolver
         cls._llm_client = llm_client
+        cls._embedding_client = embedding_client
         cls._instances.clear()
         cls._engine_classes.clear()
         cls._discovered = False
@@ -148,6 +153,9 @@ class EngineRegistry:
 
                 logger.debug("Redirecting %s to Stub (No LLM Client)", target_id)
                 return LLMGateStubEngine()
+
+        if "embedding_client" in sig.parameters:
+            params["embedding_client"] = cls._embedding_client
 
         cls._instances[target_id] = engine_cls(**params)
         return cls._instances[target_id]
