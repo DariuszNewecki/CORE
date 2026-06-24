@@ -21,6 +21,8 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.specs/META/` | Schemas governing `.specs/` and `.intent/` documents | Updated when conventions change |
 | `.specs/state/` | Investigations and historical snapshots cited by ADRs or papers | Append-only; dated artifacts |
 | `.specs/commercial/` | Private commercial material (e.g. tech-rep onboarding) | Gitignored; not published |
+| `.specs/commercial/cadence.md` | Working cadence — three modes, trigger rules, weekly rhythm, content channel priority | Revised when goals or constraints change |
+| `.specs/commercial/PR-XX/` | Pharma pilot (unnamed) — requirements, product position, build gap, demo plan | Updated as pilot progresses |
 | `.specs/planning/CORE-Operational-Completeness.md` | Operational tracker — ADR-085 5+3 gate (post-A3) | Updated per its §4 rules when a 5+3 feature ships or quality goal advances |
 | `.specs/planning/archive/CORE-A3-plan.md` | Historical — A3 milestone closure record (A3 closed 2026-05-12; archived 2026-06-07) | Frozen content; ADR index in this file ends at ADR-076 |
 | `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
