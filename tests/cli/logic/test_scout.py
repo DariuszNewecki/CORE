@@ -81,7 +81,16 @@ def test_detect_bare_except_count(tmp_path: Path) -> None:
 
     signals, _ = _detect_repo_signals(tmp_path)
 
-    assert signals["bare_except_occurrences"] >= 1
+    assert signals["bare_except_occurrences"] == 1  # only the bare except, not the typed one
+
+
+def test_detect_bare_except_does_not_count_typed(tmp_path: Path) -> None:
+    src = "try:\n    pass\nexcept Exception:\n    pass\ntry:\n    pass\nexcept BaseException:\n    pass\n"
+    (tmp_path / "mod.py").write_text(src)
+
+    signals, _ = _detect_repo_signals(tmp_path)
+
+    assert signals["bare_except_occurrences"] == 0
 
 
 def test_detect_id_anchors_counted(tmp_path: Path) -> None:

@@ -277,9 +277,7 @@ def _detect_repo_signals(
     docstring_after = _count(r'(?:def|class)[^\n]+\n\s+"""')
     id_anchors = _count(r"#\s*ID\s*:")
     print_calls = _count(r"\bprint\s*\(")
-    bare_except = _count(
-        r"except\s*(?:Exception\s*|BaseException\s*)?:\s*(?:pass\s*)?$"
-    )
+    bare_except = _count(r"^\s*except\s*:")
     future_annotations = _count(r"from __future__ import annotations")
     type_annotations = _count(r"\)\s*->")
     decorator_usage = _count(r"^\s*@\w")
