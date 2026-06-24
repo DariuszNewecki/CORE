@@ -129,9 +129,17 @@ class GRCJudgeEngine(BaseEngine):
             return ""
         qdrant, embedder = clients
         try:
+            collection = f"grc-internal-{framework_id}"
+            known = await qdrant.list_collections()
+            if collection not in known:
+                logger.debug(
+                    "Internal corpus collection absent for %s — skipping augmentation",
+                    framework_id,
+                )
+                return ""
             query_vec = await embedder.get_embedding(instruction)
             hits = await qdrant.search(
-                collection_name=f"grc-internal-{framework_id}",
+                collection_name=collection,
                 query_vector=query_vec,
                 limit=_INTERNAL_CORPUS_TOP_K,
             )

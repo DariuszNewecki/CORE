@@ -245,7 +245,7 @@ class QdrantService:
                 score_threshold=score_threshold,
             )
         except Exception as e:
-            logger.error("Search failed in {collection_name}: %s", e)
+            logger.error("Search failed in %s: %s", collection_name, e)
             raise
 
     # ========================================================================
