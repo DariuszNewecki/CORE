@@ -32,9 +32,9 @@ CONSTITUTIONAL NOTES:
 
 from __future__ import annotations
 
+import ast
 import json
 import os
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -54,23 +54,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 console = Console()
-
-# Detect-phase bounds — ADR-119 D3 "detect" step
-_DETECT_MAX_FILES = 12
-_DETECT_PER_FILE_CHARS = 3_000
-_DETECT_ENTRY_NAMES = frozenset(
-    {
-        "__main__.py",
-        "main.py",
-        "app.py",
-        "cli.py",
-        "server.py",
-        "run.py",
-        "manage.py",
-        "wsgi.py",
-        "asgi.py",
-    }
-)
 
 # Fallback source — ADR-119 D7
 _FALLBACK_RULES_REL = ("examples", "starter-intent", ".intent", "rules", "starter.json")
@@ -117,9 +100,11 @@ async def induce_rules(
 
     # ── Detect ────────────────────────────────────────────────────────────────
     console.print(Rule("[bold cyan]Scout — Phase B: Rule Induction[/bold cyan]"))
-    console.print("[cyan]Detect[/cyan] — sampling repository source files...")
-    signals, sample_text = _detect_repo_signals(target_root)
-    code_signals = _format_signals(signals, sample_text)
+    console.print(
+        "[cyan]Detect[/cyan] — extracting structural signals from full repository..."
+    )
+    signals = _extract_repo_signals(target_root)
+    code_signals = _format_signal_report(signals)
 
     # ── Suggest ───────────────────────────────────────────────────────────────
     candidates: list[dict[str, Any]] = []
@@ -224,102 +209,263 @@ async def induce_rules(
 
 # ── Detect helpers ─────────────────────────────────────────────────────────────
 
-
-def _detect_repo_signals(
-    target_root: Path,
-) -> tuple[dict[str, Any], str]:
-    """Sample Python files and extract structural signals from the target repo."""
-    all_py = sorted(target_root.rglob("*.py"))
-
-    # Prioritise: entry points → test files → largest files
-    entry = [p for p in all_py if p.name in _DETECT_ENTRY_NAMES]
-    test_files = [
-        p
-        for p in all_py
-        if p not in entry
-        and (p.name.startswith("test_") or p.name.endswith("_test.py"))
-    ]
-    others = sorted(
-        [p for p in all_py if p not in entry and p not in test_files],
-        key=lambda p: p.stat().st_size,
-        reverse=True,
-    )
-    sampled = (entry + others + test_files)[:_DETECT_MAX_FILES]
-
-    # Read excerpts
-    excerpts: list[tuple[str, str]] = []
-    for p in sampled:
-        try:
-            text = p.read_text(encoding="utf-8", errors="replace")[
-                :_DETECT_PER_FILE_CHARS
-            ]
-            rel = str(p.relative_to(target_root))
-            excerpts.append((rel, text))
-        except OSError:
-            pass
-
-    combined = "\n".join(t for _, t in excerpts)
-
-    # Structural signals
-    has_src = (target_root / "src").is_dir()
-    has_tests = bool(
-        (target_root / "tests").is_dir()
-        or (target_root / "test").is_dir()
-        or test_files
-    )
-
-    def _count(pattern: str) -> int:
-        return len(re.findall(pattern, combined, re.MULTILINE))
-
-    def_count = _count(r"^\s*(?:async\s+)?def\s+[A-Za-z]")
-    class_count = _count(r"^\s*class\s+[A-Za-z]")
-    public_count = def_count + class_count
-    docstring_after = _count(r'(?:def|class)[^\n]+\n\s+"""')
-    id_anchors = _count(r"#\s*ID\s*:")
-    print_calls = _count(r"\bprint\s*\(")
-    bare_except = _count(r"^\s*except\s*:")
-    future_annotations = _count(r"from __future__ import annotations")
-    type_annotations = _count(r"\)\s*->")
-    decorator_usage = _count(r"^\s*@\w")
-
-    signals: dict[str, Any] = {
-        "total_py_files": len(all_py),
-        "sampled_files": len(sampled),
-        "has_src_layout": has_src,
-        "has_tests": has_tests,
-        "public_symbols_estimate": public_count,
-        "docstrings_present_estimate": docstring_after,
-        "id_anchors_found": id_anchors,
-        "print_calls": print_calls,
-        "bare_except_occurrences": bare_except,
-        "future_annotations_files": future_annotations,
-        "type_annotations_present": type_annotations > 0,
-        "decorator_usage": decorator_usage > 0,
-    }
-    return signals, "\n\n".join(f"--- {rel} ---\n{text}" for rel, text in excerpts)
+_SKIP_DIR_PARTS: frozenset[str] = frozenset(
+    {".venv", "venv", "build", "dist", "__pycache__", "node_modules", ".git"}
+)
 
 
-def _format_signals(signals: dict[str, Any], sample_text: str) -> str:
-    """Format structural signals as a string for the LLM prompt."""
-    pub = signals["public_symbols_estimate"]
-    doc = signals["docstrings_present_estimate"]
-    doc_pct = f"~{int(doc / pub * 100)}%" if pub else "n/a"
+def _should_include_file(p: Path, root: Path) -> bool:
+    """Return True unless the file lives inside a directory we always skip."""
+    try:
+        rel = p.relative_to(root)
+    except ValueError:
+        return True
+    return not any(part in _SKIP_DIR_PARTS for part in rel.parts)
 
+
+def _get_decorator_name(node: ast.expr) -> str:
+    """Extract the leaf identifier from a decorator node."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Call):
+        return _get_decorator_name(node.func)
+    return ""
+
+
+def _has_docstring(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+) -> bool:
+    """Return True if the first statement in the body is a string constant."""
     return (
-        f"Python files total: {signals['total_py_files']}\n"
-        f"Files sampled: {signals['sampled_files']}\n"
-        f"Has src/ layout: {'yes' if signals['has_src_layout'] else 'no'}\n"
-        f"Has tests directory: {'yes' if signals['has_tests'] else 'no'}\n"
-        f"Public symbols (estimate from sample): {pub}\n"
-        f"  — with docstrings: {doc_pct}\n"
-        f"print() calls found: {signals['print_calls']}\n"
-        f"Bare except occurrences: {signals['bare_except_occurrences']}\n"
-        f"Type annotations (->): {'present' if signals['type_annotations_present'] else 'absent'}\n"
-        f"from __future__ import annotations: "
-        f"{signals['future_annotations_files']} sampled files\n"
-        f"Decorator usage: {'yes' if signals['decorator_usage'] else 'no'}\n"
-        f"\nCODE SAMPLES\n{sample_text}"
+        bool(node.body)
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
     )
+
+
+def _extract_ci_signals(target_root: Path) -> dict[str, Any]:
+    """Read mypy/ruff configuration from pyproject.toml, if present."""
+    pyproject = target_root / "pyproject.toml"
+    if not pyproject.exists():
+        return {}
+    try:
+        import tomllib
+
+        with pyproject.open("rb") as f:
+            doc = tomllib.load(f)
+        tool = doc.get("tool", {})
+        result: dict[str, Any] = {}
+        mypy = tool.get("mypy", {})
+        if mypy:
+            result["mypy_configured"] = True
+            if mypy.get("strict"):
+                result["mypy_strict"] = True
+        ruff = tool.get("ruff", {})
+        ruff_select = ruff.get("lint", {}).get("select") or ruff.get("select")
+        if ruff_select:
+            result["ruff_select"] = list(ruff_select)[:12]
+        return result
+    except Exception:
+        return {}
+
+
+def _extract_repo_signals(target_root: Path) -> dict[str, Any]:
+    """Walk the full repository and extract aggregate AST-based governance signals.
+
+    ADR-119 D3 B1: replaces file-sampling with a full-repo AST pass. Every .py
+    file is parsed; aggregate counts and ratios replace raw file excerpts. The
+    LLM receives measurements, not source text — more token-efficient and
+    deterministic across runs on the same commit.
+    """
+    all_py = sorted(
+        p for p in target_root.rglob("*.py") if _should_include_file(p, target_root)
+    )
+
+    files_parsed = 0
+    files_failed = 0
+    test_file_count = 0
+    public_defs = 0
+    public_defs_docstring = 0
+    public_defs_annotated = 0
+    public_classes = 0
+    public_classes_docstring = 0
+    future_annotations_files = 0
+    type_checking_files = 0
+    bare_except_count = 0
+    typed_except_pass_count = 0
+    print_call_count = 0
+    abstract_methods = 0
+    import_alias_counts: dict[str, int] = {}
+    decorator_counts: dict[str, int] = {}
+
+    for py_file in all_py:
+        try:
+            source = py_file.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(py_file))
+        except Exception:
+            files_failed += 1
+            continue
+        files_parsed += 1
+
+        name = py_file.name
+        if name.startswith("test_") or name.endswith("_test.py"):
+            test_file_count += 1
+
+        file_has_future = False
+        file_has_type_checking = False
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if node.module == "__future__" and any(
+                    a.name == "annotations" for a in node.names
+                ):
+                    file_has_future = True
+
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.asname:
+                        key = f"import {alias.name} as {alias.asname}"
+                        import_alias_counts[key] = import_alias_counts.get(key, 0) + 1
+
+            elif isinstance(node, ast.If):
+                test = node.test
+                if (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+                    isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+                ):
+                    file_has_type_checking = True
+
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if not node.name.startswith("_"):
+                    public_defs += 1
+                    if node.returns is not None:
+                        public_defs_annotated += 1
+                    if _has_docstring(node):
+                        public_defs_docstring += 1
+                    for dec in node.decorator_list:
+                        dec_name = _get_decorator_name(dec)
+                        if dec_name:
+                            decorator_counts[dec_name] = (
+                                decorator_counts.get(dec_name, 0) + 1
+                            )
+                        if dec_name == "abstractmethod":
+                            abstract_methods += 1
+
+            elif isinstance(node, ast.ClassDef):
+                if not node.name.startswith("_"):
+                    public_classes += 1
+                    if _has_docstring(node):
+                        public_classes_docstring += 1
+
+            elif isinstance(node, ast.ExceptHandler):
+                if node.type is None:
+                    bare_except_count += 1
+                elif len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
+                    typed_except_pass_count += 1
+
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id == "print":
+                    print_call_count += 1
+
+        if file_has_future:
+            future_annotations_files += 1
+        if file_has_type_checking:
+            type_checking_files += 1
+
+    return {
+        "total_py_files": len(all_py),
+        "files_parsed": files_parsed,
+        "files_failed": files_failed,
+        "test_files": test_file_count,
+        "has_src_layout": (target_root / "src").is_dir(),
+        "public_defs": public_defs,
+        "public_defs_docstring": public_defs_docstring,
+        "public_defs_annotated": public_defs_annotated,
+        "public_classes": public_classes,
+        "public_classes_docstring": public_classes_docstring,
+        "future_annotations_files": future_annotations_files,
+        "type_checking_files": type_checking_files,
+        "bare_except_count": bare_except_count,
+        "typed_except_pass_count": typed_except_pass_count,
+        "print_call_count": print_call_count,
+        "abstract_methods": abstract_methods,
+        "py_typed": (target_root / "py.typed").exists()
+        or bool(list(target_root.glob("src/*/py.typed"))),
+        "top_aliases": sorted(import_alias_counts.items(), key=lambda x: -x[1])[:8],
+        "top_decorators": sorted(decorator_counts.items(), key=lambda x: -x[1])[:8],
+        "ci_signals": _extract_ci_signals(target_root),
+    }
+
+
+def _format_signal_report(signals: dict[str, Any]) -> str:
+    """Format aggregate repo signals as a structured text report for the LLM."""
+    total = signals["total_py_files"]
+    parsed = signals["files_parsed"]
+    failed = signals["files_failed"]
+    test_files = signals["test_files"]
+    pub_defs = signals["public_defs"]
+    annotated = signals["public_defs_annotated"]
+    defs_doc = signals["public_defs_docstring"]
+    pub_cls = signals["public_classes"]
+    cls_doc = signals["public_classes_docstring"]
+    future_ann = signals["future_annotations_files"]
+    tc_files = signals["type_checking_files"]
+    bare_exc = signals["bare_except_count"]
+    typed_pass = signals["typed_except_pass_count"]
+    prints = signals["print_call_count"]
+    abstract = signals["abstract_methods"]
+    py_typed = signals["py_typed"]
+
+    def pct(n: int, of: int) -> str:
+        return f"{int(n / of * 100)}%" if of else "n/a"
+
+    parts: list[str] = [
+        f"Python files: {total} total  {parsed} parsed  {failed} failed  {test_files} test files",
+        f"Project layout: {'src/' if signals.get('has_src_layout') else 'flat'}  py.typed: {'yes' if py_typed else 'no'}",
+        "",
+        "Public symbols (full-repo, non-underscore functions and classes):",
+        f"  functions/methods : {pub_defs}",
+        f"    with return annotation : {annotated}  ({pct(annotated, pub_defs)})",
+        f"    with docstring         : {defs_doc}  ({pct(defs_doc, pub_defs)})",
+        f"  classes           : {pub_cls}",
+        f"    with docstring         : {cls_doc}  ({pct(cls_doc, pub_cls)})",
+        "",
+        "Pattern counts (full-repo):",
+        f"  from __future__ import annotations : {future_ann} files  ({pct(future_ann, parsed)})",
+        f"  if TYPE_CHECKING guard             : {tc_files} files",
+        f"  bare except (untyped)              : {bare_exc}",
+        f"  typed except + pass (silenced)     : {typed_pass}",
+        f"  print() calls                      : {prints}",
+        f"  @abstractmethod usage              : {abstract}",
+    ]
+
+    top_aliases = signals.get("top_aliases", [])
+    if top_aliases:
+        parts += ["", "Import aliasing patterns (top by file count):"]
+        for alias, count in top_aliases:
+            parts.append(f"  {alias}  →  {count} files")
+
+    top_dec = signals.get("top_decorators", [])
+    if top_dec:
+        parts += ["", "Decorator inventory (top by usage count):"]
+        for dec, count in top_dec:
+            parts.append(f"  @{dec}  →  {count} uses")
+
+    ci = signals.get("ci_signals", {})
+    if ci:
+        parts += ["", "CI / tooling:"]
+        if "mypy_configured" in ci:
+            strict = ci.get("mypy_strict", False)
+            parts.append(
+                f"  mypy: configured  {'strict=true' if strict else 'non-strict'}"
+            )
+        ruff_select = ci.get("ruff_select")
+        if ruff_select:
+            parts.append(f"  ruff select: {ruff_select}")
+
+    return "\n".join(parts)
 
 
 # ── Enforcement catalog (ADR-119 separation of observation from enforcement) ────

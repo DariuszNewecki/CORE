@@ -3,9 +3,8 @@
 Source: src/cli/logic/scout.py
 
 Tests target the deterministic, I/O-light helpers that do not require an LLM
-or a live CoreContext: signal detection from a temp filesystem, fallback
-candidate loading, rules/mappings document construction, and the enforcement
-normalization invariants.
+or a live CoreContext: full-repo signal extraction, fallback candidate loading,
+rules/mappings document construction, and enforcement normalization invariants.
 """
 
 from __future__ import annotations
@@ -18,154 +17,246 @@ import yaml
 from cli.logic.scout import (
     _build_mappings_document,
     _build_rules_document,
-    _detect_repo_signals,
-    _format_signals,
+    _extract_repo_signals,
+    _format_signal_report,
     _load_fallback_candidates,
 )
 
 
-# ── _detect_repo_signals ───────────────────────────────────────────────────────
+# ── _extract_repo_signals ──────────────────────────────────────────────────────
 
 
-def test_detect_counts_python_files(tmp_path: Path) -> None:
+def test_extract_counts_python_files(tmp_path: Path) -> None:
     (tmp_path / "a.py").write_text("def foo(): pass\n")
     (tmp_path / "b.py").write_text("class Bar: pass\n")
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
     assert signals["total_py_files"] == 2
-    assert signals["sampled_files"] == 2
+    assert signals["files_parsed"] == 2
+    assert signals["files_failed"] == 0
 
 
-def test_detect_entry_points_sampled_first(tmp_path: Path) -> None:
-    # Create many files so entry point must be prioritised
-    for i in range(20):
-        (tmp_path / f"mod_{i}.py").write_text("x = 1\n")
-    (tmp_path / "main.py").write_text("def main(): pass\n")
+def test_extract_skips_venv_directories(tmp_path: Path) -> None:
+    (tmp_path / "src.py").write_text("x = 1\n")
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    (venv / "lib.py").write_text("x = 2\n")
 
-    _signals, sample_text = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    # main.py must appear in the sample despite alphabetical ordering
-    assert "main.py" in sample_text
+    assert signals["total_py_files"] == 1
 
 
-def test_detect_identifies_test_directory(tmp_path: Path) -> None:
+def test_extract_counts_test_files(tmp_path: Path) -> None:
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
     (tests_dir / "test_foo.py").write_text("def test_ok(): pass\n")
+    (tmp_path / "src.py").write_text("def foo(): pass\n")
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    assert signals["has_tests"] is True
-
-
-def test_detect_no_tests_when_absent(tmp_path: Path) -> None:
-    (tmp_path / "src.py").write_text("x = 1\n")
-
-    signals, _ = _detect_repo_signals(tmp_path)
-
-    assert signals["has_tests"] is False
+    assert signals["test_files"] == 1
 
 
-def test_detect_print_count(tmp_path: Path) -> None:
+def test_extract_print_count(tmp_path: Path) -> None:
     (tmp_path / "mod.py").write_text("print('a')\nprint('b')\nx = 1\n")
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    assert signals["print_calls"] == 2
+    assert signals["print_call_count"] == 2
 
 
-def test_detect_bare_except_count(tmp_path: Path) -> None:
-    src = "try:\n    pass\nexcept:\n    pass\ntry:\n    pass\nexcept Exception:\n    pass\n"
+def test_extract_bare_except_count(tmp_path: Path) -> None:
+    src = (
+        "try:\n    pass\nexcept:\n    pass\n"
+        "try:\n    pass\nexcept Exception:\n    pass\n"
+    )
     (tmp_path / "mod.py").write_text(src)
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    assert signals["bare_except_occurrences"] == 1  # only the bare except, not the typed one
+    assert signals["bare_except_count"] == 1
+    assert signals["typed_except_pass_count"] == 1
 
 
-def test_detect_bare_except_does_not_count_typed(tmp_path: Path) -> None:
-    src = "try:\n    pass\nexcept Exception:\n    pass\ntry:\n    pass\nexcept BaseException:\n    pass\n"
+def test_extract_bare_except_does_not_count_typed(tmp_path: Path) -> None:
+    src = (
+        "try:\n    pass\nexcept Exception:\n    pass\n"
+        "try:\n    pass\nexcept BaseException:\n    x = 1\n"
+    )
     (tmp_path / "mod.py").write_text(src)
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    assert signals["bare_except_occurrences"] == 0
+    assert signals["bare_except_count"] == 0
+    assert signals["typed_except_pass_count"] == 1
 
 
-def test_detect_id_anchors_counted(tmp_path: Path) -> None:
-    src = "# ID: abc123\ndef foo(): pass\n# ID: def456\nclass Bar: pass\n"
+def test_extract_future_annotations(tmp_path: Path) -> None:
+    (tmp_path / "with_fa.py").write_text(
+        "from __future__ import annotations\ndef foo(): pass\n"
+    )
+    (tmp_path / "without_fa.py").write_text("def foo(): pass\n")
+
+    signals = _extract_repo_signals(tmp_path)
+
+    assert signals["future_annotations_files"] == 1
+
+
+def test_extract_type_checking_guard(tmp_path: Path) -> None:
+    src = (
+        "from __future__ import annotations\n"
+        "from typing import TYPE_CHECKING\n"
+        "if TYPE_CHECKING:\n"
+        "    import os\n"
+    )
     (tmp_path / "mod.py").write_text(src)
 
-    signals, _ = _detect_repo_signals(tmp_path)
+    signals = _extract_repo_signals(tmp_path)
 
-    assert signals["id_anchors_found"] == 2
+    assert signals["type_checking_files"] == 1
 
 
-def test_detect_empty_repo(tmp_path: Path) -> None:
-    signals, sample_text = _detect_repo_signals(tmp_path)
+def test_extract_public_defs_and_annotations(tmp_path: Path) -> None:
+    src = (
+        "def public_annotated() -> None: pass\n"
+        "def public_unannotated(): pass\n"
+        "def _private(): pass\n"
+    )
+    (tmp_path / "mod.py").write_text(src)
+
+    signals = _extract_repo_signals(tmp_path)
+
+    assert signals["public_defs"] == 2
+    assert signals["public_defs_annotated"] == 1
+
+
+def test_extract_public_defs_docstring(tmp_path: Path) -> None:
+    src = (
+        'def with_doc() -> None:\n    """Has a docstring."""\n    pass\n'
+        "def without_doc() -> None: pass\n"
+    )
+    (tmp_path / "mod.py").write_text(src)
+
+    signals = _extract_repo_signals(tmp_path)
+
+    assert signals["public_defs_docstring"] == 1
+
+
+def test_extract_import_aliases_tracked(tmp_path: Path) -> None:
+    (tmp_path / "mod.py").write_text("import typing as t\nimport os\n")
+
+    signals = _extract_repo_signals(tmp_path)
+
+    aliases = dict(signals["top_aliases"])
+    assert "import typing as t" in aliases
+
+
+def test_extract_empty_repo(tmp_path: Path) -> None:
+    signals = _extract_repo_signals(tmp_path)
 
     assert signals["total_py_files"] == 0
-    assert signals["sampled_files"] == 0
-    assert sample_text == ""
+    assert signals["files_parsed"] == 0
+    assert signals["public_defs"] == 0
 
 
-# ── _format_signals ────────────────────────────────────────────────────────────
+# ── _format_signal_report ──────────────────────────────────────────────────────
 
 
-def test_format_signals_includes_key_fields() -> None:
+def test_format_signal_report_includes_key_fields(tmp_path: Path) -> None:
     signals = {
         "total_py_files": 10,
-        "sampled_files": 5,
+        "files_parsed": 10,
+        "files_failed": 0,
+        "test_files": 2,
         "has_src_layout": True,
-        "has_tests": True,
-        "public_symbols_estimate": 20,
-        "docstrings_present_estimate": 10,
-        "id_anchors_found": 0,
-        "print_calls": 3,
-        "bare_except_occurrences": 1,
-        "future_annotations_files": 4,
-        "type_annotations_present": True,
-        "decorator_usage": False,
+        "public_defs": 20,
+        "public_defs_annotated": 15,
+        "public_defs_docstring": 10,
+        "public_classes": 5,
+        "public_classes_docstring": 4,
+        "future_annotations_files": 8,
+        "type_checking_files": 3,
+        "bare_except_count": 1,
+        "typed_except_pass_count": 0,
+        "print_call_count": 2,
+        "abstract_methods": 0,
+        "py_typed": False,
+        "top_aliases": [("import typing as t", 8)],
+        "top_decorators": [("staticmethod", 5)],
+        "ci_signals": {},
     }
-    text = _format_signals(signals, "--- sample.py ---\ndef foo(): pass")
+    text = _format_signal_report(signals)
 
     assert "10" in text  # total files
     assert "print" in text.lower()
-    assert "sample.py" in text
+    assert "75%" in text  # 15/20 annotated
+    assert "import typing as t" in text
 
 
-def test_format_signals_zero_public_symbols_no_crash() -> None:
+def test_format_signal_report_zero_public_symbols_no_crash() -> None:
     signals = {
         "total_py_files": 1,
-        "sampled_files": 1,
+        "files_parsed": 1,
+        "files_failed": 0,
+        "test_files": 0,
         "has_src_layout": False,
-        "has_tests": False,
-        "public_symbols_estimate": 0,
-        "docstrings_present_estimate": 0,
-        "id_anchors_found": 0,
-        "print_calls": 0,
-        "bare_except_occurrences": 0,
+        "public_defs": 0,
+        "public_defs_annotated": 0,
+        "public_defs_docstring": 0,
+        "public_classes": 0,
+        "public_classes_docstring": 0,
         "future_annotations_files": 0,
-        "type_annotations_present": False,
-        "decorator_usage": False,
+        "type_checking_files": 0,
+        "bare_except_count": 0,
+        "typed_except_pass_count": 0,
+        "print_call_count": 0,
+        "abstract_methods": 0,
+        "py_typed": False,
+        "top_aliases": [],
+        "top_decorators": [],
+        "ci_signals": {},
     }
-    text = _format_signals(signals, "")
-    assert "n/a" in text  # docstring % and id % are n/a when no public symbols
+    text = _format_signal_report(signals)
+    assert "n/a" in text  # pct of 0-of-0 is n/a
+
+
+def test_format_signal_report_ci_signals_included() -> None:
+    signals = {
+        "total_py_files": 5,
+        "files_parsed": 5,
+        "files_failed": 0,
+        "test_files": 0,
+        "has_src_layout": False,
+        "public_defs": 0,
+        "public_defs_annotated": 0,
+        "public_defs_docstring": 0,
+        "public_classes": 0,
+        "public_classes_docstring": 0,
+        "future_annotations_files": 0,
+        "type_checking_files": 0,
+        "bare_except_count": 0,
+        "typed_except_pass_count": 0,
+        "print_call_count": 0,
+        "abstract_methods": 0,
+        "py_typed": False,
+        "top_aliases": [],
+        "top_decorators": [],
+        "ci_signals": {"mypy_configured": True, "mypy_strict": True},
+    }
+    text = _format_signal_report(signals)
+    assert "mypy" in text
+    assert "strict" in text
 
 
 # ── _load_fallback_candidates ──────────────────────────────────────────────────
 
 
 def test_fallback_candidates_loaded_from_starter(tmp_path: Path) -> None:
-    """Fallback loads from CORE repo root, not the target repo."""
-    # Build a minimal starter-intent structure under tmp_path as a fake core_root
+    """Fallback loads rule IDs from starter.json; engine comes from catalog matching."""
     rules_path = tmp_path / "examples" / "starter-intent" / ".intent" / "rules"
     rules_path.mkdir(parents=True)
-    mappings_path = (
-        tmp_path / "examples" / "starter-intent" / ".intent" / "enforcement" / "mappings"
-    )
-    mappings_path.mkdir(parents=True)
 
     rules_doc = {
         "kind": "rule_document",
@@ -180,25 +271,14 @@ def test_fallback_candidates_loaded_from_starter(tmp_path: Path) -> None:
     }
     (rules_path / "starter.json").write_text(json.dumps(rules_doc))
 
-    mappings_doc = {
-        "mappings": {
-            "starter.docstrings": {
-                "engine": "ast_gate",
-                "params": {"check_type": "docstrings_present"},
-                "scope": {"applies_to": ["src/**/*.py"], "excludes": []},
-            }
-        }
-    }
-    (mappings_path / "starter.yaml").write_text(yaml.dump(mappings_doc))
-
     candidates = _load_fallback_candidates(tmp_path)
 
     assert len(candidates) == 1
     c = candidates[0]
-    # Rule ID re-namespaced from starter.* to scout.*
     assert c["rule_id"] == "scout.docstrings"
-    assert c["engine"] == "ast_gate"
     assert c["enforcement"] == "reporting"
+    # engine is NOT present here — it's added by _match_enforcement in induce_rules()
+    assert "engine" not in c
 
 
 def test_fallback_missing_files_returns_empty(tmp_path: Path) -> None:
@@ -241,6 +321,16 @@ def test_build_rules_document_multiple_rules() -> None:
     assert len(doc["rules"]) == 2
     ids = {r["id"] for r in doc["rules"]}
     assert ids == {"scout.docstrings", "scout.no_print"}
+
+
+def test_build_rules_document_declared_only_has_enforcement_note() -> None:
+    c = _make_candidate(enforcement_matched=False)
+    c.pop("engine", None)
+    c.pop("params", None)
+    doc = json.loads(_build_rules_document([c]))
+    rule = doc["rules"][0]
+    assert "enforcement_note" in rule
+    assert "declared" in rule["enforcement_note"]
 
 
 # ── _build_mappings_document ──────────────────────────────────────────────────

@@ -63,9 +63,10 @@ class ScoutInducer:
         catalog after this call returns.
 
         Args:
-            code_signals: Formatted string of signals extracted from the target
-                repo — file counts, pattern prevalence, and representative code
-                excerpts. Produced by the CLI detect phase; never read here.
+            code_signals: Structured text report of aggregate signals extracted
+                from the full target repo — counts and ratios for public symbols,
+                annotations, exception patterns, import conventions, and CI config.
+                Produced by the CLI detect phase (ADR-119 D3 B1); never read here.
 
         Returns:
             List of candidate observation dicts (rule_id, statement, enforcement,
