@@ -418,6 +418,7 @@ def _format_signal_report(signals: dict[str, Any]) -> str:
     abstract = signals["abstract_methods"]
     py_typed = signals["py_typed"]
 
+    # ID: 685a18bf-124b-4200-b005-5be86075cdf7
     def pct(n: int, of: int) -> str:
         return f"{int(n / of * 100)}%" if of else "n/a"
 
