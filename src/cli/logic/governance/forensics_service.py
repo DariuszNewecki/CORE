@@ -54,8 +54,11 @@ class GovernanceForensicsService:
                 ORDER BY created_at ASC
             """
             )
+            escaped_sid = (
+                session_id.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
             action_res = await session.execute(
-                action_query, {"sid_pattern": f"%{session_id}%"}
+                action_query, {"sid_pattern": f"%{escaped_sid}%"}
             )
             actions = action_res.mappings().all()
 
