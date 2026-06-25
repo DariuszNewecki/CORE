@@ -42,7 +42,10 @@ from cli.utils.exit_codes import (
 )
 from mind.governance.stateless_audit import run_stateless_audit
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.intent_repository import (
+    IntentRepository,
+    get_intent_repository,
+)
 from shared.path_utils import get_repo_root
 
 from .hub import app
@@ -98,6 +101,16 @@ async def audit_command(
             "ADR-085 §D5 for the F-10 exit criterion this serves."
         ),
     ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help=(
+            "#688: path to an external repo to audit. Requires --offline. "
+            "The repo must have a .intent/ directory (produced by "
+            "`core-admin project onboard`). When omitted, the audit runs "
+            "against the repo found by walking up from the current directory."
+        ),
+    ),
     output_format: str = typer.Option(
         "text",
         "--format",
@@ -134,11 +147,19 @@ async def audit_command(
         )
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
+    if target is not None and not offline:
+        console.print(
+            "[bold red]--target requires --offline[/bold red] "
+            "(the daemon-driven path cannot be directed at an external repo)"
+        )
+        raise typer.Exit(EXIT_CONFIG_ERROR)
+
     if offline:
         await _run_offline_audit(
             files=list(files),
             min_severity_str=severity,
             output_format=output_format,
+            target=target,
         )
         return
 
@@ -217,6 +238,7 @@ async def _run_offline_audit(
     files: list[str],
     min_severity_str: str,
     output_format: str,
+    target: str | None = None,
 ) -> None:
     """F-10.1b / F-10.2 — execute the stateless audit + render per format.
 
@@ -238,12 +260,23 @@ async def _run_offline_audit(
     (default for humans); ``json`` -> F-10.1a payload verbatim (CLI
     integrations); ``github-annotations`` -> GH workflow-command lines
     (F-10.3 Action, F-10.5 pre-commit hook).
+
+    target: when set, audits the given directory instead of the cwd-derived
+    repo (#688). Must be a path containing a .intent/ tree.
     """
     structured = output_format in {"json", "github-annotations"}
 
     try:
-        intent_repo = get_intent_repository()
-        repo_path = get_repo_root()
+        if target is not None:
+            from pathlib import Path as _Path
+
+            target_path = _Path(target).resolve()
+            repo_path = get_repo_root(start_dir=target_path)
+            intent_repo = IntentRepository(strict=True, root=repo_path / ".intent")
+            intent_repo.initialize()
+        else:
+            intent_repo = get_intent_repository()
+            repo_path = get_repo_root()
     except Exception as exc:
         _emit_error(output_format, "configuration error", exc)
         raise typer.Exit(EXIT_CONFIG_ERROR) from exc

@@ -110,8 +110,11 @@ class IntentRepository(RootedRepository):
         *,
         strict: bool = True,
         allow_writable_root: bool = True,
+        root: Path | None = None,
     ) -> None:
-        self._root: Path = settings.MIND.resolve()
+        self._root: Path = (
+            root.resolve() if root is not None else settings.MIND.resolve()
+        )
         self._strict = strict
         self._allow_writable_root = allow_writable_root
 

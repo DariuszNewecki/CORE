@@ -228,7 +228,8 @@ async def initialize_repository(
     )
     logger.info(
         "Next: run `core-admin project scout <target> [--write]` to induce and ratify "
-        "rules for this repo, then `core-admin code audit --offline` to enforce them."
+        "rules for this repo, then `core-admin code audit --offline --target <target>` "
+        "to enforce them."
     )
     if delivered < len(source_files):
         raise typer.Exit(code=1)
@@ -328,7 +329,8 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     )
     logger.info(
         "Next: run `core-admin project scout <target> [--write]` to induce and ratify "
-        "rules for this repo, then `core-admin code audit --offline` to enforce them."
+        "rules for this repo, then `core-admin code audit --offline --target <target>` "
+        "to enforce them."
     )
     if delivered < len(source_files):
         raise typer.Exit(code=1)
