@@ -71,3 +71,50 @@ entries:
     scope_default:
       applies_to: ["**/*.py"]
       excludes: ["tests/**/*.py", "test/**/*.py", "**/test_*.py", "**/*_test.py", "**/venv/**", "**/.venv/**"]
+
+  - id: import_aliasing
+    match_keys: ["bare_import_typing", "import_typing_alias", "typing_alias", "unaliased_typing"]
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?m)^\\s*import\\s+typing\\s*$"
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"]
+
+  - id: future_annotations
+    match_keys: ["future_annotations", "pep563", "postponed_annotations", "missing_future_import"]
+    engine: ast_gate
+    params:
+      check_type: future_annotations
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/__init__.py", "**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"]
+
+  - id: type_annotations
+    match_keys: ["missing_return_type", "return_annotation", "unannotated_function", "type_hints"]
+    engine: ast_gate
+    params:
+      check_type: type_annotations
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["tests/**/*.py", "test/**/*.py", "**/test_*.py", "**/*_test.py", "**/venv/**", "**/.venv/**"]
+
+  - id: no_raw_print
+    match_keys: ["raw_print", "print_call", "bare_print", "unguarded_print"]
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["tests/**/*.py", "test/**/*.py", "scripts/**/*.py", "**/venv/**", "**/.venv/**"]
+
+  - id: no_except_pass
+    match_keys: ["typed_except_pass", "swallowed_exception", "silenced_exception", "empty_except_body"]
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?m)except\\s+\\S[^:]*:\\s*pass\\s*$"
+    scope_default:
+      applies_to: ["**/*.py"]
+      excludes: ["**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"]

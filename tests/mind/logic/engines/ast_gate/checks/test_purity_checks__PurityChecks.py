@@ -6,6 +6,7 @@
 - Generated: 2026-01-11 02:32:19
 """
 
+import ast
 from pathlib import Path
 
 from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks
@@ -585,3 +586,30 @@ class TestPurityChecks:
         )
         assert len(violations) == 1
         assert "mkdir" in violations[0]
+
+
+class TestCheckFutureAnnotations:
+    def test_present_returns_no_violations(self):
+        code = "from __future__ import annotations\ndef foo(): pass\n"
+        result = PurityChecks.check_future_annotations(ast.parse(code))
+        assert result == []
+
+    def test_absent_returns_one_violation(self):
+        code = "import os\ndef foo(): pass\n"
+        result = PurityChecks.check_future_annotations(ast.parse(code))
+        assert len(result) == 1
+        assert "PEP 563" in result[0]
+
+    def test_other_future_import_does_not_satisfy(self):
+        code = "from __future__ import division\ndef foo(): pass\n"
+        result = PurityChecks.check_future_annotations(ast.parse(code))
+        assert len(result) == 1
+
+    def test_empty_file_returns_violation(self):
+        result = PurityChecks.check_future_annotations(ast.parse(""))
+        assert len(result) == 1
+
+    def test_combined_future_import_satisfies(self):
+        code = "from __future__ import annotations, division\n"
+        result = PurityChecks.check_future_annotations(ast.parse(code))
+        assert result == []

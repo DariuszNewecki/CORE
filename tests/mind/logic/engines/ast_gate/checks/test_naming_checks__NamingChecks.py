@@ -189,3 +189,43 @@ class TestCheckMaxFunctionLength:
         result = NamingChecks.check_max_function_length(tree)
         assert len(result) == 1
         assert "exceeds limit of 50" in result[0]
+
+
+class TestCheckTypeAnnotations:
+    def test_annotated_public_no_violation(self):
+        code = "def foo() -> None: pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert result == []
+
+    def test_unannotated_public_returns_violation(self):
+        code = "def foo(): pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert len(result) == 1
+        assert "foo" in result[0]
+
+    def test_private_function_skipped(self):
+        code = "def _private(): pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert result == []
+
+    def test_dunder_method_skipped(self):
+        code = "class C:\n    def __init__(self): pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert result == []
+
+    def test_async_public_unannotated(self):
+        code = "async def fetch(): pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert len(result) == 1
+        assert "fetch" in result[0]
+
+    def test_mixed_returns_only_unannotated(self):
+        code = "def ok() -> int: pass\ndef bad(): pass\ndef _skip(): pass\n"
+        result = NamingChecks.check_type_annotations(ast.parse(code))
+        assert len(result) == 1
+        assert "bad" in result[0]
+        assert "ok" not in " ".join(result)
+
+    def test_empty_file_no_violations(self):
+        result = NamingChecks.check_type_annotations(ast.parse(""))
+        assert result == []

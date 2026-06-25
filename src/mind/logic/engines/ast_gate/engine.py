@@ -109,6 +109,8 @@ class ASTGateEngine(BaseEngine):
             "tempfile_default_dir",
             "reaudit_requires_reaudit_mechanism",
             "indeterminate_requires_human_mechanism",
+            "future_annotations",
+            "type_annotations",
         }
     )
 
@@ -312,6 +314,9 @@ class ASTGateEngine(BaseEngine):
         elif check_type == "tempfile_default_dir":
             violations.extend(PurityChecks.check_tempfile_default_dir(tree))
 
+        elif check_type == "future_annotations":
+            violations.extend(PurityChecks.check_future_annotations(tree))
+
         elif check_type == "reaudit_requires_reaudit_mechanism":
             violations.extend(
                 AwaitingReauditChecks.check_reaudit_requires_mechanism(tree)
@@ -326,6 +331,9 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "test_file_naming":
             violations.extend(NamingChecks.check_test_file_naming(str(file_path)))
+
+        elif check_type == "type_annotations":
+            violations.extend(NamingChecks.check_type_annotations(tree))
 
         # --- Logging & Channel Discipline ---
         elif check_type == "logger_not_presentation":

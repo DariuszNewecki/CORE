@@ -118,3 +118,20 @@ class NamingChecks:
                     )
 
         return findings
+
+    @staticmethod
+    # ID: 2ff2b429-76ab-4fe5-8acc-251b30658b28
+    def check_type_annotations(tree: ast.AST) -> list[str]:
+        """Detect public functions missing return type annotations."""
+        findings: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name.startswith("_"):
+                continue
+            if node.returns is None:
+                findings.append(
+                    f"Line {ASTHelpers.lineno(node)}: Public function '{node.name}' "
+                    "is missing a return type annotation"
+                )
+        return findings

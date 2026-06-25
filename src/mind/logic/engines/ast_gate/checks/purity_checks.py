@@ -449,6 +449,19 @@ class PurityChecks:
                     )
         return violations
 
+    @staticmethod
+    # ID: 3edb55a9-492f-4c64-ba5b-48d8ec65a8af
+    def check_future_annotations(tree: ast.AST) -> list[str]:
+        """Detect Python files missing `from __future__ import annotations` (PEP 563)."""
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module == "__future__"
+                and any(alias.name == "annotations" for alias in node.names)
+            ):
+                return []
+        return ["Module is missing `from __future__ import annotations` (PEP 563)"]
+
 
 def _is_write_mode(node: ast.Call) -> bool:
     """Internal helper to detect 'w' or 'a' in file open() calls."""
