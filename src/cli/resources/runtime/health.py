@@ -19,7 +19,6 @@ Also provides a five-panel governor dashboard:
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -31,14 +30,14 @@ from rich.table import Table
 from sqlalchemy import text
 
 from body.services.health_log_service import F19_CONVERGENCE_SQL, GOVERNOR_INBOX_SQL
-from body.services.worker_registry_service import WorkerRegistryService
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.operational_config import load_operational_config
+from shared.logger import getLogger
 from shared.workers.schedule import load_worker_schedule_state
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 console = Console()
 
 _CFG_H = load_operational_config().health
@@ -163,13 +162,16 @@ async def health_cmd(
                 )
             )
         ).fetchall()
-        blast = (
-            await session.execute(
-                text(
-                    "\n            SELECT symbol_path, affected_symbol_count, direct_caller_count\n            FROM core.v_symbol_blast_radius\n            ORDER BY affected_symbol_count DESC\n            LIMIT 10\n            "
+        try:
+            blast = (
+                await session.execute(
+                    text(
+                        "\n            SELECT symbol_path, affected_symbol_count, direct_caller_count\n            FROM core.v_symbol_blast_radius\n            ORDER BY affected_symbol_count DESC\n            LIMIT 10\n            "
+                    )
                 )
-            )
-        ).fetchall()
+            ).fetchall()
+        except Exception:
+            blast = []
     if plain:
         _render_plain(
             workers, bb_summary, bb_recent, health, crawl, blast, active_uuids
@@ -365,13 +367,12 @@ def _make_panel(
 
 
 # ID: 27038966-d764-433e-b72d-591a460c0728
-async def _query_dashboard_data(session: Any) -> dict[str, Any]:
+async def _query_dashboard_data(session: Any, schedule_state: Any) -> dict[str, Any]:
     """Run all dashboard queries inside an open session. Returns raw data dict."""
     now = datetime.now(UTC)
     cutoff_24h = now - timedelta(hours=_CFG_H.long_lookback_hours)
     cutoff_60m = now - timedelta(minutes=_CFG_H.medium_lookback_minutes)
     cutoff_30m = now - timedelta(minutes=_CFG_H.short_lookback_minutes)
-    cutoff_10m = now - timedelta(minutes=_CFG_H.recent_lookback_minutes)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     data: dict[str, Any] = {}
@@ -413,11 +414,16 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
                 """),
             )
         ).fetchone()
+        # Exclude current_row so prior_row cannot resolve to the same snapshot.
+        # Without the WHERE guard, a sparse log where the most-recent entry is
+        # also closest to the lookback target produces delta=0 and a false
+        # "stable" direction.
         prior_row = (
             await session.execute(
                 text("""
                 SELECT observed_at, open_findings
                 FROM core.system_health_log
+                WHERE observed_at < :current_ts
                 ORDER BY ABS(
                     EXTRACT(EPOCH FROM (
                         observed_at - (now() - make_interval(hours => :hours))
@@ -425,25 +431,38 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
                 )
                 LIMIT 1
                 """),
-                {"hours": trajectory_lookback_hours},
+                {
+                    "hours": trajectory_lookback_hours,
+                    "current_ts": current_row.observed_at,
+                },
             )
         ).fetchone()
         current_open = current_row.open_findings
-        prior_open = prior_row.open_findings
-        delta = current_open - prior_open
-        if delta < 0:
-            direction = "converging"
-        elif delta > 0:
-            direction = "diverging"
+        if prior_row is None:
+            # Only one distinct snapshot exists — cannot compute a meaningful delta.
+            trajectory = {
+                "current": current_open,
+                "prior": None,
+                "delta": None,
+                "lookback_hours": trajectory_lookback_hours,
+                "direction": "insufficient-data",
+            }
         else:
-            direction = "stable"
-        trajectory = {
-            "current": current_open,
-            "prior": prior_open,
-            "delta": delta,
-            "lookback_hours": trajectory_lookback_hours,
-            "direction": direction,
-        }
+            prior_open = prior_row.open_findings
+            delta = current_open - prior_open
+            if delta < 0:
+                direction = "converging"
+            elif delta > 0:
+                direction = "diverging"
+            else:
+                direction = "stable"
+            trajectory = {
+                "current": current_open,
+                "prior": prior_open,
+                "delta": delta,
+                "lookback_hours": trajectory_lookback_hours,
+                "direction": direction,
+            }
     else:
         # 0 or 1 rows in the health log — no usable backlog comparison yet.
         trajectory = {
@@ -458,9 +477,11 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     resolved = row.resolved_24h if row else 0
     stuck = row.stuck_24h if row else 0
     # Finding #6 (#563): when nothing flowed in or out, the system is frozen,
-    # not stable. Override "stable" trajectory to "frozen" when 24h flow is zero.
+    # not stable. Override trajectory to "frozen" when 24h flow is zero,
+    # regardless of whether history is sufficient to compute a direction —
+    # zero flow is a flow-only criterion, independent of backlog comparison.
     flow_zero = created == 0 and resolved == 0 and stuck == 0
-    if flow_zero and trajectory["direction"] == "stable":
+    if flow_zero and trajectory["direction"] in ("stable", "insufficient-data"):
         trajectory["direction"] = "frozen"
     data["convergence"] = {
         "created": created,
@@ -504,16 +525,31 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     # Per-worker thresholds + orphan-skip from the shared loader. Binary
     # stale/alive: amber tier dropped (ADR-041 D5) because it had no
     # semantic basis under per-worker thresholds.
-    schedule_state = load_worker_schedule_state()
-    worker_registry_svc = WorkerRegistryService()
-    stale_rows = await worker_registry_svc.fetch_stale_workers_with_schedules(
-        thresholds=schedule_state.thresholds,
-        active_uuids=schedule_state.active_uuids,
-        fallback_sec=schedule_state.fallback_sec,
-    )
-    stale_workers: list[tuple[str, str]] = [
-        (r["worker_name"], _age(r["last_heartbeat"])) for r in stale_rows
-    ]
+    # Uses the caller-supplied session to avoid opening a second DB connection
+    # concurrently (the WorkerRegistryService pattern is for standalone callers).
+    _worker_rows = (
+        await session.execute(
+            text("""
+                SELECT
+                    worker_uuid,
+                    worker_name,
+                    last_heartbeat,
+                    EXTRACT(EPOCH FROM (now() - last_heartbeat))::int AS seconds_silent
+                FROM core.worker_registry
+                ORDER BY seconds_silent DESC NULLS LAST
+            """)
+        )
+    ).fetchall()
+    stale_workers: list[tuple[str, str]] = []
+    for _wr in _worker_rows:
+        if str(_wr.worker_uuid) not in schedule_state.active_uuids:
+            continue
+        seconds_silent = _wr.seconds_silent or 0
+        threshold = schedule_state.thresholds.get(
+            str(_wr.worker_uuid), schedule_state.fallback_sec
+        )
+        if seconds_silent > threshold:
+            stale_workers.append((_wr.worker_name, _age(_wr.last_heartbeat)))
     data["loop"] = {
         # Active count = declared active workers (ADR-041 D3 orphan-skip
         # applied). Previously this counted every worker_registry row
@@ -772,7 +808,9 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
                 else:
                     signal = "amber"
             else:
-                signal = "green"
+                # Proposals completed today but no consequence row ever recorded —
+                # consequence-recording pipeline integrity is unclear.
+                signal = "amber"
         else:
             signal = "amber"
         rows = [(s, str(n)) for s, n in dist.items()]
@@ -842,8 +880,9 @@ async def dashboard_cmd(
     Shows convergence direction, governor inbox, loop health,
     pipeline status, and governance coverage — all read-only.
     """
+    schedule_state = load_worker_schedule_state()
     async with get_session() as session:
-        data = await _query_dashboard_data(session)
+        data = await _query_dashboard_data(session, schedule_state)
 
     if plain:
         _render_dashboard_plain(data)
