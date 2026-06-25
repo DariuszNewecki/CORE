@@ -230,7 +230,6 @@ def create_app() -> FastAPI:
             "/assets", StaticFiles(directory=str(_dist / "assets")), name="web_assets"
         )
 
-        # ID: f4a2c8e1-3b5d-4f7a-9c6e-1d2e3f4a5b6c
         @app.get("/{full_path:path}", include_in_schema=False)
         async def _serve_spa(full_path: str) -> FileResponse:
             if full_path.startswith(("v1/", "auth/")):
