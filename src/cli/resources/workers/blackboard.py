@@ -150,7 +150,6 @@ async def workers_blackboard_purge_cmd(
         params["hours"] = before
     where = " AND ".join(clauses)
 
-    # Preview matching entries
     preview_query = text(
         f"""
         SELECT id, entry_type, status, subject, worker_uuid, created_at
@@ -159,22 +158,12 @@ async def workers_blackboard_purge_cmd(
         ORDER BY created_at DESC
         """
     )
-    async with get_session() as session:
-        result = await session.execute(preview_query, params)
-        rows = result.fetchall()
-
-    if not rows:
-        console.print("[yellow]No blackboard entries match the given filters.[/yellow]")
-        raise typer.Exit()
-
-    table = Table(
-        title=f"Purge preview — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
+    delete_query = text(
+        f"""
+        DELETE FROM core.blackboard_entries
+        WHERE {where}
+        """
     )
-    table.add_column("Type", style="cyan", no_wrap=True)
-    table.add_column("Status", no_wrap=True)
-    table.add_column("Subject")
-    table.add_column("Worker UUID", style="dim", no_wrap=True)
-    table.add_column("Created", style="dim", no_wrap=True)
 
     _STATUS_STYLE = {
         "open": "green",
@@ -184,29 +173,45 @@ async def workers_blackboard_purge_cmd(
         "indeterminate": "magenta",
         "dry_run_complete": "cyan",
     }
-    for row in rows:
-        _entry_id, etype, estatus, subject, worker_uuid, created_at = row
-        status_style = _STATUS_STYLE.get(estatus, "white")
-        status_str = f"[{status_style}]{estatus}[/{status_style}]"
-        created_str = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
-        worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
-        table.add_row(etype, status_str, subject, worker_str, created_str)
-    console.print(table)
 
-    if not write:
-        console.print(
-            f"\n[dim]Dry run:[/dim] {len(rows)} entries would be deleted. "
-            "Pass [bold]--write[/bold] to apply."
-        )
-        return
-
-    delete_query = text(
-        f"""
-        DELETE FROM core.blackboard_entries
-        WHERE {where}
-        """
-    )
+    # Single session spans preview and delete — prevents TOCTOU between them.
     async with get_session() as session:
+        result = await session.execute(preview_query, params)
+        rows = result.fetchall()
+
+        if not rows:
+            console.print(
+                "[yellow]No blackboard entries match the given filters.[/yellow]"
+            )
+            raise typer.Exit()
+
+        table = Table(
+            title=f"Purge preview — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
+        )
+        table.add_column("Type", style="cyan", no_wrap=True)
+        table.add_column("Status", no_wrap=True)
+        table.add_column("Subject")
+        table.add_column("Worker UUID", style="dim", no_wrap=True)
+        table.add_column("Created", style="dim", no_wrap=True)
+
+        for row in rows:
+            _entry_id, etype, estatus, subject, worker_uuid, created_at = row
+            status_style = _STATUS_STYLE.get(estatus, "white")
+            status_str = f"[{status_style}]{estatus}[/{status_style}]"
+            created_str = (
+                created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
+            )
+            worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
+            table.add_row(etype, status_str, subject, worker_str, created_str)
+        console.print(table)
+
+        if not write:
+            console.print(
+                f"\n[dim]Dry run:[/dim] {len(rows)} entries would be deleted. "
+                "Pass [bold]--write[/bold] to apply."
+            )
+            return
+
         result = await session.execute(delete_query, params)
         await session.commit()
         deleted = result.rowcount

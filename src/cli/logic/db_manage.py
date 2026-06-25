@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import typer
 
-from .db import app as db_app
-from .db import app as knowledge_db_app
+from .db import db_app
+from .db import db_app as knowledge_db_app
 
 
 # Top-level Typer app exposed by this module

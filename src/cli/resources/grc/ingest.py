@@ -31,7 +31,7 @@ console = Console()
 
 
 @app.command("ingest")
-@core_command(dangerous=False, requires_context=True, requires_brain_services=True)
+@core_command(dangerous=True, requires_context=True, requires_brain_services=True)
 # ID: fd0b62b8-df95-4bb8-aa82-6a9520e00b2c
 async def ingest(
     ctx: typer.Context,
@@ -46,6 +46,11 @@ async def ingest(
             "Directory of section text files to ingest. "
             "Defaults to grc-catalogs/internal/<framework_id>/text/."
         ),
+    ),
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Perform the ingestion (default: dry-run shows what would be ingested).",
     ),
 ) -> None:
     """Ingest a GRC framework's internal corpus into Qdrant (ADR-122).
@@ -98,6 +103,15 @@ async def ingest(
             "Populate the directory with .txt or .md section files before ingesting."
         )
         raise typer.Exit(2)
+
+    if not write:
+        console.print(
+            f"[yellow]DRY-RUN:[/yellow] Would ingest [bold]{len(text_files)}[/bold] "
+            f"file(s) from [dim]{resolved_text_dir}[/dim] into "
+            f"[bold]grc-internal-{framework_id}[/bold]. "
+            "Pass [bold]--write[/bold] to apply."
+        )
+        return
 
     console.print(
         f"[bold cyan]Ingesting[/bold cyan] [bold]{framework_id}[/bold] "

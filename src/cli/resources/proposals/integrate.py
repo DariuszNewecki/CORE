@@ -20,15 +20,23 @@ console = Console()
 
 
 @app.command("integrate")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=True, requires_context=False)
 # ID: f779e122-cafa-44a9-80cc-b4b1a31cc363
 async def integrate_cmd(
     commit_message: str = typer.Option(
         ..., "-m", "--message", help="The git commit message for this integration."
     ),
+    write: bool = typer.Option(
+        False, "--write", help="Commit and integrate staged changes (default: dry-run)."
+    ),
 ) -> None:
     """Finalize and integrate staged changes into the repository."""
     console.print("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
+    if not write:
+        console.print(
+            "[yellow]DRY-RUN:[/yellow] Pass [bold]--write[/bold] to integrate staged changes."
+        )
+        return
     client = CoreApiClient()
     try:
         await client.integrate(commit_message=commit_message)

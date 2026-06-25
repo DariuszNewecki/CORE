@@ -26,14 +26,21 @@ logger = logging.getLogger(__name__)
     "knowledge-graph",
     help="Synchronize code symbols to the PostgreSQL knowledge graph.",
 )
-@core_command(dangerous=True, confirmation=False, requires_context=False)
+@core_command(dangerous=True, confirmation=True, requires_context=False)
 # ID: 40bd8310-f78e-43bd-bc79-21b3519bc802
-async def sync_knowledge_graph_command(ctx: typer.Context) -> None:
+async def sync_knowledge_graph_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Apply changes to the knowledge graph (otherwise dry-run).",
+    ),
+) -> None:
     """Thin client over POST /v1/sync/knowledge-graph."""
     _ = ctx
     typer.secho("Syncing knowledge graph to database...", fg=typer.colors.CYAN)
     client = CoreApiClient()
-    initial = await client.sync_knowledge_graph(write=True)
+    initial = await client.sync_knowledge_graph(write=write)
     run_id = initial.get("run_id")
     if not run_id:
         typer.secho(
@@ -48,7 +55,10 @@ async def sync_knowledge_graph_command(ctx: typer.Context) -> None:
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-    typer.secho("✅ Knowledge graph sync completed", fg=typer.colors.GREEN)
+    if write:
+        typer.secho("✅ Knowledge graph sync completed", fg=typer.colors.GREEN)
+    else:
+        typer.secho("✅ Knowledge graph sync dry-run completed", fg=typer.colors.GREEN)
 
 
 @fix_app.command(
