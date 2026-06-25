@@ -60,6 +60,7 @@ async def run_all_fixes(
     _ = ctx
     client = CoreApiClient()
     mode_str = "write" if write else "dry-run"
+    failed = False
 
     for name, fix_id, ir_kind in _PLAN:
         cfg = COMMAND_CONFIG.get(name, {})
@@ -75,12 +76,14 @@ async def run_all_fixes(
                 console.print(f"   -> IR scaffold: {result.get('path', '(unknown)')}")
             except Exception as exc:
                 console.print(f"   [red]✗ fix {name} failed: {exc}[/red]")
+                failed = True
             continue
 
         initial = await client.run_fix(fix_id, write=write)
         run_id = initial.get("run_id")
         if not run_id:
             console.print(f"   [red]✗ {fix_id} failed to dispatch: {initial}[/red]")
+            failed = True
             continue
         final = await client._poll_run(run_id)
         status = final.get("status")
@@ -88,7 +91,13 @@ async def run_all_fixes(
             console.print(
                 f"   [red]✗ {fix_id} failed: {final.get('error') or final}[/red]"
             )
+            failed = True
             continue
         console.print(f"   [green]✓ {fix_id} completed.[/green]")
 
+    if failed:
+        console.print(
+            "[yellow]⚠️  'fix all' completed with errors — see above.[/yellow]"
+        )
+        raise typer.Exit(1)
     console.print("[green]✅ 'fix all' sequence completed[/green]")

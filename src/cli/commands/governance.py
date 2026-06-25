@@ -150,7 +150,7 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         result = await interpreter.execute(user_message=request)
         if not result.ok:
             console.print(f"[red]✗[/red] Intent parsing failed: {result.error}")
-            return
+            raise typer.Exit(1)
         task = result.data.get("task")
         console.print(f"[green]✓[/green] TaskType: {task.task_type.value}")
         console.print(f"[green]✓[/green] Target: {task.target}")
@@ -283,12 +283,15 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
             console.print("  3. Post-generation validation (defense in depth)")
             console.print("  4. Code ready for execution")
         console.print()
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print()
         console.print("[red]✗ Validation failed with error:[/red]")
         console.print(f"[red]{e}[/red]")
         logger.error("Validation failed", exc_info=True)
         console.print()
+        raise typer.Exit(1)
 
 
 __all__ = ["governance_app"]

@@ -13,6 +13,8 @@ import typer
 from rich.console import Console
 
 from cli.utils import core_command
+from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app
@@ -72,7 +74,10 @@ async def cleanup_vectors(
 
         async with get_session() as session:
             orphans_pruned, dangling_pruned = await sync_vectors_internal(
-                session=session, dry_run=not write, qdrant_service=None
+                session=session,
+                dry_run=not write,
+                qdrant_service=QdrantService(),
+                collection_name=settings.QDRANT_COLLECTION_NAME,
             )
             if write:
                 await session.commit()

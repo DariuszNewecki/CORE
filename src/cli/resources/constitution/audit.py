@@ -35,7 +35,7 @@ async def audit_policies(
         raise typer.Exit(1)
     auditor_context = ctx.obj.auditor_context
     console.print(
-        f"[bold cyan]🔍 Executing targeted audit for {len(policy or rule)} items...[/bold cyan]"
+        f"[bold cyan]🔍 Executing targeted audit for {len(policy) + len(rule)} items...[/bold cyan]"
     )
     findings, _executed_ids, stats = await run_filtered_audit(
         auditor_context, policy_ids=policy or None, rule_ids=rule or None
