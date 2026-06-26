@@ -20,11 +20,13 @@ import uuid
 from typing import ClassVar
 from unittest.mock import AsyncMock
 
+import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.workers.base import Worker
 
+pytestmark = [pytest.mark.integration]
 
 _SYNTH_NAME = "test.adr104.lease.synthetic"
 

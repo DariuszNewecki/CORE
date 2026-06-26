@@ -13,6 +13,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +25,8 @@ from will.workers.circuit_breaker import (
     load_circuit_breaker_config,
     recent_consecutive_identical_count,
 )
+
+pytestmark = [pytest.mark.integration]
 
 
 def _failed_row(

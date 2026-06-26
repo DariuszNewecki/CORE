@@ -19,6 +19,8 @@ Covers the public interface: ``PolicyCoverageReport`` and
   ``declared_only``. Assertions updated.
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any

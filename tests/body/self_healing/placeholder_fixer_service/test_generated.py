@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from body.self_healing.placeholder_fixer_service import fix_placeholders_in_content
 
 

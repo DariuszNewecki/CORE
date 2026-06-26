@@ -37,6 +37,8 @@ from mind.governance.rule_executor import execute_rule
 from mind.governance.rule_extractor import extract_executable_rules
 from shared.models import AuditSeverity
 
+pytestmark = [pytest.mark.integration]
+
 
 # ---------------------------------------------------------------------------
 # Fixture helpers

@@ -5,6 +5,8 @@ Covers filter_actionable_violations public function with happy paths,
 error paths, and edge cases.
 """
 
+from __future__ import annotations
+
 from unittest.mock import patch
 
 from will.workers.audit_violation_filter import filter_actionable_violations

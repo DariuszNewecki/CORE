@@ -29,6 +29,8 @@ from body.services.health_log_service import HealthLogService
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
 
+pytestmark = [pytest.mark.integration]
+
 
 @pytest.fixture(autouse=True)
 def _prime_service_registry() -> None:

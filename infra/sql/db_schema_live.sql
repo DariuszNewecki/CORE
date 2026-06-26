@@ -4293,6 +4293,14 @@ CREATE INDEX idx_blackboard_status ON core.blackboard_entries USING btree (statu
 
 
 --
+-- Name: idx_blackboard_subject_status; Type: INDEX; Schema: core; Owner: core_db
+-- Covers dedup SELECT before every post_observation call (external review 2026-06-26).
+--
+
+CREATE INDEX idx_blackboard_subject_status ON core.blackboard_entries USING btree (subject, status);
+
+
+--
 -- Name: idx_blackboard_worker; Type: INDEX; Schema: core; Owner: core_db
 --
 

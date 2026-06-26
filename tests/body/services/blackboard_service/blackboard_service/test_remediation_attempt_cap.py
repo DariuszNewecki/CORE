@@ -36,6 +36,7 @@ from body.services.blackboard_service import BlackboardService
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
 
+pytestmark = [pytest.mark.integration]
 
 _SYNTH_NAME = "test.adr104.d9.synthetic"
 _CAP = 3

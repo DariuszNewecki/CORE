@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from mind.logic.engines.cli_gate.checks.dangerous_explicit import DangerousExplicitCheck

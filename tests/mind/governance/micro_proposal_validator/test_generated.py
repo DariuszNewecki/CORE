@@ -20,6 +20,8 @@
   semantic is correct given the codebase layout.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

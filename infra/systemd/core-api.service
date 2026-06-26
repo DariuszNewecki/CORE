@@ -1,0 +1,23 @@
+[Unit]
+Description=CORE API Server (ADR-054 D3 — loopback only)
+After=network.target core-daemon.service
+PartOf=core-daemon.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dev/CORE
+Environment="PATH=/opt/dev/CORE/.venv/bin:/home/lira/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="VIRTUAL_ENV=/opt/dev/CORE/.venv"
+ExecStart=/opt/dev/CORE/.venv/bin/uvicorn api.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --log-level info
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=300
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

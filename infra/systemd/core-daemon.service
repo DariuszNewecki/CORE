@@ -1,0 +1,21 @@
+[Unit]
+Description=CORE Background Worker Daemon
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dev/CORE
+Environment="PATH=/opt/dev/CORE/.venv/bin:/home/lira/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="VIRTUAL_ENV=/opt/dev/CORE/.venv"
+ExecStart=/opt/dev/CORE/.venv/bin/core-admin daemon start
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+WatchdogSec=120
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=core-daemon
+
+[Install]
+WantedBy=default.target

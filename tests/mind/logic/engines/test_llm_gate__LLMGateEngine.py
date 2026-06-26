@@ -30,6 +30,7 @@ import pytest
 from mind.logic.engines.llm_gate import LLMGateEngine
 from shared.path_resolver import PathResolver
 
+pytestmark = [pytest.mark.integration]
 
 _REPO_ROOT = Path("/opt/dev/CORE")
 

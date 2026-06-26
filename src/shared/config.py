@@ -122,7 +122,7 @@ class Settings(BaseSettings):
         "change-me-in-production", validation_alias="JWT_SECRET_KEY"
     )
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
-        60, validation_alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
+        15, validation_alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
     )
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
         30, validation_alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS"

@@ -24,6 +24,8 @@ from shared.infrastructure.database.models.autonomous_proposals import (
 from shared.infrastructure.database.session_manager import get_session
 from will.workers.violation_remediator import ViolationRemediatorWorker
 
+pytestmark = [pytest.mark.integration]
+
 
 @pytest.fixture(autouse=True)
 def _prime_service_registry() -> None:

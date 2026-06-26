@@ -17,7 +17,11 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from will.workers.audit_violation_normalizer import normalize_audit_findings
+
+pytestmark = [pytest.mark.integration]
 
 
 # ---------------------------------------------------------------------------

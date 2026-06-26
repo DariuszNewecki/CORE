@@ -154,8 +154,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,  # T6b — set CORS_ORIGINS env var in prod
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
     )
     app.include_router(auth_routes.router)
 

@@ -37,6 +37,8 @@ from mind.logic.engines.llm_gate import (
 )
 from shared.infrastructure.database.session_manager import get_session
 
+pytestmark = [pytest.mark.integration]
+
 
 # ----------------------------------------------------------------------
 # Fixtures

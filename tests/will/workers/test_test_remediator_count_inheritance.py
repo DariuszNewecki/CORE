@@ -26,6 +26,8 @@ from will.workers.test_remediator._operations import (
     _query_source_file_attempt_count,
 )
 
+pytestmark = [pytest.mark.integration]
+
 
 @pytest.fixture(autouse=True)
 def _prime_service_registry() -> None:

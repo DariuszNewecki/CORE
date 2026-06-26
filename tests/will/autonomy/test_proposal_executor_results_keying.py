@@ -18,6 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +26,8 @@ from shared.infrastructure.database.models.autonomous_proposals import (
     AutonomousProposal,
 )
 from will.autonomy.proposal_state_manager import ProposalStateManager
+
+pytestmark = [pytest.mark.integration]
 
 
 def _draft_row(proposal_id: str) -> AutonomousProposal:

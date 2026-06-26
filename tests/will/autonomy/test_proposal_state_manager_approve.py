@@ -23,6 +23,8 @@ from will.autonomy.proposal_state_manager import (
     ProposalStateManager,
 )
 
+pytestmark = [pytest.mark.integration]
+
 
 def _draft_row(
     proposal_id: str,

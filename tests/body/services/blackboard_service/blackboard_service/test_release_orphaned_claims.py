@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from body.services.blackboard_service.blackboard_service import BlackboardService
 
+pytestmark = [pytest.mark.integration]
 
 _SYNTH_NAME = "test.adr104.synthetic"
 _GRACE = 600

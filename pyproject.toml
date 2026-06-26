@@ -72,7 +72,7 @@ dependencies = [
     # Graph Analysis
     "networkx>=3.3,<4.0",
     # Utilities
-    "msgpack>=1.2.1",
+    "msgpack>=1.2.1,<2.0.0",
     "filelock>=3.13.0,<4.0.0",
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
@@ -133,7 +133,6 @@ ipython = "^8.12"
 anyio = "^4.11.0"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.7.0"
-radon = "^6.0.1"
 vulture = "^2.14"
 pip-audit = "^2.10.0"
 bandit = "^1.9.2"

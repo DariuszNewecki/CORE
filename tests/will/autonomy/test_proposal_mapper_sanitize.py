@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,8 @@ from will.autonomy.proposal import (
     ProposalStatus,
 )
 from will.autonomy.proposal_mapper import ProposalMapper
+
+pytestmark = [pytest.mark.integration]
 
 
 def _toxic_proposal(proposal_id: str) -> Proposal:

@@ -8,6 +8,8 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+pytestmark = [pytest.mark.integration]
+
 
 async def test_smoke_db_session_fixture_provides_asyncsession(
     db_session: AsyncSession,

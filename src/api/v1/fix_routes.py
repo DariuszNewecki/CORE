@@ -40,7 +40,7 @@ from fastapi import (
     Request,
     Response,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,6 +85,16 @@ class RunFixRequest(BaseModel):
     write: bool = False
     requested_by: str = "api"
     params: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("target_files")
+    @classmethod
+    def _no_path_traversal(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        for p in v:
+            if p.startswith("/") or ".." in p.split("/"):
+                raise ValueError(f"unsafe path rejected: {p!r}")
+        return v
 
 
 # ID: b0666d78-da54-4df4-810d-770ea3011eec
