@@ -329,10 +329,6 @@ mappings:
       applies_to:
         - "src/shared/**/*.py"
       excludes:
-        # TEMPORARY — violations pending remediation:
-        # file_handler.py: imports body.governance.intent_guard —
-        #   IntentGuard must be injected, not imported directly
-        - "src/shared/infrastructure/storage/file_handler.py"
         # Tests
         - "src/shared/**/test_*.py"
         - "tests/**"
