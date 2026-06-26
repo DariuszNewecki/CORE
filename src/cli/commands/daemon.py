@@ -241,6 +241,18 @@ async def start(
     await _run_daemon(only=only)
 
 
+# ID: 3f1a9b7d-2c4e-4f85-a6d1-8e2b5c9f0a3d
+def _daemon_reload() -> None:
+    """Run ``systemctl --user daemon-reload`` so updated unit files take effect.
+
+    Called before start and restart — harmless when unit files haven't
+    changed, required when they have.
+    """
+    result = run_systemctl("daemon-reload")
+    if result.returncode != 0:
+        console.print(f"[yellow]daemon-reload warning: {result.stderr}[/yellow]")
+
+
 # ID: eeac9460-6a08-45d1-8194-e77660355120
 def _systemctl(verb: str) -> int:
     """Run ``systemctl --user <verb>`` against every CORE unit.
@@ -270,6 +282,7 @@ def up() -> None:
     Covers core-daemon, core-api, and every enabled
     core-daemon-worker@<stem>.service instance (ADR-081 D6).
     """
+    _daemon_reload()
     rc = _systemctl("start")
     if rc == 0:
         console.print("[green]CORE units up.[/green]")
@@ -298,6 +311,7 @@ def restart() -> None:
     Covers core-daemon, core-api, and every enabled
     core-daemon-worker@<stem>.service instance (ADR-081 D6).
     """
+    _daemon_reload()
     rc = _systemctl("restart")
     if rc == 0:
         console.print("[green]CORE units restarted.[/green]")
