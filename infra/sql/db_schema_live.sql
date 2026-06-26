@@ -6514,6 +6514,20 @@ CREATE TABLE core.users (
 COMMENT ON TABLE core.users IS 'CORE SaaS user accounts. One row per authenticated identity. (ADR-124)';
 COMMENT ON COLUMN core.users.mfa_secret IS 'TOTP seed for MFA. NULL until user enrolls MFA (v2).';
 
+CREATE TABLE core.suspended_users (
+    user_id      uuid PRIMARY KEY REFERENCES core.users(id) ON DELETE CASCADE,
+    expires_at   timestamp with time zone NOT NULL,
+    suspended_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+ALTER TABLE core.suspended_users OWNER TO core_db;
+
+COMMENT ON TABLE core.suspended_users IS
+    'Active account suspensions for immediate JWT invalidation (ADR-124 D4). '
+    'Rows survive core-api restarts; loaded into the in-process deny-list cache '
+    'at startup. expires_at matches the access token TTL — entries past that '
+    'timestamp are inert and can be pruned.';
+
 CREATE TABLE core.organisations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,

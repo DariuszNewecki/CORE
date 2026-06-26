@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from body.infrastructure.bootstrap import create_core_context
+from body.services.auth.deny_list import deny_list
 from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
@@ -87,6 +88,7 @@ async def core_lifespan(app: FastAPI):
                 log_level_from_db = await config.get("LOG_LEVEL", "INFO")
                 reconfigure_log_level(log_level_from_db)
                 await cognitive.initialize(session)
+                await deny_list.initialize(session)
 
             # 5. LOAD KNOWLEDGE GRAPH
             await auditor.load_knowledge_graph()

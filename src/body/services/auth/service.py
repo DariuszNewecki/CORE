@@ -612,12 +612,14 @@ class AuthService:
                 ),
                 {"uid": user_id},
             )
-            deny_list.add(
+            await deny_list.add(
                 user_id,
-                expires_at=datetime.now(UTC) + timedelta(hours=1),
+                expires_at=datetime.now(UTC)
+                + timedelta(minutes=self._access_expire_minutes),
+                session=self._session,
             )
         else:
-            deny_list.remove(user_id)
+            await deny_list.remove(user_id, session=self._session)
         event = "account_reactivated" if active else "account_suspended"
         await self._log_event(event, user_id=UUID(user_id), actor_id=UUID(actor_id))
         await self._session.commit()

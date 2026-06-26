@@ -44,3 +44,6 @@ migrations:
     - 20260602b_drop_lira_user_default_privileges_core.sql
     - 20260613_620_llm_resource_rates.sql
     - 20260613b_retire_llm_resources_cost_per_token.sql
+    - 20260626_add_blackboard_subject_status_index.sql
+    - 20260626_create_llm_exchange_log_2026_07_12_partitions.sql
+    - 20260626_create_suspended_users.sql
