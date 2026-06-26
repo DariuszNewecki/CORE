@@ -1,0 +1,46 @@
+# infra/migrations/manifest.yaml
+#
+# Numbered SQL migration ledger.
+# The replay engine reads this file; MigrationService applies pending entries
+# against the live DB and records each ID in core._migrations.
+#
+# Rules:
+#   - Only append to `order`. Never reorder or remove existing entries.
+#   - New migration: add an SQL file under infra/scripts/migrations/ and
+#     append its filename here.
+#   - Python migration scripts (add_version_updated_at_to_autonomous_proposals.py,
+#     migrate_cli_registry_v2.py) are manual; they are not replayed by this
+#     ledger and are not listed here.
+#   - Bootstrap an existing install that has all these applied manually:
+#       core-admin db migrate --bootstrap
+#     This seeds core._migrations without re-running any SQL.
+
+migrations:
+  directory: infra/scripts/migrations
+  order:
+    - 20260426_drop_legacy_proposals.sql
+    - 20260427_add_approval_authority_to_autonomous_proposals.sql
+    - 20260428_add_claimed_by_to_autonomous_proposals.sql
+    - 20260502_drop_worker_registry_status.sql
+    - 20260503_retire_vector_sync_worker.sql
+    - 20260510_add_suppressed_to_blackboard_entry_status.sql
+    - 20260512_remove_orphan_repo_embedder_registry_row.sql
+    - 20260513_add_awaiting_reaudit_to_blackboard_entry_status.sql
+    - 20260513_create_llm_gate_verdicts.sql
+    - 20260516_adr_052_disable_remote_resources.sql
+    - 20260516_adr_052_governor_decisions.sql
+    - 20260516_adr_052_phase1_llm_config_schema.sql
+    - 20260516_adr_052_phase2_data_migration.sql
+    - 20260516_adr_052_phase3_enforcement_cutover.sql
+    - 20260516_adr_052_retire_orphan_resource_keys.sql
+    - 20260517_create_audit_run_resources.sql
+    - 20260517_create_fix_runs.sql
+    - 20260518_consolidate_audit_runs.sql
+    - 20260518_create_phase3_tables.sql
+    - 20260518_create_phase4_tables.sql
+    - 20260522_adr068_principal_roles.sql
+    - 20260523_434_add_resource_name_to_agent_memory.sql
+    - 20260602_reassign_core_schema_owner_to_core_db.sql
+    - 20260602b_drop_lira_user_default_privileges_core.sql
+    - 20260613_620_llm_resource_rates.sql
+    - 20260613b_retire_llm_resources_cost_per_token.sql

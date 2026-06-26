@@ -40,15 +40,17 @@ import subprocess
 from datetime import UTC, datetime
 
 import sqlparse
+import yaml
 from sqlalchemy import text
 
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
-from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)
+
+_MANIFEST_REL = pathlib.Path("infra") / "migrations" / "manifest.yaml"
 
 
 # This robust function finds the project root without relying on the global settings object.
@@ -66,9 +68,9 @@ REPO_ROOT = _get_repo_root_for_migration()
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
-    """Load the database_policy.yaml using a minimal, self-contained pathfinder."""
-    policy_path = settings.paths.policy("data/governance")
-    return strict_yaml_processor.load_strict(policy_path)
+    """Load the migration manifest from infra/migrations/manifest.yaml."""
+    manifest_path = REPO_ROOT / _MANIFEST_REL
+    return yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
 
 
 # ID: a5ec72d4-d489-434f-ad69-a36a39229d92
@@ -99,7 +101,13 @@ async def get_applied() -> set[str]:
 
 # ID: 27163ec0-f952-4ed7-938b-080473bee2eb
 async def apply_sql_file(path: pathlib.Path) -> None:
-    """Apply a .sql file by splitting into single statements (asyncpg-safe)."""
+    """Apply a .sql file by splitting into single statements (asyncpg-safe).
+
+    Relative paths are resolved against REPO_ROOT so callers can supply
+    repo-relative strings without depending on the process working directory.
+    """
+    if not path.is_absolute():
+        path = REPO_ROOT / path
     sql_text = path.read_text(encoding="utf-8")
     statements: list[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
     async with get_session() as session:

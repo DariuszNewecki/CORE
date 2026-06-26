@@ -73,3 +73,39 @@ async def _run_migrations(apply: bool):
 async def migrate_db(apply: bool = False) -> None:
     """Initialize DB schema and apply pending migrations."""
     await _run_migrations(apply)
+
+
+# ID: e0c32b5c-a965-4ddb-ae96-f25a0e75ffdb
+async def bootstrap_migrations() -> None:
+    """Seed core._migrations for an existing install without re-running SQL.
+
+    Use once on a database that already has all migrations applied manually
+    (e.g. the current single-developer install). Records every entry in the
+    manifest order list as applied so that future `migrate --apply` runs see
+    a clean ledger and only execute genuinely new migrations.
+
+    Safe to call multiple times — already-recorded entries are skipped.
+    """
+    try:
+        pol = load_policy()
+        migrations_config = pol.get("migrations", {})
+        order = migrations_config.get("order", [])
+    except Exception as e:
+        logger.error("Error loading migration manifest: %s", e)
+        raise MigrationServiceError(
+            "Error loading migration manifest.", exit_code=1
+        ) from e
+
+    await ensure_ledger()
+    applied = await get_applied()
+    pending = [m for m in order if m not in applied]
+
+    if not pending:
+        logger.info("Bootstrap: ledger already complete, nothing to seed.")
+        return
+
+    for mig in pending:
+        await record_applied(mig)
+        logger.info("Bootstrap: recorded %s", mig)
+
+    logger.info("Bootstrap complete: %d migration(s) seeded.", len(pending))
