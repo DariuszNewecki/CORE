@@ -2,6 +2,8 @@
 Description=CORE API Server (ADR-054 D3 — loopback only)
 After=network.target core-daemon.service
 PartOf=core-daemon.service
+StartLimitBurst=5
+StartLimitIntervalSec=300
 
 [Service]
 Type=simple
@@ -14,8 +16,6 @@ ExecStart=/opt/dev/CORE/.venv/bin/uvicorn api.main:app \
     --log-level info
 Restart=on-failure
 RestartSec=5
-StartLimitBurst=5
-StartLimitIntervalSec=300
 StandardOutput=journal
 StandardError=journal
 

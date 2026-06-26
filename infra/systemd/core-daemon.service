@@ -1,6 +1,8 @@
 [Unit]
 Description=CORE Background Worker Daemon
 After=network.target postgresql.service
+StartLimitBurst=5
+StartLimitIntervalSec=300
 
 [Service]
 Type=simple
@@ -10,8 +12,6 @@ Environment="VIRTUAL_ENV=/opt/dev/CORE/.venv"
 ExecStart=/opt/dev/CORE/.venv/bin/core-admin daemon start
 Restart=on-failure
 RestartSec=10
-StartLimitBurst=5
-StartLimitIntervalSec=300
 WatchdogSec=120
 StandardOutput=journal
 StandardError=journal
