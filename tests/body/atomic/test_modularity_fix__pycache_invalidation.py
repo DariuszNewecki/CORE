@@ -20,7 +20,7 @@ import pytest
 
 from body.atomic.modularity_fix import _invalidate_split_pycache
 from body.governance import intent_guard as _ig_module
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 
 
 _PY_TAG = f"cpython-{sys.version_info.major}{sys.version_info.minor}"

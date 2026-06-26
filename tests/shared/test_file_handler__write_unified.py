@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.storage.file_handler import FileHandler, FileOpResult
+from body.infrastructure.storage.file_handler import FileHandler, FileOpResult
 
 
 def _repo_var_tmp() -> Path:

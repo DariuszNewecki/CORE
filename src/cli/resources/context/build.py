@@ -18,6 +18,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from body.infrastructure.bootstrap import create_core_context
+from body.infrastructure.storage.file_handler import FileHandler
 from body.services.service_registry import service_registry
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
@@ -26,7 +27,6 @@ from shared.infrastructure.intent.task_type_phases import (
     allowed_task_types,
     resolve_phase,
 )
-from shared.infrastructure.storage.file_handler import FileHandler
 
 from .hub import app
 

@@ -26,6 +26,7 @@ from will.workers.circuit_breaker import (
     recent_consecutive_identical_count,
 )
 
+
 pytestmark = [pytest.mark.integration]
 
 

@@ -13,14 +13,17 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from shared.config import settings
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
 
 
 logger = getLogger(__name__)
@@ -34,13 +37,21 @@ class ContextSerializer:
 
     @staticmethod
     # ID: 2ff86f07-0d18-4a4a-8778-ce742223f322
-    def to_yaml(packet: dict[str, Any], output_path: str) -> None:
-        yaml_text = yaml.safe_dump(packet, default_flow_style=False, sort_keys=False)
+    def to_yaml(
+        packet: dict[str, Any],
+        output_path: str,
+        file_handler: FileHandler | None = None,
+    ) -> None:
+        if file_handler is None:
+            logger.debug(
+                "Cache write skipped: no FileHandler provided for %s", output_path
+            )
+            return
 
-        fh = FileHandler(str(settings.REPO_PATH))
+        yaml_text = yaml.safe_dump(packet, default_flow_style=False, sort_keys=False)
         rel = _to_repo_relative_path(output_path)
 
-        result = fh.write_runtime_text(rel, yaml_text)
+        result = file_handler.write_runtime_text(rel, yaml_text)
         try:
             status = getattr(result, "status", "unknown")
             logger.debug("Wrote context packet to %s (status=%s)", rel, status)

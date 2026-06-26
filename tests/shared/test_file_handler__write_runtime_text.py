@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 
 
 # ID: f3a17b9c-4d2e-4c81-b5e9-7a3f2c8e4a90

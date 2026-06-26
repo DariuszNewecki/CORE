@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import CapabilityMeta, DriftReport
 

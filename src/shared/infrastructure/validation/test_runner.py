@@ -15,13 +15,16 @@ import json
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
 
 
 logger = getLogger(__name__)
@@ -33,6 +36,7 @@ async def run_tests(
     target: str | None = None,
     action_id: str = "test.execute",
     repo_root: Path | None = None,
+    file_handler: FileHandler | None = None,
 ) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
@@ -121,8 +125,8 @@ async def run_tests(
     )
 
     # 3. Persist Evidence (Always happens, even if suppress_logging is True)
-    _log_test_result_to_file(result_data)
-    _store_failure_artifact(result_data)
+    _log_test_result_to_file(result_data, file_handler)
+    _store_failure_artifact(result_data, file_handler)
     await _persist_result_to_db(action_result)
 
     if not suppress_logging:
@@ -166,23 +170,29 @@ async def _persist_result_to_db(result: ActionResult) -> None:
         logger.warning("Failed to persist test result to DB: %s", e)
 
 
-def _log_test_result_to_file(data: dict[str, Any]) -> None:
+def _log_test_result_to_file(
+    data: dict[str, Any], file_handler: FileHandler | None
+) -> None:
+    if file_handler is None:
+        return
     try:
-        fh = FileHandler(str(settings.REPO_PATH))
         rel_log_path = "var/logs/tests.jsonl"
         new_line = json.dumps(data, ensure_ascii=False) + "\n"
-        fh.write_runtime_text(rel_log_path, new_line)
+        file_handler.write_runtime_text(rel_log_path, new_line)
     except Exception as e:
         logger.debug("Test file logging skipped: %s", e)
 
 
-def _store_failure_artifact(data: dict[str, Any]) -> None:
+def _store_failure_artifact(
+    data: dict[str, Any], file_handler: FileHandler | None
+) -> None:
+    if file_handler is None:
+        return
     try:
-        fh = FileHandler(str(settings.REPO_PATH))
         failure_rel = "var/reports/test_failures.json"
         if data.get("exit_code") != 0:
-            fh.write_runtime_json(failure_rel, data)
+            file_handler.write_runtime_json(failure_rel, data)
         else:
-            fh.remove_file(failure_rel)
+            file_handler.remove_file(failure_rel)
     except Exception as e:
         logger.debug("Test failure artifact update skipped: %s", e)

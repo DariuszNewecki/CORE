@@ -22,9 +22,9 @@ from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.context import CoreContext
     from shared.infrastructure.clients.qdrant_client import QdrantService
-    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 

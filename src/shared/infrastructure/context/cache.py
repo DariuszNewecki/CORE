@@ -6,12 +6,16 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .serializers import ContextSerializer
+
+
+if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
 
 
 logger = getLogger(__name__)
@@ -23,10 +27,15 @@ _CFG = load_operational_config().context
 class ContextCache:
     """Manages packet caching and retrieval."""
 
-    def __init__(self, cache_dir: str = "work/context_cache") -> None:
+    def __init__(
+        self,
+        cache_dir: str = "work/context_cache",
+        file_handler: FileHandler | None = None,
+    ) -> None:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl_hours = _CFG.cache_ttl_hours
+        self._file_handler = file_handler
 
     # ID: c2612fcd-1454-4d75-9061-ad89275709ae
     def get(self, cache_key: str) -> dict[str, Any] | None:
@@ -53,7 +62,7 @@ class ContextCache:
     def set(self, cache_key: str, packet: dict[str, Any]) -> None:
         cache_file = self.cache_dir / f"{cache_key}.yaml"
         try:
-            ContextSerializer.to_yaml(packet, str(cache_file))
+            ContextSerializer.to_yaml(packet, str(cache_file), self._file_handler)
             logger.debug("Cached packet: %s", cache_key[:8])
         except Exception as e:
             logger.error("Failed to cache packet: %s", e)

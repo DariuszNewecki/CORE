@@ -19,10 +19,10 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from body.infrastructure.storage.file_handler import FileHandler
 from cli.utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
-from shared.infrastructure.storage.file_handler import FileHandler
 
 
 logger = logging.getLogger(__name__)

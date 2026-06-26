@@ -26,8 +26,8 @@ from shared.utils.parallel_processor import ThrottledParallelProcessor
 
 
 if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.context import CoreContext
-    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 

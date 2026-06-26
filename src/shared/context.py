@@ -17,10 +17,10 @@ from shared.config import settings
 
 
 if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
     from body.services.file_service import FileService
     from shared.infrastructure.git_service import GitService
     from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-    from shared.infrastructure.storage.file_handler import FileHandler
 
 
 @dataclass

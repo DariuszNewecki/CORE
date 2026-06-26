@@ -300,7 +300,7 @@ class ServiceRegistry:
     def get_file_handler(self) -> Any:
         """Return a FileHandler rooted at the repo path. Belongs in the Body layer."""
         if "file_handler" not in self._instances:
-            from shared.infrastructure.storage.file_handler import FileHandler
+            from body.infrastructure.storage.file_handler import FileHandler
 
             self._instances["file_handler"] = FileHandler(
                 str(bootstrap_registry.get_repo_path())

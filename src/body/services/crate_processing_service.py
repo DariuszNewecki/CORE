@@ -25,12 +25,12 @@ import jsonschema
 import yaml
 
 from body.crate_processing.canary_executor import CanaryExecutor, CanaryResult
+from body.infrastructure.storage.file_handler import FileHandler
 from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_logger import action_logger
 from shared.context import CoreContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver

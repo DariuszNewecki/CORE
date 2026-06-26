@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.workers.base import Worker
 
+
 pytestmark = [pytest.mark.integration]
 
 _SYNTH_NAME = "test.adr104.lease.synthetic"

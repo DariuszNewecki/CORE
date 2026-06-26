@@ -21,6 +21,7 @@ import pytest
 
 from will.workers.audit_violation_normalizer import normalize_audit_findings
 
+
 pytestmark = [pytest.mark.integration]
 
 

@@ -208,7 +208,7 @@ class SandboxLifecycle:
         action_id or flow_id, used only for the log line. The caller MUST call
         ``scoped_git.cleanup()`` in a finally block.
         """
-        from shared.infrastructure.storage.file_handler import FileHandler
+        from body.infrastructure.storage.file_handler import FileHandler
 
         scoped_git = self.core_context.git_service.create_worktree(pre_execution_sha)
         try:

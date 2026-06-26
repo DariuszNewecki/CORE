@@ -30,10 +30,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.storage.file_handler import FileHandler
 
 # REFACTORED: Removed direct settings import
 from shared.logger import getLogger

@@ -18,7 +18,7 @@ from pathlib import Path
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 

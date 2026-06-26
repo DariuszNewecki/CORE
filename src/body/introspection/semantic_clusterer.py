@@ -12,9 +12,10 @@ from pathlib import Path
 import numpy as np
 from dotenv import load_dotenv
 
+from body.infrastructure.storage.file_handler import FileHandler
+
 # REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 

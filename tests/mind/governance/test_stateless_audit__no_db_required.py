@@ -16,6 +16,7 @@ import pytest
 
 from mind.governance.audit_context import AuditorContext
 
+
 pytestmark = [pytest.mark.integration]
 
 

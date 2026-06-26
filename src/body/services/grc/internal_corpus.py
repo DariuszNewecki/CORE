@@ -220,8 +220,8 @@ class InternalCorpusIngester:
         inventory_entry: dict[str, Any],
         chunk_count: int,
     ) -> None:
+        from body.infrastructure.storage.file_handler import FileHandler
         from shared.config import settings
-        from shared.infrastructure.storage.file_handler import FileHandler
 
         text_dir_rel = (
             str(text_dir.relative_to(self._repo_root))

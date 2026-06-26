@@ -34,6 +34,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from body.infrastructure.storage.file_handler import FileHandler
 from cli.utils import core_command
 from mind.governance.shadow_audit import run_shadow_audit
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
@@ -47,7 +48,6 @@ from shared.infrastructure.context.shadow_materializer import (
 )
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge_graph_service import KnowledgeGraphBuilder
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.path_utils import get_repo_root
 
 from .hub import app

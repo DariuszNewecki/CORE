@@ -16,9 +16,9 @@ from pathlib import Path
 import typer
 
 from api.cli import CoreApiClient
+from body.infrastructure.storage.file_handler import FileHandler
 from cli.logic.cli_utils import should_fail
 from cli.utils import core_command
-from shared.infrastructure.storage.file_handler import FileHandler
 
 
 __all__ = ["guard_drift_cmd", "register_guard", "run_guard_drift"]

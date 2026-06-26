@@ -22,7 +22,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from shared.infrastructure.storage.file_handler import FileHandler, FileOpResult
+from body.infrastructure.storage.file_handler import FileHandler, FileOpResult
 from shared.logger import getLogger
 
 

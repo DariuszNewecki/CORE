@@ -44,6 +44,7 @@ from shared.infrastructure.database.models.workers import BlackboardEntry
 from shared.infrastructure.database.session_manager import get_session
 from will.autonomy.proposal_state_manager import ProposalStateManager
 
+
 pytestmark = [pytest.mark.integration]
 
 

@@ -29,7 +29,7 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
-    from shared.infrastructure.storage.file_handler import FileHandler
+    from body.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 

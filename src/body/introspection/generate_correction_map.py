@@ -18,8 +18,8 @@ from pathlib import Path
 
 import yaml
 
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.exceptions import CoreError
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 

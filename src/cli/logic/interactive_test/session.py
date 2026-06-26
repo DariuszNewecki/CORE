@@ -13,7 +13,7 @@ from typing import Any
 
 from rich.console import Console
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 

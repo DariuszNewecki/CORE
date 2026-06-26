@@ -34,8 +34,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from body.atomic.split_plan import SplitPlan
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.context import CoreContext
-    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 

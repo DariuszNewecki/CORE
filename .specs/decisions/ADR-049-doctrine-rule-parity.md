@@ -357,3 +357,23 @@ runtime cross-layer invocation; type-level proprioception via
 `if TYPE_CHECKING:` is allowed by default and configurable via the new
 `type_checking_exempt` parameter). See `.intent/CHANGELOG.md` #490 entry
 for the full rationale.
+
+## Note — 2026-06-26: ADR-051 superseded by ADR-126
+
+ADR-049 D3 required each `architecture.shared.no_layer_imports` exclude
+entry to be backed by a closure ADR. ADR-051 satisfied this for
+`file_handler.py` but deferred the structural decision between Path X
+(composition-root exemption) and Path Y (protocol extraction).
+
+A 2026-06-26 investigation found that both paths accepted the wrong
+architectural premise. FileHandler is a governance-enforcement write gate
+that belongs in Body; it is in Shared as a consequence of operational
+service code (`serializers.py`, `test_runner.py`) escaping Shared's
+substrate contract. ADR-126 (2026-06-26) supersedes ADR-051 with a
+staged migration: DI injection into the Shared instantiators, followed
+by the physical move of FileHandler to `body/infrastructure/storage/`.
+The 2026-09-12 deadline from ADR-051 is inherited.
+
+When ADR-126's verification criteria are met, the
+`architecture.shared.no_layer_imports` excludes list will be fully
+closed per D1's closure requirement.

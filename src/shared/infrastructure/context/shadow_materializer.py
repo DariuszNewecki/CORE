@@ -41,8 +41,8 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
-    from shared.infrastructure.storage.file_handler import FileHandler
 
 
 logger = getLogger(__name__)

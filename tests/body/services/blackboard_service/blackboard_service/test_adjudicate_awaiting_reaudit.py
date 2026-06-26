@@ -28,6 +28,7 @@ from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.workers import BlackboardEntry
 from shared.infrastructure.database.session_manager import get_session
 
+
 pytestmark = [pytest.mark.integration]
 
 

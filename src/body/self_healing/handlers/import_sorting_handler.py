@@ -16,8 +16,8 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from body.infrastructure.storage.file_handler import FileHandler
 from body.self_healing.remediation_models import FixResult
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding
 

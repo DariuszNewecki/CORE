@@ -16,9 +16,9 @@ import time
 import uuid
 from pathlib import Path
 
+from body.infrastructure.storage.file_handler import FileHandler
 from body.self_healing.remediation_models import FixResult
 from shared.ast_utility import find_symbol_id_and_def_line
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding
 

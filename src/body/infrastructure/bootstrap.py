@@ -13,6 +13,7 @@ via DI, complying with the constitution.
 from __future__ import annotations
 
 from body.atomic.executor import ActionExecutor
+from body.infrastructure.storage.file_handler import FileHandler
 from body.services.file_service import FileService
 from shared.config import settings
 from shared.context import CoreContext
@@ -20,7 +21,6 @@ from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.models import PlannerConfig
 from shared.path_resolver import PathResolver
 

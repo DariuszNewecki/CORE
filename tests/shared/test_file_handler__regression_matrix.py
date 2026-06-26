@@ -43,7 +43,7 @@ from typing import Any
 
 import pytest
 
-from shared.infrastructure.storage.file_handler import FileHandler, FileOpResult
+from body.infrastructure.storage.file_handler import FileHandler, FileOpResult
 
 
 # ---------------------------------------------------------------------------

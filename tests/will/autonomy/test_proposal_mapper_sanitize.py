@@ -29,6 +29,7 @@ from will.autonomy.proposal import (
 )
 from will.autonomy.proposal_mapper import ProposalMapper
 
+
 pytestmark = [pytest.mark.integration]
 
 

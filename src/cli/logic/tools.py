@@ -59,8 +59,8 @@ def rewire_imports_cli(
 
     # REFACTORED: Removed direct settings import
     from body.infrastructure.bootstrap import create_core_context
+    from body.infrastructure.storage.file_handler import FileHandler
     from body.services.service_registry import service_registry
-    from shared.infrastructure.storage.file_handler import FileHandler
 
     context = create_core_context(service_registry)
     file_handler = FileHandler(str(context.git_service.repo_path))

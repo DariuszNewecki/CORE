@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.time import now_iso
 

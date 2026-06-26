@@ -20,11 +20,11 @@ import pytest
 
 from body.atomic.executor import ActionExecutor
 from body.atomic.registry import ActionCategory, ActionDefinition
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import ActionMetadata
 from shared.context import CoreContext
 from shared.infrastructure.git_service import GitService
-from shared.infrastructure.storage.file_handler import FileHandler
 
 
 def _run(args: list[str], cwd: Path) -> None:

@@ -27,6 +27,7 @@ from shared.infrastructure.database.session_manager import get_session
 from will.workers.test_remediator import TestRemediatorWorker
 from will.workers.test_remediator._operations import _defer_to_proposal
 
+
 pytestmark = [pytest.mark.integration]
 
 

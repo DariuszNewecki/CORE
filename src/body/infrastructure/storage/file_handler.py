@@ -1,6 +1,10 @@
-# src/shared/infrastructure/storage/file_handler.py
+# src/body/infrastructure/storage/file_handler.py
 """
 Safe, auditable file operations with staged writes.
+
+Moved from shared/infrastructure/storage/ per ADR-126 Stage 2.
+FileHandler is a governance-enforcement write gate — an execution-tier
+concern that belongs in Body alongside IntentGuard (its core dependency).
 """
 
 from __future__ import annotations

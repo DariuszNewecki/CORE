@@ -35,6 +35,7 @@ from .validator import ContextValidator
 
 
 if TYPE_CHECKING:
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
 
 logger = getLogger(__name__)
@@ -55,6 +56,7 @@ class ContextService:
         session_factory: Any | None = None,
         workspace: LimbWorkspace | None = None,
         brain_services_provider: BrainServicesProvider | None = None,
+        file_handler: FileHandler | None = None,
     ) -> None:
         self.config = config or {}
         self.project_root = Path(project_root)
@@ -64,10 +66,14 @@ class ContextService:
         self._qdrant_client = qdrant_client
         self._cognitive_service = cognitive_service
         self._brain_services_provider = brain_services_provider
+        self._file_handler = file_handler
 
         self.validator = ContextValidator()
         self.redactor = ContextRedactor()
-        self.cache = ContextCache(self.config.get("cache_dir", "work/context_cache"))
+        self.cache = ContextCache(
+            self.config.get("cache_dir", "work/context_cache"),
+            file_handler=self._file_handler,
+        )
         self.database = ContextDatabase()
         self.ast_provider = ASTProvider(project_root)
 

@@ -21,6 +21,7 @@ from body.services.coherence_service import CoherenceService
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
 
+
 pytestmark = [pytest.mark.integration]
 
 

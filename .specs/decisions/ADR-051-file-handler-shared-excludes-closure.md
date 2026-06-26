@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-051
 title: ADR-051 — file_handler.py shared/ excludes closure
-status: accepted
+status: superseded
 ---
 
 <!-- path: .specs/decisions/ADR-051-file-handler-shared-excludes-closure.md -->
@@ -198,3 +198,27 @@ The successor ADR (Path X or Path Y) is filed by the deadline
 - CLAUDE.md "All file mutations go through FileHandler" — the
   invariant that makes "make the guard optional" a non-viable
   resolution path
+
+---
+
+## Note — 2026-06-26: Superseded by ADR-126
+
+A 2026-06-26 investigation against the live codebase found that Path X and
+Path Y both accepted the wrong premise — that FileHandler belongs in Shared.
+The investigation identified:
+
+- `shadow_materializer.py` already uses the correct DI pattern (TYPE_CHECKING
+  import + injected parameter) and is not a violation.
+- `serializers.py` and `test_runner.py` are operational service code that
+  escaped Shared's substrate contract; they pulled FileHandler into Shared,
+  not the other way around.
+- FileHandler is a governance-enforcement write gate — an execution-tier
+  concern that belongs in `body/infrastructure/storage/`.
+
+ADR-126 supersedes this ADR with a staged migration: DI injection into the two
+Shared instantiators (Stage 1), followed by the physical move of FileHandler to
+Body (Stage 2), followed by caller import-path cleanup (Stage 3). The 2026-09-12
+deadline is inherited unchanged.
+
+The Path X / Path Y framing in this ADR's Decision section is superseded;
+ADR-126 is the governing document for the file_handler.py closure.

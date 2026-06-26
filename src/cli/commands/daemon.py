@@ -526,8 +526,8 @@ def _acquire_singleton_lock(pid_file_rel: Path) -> int:
     ``pid_file_rel`` is repo-relative — caller passes ``_pid_file_for(only)``
     so default and dedicated daemons each acquire their own lock (ADR-081 D4).
     """
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
-    from shared.infrastructure.storage.file_handler import FileHandler
 
     repo_path = BootstrapRegistry.get_repo_path()
     pid_file = repo_path / pid_file_rel
@@ -565,8 +565,8 @@ def _release_singleton_lock(fd: int, pid_file_rel: Path) -> None:
     ``pid_file_rel`` is repo-relative — caller passes the same value used at
     acquisition so the matching PID file is removed (ADR-081 D4).
     """
+    from body.infrastructure.storage.file_handler import FileHandler
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
-    from shared.infrastructure.storage.file_handler import FileHandler
 
     repo_path = BootstrapRegistry.get_repo_path()
     try:

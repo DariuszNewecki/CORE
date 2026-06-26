@@ -23,6 +23,7 @@ from will.autonomy.proposal_state_manager import (
     ProposalStateManager,
 )
 
+
 pytestmark = [pytest.mark.integration]
 
 

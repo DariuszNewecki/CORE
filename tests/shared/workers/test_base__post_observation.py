@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.workers.base import _TERMINAL_STATUSES, Worker
 
+
 pytestmark = [pytest.mark.integration]
 
 

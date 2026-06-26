@@ -25,9 +25,9 @@ from body.atomic.sandbox_lifecycle import (
     SandboxLifecycle,
     _flow_has_sandboxable_step,
 )
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.context import CoreContext
 from shared.infrastructure.git_service import GitService
-from shared.infrastructure.storage.file_handler import FileHandler
 
 
 def _run(args: list[str], cwd: Path) -> None:

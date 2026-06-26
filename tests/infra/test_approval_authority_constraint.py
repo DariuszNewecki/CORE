@@ -19,6 +19,7 @@ from shared.infrastructure.database.models.autonomous_proposals import (
     AutonomousProposal,
 )
 
+
 pytestmark = [pytest.mark.integration]
 
 _INSERT_SQL = text(
