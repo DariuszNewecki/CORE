@@ -24,7 +24,6 @@ from body.atomic.assisted_actions import (
 )
 
 
-@pytest.mark.asyncio
 async def test_refuses_without_patch() -> None:
     fn = action_assisted_validate_diff.__wrapped__
     result = await fn(
@@ -34,7 +33,6 @@ async def test_refuses_without_patch() -> None:
     assert "patch" in result.data["error"]
 
 
-@pytest.mark.asyncio
 async def test_refuses_without_finding_rule() -> None:
     fn = action_assisted_validate_diff.__wrapped__
     result = await fn(
@@ -44,7 +42,6 @@ async def test_refuses_without_finding_rule() -> None:
     assert "finding_rule" in result.data["error"]
 
 
-@pytest.mark.asyncio
 async def test_refuses_without_git_service() -> None:
     fn = action_assisted_validate_diff.__wrapped__
     ctx = MagicMock()
@@ -144,7 +141,6 @@ def test_touches_audit_engine_normalizes_dot_slash() -> None:
     ) == ["./src/mind/logic/engines/ast_gate.py"]
 
 
-@pytest.mark.asyncio
 async def test_apply_diff_refuses_without_patch() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     result = await fn(patch=None, core_context=MagicMock())
@@ -152,7 +148,6 @@ async def test_apply_diff_refuses_without_patch() -> None:
     assert "patch" in result.data["error"]
 
 
-@pytest.mark.asyncio
 async def test_apply_diff_refuses_without_git_service() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     ctx = MagicMock()

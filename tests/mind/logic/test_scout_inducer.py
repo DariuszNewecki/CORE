@@ -46,7 +46,6 @@ _GOOD_CANDIDATE = {
 }
 
 
-@pytest.mark.asyncio
 async def test_valid_candidates_returned():
     payload = json.dumps({"candidates": [_GOOD_CANDIDATE]})
     inducer, invoke_mock = _inducer(return_value=payload)
@@ -58,7 +57,6 @@ async def test_valid_candidates_returned():
     invoke_mock.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_multiple_candidates_all_returned():
     second = {**_GOOD_CANDIDATE, "rule_id": "scout.no_print"}
     payload = json.dumps({"candidates": [_GOOD_CANDIDATE, second]})
@@ -70,7 +68,6 @@ async def test_multiple_candidates_all_returned():
     assert {c["rule_id"] for c in result} == {"scout.docstrings", "scout.no_print"}
 
 
-@pytest.mark.asyncio
 async def test_llm_failure_returns_empty_list():
     """Any AI exception degrades to [] — callers must handle the fallback path."""
     inducer, _ = _inducer(side_effect=Exception("connection reset"))
@@ -80,7 +77,6 @@ async def test_llm_failure_returns_empty_list():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_invalid_json_returns_empty_list():
     inducer, _ = _inducer(return_value="not json at all")
 
@@ -89,7 +85,6 @@ async def test_invalid_json_returns_empty_list():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_missing_candidates_key_returns_empty_list():
     """Response with wrong shape (not a 'candidates' array) degrades to []."""
     inducer, _ = _inducer(return_value=json.dumps({"rules": [_GOOD_CANDIDATE]}))
@@ -99,7 +94,6 @@ async def test_missing_candidates_key_returns_empty_list():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_candidates_without_rule_id_are_dropped():
     """Candidates missing rule_id are filtered out — partial results are still honest."""
     bad = {**_GOOD_CANDIDATE}
@@ -113,7 +107,6 @@ async def test_candidates_without_rule_id_are_dropped():
     assert result[0]["rule_id"] == "scout.docstrings"
 
 
-@pytest.mark.asyncio
 async def test_empty_candidates_array_is_valid():
     """An empty array is a legitimate LLM response — no rules observable."""
     inducer, _ = _inducer(return_value=json.dumps({"candidates": []}))
@@ -123,7 +116,6 @@ async def test_empty_candidates_array_is_valid():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_json_fenced_response_is_parsed():
     """extract_json handles markdown-fenced responses from some models."""
     payload = "```json\n" + json.dumps({"candidates": [_GOOD_CANDIDATE]}) + "\n```"

@@ -245,7 +245,6 @@ def test_dynamic_sql_via_fstring_is_out_of_scope() -> None:
     assert violations == []
 
 
-@pytest.mark.asyncio
 async def test_engine_dispatch_for_reaudit_check_type(tmp_path: Path) -> None:
     """The check is reachable via ASTGateEngine.verify(check_type=...)."""
     file_path = tmp_path / "broken.py"

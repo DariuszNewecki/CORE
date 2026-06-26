@@ -40,7 +40,6 @@ async def _assess(gate):
     )
 
 
-@pytest.mark.asyncio
 async def test_in_scope_parsed_with_domains():
     gate, invoke_mock = _gate(
         return_value=json.dumps(
@@ -62,7 +61,6 @@ async def test_in_scope_parsed_with_domains():
     invoke_mock.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_out_of_scope_requires_confirmation():
     gate, _ = _gate(
         return_value=json.dumps(
@@ -79,7 +77,6 @@ async def test_out_of_scope_requires_confirmation():
     assert result.requires_confirmation is True
 
 
-@pytest.mark.asyncio
 async def test_domains_as_list_normalized():
     gate, _ = _gate(
         return_value=json.dumps(
@@ -96,7 +93,6 @@ async def test_domains_as_list_normalized():
     assert result.detected_domains == ["security", "privacy"]
 
 
-@pytest.mark.asyncio
 async def test_unknown_label_fails_closed_to_uncertain():
     """An out-of-vocabulary applicability label degrades to uncertain, never
     to a silent in_scope (fail-closed, ADR-118 D2)."""
@@ -109,7 +105,6 @@ async def test_unknown_label_fails_closed_to_uncertain():
     assert result.applicability is Applicability.UNCERTAIN
 
 
-@pytest.mark.asyncio
 async def test_ai_failure_is_uncertain_not_in_scope():
     gate, _ = _gate(side_effect=Exception("API timeout"))
     result = await _assess(gate)
@@ -117,7 +112,6 @@ async def test_ai_failure_is_uncertain_not_in_scope():
     assert "could not be established" in result.rationale
 
 
-@pytest.mark.asyncio
 async def test_invalid_json_is_uncertain():
     gate, _ = _gate(return_value="not json at all")
     result = await _assess(gate)

@@ -42,7 +42,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "target_file",
     ["src/foo/bar.py", "src/will/governance/audit_runner.py"],
@@ -85,7 +84,6 @@ async def test_generate_inserts_pending_and_schedules_background(target_file):
     session.commit.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_generate_batch_high_priority_inserts_and_schedules():
     """POST /coverage/generate:batch with priority='high' inserts a row
     (batch_priority='high', target_file=NULL) and schedules background
@@ -119,7 +117,6 @@ async def test_generate_batch_high_priority_inserts_and_schedules():
     background_tasks.add_task.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_generate_batch_unknown_priority_returns_422():
     """Unknown priority raises 422 without touching DB."""
     request = _mock_request_with_context()
@@ -142,7 +139,6 @@ async def test_generate_batch_unknown_priority_returns_422():
     background_tasks.add_task.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_get_coverage_run_returns_row():
     """GET /coverage/runs/{id} returns the persisted row as a dict."""
     run_id = uuid4()
@@ -170,7 +166,6 @@ async def test_get_coverage_run_returns_row():
     assert out["status"] == "completed"
 
 
-@pytest.mark.asyncio
 async def test_get_coverage_run_returns_404_when_missing():
     session = AsyncMock()
     result_obj = MagicMock()
@@ -181,7 +176,6 @@ async def test_get_coverage_run_returns_404_when_missing():
     assert exc.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_coverage_check_delegates_to_facade():
     request = _mock_request_with_context()
     with patch(
@@ -193,7 +187,6 @@ async def test_coverage_check_delegates_to_facade():
     assert out == {"verdict": "PASS", "passed": True}
 
 
-@pytest.mark.asyncio
 async def test_coverage_report_returns_latest_persisted_report():
     """GET /coverage/report reads the latest completed run of the requested
     format via get_latest_coverage_report (#608: no inline pytest)."""
@@ -209,7 +202,6 @@ async def test_coverage_report_returns_latest_persisted_report():
     assert out == {"ok": True, "format": "text"}
 
 
-@pytest.mark.asyncio
 async def test_coverage_report_404_when_no_persisted_report():
     """GET /coverage/report 404s (with a POST hint) when no completed run
     of the requested format exists yet."""
@@ -223,7 +215,6 @@ async def test_coverage_report_404_when_no_persisted_report():
     assert exc.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_request_coverage_report_html_format_propagates_to_runner():
     """POST /coverage/reports inserts a pending run, schedules the background
     job, and propagates format='html' + show_missing to the runner. The html
@@ -327,7 +318,6 @@ def test_coverage_methods_returns_descriptor():
     assert "methods" in out
 
 
-@pytest.mark.asyncio
 async def test_tests_interactive_returns_inline_payload():
     """POST /tests/interactive returns the facade result inline (no row)."""
     request = _mock_request_with_context()

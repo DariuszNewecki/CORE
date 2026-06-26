@@ -85,6 +85,7 @@ def _create_state() -> _DbState:
         future=True,
         pool_size=settings.DATABASE_POOL_SIZE,
         max_overflow=settings.DATABASE_POOL_MAX_OVERFLOW,
+        pool_pre_ping=True,
     )
     factory = async_sessionmaker(
         bind=engine,

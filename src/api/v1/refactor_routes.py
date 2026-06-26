@@ -218,7 +218,7 @@ async def run_refactor_autonomous(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/refactor/runs/{run_id}",
+        "href": f"/v1/refactor/runs/{run_id}",
     }
 
 

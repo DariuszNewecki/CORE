@@ -31,14 +31,12 @@ class ConcreteWorkflowCheck(WorkflowCheck):
         return violations
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_abstract_method():
     """Test that WorkflowCheck cannot be instantiated directly."""
     with pytest.raises(TypeError):
         WorkflowCheck()
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_concrete_implementation():
     """Test that concrete subclass implements required abstract method."""
     checker = ConcreteWorkflowCheck()
@@ -55,7 +53,6 @@ async def test_workflowcheck_concrete_implementation():
     assert isinstance(result, list)
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_file_path_none():
     """Test verify method with None file_path."""
     checker = ConcreteWorkflowCheck()
@@ -67,7 +64,6 @@ async def test_workflowcheck_file_path_none():
     assert result == ["Test violation"]
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_with_file_path():
     """Test verify method with Path object."""
     checker = ConcreteWorkflowCheck()
@@ -83,7 +79,6 @@ async def test_workflowcheck_with_file_path():
     assert result == [f"File not found: {non_existent}"]
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_params_dict_structure():
     """Test verify method with various param dictionary structures."""
     checker = ConcreteWorkflowCheck()
@@ -103,7 +98,6 @@ async def test_workflowcheck_params_dict_structure():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_return_type():
     """Test that verify method returns correct list type."""
     checker = ConcreteWorkflowCheck()
@@ -117,7 +111,6 @@ async def test_workflowcheck_return_type():
     assert all(isinstance(item, str) for item in result)
 
 
-@pytest.mark.asyncio
 async def test_workflowcheck_multiple_violations():
     """Test verify method returning multiple violation messages."""
     checker = ConcreteWorkflowCheck()

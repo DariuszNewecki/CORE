@@ -47,7 +47,6 @@ async def _invoke(
 
 
 # ID: 4889a618-61be-40ef-b974-babbd6c387dc
-@pytest.mark.asyncio
 async def test_consumes_none_forwards_all_caller_params(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -60,7 +59,6 @@ async def test_consumes_none_forwards_all_caller_params(
 
 
 # ID: efbaa29c-6b24-4781-a70d-f6e4f34bf8ed
-@pytest.mark.asyncio
 async def test_consumes_tuple_filters_to_allowlist(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -73,7 +71,6 @@ async def test_consumes_tuple_filters_to_allowlist(
 
 
 # ID: 6de4e6e3-6a74-4d80-a0dc-90b823a6555f
-@pytest.mark.asyncio
 async def test_consumes_empty_tuple_drops_everything(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

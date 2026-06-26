@@ -37,7 +37,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 async def test_status_db_delegates_to_facade():
     session = MagicMock()
     with patch(
@@ -49,7 +48,6 @@ async def test_status_db_delegates_to_facade():
     assert out == {"ok": True, "connected": True}
 
 
-@pytest.mark.asyncio
 async def test_status_drift_passes_scope():
     request = _mock_request_with_context()
     with patch(
@@ -62,7 +60,6 @@ async def test_status_drift_passes_scope():
     assert out["scope"] == "symbols"
 
 
-@pytest.mark.asyncio
 async def test_decisions_list_passes_filters():
     with patch(
         "api.v1.inspect_routes.get_decisions",
@@ -82,7 +79,6 @@ async def test_decisions_list_passes_filters():
     assert out == {"count": 0, "traces": []}
 
 
-@pytest.mark.asyncio
 async def test_decisions_patterns_passes_days():
     with patch(
         "api.v1.inspect_routes.get_decisions_patterns",
@@ -94,7 +90,6 @@ async def test_decisions_patterns_passes_days():
     assert out["days"] == 30
 
 
-@pytest.mark.asyncio
 async def test_refusals_list_passes_filters():
     with patch(
         "api.v1.inspect_routes.get_refusals",
@@ -107,7 +102,6 @@ async def test_refusals_list_passes_filters():
     assert out["count"] == 0
 
 
-@pytest.mark.asyncio
 async def test_refusals_stats_passes_days():
     with patch(
         "api.v1.inspect_routes.get_refusals_stats",
@@ -119,7 +113,6 @@ async def test_refusals_stats_passes_days():
     assert "stats" in out
 
 
-@pytest.mark.asyncio
 async def test_analysis_clusters_passes_limit():
     with patch(
         "api.v1.inspect_routes.get_analysis_clusters",
@@ -131,7 +124,6 @@ async def test_analysis_clusters_passes_limit():
     assert "clusters" in out
 
 
-@pytest.mark.asyncio
 async def test_analysis_duplicates_passes_threshold():
     request = _mock_request_with_context()
     with patch(
@@ -144,7 +136,6 @@ async def test_analysis_duplicates_passes_threshold():
     assert out["threshold"] == 0.9
 
 
-@pytest.mark.asyncio
 async def test_analysis_common_knowledge_passes_limit():
     with patch(
         "api.v1.inspect_routes.get_analysis_common_knowledge",
@@ -156,7 +147,6 @@ async def test_analysis_common_knowledge_passes_limit():
     assert "candidates" in out
 
 
-@pytest.mark.asyncio
 async def test_analysis_command_tree_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(
@@ -167,7 +157,6 @@ async def test_analysis_command_tree_returns_facade_payload():
     assert out["available"] is True
 
 
-@pytest.mark.asyncio
 async def test_analysis_test_targets_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(
@@ -181,7 +170,6 @@ async def test_analysis_test_targets_returns_facade_payload():
 # ---------- /components (ADR-057 D5) ------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_components_list_passes_filter_type():
     payload = {
         "count": 1,
@@ -206,7 +194,6 @@ async def test_components_list_passes_filter_type():
     assert out["components"][0]["component_id"] == "fileanalyzer"
 
 
-@pytest.mark.asyncio
 async def test_components_list_no_results():
     """No matching components — route still returns the facade dict as-is."""
     with patch(
@@ -222,7 +209,6 @@ async def test_components_list_no_results():
 # ---------- /search (ADR-057 D5) ----------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_search_capabilities_passes_q_and_limit():
     request = _mock_request_with_context()
     payload = {
@@ -242,7 +228,6 @@ async def test_search_capabilities_passes_q_and_limit():
     assert out["count"] == 1
 
 
-@pytest.mark.asyncio
 async def test_search_capabilities_unavailable_path():
     """cognitive_service missing — route still returns 200 with available=False."""
     request = _mock_request_with_context()

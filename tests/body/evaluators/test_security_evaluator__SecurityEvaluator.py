@@ -11,7 +11,6 @@ import pytest
 from body.evaluators.security_evaluator import SecurityEvaluator
 
 
-@pytest.mark.asyncio
 async def test_security_evaluator_initialization():
     """Test that SecurityEvaluator initializes correctly."""
     evaluator = SecurityEvaluator()
@@ -21,7 +20,6 @@ async def test_security_evaluator_initialization():
     assert isinstance(evaluator.PATTERNS, dict)
 
 
-@pytest.mark.asyncio
 async def test_check_secrets_api_key():
     """Test detection of hardcoded API keys."""
     evaluator = SecurityEvaluator()
@@ -35,7 +33,6 @@ async def test_check_secrets_api_key():
     assert "remediation" in vulnerabilities[0]
 
 
-@pytest.mark.asyncio
 async def test_check_secrets_password():
     """Test detection of hardcoded passwords."""
     evaluator = SecurityEvaluator()
@@ -48,7 +45,6 @@ async def test_check_secrets_password():
     assert vulnerabilities[0]["file_path"] == "/test/path.py"
 
 
-@pytest.mark.asyncio
 async def test_check_sql_injection():
     """Test detection of SQL injection vulnerabilities."""
     evaluator = SecurityEvaluator()
@@ -61,7 +57,6 @@ async def test_check_sql_injection():
     assert vulnerabilities[0]["file_path"] == "/test/sql.py"
 
 
-@pytest.mark.asyncio
 async def test_check_insecure_deserialization():
     """Test detection of insecure deserialization."""
     evaluator = SecurityEvaluator()
@@ -75,7 +70,6 @@ async def test_check_insecure_deserialization():
     assert "eval" in vulnerabilities[0]["message"]
 
 
-@pytest.mark.asyncio
 async def test_check_weak_crypto():
     """Test detection of weak cryptographic algorithms."""
     evaluator = SecurityEvaluator()
@@ -87,7 +81,6 @@ async def test_check_weak_crypto():
     assert "md5" in vulnerabilities[0]["message"]
 
 
-@pytest.mark.asyncio
 async def test_calculate_score():
     """Test security score calculation."""
     evaluator = SecurityEvaluator()
@@ -104,7 +97,6 @@ async def test_calculate_score():
     assert score == 0.0
 
 
-@pytest.mark.asyncio
 async def test_assess_risk():
     """Test risk assessment."""
     evaluator = SecurityEvaluator()
@@ -124,7 +116,6 @@ async def test_assess_risk():
     assert risk == "low"
 
 
-@pytest.mark.asyncio
 async def test_execute_with_no_vulnerabilities():
     """Test execute method with clean code."""
     evaluator = SecurityEvaluator()
@@ -142,7 +133,6 @@ async def test_execute_with_no_vulnerabilities():
     assert result.next_suggested is None
 
 
-@pytest.mark.asyncio
 async def test_execute_with_vulnerabilities():
     """Test execute method with vulnerable code."""
     evaluator = SecurityEvaluator()
@@ -159,7 +149,6 @@ async def test_execute_with_vulnerabilities():
     assert result.next_suggested == "security_remediation"
 
 
-@pytest.mark.asyncio
 async def test_execute_with_custom_scope():
     """Test execute method with specific check scope."""
     evaluator = SecurityEvaluator()
@@ -178,7 +167,6 @@ async def test_execute_with_custom_scope():
     assert len(result2.data["check_scope"]) > 0
 
 
-@pytest.mark.asyncio
 async def test_execute_without_code_content():
     """Test execute method without code content."""
     evaluator = SecurityEvaluator()
@@ -188,7 +176,6 @@ async def test_execute_without_code_content():
     assert len(result.data["vulnerabilities"]) == 0
 
 
-@pytest.mark.asyncio
 async def test_multiple_pattern_matches():
     """Test detection of multiple pattern matches in same code."""
     evaluator = SecurityEvaluator()
@@ -200,7 +187,6 @@ async def test_multiple_pattern_matches():
         assert vuln["severity"] == "critical"
 
 
-@pytest.mark.asyncio
 async def test_case_insensitive_password_check():
     """Test that password check is case insensitive."""
     evaluator = SecurityEvaluator()
@@ -215,7 +201,6 @@ async def test_case_insensitive_password_check():
     assert len(vulns3) == 1
 
 
-@pytest.mark.asyncio
 async def test_severity_escalation_logic():
     """Test that blocking vulnerabilities correctly mark result as not ok."""
     evaluator = SecurityEvaluator()

@@ -43,7 +43,6 @@ dependencies = [
     # Database (Async)
     "sqlalchemy[asyncio]>=2.0.36,<3.0.0",
     "asyncpg>=0.31.0,<0.32.0",
-    "alembic>=1.13.0,<2.0.0",
     # Configuration & Validation
     "pydantic>=2.11,<3.0",
     "pydantic-settings>=2.14.2,<3.0.0",
@@ -70,7 +69,6 @@ dependencies = [
     # Scientific Computing
     "numpy>=2.3.2,<3.0.0",
     "scikit-learn>=1.5.1,<2.0.0",
-    "scipy>=1.14.0,<2.0.0",
     # Graph Analysis
     "networkx>=3.3,<4.0",
     # Utilities
@@ -79,8 +77,6 @@ dependencies = [
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
     "dependency-injector>=4.42.0,<5.0.0",
-    # LLM
-    "openai>=2.26.0,<3.0.0",
 ]
 
 [project.optional-dependencies]

@@ -40,7 +40,6 @@ def _make_verdict(req_id: str, status: RequirementStatus) -> RequirementVerdict:
 # ── Test 4 ────────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
     """Test 4 (ADR-121): ActionResult.data carries required summary keys and correct counts."""
     corpus_dir = tmp_path / "docs"

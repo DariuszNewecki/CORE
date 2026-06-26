@@ -27,7 +27,6 @@ def _make_check(repo_root: Path) -> DeadCodeCheck:
 
 
 # ID: f78bc79a-d3b0-4ce3-9d4c-02ffdc5130cd
-@pytest.mark.asyncio
 async def test_verify_delegates_to_run_vulture(tmp_path: Path) -> None:
     """DeadCodeCheck.verify must route the vulture invocation through
     shared.utils.subprocess_utils.run_vulture — not call subprocess directly.
@@ -49,7 +48,6 @@ async def test_verify_delegates_to_run_vulture(tmp_path: Path) -> None:
 
 
 # ID: 6f998275-64c5-42a0-8ffa-1f5751e08970
-@pytest.mark.asyncio
 async def test_verify_returns_empty_when_vulture_finds_nothing(
     tmp_path: Path,
 ) -> None:
@@ -67,7 +65,6 @@ async def test_verify_returns_empty_when_vulture_finds_nothing(
 
 
 # ID: b3c9ccf0-5c86-4c01-bd30-2308483e95c2
-@pytest.mark.asyncio
 async def test_verify_emits_one_violation_per_vulture_line(tmp_path: Path) -> None:
     """Each line of vulture's stdout becomes one violation, prefixed
     'Dead code detected: '. Matches pre-#585 output shape so dashboards /
@@ -93,7 +90,6 @@ async def test_verify_emits_one_violation_per_vulture_line(tmp_path: Path) -> No
 
 
 # ID: 2ec7648b-0d73-476d-a2ef-a182aa3dc974
-@pytest.mark.asyncio
 async def test_verify_recovers_from_sanctuary_failure(tmp_path: Path) -> None:
     """If run_vulture raises (e.g. binary missing, transient OS error), the
     check returns a single 'Dead code analysis failed: ...' violation rather

@@ -214,7 +214,6 @@ def test_mixed_rule_set_isolates_inert_rule():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_run_dynamic_rules_surfaces_scope_inert_to_verdict(monkeypatch):
     """End-to-end at the call-site level: plant one zero-scope blocking
     rule, drive ``run_dynamic_rules`` (the real entry — not the helper),

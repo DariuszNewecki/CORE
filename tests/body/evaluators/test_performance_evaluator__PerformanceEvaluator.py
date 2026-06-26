@@ -11,7 +11,6 @@ import pytest
 from body.evaluators.performance_evaluator import PerformanceEvaluator
 
 
-@pytest.mark.asyncio
 async def test_execute_with_all_metrics_within_thresholds():
     """Test performance evaluation when all metrics are within thresholds."""
     evaluator = PerformanceEvaluator()
@@ -33,7 +32,6 @@ async def test_execute_with_all_metrics_within_thresholds():
     assert result.next_suggested is None
 
 
-@pytest.mark.asyncio
 async def test_execute_with_duration_exceeded():
     """Test when duration exceeds threshold."""
     evaluator = PerformanceEvaluator()
@@ -55,7 +53,6 @@ async def test_execute_with_duration_exceeded():
     assert result.metadata["has_time_issues"]
 
 
-@pytest.mark.asyncio
 async def test_execute_with_multiple_threshold_exceeded():
     """Test when multiple metrics exceed thresholds."""
     evaluator = PerformanceEvaluator()
@@ -73,7 +70,6 @@ async def test_execute_with_multiple_threshold_exceeded():
     assert result.metadata["has_io_issues"]
 
 
-@pytest.mark.asyncio
 async def test_execute_with_partial_metrics():
     """Test when only some metrics are provided."""
     evaluator = PerformanceEvaluator()
@@ -92,7 +88,6 @@ async def test_execute_with_partial_metrics():
     assert result.data["performance_score"] < 1.0
 
 
-@pytest.mark.asyncio
 async def test_execute_with_no_metrics():
     """Test when no metrics are provided."""
     evaluator = PerformanceEvaluator()
@@ -104,7 +99,6 @@ async def test_execute_with_no_metrics():
     assert result.data["suggestions"] == []
 
 
-@pytest.mark.asyncio
 async def test_execute_with_additional_kwargs_metrics():
     """Test with additional metrics provided via kwargs."""
     evaluator = PerformanceEvaluator()
@@ -125,7 +119,6 @@ async def test_execute_with_additional_kwargs_metrics():
     assert result.data["metrics"]["db_queries"] == 15
 
 
-@pytest.mark.asyncio
 async def test_execute_with_unknown_operation_type():
     """Test with unknown operation type (should use default thresholds)."""
     evaluator = PerformanceEvaluator()
@@ -140,7 +133,6 @@ async def test_execute_with_unknown_operation_type():
     assert result.data["thresholds"] == evaluator.THRESHOLDS["default"]
 
 
-@pytest.mark.asyncio
 async def test_check_duration_with_warning_severity():
     """Test duration check with warning severity (overhead <= 50%)."""
     evaluator = PerformanceEvaluator()
@@ -153,7 +145,6 @@ async def test_check_duration_with_warning_severity():
     assert issue["overhead_percent"] == 50.0
 
 
-@pytest.mark.asyncio
 async def test_check_duration_with_error_severity():
     """Test duration check with error severity (overhead > 50%)."""
     evaluator = PerformanceEvaluator()
@@ -163,7 +154,6 @@ async def test_check_duration_with_error_severity():
     assert issue["overhead_percent"] > 50.0
 
 
-@pytest.mark.asyncio
 async def test_check_duration_within_threshold():
     """Test duration check when within threshold."""
     evaluator = PerformanceEvaluator()
@@ -171,7 +161,6 @@ async def test_check_duration_within_threshold():
     assert issue is None
 
 
-@pytest.mark.asyncio
 async def test_check_memory_with_warning_severity():
     """Test memory check with warning severity (overhead <= 50%)."""
     evaluator = PerformanceEvaluator()
@@ -183,7 +172,6 @@ async def test_check_memory_with_warning_severity():
     assert issue["threshold"] == 300.0
 
 
-@pytest.mark.asyncio
 async def test_check_io_with_warning_severity():
     """Test I/O check with warning severity (overhead <= 100%)."""
     evaluator = PerformanceEvaluator()
@@ -194,7 +182,6 @@ async def test_check_io_with_warning_severity():
     assert issue["overhead_percent"] == 50.0
 
 
-@pytest.mark.asyncio
 async def test_check_io_with_error_severity():
     """Test I/O check with error severity (overhead > 100%)."""
     evaluator = PerformanceEvaluator()
@@ -204,7 +191,6 @@ async def test_check_io_with_error_severity():
     assert issue["overhead_percent"] > 100.0
 
 
-@pytest.mark.asyncio
 async def test_calculate_score_with_all_metrics_within_thresholds():
     """Test score calculation when all metrics are within thresholds."""
     evaluator = PerformanceEvaluator()
@@ -218,7 +204,6 @@ async def test_calculate_score_with_all_metrics_within_thresholds():
     assert score == 1.0
 
 
-@pytest.mark.asyncio
 async def test_calculate_score_with_exceeded_thresholds():
     """Test score calculation when metrics exceed thresholds."""
     evaluator = PerformanceEvaluator()
@@ -232,7 +217,6 @@ async def test_calculate_score_with_exceeded_thresholds():
     assert score == 0.7
 
 
-@pytest.mark.asyncio
 async def test_calculate_score_with_partial_metrics():
     """Test score calculation with only some metrics provided."""
     evaluator = PerformanceEvaluator()
@@ -246,7 +230,6 @@ async def test_calculate_score_with_partial_metrics():
     assert score == 0.67
 
 
-@pytest.mark.asyncio
 async def test_suggest_time_optimization():
     """Test time optimization suggestions for different operation types."""
     evaluator = PerformanceEvaluator()
@@ -275,7 +258,6 @@ async def test_suggest_time_optimization():
     assert suggestions["unknown"] == "Profile operation to identify bottlenecks"
 
 
-@pytest.mark.asyncio
 async def test_suggest_memory_optimization():
     """Test memory optimization suggestions for different operation types."""
     evaluator = PerformanceEvaluator()
@@ -283,7 +265,6 @@ async def test_suggest_memory_optimization():
     assert suggestion == "Process code in chunks rather than loading entire file"
 
 
-@pytest.mark.asyncio
 async def test_suggest_io_optimization():
     """Test I/O optimization suggestions for different operation types."""
     evaluator = PerformanceEvaluator()
@@ -291,7 +272,6 @@ async def test_suggest_io_optimization():
     assert suggestion == "Use bulk database operations instead of individual inserts"
 
 
-@pytest.mark.asyncio
 async def test_phase_property():
     """Test that PerformanceEvaluator has correct phase.
 
@@ -305,7 +285,6 @@ async def test_phase_property():
     assert evaluator.phase == ComponentPhase.AUDIT
 
 
-@pytest.mark.asyncio
 async def test_execute_includes_duration():
     """Test that ComponentResult includes execution duration."""
     evaluator = PerformanceEvaluator()

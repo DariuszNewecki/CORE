@@ -28,12 +28,10 @@ def strategist():
 class TestComponentContract:
     """Test FixStrategist follows Component contract."""
 
-    @pytest.mark.asyncio
     async def test_declares_runtime_phase(self, strategist):
         """Strategists must operate in RUNTIME phase."""
         assert strategist.phase == ComponentPhase.RUNTIME
 
-    @pytest.mark.asyncio
     async def test_returns_component_result(self, strategist):
         """Execute must return ComponentResult."""
         result = await strategist.execute(fix_target="code_style")
@@ -43,7 +41,6 @@ class TestComponentContract:
         assert hasattr(result, "phase")
         assert result.phase == ComponentPhase.RUNTIME
 
-    @pytest.mark.asyncio
     async def test_component_id_matches_class(self, strategist):
         """Component ID should be derived from class name."""
         assert strategist.component_id == "fixstrategist"
@@ -53,7 +50,6 @@ class TestComponentContract:
 class TestStrategySelection:
     """Test strategy selection logic."""
 
-    @pytest.mark.asyncio
     async def test_emergency_strategy_for_critical(self, strategist):
         """Critical threshold should trigger emergency strategy."""
         result = await strategist.execute(
@@ -64,7 +60,6 @@ class TestStrategySelection:
         # Emergency only includes critical fixes
         assert all(fix["priority"] == 1 for fix in result.data["fix_sequence"])
 
-    @pytest.mark.asyncio
     async def test_constitutional_strategy_for_high(self, strategist):
         """High threshold should trigger constitutional strategy."""
         result = await strategist.execute(fix_target="all", severity_threshold="high")
@@ -73,7 +68,6 @@ class TestStrategySelection:
         # Constitutional includes priority 1 and 2
         assert all(fix["priority"] <= 2 for fix in result.data["fix_sequence"])
 
-    @pytest.mark.asyncio
     async def test_quality_strategy_for_medium(self, strategist):
         """Medium threshold should trigger quality strategy."""
         result = await strategist.execute(fix_target="all", severity_threshold="medium")
@@ -82,7 +76,6 @@ class TestStrategySelection:
         # Quality includes priority 1, 2, and 3
         assert all(fix["priority"] <= 3 for fix in result.data["fix_sequence"])
 
-    @pytest.mark.asyncio
     async def test_comprehensive_strategy_for_all_low(self, strategist):
         """All target with low threshold should trigger comprehensive."""
         result = await strategist.execute(fix_target="all", severity_threshold="low")
@@ -94,7 +87,6 @@ class TestStrategySelection:
 class TestPriorityOrdering:
     """Test priority-based ordering."""
 
-    @pytest.mark.asyncio
     async def test_critical_fixes_first(self, strategist):
         """Critical fixes should come first in sequence."""
         result = await strategist.execute(fix_target="all")
@@ -106,7 +98,6 @@ class TestPriorityOrdering:
             if critical_fixes:
                 assert sequence[0]["priority"] == 1
 
-    @pytest.mark.asyncio
     async def test_priority_ascending_order(self, strategist):
         """Fix sequence should be ordered by priority (ascending)."""
         result = await strategist.execute(fix_target="all")
@@ -117,7 +108,6 @@ class TestPriorityOrdering:
         # Check priorities are non-decreasing
         assert priorities == sorted(priorities)
 
-    @pytest.mark.asyncio
     async def test_style_fixes_last(self, strategist):
         """Code style fixes (priority 4) should come last."""
         result = await strategist.execute(fix_target="all")
@@ -137,7 +127,6 @@ class TestPriorityOrdering:
 class TestFixTypeFiltering:
     """Test filtering by fix type."""
 
-    @pytest.mark.asyncio
     async def test_single_fix_type(self, strategist):
         """Requesting single fix type should only include that type."""
         result = await strategist.execute(fix_target="missing_ids")
@@ -146,7 +135,6 @@ class TestFixTypeFiltering:
         assert len(sequence) == 1
         assert sequence[0]["fix_type"] == "missing_ids"
 
-    @pytest.mark.asyncio
     async def test_auto_fix_only_filter(self, strategist):
         """Auto-fix-only should exclude non-auto-fixable fixes."""
         result = await strategist.execute(fix_target="all", auto_fix_only=True)
@@ -154,7 +142,6 @@ class TestFixTypeFiltering:
         sequence = result.data["fix_sequence"]
         assert all(fix["metadata"]["auto_fixable"] for fix in sequence)
 
-    @pytest.mark.asyncio
     async def test_severity_threshold_filtering(self, strategist):
         """Severity threshold should filter out lower priority fixes."""
         result = await strategist.execute(fix_target="all", severity_threshold="high")
@@ -168,7 +155,6 @@ class TestFixTypeFiltering:
 class TestExecutionMode:
     """Test execution mode determination."""
 
-    @pytest.mark.asyncio
     async def test_sequential_for_single_file(self, strategist):
         """Single file fixes should use sequential mode."""
         result = await strategist.execute(
@@ -177,7 +163,6 @@ class TestExecutionMode:
 
         assert result.data["execution_mode"] == "sequential"
 
-    @pytest.mark.asyncio
     async def test_batch_for_low_risk_codebase(self, strategist):
         """Low-risk auto-fixable fixes on codebase can use batch mode."""
         result = await strategist.execute(fix_target="code_style", auto_fix_only=True)
@@ -191,28 +176,24 @@ class TestExecutionMode:
 class TestSafetyChecks:
     """Test safety check identification."""
 
-    @pytest.mark.asyncio
     async def test_syntax_check_for_code_mods(self, strategist):
         """Code modifications should require syntax validation."""
         result = await strategist.execute(fix_target="complexity")
 
         assert "syntax_validation" in result.data["safety_checks"]
 
-    @pytest.mark.asyncio
     async def test_constitutional_audit_for_structural(self, strategist):
         """Structural changes should require constitutional audit."""
         result = await strategist.execute(fix_target="header_compliance")
 
         assert "constitutional_audit" in result.data["safety_checks"]
 
-    @pytest.mark.asyncio
     async def test_test_execution_for_coverage_fixes(self, strategist):
         """Test coverage fixes should require test execution."""
         result = await strategist.execute(fix_target="test_coverage")
 
         assert "test_execution" in result.data["safety_checks"]
 
-    @pytest.mark.asyncio
     async def test_comprehensive_strategy_extensive_checks(self, strategist):
         """Comprehensive strategy should have extensive checks."""
         result = await strategist.execute(fix_target="all", severity_threshold="low")
@@ -226,7 +207,6 @@ class TestSafetyChecks:
 class TestDurationEstimation:
     """Test duration estimation logic."""
 
-    @pytest.mark.asyncio
     async def test_single_file_faster_than_codebase(self, strategist):
         """Single file fixes should estimate shorter duration."""
         single_file = await strategist.execute(
@@ -240,7 +220,6 @@ class TestDurationEstimation:
             < codebase.data["estimated_duration_sec"]
         )
 
-    @pytest.mark.asyncio
     async def test_simple_fixes_fast(self, strategist):
         """Simple fixes like missing IDs should be fast."""
         result = await strategist.execute(fix_target="missing_ids")
@@ -248,7 +227,6 @@ class TestDurationEstimation:
         # Missing IDs is ~1 sec base + overhead
         assert result.data["estimated_duration_sec"] < 30
 
-    @pytest.mark.asyncio
     async def test_complex_fixes_longer(self, strategist):
         """Complex fixes like test coverage should take longer."""
         result = await strategist.execute(fix_target="test_coverage")
@@ -261,7 +239,6 @@ class TestDurationEstimation:
 class TestFixMetadata:
     """Test fix type metadata accuracy."""
 
-    @pytest.mark.asyncio
     async def test_fix_metadata_complete(self, strategist):
         """All fix types should have complete metadata."""
         result = await strategist.execute(fix_target="all")
@@ -274,7 +251,6 @@ class TestFixMetadata:
             assert "blast_radius" in metadata
             assert "avg_duration_sec" in metadata
 
-    @pytest.mark.asyncio
     async def test_critical_fixes_priority_one(self, strategist):
         """Critical severity fixes should have priority 1."""
         result = await strategist.execute(fix_target="syntax_errors")
@@ -289,7 +265,6 @@ class TestFixMetadata:
 class TestDecisionTracing:
     """Test decision tracing integration."""
 
-    @pytest.mark.asyncio
     async def test_records_decision(self, strategist):
         """Strategist must record decisions for audit."""
         result = await strategist.execute(fix_target="all")
@@ -305,7 +280,6 @@ class TestDecisionTracing:
 class TestMetadata:
     """Test result metadata completeness."""
 
-    @pytest.mark.asyncio
     async def test_includes_configuration(self, strategist):
         """Result metadata should include configuration."""
         result = await strategist.execute(
@@ -318,7 +292,6 @@ class TestMetadata:
         assert result.metadata["file_path"] == "src/models/user.py"
         assert result.metadata["sequence_length"] >= 0
 
-    @pytest.mark.asyncio
     async def test_has_critical_fixes_flag(self, strategist):
         """Metadata should indicate if critical fixes present."""
         result = await strategist.execute(
@@ -328,14 +301,12 @@ class TestMetadata:
         if result.data["fix_sequence"]:
             assert result.metadata["has_critical_fixes"] is True
 
-    @pytest.mark.asyncio
     async def test_suggests_next_component(self, strategist):
         """Should suggest fix_executor as next component."""
         result = await strategist.execute(fix_target="code_style")
 
         assert result.next_suggested == "fix_executor"
 
-    @pytest.mark.asyncio
     async def test_tracks_duration(self, strategist):
         """Should track execution duration."""
         result = await strategist.execute(fix_target="missing_ids")
@@ -347,7 +318,6 @@ class TestMetadata:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    @pytest.mark.asyncio
     async def test_empty_sequence_valid(self, strategist):
         """Empty fix sequence should be valid result."""
         result = await strategist.execute(
@@ -360,7 +330,6 @@ class TestEdgeCases:
         assert result.ok
         assert isinstance(result.data["fix_sequence"], list)
 
-    @pytest.mark.asyncio
     async def test_unknown_target_handled(self, strategist):
         """Unknown fix target should be handled gracefully."""
         result = await strategist.execute(fix_target="unknown_fix_type")

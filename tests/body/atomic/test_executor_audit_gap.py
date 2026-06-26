@@ -56,7 +56,6 @@ def _executor_with_failing_session() -> ActionExecutor:
     return executor
 
 
-@pytest.mark.asyncio
 async def test_write_action_audit_failure_is_error_with_marker() -> None:
     """#634: write=True audit failure → ERROR carrying the AUDIT_GAP marker."""
     executor = _executor_with_failing_session()
@@ -72,7 +71,6 @@ async def test_write_action_audit_failure_is_error_with_marker() -> None:
     mock_logger.warning.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_read_action_audit_failure_stays_warning() -> None:
     """Reads remain a quiet best-effort warning — no ERROR, no AUDIT_GAP."""
     executor = _executor_with_failing_session()

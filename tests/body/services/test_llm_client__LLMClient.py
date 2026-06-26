@@ -13,7 +13,6 @@ from body.services.llm_client import LLMClient
 # LLMClient.make_request is async def, so tests must be async too
 
 
-@pytest.mark.asyncio
 async def test_llmclient_init():
     """Test LLMClient initialization with all required parameters."""
     client = LLMClient(
@@ -30,7 +29,6 @@ async def test_llmclient_init():
     assert client.base_url == "https://api.example.com/v1/chat/completions"
 
 
-@pytest.mark.asyncio
 async def test_llmclient_init_default_timeout():
     """Test LLMClient initialization with default timeout."""
     client = LLMClient(
@@ -46,7 +44,6 @@ async def test_llmclient_init_default_timeout():
     assert client.base_url == "https://api.example.com/v1/chat/completions"
 
 
-@pytest.mark.asyncio
 async def test_make_request_requires_async():
     """Test that make_request is an async method."""
     # This test verifies the method signature is async
@@ -72,17 +69,14 @@ async def test_make_request_requires_async():
 # but are commented out since they would fail without mocking:
 
 """
-@pytest.mark.asyncio
 async def test_make_request_success():
     # This test would require mocking httpx.AsyncClient
     pass
 
-@pytest.mark.asyncio
 async def test_make_request_empty_response():
     # This test would require mocking to return empty content
     pass
 
-@pytest.mark.asyncio
 async def test_make_request_http_error():
     # This test would require mocking to raise HTTPStatusError
     pass

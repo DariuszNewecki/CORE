@@ -58,7 +58,6 @@ def _make_context(repo_root: Path):
     return SimpleNamespace(git_service=SimpleNamespace(repo_path=repo_root))
 
 
-@pytest.mark.asyncio
 async def test_fix_headers_replaces_wrong_header(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "body.self_healing.header_service.ActionExecutor", _FakeActionExecutor
@@ -84,7 +83,6 @@ async def test_fix_headers_replaces_wrong_header(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.asyncio
 async def test_fix_headers_inserts_missing_header(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "body.self_healing.header_service.ActionExecutor", _FakeActionExecutor
@@ -105,7 +103,6 @@ async def test_fix_headers_inserts_missing_header(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.asyncio
 async def test_fix_headers_keeps_correct_header_unchanged(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "body.self_healing.header_service.ActionExecutor", _FakeActionExecutor
@@ -125,7 +122,6 @@ async def test_fix_headers_keeps_correct_header_unchanged(tmp_path, monkeypatch)
     assert file_path.read_text(encoding="utf-8") == content
 
 
-@pytest.mark.asyncio
 async def test_fix_headers_does_not_touch_non_src_files(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "body.self_healing.header_service.ActionExecutor", _FakeActionExecutor
@@ -149,7 +145,6 @@ async def test_fix_headers_does_not_touch_non_src_files(tmp_path, monkeypatch):
     assert outside_file.read_text(encoding="utf-8") == outside_content
 
 
-@pytest.mark.asyncio
 async def test_fix_headers_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "body.self_healing.header_service.ActionExecutor", _FakeActionExecutor

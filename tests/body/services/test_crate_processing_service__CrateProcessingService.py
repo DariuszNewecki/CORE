@@ -36,7 +36,6 @@ def service():
     return CrateProcessingService(ctx)
 
 
-@pytest.mark.asyncio
 async def test_validate_crate_by_id_crate_not_found(service):
     """Test validation when crate ID doesn't exist in inbox."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -48,7 +47,6 @@ async def test_validate_crate_by_id_crate_not_found(service):
         assert "Crate non_existent_crate missing from inbox" in findings[0].message
 
 
-@pytest.mark.asyncio
 async def test_validate_crate_by_id_invalid_manifest_structure(service):
     """Test validation when manifest has invalid structure (fails JSON schema)."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -65,7 +63,6 @@ async def test_validate_crate_by_id_invalid_manifest_structure(service):
         assert "manifest.yaml" == findings[0].file_path
 
 
-@pytest.mark.asyncio
 async def test_validate_crate_by_id_valid_manifest_canary_passes(service):
     """Test validation with valid manifest where canary trial passes."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -86,7 +83,6 @@ async def test_validate_crate_by_id_valid_manifest_canary_passes(service):
         assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_apply_and_finalize_crate_success(service):
     """Test applying and finalizing an accepted crate."""
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -9,7 +9,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.asyncio
 async def test_smoke_db_session_fixture_provides_asyncsession(
     db_session: AsyncSession,
 ) -> None:
@@ -39,7 +38,6 @@ async def test_smoke_db_session_fixture_provides_asyncsession(
     )
 
 
-@pytest.mark.asyncio
 async def test_smoke_db_schema_has_tables(db_session: AsyncSession) -> None:
     """
     Verifies that applying `sql/001_consolidated_schema.sql` resulted in at least one table

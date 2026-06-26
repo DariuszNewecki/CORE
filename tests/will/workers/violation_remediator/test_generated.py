@@ -58,7 +58,6 @@ class TestViolationRemediatorWorker:
         inst._worker_uuid = "test-worker-uuid"
         return inst
 
-    @pytest.mark.asyncio
     async def test_run_no_open_findings(self, worker):
         """Test run method when there are no open findings."""
         worker._load_open_findings = AsyncMock(return_value=[])
@@ -75,7 +74,6 @@ class TestViolationRemediatorWorker:
         worker._load_open_findings.assert_called_once()
         worker.post_report.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_run_with_vocabulary_projection_error(self, worker):
         """When vocabulary projection is broken, run() short-circuits to
         post a ``governance.instrument_degraded`` observation and bails
@@ -116,7 +114,6 @@ class TestViolationRemediatorWorker:
         )
         worker._load_open_findings.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_run_with_findings_no_remediation(self, worker):
         """Test run method when findings have no remediation mapping."""
         worker._load_open_findings = AsyncMock(
@@ -143,7 +140,6 @@ class TestViolationRemediatorWorker:
             mock_load.return_value = MagicMock()
             await worker.run()
 
-    @pytest.mark.asyncio
     async def test_uncommitted_file_skips_proposal_creation(self, worker):
         """Findings whose target file is not in HEAD must not generate a proposal.
 
@@ -192,7 +188,6 @@ class TestViolationRemediatorWorker:
         assert report_payload["entries_held_uncommitted"] == 1
         assert report_payload["proposals_created"] == 0
 
-    @pytest.mark.asyncio
     async def test_committed_file_proceeds_to_proposal_creation(self, worker):
         """Findings whose target is committed must still reach _create_proposal."""
         finding = {
@@ -236,7 +231,6 @@ class TestViolationRemediatorWorker:
         assert report_payload["entries_held_uncommitted"] == 0
         assert report_payload["proposals_created"] == 1
 
-    @pytest.mark.asyncio
     async def test_flow_findings_bypass_uncommitted_gate(self, worker):
         """Flow-kind remediations have no file_path target and must not be gated."""
         finding = {

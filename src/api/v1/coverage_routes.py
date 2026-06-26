@@ -239,7 +239,7 @@ async def request_coverage_report(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/coverage/runs/{run_id}",
+        "href": f"/v1/coverage/runs/{run_id}",
     }
 
 
@@ -395,7 +395,7 @@ async def generate_coverage(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/coverage/runs/{run_id}",
+        "href": f"/v1/coverage/runs/{run_id}",
     }
 
 
@@ -460,7 +460,7 @@ async def generate_coverage_batch(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/coverage/runs/{run_id}",
+        "href": f"/v1/coverage/runs/{run_id}",
     }
 
 

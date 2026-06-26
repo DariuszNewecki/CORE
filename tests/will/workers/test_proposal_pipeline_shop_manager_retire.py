@@ -75,7 +75,6 @@ def _patch_service_registry(session: MagicMock):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_retire_executing_proposal_terminates_and_revives() -> None:
     """
     When the status-guarded UPDATE matches a row (proposal was still executing),
@@ -103,7 +102,6 @@ async def test_retire_executing_proposal_terminates_and_revives() -> None:
     assert call_args.args[1] == "pid-executing"
 
 
-@pytest.mark.asyncio
 async def test_retire_no_op_when_proposal_not_executing() -> None:
     """
     When the UPDATE matches zero rows (proposal transitioned before this call),
@@ -129,7 +127,6 @@ async def test_retire_no_op_when_proposal_not_executing() -> None:
     revive_mock.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_retire_fail_soft_on_db_error() -> None:
     """
     A DB error during the UPDATE is caught and swallowed; revive_and_report is

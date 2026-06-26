@@ -11,7 +11,6 @@ import pytest
 # Detected return type: 'get' is an async function returning None.
 
 
-@pytest.mark.asyncio
 async def test_get_success_without_show():
     # Test successful retrieval without showing the secret.
     # Since we cannot mock _get_internal, and the function raises on failure,
@@ -20,7 +19,6 @@ async def test_get_success_without_show():
     pass
 
 
-@pytest.mark.asyncio
 async def test_get_success_with_show():
     # Test successful retrieval with show=True.
     # Since we cannot mock _get_internal, and the function raises on failure,
@@ -29,7 +27,6 @@ async def test_get_success_with_show():
     pass
 
 
-@pytest.mark.asyncio
 async def test_get_failure_exits():
     # Test that a non-ok result from _get_internal raises typer.Exit(1).
     # Since we cannot mock _get_internal, this test cannot be implemented

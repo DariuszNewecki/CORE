@@ -16,7 +16,6 @@ import pytest
 from mind.logic.engines.workflow_gate.checks.audit import AuditHistoryCheck
 
 
-@pytest.mark.asyncio
 async def test_verify_no_db_session_returns_sensation_error():
     """When no DB session is plumbed through params, the verify() flow
     falls into the broad except path and returns a single Audit-Ledger-

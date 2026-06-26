@@ -141,7 +141,7 @@ async def _dispatch_sync(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/sync/runs/{run_id}",
+        "href": f"/v1/sync/runs/{run_id}",
     }
 
 

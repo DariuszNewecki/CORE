@@ -13,7 +13,6 @@ import pytest
 from mind.logic.engines.glob_gate import GlobGateEngine
 
 
-@pytest.mark.asyncio
 async def test_verify_no_violations():
     """Test basic case with no violations."""
     engine = GlobGateEngine()
@@ -26,7 +25,6 @@ async def test_verify_no_violations():
     assert result.engine_id == "glob_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_exceptions():
     """Test exceptions override pattern matches."""
     engine = GlobGateEngine()
@@ -37,7 +35,6 @@ async def test_verify_exceptions():
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_max_lines_exceeded():
     """Test max_lines violation."""
     import os
@@ -58,7 +55,6 @@ async def test_verify_max_lines_exceeded():
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_verify_invalid_path():
     """Test handling of invalid path."""
     engine = GlobGateEngine()
@@ -75,7 +71,6 @@ async def test_verify_invalid_path():
     assert result.engine_id == "glob_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_multiple_parameter_names():
     """Test different parameter names for patterns."""
     engine = GlobGateEngine()
@@ -91,7 +86,6 @@ async def test_verify_multiple_parameter_names():
     assert not result3.ok
 
 
-@pytest.mark.asyncio
 async def test_verify_pattern_string_instead_of_list():
     """Test when patterns is a string instead of list."""
     engine = GlobGateEngine()
@@ -102,7 +96,6 @@ async def test_verify_pattern_string_instead_of_list():
     assert "matches restricted pattern" in result.violations[0]
 
 
-@pytest.mark.asyncio
 async def test_match_basic_glob():
     """Test _match method with basic glob patterns."""
     engine = GlobGateEngine()
@@ -112,7 +105,6 @@ async def test_match_basic_glob():
     assert not engine._match("src/utils/file.py", "utils/*")
 
 
-@pytest.mark.asyncio
 async def test_verify_file_read_error():
     """Test that file read errors don't cause verify to fail."""
     import os
@@ -129,7 +121,6 @@ async def test_verify_file_read_error():
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_thresholds_default_only():
     """Test thresholds with only default pattern."""
     import os
@@ -149,7 +140,6 @@ async def test_verify_thresholds_default_only():
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_verify_empty_params():
     """Test with empty parameters dict."""
     engine = GlobGateEngine()

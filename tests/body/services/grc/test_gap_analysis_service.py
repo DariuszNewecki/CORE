@@ -27,7 +27,6 @@ from shared.models import AuditFinding, AuditSeverity, EvidenceClass, Requiremen
 _CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "corpus"
 
 
-@pytest.mark.asyncio
 async def test_gap_analysis_produces_labelled_trio() -> None:
     results = await GRCGapAnalysisService().run(_CORPUS, catalog=load_demo_catalog())
     by_id = {r.requirement_id: r for r in results}
@@ -52,7 +51,6 @@ async def test_gap_analysis_produces_labelled_trio() -> None:
     assert attested.rationale
 
 
-@pytest.mark.asyncio
 async def test_clean_corpus_reports_proven_satisfied(tmp_path: Path) -> None:
     """A finalized policy (no placeholder text) yields no proven gap."""
     doc = tmp_path / "policy.md"
@@ -109,7 +107,6 @@ def test_transient_failure_classifies_unavailable_not_deficient() -> None:
     assert verdict.evidence_class is EvidenceClass.PROVEN
 
 
-@pytest.mark.asyncio
 async def test_judged_silence_is_not_covered_not_gap() -> None:
     """Core ADR-118 D4 invariant: a corpus where every document is silent on a
     requirement must yield NOT_COVERED, never DEFICIENT.
@@ -142,7 +139,6 @@ async def test_judged_silence_is_not_covered_not_gap() -> None:
     assert verdict.evidence_class is EvidenceClass.JUDGED
 
 
-@pytest.mark.asyncio
 async def test_nist_catalog_runs_against_corpus() -> None:
     """Default (NIST) catalog runs end-to-end: proven gap, judged, needs-human."""
     results = await GRCGapAnalysisService().run(_CORPUS)

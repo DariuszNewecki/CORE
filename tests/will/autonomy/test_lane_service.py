@@ -19,7 +19,6 @@ from shared.infrastructure.intent.errors import GovernanceError
 from will.autonomy.lane_service import LaneProposeError, LaneService
 
 
-@pytest.mark.asyncio
 async def test_list_delegated_findings_delegates_to_blackboard():
     """list_delegated_findings forwards the limit to
     BlackboardService.fetch_delegated_findings and returns its rows verbatim."""
@@ -38,7 +37,6 @@ async def test_list_delegated_findings_delegates_to_blackboard():
     bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=10)
 
 
-@pytest.mark.asyncio
 async def test_get_delegated_finding_delegates_to_blackboard():
     """get_delegated_finding forwards the id to fetch_delegated_finding."""
     finding = {"id": "f-9", "subject": "s", "payload": {}, "created_at": None}
@@ -67,7 +65,6 @@ def _patch_proposals(create_mock: AsyncMock):
     return patch("will.autonomy.lane_service.ProposalService.open", _open)
 
 
-@pytest.mark.asyncio
 async def test_propose_validated_diff_creates_proposal_and_defers():
     """The happy path builds a human-gated, validation-gated, assisted-lane
     proposal that runs assisted.apply_diff with the patch, then defers the
@@ -120,7 +117,6 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     )
 
 
-@pytest.mark.asyncio
 async def test_propose_raises_when_finding_not_live():
     """A finding that is not a live delegated lane item (None) raises
     LaneProposeError before any proposal is created."""
@@ -147,7 +143,6 @@ async def test_propose_raises_when_finding_not_live():
     bb_service.defer_delegated_finding_to_proposal.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_next_delegated_finding_returns_fifo_head_with_bundle():
     """next_delegated_finding asks for limit=1 and returns the head enriched
     with the #653 context bundle. A payload-less finding has no rule, so the
@@ -188,7 +183,6 @@ def _patch_bundle_sources(rationale: str | None, raises: bool, guidance):
     )
 
 
-@pytest.mark.asyncio
 async def test_get_finding_bundle_includes_rationale_and_remediation():
     """A live-rule finding's bundle carries rule rationale (in_registry True)
     and the remediation-map guidance."""
@@ -219,7 +213,6 @@ async def test_get_finding_bundle_includes_rationale_and_remediation():
     assert out["bundle"]["remediation"] == guidance
 
 
-@pytest.mark.asyncio
 async def test_get_finding_bundle_flags_orphan_when_rule_absent():
     """A finding whose rule id is no longer in the registry (renamed/retired,
     cf. #657) is flagged in_registry=False rather than crashing."""
@@ -248,7 +241,6 @@ async def test_get_finding_bundle_flags_orphan_when_rule_absent():
     assert out["bundle"]["rule"]["rationale"] is None
 
 
-@pytest.mark.asyncio
 async def test_get_finding_bundle_none_when_not_live():
     """get_finding_bundle returns None when the finding is not a live lane item."""
     bb_service = AsyncMock()
@@ -260,7 +252,6 @@ async def test_get_finding_bundle_none_when_not_live():
         assert await LaneService().get_finding_bundle("missing") is None
 
 
-@pytest.mark.asyncio
 async def test_next_delegated_finding_empty_returns_none():
     """An empty lane yields None, not an IndexError."""
     bb_service = AsyncMock()
@@ -273,7 +264,6 @@ async def test_next_delegated_finding_empty_returns_none():
         assert await LaneService().next_delegated_finding() is None
 
 
-@pytest.mark.asyncio
 async def test_claim_delegated_finding_true_when_row_updated():
     """claim returns True when the blackboard updated a live lane item."""
     bb_service = AsyncMock()
@@ -288,7 +278,6 @@ async def test_claim_delegated_finding_true_when_row_updated():
     bb_service.claim_delegated_finding.assert_awaited_once_with("f-1", "claude-code")
 
 
-@pytest.mark.asyncio
 async def test_claim_delegated_finding_false_when_not_live():
     """claim returns False when no row matched (not a live lane item)."""
     bb_service = AsyncMock()

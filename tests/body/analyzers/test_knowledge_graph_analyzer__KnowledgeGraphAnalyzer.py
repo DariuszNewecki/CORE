@@ -11,7 +11,6 @@ import pytest
 from body.analyzers.knowledge_graph_analyzer import KnowledgeGraphAnalyzer
 
 
-@pytest.mark.asyncio
 async def test_execute_with_non_python_files(tmp_path):
     """Test execute with non-Python files (should be ignored)."""
     analyzer = KnowledgeGraphAnalyzer()

@@ -285,7 +285,7 @@ async def create_remediation_run(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/audit/remediations/{run_id}",
+        "href": f"/v1/audit/remediations/{run_id}",
     }
 
 

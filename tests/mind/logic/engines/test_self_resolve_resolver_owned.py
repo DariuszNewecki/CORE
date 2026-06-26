@@ -110,7 +110,6 @@ def test_is_context_level_for_self_resolve_check() -> None:
     assert TaxonomyGateEngine.is_context_level_for(_CHECK_TYPE) is True
 
 
-@pytest.mark.asyncio
 async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
     """Emitter carries the canonical docstring block AND a test file
     references the subject prefix → zero findings."""
@@ -122,7 +121,6 @@ async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
     assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_missing_docstring_block_flags_finding(tmp_path: Path) -> None:
     """Emitter has a docstring but lacks the canonical block → one finding
     citing the docstring gap. Test file is present so test coverage is OK."""
@@ -143,7 +141,6 @@ async def test_missing_docstring_block_flags_finding(tmp_path: Path) -> None:
     assert f.context["subject_prefix"] == "worker.silent"
 
 
-@pytest.mark.asyncio
 async def test_missing_test_coverage_flags_finding(tmp_path: Path) -> None:
     """Emitter docstring is fine but no tests/ file references the prefix
     → one finding citing the test gap."""
@@ -160,7 +157,6 @@ async def test_missing_test_coverage_flags_finding(tmp_path: Path) -> None:
     assert f.context["missing_test_coverage"] is True
 
 
-@pytest.mark.asyncio
 async def test_both_gaps_collapse_into_single_finding(tmp_path: Path) -> None:
     """A prefix missing BOTH docstring and test should still emit exactly
     one finding (per-prefix, not per-gap), with both context flags True."""
@@ -179,7 +175,6 @@ async def test_both_gaps_collapse_into_single_finding(tmp_path: Path) -> None:
     assert "and" in f.message  # both gaps listed
 
 
-@pytest.mark.asyncio
 async def test_inline_literal_subject_traces_prefix(tmp_path: Path) -> None:
     """When the subject is built inline as f"literal::{id}" (no module
     constant), the prefix is taken as the literal head before the first
@@ -207,7 +202,6 @@ async def test_inline_literal_subject_traces_prefix(tmp_path: Path) -> None:
     assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_untraceable_subject_is_skipped(tmp_path: Path) -> None:
     """A subject derived from a function parameter (no module constant, no
     f-string head we can trace) is not classified — by design the engine
@@ -235,7 +229,6 @@ async def test_untraceable_subject_is_skipped(tmp_path: Path) -> None:
     assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_reaudit_post_finding_is_ignored(tmp_path: Path) -> None:
     """post_finding with resolution_mechanism='reaudit' (or anything other
     than 'self_resolve') is out of scope — those are governed by

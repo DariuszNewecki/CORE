@@ -26,7 +26,6 @@ from shared.models import EvidenceClass
 _CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "governance_corpus"
 
 
-@pytest.mark.asyncio
 async def test_proven_gap_on_unfinalized_document() -> None:
     """The deterministic finalized-document lane proves a gap on the corpus,
     with the honest PROVEN evidence class — no LLM involved."""
@@ -41,7 +40,6 @@ async def test_proven_gap_on_unfinalized_document() -> None:
     assert any("patching" in f.file_path for f in finalized.findings)
 
 
-@pytest.mark.asyncio
 async def test_judged_lane_degrades_honestly_without_llm() -> None:
     """With no LLM wired, the judged (grc_judge) lanes report pending_ai —
     never silently 'met', never a fabricated verdict (ADR-113 honesty)."""

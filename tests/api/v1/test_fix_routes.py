@@ -31,7 +31,6 @@ from api.v1.fix_routes import (
 )
 
 
-@pytest.mark.asyncio
 async def test_run_fix_known_id_inserts_pending_and_schedules_background():
     """Known fix_id inserts a pending row, schedules background task,
     and returns 202 with run_id, status, and href."""
@@ -68,7 +67,7 @@ async def test_run_fix_known_id_inserts_pending_and_schedules_background():
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/fix/runs/{new_id}",
+        "href": f"/v1/fix/runs/{new_id}",
     }
     assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
@@ -76,7 +75,6 @@ async def test_run_fix_known_id_inserts_pending_and_schedules_background():
     session.commit.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_run_fix_unknown_id_returns_422_without_inserting():
     """Unknown fix_id raises HTTPException(422) and never touches the DB."""
     request = MagicMock()
@@ -106,7 +104,6 @@ async def test_run_fix_unknown_id_returns_422_without_inserting():
     background_tasks.add_task.assert_not_called()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("fix_id", ["fix.imports", "fix.headers", "sync.db"])
 async def test_run_fix_dispatches_distinct_known_action_ids(fix_id):
     """The route forwards whatever fix_id passed validation — no
@@ -146,7 +143,6 @@ async def test_run_fix_dispatches_distinct_known_action_ids(fix_id):
     assert bind["fix_id"] == fix_id
 
 
-@pytest.mark.asyncio
 async def test_run_fix_passes_target_files_as_json_and_write_flag():
     """The INSERT serialises target_files as JSON and forwards `write`
     and `requested_by` verbatim to the SQL bind params."""
@@ -188,7 +184,6 @@ async def test_run_fix_passes_target_files_as_json_and_write_flag():
     assert bind["target_files"] == '["a.py", "b.py"]'
 
 
-@pytest.mark.asyncio
 async def test_run_fix_null_target_files_persisted_as_null():
     """target_files=None must be persisted as SQL NULL, not 'null' string."""
     request = MagicMock()
@@ -218,7 +213,6 @@ async def test_run_fix_null_target_files_persisted_as_null():
     assert bind["target_files"] is None
 
 
-@pytest.mark.asyncio
 async def test_get_fix_run_returns_full_record():
     """GET returns the persisted row with id renamed to run_id and
     timestamps ISO-formatted."""
@@ -264,7 +258,6 @@ async def test_get_fix_run_returns_full_record():
     assert out["error"] is None
 
 
-@pytest.mark.asyncio
 async def test_get_fix_run_pending_row_has_null_lifecycle_timestamps():
     """A pending row has started_at / finished_at / result = None — the
     route must preserve those as nulls, not coerce to placeholders."""
@@ -297,7 +290,6 @@ async def test_get_fix_run_pending_row_has_null_lifecycle_timestamps():
     assert out["result"] is None
 
 
-@pytest.mark.asyncio
 async def test_get_fix_run_unknown_id_raises_404():
     """Unknown run_id raises HTTPException(404)."""
     rid = uuid4()
@@ -319,7 +311,6 @@ async def test_get_fix_run_unknown_id_raises_404():
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_list_fix_commands_returns_filtered_actions():
     """GET /fix/commands wraps list_action_definitions(category='fix')."""
     sample = [
@@ -345,7 +336,6 @@ async def test_list_fix_commands_returns_filtered_actions():
     assert out == {"count": 1, "commands": sample}
 
 
-@pytest.mark.asyncio
 async def test_list_actions_returns_unfiltered_action_list():
     """GET /actions wraps list_action_definitions() with no category filter."""
     sample = [
@@ -386,7 +376,6 @@ async def test_list_actions_returns_unfiltered_action_list():
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_run_fix_all_known_flow_inserts_pending_and_schedules():
     """Known fix_code flow inserts a pending row, schedules background
     task, returns 202 with run_id and href; kind column = 'flow'."""
@@ -421,7 +410,7 @@ async def test_run_fix_all_known_flow_inserts_pending_and_schedules():
 
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
-    assert out["href"] == f"/fix/runs/{new_id}"
+    assert out["href"] == f"/v1/fix/runs/{new_id}"
     assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     bind = session.execute.call_args[0][1]
@@ -430,7 +419,6 @@ async def test_run_fix_all_known_flow_inserts_pending_and_schedules():
     assert bind["write"] is False
 
 
-@pytest.mark.asyncio
 async def test_run_fix_all_unknown_flow_returns_422():
     """If flow.fix_code is not registered, the route 422s before INSERT."""
     request = MagicMock()
@@ -462,7 +450,6 @@ async def test_run_fix_all_unknown_flow_returns_422():
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_run_fix_modularity_inserts_pending_and_schedules():
     """A valid body always returns 202: the modularity route is backed
     by a Python-level workflow, not a Flow YAML, so there is no flow
@@ -493,7 +480,7 @@ async def test_run_fix_modularity_inserts_pending_and_schedules():
 
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
-    assert out["href"] == f"/fix/runs/{new_id}"
+    assert out["href"] == f"/v1/fix/runs/{new_id}"
     assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     # No flow_id bind param — fix_id is hard-coded to NULL in the SQL.
@@ -502,7 +489,6 @@ async def test_run_fix_modularity_inserts_pending_and_schedules():
     assert bind["write"] is True
 
 
-@pytest.mark.asyncio
 async def test_run_fix_modularity_background_task_reaches_runner():
     """The scheduled background task delegates to run_and_persist_modularity
     with the correct run_id and write flag."""
@@ -549,7 +535,6 @@ async def test_run_fix_modularity_background_task_reaches_runner():
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_run_fix_ir_triage_returns_path():
     """Triage kind delegates to bootstrap_ir and returns the written path."""
     request = MagicMock()
@@ -568,7 +553,6 @@ async def test_run_fix_ir_triage_returns_path():
     assert out == {"path": ".intent/mind/ir/triage_log.yaml"}
 
 
-@pytest.mark.asyncio
 async def test_run_fix_ir_log_returns_path():
     """Log kind delegates to bootstrap_ir and returns the written path."""
     request = MagicMock()

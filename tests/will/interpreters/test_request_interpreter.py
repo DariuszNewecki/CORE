@@ -18,7 +18,6 @@ from will.interpreters import (
 class TestNaturalLanguageInterpreter:
     """Test natural language → TaskStructure interpretation."""
 
-    @pytest.mark.asyncio
     async def test_refactor_intent(self):
         """Test refactoring intent recognition."""
         interpreter = NaturalLanguageInterpreter()
@@ -33,7 +32,6 @@ class TestNaturalLanguageInterpreter:
         assert "UserService" in task.targets
         assert task.confidence > 0.5
 
-    @pytest.mark.asyncio
     async def test_fix_intent(self):
         """Test fix intent recognition."""
         interpreter = NaturalLanguageInterpreter()
@@ -47,7 +45,6 @@ class TestNaturalLanguageInterpreter:
         assert task.task_type == TaskType.FIX
         assert "src/models/user.py" in task.targets
 
-    @pytest.mark.asyncio
     async def test_generate_tests_intent(self):
         """Test test generation intent recognition."""
         interpreter = NaturalLanguageInterpreter()
@@ -61,7 +58,6 @@ class TestNaturalLanguageInterpreter:
         assert task.task_type == TaskType.TEST
         assert "ContextBuilder" in task.targets
 
-    @pytest.mark.asyncio
     async def test_query_intent(self):
         """Test information query intent recognition."""
         interpreter = NaturalLanguageInterpreter()
@@ -73,7 +69,6 @@ class TestNaturalLanguageInterpreter:
         assert task.task_type == TaskType.QUERY
         assert "FileAnalyzer" in task.targets
 
-    @pytest.mark.asyncio
     async def test_write_constraint_extraction(self):
         """Test constraint extraction from message."""
         interpreter = NaturalLanguageInterpreter()
@@ -92,7 +87,6 @@ class TestNaturalLanguageInterpreter:
         task = result.data["task"]
         assert task.constraints.get("write") is False
 
-    @pytest.mark.asyncio
     async def test_strategy_hint_extraction(self):
         """Test strategy hint extraction."""
         interpreter = NaturalLanguageInterpreter()
@@ -104,7 +98,6 @@ class TestNaturalLanguageInterpreter:
         task = result.data["task"]
         assert task.constraints.get("strategy_hint") == "unit_tests"
 
-    @pytest.mark.asyncio
     async def test_unknown_intent_low_confidence(self):
         """Test unknown intent gets low confidence."""
         interpreter = NaturalLanguageInterpreter()
@@ -120,7 +113,6 @@ class TestNaturalLanguageInterpreter:
 class TestCLIArgsInterpreter:
     """Test CLI args → TaskStructure interpretation."""
 
-    @pytest.mark.asyncio
     async def test_fix_clarity_command(self):
         """Test fix clarity CLI command interpretation."""
         interpreter = CLIArgsInterpreter()
@@ -139,7 +131,6 @@ class TestCLIArgsInterpreter:
         assert task.constraints["write"] is True
         assert task.confidence == 1.0  # CLI args are always high confidence
 
-    @pytest.mark.asyncio
     async def test_generate_tests_command(self):
         """Test test generation CLI command interpretation."""
         interpreter = CLIArgsInterpreter()
@@ -156,7 +147,6 @@ class TestCLIArgsInterpreter:
         assert task.task_type == TaskType.TEST
         assert "src/analyzers/file_analyzer.py" in task.targets
 
-    @pytest.mark.asyncio
     async def test_develop_command(self):
         """Test develop command interpretation."""
         interpreter = CLIArgsInterpreter()

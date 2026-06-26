@@ -36,7 +36,6 @@ def _service_with(proposal: Proposal | None) -> tuple[ProposalService, AsyncMock
     return svc, bb
 
 
-@pytest.mark.asyncio
 async def test_reject_assisted_lane_routes_to_lane_revival():
     proposal = Proposal(constitutional_constraints={"assisted_lane": True})
     svc, bb = _service_with(proposal)
@@ -57,7 +56,6 @@ async def test_reject_assisted_lane_routes_to_lane_revival():
     bb.revive_findings_for_failed_proposal.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_reject_autonomous_routes_to_generic_revival():
     proposal = Proposal(constitutional_constraints={})  # no assisted_lane marker
     svc, bb = _service_with(proposal)
@@ -75,7 +73,6 @@ async def test_reject_autonomous_routes_to_generic_revival():
     bb.revive_delegated_findings_for_rejected_proposal.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_reject_missing_proposal_falls_back_to_generic():
     """If the proposal row cannot be loaded, default to the generic path
     rather than assuming assisted-lane lineage."""

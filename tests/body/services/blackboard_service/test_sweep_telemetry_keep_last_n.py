@@ -20,7 +20,6 @@ from body.services.blackboard_service.blackboard_service import BlackboardServic
 
 
 # ID: 3184c4ad-3129-4907-87cc-68037c5daf05
-@pytest.mark.asyncio
 async def test_empty_prefixes_is_no_op() -> None:
     """Empty subject_prefixes returns 0 without touching the DB. Fail-closed
     posture per the existing sweep_terminal_telemetry contract — an empty
@@ -36,7 +35,6 @@ async def test_empty_prefixes_is_no_op() -> None:
 
 
 # ID: b57de7dd-0826-4699-95cc-dab5adf641d6
-@pytest.mark.asyncio
 async def test_keep_last_zero_is_no_op() -> None:
     """``keep_last <= 0`` returns 0 without touching the DB. Mirrors the
     fail-closed posture: an operator who sets keep_last=0 most likely
@@ -52,7 +50,6 @@ async def test_keep_last_zero_is_no_op() -> None:
 
 
 # ID: 9f2beba0-906f-4e25-a2e6-7827c5dc1c0a
-@pytest.mark.asyncio
 async def test_keep_last_negative_is_no_op() -> None:
     """Negative ``keep_last`` follows the same fail-closed branch as zero."""
     svc = BlackboardService()
@@ -65,7 +62,6 @@ async def test_keep_last_negative_is_no_op() -> None:
 
 
 # ID: ac9d5901-4ad2-4349-b2ca-53b0b150e61e
-@pytest.mark.asyncio
 async def test_valid_inputs_dispatch_sql_with_correct_params() -> None:
     """Valid inputs reach the DB layer with the expected parameters.
 
@@ -117,7 +113,6 @@ async def test_valid_inputs_dispatch_sql_with_correct_params() -> None:
 
 
 # ID: 8990361b-407a-4b7a-9766-33a55915c8d3
-@pytest.mark.asyncio
 async def test_returns_zero_when_rowcount_is_none() -> None:
     """PostgreSQL returns ``rowcount=None`` in some edge cases; the method
     coerces that to 0 so callers see a clean integer count.

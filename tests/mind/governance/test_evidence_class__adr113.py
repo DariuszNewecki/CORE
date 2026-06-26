@@ -114,7 +114,6 @@ def _patch_engine(monkeypatch: pytest.MonkeyPatch, engine: BaseEngine) -> None:
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_proven_verdict_is_labelled_proven(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_engine(monkeypatch, _ProvenEngine())
     rule = ExecutableRule(
@@ -129,7 +128,6 @@ async def test_proven_verdict_is_labelled_proven(monkeypatch: pytest.MonkeyPatch
     assert findings[0].evidence_class is EvidenceClass.PROVEN
 
 
-@pytest.mark.asyncio
 async def test_judged_verdict_is_labelled_judged(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_engine(monkeypatch, _JudgedEngine())
     rule = ExecutableRule(
@@ -144,7 +142,6 @@ async def test_judged_verdict_is_labelled_judged(monkeypatch: pytest.MonkeyPatch
     assert findings[0].evidence_class is EvidenceClass.JUDGED
 
 
-@pytest.mark.asyncio
 async def test_crash_degrades_to_attested_never_proven(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -163,7 +160,6 @@ async def test_crash_degrades_to_attested_never_proven(
     assert findings[0].evidence_class is EvidenceClass.ATTESTED
 
 
-@pytest.mark.asyncio
 async def test_attestation_is_surfaced_and_labelled_attested(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -184,7 +180,6 @@ async def test_attestation_is_surfaced_and_labelled_attested(
     assert findings[0].check_id == "grc.controls_appropriate_to_risk"
 
 
-@pytest.mark.asyncio
 async def test_attestation_missing_prompt_is_surfaced_not_silent() -> None:
     """A misconfigured attestation rule surfaces a config finding, never a pass."""
     engine = AttestationGateEngine()
@@ -193,7 +188,6 @@ async def test_attestation_missing_prompt_is_surfaced_not_silent() -> None:
     assert findings[0].context["finding_type"] == "ATTESTATION_MISCONFIGURED"
 
 
-@pytest.mark.asyncio
 async def test_grc_trio_produces_all_three_labels(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

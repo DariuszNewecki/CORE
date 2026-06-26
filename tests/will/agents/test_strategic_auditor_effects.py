@@ -59,7 +59,6 @@ def _wire(monkeypatch, children):
     return mock_repo, mock_dfg
 
 
-@pytest.mark.asyncio
 # ID: 7a1b2c3d-4e5f-4061-9273-8495a6b7c8d9
 async def test_runs_only_approved_autonomous_clusters(
     monkeypatch: pytest.MonkeyPatch,
@@ -90,7 +89,6 @@ async def test_runs_only_approved_autonomous_clusters(
     assert results == [(str(approved.id), True, "ok")]
 
 
-@pytest.mark.asyncio
 # ID: 8b2c3d4e-5f60-4172-a384-95b6c7d8e9f0
 async def test_no_approved_clusters_runs_nothing(
     monkeypatch: pytest.MonkeyPatch,
@@ -111,7 +109,6 @@ async def test_no_approved_clusters_runs_nothing(
     assert results == []
 
 
-@pytest.mark.asyncio
 # ID: 9c3d4e5f-6071-4283-b495-a6c7d8e9f001
 async def test_failed_cluster_marked_failed(
     monkeypatch: pytest.MonkeyPatch,

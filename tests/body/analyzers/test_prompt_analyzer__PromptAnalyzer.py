@@ -13,7 +13,6 @@ import pytest
 from body.analyzers.prompt_analyzer import PromptAnalyzer
 
 
-@pytest.mark.asyncio
 async def test_prompt_analyzer_template_not_found(tmp_path: Path):
     """Test behavior when template file doesn't exist.
 

@@ -79,7 +79,6 @@ def _make_verdict(
 # ── Test 1: no corpus_root → heartbeat only ───────────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_document_corpus_sensor_no_corpus_root() -> None:
     """Test 1 (ADR-121): sensor posts heartbeat and exits when corpus_root is empty."""
     sensor = _make_sensor(corpus_root="")
@@ -105,7 +104,6 @@ async def test_document_corpus_sensor_no_corpus_root() -> None:
 # ── Test 2: custom catalog_root is passed through ─────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_document_corpus_sensor_custom_catalog_root(tmp_path: Path) -> None:
     """Test 2 (ADR-121): non-default catalog_root is resolved and forwarded to the service."""
     corpus_dir = tmp_path / "docs"
@@ -153,7 +151,6 @@ async def test_document_corpus_sensor_custom_catalog_root(tmp_path: Path) -> Non
 # ── Test 3: gap findings are posted ───────────────────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_document_corpus_sensor_posts_gap_findings(tmp_path: Path) -> None:
     """Test 3 (ADR-121): two not_covered verdicts → two post_artifact_finding calls."""
     corpus_dir = tmp_path / "docs"

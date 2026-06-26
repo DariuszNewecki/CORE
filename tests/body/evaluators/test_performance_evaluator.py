@@ -28,12 +28,10 @@ def evaluator():
 class TestComponentContract:
     """Test PerformanceEvaluator follows Component contract."""
 
-    @pytest.mark.asyncio
     async def test_declares_audit_phase(self, evaluator):
         """Evaluators must operate in AUDIT phase."""
         assert evaluator.phase == ComponentPhase.AUDIT
 
-    @pytest.mark.asyncio
     async def test_returns_component_result(self, evaluator):
         """Execute must return ComponentResult."""
         result = await evaluator.execute(operation_type="query", duration_sec=0.5)
@@ -43,7 +41,6 @@ class TestComponentContract:
         assert hasattr(result, "phase")
         assert result.phase == ComponentPhase.AUDIT
 
-    @pytest.mark.asyncio
     async def test_component_id_matches_class(self, evaluator):
         """Component ID should be derived from class name."""
         assert evaluator.component_id == "performanceevaluator"
@@ -53,7 +50,6 @@ class TestComponentContract:
 class TestDurationEvaluation:
     """Test duration threshold checking."""
 
-    @pytest.mark.asyncio
     async def test_duration_within_threshold_passes(self, evaluator):
         """Duration within threshold should pass."""
         result = await evaluator.execute(
@@ -64,7 +60,6 @@ class TestDurationEvaluation:
         assert result.ok
         assert len(result.data["issues"]) == 0
 
-    @pytest.mark.asyncio
     async def test_duration_exceeds_threshold_fails(self, evaluator):
         """Duration exceeding threshold should fail."""
         result = await evaluator.execute(
@@ -75,7 +70,6 @@ class TestDurationEvaluation:
         assert not result.ok
         assert any(issue["type"] == "duration" for issue in result.data["issues"])
 
-    @pytest.mark.asyncio
     async def test_duration_issue_includes_overhead(self, evaluator):
         """Duration issues should calculate overhead percentage."""
         result = await evaluator.execute(
@@ -94,7 +88,6 @@ class TestDurationEvaluation:
 class TestMemoryEvaluation:
     """Test memory threshold checking."""
 
-    @pytest.mark.asyncio
     async def test_memory_within_threshold_passes(self, evaluator):
         """Memory within threshold should pass."""
         result = await evaluator.execute(
@@ -105,7 +98,6 @@ class TestMemoryEvaluation:
         assert result.ok
         assert not any(issue["type"] == "memory" for issue in result.data["issues"])
 
-    @pytest.mark.asyncio
     async def test_memory_exceeds_threshold_fails(self, evaluator):
         """Memory exceeding threshold should fail."""
         result = await evaluator.execute(
@@ -121,7 +113,6 @@ class TestMemoryEvaluation:
 class TestIOEvaluation:
     """Test I/O operations threshold checking."""
 
-    @pytest.mark.asyncio
     async def test_io_within_threshold_passes(self, evaluator):
         """I/O operations within threshold should pass."""
         result = await evaluator.execute(
@@ -131,7 +122,6 @@ class TestIOEvaluation:
 
         assert result.ok
 
-    @pytest.mark.asyncio
     async def test_io_exceeds_threshold_fails(self, evaluator):
         """I/O operations exceeding threshold should fail."""
         result = await evaluator.execute(
@@ -147,7 +137,6 @@ class TestIOEvaluation:
 class TestOperationTypeThresholds:
     """Test threshold selection by operation type."""
 
-    @pytest.mark.asyncio
     async def test_test_generation_thresholds(self, evaluator):
         """Test generation has higher thresholds."""
         result = await evaluator.execute(
@@ -158,7 +147,6 @@ class TestOperationTypeThresholds:
 
         assert result.ok
 
-    @pytest.mark.asyncio
     async def test_query_stricter_thresholds(self, evaluator):
         """Query operations have stricter thresholds."""
         result = await evaluator.execute(
@@ -168,7 +156,6 @@ class TestOperationTypeThresholds:
 
         assert not result.ok
 
-    @pytest.mark.asyncio
     async def test_default_thresholds_used(self, evaluator):
         """Unknown operation types use default thresholds."""
         result = await evaluator.execute(
@@ -183,7 +170,6 @@ class TestOperationTypeThresholds:
 class TestPerformanceScore:
     """Test performance score calculation."""
 
-    @pytest.mark.asyncio
     async def test_perfect_score_no_issues(self, evaluator):
         """Operations within all thresholds get perfect score."""
         result = await evaluator.execute(
@@ -195,7 +181,6 @@ class TestPerformanceScore:
 
         assert result.data["performance_score"] == 1.0
 
-    @pytest.mark.asyncio
     async def test_score_decreases_with_violations(self, evaluator):
         """Exceeding thresholds decreases score."""
         result = await evaluator.execute(
@@ -206,7 +191,6 @@ class TestPerformanceScore:
 
         assert result.data["performance_score"] < 1.0
 
-    @pytest.mark.asyncio
     async def test_confidence_matches_score(self, evaluator):
         """Component confidence should match performance score."""
         result = await evaluator.execute(operation_type="query", duration_sec=0.8)
@@ -218,21 +202,18 @@ class TestPerformanceScore:
 class TestBottleneckIdentification:
     """Test bottleneck detection."""
 
-    @pytest.mark.asyncio
     async def test_identifies_time_bottleneck(self, evaluator):
         """Should identify time as bottleneck."""
         result = await evaluator.execute(operation_type="query", duration_sec=2.0)
 
         assert "time" in result.data["bottlenecks"]
 
-    @pytest.mark.asyncio
     async def test_identifies_memory_bottleneck(self, evaluator):
         """Should identify memory as bottleneck."""
         result = await evaluator.execute(operation_type="query", memory_mb=100)
 
         assert "memory" in result.data["bottlenecks"]
 
-    @pytest.mark.asyncio
     async def test_identifies_multiple_bottlenecks(self, evaluator):
         """Should identify all bottlenecks."""
         result = await evaluator.execute(
@@ -251,7 +232,6 @@ class TestBottleneckIdentification:
 class TestOptimizationSuggestions:
     """Test optimization suggestion generation."""
 
-    @pytest.mark.asyncio
     async def test_provides_time_suggestions(self, evaluator):
         """Should provide time optimization suggestions."""
         result = await evaluator.execute(
@@ -261,7 +241,6 @@ class TestOptimizationSuggestions:
         assert len(result.data["suggestions"]) > 0
         assert any("test" in s.lower() for s in result.data["suggestions"])
 
-    @pytest.mark.asyncio
     async def test_provides_memory_suggestions(self, evaluator):
         """Should provide memory optimization suggestions."""
         result = await evaluator.execute(operation_type="sync", memory_mb=300)
@@ -271,7 +250,6 @@ class TestOptimizationSuggestions:
             for s in result.data["suggestions"]
         )
 
-    @pytest.mark.asyncio
     async def test_provides_io_suggestions(self, evaluator):
         """Should provide I/O optimization suggestions."""
         result = await evaluator.execute(operation_type="sync", io_operations=10000)
@@ -286,7 +264,6 @@ class TestOptimizationSuggestions:
 class TestSeverityLevels:
     """Test issue severity classification."""
 
-    @pytest.mark.asyncio
     async def test_moderate_overhead_warning(self, evaluator):
         """Moderate overhead should be warning."""
         result = await evaluator.execute(
@@ -299,7 +276,6 @@ class TestSeverityLevels:
         )
         assert duration_issue["severity"] == "warning"
 
-    @pytest.mark.asyncio
     async def test_high_overhead_error(self, evaluator):
         """High overhead should be error."""
         result = await evaluator.execute(
@@ -317,7 +293,6 @@ class TestSeverityLevels:
 class TestMetadata:
     """Test result metadata completeness."""
 
-    @pytest.mark.asyncio
     async def test_includes_bottleneck_flags(self, evaluator):
         """Metadata should include bottleneck flags."""
         result = await evaluator.execute(
@@ -329,7 +304,6 @@ class TestMetadata:
         assert result.metadata["has_time_issues"] is True
         assert result.metadata["has_memory_issues"] is True
 
-    @pytest.mark.asyncio
     async def test_includes_operation_type(self, evaluator):
         """Metadata should include operation type."""
         result = await evaluator.execute(
@@ -338,14 +312,12 @@ class TestMetadata:
 
         assert result.metadata["operation_type"] == "test_generation"
 
-    @pytest.mark.asyncio
     async def test_suggests_optimization_handler(self, evaluator):
         """Should suggest optimization_handler when issues exist."""
         result = await evaluator.execute(operation_type="query", duration_sec=2.0)
 
         assert result.next_suggested == "optimization_handler"
 
-    @pytest.mark.asyncio
     async def test_tracks_duration(self, evaluator):
         """Should track evaluation duration."""
         result = await evaluator.execute(operation_type="query", duration_sec=0.5)
@@ -357,7 +329,6 @@ class TestMetadata:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    @pytest.mark.asyncio
     async def test_no_metrics_perfect_score(self, evaluator):
         """No metrics provided should result in perfect score."""
         result = await evaluator.execute(operation_type="query")
@@ -365,7 +336,6 @@ class TestEdgeCases:
         assert result.ok
         assert result.data["performance_score"] == 1.0
 
-    @pytest.mark.asyncio
     async def test_partial_metrics_evaluated(self, evaluator):
         """Should evaluate only provided metrics."""
         result = await evaluator.execute(

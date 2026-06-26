@@ -63,7 +63,6 @@ def _write_action_risk(repo: Path, entries: dict[str, dict[str, object]]) -> Non
 # ── Test 5: symmetric → no finding ────────────────────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_action_supported_by_declaration_symmetric(tmp_path: Path) -> None:
     """Test 5 (ADR-121): symmetric authored and introspected sets → no findings."""
     _write_action_risk(
@@ -96,7 +95,6 @@ async def test_action_supported_by_declaration_symmetric(tmp_path: Path) -> None
 # ── Test 6: asymmetric → one finding per mismatch ─────────────────────────────
 
 
-@pytest.mark.asyncio
 async def test_action_supported_by_declaration_asymmetric(tmp_path: Path) -> None:
     """Test 6 (ADR-121): action_risk.yaml has artifact_type not in supported_actions → one finding."""
     _write_action_risk(

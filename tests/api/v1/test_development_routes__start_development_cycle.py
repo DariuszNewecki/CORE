@@ -17,7 +17,6 @@ from api.v1.development_routes import start_development_cycle
 # Detected return type: The function returns a dict with keys 'task_id' and 'status'
 
 
-@pytest.mark.asyncio
 async def test_start_development_cycle_creates_task_and_starts_background_job():
     """Test that start_development_cycle creates a task and adds background job."""
     # Mock dependencies
@@ -76,7 +75,6 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
         # the add_task was called with a function
 
 
-@pytest.mark.asyncio
 async def test_start_development_cycle_with_different_goal():
     """Test that different goals are properly passed to task creation."""
     # Mock dependencies
@@ -122,7 +120,6 @@ async def test_start_development_cycle_with_different_goal():
         assert result["status"] == "Task accepted and running."
 
 
-@pytest.mark.asyncio
 async def test_start_development_cycle_returns_correct_structure():
     """Test that the function returns the expected dictionary structure."""
     # Mock dependencies
@@ -167,7 +164,6 @@ async def test_start_development_cycle_returns_correct_structure():
         assert result["status"] == "Task accepted and running."
 
 
-@pytest.mark.asyncio
 async def test_start_development_cycle_background_task_configuration():
     """Test that background task is properly configured with develop_from_goal."""
     # Mock dependencies

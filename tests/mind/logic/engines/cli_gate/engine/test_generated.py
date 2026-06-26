@@ -100,7 +100,6 @@ class TestIsContextLevelFor:
 class TestVerify:
     """per-file verify method (should never be reached at runtime)."""
 
-    @pytest.mark.asyncio
     async def test_returns_safe_engine_result(self, engine):
         result = await engine.verify(
             Path("/fake/path.py"), {"check_type": "resource_first"}
@@ -170,7 +169,6 @@ class TestVerifyContext:
         # session-less; verify_context tests do not exercise them.
         return AuditorContext(repo_path=Path("/proj"))
 
-    @pytest.mark.asyncio
     async def test_missing_check_type_returns_block(self, engine, context):
         findings = await engine.verify_context(context, {"check_type": None})
         assert len(findings) == 1
@@ -178,14 +176,12 @@ class TestVerifyContext:
         assert "Missing 'check_type'" in findings[0].message
         assert findings[0].file_path == "none"
 
-    @pytest.mark.asyncio
     async def test_missing_check_type_key_returns_block(self, engine, context):
         findings = await engine.verify_context(context, {})
         assert len(findings) == 1
         assert findings[0].severity.name == "BLOCK"
         assert "Missing 'check_type'" in findings[0].message
 
-    @pytest.mark.asyncio
     async def test_unregistered_check_type_returns_block(self, engine, context):
         findings = await engine.verify_context(
             context, {"check_type": "does_not_exist"}
@@ -195,7 +191,6 @@ class TestVerifyContext:
         assert "has no implementation" in findings[0].message
         assert "does_not_exist" in findings[0].message
 
-    @pytest.mark.asyncio
     async def test_registered_check_delegates_and_returns_findings(
         self, engine, context
     ):
@@ -223,7 +218,6 @@ class TestVerifyContext:
         assert len(findings) == 1
         assert findings[0].check_id == "cli_gate.resource_first"
 
-    @pytest.mark.asyncio
     async def test_walk_registry_exception_returns_block(self, engine, context):
         """If _walk_registry raises, verify_context returns a BLOCK."""
 
@@ -243,7 +237,6 @@ class TestVerifyContext:
         assert "registry corrupted" in findings[0].message
         check.verify.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_check_verify_exception_returns_block(self, engine, context):
         """If the CliCheck.verify itself raises, a BLOCK is emitted."""
         engine._walk_registry = MagicMock(return_value=[])

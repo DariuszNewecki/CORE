@@ -73,7 +73,6 @@ def _engine_with_mocked_prompt(
     return engine, invoke_mock
 
 
-@pytest.mark.asyncio
 async def test_verify_successful_no_violation(path_resolver, tmp_py_file):
     """Verification with a non-violation LLM response → ok=True, no violations."""
     engine, invoke_mock = _engine_with_mocked_prompt(
@@ -97,7 +96,6 @@ async def test_verify_successful_no_violation(path_resolver, tmp_py_file):
     invoke_mock.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_verify_successful_with_violation(path_resolver, tmp_py_file):
     """Verification with a violation LLM response → ok=False, finding propagated."""
     engine, _ = _engine_with_mocked_prompt(
@@ -124,7 +122,6 @@ async def test_verify_successful_with_violation(path_resolver, tmp_py_file):
     assert result.engine_id == "llm_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_with_violation_no_finding(path_resolver, tmp_py_file):
     """Violation True but finding None → ok=False, empty violations list."""
     engine, _ = _engine_with_mocked_prompt(
@@ -151,7 +148,6 @@ async def test_verify_with_violation_no_finding(path_resolver, tmp_py_file):
     assert result.engine_id == "llm_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_file_read_error(path_resolver):
     """File read fails before prompt invocation → IO Error result, invoke not awaited."""
     engine, invoke_mock = _engine_with_mocked_prompt(path_resolver)
@@ -167,7 +163,6 @@ async def test_verify_file_read_error(path_resolver):
     invoke_mock.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_verify_llm_request_error(path_resolver, tmp_py_file):
     """Prompt invocation raises → ENFORCEMENT_UNAVAILABLE result (P1.3 hardening)."""
     engine, _ = _engine_with_mocked_prompt(
@@ -186,7 +181,6 @@ async def test_verify_llm_request_error(path_resolver, tmp_py_file):
     assert result.engine_id == "llm_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_invalid_json_response(path_resolver, tmp_py_file):
     """Prompt returns non-JSON → json.loads raises → same ENFORCEMENT_UNAVAILABLE path."""
     engine, _ = _engine_with_mocked_prompt(
@@ -203,7 +197,6 @@ async def test_verify_invalid_json_response(path_resolver, tmp_py_file):
     assert result.engine_id == "llm_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_no_cache_without_db_session(path_resolver, tmp_py_file):
     """ADR-044: the verify() cache is DB-mediated and only engages when
     params plumb rule_id, rule_content_hash, and a session through
@@ -230,7 +223,6 @@ async def test_verify_no_cache_without_db_session(path_resolver, tmp_py_file):
     assert result1.ok and result2.ok
 
 
-@pytest.mark.asyncio
 async def test_verify_cache_miss_different_content(path_resolver, tmp_py_file):
     """Same parameters but different file content → 2 invocations (cache miss
     on the content-hash axis). Test passes today because no cache engages
@@ -253,7 +245,6 @@ async def test_verify_cache_miss_different_content(path_resolver, tmp_py_file):
     assert invoke_mock.await_count == 2
 
 
-@pytest.mark.asyncio
 async def test_verify_cache_miss_different_instruction(path_resolver, tmp_py_file):
     """Same file content but different instruction → 2 invocations (cache
     miss on the rule-content-hash axis)."""
@@ -274,7 +265,6 @@ async def test_verify_cache_miss_different_instruction(path_resolver, tmp_py_fil
     assert invoke_mock.await_count == 2
 
 
-@pytest.mark.asyncio
 async def test_verify_default_rationale(path_resolver, tmp_py_file):
     """No rationale in params → default rationale is used by verify()."""
     engine, _ = _engine_with_mocked_prompt(
@@ -291,7 +281,6 @@ async def test_verify_default_rationale(path_resolver, tmp_py_file):
     assert result.ok
 
 
-@pytest.mark.asyncio
 async def test_verify_missing_instruction(path_resolver, tmp_py_file):
     """Empty params dict → instruction is None, prompt is still invoked."""
     engine, invoke_mock = _engine_with_mocked_prompt(

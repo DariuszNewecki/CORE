@@ -87,7 +87,6 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     """
     inherited == cap_n (3 == 3) → _abandon_capped_findings called,
@@ -121,7 +120,6 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     patches["will.workers.test_remediator.worker._create_proposal"].assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     """
     inherited > cap_n (5 > 3) → same outcome as equals case.
@@ -148,7 +146,6 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     """
     inherited < cap_n (2 < 3) → normal path: proposal created, findings deferred.
@@ -176,7 +173,6 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     patches["will.workers.test_remediator.worker._defer_to_proposal"].assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
     """
     inherited == 0 → normal path with no inheritance step.
@@ -204,7 +200,6 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
     patches["will.workers.test_remediator.worker._create_proposal"].assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_report_includes_proposals_skipped_cap() -> None:
     """proposals_skipped_cap counter appears in the post_report payload."""
     worker = _make_worker()

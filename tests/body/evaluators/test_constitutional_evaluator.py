@@ -41,12 +41,10 @@ def evaluator():
 class TestComponentContract:
     """Test ConstitutionalEvaluator follows Component contract."""
 
-    @pytest.mark.asyncio
     async def test_declares_audit_phase(self, evaluator):
         """Evaluators must operate in AUDIT phase."""
         assert evaluator.phase == ComponentPhase.AUDIT
 
-    @pytest.mark.asyncio
     async def test_returns_component_result(self, evaluator):
         """Execute must return ComponentResult."""
         result = await evaluator.execute(
@@ -58,12 +56,10 @@ class TestComponentContract:
         assert hasattr(result, "phase")
         assert result.phase == ComponentPhase.AUDIT
 
-    @pytest.mark.asyncio
     async def test_component_id_matches_class(self, evaluator):
         """Component ID should be derived from class name."""
         assert evaluator.component_id == "constitutionalevaluator"
 
-    @pytest.mark.asyncio
     async def test_no_mutations(self, evaluator):
         """Evaluators must not mutate state (read-only)."""
         # This is a contract test - evaluator should never write files
@@ -79,7 +75,6 @@ class TestComponentContract:
 class TestConstitutionalCompliance:
     """Test constitutional compliance checking."""
 
-    @pytest.mark.asyncio
     async def test_evaluates_file_compliance(self, evaluator):
         """Should check file against constitutional rules."""
         result = await evaluator.execute(
@@ -92,7 +87,6 @@ class TestConstitutionalCompliance:
         assert "details" in result.data
         assert "constitutional" in result.data["details"]
 
-    @pytest.mark.asyncio
     async def test_skips_when_not_in_scope(self, evaluator):
         """Should skip checks not in validation_scope."""
         result = await evaluator.execute(
@@ -105,7 +99,6 @@ class TestConstitutionalCompliance:
             "constitutional" not in details or not details["constitutional"]["checked"]
         )
 
-    @pytest.mark.asyncio
     async def test_handles_missing_file(self, evaluator):
         """Should handle missing files gracefully."""
         result = await evaluator.execute(
@@ -121,7 +114,6 @@ class TestConstitutionalCompliance:
 class TestPatternCompliance:
     """Test pattern compliance checking."""
 
-    @pytest.mark.asyncio
     async def test_checks_atomic_actions_pattern(self, evaluator):
         """Should validate atomic action files against pattern."""
         result = await evaluator.execute(
@@ -132,7 +124,6 @@ class TestPatternCompliance:
         assert "details" in result.data
         assert "patterns" in result.data["details"]
 
-    @pytest.mark.asyncio
     async def test_skips_non_pattern_files(self, evaluator):
         """Should skip pattern checks for non-pattern files."""
         result = await evaluator.execute(
@@ -148,7 +139,6 @@ class TestPatternCompliance:
 class TestGovernanceBoundaries:
     """Test governance boundary enforcement."""
 
-    @pytest.mark.asyncio
     async def test_blocks_intent_writes(self, evaluator):
         """Should detect attempts to write .intent/ directory."""
         result = await evaluator.execute(
@@ -163,7 +153,6 @@ class TestGovernanceBoundaries:
         )
         assert any(v["severity"] == "critical" for v in violations)
 
-    @pytest.mark.asyncio
     async def test_checks_operation_permissions(self, evaluator):
         """Should verify operation is allowed by governance."""
         result = await evaluator.execute(
@@ -176,7 +165,6 @@ class TestGovernanceBoundaries:
         assert "details" in result.data
         assert "governance" in result.data["details"]
 
-    @pytest.mark.asyncio
     async def test_allows_normal_operations(self, evaluator):
         """Should not block normal operations on src/ files."""
         result = await evaluator.execute(
@@ -196,7 +184,6 @@ class TestGovernanceBoundaries:
 class TestComplianceScore:
     """Test compliance score calculation."""
 
-    @pytest.mark.asyncio
     async def test_perfect_score_no_violations(self, evaluator):
         """Files with no violations should have 1.0 score."""
         # Use a file that likely has no violations
@@ -208,7 +195,6 @@ class TestComplianceScore:
         if len(result.data["violations"]) == 0:
             assert result.data["compliance_score"] == 1.0
 
-    @pytest.mark.asyncio
     async def test_score_decreases_with_violations(self, evaluator):
         """Violations should decrease compliance score."""
         result = await evaluator.execute(
@@ -221,7 +207,6 @@ class TestComplianceScore:
         if len(violations) > 0:
             assert result.data["compliance_score"] < 1.0
 
-    @pytest.mark.asyncio
     async def test_critical_violations_penalized_more(self, evaluator):
         """Critical violations should have larger score impact."""
         result = await evaluator.execute(
@@ -243,7 +228,6 @@ class TestComplianceScore:
 class TestViolationDetails:
     """Test violation data structure."""
 
-    @pytest.mark.asyncio
     async def test_violations_have_required_fields(self, evaluator):
         """Each violation should have standard fields."""
         result = await evaluator.execute(
@@ -258,7 +242,6 @@ class TestViolationDetails:
             assert "message" in violation
             assert "file_path" in violation
 
-    @pytest.mark.asyncio
     async def test_violations_include_suggested_fix(self, evaluator):
         """Violations should include remediation guidance."""
         result = await evaluator.execute(
@@ -275,7 +258,6 @@ class TestViolationDetails:
 class TestEvaluationScope:
     """Test validation scope control."""
 
-    @pytest.mark.asyncio
     async def test_respects_custom_scope(self, evaluator):
         """Should only run checks in validation_scope."""
         result = await evaluator.execute(
@@ -289,7 +271,6 @@ class TestEvaluationScope:
         if "constitutional" in details:
             assert not details["constitutional"].get("checked", False)
 
-    @pytest.mark.asyncio
     async def test_default_scope_comprehensive(self, evaluator):
         """Default scope should include all major checks."""
         result = await evaluator.execute(
@@ -305,7 +286,6 @@ class TestEvaluationScope:
 class TestResultStatus:
     """Test ok/failure status determination."""
 
-    @pytest.mark.asyncio
     async def test_ok_true_when_no_errors(self, evaluator):
         """Should return ok=True when no critical/error violations."""
         result = await evaluator.execute(
@@ -320,7 +300,6 @@ class TestResultStatus:
         )
         assert result.ok == (not has_errors)
 
-    @pytest.mark.asyncio
     async def test_ok_false_when_critical_violation(self, evaluator):
         """Should return ok=False when critical violations exist."""
         result = await evaluator.execute(
@@ -337,7 +316,6 @@ class TestResultStatus:
 class TestMetadata:
     """Test result metadata completeness."""
 
-    @pytest.mark.asyncio
     async def test_includes_violation_counts(self, evaluator):
         """Metadata should include violation counts by severity."""
         result = await evaluator.execute(
@@ -349,7 +327,6 @@ class TestMetadata:
         assert "error_violations" in result.metadata
         assert "warning_violations" in result.metadata
 
-    @pytest.mark.asyncio
     async def test_includes_operation_context(self, evaluator):
         """Metadata should include operation context."""
         result = await evaluator.execute(
@@ -359,7 +336,6 @@ class TestMetadata:
         assert result.metadata["file_path"] == "src/models/user.py"
         assert result.metadata["operation_type"] == "refactor"
 
-    @pytest.mark.asyncio
     async def test_tracks_duration(self, evaluator):
         """Should track execution duration."""
         result = await evaluator.execute(
@@ -373,7 +349,6 @@ class TestMetadata:
 class TestConfidence:
     """Test confidence scoring."""
 
-    @pytest.mark.asyncio
     async def test_confidence_equals_compliance_score(self, evaluator):
         """Component confidence should match compliance score."""
         result = await evaluator.execute(
@@ -382,7 +357,6 @@ class TestConfidence:
 
         assert result.confidence == result.data["compliance_score"]
 
-    @pytest.mark.asyncio
     async def test_low_confidence_with_violations(self, evaluator):
         """Confidence should be low when violations exist."""
         result = await evaluator.execute(
@@ -398,7 +372,6 @@ class TestConfidence:
 class TestErrorHandling:
     """Test error handling and resilience."""
 
-    @pytest.mark.asyncio
     async def test_handles_evaluation_errors_gracefully(self, evaluator):
         """Should not crash on evaluation errors."""
         # Test with potentially problematic inputs
@@ -411,7 +384,6 @@ class TestErrorHandling:
         assert result is not None
         assert "violations" in result.data
 
-    @pytest.mark.asyncio
     async def test_returns_error_on_exception(self, evaluator):
         """Should return ok=False with error details on exception."""
         # Force an error by using invalid scope
@@ -428,7 +400,6 @@ class TestErrorHandling:
 class TestRemediationAvailability:
     """Test remediation availability detection."""
 
-    @pytest.mark.asyncio
     async def test_detects_remediable_violations(self, evaluator):
         """Should indicate when violations can be auto-fixed."""
         result = await evaluator.execute(
@@ -438,7 +409,6 @@ class TestRemediationAvailability:
         assert "remediation_available" in result.data
         assert isinstance(result.data["remediation_available"], bool)
 
-    @pytest.mark.asyncio
     async def test_suggests_remediation_handler(self, evaluator):
         """Should suggest remediation_handler when fixes available."""
         result = await evaluator.execute(

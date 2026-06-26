@@ -45,7 +45,6 @@ from api.v1.quality_routes import (
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_quality_imports_ok_path_returns_status_ok_and_empty_violations():
     """When the facade reports no violations the route returns
     status='ok' with an empty list."""
@@ -61,7 +60,6 @@ async def test_quality_imports_ok_path_returns_status_ok_and_empty_violations():
     assert out == {"status": "ok", "violations": []}
 
 
-@pytest.mark.asyncio
 async def test_quality_imports_failed_path_propagates_violations():
     """The route returns whatever the facade reports — violations
     pass through untouched."""
@@ -79,7 +77,6 @@ async def test_quality_imports_failed_path_propagates_violations():
     assert out["violations"] == violations
 
 
-@pytest.mark.asyncio
 async def test_quality_body_ui_ok_path_returns_status_ok():
     """No violations → status='ok' with the CoreContext forwarded."""
     request = MagicMock()
@@ -99,7 +96,6 @@ async def test_quality_body_ui_ok_path_returns_status_ok():
     assert out == {"status": "ok", "violations": []}
 
 
-@pytest.mark.asyncio
 async def test_quality_body_ui_failed_path_propagates_violations():
     """Violations from the facade propagate unchanged."""
     request = MagicMock()
@@ -141,7 +137,6 @@ def _request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 async def test_quality_lint_inserts_quality_check_row_and_returns_202():
     """POST /quality/lint persists kind='quality_check', fix_id='lint',
     schedules the background runner, returns 202 with href targeting
@@ -175,7 +170,6 @@ async def test_quality_lint_inserts_quality_check_row_and_returns_202():
     assert bind["requested_by"] == "api"
 
 
-@pytest.mark.asyncio
 async def test_quality_tests_inserts_quality_check_row_and_returns_202():
     """POST /quality/tests uses fix_id='tests' and forwards the
     optional `path` to the background runner via the closure params."""
@@ -214,7 +208,6 @@ async def test_quality_tests_inserts_quality_check_row_and_returns_202():
     assert kwargs["params"] == {"path": "tests/api/"}
 
 
-@pytest.mark.asyncio
 async def test_quality_system_inserts_quality_check_row_and_returns_202():
     """POST /quality/system uses fix_id='system' and forwards empty params."""
     request = _request_with_context()
@@ -250,7 +243,6 @@ async def test_quality_system_inserts_quality_check_row_and_returns_202():
     assert mock_runner.call_args.kwargs["params"] == {}
 
 
-@pytest.mark.asyncio
 async def test_quality_gates_inserts_quality_check_row_and_returns_202():
     """POST /quality/gates uses fix_id='gates'."""
     request = _request_with_context()
@@ -281,7 +273,6 @@ async def test_quality_gates_inserts_quality_check_row_and_returns_202():
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_quality_check_row_is_readable_via_fix_runs_get():
     """The /fix/runs/{id} resource read endpoint serves quality_check
     rows. Confirms the single-table design: kind='quality_check' rows

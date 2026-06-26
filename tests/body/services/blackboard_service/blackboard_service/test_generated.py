@@ -30,7 +30,6 @@ class TestBlackboardService:
         """Create a BlackboardService instance."""
         return BlackboardService()
 
-    @pytest.mark.asyncio
     async def test_fetch_open_finding_subjects_by_prefix_empty(
         self, service: BlackboardService
     ) -> None:
@@ -47,7 +46,6 @@ class TestBlackboardService:
             result = await service.fetch_open_finding_subjects_by_prefix("test::%")
             assert result == set()
 
-    @pytest.mark.asyncio
     async def test_fetch_open_finding_subjects_by_prefix_returns_set(
         self, service: BlackboardService
     ) -> None:
@@ -64,7 +62,6 @@ class TestBlackboardService:
             result = await service.fetch_open_finding_subjects_by_prefix("test::%")
             assert result == {"subject1", "subject2"}
 
-    @pytest.mark.asyncio
     async def test_fetch_active_finding_subjects_by_prefix_empty(
         self, service: BlackboardService
     ) -> None:
@@ -81,7 +78,6 @@ class TestBlackboardService:
             result = await service.fetch_active_finding_subjects_by_prefix("test::%")
             assert result == set()
 
-    @pytest.mark.asyncio
     async def test_fetch_active_finding_subjects_by_prefix_returns_set(
         self, service: BlackboardService
     ) -> None:
@@ -98,7 +94,6 @@ class TestBlackboardService:
             result = await service.fetch_active_finding_subjects_by_prefix("test::%")
             assert result == {"subject1", "subject2"}
 
-    @pytest.mark.asyncio
     async def test_resolve_dry_run_entries_for_namespace_zero(
         self, service: BlackboardService
     ) -> None:

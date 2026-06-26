@@ -147,7 +147,7 @@ async def _dispatch_quality(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/fix/runs/{run_id}",
+        "href": f"/v1/fix/runs/{run_id}",
     }
 
 

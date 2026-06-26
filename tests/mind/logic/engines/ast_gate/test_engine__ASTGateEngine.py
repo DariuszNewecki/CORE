@@ -58,7 +58,6 @@ def tmp_py_file():
     p.unlink(missing_ok=True)
 
 
-@pytest.mark.asyncio
 async def test_verify_unknown_check_type(path_resolver, tmp_py_file):
     """An unknown check_type is now caught by the #588 final-else guard
     and returned as a Logic Error verdict. Pre-#588 source silently fell
@@ -74,7 +73,6 @@ async def test_verify_unknown_check_type(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_empty_check_type(path_resolver, tmp_py_file):
     """An empty check_type matches no dispatch clause; same #588 guard
     fires as for any unknown name."""
@@ -87,7 +85,6 @@ async def test_verify_empty_check_type(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_parse_error(path_resolver, tmp_py_file):
     """Invalid Python syntax → ast.parse raises → engine returns a Parse Error
     result. This path is exercised before any check_type dispatch."""
@@ -100,7 +97,6 @@ async def test_verify_parse_error(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_no_print_statements_compliant(path_resolver, tmp_py_file):
     """Code without print() → no_print_statements check passes."""
     engine = ASTGateEngine(path_resolver=path_resolver)
@@ -112,7 +108,6 @@ async def test_verify_no_print_statements_compliant(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_no_print_statements_violation(path_resolver, tmp_py_file):
     """Code with print() → no_print_statements check fires a violation. The
     violation string mentions print explicitly (current source emits
@@ -127,7 +122,6 @@ async def test_verify_no_print_statements_violation(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_forbidden_assignments(path_resolver, tmp_py_file):
     """forbidden_assignments now flags module-level assignments to
     target names listed in the rule's ``targets`` param. The
@@ -148,7 +142,6 @@ async def test_verify_forbidden_assignments(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_forbidden_assignments_clean(path_resolver, tmp_py_file):
     """forbidden_assignments returns clean when the file's module-level
     assignments don't match the forbidden target list."""
@@ -163,7 +156,6 @@ async def test_verify_forbidden_assignments_clean(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_write_defaults_false_violation(path_resolver, tmp_py_file):
     """write_defaults_false is dispatched via the generic-primitive harness
     (engine.py:300) which requires non-trivial selector+requirement params.
@@ -180,7 +172,6 @@ async def test_verify_write_defaults_false_violation(path_resolver, tmp_py_file)
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_write_defaults_false_compliant(path_resolver, tmp_py_file):
     """Same generic-primitive dispatch as the violation case; the bare-params
     path produces no violations either way."""
@@ -193,7 +184,6 @@ async def test_verify_write_defaults_false_compliant(path_resolver, tmp_py_file)
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_max_file_lines_violation(path_resolver, tmp_py_file):
     """max_file_lines reads the params['limit'] and counts source lines.
     Source emits the violation as a single string with the count."""
@@ -211,7 +201,6 @@ async def test_verify_max_file_lines_violation(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_decorator_args(path_resolver, tmp_py_file):
     """decorator_args is the second generic-primitive alias (see
     test_verify_write_defaults_false_violation). Same dispatch shape, same
@@ -232,7 +221,6 @@ async def test_verify_decorator_args(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_stable_id_anchor(path_resolver, tmp_py_file):
     """stable_id_anchor check returns a successful result for the simple
     `id = 'unstable'` input. Test pins engine_id only — the assertion
@@ -243,7 +231,6 @@ async def test_verify_stable_id_anchor(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_runtime_import_boundary(path_resolver, tmp_py_file):
     """import of a forbidden module → runtime_import_boundary check fires."""
     engine = ASTGateEngine(path_resolver=path_resolver)
@@ -259,7 +246,6 @@ async def test_verify_runtime_import_boundary(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-@pytest.mark.asyncio
 async def test_embedding_access_rule_catches_direct_import(path_resolver, tmp_py_file):
     """architecture.boundary.embedding_access: importing EmbeddingService directly
     in body/mind/will/cli fires; importing _chunk_text (the only permitted symbol)
@@ -329,7 +315,6 @@ def test_supported_check_types():
     assert len(supported) > 0
 
 
-@pytest.mark.asyncio
 async def test_verify_all_supported_check_types_exist(path_resolver, tmp_py_file):
     """Every check_type in _SUPPORTED_CHECK_TYPES yields an EngineResult with
     no 'Unknown check_type' message. Note: this currently passes even for

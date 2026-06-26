@@ -28,7 +28,6 @@ def _rule(rule_id: str, engine: str) -> ExecutableRule:
     )
 
 
-@pytest.mark.asyncio
 async def test_knowledge_gate_rules_are_skipped(tmp_path: Path) -> None:
     """knowledge_gate engines need the symbol graph; skipped in stateless mode."""
     rules = [
@@ -56,7 +55,6 @@ async def test_knowledge_gate_rules_are_skipped(tmp_path: Path) -> None:
     assert runnable_passed == ["structure.imports"]
 
 
-@pytest.mark.asyncio
 async def test_llm_gate_rules_are_skipped(tmp_path: Path) -> None:
     """llm_gate engines need network + cache; skipped in stateless mode.
 
@@ -85,7 +83,6 @@ async def test_llm_gate_rules_are_skipped(tmp_path: Path) -> None:
     assert "paths.glob" not in skipped_ids
 
 
-@pytest.mark.asyncio
 async def test_skipped_entries_carry_structured_reason(tmp_path: Path) -> None:
     """Each skipped rule records engine + reason for CI-log honesty."""
     rules = [
@@ -112,7 +109,6 @@ async def test_skipped_entries_carry_structured_reason(tmp_path: Path) -> None:
     assert "LLM" in by_id["prose.b"]["reason"]
 
 
-@pytest.mark.asyncio
 async def test_only_runnable_engines_pass_through(tmp_path: Path) -> None:
     """Non-DB engines (ast/regex/glob/cli/workflow) are forwarded to filtered_audit."""
     rules = [

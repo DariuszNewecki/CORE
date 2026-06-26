@@ -29,7 +29,6 @@ def _expected_offset(stem: str, cap: int) -> int:
     return int.from_bytes(hashlib.sha256(stem.encode()).digest()[:2], "big") % cap
 
 
-@pytest.mark.asyncio
 async def test_run_one_shot_loop_sleeps_jitter_before_first_cycle(monkeypatch):
     """The first asyncio.sleep call equals the stem-hash offset and
     precedes the first worker.start() call."""

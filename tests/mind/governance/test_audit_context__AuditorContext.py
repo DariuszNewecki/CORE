@@ -73,7 +73,6 @@ def test_mind_path_property():
     assert context.mind_path == Path("/test/repo/var/mind")
 
 
-@pytest.mark.asyncio
 async def test_load_knowledge_graph_failure():
     """Test knowledge graph loading failure."""
     repo_path = Path("/test/repo")

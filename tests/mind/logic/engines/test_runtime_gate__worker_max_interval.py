@@ -69,7 +69,6 @@ def _ctx_with_rows(repo_root: Path, rows: list[Any]):
 
 
 # ID: 7ff0e1c4-3e46-4f7e-93e6-9f4fb0af3551
-@pytest.mark.asyncio
 async def test_no_workers_no_findings(tmp_path: Path) -> None:
     """No worker YAMLs -> no findings; the check returns early."""
     (tmp_path / ".intent" / "workers").mkdir(parents=True)
@@ -79,7 +78,6 @@ async def test_no_workers_no_findings(tmp_path: Path) -> None:
 
 
 # ID: 2b8c96f0-cb5a-4e7f-b437-dee4f9ca77cf
-@pytest.mark.asyncio
 async def test_db_session_absent_returns_empty(tmp_path: Path) -> None:
     """If db_session is not injected (e.g. IntentGuard pre-commit path),
     the check defers without firing. Matches the precedent set by
@@ -94,7 +92,6 @@ async def test_db_session_absent_returns_empty(tmp_path: Path) -> None:
 
 
 # ID: 8e2db2e0-d3ce-4dcc-8fb5-132236c0c92e
-@pytest.mark.asyncio
 async def test_worker_within_threshold_no_finding(tmp_path: Path) -> None:
     """Worker whose observed p95 is below configured x 1.1 produces no
     finding. cfg=600, observed p95=620 -> threshold=660, below."""
@@ -109,7 +106,6 @@ async def test_worker_within_threshold_no_finding(tmp_path: Path) -> None:
 
 
 # ID: bb4fac7f-93c5-4a03-8202-3ba14b1dfe8c
-@pytest.mark.asyncio
 async def test_worker_above_threshold_fires_finding(tmp_path: Path) -> None:
     """Worker whose observed p95 exceeds configured x 1.1 produces one
     finding with structured context.
@@ -134,7 +130,6 @@ async def test_worker_above_threshold_fires_finding(tmp_path: Path) -> None:
 
 
 # ID: 3a8bc311-d9e7-4d72-857c-3c5b43d7c4a5
-@pytest.mark.asyncio
 async def test_worker_insufficient_samples_skips_silently(tmp_path: Path) -> None:
     """Workers with fewer than the 10-sample minimum are skipped silently
     (no finding either way). Right after a daemon restart the rule
@@ -151,7 +146,6 @@ async def test_worker_insufficient_samples_skips_silently(tmp_path: Path) -> Non
     assert out == []
 
 
-@pytest.mark.asyncio
 async def test_paused_worker_skipped(tmp_path: Path) -> None:
     """Workers with metadata.status != 'active' are not evaluated."""
     workers = tmp_path / ".intent" / "workers"
@@ -169,7 +163,6 @@ async def test_paused_worker_skipped(tmp_path: Path) -> None:
     assert out == []
 
 
-@pytest.mark.asyncio
 async def test_worker_without_max_interval_skipped(tmp_path: Path) -> None:
     """Workers whose YAML declares no mandate.schedule.max_interval are
     skipped — the rule only evaluates declarations against their own

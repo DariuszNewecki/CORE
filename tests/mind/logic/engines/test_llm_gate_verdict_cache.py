@@ -130,7 +130,6 @@ async def _read_verdict(
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 8b4e9a1d-3c2f-4a87-b095-1e6c7f3d8b2a
 async def test_acceptance_1_hit_on_unchanged_file(test_prefix: str) -> None:
     """First run writes; second run with identical hashes reads the row back."""
@@ -166,7 +165,6 @@ async def test_acceptance_1_hit_on_unchanged_file(test_prefix: str) -> None:
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 9c5f1b2e-4d3a-49b8-a106-2f7d8e4c9b3a
 async def test_acceptance_2_miss_when_file_changes(test_prefix: str) -> None:
     """A different file_content_hash for the same (rule_id, file_path) misses."""
@@ -198,7 +196,6 @@ async def test_acceptance_2_miss_when_file_changes(test_prefix: str) -> None:
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 1d6a2c3f-5e4b-4ac9-b207-3a8e9f5d1c4b
 async def test_acceptance_3_miss_when_rule_changes(test_prefix: str) -> None:
     """Editing a rule's YAML (new rule_content_hash) invalidates every cached
@@ -236,7 +233,6 @@ async def test_acceptance_3_miss_when_rule_changes(test_prefix: str) -> None:
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 2e7b3d4a-6f5c-4abd-c308-4b9a1c6e2d5f
 async def test_acceptance_4_force_llm_bypasses_cache(
     test_prefix: str, stub_engine: LLMGateEngine, tmp_path
@@ -310,7 +306,6 @@ async def test_acceptance_4_force_llm_bypasses_cache(
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 3f8c4e5b-7a6d-4abe-d409-5c2b8d7f3e6a
 async def test_acceptance_5_shared_between_callers(test_prefix: str) -> None:
     """Caller A writes a verdict; caller B (different process semantically)
@@ -370,7 +365,6 @@ async def test_acceptance_5_shared_between_callers(test_prefix: str) -> None:
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 # ID: 4a9d5f6c-8b7e-4abf-e50a-6d3c9e8a4f7b
 async def test_acceptance_6_info_log_on_hit(
     test_prefix: str,

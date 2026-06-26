@@ -11,14 +11,12 @@ import pytest
 from mind.logic.engines.regex_gate import RegexGateEngine
 
 
-@pytest.mark.asyncio
 async def test_regex_gate_engine_initialization():
     """Test that RegexGateEngine initializes correctly."""
     engine = RegexGateEngine()
     assert engine.engine_id == "regex_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_naming_pattern_success(tmp_path):
     """Test filename pattern matching when pattern matches."""
     engine = RegexGateEngine()
@@ -32,7 +30,6 @@ async def test_verify_naming_pattern_success(tmp_path):
     assert result.engine_id == "regex_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_naming_pattern_failure(tmp_path):
     """Test filename pattern matching when pattern doesn't match."""
     engine = RegexGateEngine()
@@ -47,7 +44,6 @@ async def test_verify_naming_pattern_failure(tmp_path):
     assert result.engine_id == "regex_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_forbidden_patterns_string_param(tmp_path):
     """Test forbidden patterns with string parameter (should be converted to list)."""
     engine = RegexGateEngine()
@@ -61,7 +57,6 @@ async def test_verify_forbidden_patterns_string_param(tmp_path):
     assert "Line 1" in result.violations[0]
 
 
-@pytest.mark.asyncio
 async def test_verify_forbidden_patterns_list_param(tmp_path):
     """Test forbidden patterns with list parameter."""
     engine = RegexGateEngine()
@@ -77,7 +72,6 @@ async def test_verify_forbidden_patterns_list_param(tmp_path):
     assert any("Line 4" in v for v in result.violations)
 
 
-@pytest.mark.asyncio
 async def test_verify_forbidden_patterns_multiline(tmp_path):
     """Test forbidden patterns with multiline content."""
     engine = RegexGateEngine()
@@ -91,7 +85,6 @@ async def test_verify_forbidden_patterns_multiline(tmp_path):
     assert "Line 3" in result.violations[0]
 
 
-@pytest.mark.asyncio
 async def test_verify_required_patterns_success(tmp_path):
     """Test required patterns that are present in content."""
     engine = RegexGateEngine()
@@ -105,7 +98,6 @@ async def test_verify_required_patterns_success(tmp_path):
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_required_patterns_failure(tmp_path):
     """Test required patterns that are missing from content."""
     engine = RegexGateEngine()
@@ -119,7 +111,6 @@ async def test_verify_required_patterns_failure(tmp_path):
     assert all("Missing Required Content" in v for v in result.violations)
 
 
-@pytest.mark.asyncio
 async def test_verify_required_patterns_string_param(tmp_path):
     """Test required patterns with string parameter (should be converted to list)."""
     engine = RegexGateEngine()
@@ -132,7 +123,6 @@ async def test_verify_required_patterns_string_param(tmp_path):
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_all_parameters_combined(tmp_path):
     """Test with all parameter types combined."""
     engine = RegexGateEngine()
@@ -151,7 +141,6 @@ async def test_verify_all_parameters_combined(tmp_path):
     assert "Line 3" in result.violations[0]
 
 
-@pytest.mark.asyncio
 async def test_verify_file_not_found(tmp_path):
     """Test behavior when file doesn't exist."""
     engine = RegexGateEngine()
@@ -164,7 +153,6 @@ async def test_verify_file_not_found(tmp_path):
     assert result.engine_id == "regex_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_empty_file(tmp_path):
     """Test with an empty file."""
     engine = RegexGateEngine()
@@ -177,7 +165,6 @@ async def test_verify_empty_file(tmp_path):
     assert "Missing Required Content" in result.violations[0]
 
 
-@pytest.mark.asyncio
 async def test_verify_no_violations(tmp_path):
     """Test when no violations are found."""
     engine = RegexGateEngine()
@@ -196,7 +183,6 @@ async def test_verify_no_violations(tmp_path):
     assert result.engine_id == "regex_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_patterns_alias(tmp_path):
     """Test that 'patterns' alias works for forbidden_patterns."""
     engine = RegexGateEngine()

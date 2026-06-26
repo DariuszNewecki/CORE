@@ -39,7 +39,6 @@ def _mk_proposal_dict(pid: str = "p-1", status: str = "pending_approval") -> dic
     }
 
 
-@pytest.mark.asyncio
 async def test_list_proposals_no_status_returns_pending_approval():
     """No status filter → service.list_pending_approval is called and the
     response wraps proposals in {count, proposals}."""
@@ -61,7 +60,6 @@ async def test_list_proposals_no_status_returns_pending_approval():
     service.list_by_status.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_list_proposals_with_status_filter_calls_list_by_status():
     """Valid status filter → service.list_by_status is called with the
     parsed enum value."""
@@ -82,7 +80,6 @@ async def test_list_proposals_with_status_filter_calls_list_by_status():
     service.list_pending_approval.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_list_proposals_invalid_status_raises_400():
     """Unknown status string raises HTTPException(400)."""
     session = AsyncMock()
@@ -95,7 +92,6 @@ async def test_list_proposals_invalid_status_raises_400():
     assert "not_a_status" in exc_info.value.detail
 
 
-@pytest.mark.asyncio
 async def test_get_proposal_returns_to_dict():
     """GET /{id} returns proposal.to_dict()."""
     session = AsyncMock()
@@ -113,7 +109,6 @@ async def test_get_proposal_returns_to_dict():
     service.get.assert_awaited_once_with("p-1")
 
 
-@pytest.mark.asyncio
 async def test_get_proposal_not_found_returns_404():
     """Missing proposal raises HTTPException(404)."""
     session = AsyncMock()
@@ -128,36 +123,62 @@ async def test_get_proposal_not_found_returns_404():
     assert exc_info.value.status_code == 404
 
 
-@pytest.mark.asyncio
-async def test_approve_proposal_forwards_approval_authority():
-    """approve_proposal calls service.approve with non-omittable
-    approval_authority and returns governed status payload."""
+async def test_approve_proposal_derives_approved_by_from_jwt():
+    """approve_proposal derives approved_by from the JWT user dict (email
+    preferred, sub as fallback) — the payload.approved_by field is ignored.
+    Returns governed status payload with approval_authority forwarded."""
     session = AsyncMock()
 
     service = AsyncMock()
     service.approve = AsyncMock()
 
+    # payload.approved_by is intentionally different from user email to
+    # confirm it is not forwarded to service.approve.
     payload = ApproveRequest(
-        approved_by="governor", approval_authority="governor_direct"
+        approved_by="ignored-from-payload", approval_authority="governor_direct"
     )
+    user = {"sub": "uid-123", "email": "admin@example.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         out = await approve_proposal(
-            proposal_id="p-1", payload=payload, session=session
+            proposal_id="p-1", payload=payload, user=user, session=session
         )
 
     service.approve.assert_awaited_once_with(
         "p-1",
-        approved_by="governor",
+        approved_by="admin@example.com",
         approval_authority="governor_direct",
     )
     assert out["ok"] is True
     assert out["proposal_id"] == "p-1"
     assert out["status"] == "approved"
+    assert out["approved_by"] == "admin@example.com"
     assert out["approval_authority"] == "governor_direct"
 
 
-@pytest.mark.asyncio
+async def test_approve_proposal_falls_back_to_sub_when_no_email():
+    """When JWT has no email, approved_by falls back to the sub claim."""
+    session = AsyncMock()
+
+    service = AsyncMock()
+    service.approve = AsyncMock()
+
+    payload = ApproveRequest(approved_by="ignored", approval_authority="governor_direct")
+    user = {"sub": "uuid-456", "email": None, "role": "platform_admin"}
+
+    with patch("api.v1.proposals_routes.ProposalService", return_value=service):
+        out = await approve_proposal(
+            proposal_id="p-2", payload=payload, user=user, session=session
+        )
+
+    service.approve.assert_awaited_once_with(
+        "p-2",
+        approved_by="uuid-456",
+        approval_authority="governor_direct",
+    )
+    assert out["approved_by"] == "uuid-456"
+
+
 async def test_approve_proposal_unknown_id_returns_404():
     """ProposalNotFoundError → HTTPException(404)."""
     session = AsyncMock()
@@ -165,18 +186,18 @@ async def test_approve_proposal_unknown_id_returns_404():
     service = AsyncMock()
     service.approve = AsyncMock(side_effect=ProposalNotFoundError("missing"))
 
-    payload = ApproveRequest(approved_by="g", approval_authority="governor_direct")
+    payload = ApproveRequest(approved_by="ignored", approval_authority="governor_direct")
+    user = {"sub": "uid", "email": "g@test.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         with pytest.raises(HTTPException) as exc_info:
             await approve_proposal(
-                proposal_id="missing", payload=payload, session=session
+                proposal_id="missing", payload=payload, user=user, session=session
             )
 
     assert exc_info.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_approve_proposal_bad_authority_returns_400():
     """ValueError from state manager → HTTPException(400)."""
     session = AsyncMock()
@@ -184,16 +205,18 @@ async def test_approve_proposal_bad_authority_returns_400():
     service = AsyncMock()
     service.approve = AsyncMock(side_effect=ValueError("bad authority"))
 
-    payload = ApproveRequest(approved_by="g", approval_authority="bogus")
+    payload = ApproveRequest(approved_by="ignored", approval_authority="bogus")
+    user = {"sub": "uid", "email": "g@test.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         with pytest.raises(HTTPException) as exc_info:
-            await approve_proposal(proposal_id="p-1", payload=payload, session=session)
+            await approve_proposal(
+                proposal_id="p-1", payload=payload, user=user, session=session
+            )
 
     assert exc_info.value.status_code == 400
 
 
-@pytest.mark.asyncio
 async def test_reject_proposal_returns_revived_count():
     """reject_proposal forwards reason and returns revived_count from
     service.reject (ADR-010 §7a / ADR-045 finding revival)."""
@@ -217,7 +240,6 @@ async def test_reject_proposal_returns_revived_count():
     }
 
 
-@pytest.mark.asyncio
 async def test_reject_proposal_unknown_id_returns_404():
     """ProposalNotFoundError from service.reject → 404."""
     session = AsyncMock()
@@ -234,7 +256,6 @@ async def test_reject_proposal_unknown_id_returns_404():
     assert exc_info.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_execute_proposal_uses_api_claimer_and_returns_executor_result():
     """execute_proposal builds ProposalExecutor with core_context, calls
     .execute with API_CLAIMER_UUID + write flag, and passes the result back."""
@@ -259,7 +280,6 @@ async def test_execute_proposal_uses_api_claimer_and_returns_executor_result():
     assert out == executor_result
 
 
-@pytest.mark.asyncio
 async def test_execute_proposal_dry_run_default():
     """Default ExecuteRequest is write=False; executor.execute receives
     write=False."""

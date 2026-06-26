@@ -33,7 +33,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 async def test_create_census_run_inserts_pending_and_schedules_background():
     """POST /census/runs inserts pending row, schedules drive_census, returns 202."""
     request = _mock_request_with_context()
@@ -70,7 +69,6 @@ async def test_create_census_run_inserts_pending_and_schedules_background():
     session.commit.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_get_census_run_returns_row():
     """GET /census/runs/{id} returns the persisted row as a dict."""
     run_id = uuid4()
@@ -97,7 +95,6 @@ async def test_get_census_run_returns_row():
     assert out["status"] == "completed"
 
 
-@pytest.mark.asyncio
 async def test_get_census_run_returns_404_when_missing():
     session = AsyncMock()
     result_obj = MagicMock()
@@ -108,7 +105,6 @@ async def test_get_census_run_returns_404_when_missing():
     assert exc.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_create_baseline_returns_payload():
     request = _mock_request_with_context()
     payload = CreateBaselineRequest(snapshot_file="repo_census_2026-05-18.json")
@@ -125,7 +121,6 @@ async def test_create_baseline_returns_payload():
     }
 
 
-@pytest.mark.asyncio
 async def test_create_baseline_returns_422_when_no_snapshot():
     """ValueError from the facade (no snapshot available) → 422."""
     request = _mock_request_with_context()
@@ -140,7 +135,6 @@ async def test_create_baseline_returns_422_when_no_snapshot():
     assert "No census snapshot" in exc.value.detail
 
 
-@pytest.mark.asyncio
 async def test_list_baselines_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(
@@ -151,7 +145,6 @@ async def test_list_baselines_returns_facade_payload():
     assert out["count"] == 2
 
 
-@pytest.mark.asyncio
 async def test_census_diff_passes_baseline_filter():
     request = _mock_request_with_context()
     with patch(
@@ -164,7 +157,6 @@ async def test_census_diff_passes_baseline_filter():
     assert out["available"] is True
 
 
-@pytest.mark.asyncio
 async def test_census_diff_default_baseline_is_none():
     request = _mock_request_with_context()
     with patch(

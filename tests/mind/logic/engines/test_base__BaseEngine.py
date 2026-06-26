@@ -35,7 +35,6 @@ class TestBaseEngine:
         engine = ConcreteEngine()
         assert isinstance(engine, BaseEngine)
 
-    @pytest.mark.asyncio
     async def test_concrete_implementation_works(self):
         """Test that a concrete implementation of BaseEngine works correctly."""
 
@@ -68,7 +67,6 @@ class TestBaseEngine:
         # Invalid engine should fail type checking but pytest won't catch this at runtime
         # This test documents the expected signature
 
-    @pytest.mark.asyncio
     async def test_file_path_absolute_requirement(self):
         """Test that file_path parameter expects absolute path."""
 
@@ -88,7 +86,6 @@ class TestBaseEngine:
         result = await engine.verify(rel_path, {})
         assert not result
 
-    @pytest.mark.asyncio
     async def test_params_dict_type(self):
         """Test that params is a dictionary."""
 

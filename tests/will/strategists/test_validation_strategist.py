@@ -28,12 +28,10 @@ def strategist():
 class TestComponentContract:
     """Test ValidationStrategist follows Component contract."""
 
-    @pytest.mark.asyncio
     async def test_declares_runtime_phase(self, strategist):
         """Strategists must operate in RUNTIME phase."""
         assert strategist.phase == ComponentPhase.RUNTIME
 
-    @pytest.mark.asyncio
     async def test_returns_component_result(self, strategist):
         """Execute must return ComponentResult."""
         result = await strategist.execute(
@@ -45,7 +43,6 @@ class TestComponentContract:
         assert hasattr(result, "phase")
         assert result.phase == ComponentPhase.RUNTIME
 
-    @pytest.mark.asyncio
     async def test_component_id_matches_class(self, strategist):
         """Component ID should be derived from class name."""
         assert strategist.component_id == "validationstrategist"
@@ -55,7 +52,6 @@ class TestComponentContract:
 class TestRiskClassification:
     """Test risk tier classification logic."""
 
-    @pytest.mark.asyncio
     async def test_critical_path_detection(self, strategist):
         """Files in .intent/ should be classified as CRITICAL."""
         result = await strategist.execute(
@@ -65,7 +61,6 @@ class TestRiskClassification:
         assert result.data["risk_tier"] == "CRITICAL"
         assert result.data["validation_strategy"] == "critical_path"
 
-    @pytest.mark.asyncio
     async def test_governance_critical_path(self, strategist):
         """Governance files should be classified as CRITICAL."""
         result = await strategist.execute(
@@ -75,7 +70,6 @@ class TestRiskClassification:
 
         assert result.data["risk_tier"] == "CRITICAL"
 
-    @pytest.mark.asyncio
     async def test_elevated_risk_for_write_operations(self, strategist):
         """Write operations should be ELEVATED risk."""
         result = await strategist.execute(
@@ -87,7 +81,6 @@ class TestRiskClassification:
         assert result.data["risk_tier"] == "ELEVATED"
         assert result.data["validation_strategy"] == "comprehensive"
 
-    @pytest.mark.asyncio
     async def test_routine_for_readonly(self, strategist):
         """Read-only operations should be ROUTINE."""
         result = await strategist.execute(
@@ -102,7 +95,6 @@ class TestRiskClassification:
 class TestStrategySelection:
     """Test validation strategy selection logic."""
 
-    @pytest.mark.asyncio
     async def test_minimal_strategy_for_queries(self, strategist):
         """Query operations should use minimal validation."""
         result = await strategist.execute(
@@ -113,7 +105,6 @@ class TestStrategySelection:
         assert "syntax_validation" in result.data["required_checks"]
         assert "import_validation" in result.data["required_checks"]
 
-    @pytest.mark.asyncio
     async def test_standard_strategy_for_normal_operations(self, strategist):
         """Standard operations should use standard validation."""
         result = await strategist.execute(
@@ -124,7 +115,6 @@ class TestStrategySelection:
         assert "constitutional_compliance" in result.data["required_checks"]
         assert "pattern_compliance" in result.data["required_checks"]
 
-    @pytest.mark.asyncio
     async def test_comprehensive_for_elevated_risk(self, strategist):
         """Elevated risk should trigger comprehensive validation."""
         result = await strategist.execute(
@@ -137,7 +127,6 @@ class TestStrategySelection:
         assert "audit_history" in result.data["required_checks"]
         assert "complexity_analysis" in result.data["required_checks"]
 
-    @pytest.mark.asyncio
     async def test_critical_path_strategy(self, strategist):
         """Critical operations should use critical_path strategy."""
         result = await strategist.execute(
@@ -151,7 +140,6 @@ class TestStrategySelection:
         assert "performance_analysis" in result.data["required_checks"]
         assert "canary_deployment" in result.data["required_checks"]
 
-    @pytest.mark.asyncio
     async def test_comprehensive_for_repeated_failures(self, strategist):
         """Operations with previous failures need extra scrutiny."""
         result = await strategist.execute(
@@ -167,7 +155,6 @@ class TestStrategySelection:
 class TestCheckMapping:
     """Test mapping from strategy to specific checks."""
 
-    @pytest.mark.asyncio
     async def test_minimal_checks_subset(self, strategist):
         """Minimal strategy should only include base checks."""
         result = await strategist.execute(operation_type="query", write_mode=False)
@@ -177,7 +164,6 @@ class TestCheckMapping:
         assert "import_validation" in checks
         assert len(checks) == 2
 
-    @pytest.mark.asyncio
     async def test_standard_includes_constitutional(self, strategist):
         """Standard strategy must include constitutional checks."""
         result = await strategist.execute(
@@ -189,7 +175,6 @@ class TestCheckMapping:
         assert "pattern_compliance" in checks
         assert "test_coverage" in checks
 
-    @pytest.mark.asyncio
     async def test_test_operation_adds_execution_check(self, strategist):
         """Test operations should add test_execution check."""
         result = await strategist.execute(
@@ -198,7 +183,6 @@ class TestCheckMapping:
 
         assert "test_execution" in result.data["required_checks"]
 
-    @pytest.mark.asyncio
     async def test_model_files_add_schema_check(self, strategist):
         """Model files should include schema validation."""
         result = await strategist.execute(
@@ -212,14 +196,12 @@ class TestCheckMapping:
 class TestQualityThresholds:
     """Test quality threshold determination."""
 
-    @pytest.mark.asyncio
     async def test_minimal_threshold_lower(self, strategist):
         """Minimal strategy should have lower threshold."""
         result = await strategist.execute(operation_type="query", write_mode=False)
 
         assert result.data["quality_threshold"] == 0.7
 
-    @pytest.mark.asyncio
     async def test_standard_threshold(self, strategist):
         """Standard strategy should have 0.8 threshold."""
         result = await strategist.execute(
@@ -228,7 +210,6 @@ class TestQualityThresholds:
 
         assert result.data["quality_threshold"] == 0.8
 
-    @pytest.mark.asyncio
     async def test_comprehensive_threshold_higher(self, strategist):
         """Comprehensive strategy should have higher threshold."""
         result = await strategist.execute(
@@ -239,7 +220,6 @@ class TestQualityThresholds:
 
         assert result.data["quality_threshold"] == 0.9
 
-    @pytest.mark.asyncio
     async def test_critical_path_highest_threshold(self, strategist):
         """Critical path should have highest threshold."""
         result = await strategist.execute(
@@ -249,7 +229,6 @@ class TestQualityThresholds:
 
         assert result.data["quality_threshold"] == 0.95
 
-    @pytest.mark.asyncio
     async def test_critical_risk_increases_threshold(self, strategist):
         """CRITICAL risk tier should increase threshold."""
         result = await strategist.execute(
@@ -265,7 +244,6 @@ class TestQualityThresholds:
 class TestEnforcementLevel:
     """Test enforcement level determination."""
 
-    @pytest.mark.asyncio
     async def test_critical_always_blocks(self, strategist):
         """CRITICAL operations must block on failure."""
         result = await strategist.execute(
@@ -275,7 +253,6 @@ class TestEnforcementLevel:
 
         assert result.data["enforcement_level"] == "blocking"
 
-    @pytest.mark.asyncio
     async def test_write_operations_block(self, strategist):
         """Write operations should block on validation failure."""
         result = await strategist.execute(
@@ -286,7 +263,6 @@ class TestEnforcementLevel:
 
         assert result.data["enforcement_level"] == "blocking"
 
-    @pytest.mark.asyncio
     async def test_readonly_advisory(self, strategist):
         """Read-only operations can be advisory."""
         result = await strategist.execute(
@@ -302,7 +278,6 @@ class TestEnforcementLevel:
 class TestDecisionTracing:
     """Test decision tracing integration."""
 
-    @pytest.mark.asyncio
     async def test_records_decision(self, strategist):
         """Strategist must record decisions for audit."""
         result = await strategist.execute(
@@ -321,7 +296,6 @@ class TestDecisionTracing:
 class TestMetadata:
     """Test result metadata completeness."""
 
-    @pytest.mark.asyncio
     async def test_includes_operation_context(self, strategist):
         """Result metadata should include operation context."""
         result = await strategist.execute(
@@ -334,7 +308,6 @@ class TestMetadata:
         assert result.metadata["file_path"] == "src/models/user.py"
         assert result.metadata["write_mode"] is True
 
-    @pytest.mark.asyncio
     async def test_suggests_next_component(self, strategist):
         """Should suggest ConstitutionalEvaluator as next component.
 
@@ -347,7 +320,6 @@ class TestMetadata:
 
         assert result.next_suggested == "constitutionalevaluator"
 
-    @pytest.mark.asyncio
     async def test_tracks_duration(self, strategist):
         """Should track execution duration."""
         result = await strategist.execute(

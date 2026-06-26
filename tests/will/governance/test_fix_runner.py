@@ -91,7 +91,6 @@ def test_quality_gate_result_payload_round_trips_components():
     assert payload == {"check": "gates", "ok": True, "components": components}
 
 
-@pytest.mark.asyncio
 async def test_run_and_persist_fix_writes_atomic_fix_run_result_shape():
     """run_and_persist_fix persists a kind='atomic' FixRunResult payload."""
     run_id = uuid4()

@@ -44,7 +44,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session
+from api.dependencies import get_api_session, open_background_session, require_role
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
@@ -112,6 +112,7 @@ class RunIRRequest(BaseModel):
 @router.post(
     "/run/{fix_id}",
     summary="Dispatch an atomic fix action",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Run an atomic action from the registry by `fix_id` (e.g. "
         "`fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if "
@@ -194,7 +195,7 @@ async def run_fix(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/fix/runs/{run_id}",
+        "href": f"/v1/fix/runs/{run_id}",
     }
 
 
@@ -264,13 +265,14 @@ async def _dispatch_flow(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/fix/runs/{run_id}",
+        "href": f"/v1/fix/runs/{run_id}",
     }
 
 
 @router.post(
     "/all",
     summary="Dispatch the curated fix sequence",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Run the `flow.fix_code` curated sequence — a registered Flow YAML "
         "that bundles the standard fix-category atomic actions in their "
@@ -300,6 +302,7 @@ async def run_fix_all(
 @router.post(
     "/modularity",
     summary="Dispatch the modularity remediation cycle",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Run the modularity remediation cycle — a Python-level workflow "
         "(ModularityRemediationService), not a Flow YAML — so there's no "
@@ -358,7 +361,7 @@ async def run_fix_modularity(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/fix/runs/{run_id}",
+        "href": f"/v1/fix/runs/{run_id}",
     }
 
 

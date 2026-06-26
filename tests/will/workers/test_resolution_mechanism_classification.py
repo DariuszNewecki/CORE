@@ -39,7 +39,6 @@ def _self_resolve_kwarg(mock: AsyncMock) -> list[str]:
     return [call.kwargs.get("resolution_mechanism") for call in mock.await_args_list]
 
 
-@pytest.mark.asyncio
 async def test_worker_shop_manager_classifies_worker_silent_as_self_resolve(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -86,7 +85,6 @@ async def test_worker_shop_manager_classifies_worker_silent_as_self_resolve(
     assert kwargs["resolution_mechanism"] == "self_resolve"
 
 
-@pytest.mark.asyncio
 async def test_blackboard_shop_manager_classifies_entry_stale_as_self_resolve(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -130,7 +128,6 @@ async def test_blackboard_shop_manager_classifies_entry_stale_as_self_resolve(
     assert kwargs["resolution_mechanism"] == "self_resolve"
 
 
-@pytest.mark.asyncio
 async def test_proposal_pipeline_classifies_all_three_subjects_as_self_resolve(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -196,7 +193,6 @@ async def test_proposal_pipeline_classifies_all_three_subjects_as_self_resolve(
     assert any(s.startswith("proposal.repeated_failure::") for s in subjects)
 
 
-@pytest.mark.asyncio
 async def test_post_finding_requires_resolution_mechanism_kwarg() -> None:
     """API contract: post_finding refuses to dispatch without
     resolution_mechanism. Guards against future call sites that forget
@@ -211,7 +207,6 @@ async def test_post_finding_requires_resolution_mechanism_kwarg() -> None:
         await worker.post_finding(subject="x", payload={})  # type: ignore[call-arg]
 
 
-@pytest.mark.asyncio
 async def test_post_artifact_finding_auto_supplies_reaudit_mechanism(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

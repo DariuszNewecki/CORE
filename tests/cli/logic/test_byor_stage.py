@@ -72,7 +72,6 @@ def test_stage_dir_for_resolves_target(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_stage_skips_existing_intent_check(tmp_path: Path) -> None:
     """In stage mode, a pre-existing .intent/ on the real target does NOT block."""
     from cli.logic.byor import _stage_dir_for, initialize_repository
@@ -99,7 +98,6 @@ async def test_stage_skips_existing_intent_check(tmp_path: Path) -> None:
     assert any(f.is_file() for f in staged_files), "Expected staged files under work/staged/"
 
 
-@pytest.mark.asyncio
 async def test_stage_writes_to_stage_not_target(tmp_path: Path) -> None:
     """Files delivered with --stage land in work/staged/<name>/, not <target>/.intent/."""
     from cli.logic.byor import _stage_dir_for, initialize_repository
@@ -121,7 +119,6 @@ async def test_stage_writes_to_stage_not_target(tmp_path: Path) -> None:
     assert (stage_dir / ".intent").is_dir()
 
 
-@pytest.mark.asyncio
 async def test_stage_without_write_is_dry_run(tmp_path: Path) -> None:
     """dry_run=True with stage_dir set still does a dry-run (no stage files written)."""
     from cli.logic.byor import _stage_dir_for, initialize_repository
@@ -147,7 +144,6 @@ async def test_stage_without_write_is_dry_run(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_promote_refuses_missing_stage(tmp_path: Path) -> None:
 
     from cli.logic.byor import promote_staged
@@ -163,7 +159,6 @@ async def test_promote_refuses_missing_stage(tmp_path: Path) -> None:
         await promote_staged(context=context, path=target)
 
 
-@pytest.mark.asyncio
 async def test_promote_refuses_existing_intent(tmp_path: Path) -> None:
     """Promote refuses when the target already has .intent/ (ADR-111 D3 / ADR-123 D2)."""
     from cli.logic.byor import _stage_dir_for, promote_staged
@@ -187,7 +182,6 @@ async def test_promote_refuses_existing_intent(tmp_path: Path) -> None:
         await promote_staged(context=context, path=target)
 
 
-@pytest.mark.asyncio
 async def test_promote_copies_to_target_and_cleans_stage(tmp_path: Path) -> None:
     """Promote copies all staged files to the target and removes the stage dir."""
     from cli.logic.byor import _stage_dir_for, promote_staged
@@ -217,7 +211,6 @@ async def test_promote_copies_to_target_and_cleans_stage(tmp_path: Path) -> None
     assert not stage_dir.exists()
 
 
-@pytest.mark.asyncio
 async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
     """Full roundtrip: stage machinery floor, then promote it to the target."""
     from cli.logic.byor import _stage_dir_for, initialize_repository, promote_staged

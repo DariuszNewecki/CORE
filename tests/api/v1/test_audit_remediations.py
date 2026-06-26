@@ -29,7 +29,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("mode", ["safe", "medium", "all"])
 async def test_create_remediation_accepts_all_three_modes(mode):
     """ADR-057 verification #4: 'safe' | 'medium' | 'all' all dispatch
@@ -69,7 +68,6 @@ async def test_create_remediation_accepts_all_three_modes(mode):
     background_tasks.add_task.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_create_remediation_unknown_mode_returns_422():
     """Unknown mode raises HTTPException(422) without touching DB."""
     request = _mock_request_with_context()
@@ -100,7 +98,6 @@ def test_create_remediation_missing_audit_run_id_fails_validation():
         CreateRemediationRequest(mode="safe", write=False)
 
 
-@pytest.mark.asyncio
 async def test_get_remediation_returns_row():
     run_id = uuid4()
     audit_run_id = uuid4()
@@ -128,7 +125,6 @@ async def test_get_remediation_returns_row():
     assert out["mode"] == "safe"
 
 
-@pytest.mark.asyncio
 async def test_get_remediation_returns_404_when_missing():
     session = AsyncMock()
     result_obj = MagicMock()

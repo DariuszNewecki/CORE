@@ -32,7 +32,6 @@ def _init_repo(repo: Path) -> None:
     _run(["git", "config", "commit.gpgsign", "false"], repo)
 
 
-@pytest.mark.asyncio
 async def test_capture_meta_reads_dangling_commit(tmp_path: Path) -> None:
     """A branch-unreachable (dangling) commit's metadata is still captured —
     the exact orphan scenario the auditor must reconcile before GC."""
@@ -58,7 +57,6 @@ async def test_capture_meta_reads_dangling_commit(tmp_path: Path) -> None:
     assert meta["commit_date"], "ISO commit date must be captured"
 
 
-@pytest.mark.asyncio
 async def test_capture_meta_handles_gone_object(tmp_path: Path) -> None:
     """A sha no longer in the object store (already gc'd) yields a sentinel
     subject rather than crashing the audit run."""

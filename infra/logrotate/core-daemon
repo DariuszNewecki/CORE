@@ -1,0 +1,32 @@
+# logrotate config for CORE daemon logs.
+#
+# Install: sudo ln -s /opt/dev/CORE/infra/logrotate/core-daemon \
+#                     /etc/logrotate.d/core-daemon
+# Or for --user installs: add to user crontab:
+#   0 0 * * 0 /usr/sbin/logrotate --state ~/.logrotate.state \
+#             /opt/dev/CORE/infra/logrotate/core-daemon
+#
+# Adjust the path below if CORE is installed outside /opt/dev/CORE.
+
+/opt/dev/CORE/var/log/core-daemon.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 lira lira
+    postrotate
+        systemctl --user kill --signal=HUP core-daemon.service 2>/dev/null || true
+    endscript
+}
+
+/opt/dev/CORE/var/log/core-api.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 lira lira
+}

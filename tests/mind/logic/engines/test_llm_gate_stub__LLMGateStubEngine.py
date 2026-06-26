@@ -21,7 +21,6 @@ def test_llm_gate_stub_engine_initialization():
     assert engine.engine_id == "llm_gate_stub"
 
 
-@pytest.mark.asyncio
 async def test_verify_always_returns_ok():
     """Test that verify() always returns ok=True regardless of input."""
     engine = LLMGateStubEngine()
@@ -36,7 +35,6 @@ async def test_verify_always_returns_ok():
     assert result.engine_id == "llm_gate_stub"
 
 
-@pytest.mark.asyncio
 async def test_verify_with_empty_params():
     """Test verify() with empty parameters dictionary."""
     engine = LLMGateStubEngine()
@@ -50,7 +48,6 @@ async def test_verify_with_empty_params():
     assert result.engine_id == "llm_gate_stub"
 
 
-@pytest.mark.asyncio
 async def test_verify_with_instruction_truncation_in_debug_log():
     """Test that instruction parameter is accessed but doesn't affect result."""
     engine = LLMGateStubEngine()
@@ -65,7 +62,6 @@ async def test_verify_with_instruction_truncation_in_debug_log():
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_with_special_characters_in_path():
     """Test verify() with file paths containing special characters."""
     engine = LLMGateStubEngine()
@@ -78,7 +74,6 @@ async def test_verify_with_special_characters_in_path():
     assert result.violations == []
 
 
-@pytest.mark.asyncio
 async def test_verify_with_additional_params_ignored():
     """Test that additional parameters in params dict don't affect result."""
     engine = LLMGateStubEngine()
@@ -97,7 +92,6 @@ async def test_verify_with_additional_params_ignored():
     assert result.engine_id == "llm_gate_stub"
 
 
-@pytest.mark.asyncio
 async def test_verify_returns_same_result_for_identical_calls():
     """Test that verify() returns identical results for same inputs."""
     engine = LLMGateStubEngine()
@@ -113,7 +107,6 @@ async def test_verify_returns_same_result_for_identical_calls():
     assert result1.engine_id == result2.engine_id == "llm_gate_stub"
 
 
-@pytest.mark.asyncio
 async def test_verify_with_none_instruction():
     """Test verify() when instruction is explicitly None."""
     engine = LLMGateStubEngine()

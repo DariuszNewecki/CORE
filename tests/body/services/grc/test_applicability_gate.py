@@ -34,7 +34,6 @@ def empty_corpus():
     d.rmdir()
 
 
-@pytest.mark.asyncio
 async def test_no_llm_client_degrades_to_uncertain(empty_corpus):
     """Without a judge wired, domain fit is unestablished — uncertain, not a
     silent in_scope."""
@@ -47,7 +46,6 @@ async def test_no_llm_client_degrades_to_uncertain(empty_corpus):
     assert "No LLM judge" in result.rationale
 
 
-@pytest.mark.asyncio
 async def test_empty_corpus_degrades_to_uncertain(empty_corpus):
     """A client is wired but the corpus holds no readable text → uncertain,
     and the gate is never invoked (no text to judge)."""

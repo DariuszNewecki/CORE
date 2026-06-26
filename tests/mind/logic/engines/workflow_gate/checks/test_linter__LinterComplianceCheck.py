@@ -17,7 +17,6 @@ from mind.logic.engines.workflow_gate.checks.linter import LinterComplianceCheck
 # All test functions must be async since verify() is async
 
 
-@pytest.mark.asyncio
 async def test_linter_compliance_check_initialization():
     """Test that LinterComplianceCheck can be instantiated."""
     check = LinterComplianceCheck()
@@ -25,7 +24,6 @@ async def test_linter_compliance_check_initialization():
     assert isinstance(check, LinterComplianceCheck)
 
 
-@pytest.mark.asyncio
 async def test_verify_with_file_path():
     """Test verify() with a specific file path."""
     check = LinterComplianceCheck()
@@ -40,7 +38,6 @@ async def test_verify_with_file_path():
     # We just verify the function runs without crashing
 
 
-@pytest.mark.asyncio
 async def test_verify_without_file_path():
     """Test verify() without file_path (checks entire repo)."""
     check = LinterComplianceCheck()
@@ -51,7 +48,6 @@ async def test_verify_without_file_path():
     # Default targets should be ["src", "tests"]
 
 
-@pytest.mark.asyncio
 async def test_verify_timeout_simulation():
     """Test that timeout exceptions are caught properly."""
     check = LinterComplianceCheck()
@@ -65,7 +61,6 @@ async def test_verify_timeout_simulation():
     # The timeout handling is internal to the function
 
 
-@pytest.mark.asyncio
 async def test_verify_tool_not_found_handling():
     """Test behavior when ruff/black are not installed (FileNotFoundError)."""
     check = LinterComplianceCheck()
@@ -76,7 +71,6 @@ async def test_verify_tool_not_found_handling():
     # Could contain installation messages if tools not found
 
 
-@pytest.mark.asyncio
 async def test_verify_empty_params():
     """Test verify() with empty params dictionary."""
     check = LinterComplianceCheck()
@@ -86,7 +80,6 @@ async def test_verify_empty_params():
     assert isinstance(violations, list)
 
 
-@pytest.mark.asyncio
 async def test_verify_with_non_existent_file():
     """Test verify() with a non-existent file path."""
     check = LinterComplianceCheck()
@@ -98,7 +91,6 @@ async def test_verify_with_non_existent_file():
     # Should return list (could be empty or contain error messages)
 
 
-@pytest.mark.asyncio
 async def test_verify_return_type_consistency():
     """Verify that the function always returns a list of strings."""
     check = LinterComplianceCheck()
@@ -114,7 +106,6 @@ async def test_verify_return_type_consistency():
     assert all(isinstance(item, str) for item in result2)
 
 
-@pytest.mark.asyncio
 async def test_verify_concurrent_execution():
     """Test that multiple verify() calls can run concurrently."""
     check = LinterComplianceCheck()

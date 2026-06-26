@@ -17,7 +17,6 @@ import pytest
 from mind.governance.audit_context import AuditorContext
 
 
-@pytest.mark.asyncio
 async def test_stateless_context_skips_knowledge_graph_load() -> None:
     """Stateless mode: load_knowledge_graph short-circuits without DB call.
 
@@ -34,7 +33,6 @@ async def test_stateless_context_skips_knowledge_graph_load() -> None:
     assert context.symbols_map == {}
 
 
-@pytest.mark.asyncio
 async def test_non_stateless_context_still_attempts_knowledge_graph() -> None:
     """Regression guard: stateless=False keeps the legacy code path.
 
@@ -52,7 +50,6 @@ async def test_non_stateless_context_still_attempts_knowledge_graph() -> None:
         mock_service_class.assert_called_once_with(context.repo_path)
 
 
-@pytest.mark.asyncio
 async def test_stateless_context_skips_llm_gate_cache_sweep() -> None:
     """Stateless mode: sweep_llm_gate_cache short-circuits to 0.
 

@@ -42,7 +42,6 @@ def _result(passed: bool = True, findings: list | None = None) -> dict:
     }
 
 
-@pytest.mark.asyncio
 async def test_offline_audit_exits_zero_when_no_findings(tmp_path: Path) -> None:
     """No findings >= severity floor -> EXIT_OK (0). The merge-pass path."""
     with (
@@ -63,7 +62,6 @@ async def test_offline_audit_exits_zero_when_no_findings(tmp_path: Path) -> None
     assert exc_info.value.exit_code == EXIT_OK
 
 
-@pytest.mark.asyncio
 async def test_offline_audit_exits_one_when_blocking_findings(tmp_path: Path) -> None:
     """Findings at or above severity floor -> EXIT_FINDINGS (1). Merge-block."""
     findings = [
@@ -93,7 +91,6 @@ async def test_offline_audit_exits_one_when_blocking_findings(tmp_path: Path) ->
     assert exc_info.value.exit_code == EXIT_FINDINGS
 
 
-@pytest.mark.asyncio
 async def test_offline_audit_exits_config_error_when_intent_repo_fails(
     tmp_path: Path,
 ) -> None:
@@ -119,7 +116,6 @@ async def test_offline_audit_exits_config_error_when_intent_repo_fails(
     assert exc_info.value.exit_code == EXIT_CONFIG_ERROR
 
 
-@pytest.mark.asyncio
 async def test_offline_audit_exits_internal_error_when_runner_crashes(
     tmp_path: Path,
 ) -> None:
@@ -146,7 +142,6 @@ async def test_offline_audit_exits_internal_error_when_runner_crashes(
     assert exc_info.value.exit_code == EXIT_INTERNAL_ERROR
 
 
-@pytest.mark.asyncio
 async def test_offline_json_output_emits_f_10_1a_payload_verbatim(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -182,7 +177,6 @@ async def test_offline_json_output_emits_f_10_1a_payload_verbatim(
     assert parsed["skipped_rules"][0]["engine"] == "knowledge_gate"
 
 
-@pytest.mark.asyncio
 async def test_offline_audit_passes_files_filter_through(tmp_path: Path) -> None:
     """`--files src/foo.py` reaches run_stateless_audit as the files arg.
 
@@ -209,7 +203,6 @@ async def test_offline_audit_passes_files_filter_through(tmp_path: Path) -> None
     assert mock_runner.call_args.kwargs["files"] == ["src/foo.py"]
 
 
-@pytest.mark.asyncio
 async def test_offline_json_error_payload_when_intent_repo_fails(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -241,7 +234,6 @@ async def test_offline_json_error_payload_when_intent_repo_fails(
     assert parsed["mode"] == "stateless"
 
 
-@pytest.mark.asyncio
 async def test_offline_github_annotations_emits_workflow_commands(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -294,7 +286,6 @@ async def test_offline_github_annotations_emits_workflow_commands(
     assert exc_info.value.exit_code == EXIT_FINDINGS
 
 
-@pytest.mark.asyncio
 async def test_offline_github_annotations_error_envelope_on_config_error(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

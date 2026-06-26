@@ -17,7 +17,6 @@ from body.atomic.fix_actions import action_fix_placeholders
 from shared.governance_token import authorize_execution
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_no_changes_dry_run():
     """Test when no files need placeholder fixes (dry run)."""
     mock_context = Mock()
@@ -42,7 +41,6 @@ async def test_action_fix_placeholders_no_changes_dry_run():
         assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_with_changes_dry_run():
     """Test when files need fixes but in dry run mode (write=False)."""
     mock_context = Mock()
@@ -70,7 +68,6 @@ async def test_action_fix_placeholders_with_changes_dry_run():
         assert test_file.read_text(encoding="utf-8") == content
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_with_changes_and_write():
     """Test when files need fixes and write=True."""
     mock_context = Mock()
@@ -97,7 +94,6 @@ async def test_action_fix_placeholders_with_changes_and_write():
         mock_context.file_handler.write_runtime_text.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_no_src_directory():
     """Test when src directory doesn't exist."""
     mock_context = Mock()
@@ -115,7 +111,6 @@ async def test_action_fix_placeholders_no_src_directory():
         assert result.data["written"] is False
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_empty_src_directory():
     """Test when src directory exists but has no Python files."""
     mock_context = Mock()
@@ -136,7 +131,6 @@ async def test_action_fix_placeholders_empty_src_directory():
         assert result.data["files_affected"] == 0
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_error_handling():
     """Test error handling when file reading fails."""
     mock_context = Mock()
@@ -159,7 +153,6 @@ async def test_action_fix_placeholders_error_handling():
         assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_mixed_content():
     """Test with mix of fixable and non-fixable content."""
     mock_context = Mock()
@@ -190,7 +183,6 @@ async def test_action_fix_placeholders_mixed_content():
         assert result.data["written"] is False
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_explicit_parameters():
     """Test with all parameters explicitly set."""
     mock_context = Mock()
@@ -213,7 +205,6 @@ async def test_action_fix_placeholders_explicit_parameters():
         assert result.data["written"] is True
 
 
-@pytest.mark.asyncio
 async def test_action_fix_placeholders_duration_measurement():
     """Verify duration is measured and returned."""
     mock_context = Mock()

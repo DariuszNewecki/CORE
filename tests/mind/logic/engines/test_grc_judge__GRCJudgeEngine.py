@@ -55,7 +55,6 @@ def _engine(path_resolver, *, return_value=None, side_effect=None):
     return engine, invoke_mock
 
 
-@pytest.mark.asyncio
 async def test_requirement_satisfied(path_resolver, tmp_doc):
     """violation=False → ok=True, no findings (the document satisfies it)."""
     engine, invoke_mock = _engine(
@@ -76,7 +75,6 @@ async def test_requirement_satisfied(path_resolver, tmp_doc):
     invoke_mock.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_compliance_gap_with_finding(path_resolver, tmp_doc):
     """violation=True with a finding → ok=False, finding propagated as the gap."""
     engine, _ = _engine(
@@ -100,7 +98,6 @@ async def test_compliance_gap_with_finding(path_resolver, tmp_doc):
     assert result.engine_id == "grc_judge"
 
 
-@pytest.mark.asyncio
 async def test_gap_falls_back_to_reasoning_when_no_finding(path_resolver, tmp_doc):
     """violation=True but finding=None → reasoning becomes the gap text."""
     engine, _ = _engine(
@@ -119,7 +116,6 @@ async def test_gap_falls_back_to_reasoning_when_no_finding(path_resolver, tmp_do
     assert result.violations == ["Silent on MFA"]
 
 
-@pytest.mark.asyncio
 async def test_file_read_error_skips_invoke(path_resolver):
     """File read fails → IO Error result, the prompt is never invoked."""
     engine, invoke_mock = _engine(path_resolver)
@@ -133,7 +129,6 @@ async def test_file_read_error_skips_invoke(path_resolver):
     invoke_mock.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_ai_failure_is_unavailable_not_gap(path_resolver, tmp_doc):
     """invoke raises → ENFORCEMENT_UNAVAILABLE with the shared offline marker
     (so rule_executor aggregates it rather than counting a false gap)."""
@@ -148,7 +143,6 @@ async def test_ai_failure_is_unavailable_not_gap(path_resolver, tmp_doc):
     assert result.violations == ["SYSTEM_ERROR_AI_OFFLINE"]
 
 
-@pytest.mark.asyncio
 async def test_invalid_json_is_unavailable(path_resolver, tmp_doc):
     """Non-JSON response → same UNAVAILABLE path (never a silent pass)."""
     engine, _ = _engine(path_resolver, return_value="not json")

@@ -29,7 +29,6 @@ def _rule(rule_id: str, engine: str) -> ExecutableRule:
     return ExecutableRule(rule_id=rule_id, engine=engine, params={}, enforcement="error")
 
 
-@pytest.mark.asyncio
 async def test_declared_but_zero_mapped_fails_closed(tmp_path: Path) -> None:
     """Rules declared + none mapped to an engine -> ERROR verdict, not PASS."""
     intent_repo = MagicMock()
@@ -57,7 +56,6 @@ async def test_declared_but_zero_mapped_fails_closed(tmp_path: Path) -> None:
     mock_runner.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_empty_constitution_does_not_fail_closed(tmp_path: Path) -> None:
     """No rules declared at all is legitimately nothing to enforce -> not ERROR."""
     intent_repo = MagicMock()
@@ -82,7 +80,6 @@ async def test_empty_constitution_does_not_fail_closed(tmp_path: Path) -> None:
     mock_runner.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_mapped_rules_do_not_fail_closed(tmp_path: Path) -> None:
     """Declared rules that DO map to an engine run normally -> not ERROR."""
     intent_repo = MagicMock()

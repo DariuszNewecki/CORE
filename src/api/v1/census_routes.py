@@ -133,7 +133,7 @@ async def create_census_run(
     return {
         "run_id": str(run_id),
         "status": "pending",
-        "href": f"/census/runs/{run_id}",
+        "href": f"/v1/census/runs/{run_id}",
     }
 
 

@@ -40,7 +40,6 @@ def _mock_session_returning(new_id):
     return session
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "handler, expected_sync_type",
     [
@@ -88,7 +87,6 @@ async def test_each_sync_endpoint_dispatches_with_correct_sync_type(
     assert insert_params["write"] is write
 
 
-@pytest.mark.asyncio
 async def test_get_sync_run_returns_row():
     run_id = uuid4()
     session = AsyncMock()
@@ -115,7 +113,6 @@ async def test_get_sync_run_returns_row():
     assert out["status"] == "completed"
 
 
-@pytest.mark.asyncio
 async def test_get_sync_run_returns_404_when_missing():
     from fastapi import HTTPException
 

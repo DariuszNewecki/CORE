@@ -42,14 +42,12 @@ def service(mock_qdrant):
 class TestGovernanceClaimsService:
     """Test suite for GovernanceClaimsService."""
 
-    @pytest.mark.asyncio
     async def test_init_sets_qdrant_and_vector_size(self, mock_qdrant):
         """__init__ should store qdrant and vector_size."""
         svc = GovernanceClaimsService(qdrant=mock_qdrant, vector_size=512)
         assert svc._qdrant is mock_qdrant
         assert svc._vector_size == 512
 
-    @pytest.mark.asyncio
     async def test_init_uses_default_vector_size(self, mock_qdrant):
         """__init__ should default vector_size to 768."""
         svc = GovernanceClaimsService(qdrant=mock_qdrant)
@@ -59,7 +57,6 @@ class TestGovernanceClaimsService:
         """collection_name property should return the collection name constant."""
         assert service.collection_name == "governance_claims"
 
-    @pytest.mark.asyncio
     async def test_ensure_collection_delegates_to_qdrant(self, service, mock_qdrant):
         """ensure_collection should call qdrant.ensure_collection with collection name and vector size."""
         await service.ensure_collection()
@@ -68,7 +65,6 @@ class TestGovernanceClaimsService:
             vector_size=768,
         )
 
-    @pytest.mark.asyncio
     async def test_is_seeded_returns_true_when_collection_exists_and_has_points(
         self, service, mock_qdrant
     ):
@@ -92,7 +88,6 @@ class TestGovernanceClaimsService:
         result = await service.is_seeded()
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_is_seeded_returns_false_when_collection_missing(
         self, service, mock_qdrant
     ):
@@ -101,7 +96,6 @@ class TestGovernanceClaimsService:
         result = await service.is_seeded()
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_is_seeded_returns_false_when_count_is_zero(
         self, service, mock_qdrant
     ):
@@ -120,14 +114,12 @@ class TestGovernanceClaimsService:
         result = await service.is_seeded()
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_is_seeded_returns_false_on_exception(self, service, mock_qdrant):
         """is_seeded should return False when get_collections raises an exception."""
         mock_qdrant.client.get_collections.side_effect = Exception("Qdrant error")
         result = await service.is_seeded()
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_current_keys_returns_set_of_tuples(self, service, mock_qdrant):
         """current_keys should return a set of (source_path, content_sha) tuples from scroll_all_points."""
         mock_qdrant.scroll_all_points.return_value = [
@@ -137,7 +129,6 @@ class TestGovernanceClaimsService:
         result = await service.current_keys()
         assert result == {("/path/a", "sha1"), ("/path/b", "sha2")}
 
-    @pytest.mark.asyncio
     async def test_current_keys_returns_empty_set_when_no_points(
         self, service, mock_qdrant
     ):
@@ -146,7 +137,6 @@ class TestGovernanceClaimsService:
         result = await service.current_keys()
         assert result == set()
 
-    @pytest.mark.asyncio
     async def test_delete_by_keys_with_empty_keys_returns_zero(
         self, service, mock_qdrant
     ):
@@ -155,7 +145,6 @@ class TestGovernanceClaimsService:
         assert result == 0
         mock_qdrant.client.delete.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_delete_by_keys_deletes_points_and_returns_count(
         self, service, mock_qdrant
     ):
@@ -182,7 +171,6 @@ class TestGovernanceClaimsService:
             assert hasattr(selector, "points")
             assert list(selector.points) == ["mock-point-id", "mock-point-id"]
 
-    @pytest.mark.asyncio
     async def test_delete_by_source_path_deletes_with_filter(
         self, service, mock_qdrant
     ):
@@ -199,7 +187,6 @@ class TestGovernanceClaimsService:
         assert hasattr(filter_selector, "filter")
         assert hasattr(filter_selector.filter, "must")
 
-    @pytest.mark.asyncio
     async def test_upsert_claims_with_empty_items_returns_zero(
         self, service, mock_qdrant
     ):
@@ -213,7 +200,6 @@ class TestGovernanceClaimsService:
         assert result == 0
         mock_qdrant.upsert_points.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_upsert_claims_creates_point_structs_and_returns_count(
         self, service, mock_qdrant
     ):
@@ -252,7 +238,6 @@ class TestGovernanceClaimsService:
             assert result == 2
             mock_qdrant.upsert_points.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_search_returns_list_of_search_hits(self, service, mock_qdrant):
         """search should return a list of SearchHit objects from Qdrant response.
 
@@ -283,7 +268,6 @@ class TestGovernanceClaimsService:
         assert hit.content_sha == "sha1"
         assert hit.category == "normative"
 
-    @pytest.mark.asyncio
     async def test_search_applies_source_path_filter(self, service, mock_qdrant):
         """search should pass filter when source_path_in is provided."""
         mock_qdrant.search.return_value = []
@@ -298,7 +282,6 @@ class TestGovernanceClaimsService:
         assert call_kwargs["query_filter"] is not None
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_search_with_score_threshold(self, service, mock_qdrant):
         """search should pass score_threshold to Qdrant query."""
         mock_qdrant.search.return_value = [

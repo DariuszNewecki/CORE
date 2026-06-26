@@ -168,7 +168,6 @@ def test_chunk_sections_numeric_stem_becomes_section_id(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_searcher_returns_empty_on_qdrant_error() -> None:
     """If Qdrant raises (absent collection, unreachable service), search returns []."""
     mock_qdrant = MagicMock()
@@ -185,7 +184,6 @@ async def test_searcher_returns_empty_on_qdrant_error() -> None:
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_searcher_returns_text_from_payload() -> None:
     """When Qdrant returns hits, search returns their payload text."""
     hit = MagicMock()
@@ -205,7 +203,6 @@ async def test_searcher_returns_text_from_payload() -> None:
     assert result == ["Control text passage."]
 
 
-@pytest.mark.asyncio
 async def test_searcher_skips_hits_without_text() -> None:
     """Hits with empty / missing payload text are excluded from results."""
     hit_with_text = MagicMock()

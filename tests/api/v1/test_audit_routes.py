@@ -23,7 +23,6 @@ from api.v1.audit_routes import (
 )
 
 
-@pytest.mark.asyncio
 async def test_create_audit_run_async_returns_pending_with_run_id():
     """`wait=false` path inserts a pending row, schedules background task,
     and returns {run_id, status:'pending'} with response.status_code 202."""
@@ -59,7 +58,6 @@ async def test_create_audit_run_async_returns_pending_with_run_id():
     session.commit.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_create_audit_run_sync_returns_full_result_inline():
     """`wait=true` path returns the run_sync_audit result dict in-band
     (status 200). The route is a pass-through to run_sync_audit."""
@@ -103,7 +101,6 @@ async def test_create_audit_run_sync_returns_full_result_inline():
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
 async def test_get_audit_run_returns_full_record_with_findings():
     """GET returns the persisted row including the findings list
     (#340 closure: findings denormalized on audit_runs.findings)."""
@@ -144,7 +141,6 @@ async def test_get_audit_run_returns_full_record_with_findings():
     assert out["findings"] == findings_payload
 
 
-@pytest.mark.asyncio
 async def test_get_audit_run_findings_defaults_to_empty_list_for_legacy_rows():
     """Pre-#340 rows have findings=None — route returns [] not null."""
     rid = uuid4()
@@ -169,7 +165,6 @@ async def test_get_audit_run_findings_defaults_to_empty_list_for_legacy_rows():
     assert out["findings"] == []
 
 
-@pytest.mark.asyncio
 async def test_get_audit_run_unknown_id_raises_404():
     """Unknown run_id raises HTTPException(404) with detail message."""
     rid = uuid4()

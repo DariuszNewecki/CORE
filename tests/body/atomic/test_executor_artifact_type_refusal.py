@@ -63,7 +63,6 @@ def _stub_definition(artifact_type: tuple[str, ...]) -> ActionDefinition:
 
 
 # ID: f56fa5f9-785c-4b2f-902e-eb3bd25f4eaf
-@pytest.mark.asyncio
 async def test_executor_refuses_dispatch_on_unregistered_artifact_type() -> None:
     """ADR-092 D1: action declaring unregistered artifact_type → refused dispatch.
 

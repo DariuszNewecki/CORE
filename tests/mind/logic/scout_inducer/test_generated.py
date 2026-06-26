@@ -42,7 +42,6 @@ class TestScoutInducerInit:
 class TestScoutInducerPropose:
     """Tests for ScoutInducer.propose."""
 
-    @pytest.mark.asyncio
     # ID: c9ce42ac-ca45-4ae7-8f37-3eeaed7be501
     async def test_propose_happy_path(self, inducer: ScoutInducer) -> None:
         """propose returns candidates when LLM responds with valid data."""
@@ -69,7 +68,6 @@ class TestScoutInducerPropose:
 
         assert result == [candidate]
 
-    @pytest.mark.asyncio
     # ID: 38f95cab-1bac-4a2a-9731-44eee2640d86
     async def test_propose_calls_prompt_model_with_context(
         self, inducer: ScoutInducer
@@ -90,7 +88,6 @@ class TestScoutInducerPropose:
             user_id="scout_rule_inducer",
         )
 
-    @pytest.mark.asyncio
     # ID: 034f653e-ab22-4660-ae0f-0bb4dc683ec0
     async def test_propose_returns_empty_on_prompt_model_error(
         self, inducer: ScoutInducer
@@ -103,7 +100,6 @@ class TestScoutInducerPropose:
         result = await inducer.propose("signal text")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: f67a859f-5faa-4e55-bf39-a375b151dcbb
     async def test_propose_returns_empty_on_extract_json_error(
         self, inducer: ScoutInducer
@@ -119,7 +115,6 @@ class TestScoutInducerPropose:
             result = await inducer.propose("signal text")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: 3413a1c0-b591-4f5a-b24f-667b441d158e
     async def test_propose_returns_empty_when_response_not_dict(
         self, inducer: ScoutInducer
@@ -133,7 +128,6 @@ class TestScoutInducerPropose:
             result = await inducer.propose("signal text")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: 55cd1025-07be-48b8-ba27-52030a1459fa
     async def test_propose_returns_empty_when_candidates_missing(
         self, inducer: ScoutInducer
@@ -149,7 +143,6 @@ class TestScoutInducerPropose:
             result = await inducer.propose("signal text")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: cbec0534-ab6d-4515-804b-14d2855141e6
     async def test_propose_returns_empty_when_candidates_not_list(
         self, inducer: ScoutInducer
@@ -168,7 +161,6 @@ class TestScoutInducerPropose:
             result = await inducer.propose("signal text")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: 75492896-50ad-4959-a4b8-90033a0d350a
     async def test_propose_filters_invalid_candidates(
         self, inducer: ScoutInducer
@@ -190,7 +182,6 @@ class TestScoutInducerPropose:
         assert result == [valid_candidate]
         mock_logger.warning.assert_called_once()
 
-    @pytest.mark.asyncio
     # ID: 611a4343-a553-4344-9ae0-2bd2e7a9326d
     async def test_propose_filters_non_dict_candidates(
         self, inducer: ScoutInducer
@@ -208,7 +199,6 @@ class TestScoutInducerPropose:
 
         assert result == [{"rule_id": "ok"}]
 
-    @pytest.mark.asyncio
     # ID: f4636019-8754-48e6-ad3f-d6342f307b90
     async def test_propose_returns_empty_list_on_empty_signals(
         self, inducer: ScoutInducer
@@ -224,7 +214,6 @@ class TestScoutInducerPropose:
             result = await inducer.propose("")
         assert result == []
 
-    @pytest.mark.asyncio
     # ID: 33cbed4a-dd9d-4f33-8603-7a8a729a5035
     async def test_propose_returns_correct_type(self, inducer: ScoutInducer) -> None:
         """propose always returns a list."""

@@ -208,7 +208,6 @@ class TestHealFile:
         model.manifest.role = "writer"
         return model
 
-    @pytest.mark.asyncio
     async def test_returns_zero_when_file_not_found(
         self, mock_context, mock_prompt_model
     ):
@@ -218,7 +217,6 @@ class TestHealFile:
         )
         assert result == 0
 
-    @pytest.mark.asyncio
     async def test_returns_zero_for_already_documented(
         self, mock_context, mock_prompt_model, tmp_path
     ):
@@ -230,7 +228,6 @@ class TestHealFile:
         )
         assert result == 0
 
-    @pytest.mark.asyncio
     async def test_inserts_docstring_for_undocumented(
         self, mock_context, mock_prompt_model, tmp_path
     ):
@@ -271,7 +268,6 @@ class TestAsyncFixDocstrings:
         ctx.cognitive_service.aget_client_for_role = AsyncMock()
         return ctx
 
-    @pytest.mark.asyncio
     async def test_targeted_mode_calls_heal_file_with_normalized_path(
         self, mock_context
     ):
@@ -285,7 +281,6 @@ class TestAsyncFixDocstrings:
             args, _ = mock_heal.call_args
             assert args[1] == "src/app/module.py"
 
-    @pytest.mark.asyncio
     async def test_sweep_mode_limits_files(self, mock_context):
         with patch(
             "body.self_healing.docstring_service._iter_scope_files"
@@ -309,7 +304,6 @@ class TestFixDocstrings:
         ctx = Mock(spec=["file_handler", "cognitive_service", "git_service"])
         return ctx
 
-    @pytest.mark.asyncio
     async def test_delegates_to_async_fix_with_inverted_dry_run(self, mock_context):
         with patch(
             "body.self_healing.docstring_service._async_fix_docstrings",
@@ -320,7 +314,6 @@ class TestFixDocstrings:
                 context=mock_context, dry_run=False, limit=0, file_path="test.py"
             )
 
-    @pytest.mark.asyncio
     async def test_write_false_sets_dry_run_true(self, mock_context):
         with patch(
             "body.self_healing.docstring_service._async_fix_docstrings",

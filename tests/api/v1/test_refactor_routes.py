@@ -34,7 +34,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 async def test_autonomous_dry_run_inserts_and_schedules():
     """POST /refactor/autonomous with write=false inserts a pending row,
     schedules the A3 loop, and returns 202. Closes ADR-057 verification #3
@@ -73,7 +72,6 @@ async def test_autonomous_dry_run_inserts_and_schedules():
     background_tasks.add_task.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_autonomous_circuit_breaker_failure_persists_on_row():
     """When the A3 loop trips the circuit breaker (ADR-038), the facade
     records the failure on the row. The route handler still returns 202
@@ -121,7 +119,6 @@ async def test_autonomous_circuit_breaker_failure_persists_on_row():
     assert len(captured_tasks) == 1
 
 
-@pytest.mark.asyncio
 async def test_get_refactor_run_returns_row():
     run_id = uuid4()
     session = AsyncMock()
@@ -146,7 +143,6 @@ async def test_get_refactor_run_returns_row():
     assert out["goal"] == "Improve modularity"
 
 
-@pytest.mark.asyncio
 async def test_get_refactor_run_returns_404_when_missing():
     session = AsyncMock()
     result_obj = MagicMock()
@@ -157,7 +153,6 @@ async def test_get_refactor_run_returns_404_when_missing():
     assert exc.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_refactor_threshold_delegates_to_facade():
     request = _mock_request_with_context()
     with patch(
@@ -168,7 +163,6 @@ async def test_refactor_threshold_delegates_to_facade():
     assert out == {"threshold": 60.0}
 
 
-@pytest.mark.asyncio
 async def test_refactor_score_404_when_facade_reports_missing():
     request = _mock_request_with_context()
     with patch(
@@ -185,7 +179,6 @@ async def test_refactor_score_404_when_facade_reports_missing():
     assert exc.value.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_refactor_score_returns_facade_payload_when_present():
     request = _mock_request_with_context()
     payload = {"file": "src/x.py", "found": True, "score": 73.0, "details": {}}
@@ -197,7 +190,6 @@ async def test_refactor_score_returns_facade_payload_when_present():
     assert out == payload
 
 
-@pytest.mark.asyncio
 async def test_refactor_candidates_passes_filters():
     request = _mock_request_with_context()
     with patch(
@@ -211,7 +203,6 @@ async def test_refactor_candidates_passes_filters():
     assert "candidates" in out
 
 
-@pytest.mark.asyncio
 async def test_refactor_stats_delegates_to_facade():
     request = _mock_request_with_context()
     with patch(

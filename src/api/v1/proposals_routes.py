@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import get_api_session, require_role
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import (
@@ -214,6 +214,7 @@ async def get_proposal(
 @router.post(
     "/{proposal_id}/approve",
     summary="Approve a pending proposal",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Approve a proposal awaiting governance review. `approval_authority` "
         "is non-omittable per URS NFR.5 and validated against the "
@@ -226,19 +227,22 @@ async def get_proposal(
 async def approve_proposal(
     proposal_id: str,
     payload: ApproveRequest,
+    user: dict = require_role("platform_admin"),
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """Approve a pending proposal.
 
     `approval_authority` is non-omittable per URS NFR.5 and validated
     against the proposal_approval_authority closed set inside
-    ProposalStateManager.approve.
+    ProposalStateManager.approve. `approved_by` is derived from the
+    authenticated JWT (sub) — caller-supplied identity claims are ignored.
     """
+    approved_by = user.get("email") or user.get("sub", "unknown")
     service = ProposalService(session)
     try:
         await service.approve(
             proposal_id,
-            approved_by=payload.approved_by,
+            approved_by=approved_by,
             approval_authority=payload.approval_authority,
         )
     except ProposalNotFoundError as exc:
@@ -250,7 +254,7 @@ async def approve_proposal(
         "ok": True,
         "proposal_id": proposal_id,
         "status": ProposalStatus.APPROVED.value,
-        "approved_by": payload.approved_by,
+        "approved_by": approved_by,
         "approval_authority": payload.approval_authority,
     }
 
@@ -299,6 +303,7 @@ async def reject_proposal(
 @router.post(
     "/{proposal_id}/execute",
     summary="Execute an approved proposal",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Execute an approved proposal as a governor-direct override. "
         'Defaults to dry-run; pass `{"write": true}` to apply changes. '

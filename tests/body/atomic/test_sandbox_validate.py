@@ -17,7 +17,6 @@ import pytest
 from body.atomic.test_actions import action_test_sandbox_validate
 
 
-@pytest.mark.asyncio
 async def test_refuses_with_no_target() -> None:
     fn = action_test_sandbox_validate.__wrapped__
     result = await fn(source_file=None, test_file=None)

@@ -32,7 +32,6 @@ def _capture_console() -> tuple[Console, io.StringIO]:
     )
 
 
-@pytest.mark.asyncio
 async def test_advisory_no_runs_recorded():
     service = Mock(spec=CoherenceService)
     service.get_unreviewed_summary = AsyncMock(
@@ -48,7 +47,6 @@ async def test_advisory_no_runs_recorded():
     assert "core-admin coherence check --full" in out
 
 
-@pytest.mark.asyncio
 async def test_advisory_open_runs_reports_counts():
     service = Mock(spec=CoherenceService)
     service.get_unreviewed_summary = AsyncMock(
@@ -69,7 +67,6 @@ async def test_advisory_open_runs_reports_counts():
     assert "clean" not in out
 
 
-@pytest.mark.asyncio
 async def test_advisory_all_closed_reports_clean_with_date():
     service = Mock(spec=CoherenceService)
     service.get_unreviewed_summary = AsyncMock(

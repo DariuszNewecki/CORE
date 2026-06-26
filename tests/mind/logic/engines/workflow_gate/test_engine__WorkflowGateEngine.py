@@ -24,7 +24,6 @@ def path_resolver():
     return MagicMock()
 
 
-@pytest.mark.asyncio
 async def test_verify_missing_check_type(path_resolver):
     """Test verify with missing check_type parameter."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -37,7 +36,6 @@ async def test_verify_missing_check_type(path_resolver):
     assert result.engine_id == "workflow_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_invalid_check_type(path_resolver):
     """Test verify with unsupported check_type."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -50,7 +48,6 @@ async def test_verify_invalid_check_type(path_resolver):
     assert result.engine_id == "workflow_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_with_none_file_path(path_resolver):
     """Test verify with None file_path."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -59,7 +56,6 @@ async def test_verify_with_none_file_path(path_resolver):
     assert result.engine_id == "workflow_gate"
 
 
-@pytest.mark.asyncio
 async def test_verify_exception_handling(path_resolver):
     """Test that verify handles exceptions from check logic."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -85,7 +81,6 @@ async def test_verify_exception_handling(path_resolver):
         engine._checks = original_checks
 
 
-@pytest.mark.asyncio
 async def test_verify_context_successful_check(path_resolver):
     """Test verify_context with a successful check (no violations)."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -107,7 +102,6 @@ async def test_verify_context_successful_check(path_resolver):
         engine._checks = original_checks
 
 
-@pytest.mark.asyncio
 async def test_verify_successful_check(path_resolver):
     """Test verify with a successful check (no violations)."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)
@@ -132,7 +126,6 @@ async def test_verify_successful_check(path_resolver):
         engine._checks = original_checks
 
 
-@pytest.mark.asyncio
 async def test_verify_with_violations(path_resolver):
     """Test verify with check that returns violations."""
     engine = WorkflowGateEngine(path_resolver=path_resolver)

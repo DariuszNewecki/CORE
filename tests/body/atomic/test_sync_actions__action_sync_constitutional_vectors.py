@@ -14,7 +14,6 @@ from body.atomic.sync_actions import action_sync_constitutional_vectors
 from shared.governance_token import authorize_execution
 
 
-@pytest.mark.asyncio
 async def test_action_sync_constitutional_vectors_dry_run():
     """Test dry-run mode returns skipped ActionResult."""
     mock_context = Mock()
@@ -28,7 +27,6 @@ async def test_action_sync_constitutional_vectors_dry_run():
     assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_sync_constitutional_vectors_no_cognitive_service():
     """Test when cognitive service is unavailable."""
     mock_context = Mock()
@@ -44,7 +42,6 @@ async def test_action_sync_constitutional_vectors_no_cognitive_service():
     assert isinstance(result.duration_sec, float)
 
 
-@pytest.mark.asyncio
 async def test_action_sync_constitutional_vectors_embedding_service_unavailable():
     """Test when embedding service test fails."""
     mock_context = Mock()
@@ -62,7 +59,6 @@ async def test_action_sync_constitutional_vectors_embedding_service_unavailable(
     assert isinstance(result.duration_sec, float)
 
 
-@pytest.mark.asyncio
 async def test_action_sync_constitutional_vectors_exception_handling():
     """Test exception handling when vectorization fails."""
     mock_context = Mock()

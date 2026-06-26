@@ -11,7 +11,6 @@ import pytest
 from body.evaluators.failure_evaluator import FailureEvaluator
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_invalid_import():
     """Test ModuleNotFoundError and ImportError patterns."""
     evaluator = FailureEvaluator()
@@ -23,7 +22,6 @@ async def test_extract_pattern_invalid_import():
     assert evaluator._extract_pattern(error3) == "invalid_import"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_nameerror():
     """Test NameError pattern detection."""
     evaluator = FailureEvaluator()
@@ -33,7 +31,6 @@ async def test_extract_pattern_nameerror():
     assert evaluator._extract_pattern(error2) == "logic_error_missing_name"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_type_introspection():
     """Test type introspection patterns with isinstance and ClassVar/Mapped."""
     evaluator = FailureEvaluator()
@@ -52,7 +49,6 @@ async def test_extract_pattern_type_introspection():
     assert evaluator._extract_pattern(error4) != "type_introspection"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_attributeerror_mocks():
     """Test AttributeError patterns: source distinguishes mock-shaped from
     generic. The word "mock" in the message routes to mock_placement; any
@@ -73,7 +69,6 @@ async def test_extract_pattern_attributeerror_mocks():
     assert evaluator._extract_pattern(error4) == "attribute_error_generic"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_assertionerror():
     """Test AssertionError pattern classification: source distinguishes
     object-identity (substring '0x' present) from other comparisons. The
@@ -89,7 +84,6 @@ async def test_extract_pattern_assertionerror():
     assert evaluator._extract_pattern(error3) == "assertion_comparison"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_sqlalchemy():
     """Test SQLAlchemy related patterns: source distinguishes session
     errors (substring 'session' present) from generic. There is no
@@ -104,7 +98,6 @@ async def test_extract_pattern_sqlalchemy():
     assert evaluator._extract_pattern(error3) == "sqlalchemy_generic"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_runtime_constraints():
     """Test timeout and fixture patterns: source keys on the literal
     substring 'timeout' (one word, not 'timed out') and 'fixture'.
@@ -122,7 +115,6 @@ async def test_extract_pattern_runtime_constraints():
     assert evaluator._extract_pattern(error4) == "fixture_error"
 
 
-@pytest.mark.asyncio
 async def test_extract_pattern_unknown():
     """Test fallback to unknown pattern."""
     evaluator = FailureEvaluator()
@@ -131,7 +123,6 @@ async def test_extract_pattern_unknown():
     assert evaluator._extract_pattern("") == "unknown"
 
 
-@pytest.mark.asyncio
 async def test_execute_first_occurrence():
     """Test execute with first occurrence of a pattern."""
     evaluator = FailureEvaluator()
@@ -145,7 +136,6 @@ async def test_execute_first_occurrence():
     assert result.next_suggested == "test_generator"
 
 
-@pytest.mark.asyncio
 async def test_execute_second_occurrence():
     """Test execute with second occurrence of same pattern."""
     evaluator = FailureEvaluator()
@@ -160,7 +150,6 @@ async def test_execute_second_occurrence():
     assert result.next_suggested == "test_generator"
 
 
-@pytest.mark.asyncio
 async def test_execute_third_occurrence():
     """Test execute with third occurrence triggers strategy switch."""
     evaluator = FailureEvaluator()
@@ -175,7 +164,6 @@ async def test_execute_third_occurrence():
     assert result.next_suggested == "test_strategist"
 
 
-@pytest.mark.asyncio
 async def test_execute_multiple_patterns():
     """Test execute with mixed pattern history."""
     evaluator = FailureEvaluator()
@@ -191,7 +179,6 @@ async def test_execute_multiple_patterns():
     assert result.data["recommendation"] == "retry"
 
 
-@pytest.mark.asyncio
 async def test_execute_empty_pattern_history():
     """Test execute with empty pattern history list."""
     evaluator = FailureEvaluator()
@@ -202,7 +189,6 @@ async def test_execute_empty_pattern_history():
     assert result.metadata["pattern_history"] == ["invalid_import"]
 
 
-@pytest.mark.asyncio
 async def test_get_pattern_summary_empty():
     """Test pattern summary with empty history. Source's empty-history
     branch returns {total, unique, patterns} only — the ``most_common``
@@ -217,7 +203,6 @@ async def test_get_pattern_summary_empty():
     assert summary["patterns"] == {}
 
 
-@pytest.mark.asyncio
 async def test_get_pattern_summary_single_pattern():
     """Test pattern summary with single pattern repeated."""
     evaluator = FailureEvaluator()
@@ -229,7 +214,6 @@ async def test_get_pattern_summary_single_pattern():
     assert summary["patterns"] == {"invalid_import": 3}
 
 
-@pytest.mark.asyncio
 async def test_get_pattern_summary_multiple_patterns():
     """Test pattern summary with multiple distinct patterns."""
     evaluator = FailureEvaluator()
@@ -250,7 +234,6 @@ async def test_get_pattern_summary_multiple_patterns():
     }
 
 
-@pytest.mark.asyncio
 async def test_execute_result_structure():
     """Verify complete ComponentResult structure."""
     evaluator = FailureEvaluator()
@@ -271,7 +254,6 @@ async def test_execute_result_structure():
     assert "patterns" in summary
 
 
-@pytest.mark.asyncio
 async def test_case_insensitive_pattern_matching():
     """Test that pattern matching is case insensitive. Plain AssertionError
     without '0x' or 'mock' routes to assertion_comparison (the retired

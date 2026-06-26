@@ -11,7 +11,6 @@ import pytest
 # Detected return type: The function is async and returns None, raising typer.Exit on failure.
 
 
-@pytest.mark.asyncio
 async def test_list_secrets_success():
     """Test successful listing of secrets."""
     # This test requires mocking _list_secrets_internal to return a successful result.
@@ -22,7 +21,6 @@ async def test_list_secrets_success():
     pass
 
 
-@pytest.mark.asyncio
 async def test_list_secrets_failure():
     """Test that typer.Exit is raised on failure."""
     # Similarly, this requires mocking _list_secrets_internal to return a failure result.

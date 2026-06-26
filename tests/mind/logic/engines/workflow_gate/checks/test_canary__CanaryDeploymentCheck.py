@@ -16,7 +16,6 @@ from mind.logic.engines.workflow_gate.checks.canary import CanaryDeploymentCheck
 # Function is async: all test functions must be async and use await
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_true():
     """Test when canary_passed is True - should return empty list."""
     check = CanaryDeploymentCheck()
@@ -26,7 +25,6 @@ async def test_canary_passed_true():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_false():
     """Test when canary_passed is False - should return violation message."""
     check = CanaryDeploymentCheck()
@@ -38,7 +36,6 @@ async def test_canary_passed_false():
     ]
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_missing():
     """Test when canary_passed key is missing - should return violation message."""
     check = CanaryDeploymentCheck()
@@ -50,7 +47,6 @@ async def test_canary_passed_missing():
     ]
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_explicit_false():
     """Test when canary_passed is explicitly set to False."""
     check = CanaryDeploymentCheck()
@@ -60,7 +56,6 @@ async def test_canary_passed_explicit_false():
     ]
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_with_none_file_path():
     """Test with None file_path parameter."""
     check = CanaryDeploymentCheck()
@@ -68,7 +63,6 @@ async def test_canary_passed_with_none_file_path():
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_false_with_additional_params():
     """Test when canary_passed is False with additional parameters."""
     check = CanaryDeploymentCheck()
@@ -85,7 +79,6 @@ async def test_canary_passed_false_with_additional_params():
     ]
 
 
-@pytest.mark.asyncio
 async def test_canary_passed_true_with_additional_params():
     """Test when canary_passed is True with additional parameters."""
     check = CanaryDeploymentCheck()

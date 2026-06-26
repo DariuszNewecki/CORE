@@ -373,7 +373,6 @@ class TestRunDynamicRules:
             classmethod(lambda cls, _engine_id: _NonStubEngine()),
         )
 
-    @pytest.mark.asyncio
     async def test_empty_executable_rules(self, mock_context, monkeypatch):
         execute_rule_mock = AsyncMock(return_value=[])
         self._patch_boundaries(
@@ -389,7 +388,6 @@ class TestRunDynamicRules:
         assert results == []
         execute_rule_mock.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_single_rule_executes_successfully(self, mock_context, monkeypatch):
         rule = _make_executable_rule("r1")
         execute_rule_mock = AsyncMock(return_value=[])
@@ -405,7 +403,6 @@ class TestRunDynamicRules:
         assert "r1" not in crashed
         execute_rule_mock.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_rule_crash_produces_enforcement_failure(
         self, mock_context, monkeypatch
     ):
@@ -429,7 +426,6 @@ class TestRunDynamicRules:
         assert finding.check_id == "crash_rule"
         assert finding.context["finding_type"] == "ENFORCEMENT_FAILURE"
 
-    @pytest.mark.asyncio
     async def test_crashed_rule_ids_defaults_to_none(self, mock_context, monkeypatch):
         rule = _make_executable_rule("r1")
         execute_rule_mock = AsyncMock(return_value=[])
@@ -440,7 +436,6 @@ class TestRunDynamicRules:
         await run_dynamic_rules(mock_context, executed_rule_ids=executed)
         assert "r1" in executed
 
-    @pytest.mark.asyncio
     async def test_multiple_rules_all_succeed(self, mock_context, monkeypatch):
         rules = [_make_executable_rule(f"r{i}") for i in range(3)]
         execute_rule_mock = AsyncMock(return_value=[])
@@ -456,7 +451,6 @@ class TestRunDynamicRules:
         assert crashed == set()
         assert execute_rule_mock.await_count == 3
 
-    @pytest.mark.asyncio
     async def test_mixed_success_and_failure(self, mock_context, monkeypatch):
         good_rule = _make_executable_rule("good")
         bad_rule = _make_executable_rule("bad")

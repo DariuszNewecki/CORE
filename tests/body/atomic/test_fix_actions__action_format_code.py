@@ -21,7 +21,6 @@ from body.atomic.fix_actions import action_format_code
 from shared.governance_token import authorize_execution
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_basic():
     """Test basic formatting without writing."""
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
@@ -35,7 +34,6 @@ async def test_action_format_code_basic():
         assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_with_write():
     """Test formatting with write=True."""
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
@@ -49,7 +47,6 @@ async def test_action_format_code_with_write():
         assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_explicit_false():
     """Test with explicit write=False parameter."""
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
@@ -59,7 +56,6 @@ async def test_action_format_code_explicit_false():
         assert not result.data["write"]
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_duration_calculation():
     """Verify duration_sec is a non-negative float."""
     with patch("body.self_healing.code_style_service.format_code"):
@@ -69,7 +65,6 @@ async def test_action_format_code_duration_calculation():
         assert result.duration_sec >= 0
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_always_true_formatted():
     """Verify formatted is always True in data."""
     with patch("body.self_healing.code_style_service.format_code"):
@@ -78,7 +73,6 @@ async def test_action_format_code_always_true_formatted():
         assert result.data["formatted"]
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_format_code_called():
     """Verify format_code() is always called exactly once."""
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
@@ -88,7 +82,6 @@ async def test_action_format_code_format_code_called():
         mock_format.assert_called_once_with(path=None, write=False, cwd=None)
 
 
-@pytest.mark.asyncio
 async def test_action_format_code_threads_worktree_cwd():
     """#638: a scoped core_context routes ruff's cwd into the flow worktree.
 

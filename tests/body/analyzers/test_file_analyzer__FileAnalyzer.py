@@ -52,7 +52,6 @@ def analyzer():
     return FileAnalyzer(context=ctx)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_file_not_found(analyzer):
     """Test handling of non-existent file."""
     result = await analyzer.execute("non_existent_file.py")
@@ -61,7 +60,6 @@ async def test_fileanalyzer_file_not_found(analyzer):
     assert "File not found" in result.data["error"]
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_syntax_error(analyzer):
     """Test handling of file with syntax errors."""
     with tempfile.NamedTemporaryFile(
@@ -78,7 +76,6 @@ async def test_fileanalyzer_syntax_error(analyzer):
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_empty_file(analyzer):
     """Test analysis of empty Python file."""
     with tempfile.NamedTemporaryFile(
@@ -101,7 +98,6 @@ async def test_fileanalyzer_empty_file(analyzer):
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_sqlalchemy_model(analyzer):
     """Test detection of SQLAlchemy model file."""
     content = "\nfrom sqlalchemy import Column, Integer, String\nfrom sqlalchemy.orm import Mapped, mapped_column\nfrom sqlalchemy.ext.declarative import declarative_base\n\nBase = declarative_base()\n\nclass User(Base):\n    __tablename__ = 'users'\n    \n    id: Mapped[int] = mapped_column(Integer, primary_key=True)\n    name = Column(String(50))\n    \n    def __repr__(self):\n        return f\"<User(id={self.id}, name={self.name})>\"\n"
@@ -122,7 +118,6 @@ async def test_fileanalyzer_sqlalchemy_model(analyzer):
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_function_module(analyzer):
     """Test detection of function-only module."""
     content = '\ndef calculate_sum(a, b):\n    return a + b\n\ndef calculate_product(a, b):\n    return a * b\n\ndef format_result(value):\n    return f"Result: {value}"\n\ndef validate_input(value):\n    return isinstance(value, (int, float))\n'
@@ -144,7 +139,6 @@ async def test_fileanalyzer_function_module(analyzer):
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_complexity_calculation(analyzer):
     """Test complexity categorization based on total definitions."""
     content = "\ndef func1(): pass\ndef func2(): pass\ndef func3(): pass\ndef func4(): pass\ndef func5(): pass\ndef func6(): pass\n"
@@ -162,7 +156,6 @@ async def test_fileanalyzer_complexity_calculation(analyzer):
         os.unlink(temp_path)
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_with_context():
     """Test FileAnalyzer with context for path resolution.
 
@@ -189,7 +182,6 @@ async def test_fileanalyzer_with_context():
         assert result.metadata["file_path"] == "test.py"
 
 
-@pytest.mark.asyncio
 async def test_fileanalyzer_sqlalchemy_import_only(analyzer):
     """Test file with SQLAlchemy import but no Base class or Mapped (should not be sqlalchemy_model)."""
     content = '\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker\n\nengine = create_engine("sqlite:///:memory:")\nSession = sessionmaker(bind=engine)\n'

@@ -104,7 +104,6 @@ class TestCoverageMinimumCheck:
             assert check._load_coverage_threshold() == 75.0
 
 
-@pytest.mark.asyncio
 async def test_async_verify_with_explicit_coverage(path_resolver):
     """Async verify with explicit coverage parameter at or above threshold
     returns an empty violations list."""

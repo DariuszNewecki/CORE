@@ -24,7 +24,6 @@ def _mock_request_with_context():
     return request
 
 
-@pytest.mark.asyncio
 async def test_daemon_status_returns_facade_payload():
     """GET /daemon/status returns the WorkerRegistryService-derived shape."""
     request = _mock_request_with_context()
@@ -46,7 +45,6 @@ async def test_daemon_status_returns_facade_payload():
     assert out == payload
 
 
-@pytest.mark.asyncio
 async def test_daemon_start_returns_started_on_success():
     """POST /daemon/start delegates to start_daemon and returns 'started'."""
     request = _mock_request_with_context()
@@ -59,7 +57,6 @@ async def test_daemon_start_returns_started_on_success():
     assert out == {"status": "started", "exit_code": 0}
 
 
-@pytest.mark.asyncio
 async def test_daemon_start_returns_500_on_systemctl_failure():
     """systemctl failure → 500 with detail."""
     request = _mock_request_with_context()
@@ -79,7 +76,6 @@ async def test_daemon_start_returns_500_on_systemctl_failure():
     assert exc.value.detail["error"] == "daemon_start_failed"
 
 
-@pytest.mark.asyncio
 async def test_daemon_stop_returns_200_before_systemctl_runs():
     """POST /daemon/stop schedules stop_daemon_background and returns 200
     immediately. The systemctl stop call MUST run via BackgroundTask, not

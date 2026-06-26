@@ -84,7 +84,6 @@ def _patch_run(**overrides):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_abandon_findings_uses_increment_method() -> None:
     """
     _abandon_findings calls abandon_entries_and_increment_attempt_count,
@@ -114,7 +113,6 @@ async def test_abandon_findings_uses_increment_method() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     """
     When _query_file_attempt_count returns cap_n, _abandon_capped_findings is
@@ -151,7 +149,6 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     ].assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     """inherited > cap_n → same outcome as equals case."""
     worker = _make_worker()
@@ -190,7 +187,6 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     """
     When inherited < cap_n, the normal ceremony path runs:
@@ -232,7 +228,6 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_report_includes_capped_counter() -> None:
     """post_report payload includes a 'capped' counter when circuit breaker fires."""
     worker = _make_worker()

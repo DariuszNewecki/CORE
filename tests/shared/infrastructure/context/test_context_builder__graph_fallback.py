@@ -43,7 +43,6 @@ def test_knowledge_graph_builder_compat_export_is_available() -> None:
     assert hasattr(builder, "build")
 
 
-@pytest.mark.asyncio
 async def test_context_builder_degrades_graph_only_on_import_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -84,7 +83,6 @@ async def test_context_builder_degrades_graph_only_on_import_error(
     assert packet["evidence"][0]["name"] == "vector_hit_symbol"
 
 
-@pytest.mark.asyncio
 async def test_knowledge_service_workspace_graph_failure_returns_empty_graph() -> None:
     service = KnowledgeService(repo_path=Path("."), workspace=_BrokenWorkspace())
 

@@ -140,7 +140,6 @@ def test_is_context_level_false_for_unknown_check_type() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
     """Every YAML id has a matching @atomic_action(action_id=...) → empty list."""
     _write_repo_skeleton(
@@ -168,7 +167,6 @@ async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
     assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_phantom_yields_one_finding_with_resolution_prompt(
     tmp_path: Path,
 ) -> None:
@@ -204,7 +202,6 @@ async def test_phantom_yields_one_finding_with_resolution_prompt(
     assert "ADR-079 D9" in finding.message
 
 
-@pytest.mark.asyncio
 async def test_multiple_phantoms_one_finding_each_sorted(tmp_path: Path) -> None:
     """Phantoms are reported sorted by cap_id so the output is stable."""
     _write_repo_skeleton(
@@ -220,7 +217,6 @@ async def test_multiple_phantoms_one_finding_each_sorted(tmp_path: Path) -> None
     assert cap_ids == ["a.first", "m.middle", "z.last"]
 
 
-@pytest.mark.asyncio
 async def test_attribute_access_decoration_counts_as_backing(tmp_path: Path) -> None:
     """``@module.atomic_action(action_id=...)`` is also valid backing."""
     _write_repo_skeleton(
@@ -244,7 +240,6 @@ async def test_attribute_access_decoration_counts_as_backing(tmp_path: Path) -> 
     assert findings == []
 
 
-@pytest.mark.asyncio
 async def test_non_literal_action_id_is_not_counted_as_backing(
     tmp_path: Path,
 ) -> None:
@@ -275,7 +270,6 @@ async def test_non_literal_action_id_is_not_counted_as_backing(
     assert findings[0].context["capability_id"] == "fix.format"
 
 
-@pytest.mark.asyncio
 async def test_unparseable_python_file_is_skipped(tmp_path: Path) -> None:
     """A SyntaxError in one file must not crash the audit — the engine logs
     and continues. Other files' decorations are still collected."""
@@ -306,7 +300,6 @@ async def test_unparseable_python_file_is_skipped(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_taxonomy_load_failure_surfaces_under_distinct_check_id(
     tmp_path: Path,
 ) -> None:
@@ -322,7 +315,6 @@ async def test_taxonomy_load_failure_surfaces_under_distinct_check_id(
     assert "cannot load" in findings[0].message
 
 
-@pytest.mark.asyncio
 async def test_unknown_check_type_in_verify_context_returns_block(
     tmp_path: Path,
 ) -> None:
@@ -334,7 +326,6 @@ async def test_unknown_check_type_in_verify_context_returns_block(
     assert "unknown check_type" in findings[0].message
 
 
-@pytest.mark.asyncio
 async def test_verify_per_file_returns_not_ok_marker(tmp_path: Path) -> None:
     """The per-file verify path is only reachable on misconfiguration —
     surface that as engine-not-ok rather than silently producing nothing."""

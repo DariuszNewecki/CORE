@@ -70,7 +70,6 @@ def test_non_dotted_rule_segment_skipped():
     assert _check("python::notarule::src/x.py") is None
 
 
-@pytest.mark.asyncio
 async def test_sweep_fail_closed_on_empty_registry():
     """An empty rule registry (failed load) must no-op, never touching the DB —
     otherwise the sweep would mass-resolve every finding."""
