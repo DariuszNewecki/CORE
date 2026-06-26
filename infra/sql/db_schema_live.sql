@@ -1756,6 +1756,150 @@ CREATE TABLE core.llm_exchange_log_2026_06 (
 
 ALTER TABLE core.llm_exchange_log_2026_06 OWNER TO core_db;
 
+
+--
+-- Name: llm_exchange_log_2026_07; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_07 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_07 OWNER TO core_db;
+
+
+--
+-- Name: llm_exchange_log_2026_08; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_08 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_08 OWNER TO core_db;
+
+
+--
+-- Name: llm_exchange_log_2026_09; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_09 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_09 OWNER TO core_db;
+
+
+--
+-- Name: llm_exchange_log_2026_10; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_10 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_10 OWNER TO core_db;
+
+
+--
+-- Name: llm_exchange_log_2026_11; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_11 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_11 OWNER TO core_db;
+
+
+--
+-- Name: llm_exchange_log_2026_12; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_12 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_12 OWNER TO core_db;
+
 --
 -- Name: llm_gate_verdicts; Type: TABLE; Schema: core; Owner: core_db
 --
@@ -3058,6 +3202,48 @@ ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_20
 
 
 --
+-- Name: llm_exchange_log_2026_07; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_07 FOR VALUES FROM ('2026-07-01 00:00:00+00') TO ('2026-08-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_08; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_08 FOR VALUES FROM ('2026-08-01 00:00:00+00') TO ('2026-09-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_09; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_09 FOR VALUES FROM ('2026-09-01 00:00:00+00') TO ('2026-10-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_10; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_10 FOR VALUES FROM ('2026-10-01 00:00:00+00') TO ('2026-11-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_11; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_11 FOR VALUES FROM ('2026-11-01 00:00:00+00') TO ('2026-12-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_12; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_12 FOR VALUES FROM ('2026-12-01 00:00:00+00') TO ('2027-01-01 00:00:00+00');
+
+
+--
 -- Name: observability_decisions id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
@@ -3442,6 +3628,54 @@ ALTER TABLE ONLY core.llm_exchange_log_2026_05
 
 ALTER TABLE ONLY core.llm_exchange_log_2026_06
     ADD CONSTRAINT llm_exchange_log_2026_06_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_07 llm_exchange_log_2026_07_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_07
+    ADD CONSTRAINT llm_exchange_log_2026_07_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_08 llm_exchange_log_2026_08_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_08
+    ADD CONSTRAINT llm_exchange_log_2026_08_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_09 llm_exchange_log_2026_09_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_09
+    ADD CONSTRAINT llm_exchange_log_2026_09_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_10 llm_exchange_log_2026_10_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_10
+    ADD CONSTRAINT llm_exchange_log_2026_10_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_11 llm_exchange_log_2026_11_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_11
+    ADD CONSTRAINT llm_exchange_log_2026_11_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_12 llm_exchange_log_2026_12_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_12
+    ADD CONSTRAINT llm_exchange_log_2026_12_pkey PRIMARY KEY (id, ts);
 
 
 --
@@ -4885,6 +5119,132 @@ CREATE INDEX llm_exchange_log_2026_06_task_id_idx ON core.llm_exchange_log_2026_
 
 
 --
+-- Name: llm_exchange_log_2026_07_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_07_cognitive_role_ts_idx ON core.llm_exchange_log_2026_07 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_07_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_07_resource_name_ts_idx ON core.llm_exchange_log_2026_07 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_07_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_07_task_id_idx ON core.llm_exchange_log_2026_07 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_08_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_08_cognitive_role_ts_idx ON core.llm_exchange_log_2026_08 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_08_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_08_resource_name_ts_idx ON core.llm_exchange_log_2026_08 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_08_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_08_task_id_idx ON core.llm_exchange_log_2026_08 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_09_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_09_cognitive_role_ts_idx ON core.llm_exchange_log_2026_09 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_09_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_09_resource_name_ts_idx ON core.llm_exchange_log_2026_09 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_09_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_09_task_id_idx ON core.llm_exchange_log_2026_09 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_10_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_10_cognitive_role_ts_idx ON core.llm_exchange_log_2026_10 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_10_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_10_resource_name_ts_idx ON core.llm_exchange_log_2026_10 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_10_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_10_task_id_idx ON core.llm_exchange_log_2026_10 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_11_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_11_cognitive_role_ts_idx ON core.llm_exchange_log_2026_11 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_11_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_11_resource_name_ts_idx ON core.llm_exchange_log_2026_11 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_11_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_11_task_id_idx ON core.llm_exchange_log_2026_11 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_12_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_12_cognitive_role_ts_idx ON core.llm_exchange_log_2026_12 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_12_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_12_resource_name_ts_idx ON core.llm_exchange_log_2026_12 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_12_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_12_task_id_idx ON core.llm_exchange_log_2026_12 USING btree (task_id);
+
+
+--
 -- Name: llm_gate_verdicts_rule_file_idx; Type: INDEX; Schema: core; Owner: core_db
 --
 
@@ -5071,6 +5431,174 @@ ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exch
 --
 
 ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_06_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_07_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_07_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_07_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_07_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_07_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_07_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_07_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_07_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_08_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_08_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_08_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_08_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_08_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_08_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_08_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_08_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_09_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_09_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_09_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_09_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_09_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_09_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_09_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_09_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_10_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_10_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_10_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_10_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_10_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_10_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_10_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_10_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_11_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_11_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_11_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_11_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_11_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_11_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_11_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_11_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_12_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_12_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_12_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_12_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_12_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_12_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_12_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_12_task_id_idx;
 
 
 --
