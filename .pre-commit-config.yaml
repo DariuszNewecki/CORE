@@ -31,3 +31,13 @@ repos:
       - id: ruff-format
         files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
+
+  # Symbol ID discipline — CLAUDE.md §Symbol IDs
+  - repo: local
+    hooks:
+      - id: check-symbol-ids
+        name: check symbol IDs
+        entry: python hooks/check_symbol_ids.py
+        language: python
+        types: [python]
+        files: ^src/
