@@ -109,10 +109,12 @@ class InternalCorpusIngester:
         qdrant_service: QdrantService,
         embedding_service: Any,
         repo_root: Path,
+        embedding_model_name: str = "nomic-embed-text",
     ) -> None:
         self._qdrant = qdrant_service
         self._embedder = embedding_service
         self._repo_root = repo_root
+        self._embedding_model_name = embedding_model_name
 
     # ID: 104b5f1d-7ae6-4fa7-8eef-9f263b2ee5fc
     async def ingest(
@@ -221,7 +223,6 @@ class InternalCorpusIngester:
         chunk_count: int,
     ) -> None:
         from body.infrastructure.storage.file_handler import FileHandler
-        from shared.config import settings
 
         text_dir_rel = (
             str(text_dir.relative_to(self._repo_root))
@@ -232,7 +233,7 @@ class InternalCorpusIngester:
             "chunk_count": chunk_count,
             "collection": collection_name(framework_id),
             "embedding_model": getattr(
-                self._embedder, "model", settings.LOCAL_EMBEDDING_MODEL_NAME
+                self._embedder, "model", self._embedding_model_name
             ),
             "framework_id": framework_id,
             "ingested_at": now_iso(),

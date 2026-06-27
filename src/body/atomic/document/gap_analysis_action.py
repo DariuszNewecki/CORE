@@ -48,6 +48,7 @@ async def action_run_gap_analysis(
     catalog_names: list[str] | None = None,
     catalog_root: str | None = None,
     write: bool = False,
+    core_context: Any = None,
     **kwargs: Any,
 ) -> ActionResult:
     """Evaluate a document corpus against one or more requirements catalogs.
@@ -73,9 +74,12 @@ async def action_run_gap_analysis(
 
     resolved_corpus = Path(corpus_root)
     if not resolved_corpus.is_absolute():
-        from shared.config import settings
-
-        resolved_corpus = settings.paths.repo_root / corpus_root
+        if core_context is None:
+            raise ValueError(
+                "corpus_root is a relative path but no core_context was injected. "
+                "Pass an absolute corpus_root or invoke via ActionExecutor."
+            )
+        resolved_corpus = core_context.file_handler.repo_path / corpus_root
 
     resolved_catalog_root: Path | None = Path(catalog_root) if catalog_root else None
 
@@ -135,8 +139,17 @@ async def action_run_gap_analysis(
                 totals[key] += 1
 
         if write:
+            if core_context is None:
+                raise ValueError(
+                    "write=True requires core_context to be injected. "
+                    "Invoke via ActionExecutor."
+                )
             _write_report(
-                resolved_corpus, catalog_name, verdicts, resolved_catalog_root
+                resolved_corpus,
+                catalog_name,
+                verdicts,
+                resolved_catalog_root,
+                core_context.file_handler,
             )
 
     elapsed = time.monotonic() - start
@@ -159,12 +172,10 @@ def _write_report(
     catalog_name: str,
     verdicts: list[Any],
     catalog_root: Path | None,
+    file_handler: Any,
 ) -> None:
     """Write gap-analysis verdicts to var/reports/corpus/ as YAML."""
     import yaml
-
-    from shared.config import settings
-    from shared.infrastructure.file_handler import FileHandler
 
     slug = corpus_root.name or "corpus"
     ts = int(time.time())
@@ -185,6 +196,5 @@ def _write_report(
             for v in verdicts
         ],
     }
-    handler = FileHandler(str(settings.paths.repo_root))
-    handler.write_runtime_text(rel_path, yaml.dump(payload, allow_unicode=True))
+    file_handler.write_runtime_text(rel_path, yaml.dump(payload, allow_unicode=True))
     logger.info("document.run.gap_analysis: report written to var/%s", rel_path)

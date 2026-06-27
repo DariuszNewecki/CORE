@@ -9,7 +9,7 @@ Test 4 from the ADR-121 verification matrix:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -84,3 +84,52 @@ async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
     assert data["not_covered"] == 1
     assert data["deficient"] == 1
     assert "demo" in data["catalogs_run"]
+
+
+# ID: ebb30994-7d26-43e0-b46a-c4414e4e499a
+async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path) -> None:
+    """Relative corpus_root is resolved against core_context.file_handler.repo_path."""
+    corpus_dir = tmp_path / "docs"
+    corpus_dir.mkdir()
+
+    mock_file_handler = MagicMock()
+    mock_file_handler.repo_path = tmp_path
+    mock_context = MagicMock()
+    mock_context.file_handler = mock_file_handler
+
+    verdicts: list[RequirementVerdict] = []
+
+    with (
+        patch(
+            "body.atomic.document.gap_analysis_action.discover_catalogs",
+            return_value={"demo": tmp_path / "demo.yaml"},
+        ),
+        patch(
+            "body.services.grc.gap_analysis_service.DocumentCorpusAnalysisService.run",
+            new=AsyncMock(return_value=verdicts),
+        ),
+        patch(
+            "body.services.grc.gap_analysis_service.load_catalog",
+            return_value=[],
+        ),
+    ):
+        result: ActionResult = await action_run_gap_analysis(
+            corpus_root="docs",
+            catalog_names=["demo"],
+            write=False,
+            core_context=mock_context,
+        )
+
+    assert result.ok is True
+    assert result.data["corpus_root"] == str(tmp_path / "docs")
+
+
+# ID: bd3266f2-9c4a-4ed0-a131-bdef15a529a1
+async def test_run_gap_analysis_relative_corpus_root_no_context_raises() -> None:
+    """Relative corpus_root without core_context raises ValueError before any I/O."""
+    with pytest.raises(ValueError, match="core_context"):
+        await action_run_gap_analysis(
+            corpus_root="relative/path",
+            write=False,
+            core_context=None,
+        )

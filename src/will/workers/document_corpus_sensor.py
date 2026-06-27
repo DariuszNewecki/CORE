@@ -161,9 +161,9 @@ class DocumentCorpusSensor(Worker):
         path = Path(corpus_root_str)
         if path.is_absolute():
             return path
-        from shared.config import settings
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
 
-        return settings.paths.repo_root / corpus_root_str
+        return get_intent_repository().root.parent / corpus_root_str
 
     # ID: d89c0f41-09e1-4e7d-ab65-1c4cf4798685
     def _resolve_catalog_root(self, catalog_root_str: str) -> Path | None:

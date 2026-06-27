@@ -113,6 +113,25 @@ def _make_ingester(tmp_path: Path) -> InternalCorpusIngester:
     )
 
 
+# ID: d4cf7f02-36bc-44c9-9093-5de38f3224f6
+def test_ingester_stores_injected_embedding_model_name(tmp_path: Path) -> None:
+    """embedding_model_name is stored on the ingester and not sourced from settings."""
+    ingester = InternalCorpusIngester(
+        qdrant_service=MagicMock(),
+        embedding_service=MagicMock(),
+        repo_root=tmp_path,
+        embedding_model_name="custom-embed-v2",
+    )
+    assert ingester._embedding_model_name == "custom-embed-v2"
+
+
+# ID: 89c42d49-7f2c-4f13-aff0-f9c3b719ad6e
+def test_ingester_default_embedding_model_name(tmp_path: Path) -> None:
+    """Default embedding_model_name matches the known settings default."""
+    ingester = _make_ingester(tmp_path)
+    assert ingester._embedding_model_name == "nomic-embed-text"
+
+
 def test_chunk_sections_small_file_is_one_chunk(tmp_path: Path) -> None:
     """A section file shorter than _MAX_CHUNK_CHARS becomes exactly one chunk."""
     text_dir = tmp_path / "text"

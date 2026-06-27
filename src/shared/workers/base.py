@@ -25,12 +25,10 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
-from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)
@@ -622,21 +620,27 @@ class Worker(ABC):
         - worker UUID (permanent identity)
         - mandate (responsibility, phase, scope, tools)
         - approval requirements
-        """
-        intent_root = Path(".intent").resolve()
-        declaration_path = intent_root / "workers" / f"{self.declaration_name}.yaml"
 
-        if not declaration_path.exists():
-            raise WorkerConfigurationError(
-                f"Worker declaration not found: {declaration_path}. "
-                f"A worker without a .intent/workers/ declaration has no constitutional standing."
-            )
+        Routes through IntentRepository (the canonical .intent/ gateway) per
+        architecture.intent.no_legacy_root_assumptions and
+        architecture.namespace.no_direct_protected_access.
+        """
+        from shared.infrastructure.intent.errors import GovernanceError
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
+        from shared.workers.declaration_validator import validate_worker_declaration
+
+        worker_id = f"workers/{self.declaration_name}"
 
         try:
-            data = strict_yaml_processor.load_strict(declaration_path)
+            data = get_intent_repository().load_worker(worker_id)
+        except GovernanceError as e:
+            raise WorkerConfigurationError(
+                f"Worker declaration not found: {worker_id}. "
+                "A worker without a .intent/workers/ declaration has no constitutional standing."
+            ) from e
         except Exception as e:
             raise WorkerConfigurationError(
-                f"Failed to load worker declaration {declaration_path}: {e}"
+                f"Failed to load worker declaration {worker_id}: {e}"
             ) from e
 
         # Schema validation (issue #460): the declaration must satisfy
@@ -644,11 +648,8 @@ class Worker(ABC):
         # worker_phase subset declared in .intent/META/enums.json.
         # Fails closed on missing/empty worker_phase, unresolved $ref,
         # or any structural violation.
-        from shared.infrastructure.intent.errors import GovernanceError
-        from shared.workers.declaration_validator import validate_worker_declaration
-
         try:
-            validate_worker_declaration(data, source=declaration_path)
+            validate_worker_declaration(data, source=worker_id)
         except GovernanceError as e:
             raise WorkerConfigurationError(str(e)) from e
 
@@ -656,12 +657,12 @@ class Worker(ABC):
             uuid.UUID(data["identity"]["uuid"])
         except (KeyError, ValueError) as e:
             raise WorkerConfigurationError(
-                f"Worker declaration {declaration_path} has invalid or missing identity.uuid: {e}"
+                f"Worker declaration {worker_id} has invalid or missing identity.uuid: {e}"
             ) from e
 
         if not data.get("mandate", {}).get("responsibility"):
             raise WorkerConfigurationError(
-                f"Worker declaration {declaration_path} is missing mandate.responsibility."
+                f"Worker declaration {worker_id} is missing mandate.responsibility."
             )
 
         return data
