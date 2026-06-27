@@ -231,12 +231,27 @@ class AuditViolationSensor(Worker):
         )
         reaudit_released = len(reaudit["released_subjects"])
         reaudit_resolved = len(reaudit["resolved_subjects"])
-        if reaudit_released or reaudit_resolved:
+
+        # ADR-127: drain indeterminate findings whose violations have cleared.
+        # Symmetrical to the awaiting_reaudit drain above but targets
+        # 'indeterminate' status. Findings whose violation still holds are left
+        # untouched — the remediation-uncertainty judgment remains valid.
+        # Findings whose violation is gone are resolved (system.audit authority).
+        indet = await bb_svc.adjudicate_indeterminate_findings(
+            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
+            current_violation_subjects=current_subjects,
+            resolved_by="audit_violation_sensor",
+        )
+        indet_resolved = len(indet["resolved_subjects"])
+
+        if reaudit_released or reaudit_resolved or indet_resolved:
             logger.info(
-                "AuditViolationSensor[%s]: reaudit drained %d released, %d resolved.",
+                "AuditViolationSensor[%s]: reaudit drained %d released, %d resolved; "
+                "indeterminate clean-pass resolved %d.",
                 self._rule_namespace,
                 reaudit_released,
                 reaudit_resolved,
+                indet_resolved,
             )
             await self.post_report(
                 subject=f"audit.reaudit.complete::{self._rule_namespace}",
@@ -246,6 +261,8 @@ class AuditViolationSensor(Worker):
                     "resolved_count": reaudit_resolved,
                     "released_subjects": reaudit["released_subjects"],
                     "resolved_subjects": reaudit["resolved_subjects"],
+                    "indeterminate_drained": indet_resolved,
+                    "indeterminate_drain_subjects": indet["resolved_subjects"],
                 },
             )
 

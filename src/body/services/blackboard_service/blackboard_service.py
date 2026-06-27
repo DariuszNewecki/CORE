@@ -696,6 +696,94 @@ class BlackboardService:
             "resolved_subjects": resolved_subjects,
         }
 
+    # ID: 347e6f73-b229-4398-a060-e0636c51675e
+    async def adjudicate_indeterminate_findings(
+        self,
+        subject_prefix: str,
+        current_violation_subjects: set[str],
+        resolved_by: str,
+    ) -> dict[str, list[str]]:
+        """
+        ADR-127 clean-pass drain for ``indeterminate`` findings.
+
+        Mirrors ``adjudicate_awaiting_reaudit_findings`` (ADR-045) but targets
+        findings in ``'indeterminate'`` status rather than ``'awaiting_reaudit'``.
+
+        For each finding in ``'indeterminate'`` whose subject begins with
+        ``subject_prefix``:
+
+        - Subject present in *current_violation_subjects*: the violation still
+          holds — the remediation-uncertainty judgment is still valid. Leave the
+          finding in ``'indeterminate'``; no transition.
+        - Subject absent from *current_violation_subjects*: the underlying
+          condition has cleared. The judgment call is now moot. Transition to
+          ``'resolved'`` with ``resolution_authority = 'system.audit'`` and a
+          ``payload.resolution`` attribution block (ADR-127 D1).
+
+        Only ``resolved_subjects`` is returned (no ``released_subjects`` — there
+        is no intermediate "release to open" step for indeterminate; those that
+        still violate remain where they are).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        resolved_subjects: list[str] = []
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                pending = await session.execute(
+                    text(
+                        """
+                        SELECT id, subject
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND status = 'indeterminate'
+                          AND (subject = :prefix
+                               OR subject LIKE :prefix || '.%'
+                               OR subject LIKE :prefix || '::%')
+                        FOR UPDATE
+                        """
+                    ),
+                    {"prefix": subject_prefix},
+                )
+                rows = pending.fetchall()
+
+                resolve_ids: list[str] = []
+                for row in rows:
+                    entry_id = str(row[0])
+                    subject = str(row[1])
+                    if subject not in current_violation_subjects:
+                        resolve_ids.append(entry_id)
+                        resolved_subjects.append(subject)
+
+                if resolve_ids:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = jsonb_set(
+                                    payload,
+                                    '{resolution}',
+                                    jsonb_build_object(
+                                        'reason', 'ADR-127 clean-pass: violation no longer present on re-audit',
+                                        'resolved_by', cast(:resolved_by as text),
+                                        'resolution_authority', 'system.audit',
+                                        'resolved_at', to_char(now() at time zone 'UTC',
+                                                               'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                    ),
+                                    true
+                                )
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'indeterminate'
+                            """
+                        ),
+                        {"ids": resolve_ids, "resolved_by": resolved_by},
+                    )
+
+        return {"resolved_subjects": resolved_subjects}
+
     # ID: 0c2f1a8d-3e6b-4c9f-a7d4-5b8e2f1c4a7d
     async def sweep_terminal_telemetry(
         self,
