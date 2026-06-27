@@ -46,6 +46,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import (
+    AsyncDispatchResponse,
+    AuditRunResponse,
+    RemediationRunResponse,
+)
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.audit_remediation_runner import (
@@ -79,6 +84,7 @@ class CreateAuditRunRequest(BaseModel):
 
 @router.post(
     "/runs",
+    status_code=202,
     summary="Start an audit run",
     description=(
         "Start a constitutional audit run against the repo. With `wait=false` "
@@ -87,6 +93,7 @@ class CreateAuditRunRequest(BaseModel):
         "(verdict + findings + stats) in-band (status 200). Audit duration is "
         "~60s; clients invoking `wait=true` must set a long HTTP timeout."
     ),
+    responses={200: {"description": "Synchronous audit result (wait=true)"}},
 )
 # ID: 26d3745c-b1a3-419f-a521-06691b8a2c75
 async def create_audit_run(
@@ -103,7 +110,8 @@ async def create_audit_run(
     core_context: CoreContext = request.app.state.core_context
 
     if payload.wait:
-        # Synchronous — full result returned in-band (status 200).
+        # Synchronous — full result returned in-band; override decorator default.
+        response.status_code = 200
         return await run_sync_audit(
             core_context,
             session,
@@ -114,10 +122,8 @@ async def create_audit_run(
             source=payload.source,
         )
 
-    # Async — fire and forget (status 202). The pending row gives the
-    # caller a run_id to poll GET /audit/runs/{id} for. See the
-    # ADR-054 gap note on GET.
-    response.status_code = 202
+    # Async — fire and forget. The pending row gives the caller a run_id
+    # to poll GET /audit/runs/{id} for. See the ADR-054 gap note on GET.
     result = await session.execute(
         text(
             """
@@ -139,11 +145,16 @@ async def create_audit_run(
 
     background_tasks.add_task(drive_audit)
 
-    return {"run_id": str(run_id), "status": "pending"}
+    return {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/audit/runs/{run_id}",
+    }
 
 
 @router.get(
     "/runs/{run_id}",
+    response_model=AuditRunResponse,
     summary="Fetch a persisted audit run",
     dependencies=[require_role("platform_admin")],
     description=(
@@ -213,6 +224,8 @@ class CreateRemediationRequest(BaseModel):
 
 @router.post(
     "/remediations",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     summary="Dispatch autonomous remediation",
     description=(
         "Trigger autonomous remediation of findings from a prior audit run "
@@ -242,10 +255,10 @@ async def create_remediation_run(
     if payload.mode not in MODE_ALIASES:
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": f"Unknown remediation mode: {payload.mode}",
-                "allowed": sorted(MODE_ALIASES.keys()),
-            },
+            detail=(
+                f"Unknown remediation mode: {payload.mode!r}. "
+                f"Allowed: {sorted(MODE_ALIASES.keys())}"
+            ),
         )
 
     core_context: CoreContext = request.app.state.core_context
@@ -282,7 +295,6 @@ async def create_remediation_run(
 
     background_tasks.add_task(drive_remediation)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -292,6 +304,7 @@ async def create_remediation_run(
 
 @router.get(
     "/remediations/{run_id}",
+    response_model=RemediationRunResponse,
     summary="Fetch a remediation run",
     dependencies=[require_role("platform_admin")],
     description=(

@@ -45,6 +45,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import AsyncDispatchResponse, FixRunResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
@@ -121,6 +122,8 @@ class RunIRRequest(BaseModel):
 
 @router.post(
     "/run/{fix_id}",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     summary="Dispatch an atomic fix action",
     dependencies=[require_role("platform_admin")],
     description=(
@@ -153,10 +156,7 @@ async def run_fix(
     if fix_id not in registered:
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": f"Unknown fix_id: {fix_id}",
-                "registered_count": len(registered),
-            },
+            detail=f"Unknown fix_id: {fix_id!r}. {len(registered)} registered actions.",
         )
 
     core_context: CoreContext = request.app.state.core_context
@@ -201,7 +201,6 @@ async def run_fix(
 
     background_tasks.add_task(drive_fix)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -230,10 +229,7 @@ async def _dispatch_flow(
     if flow_id not in registered:
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": f"Unknown flow_id: {flow_id}",
-                "registered_count": len(registered),
-            },
+            detail=f"Unknown flow_id: {flow_id!r}. {len(registered)} registered flows.",
         )
 
     core_context: CoreContext = request.app.state.core_context
@@ -271,7 +267,6 @@ async def _dispatch_flow(
 
     background_tasks.add_task(drive_flow)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -281,6 +276,8 @@ async def _dispatch_flow(
 
 @router.post(
     "/all",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     summary="Dispatch the curated fix sequence",
     dependencies=[require_role("platform_admin")],
     description=(
@@ -311,6 +308,8 @@ async def run_fix_all(
 
 @router.post(
     "/modularity",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     summary="Dispatch the modularity remediation cycle",
     dependencies=[require_role("platform_admin")],
     description=(
@@ -367,7 +366,6 @@ async def run_fix_modularity(
 
     background_tasks.add_task(drive_modularity)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -428,6 +426,7 @@ async def list_fix_commands() -> dict:
 
 @router.get(
     "/runs/{run_id}",
+    response_model=FixRunResponse,
     summary="Fetch a persisted fix run",
     dependencies=[require_role("platform_admin")],
     description=(

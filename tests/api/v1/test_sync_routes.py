@@ -77,7 +77,6 @@ async def test_each_sync_endpoint_dispatches_with_correct_sync_type(
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
     assert out["href"] == f"/sync/runs/{new_id}"
-    assert response.status_code == 202
     background_tasks.add_task.assert_called_once()
 
     # Verify the INSERT parameters carry the expected sync_type and write.

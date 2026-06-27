@@ -58,5 +58,8 @@ async def integrate(
     core_context: CoreContext = request.app.state.core_context
     result = await run_integration(core_context, payload.commit_message)
     if not result["ok"]:
-        raise HTTPException(status_code=502, detail=result)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Integration workflow failed: {result.get('error', 'unknown error')}",
+        )
     return result

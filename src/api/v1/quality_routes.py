@@ -43,6 +43,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session
+from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
@@ -143,7 +144,6 @@ async def _dispatch_quality(
 
     background_tasks.add_task(drive_quality)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -194,7 +194,7 @@ async def quality_policy_coverage(request: Request) -> dict:
 # ----------------------------------------------------------------------
 
 
-@router.post("/lint")
+@router.post("/lint", status_code=202, response_model=AsyncDispatchResponse)
 # ID: d410a899-05c7-4ba4-a36e-1e3bb56623ee
 async def quality_lint(
     request: Request,
@@ -215,7 +215,7 @@ async def quality_lint(
     )
 
 
-@router.post("/tests")
+@router.post("/tests", status_code=202, response_model=AsyncDispatchResponse)
 # ID: f29522c9-b43e-48ff-bd9e-ce93d88ffe09
 async def quality_tests(
     request: Request,
@@ -236,7 +236,7 @@ async def quality_tests(
     )
 
 
-@router.post("/system")
+@router.post("/system", status_code=202, response_model=AsyncDispatchResponse)
 # ID: 8cd84f9d-a9eb-4c17-bc5c-eef650da7e7e
 async def quality_system(
     request: Request,
@@ -257,7 +257,7 @@ async def quality_system(
     )
 
 
-@router.post("/gates")
+@router.post("/gates", status_code=202, response_model=AsyncDispatchResponse)
 # ID: c8876c66-40b1-4d55-b81d-dc9d91558ccb
 async def quality_gates(
     request: Request,

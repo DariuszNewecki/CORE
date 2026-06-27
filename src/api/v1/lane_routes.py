@@ -226,10 +226,7 @@ async def propose_diff(
     if row["status"] != "completed" or not result.get("ok"):
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": "Validation did not pass; diff is not approvable.",
-                "validation_results": data.get("validation_results", {}),
-            },
+            detail="Validation did not pass; diff is not approvable. Re-fetch the lane run for full validation results.",
         )
 
     # 2. Bind the verdict to the exact bytes that were validated — an agent who

@@ -50,6 +50,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.coverage_runner import (
@@ -184,6 +185,8 @@ async def coverage_report(
 
 @router.post(
     "/reports",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     # F-40.1: internal — triggers a pytest coverage run via the
     # autonomy loop. Not a sidecar consumer surface. Excluded from
     # /v1/openapi.json per ADR-087.
@@ -235,7 +238,6 @@ async def request_coverage_report(
 
     background_tasks.add_task(drive_report)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -340,6 +342,8 @@ def coverage_methods(request: Request) -> dict:
 
 @router.post(
     "/generate",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     # F-40.1: internal — triggers adaptive test generation via the
     # autonomy loop. Not a sidecar consumer surface. Excluded from
     # /v1/openapi.json per ADR-087.
@@ -391,7 +395,6 @@ async def generate_coverage(
 
     background_tasks.add_task(drive_generate)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -401,6 +404,8 @@ async def generate_coverage(
 
 @router.post(
     "/generate:batch",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     # F-40.1: internal — batch variant of /generate; same autonomy-loop
     # concern. Excluded from /v1/openapi.json per ADR-087.
     include_in_schema=False,
@@ -417,10 +422,7 @@ async def generate_coverage_batch(
     if payload.priority not in {"high", "all"}:
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": f"Unknown priority: {payload.priority}",
-                "allowed": ["high", "all"],
-            },
+            detail=f"Unknown priority: {payload.priority!r}. Allowed: ['high', 'all']",
         )
 
     core_context: CoreContext = request.app.state.core_context
@@ -456,7 +458,6 @@ async def generate_coverage_batch(
 
     background_tasks.add_task(drive_batch)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",

@@ -68,7 +68,6 @@ async def test_autonomous_dry_run_inserts_and_schedules():
         "status": "pending",
         "href": f"/refactor/runs/{new_id}",
     }
-    assert response.status_code == 202
     background_tasks.add_task.assert_called_once()
 
 
@@ -115,7 +114,6 @@ async def test_autonomous_circuit_breaker_failure_persists_on_row():
         )
 
     assert out["status"] == "pending"
-    assert response.status_code == 202
     assert len(captured_tasks) == 1
 
 

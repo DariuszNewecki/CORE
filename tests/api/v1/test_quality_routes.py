@@ -22,7 +22,6 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from fastapi import BackgroundTasks, Response
 
 from api.v1.fix_routes import get_fix_run
@@ -163,7 +162,6 @@ async def test_quality_lint_inserts_quality_check_row_and_returns_202():
         "status": "pending",
         "href": f"/fix/runs/{new_id}",
     }
-    assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     bind = session.execute.call_args[0][1]
     assert bind["check"] == "lint"
@@ -201,7 +199,6 @@ async def test_quality_tests_inserts_quality_check_row_and_returns_202():
 
     bind = session.execute.call_args[0][1]
     assert bind["check"] == "tests"
-    assert response.status_code == 202
     kwargs = mock_runner.call_args.kwargs
     assert kwargs["run_id"] == new_id
     assert kwargs["check"] == "tests"
@@ -262,7 +259,6 @@ async def test_quality_gates_inserts_quality_check_row_and_returns_202():
     )
 
     assert out["run_id"] == str(new_id)
-    assert response.status_code == 202
     bind = session.execute.call_args[0][1]
     assert bind["check"] == "gates"
     assert bind["requested_by"] == "cli"

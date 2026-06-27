@@ -41,6 +41,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.sync_runner import (
@@ -95,10 +96,10 @@ async def _dispatch_sync(
     if sync_type not in ALLOWED_SYNC_TYPES:
         raise HTTPException(
             status_code=422,
-            detail={
-                "error": f"Unknown sync_type: {sync_type}",
-                "allowed": sorted(ALLOWED_SYNC_TYPES),
-            },
+            detail=(
+                f"Unknown sync_type: {sync_type!r}. "
+                f"Allowed: {sorted(ALLOWED_SYNC_TYPES)}"
+            ),
         )
 
     core_context: CoreContext = request.app.state.core_context
@@ -137,7 +138,6 @@ async def _dispatch_sync(
 
     background_tasks.add_task(drive_sync)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",
@@ -145,7 +145,7 @@ async def _dispatch_sync(
     }
 
 
-@router.post("/knowledge-graph")
+@router.post("/knowledge-graph", status_code=202, response_model=AsyncDispatchResponse)
 # ID: 9b6d3c1e-5a0f-4c8d-3764-29a01234abcd
 async def sync_knowledge_graph(
     request: Request,
@@ -165,7 +165,7 @@ async def sync_knowledge_graph(
     )
 
 
-@router.post("/vectors")
+@router.post("/vectors", status_code=202, response_model=AsyncDispatchResponse)
 # ID: 0c7e4d2f-6b1a-4d9e-4875-3ab12345bcde
 async def sync_vectors(
     request: Request,
@@ -185,7 +185,7 @@ async def sync_vectors(
     )
 
 
-@router.post("/code-vectors")
+@router.post("/code-vectors", status_code=202, response_model=AsyncDispatchResponse)
 # ID: 1d8f5e3a-7c2b-4e0f-5986-4bc23456cdef
 async def sync_code_vectors(
     request: Request,
@@ -205,7 +205,7 @@ async def sync_code_vectors(
     )
 
 
-@router.post("/dev-sync")
+@router.post("/dev-sync", status_code=202, response_model=AsyncDispatchResponse)
 # ID: 2e9a6f4b-8d3c-4f1a-6a97-5cd34567def0
 async def sync_dev_sync(
     request: Request,

@@ -78,7 +78,6 @@ async def test_generate_inserts_pending_and_schedules_background(target_file):
         "status": "pending",
         "href": f"/coverage/runs/{new_id}",
     }
-    assert response.status_code == 202
     background_tasks.add_task.assert_called_once()
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
@@ -113,7 +112,6 @@ async def test_generate_batch_high_priority_inserts_and_schedules():
 
     assert out["status"] == "pending"
     assert out["run_id"] == str(new_id)
-    assert response.status_code == 202
     background_tasks.add_task.assert_called_once()
 
 
@@ -245,7 +243,6 @@ async def test_request_coverage_report_html_format_propagates_to_runner():
 
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
-    assert response.status_code == 202
     background_tasks.add_task.assert_called_once()
 
     # Drive the scheduled closure to confirm it propagates the run's format

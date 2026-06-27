@@ -72,7 +72,6 @@ async def test_run_fix_known_id_inserts_pending_and_schedules_background():
         "status": "pending",
         "href": f"/v1/fix/runs/{new_id}",
     }
-    assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
@@ -102,7 +101,7 @@ async def test_run_fix_unknown_id_returns_422_without_inserting():
             )
 
     assert exc_info.value.status_code == 422
-    assert "not.a.real.action" in exc_info.value.detail["error"]
+    assert "not.a.real.action" in exc_info.value.detail
     session.execute.assert_not_awaited()
     background_tasks.add_task.assert_not_called()
 
@@ -141,7 +140,6 @@ async def test_run_fix_dispatches_distinct_known_action_ids(fix_id):
         )
 
     assert out["run_id"] == str(new_id)
-    assert response.status_code == 202
     bind = session.execute.call_args[0][1]
     assert bind["fix_id"] == fix_id
 
@@ -414,7 +412,6 @@ async def test_run_fix_all_known_flow_inserts_pending_and_schedules():
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
     assert out["href"] == f"/v1/fix/runs/{new_id}"
-    assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     bind = session.execute.call_args[0][1]
     assert bind["kind"] == "flow"
@@ -443,7 +440,7 @@ async def test_run_fix_all_unknown_flow_returns_422():
             )
 
     assert exc_info.value.status_code == 422
-    assert FIX_CODE_FLOW_ID in exc_info.value.detail["error"]
+    assert FIX_CODE_FLOW_ID in exc_info.value.detail
     session.execute.assert_not_awaited()
     background_tasks.add_task.assert_not_called()
 
@@ -484,7 +481,6 @@ async def test_run_fix_modularity_inserts_pending_and_schedules():
     assert out["run_id"] == str(new_id)
     assert out["status"] == "pending"
     assert out["href"] == f"/v1/fix/runs/{new_id}"
-    assert response.status_code == 202
     assert background_tasks.add_task.call_count == 1
     # No flow_id bind param — fix_id is hard-coded to NULL in the SQL.
     bind = session.execute.call_args[0][1]

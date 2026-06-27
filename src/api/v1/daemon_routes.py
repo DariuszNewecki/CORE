@@ -62,12 +62,10 @@ async def daemon_start(request: Request) -> dict:
     if not result.get("ok", False):
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": "daemon_start_failed",
-                "exit_code": result.get("exit_code"),
-                "stderr_tail": result.get("stderr_tail", []),
-                "underlying_error": result.get("error"),
-            },
+            detail=(
+                f"daemon_start_failed: exit_code={result.get('exit_code')}, "
+                f"error={result.get('error', 'unknown')}"
+            ),
         )
     return {"status": "started", "exit_code": result.get("exit_code", 0)}
 

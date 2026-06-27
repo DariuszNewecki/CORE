@@ -13,7 +13,9 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
@@ -84,7 +86,12 @@ async def test_validate_crate_by_id_valid_manifest_canary_passes(service):
 
 
 async def test_apply_and_finalize_crate_success(service):
-    """Test applying and finalizing an accepted crate."""
+    """Test applying and finalizing an accepted crate.
+
+    After #706: crate is deleted from inbox after applying (no move to
+    accepted/). Expects write_runtime_text for payload, remove_tree for
+    cleanup, and NO copy_tree call.
+    """
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
         crate_id = "crate_to_apply"
@@ -97,20 +104,13 @@ async def test_apply_and_finalize_crate_success(service):
         manifest_path.write_text(yaml.dump(manifest), encoding="utf-8")
         payload_file = crate_path / "test_file.txt"
         payload_file.write_text("Test content", encoding="utf-8")
-        accepted = tmp_path / "accepted"
-        accepted.mkdir()
         mock_fh = Mock()
         service._fh = mock_fh
         service.inbox_path = inbox
-        service.accepted_path = accepted
         await service.apply_and_finalize_crate(crate_id)
         assert mock_fh.write_runtime_text.call_count >= 1
-        # Source's apply_and_finalize uses copy_tree + remove_tree to move
-        # the crate (atomic semantics on top of FileHandler primitives); the
-        # autogen vintage asserted a single ``move_tree`` call against an
-        # earlier API. Track the equivalent copy+remove pair.
-        mock_fh.copy_tree.assert_called_once()
         mock_fh.remove_tree.assert_called_once()
+        mock_fh.copy_tree.assert_not_called()
 
 
 def test_to_repo_rel_with_relative_path(service):
@@ -129,19 +129,48 @@ def test_to_repo_rel_with_outside_path(service):
     assert result == "/completely/different/path"
 
 
-def test_write_result_manifest(service):
-    """Test _write_result_manifest creates proper result.yaml."""
+def test_purge_stale_inbox_crates_removes_old_crate(service):
+    """Crates whose manifest.yaml mtime exceeds ttl_days are purged."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        crate_path = Path(tmpdir) / "test_crate"
-        crate_path.mkdir()
+        inbox = Path(tmpdir)
+        service.inbox_path = inbox
         mock_fh = Mock()
         service._fh = mock_fh
-        service._to_repo_rel = lambda p: "relative/path"
-        service._write_result_manifest(crate_path, "accepted", "Test details")
-        mock_fh.write_runtime_text.assert_called_once()
-        call_args = mock_fh.write_runtime_text.call_args
-        assert call_args[0][0] == "relative/path/result.yaml"
-        content = call_args[0][1]
-        assert "status: accepted" in content
-        assert "Test details" in content
-        assert "processed_at_utc" in content
+        service._to_repo_rel = lambda p: str(p)
+
+        old_crate = inbox / "old_crate_001"
+        old_crate.mkdir()
+        manifest = old_crate / "manifest.yaml"
+        manifest.write_text("crate_id: old_crate_001\n", encoding="utf-8")
+        old_mtime = time.time() - (8 * 86400)
+        os.utime(manifest, (old_mtime, old_mtime))
+
+        purged = service.purge_stale_inbox_crates(ttl_days=7)
+        assert purged == ["old_crate_001"]
+        mock_fh.remove_tree.assert_called_once()
+
+
+def test_purge_stale_inbox_crates_keeps_fresh_crate(service):
+    """Crates younger than ttl_days are not purged."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        inbox = Path(tmpdir)
+        service.inbox_path = inbox
+        mock_fh = Mock()
+        service._fh = mock_fh
+        service._to_repo_rel = lambda p: str(p)
+
+        fresh_crate = inbox / "fresh_crate_001"
+        fresh_crate.mkdir()
+        manifest = fresh_crate / "manifest.yaml"
+        manifest.write_text("crate_id: fresh_crate_001\n", encoding="utf-8")
+
+        purged = service.purge_stale_inbox_crates(ttl_days=7)
+        assert purged == []
+        mock_fh.remove_tree.assert_not_called()
+
+
+def test_purge_stale_inbox_crates_nonexistent_inbox(service):
+    """Returns empty list when inbox directory does not exist."""
+    service.inbox_path = Path("/nonexistent/inbox/path/that/does/not/exist")
+    purged = service.purge_stale_inbox_crates()
+    assert purged == []

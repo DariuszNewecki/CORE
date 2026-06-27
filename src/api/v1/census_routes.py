@@ -44,6 +44,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.census_runner import (
@@ -81,6 +82,8 @@ class CreateBaselineRequest(BaseModel):
 
 @router.post(
     "/runs",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     summary="Dispatch a structural census",
     description=(
         "Trigger a CIM-0 structural census snapshot of the constitution and "
@@ -129,7 +132,6 @@ async def create_census_run(
 
     background_tasks.add_task(drive_census)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",

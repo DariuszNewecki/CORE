@@ -41,6 +41,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_role
+from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.refactor_runner import (
@@ -162,6 +163,8 @@ async def refactor_stats(request: Request) -> dict:
 
 @router.post(
     "/autonomous",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
     # F-40.1: internal — dispatches the A3 autonomous refactor cycle.
     # Autonomy surface, not a sidecar concern. Excluded from
     # /v1/openapi.json per ADR-087.
@@ -214,7 +217,6 @@ async def run_refactor_autonomous(
 
     background_tasks.add_task(drive_autonomous)
 
-    response.status_code = 202
     return {
         "run_id": str(run_id),
         "status": "pending",

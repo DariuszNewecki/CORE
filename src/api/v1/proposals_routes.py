@@ -28,6 +28,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, require_role
+from api.v1.schemas import ProposalResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import (
@@ -193,6 +194,7 @@ async def list_proposals(
 
 @router.get(
     "/{proposal_id}",
+    response_model=ProposalResponse,
     summary="Fetch a single proposal",
     description=(
         "Return a proposal by `proposal_id`. Returns 404 if no proposal "

@@ -51,8 +51,7 @@ async def test_create_audit_run_async_returns_pending_with_run_id():
         session=session,
     )
 
-    assert out == {"run_id": str(new_id), "status": "pending"}
-    assert response.status_code == 202
+    assert out == {"run_id": str(new_id), "status": "pending", "href": f"/v1/audit/runs/{new_id}"}
     assert background_tasks.add_task.call_count == 1
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()

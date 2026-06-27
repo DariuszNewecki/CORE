@@ -73,7 +73,7 @@ async def test_daemon_start_returns_500_on_systemctl_failure():
         with pytest.raises(HTTPException) as exc:
             await daemon_start(request=request)
     assert exc.value.status_code == 500
-    assert exc.value.detail["error"] == "daemon_start_failed"
+    assert "daemon_start_failed" in exc.value.detail
 
 
 async def test_daemon_stop_returns_200_before_systemctl_runs():

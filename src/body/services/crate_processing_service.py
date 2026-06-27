@@ -238,9 +238,12 @@ class CrateProcessingService:
                 shutil.rmtree(canary_repo_path, ignore_errors=True)
 
     # ID: 729b80a5-bc1b-484d-aa22-d27356481cbc
-    async def apply_and_finalize_crate(self, crate_id: str):
-        """
-        Final execution: Applies crate to the real 'Body' and moves it to accepted.
+    async def apply_and_finalize_crate(self, crate_id: str) -> None:
+        """Apply crate payload to production code and delete it from inbox.
+
+        Inbox is a transit zone, not an archive. After the governed writes
+        succeed the crate directory is removed — callers should not re-run
+        this method on the same crate_id.
         """
         crate_path = self.inbox_path / crate_id
         manifest_path = crate_path / "manifest.yaml"
@@ -250,26 +253,39 @@ class CrateProcessingService:
 
         for rel_file in manifest.get("payload_files", []):
             source = crate_path / rel_file
-            # Governed write to live system
             self._fh.write_runtime_text(rel_file, source.read_text(encoding="utf-8"))
 
-        # Move to accepted
-        final_path = self.accepted_path / crate_id
-        self._fh.copy_tree(self._to_repo_rel(crate_path), self._to_repo_rel(final_path))
         self._fh.remove_tree(self._to_repo_rel(crate_path))
-
-        self._write_result_manifest(final_path, "accepted", "Canary trial passed.")
         action_logger.log_event("crate.accepted", {"crate_id": crate_id})
 
-    def _write_result_manifest(self, crate_path: Path, status: str, details: Any):
-        """Writes result.yaml into the crate directory."""
-        result_content = {
-            "status": status,
-            "processed_at_utc": datetime.now(UTC).isoformat(),
-            "details": details,
-        }
-        result_rel = f"{self._to_repo_rel(crate_path)}/result.yaml"
-        self._fh.write_runtime_text(result_rel, yaml.dump(result_content, indent=2))
+    # ID: b2c2ffe3-5df4-406e-9003-435f10abb134
+    def purge_stale_inbox_crates(self, ttl_days: int = 7) -> list[str]:
+        """Delete inbox crate directories older than ttl_days.
+
+        Age is measured against manifest.yaml mtime; falls back to the
+        directory mtime when the manifest is absent. Returns the list of
+        purged crate ids.
+        """
+        if not self.inbox_path.exists():
+            return []
+
+        now = datetime.now(UTC).timestamp()
+        purged: list[str] = []
+        for crate_dir in self.inbox_path.iterdir():
+            if not crate_dir.is_dir():
+                continue
+            manifest = crate_dir / "manifest.yaml"
+            ref = manifest if manifest.exists() else crate_dir
+            age_days = (now - ref.stat().st_mtime) / 86400
+            if age_days >= ttl_days:
+                self._fh.remove_tree(self._to_repo_rel(crate_dir))
+                purged.append(crate_dir.name)
+                logger.info(
+                    "Purged stale inbox crate %s (age %.1f days)",
+                    crate_dir.name,
+                    age_days,
+                )
+        return purged
 
     def _to_repo_rel(self, p: Path) -> str:
         """Helper to ensure paths are FileHandler compatible."""
