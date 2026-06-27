@@ -112,6 +112,18 @@ def _clear_auth_cookies(response: Response) -> None:
 def get_auth_service(
     session: Annotated[AsyncSession, Depends(get_api_session)],
 ) -> AuthService:
+    """
+    Dependency injection factory for the AuthService layer.
+
+    Creates a fully-configured AuthService instance using database session and
+    application-level JWT authentication settings.
+
+    Args:
+        session: AsyncSession injected by the FastAPI dependency resolver.
+
+    Returns:
+        AuthService instance wired with session, JWT secret, and token lifetime settings.
+    """
     return AuthService(
         session=session,
         jwt_secret=settings.JWT_SECRET_KEY,
@@ -127,6 +139,19 @@ def get_auth_service(
 
 # ID: c3737fa5-4055-4d1c-9fdc-e99229c1e02c
 class RegisterRequest(BaseModel):
+    """
+    Request payload for new user registration.
+
+    Defines the required and optional fields needed to create a user account,
+    including support for organisation-scoped registration via an invitation token.
+
+    Args:
+        email: Verified email address of the registering user.
+        password: Plaintext password to be securely hashed and stored.
+        org_name: Optional name of an organisation to create and join.
+        invitation_token: Optional token for joining an existing organisation.
+    """
+
     email: EmailStr
     password: str
     org_name: str | None = None
@@ -135,23 +160,63 @@ class RegisterRequest(BaseModel):
 
 # ID: 5c1d9013-482a-40be-aee4-1cedc51d4058
 class LoginRequest(BaseModel):
+    """
+    Represents a login authentication request from a client.
+
+    Defines the expected schema for user-provided credentials
+    submitted during the login process.
+
+    Args:
+        email: The user's email address, validated as a proper email format.
+        password: The user's password in plain text for authentication.
+    """
+
     email: EmailStr
     password: str
 
 
 # ID: ec18c598-5202-4e32-ba63-2a6773b3c796
 class PasswordResetRequest(BaseModel):
+    """
+    A data model representing a request to initiate a password reset.
+
+    Validates that the provided email address conforms to the standard email format for downstream processing.
+
+    Args:
+        email: A valid email address for the target user account.
+    """
+
     email: EmailStr
 
 
 # ID: c97ee217-099e-483f-8454-05b57b634709
 class PasswordResetConfirmRequest(BaseModel):
+    """
+    Request model for confirming a password reset with a verification token.
+
+    Represents the required fields to complete a password reset flow —
+    a cryptographic token proving authorization, and the new password to set.
+
+    Args:
+        token: Verification token obtained from the password reset initiation.
+        new_password: The new password string to be set for the user account.
+    """
+
     token: str
     new_password: str
 
 
 # ID: 1c205eca-e484-44fd-a52d-3e1d0d228052
 class PromoteRequest(BaseModel):
+    """
+    Request to promote a user to a new role within an organization.
+
+    Args:
+        user_id: The unique identifier of the user to be promoted.
+        org_id: The organization context for the promotion (None for self-contained systems).
+        role: The target role to assign (e.g. 'admin', 'moderator').
+    """
+
     user_id: str
     org_id: str | None = None
     role: str
@@ -367,6 +432,20 @@ async def me(
 
 # ID: 7acce499-3f53-47aa-aa96-e6210a161067
 class InviteRequest(BaseModel):
+    """
+    Request model for inviting a user to an organization.
+
+    Defines the constitutionally-governed data contract for processing
+    user invitations, ensuring email validity and role assignment are
+    enforced at the boundary layer before reaching business logic.
+
+    Args:
+        email: Validated email address of the invitee.
+        role: Intended role assignment within the organization.
+        org_id: Optional organization identifier; defaults to the
+                acting user's organization if not specified.
+    """
+
     email: EmailStr
     role: str
     org_id: str | None = None
@@ -442,6 +521,15 @@ async def invite(
 
 # ID: d41ea1b4-45b2-4c13-b91f-a1a6345dcf5d
 class PromoteUserRequest(BaseModel):
+    """
+    Request payload for promoting a user to a new organizational role.
+
+    Args:
+        org_id: The unique identifier of the organization. May be None
+                in system-level promotions.
+        role: The target role to assign (e.g. 'admin', 'moderator').
+    """
+
     org_id: str | None = None
     role: str
 
@@ -507,6 +595,22 @@ async def reactivate_user(
 
 # ID: f8709a34-6a7a-4898-8085-9b7769cc1a4a
 class CreateApiKeyRequest(BaseModel):
+    """
+    Request model for creating a new API key within the governed system.
+
+    Captures the essential parameters needed to issue a constitutionally-bound
+    API key: a human-readable label for identification, the access role that
+    determines permission scope, and an optional expiration timestamp.
+
+    Args:
+        label: Human-readable name for the API key.
+        role: Access role defining permission boundaries (default: "analyst").
+        expires_at: ISO-format datetime string for key expiration, or None for no expiry.
+
+    Returns:
+        A validated CreateApiKeyRequest instance ready for policy enforcement.
+    """
+
     label: str
     role: str = "analyst"
     expires_at: str | None = None
