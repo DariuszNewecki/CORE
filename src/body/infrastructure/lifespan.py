@@ -37,11 +37,13 @@ async def core_lifespan(app: FastAPI):
     """
     logger.info("🚀 Starting CORE system...")
 
-    # 0. SECURITY PRE-FLIGHT: reject default JWT secret outside dev/test
-    _safe_envs = {"DEV", "DEVELOPMENT", "TEST"}
+    # 0. SECURITY PRE-FLIGHT: reject default JWT secret unless the
+    # ALLOW_INSECURE_DEV_SECRET flag is explicitly set (#711).
+    # Env-name strings are not trusted — a staging env copied from a dev
+    # config can have CORE_ENV=DEVELOPMENT while serving real traffic.
     if (
         settings.JWT_SECRET_KEY == "change-me-in-production"
-        and settings.CORE_ENV.upper() not in _safe_envs
+        and not settings.ALLOW_INSECURE_DEV_SECRET
     ):
         raise RuntimeError(
             "JWT_SECRET_KEY is set to the insecure default. "

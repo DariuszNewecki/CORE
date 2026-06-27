@@ -378,6 +378,7 @@ async def run_fix_modularity(
 @router.post(
     "/ir",
     summary="Bootstrap an IR scaffold file",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Bootstrap an Intent Representation (IR) scaffold file of the "
         "requested `kind` (`triage` or `log`). Synchronous — returns the "
@@ -428,6 +429,7 @@ async def list_fix_commands() -> dict:
 @router.get(
     "/runs/{run_id}",
     summary="Fetch a persisted fix run",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Read back a fix run's persisted record by `run_id`. The response "
         "shape matches ADR-055 D2: run_id, status, fix_id, kind, write, "

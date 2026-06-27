@@ -14,8 +14,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException, Response
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Response
+from fastapi.testclient import TestClient
 
+from api.dependencies import get_current_user
 from api.v1.fix_routes import (
     FIX_CODE_FLOW_ID,
     RunFixRequest,
@@ -24,6 +26,7 @@ from api.v1.fix_routes import (
     get_fix_run,
     list_actions,
     list_fix_commands,
+    router,
     run_fix,
     run_fix_all,
     run_fix_ir,
@@ -569,3 +572,35 @@ async def test_run_fix_ir_log_returns_path():
 
     mock.assert_called_once_with(request.app.state.core_context, "log")
     assert out == {"path": ".intent/mind/ir/incident_log.yaml"}
+
+
+# ---------------------------------------------------------------------------
+# RBAC route-level tests — #707 / #710
+# ---------------------------------------------------------------------------
+
+
+def _make_fix_client(role: str) -> TestClient:
+    """Build a minimal FastAPI test client with the fix router and a mocked
+    get_current_user that returns the given role."""
+    app = FastAPI()
+    app.include_router(router)
+
+    async def _mock_user() -> dict:
+        return {"sub": "u1", "email": "u@test.com", "role": role}
+
+    app.dependency_overrides[get_current_user] = _mock_user
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_run_fix_ir_non_admin_receives_403() -> None:
+    """POST /ir requires platform_admin — visitor gets 403 (#707)."""
+    client = _make_fix_client(role="visitor")
+    r = client.post("/ir", json={"kind": "triage"})
+    assert r.status_code == 403
+
+
+def test_get_fix_run_non_admin_receives_403() -> None:
+    """GET /runs/{run_id} requires platform_admin — visitor gets 403 (#710)."""
+    client = _make_fix_client(role="visitor")
+    r = client.get(f"/runs/{uuid4()}")
+    assert r.status_code == 403

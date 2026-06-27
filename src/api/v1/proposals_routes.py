@@ -95,6 +95,7 @@ class CreateProposalRequest(BaseModel):
     "",
     status_code=201,
     summary="Create a proposal",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Build a proposal from a goal + action sequence, compute its risk, "
         "and (when `write=true`) persist it via ProposalService. With "
@@ -262,6 +263,7 @@ async def approve_proposal(
 @router.post(
     "/{proposal_id}/reject",
     summary="Reject a proposal",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Reject a proposal with a reason. Per ADR-010 §7a, rejection is "
         "symmetric with `mark_failed`: any findings parked at "

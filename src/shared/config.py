@@ -127,6 +127,12 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
         30, validation_alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS"
     )
+    # Must be explicitly set True in dev/test to permit the default JWT secret.
+    # Affirmative opt-in so a misconfigured staging env cannot accidentally bypass
+    # the startup guard via an env-name string match (#711).
+    ALLOW_INSECURE_DEV_SECRET: bool = Field(
+        False, validation_alias="ALLOW_INSECURE_DEV_SECRET"
+    )
     RESEND_API_KEY: str | None = Field(None, validation_alias="RESEND_API_KEY")
     APP_BASE_URL: str = Field("http://localhost:8000", validation_alias="APP_BASE_URL")
     MAIL_FROM: str = Field(

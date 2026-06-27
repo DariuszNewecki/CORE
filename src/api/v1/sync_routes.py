@@ -40,7 +40,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session
+from api.dependencies import get_api_session, open_background_session, require_role
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.sync_runner import (
@@ -225,7 +225,7 @@ async def sync_dev_sync(
     )
 
 
-@router.get("/runs/{run_id}")
+@router.get("/runs/{run_id}", dependencies=[require_role("platform_admin")])
 # ID: 3f0b7a5c-9e4d-4a2b-7ba8-6de45678ef01
 async def get_sync_run(
     run_id: UUID,

@@ -49,7 +49,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session
+from api.dependencies import get_api_session, open_background_session, require_role
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.coverage_runner import (
@@ -493,6 +493,7 @@ async def interactive_tests(
 @router.get(
     "/runs/{run_id}",
     summary="Fetch a persisted coverage run",
+    dependencies=[require_role("platform_admin")],
     description=(
         "Read back a coverage run's persisted record by `run_id`: status, "
         "timestamps, result payload, error. Returns 404 if no run exists "

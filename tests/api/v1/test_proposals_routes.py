@@ -12,8 +12,10 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.testclient import TestClient
 
+from api.dependencies import get_current_user
 from api.v1.proposals_routes import (
     API_CLAIMER_UUID,
     ApproveRequest,
@@ -24,6 +26,7 @@ from api.v1.proposals_routes import (
     get_proposal,
     list_proposals,
     reject_proposal,
+    router,
 )
 from will.autonomy.proposal_state_manager import ProposalNotFoundError
 
@@ -294,3 +297,35 @@ async def test_execute_proposal_dry_run_default():
         await execute_proposal(proposal_id="p-1", payload=payload, request=request)
 
     executor.execute.assert_awaited_once_with("p-1", API_CLAIMER_UUID, write=False)
+
+
+# ---------------------------------------------------------------------------
+# RBAC route-level tests — #707
+# ---------------------------------------------------------------------------
+
+
+def _make_proposals_client(role: str) -> TestClient:
+    """Build a minimal FastAPI test client with the proposals router and a
+    mocked get_current_user that returns the given role."""
+    app = FastAPI()
+    app.include_router(router)
+
+    async def _mock_user() -> dict:
+        return {"sub": "u1", "email": "u@test.com", "role": role}
+
+    app.dependency_overrides[get_current_user] = _mock_user
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_create_proposal_non_admin_receives_403() -> None:
+    """POST / (create proposal) requires platform_admin — visitor gets 403."""
+    client = _make_proposals_client(role="visitor")
+    r = client.post("/", json={"goal": "test"})
+    assert r.status_code == 403
+
+
+def test_reject_proposal_non_admin_receives_403() -> None:
+    """POST /{id}/reject requires platform_admin — visitor gets 403."""
+    client = _make_proposals_client(role="visitor")
+    r = client.post("/some-id/reject", json={"reason": "stale"})
+    assert r.status_code == 403
