@@ -286,11 +286,12 @@ class ProposalExecutor:
                     if not result.ok:
                         all_ok = False
                         logger.warning(
-                            "%s %s failed: %s",
+                            "%s %s failed: %s — stopping execution",
                             ref_kind.capitalize(),
                             ref_id,
                             (result.data or {}).get("error", "Unknown error"),
                         )
+                        break
                     else:
                         logger.info(
                             "%s %s completed successfully (%.2fs)",
@@ -304,7 +305,7 @@ class ProposalExecutor:
                     all_ok = False
 
                     logger.error(
-                        "Exception executing %s %s: %s",
+                        "Exception executing %s %s: %s — stopping execution",
                         ref_kind,
                         ref_id,
                         e,
@@ -318,6 +319,7 @@ class ProposalExecutor:
                         "order": action.order,
                         "kind": ref_kind,
                     }
+                    break
 
             # 5. Update final status
             total_duration = time.time() - start_time

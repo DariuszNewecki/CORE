@@ -69,7 +69,12 @@ class ProposalStateManager:
 
     # ID: 360b7769-23e8-416d-875b-45e8d3c8194c
     async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:
-        """Mark proposal as successfully completed."""
+        """Mark proposal as successfully completed.
+
+        Valid source state: executing only. Raises ProposalNotFoundError
+        when rowcount=0 — indicates either no such proposal or an invalid
+        transition (e.g. re-completing an already-completed row).
+        """
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
         )
@@ -77,13 +82,18 @@ class ProposalStateManager:
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
+            .where(AutonomousProposal.status == ProposalStatus.EXECUTING.value)
             .values(
                 status=ProposalStatus.COMPLETED.value,
                 execution_completed_at=datetime.now(UTC),
                 execution_results=_sanitize_payload(results),
             )
         )
-        await self._session.execute(stmt)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            raise ProposalNotFoundError(
+                f"Proposal not found or not in executing state: {proposal_id!r}"
+            )
         await self._session.commit()
         logger.info("Marked proposal as completed: %s", proposal_id)
 
@@ -95,6 +105,10 @@ class ProposalStateManager:
         results: dict[str, Any] | None = None,
     ) -> None:
         """Mark proposal as failed with reason and execution results.
+
+        Valid source state: executing only. Raises ProposalNotFoundError
+        when rowcount=0 — indicates either no such proposal or an invalid
+        transition (e.g. failing an already-completed row).
 
         UPDATE-only: transitions the proposal row on
         core.autonomous_proposals to 'failed' status.
@@ -114,6 +128,7 @@ class ProposalStateManager:
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
+            .where(AutonomousProposal.status == ProposalStatus.EXECUTING.value)
             .values(
                 status=ProposalStatus.FAILED.value,
                 execution_completed_at=datetime.now(UTC),
@@ -121,7 +136,11 @@ class ProposalStateManager:
                 execution_results=_sanitize_payload(results or {}),
             )
         )
-        await self._session.execute(stmt)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            raise ProposalNotFoundError(
+                f"Proposal not found or not in executing state: {proposal_id!r}"
+            )
         await self._session.commit()
         logger.error("Marked proposal as failed: %s - %s", proposal_id, reason)
 
@@ -198,6 +217,11 @@ class ProposalStateManager:
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
+            .where(
+                AutonomousProposal.status.in_(
+                    [ProposalStatus.DRAFT.value, ProposalStatus.PENDING.value]
+                )
+            )
             .values(
                 status=ProposalStatus.APPROVED.value,
                 approved_by=approved_by,
@@ -228,6 +252,15 @@ class ProposalStateManager:
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
+            .where(
+                AutonomousProposal.status.in_(
+                    [
+                        ProposalStatus.DRAFT.value,
+                        ProposalStatus.PENDING.value,
+                        ProposalStatus.APPROVED.value,
+                    ]
+                )
+            )
             .values(
                 status=ProposalStatus.REJECTED.value,
                 failure_reason=reason,

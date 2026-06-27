@@ -35,7 +35,7 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="action_results keying unit test",
-        status="draft",
+        status="executing",
         actions=[
             {"action_id": "fix.format", "parameters": {}, "order": 0},
             {"action_id": "fix.format", "parameters": {}, "order": 1},

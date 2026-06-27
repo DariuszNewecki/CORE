@@ -32,7 +32,7 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="sanitize() unit test",
-        status="draft",
+        status="executing",
         actions=[{"action_id": "fix.format", "parameters": {}, "order": 0}],
         scope={"files": [], "modules": [], "symbols": [], "policies": []},
         constitutional_constraints={},
