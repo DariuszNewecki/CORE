@@ -41,7 +41,7 @@
           # --- THE BOOTSTRAP: Infrastructure that enables governance ---
           # These components implement the governed surface itself and must
           # operate before governance is active (Load Phase)
-          - "src/shared/infrastructure/storage/file_handler.py" # IS the governed surface
+          - "src/body/infrastructure/storage/file_handler.py" # IS the governed surface (moved from shared by ADR-126)
           - "src/shared/path_utils.py" # Path resolution utilities
           - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
           - "src/mind/governance/runtime_validator.py" # Validation infrastructure

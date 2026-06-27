@@ -16,7 +16,7 @@ mappings:
         # leading "src/", so it never matched. The audit's leaf-match
         # extension for .unlink/.rmdir (ADR-071 D2.2 / #451) exposed it
         # by surfacing remove_file's own abs_path.unlink as a violation.
-        - "src/shared/infrastructure/storage/file_handler.py" # IS the governed surface
+        - "src/body/infrastructure/storage/file_handler.py" # IS the governed surface (moved from shared by ADR-126)
         # Excludes mirrored from governance.logic_mutation.governed in
         # governance_basics.yaml — both rules use no_direct_writes and
         # must share the same sanctuary set or one will fire spuriously.
