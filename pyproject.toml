@@ -69,8 +69,6 @@ dependencies = [
     # Scientific Computing
     "numpy>=2.3.2,<3.0.0",
     "scikit-learn>=1.5.1,<2.0.0",
-    # Graph Analysis
-    "networkx>=3.3,<4.0",
     # Utilities
     "msgpack>=1.2.1,<2.0.0",
     "filelock>=3.13.0,<4.0.0",

@@ -15,8 +15,6 @@ from __future__ import annotations
 
 import traceback
 
-import networkx as nx
-
 from mind.governance.audit_context import AuditorContext
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
@@ -27,9 +25,27 @@ from shared.models import AuditFinding
 logger = getLogger(__name__)
 
 
+def _connected_components(edges: list[tuple[str, str]]) -> list[set[str]]:
+    """Path-compressed union-find for connected-component clustering."""
+    parent: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        if parent.setdefault(x, x) != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    for a, b in edges:
+        parent[find(a)] = find(b)
+
+    groups: dict[str, set[str]] = {}
+    for node in parent:
+        groups.setdefault(find(node), set()).add(node)
+    return list(groups.values())
+
+
 def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
-    """Groups pairwise duplicate findings into clusters using graph theory."""
-    graph = nx.Graph()
+    """Groups pairwise duplicate findings into clusters via union-find."""
+    edges: list[tuple[str, str]] = []
     finding_map: dict[tuple[str, str], AuditFinding] = {}
 
     for finding in findings:
@@ -37,10 +53,10 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
         symbol1 = ctx.get("symbol_a")
         symbol2 = ctx.get("symbol_b")
         if symbol1 and symbol2:
-            graph.add_edge(symbol1, symbol2)
+            edges.append((symbol1, symbol2))
             finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
-    clusters = list(nx.connected_components(graph))
+    clusters = _connected_components(edges)
     grouped_findings: list[list[AuditFinding]] = []
 
     for cluster in clusters:
