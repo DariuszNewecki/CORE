@@ -16,7 +16,7 @@ import ast
 import fnmatch
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import text
 
@@ -43,17 +43,7 @@ class KnowledgeGateEngine(BaseEngine):
 
     engine_id = "knowledge_gate"
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
-
-    @classmethod
-    # ID: 9e3a7d51-6b2f-4c89-a04d-1e8b5c3f9a26
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """
-        ADR-076 D1/D2: every knowledge_gate check_type is context-level.
-
-        The engine's ``verify(file_path, ...)`` is a hard-fail stub; all
-        real work is in ``verify_context`` consuming AuditorContext.
-        """
-        return True
+    _always_context_level: ClassVar[bool] = True  # every check_type is context-level
 
     # Constitutional whitelist of tables this engine may query.
     # Table names in SQL cannot be parameterized — they must be validated

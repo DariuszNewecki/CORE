@@ -145,10 +145,14 @@ class BaseEngine(ABC):
 
     # Engines that handle a fixed set of named check_types at context-level
     # declare those names here. is_context_level_for (below) dispatches against
-    # this set; no override needed in the subclass. Engines that are always
-    # context-level (return True) or have mixed/complex dispatch logic keep
-    # their own is_context_level_for override and leave this empty.
+    # this set; no override needed in the subclass.
     _context_check_types: ClassVar[frozenset[str]] = frozenset()
+
+    # Engines where EVERY check_type is context-level set this to True.
+    # is_context_level_for returns True unconditionally for such engines,
+    # regardless of check_type. Engines with mixed or complex dispatch keep
+    # _always_context_level = False and override is_context_level_for directly.
+    _always_context_level: ClassVar[bool] = False
 
     @abstractmethod
     # ID: db4c48d2-4ccc-4182-bb37-29973471b8bb
@@ -172,12 +176,17 @@ class BaseEngine(ABC):
         Whether this engine dispatches the given check_type at context-level.
 
         ADR-076 D1/D2: dispatch mode is engine-declared per check_type, not
-        per-engine. Default checks ``cls._context_check_types``; engines with
-        a fixed set of named check_types declare them there and need no
-        override. Engines that are always context-level (or have mixed/complex
-        dispatch) override this method directly.
+        per-engine. Two declaration paths, checked in order:
+
+        1. ``_always_context_level = True`` — engine is unconditionally
+           context-level for all check_types (knowledge_gate, workflow_gate,
+           attestation_gate). No override needed.
+        2. ``_context_check_types`` — engine is context-level for a fixed named
+           set (cli_gate, contracts_gate, runtime_gate). No override needed.
+        3. Neither — engine overrides this method for mixed or complex dispatch
+           (artifact_gate). Returns False by default.
 
         Called by the rule extractor on the engine *class* (no instantiation),
         so overrides must be classmethods that depend only on ``check_type``.
         """
-        return check_type in cls._context_check_types
+        return cls._always_context_level or check_type in cls._context_check_types

@@ -12,7 +12,7 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.workflow_gate.base_check import (
@@ -53,18 +53,7 @@ class WorkflowGateEngine(BaseEngine):
 
     engine_id = "workflow_gate"
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
-
-    @classmethod
-    # ID: 2b8e4f3d-1a9c-4b65-9d7e-3f8a1c5e2b04
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """
-        ADR-076 D1/D2: every workflow_gate check_type is context-level.
-
-        All twelve checks (tests, coverage, canary, alignment, dead code,
-        audit history, linter, imports, ruff format, mypy, security,
-        pytest collection) walk system state rather than a single file_path.
-        """
-        return True
+    _always_context_level: ClassVar[bool] = True  # every check_type is context-level
 
     def __init__(self, path_resolver: PathResolver) -> None:
         """Initialize the engine and register its specialized check logic."""

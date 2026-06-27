@@ -22,7 +22,7 @@ the organization, not a single file, so it emits one finding per requirement.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -51,13 +51,7 @@ class AttestationGateEngine(BaseEngine):
 
     engine_id = "attestation_gate"
     evidence_class = EvidenceClass.ATTESTED  # ADR-113: cannot be settled automatically
-
-    @classmethod
-    # ID: 0651c611-3de6-4317-836b-0cc8f4479be7
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """Always context-level: an attestation requirement is about the corpus,
-        not a per-file fact. Dispatched once per rule, not once per file."""
-        return True
+    _always_context_level: ClassVar[bool] = True  # every check_type is context-level
 
     # ID: f9fe367a-ed35-4dbf-a59d-f46b51c767ec
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

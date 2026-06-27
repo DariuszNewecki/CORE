@@ -142,6 +142,50 @@ class TestBaseEngine:
         assert ContextEngine.is_context_level_for("check_c") is False
         assert ContextEngine.is_context_level_for(None) is False
 
+    def test_always_context_level_default_is_false(self):
+        """BaseEngine._always_context_level defaults to False."""
+
+        class MinimalEngine(BaseEngine):
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert MinimalEngine._always_context_level is False
+
+    def test_always_context_level_true_overrides_check_type_lookup(self):
+        """_always_context_level=True makes is_context_level_for return True
+        for every check_type including None, regardless of _context_check_types."""
+
+        class AlwaysContextEngine(BaseEngine):
+            _always_context_level: ClassVar[bool] = True
+
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert AlwaysContextEngine.is_context_level_for("any_check") is True
+        assert AlwaysContextEngine.is_context_level_for(None) is True
+        assert AlwaysContextEngine.is_context_level_for("") is True
+
+    def test_always_context_level_and_check_types_are_independent(self):
+        """_always_context_level=False with _context_check_types still works;
+        _always_context_level=True with empty _context_check_types also works."""
+
+        class SetOnlyEngine(BaseEngine):
+            _context_check_types: ClassVar[frozenset[str]] = frozenset({"alpha"})
+
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        class FlagOnlyEngine(BaseEngine):
+            _always_context_level: ClassVar[bool] = True
+
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert SetOnlyEngine.is_context_level_for("alpha") is True
+        assert SetOnlyEngine.is_context_level_for("beta") is False
+        assert FlagOnlyEngine.is_context_level_for("beta") is True
+        assert FlagOnlyEngine.is_context_level_for(None) is True
+
     def test_is_context_level_for_is_classmethod(self):
         """is_context_level_for is callable on the class, not just instances."""
         assert callable(BaseEngine.is_context_level_for)
