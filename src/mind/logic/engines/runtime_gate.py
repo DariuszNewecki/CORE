@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import statistics
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import yaml
 from sqlalchemy import text
@@ -51,9 +51,6 @@ logger = getLogger(__name__)
 
 
 _ENGINE_ID = "runtime_gate"
-_CONTEXT_CHECK_TYPES = frozenset(
-    {"worker_process_classification", "worker_max_interval_within_observed"}
-)
 _RULE_ID = "runtime.worker_process_classification"
 _RULE_ID_MAX_INTERVAL = "runtime.worker_max_interval_within_observed"
 
@@ -79,13 +76,9 @@ class RuntimeGateEngine(BaseEngine):
 
     engine_id = _ENGINE_ID
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
-
-    @classmethod
-    # ID: 1f2e3d4c-5b6a-7980-1234-5678abcdef01
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """All runtime_gate check_types dispatch context-level — they
-        consume blackboard aggregations, not single files."""
-        return check_type in _CONTEXT_CHECK_TYPES
+    _context_check_types: ClassVar[frozenset[str]] = frozenset(
+        {"worker_process_classification", "worker_max_interval_within_observed"}
+    )
 
     # ID: 2a3b4c5d-6e7f-8901-2345-67890abcdef0
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

@@ -143,6 +143,13 @@ class BaseEngine(ABC):
     # Deterministic gates override to PROVEN; llm_gate to JUDGED.
     evidence_class: ClassVar[EvidenceClass] = EvidenceClass.ATTESTED
 
+    # Engines that handle a fixed set of named check_types at context-level
+    # declare those names here. is_context_level_for (below) dispatches against
+    # this set; no override needed in the subclass. Engines that are always
+    # context-level (return True) or have mixed/complex dispatch logic keep
+    # their own is_context_level_for override and leave this empty.
+    _context_check_types: ClassVar[frozenset[str]] = frozenset()
+
     @abstractmethod
     # ID: db4c48d2-4ccc-4182-bb37-29973471b8bb
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
@@ -165,11 +172,12 @@ class BaseEngine(ABC):
         Whether this engine dispatches the given check_type at context-level.
 
         ADR-076 D1/D2: dispatch mode is engine-declared per check_type, not
-        per-engine. Default is per-file (False); engines override to return
-        True for check_types whose ``_check_*`` implementation walks the
-        repository instead of consuming a single ``file_path``.
+        per-engine. Default checks ``cls._context_check_types``; engines with
+        a fixed set of named check_types declare them there and need no
+        override. Engines that are always context-level (or have mixed/complex
+        dispatch) override this method directly.
 
         Called by the rule extractor on the engine *class* (no instantiation),
         so overrides must be classmethods that depend only on ``check_type``.
         """
-        return False
+        return check_type in cls._context_check_types

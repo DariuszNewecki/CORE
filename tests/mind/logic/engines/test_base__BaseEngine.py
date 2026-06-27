@@ -5,11 +5,14 @@
 - Generated: 2026-01-11 02:19:03
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
-from mind.logic.engines.base import BaseEngine
+from mind.logic.engines.base import BaseEngine, EngineResult
 
 
 # Detected return type: BaseEngine is an abstract class with async abstract method 'verify'
@@ -103,6 +106,47 @@ class TestBaseEngine:
         # Test with populated dict
         result = await engine.verify(test_path, {"key1": "value1", "key2": "value2"})
         assert result == 2
+
+    def test_context_check_types_default_is_empty(self):
+        """BaseEngine._context_check_types defaults to empty frozenset."""
+
+        class MinimalEngine(BaseEngine):
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert MinimalEngine._context_check_types == frozenset()
+
+    def test_is_context_level_for_returns_false_by_default(self):
+        """is_context_level_for returns False when _context_check_types is empty."""
+
+        class MinimalEngine(BaseEngine):
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert MinimalEngine.is_context_level_for("any_check") is False
+        assert MinimalEngine.is_context_level_for(None) is False
+
+    def test_is_context_level_for_with_declared_check_types(self):
+        """Subclass declaring _context_check_types gets correct dispatch."""
+
+        class ContextEngine(BaseEngine):
+            _context_check_types: ClassVar[frozenset[str]] = frozenset(
+                {"check_a", "check_b"}
+            )
+
+            async def verify(self, file_path: Path, params: dict) -> EngineResult:
+                return EngineResult(ok=True, message="", violations=[], engine_id="x")
+
+        assert ContextEngine.is_context_level_for("check_a") is True
+        assert ContextEngine.is_context_level_for("check_b") is True
+        assert ContextEngine.is_context_level_for("check_c") is False
+        assert ContextEngine.is_context_level_for(None) is False
+
+    def test_is_context_level_for_is_classmethod(self):
+        """is_context_level_for is callable on the class, not just instances."""
+        assert callable(BaseEngine.is_context_level_for)
+        # Calling on the class directly (not an instance) must work
+        assert BaseEngine.is_context_level_for("anything") is False
 
     def test_class_docstring(self):
         """Test that BaseEngine has appropriate documentation."""

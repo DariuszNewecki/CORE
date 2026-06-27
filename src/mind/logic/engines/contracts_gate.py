@@ -45,7 +45,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import yaml
 from sqlalchemy import text
@@ -64,13 +64,6 @@ logger = getLogger(__name__)
 
 
 _ENGINE_ID = "contracts_gate"
-_CONTEXT_CHECK_TYPES = frozenset(
-    {
-        "layer_scope_coherence",
-        "asymmetric_contract_findings",
-        "rule_binding_iceberg",
-    }
-)
 _RULE_ID_LAYER_SCOPE_COHERENCE = "data.contracts.layer_scope_coherence"
 _RULE_ID_ASYMMETRIC_FINDINGS = "data.contracts.asymmetric_contract_findings"
 _RULE_ID_RULE_BINDING_ICEBERG = "data.contracts.rule_binding_iceberg"
@@ -137,11 +130,13 @@ class ContractsGateEngine(BaseEngine):
 
     engine_id = _ENGINE_ID
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
-
-    @classmethod
-    # ID: effd788b-b7b5-4d1e-ab2a-24d8d829e2f7
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        return check_type in _CONTEXT_CHECK_TYPES
+    _context_check_types: ClassVar[frozenset[str]] = frozenset(
+        {
+            "layer_scope_coherence",
+            "asymmetric_contract_findings",
+            "rule_binding_iceberg",
+        }
+    )
 
     # ID: 85fe18c4-fa47-4ba1-a8ac-5d7df73a17db
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

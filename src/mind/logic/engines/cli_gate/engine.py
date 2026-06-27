@@ -19,7 +19,7 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.cli_gate.base_check import CliCheck
@@ -43,19 +43,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-_CONTEXT_CHECK_TYPES: frozenset[str] = frozenset(
-    {
-        "resource_first",
-        "no_layer_exposure",
-        "standard_verbs",
-        "dangerous_explicit",
-        "async_execution",
-        "discovery_strict",
-        "help_required",
-        "no_duplicates",
-    }
-)
-
 
 # ID: dc55a68d-d7f9-4645-984a-c9c432c472d8
 class CliGateEngine(BaseEngine):
@@ -63,14 +50,18 @@ class CliGateEngine(BaseEngine):
 
     engine_id = "cli_gate"
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
-
-    @classmethod
-    # ID: 060dc0c2-6d54-4544-aaec-86e1ef978243
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """All cli_gate check_types inspect the command registry or the
-        CLI loader as a whole — none consume a single ``file_path``.
-        """
-        return check_type in _CONTEXT_CHECK_TYPES
+    _context_check_types: ClassVar[frozenset[str]] = frozenset(
+        {
+            "resource_first",
+            "no_layer_exposure",
+            "standard_verbs",
+            "dangerous_explicit",
+            "async_execution",
+            "discovery_strict",
+            "help_required",
+            "no_duplicates",
+        }
+    )
 
     # ID: 31883c58-8573-48fa-b9c0-cb63c613f755
     def __init__(self, path_resolver: PathResolver) -> None:
