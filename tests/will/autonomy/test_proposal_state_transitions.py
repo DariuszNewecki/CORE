@@ -64,6 +64,23 @@ async def _fetch(db_session: AsyncSession, proposal_id: str) -> AutonomousPropos
 # ---------------------------------------------------------------------------
 
 
+async def test_mark_completed_from_rejected_raises(db_session: AsyncSession) -> None:
+    """mark_completed on a rejected proposal raises ProposalNotFoundError (#714)."""
+    proposal_id = f"test-mc-rejected-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="rejected"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).mark_completed(
+                proposal_id, results={}
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "rejected"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
 async def test_mark_completed_from_approved_raises(db_session: AsyncSession) -> None:
     """mark_completed on an approved proposal raises ProposalNotFoundError (#708)."""
     proposal_id = f"test-mc-approved-{uuid.uuid4().hex[:8]}"
@@ -143,7 +160,7 @@ async def test_mark_failed_from_completed_raises(db_session: AsyncSession) -> No
 
 
 async def test_approve_from_approved_raises(db_session: AsyncSession) -> None:
-    """Re-approving an already-approved proposal raises ProposalNotFoundError (#708)."""
+    """Re-approving an already-approved proposal raises ProposalNotFoundError (#714)."""
     proposal_id = f"test-app-approved-{uuid.uuid4().hex[:8]}"
     db_session.add(_row(proposal_id, status="approved"))
     await db_session.commit()
@@ -162,7 +179,7 @@ async def test_approve_from_approved_raises(db_session: AsyncSession) -> None:
 
 
 async def test_approve_from_completed_raises(db_session: AsyncSession) -> None:
-    """Approving a completed proposal raises ProposalNotFoundError (#708)."""
+    """Approving a completed proposal raises ProposalNotFoundError (#714)."""
     proposal_id = f"test-app-completed-{uuid.uuid4().hex[:8]}"
     db_session.add(_row(proposal_id, status="completed"))
     await db_session.commit()
@@ -176,6 +193,63 @@ async def test_approve_from_completed_raises(db_session: AsyncSession) -> None:
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "completed"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_from_failed_raises(db_session: AsyncSession) -> None:
+    """Approving a failed proposal raises ProposalNotFoundError (#714)."""
+    proposal_id = f"test-app-failed-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="failed"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="cli_admin",
+                approval_authority="principal.governor",
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "failed"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_from_rejected_raises(db_session: AsyncSession) -> None:
+    """Approving a rejected proposal raises ProposalNotFoundError (#714)."""
+    proposal_id = f"test-app-rejected-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="rejected"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="cli_admin",
+                approval_authority="principal.governor",
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "rejected"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_from_executing_raises(db_session: AsyncSession) -> None:
+    """Approving an executing proposal raises ProposalNotFoundError (#714)."""
+    proposal_id = f"test-app-executing-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="executing"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="cli_admin",
+                approval_authority="principal.governor",
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "executing"
     finally:
         await _delete(db_session, proposal_id)
 
