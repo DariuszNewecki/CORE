@@ -29,6 +29,7 @@ def _connected_components(edges: list[tuple[str, str]]) -> list[set[str]]:
     """Path-compressed union-find for connected-component clustering."""
     parent: dict[str, str] = {}
 
+    # ID: 7d4c927f-096e-4362-8a01-1cbee8c21b59
     def find(x: str) -> str:
         if parent.setdefault(x, x) != x:
             parent[x] = find(parent[x])
