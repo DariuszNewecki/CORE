@@ -57,7 +57,6 @@ dependencies = [
     "rich>=13,<16",
     # Data Processing
     "pyyaml>=6.0,<7.0",
-    "ruamel-yaml>=0.19.0,<0.20.0",
     "jsonschema>=4,<5",
     "httpx>=0.28.0,<0.29.0",
     # Code Quality Tools
@@ -78,6 +77,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Migration scripts (Optional) — install via `pip install core-runtime[migration]`
+migration = [
+    "ruamel-yaml>=0.19.0,<0.20.0",
+]
+
 # Observability (Optional) — install via `pip install core-runtime[telemetry]`
 telemetry = [
     "opentelemetry-api>=1.21.0,<2.0.0",
