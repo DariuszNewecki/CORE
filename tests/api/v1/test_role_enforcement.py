@@ -47,7 +47,7 @@ def _app_with_role(role: str) -> FastAPI:
         (
             "POST",
             "/proposals/p-1/approve",
-            {"approved_by": "x", "approval_authority": "governor_direct"},
+            {"approval_authority": "governor_direct"},
         ),
         ("POST", "/proposals/p-1/execute", None),
         # daemon_routes — all endpoints (router-level dependency)
@@ -74,7 +74,7 @@ def test_mutation_endpoint_rejects_non_admin(method: str, path: str, body: dict 
         (
             "POST",
             "/proposals/p-1/approve",
-            {"approved_by": "x", "approval_authority": "governor_direct"},
+            {"approval_authority": "governor_direct"},
         ),
         ("POST", "/proposals/p-1/execute", None),
         ("GET", "/daemon/status", None),

@@ -55,9 +55,12 @@ router = APIRouter(prefix="/proposals")
 
 # ID: 5103629b-96d2-4c2c-8217-df99555ed221
 class ApproveRequest(BaseModel):
-    """Body for POST /proposals/{id}/approve."""
+    """Body for POST /proposals/{id}/approve.
 
-    approved_by: str
+    `approved_by` is derived server-side from the JWT sub/email claim and
+    is not accepted from the request body.
+    """
+
     approval_authority: str
 
 

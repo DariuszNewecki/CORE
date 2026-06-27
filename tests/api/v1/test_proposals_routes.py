@@ -128,18 +128,14 @@ async def test_get_proposal_not_found_returns_404():
 
 async def test_approve_proposal_derives_approved_by_from_jwt():
     """approve_proposal derives approved_by from the JWT user dict (email
-    preferred, sub as fallback) — the payload.approved_by field is ignored.
+    preferred, sub as fallback) — body carries no identity claim.
     Returns governed status payload with approval_authority forwarded."""
     session = AsyncMock()
 
     service = AsyncMock()
     service.approve = AsyncMock()
 
-    # payload.approved_by is intentionally different from user email to
-    # confirm it is not forwarded to service.approve.
-    payload = ApproveRequest(
-        approved_by="ignored-from-payload", approval_authority="governor_direct"
-    )
+    payload = ApproveRequest(approval_authority="governor_direct")
     user = {"sub": "uid-123", "email": "admin@example.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
@@ -166,7 +162,7 @@ async def test_approve_proposal_falls_back_to_sub_when_no_email():
     service = AsyncMock()
     service.approve = AsyncMock()
 
-    payload = ApproveRequest(approved_by="ignored", approval_authority="governor_direct")
+    payload = ApproveRequest(approval_authority="governor_direct")
     user = {"sub": "uuid-456", "email": None, "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
@@ -189,7 +185,7 @@ async def test_approve_proposal_unknown_id_returns_404():
     service = AsyncMock()
     service.approve = AsyncMock(side_effect=ProposalNotFoundError("missing"))
 
-    payload = ApproveRequest(approved_by="ignored", approval_authority="governor_direct")
+    payload = ApproveRequest(approval_authority="governor_direct")
     user = {"sub": "uid", "email": "g@test.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
@@ -208,7 +204,7 @@ async def test_approve_proposal_bad_authority_returns_400():
     service = AsyncMock()
     service.approve = AsyncMock(side_effect=ValueError("bad authority"))
 
-    payload = ApproveRequest(approved_by="ignored", approval_authority="bogus")
+    payload = ApproveRequest(approval_authority="bogus")
     user = {"sub": "uid", "email": "g@test.com", "role": "platform_admin"}
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):

@@ -28,5 +28,6 @@
     delaycompress
     missingok
     notifempty
+    copytruncate
     create 0640 lira lira
 }
