@@ -461,7 +461,7 @@ def _instantiate_worker(
 
     Returns the instantiated worker, or None if all attempts fail.
     """
-    standard_keys = {"declaration_name", "rule_namespace"}
+    standard_keys = {"declaration_name", "rule_namespace", "repo_root"}
     standard_kwargs = {k: v for k, v in kwargs.items() if k in standard_keys}
 
     attempts: list[tuple[str, Any]]
@@ -784,7 +784,12 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             # Build constructor kwargs.
             # declaration_name is always included — enables one class to back
             # multiple namespace declarations with distinct UUIDs.
-            kwargs: dict[str, Any] = {"declaration_name": stem}
+            # repo_root is always included so Worker._load_declaration bypasses the
+            # CWD-dependent singleton and uses the daemon's authoritative repo path.
+            kwargs: dict[str, Any] = {
+                "declaration_name": stem,
+                "repo_root": BootstrapRegistry.get_repo_path(),
+            }
 
             rule_namespace = (
                 declaration.get("mandate", {})
@@ -803,6 +808,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
                     "rule_namespace",
                     "core_context",
                     "cognitive_service",
+                    "repo_root",
                 }
                 clashes = set(extra_params) & protected
                 if clashes:

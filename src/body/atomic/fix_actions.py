@@ -109,6 +109,7 @@ async def action_format_code(
     try:
         format_code(path=file_path, write=write, cwd=cwd)
     except Exception as e:
+        logger.error("fix.format failed on %s: %s", file_path, e, exc_info=True)
         return ActionResult(
             action_id="fix.format",
             ok=False,
@@ -170,6 +171,7 @@ async def action_fix_imports(
             duration_sec=time.time() - start,
         )
     except Exception as e:
+        logger.error("fix.imports failed: %s", e, exc_info=True)
         return ActionResult(
             action_id="fix.imports",
             ok=False,

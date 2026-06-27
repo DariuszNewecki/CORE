@@ -348,7 +348,11 @@ class AuditorContext:
                     30,
                 )
             )
-        except Exception:
+        except Exception as _exc:
+            logger.debug(
+                "AuditorContext: failed to load operational config for TTL sweep, using default=30: %s",
+                _exc,
+            )
             ttl_days = 30
 
         # Session is injected by the audit driver before this runs (see
@@ -381,7 +385,9 @@ class AuditorContext:
             return purged
         except Exception as exc:
             logger.warning(
-                "AuditorContext: llm_gate_verdicts TTL sweep skipped: %s", exc
+                "AuditorContext: llm_gate_verdicts TTL sweep skipped: %s",
+                exc,
+                exc_info=True,
             )
             return 0
 
@@ -544,7 +550,7 @@ class AuditorContext:
             source = file_path.read_text(encoding="utf-8")
             tree = ast.parse(source, filename=str(file_path))
         except Exception as e:
-            logger.warning("Failed to parse %s: %s", file_path.name, e)
+            logger.warning("Failed to parse %s: %s", file_path.name, e, exc_info=True)
             # Drop any now-stale entry so a later successful read repopulates.
             _AST_CACHE.pop(file_path, None)
             return None
@@ -580,7 +586,7 @@ class AuditorContext:
                 "symbols_list": self.symbols_list,
             }
         except Exception as e:
-            logger.error("Failed to load knowledge graph from DB: %s", e)
+            logger.error("Failed to load knowledge graph from DB: %s", e, exc_info=True)
             self.knowledge_graph = {"symbols": {}}
             self.symbols_map = {}
             self.symbols_list = []
@@ -596,10 +602,15 @@ class AuditorContext:
                     if policy_data is not None:
                         doc_id = policy_data.get("id") or policy_ref.policy_id
                         resources[doc_id] = policy_data
-                except Exception:
+                except Exception as _policy_exc:
+                    logger.debug(
+                        "AuditorContext: skipping policy %s: %s",
+                        policy_ref.policy_id,
+                        _policy_exc,
+                    )
                     continue
         except Exception as e:
-            logger.error("Failed to load governance resources: %s", e)
+            logger.error("Failed to load governance resources: %s", e, exc_info=True)
         return resources
 
 

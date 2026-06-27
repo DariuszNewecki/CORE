@@ -25,6 +25,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.database.session_manager import get_session
@@ -133,7 +134,9 @@ class Worker(ABC):
     # e.g. "doc_worker" → loads .intent/workers/doc_worker.yaml
     declaration_name: str = ""
 
-    def __init__(self, *, declaration_name: str = "") -> None:
+    def __init__(
+        self, *, declaration_name: str = "", repo_root: Path | None = None
+    ) -> None:
         # Instance-level override takes precedence over class attribute.
         # Allows one class to back multiple .intent/workers/ declarations.
         if declaration_name:
@@ -145,6 +148,10 @@ class Worker(ABC):
                 "either as a class attribute or via the declaration_name constructor kwarg."
             )
 
+        # Explicit repo_root bypasses the CWD-dependent global IntentRepository
+        # singleton in _load_declaration. The daemon passes BootstrapRegistry.get_repo_path()
+        # so container and test contexts with a non-CWD repo path resolve correctly.
+        self._repo_root: Path | None = repo_root
         self._declaration = self._load_declaration()
         self._worker_uuid = uuid.UUID(self._declaration["identity"]["uuid"])
         self._worker_name = self._declaration["metadata"]["title"]
@@ -626,13 +633,27 @@ class Worker(ABC):
         architecture.namespace.no_direct_protected_access.
         """
         from shared.infrastructure.intent.errors import GovernanceError
-        from shared.infrastructure.intent.intent_repository import get_intent_repository
+        from shared.infrastructure.intent.intent_repository import (
+            IntentRepository,
+            get_intent_repository,
+        )
         from shared.workers.declaration_validator import validate_worker_declaration
 
         worker_id = f"workers/{self.declaration_name}"
 
+        # When an explicit repo_root is provided (e.g. injected by the daemon via
+        # BootstrapRegistry.get_repo_path()), construct a dedicated IntentRepository
+        # so the load is not sensitive to CWD or the global singleton's initialization
+        # time. Callers that do not provide repo_root (tests, bare instantiation) fall
+        # back to the global singleton, which uses settings.MIND / resolve_default_repo_path.
+        repo_root = getattr(self, "_repo_root", None)
+        if repo_root is not None:
+            _repo = IntentRepository(root=repo_root / ".intent", strict=True)
+        else:
+            _repo = get_intent_repository()
+
         try:
-            data = get_intent_repository().load_worker(worker_id)
+            data = _repo.load_worker(worker_id)
         except GovernanceError as e:
             raise WorkerConfigurationError(
                 f"Worker declaration not found: {worker_id}. "

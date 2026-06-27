@@ -3,11 +3,12 @@
 
 Verifies that _load_declaration routes through IntentRepository (the canonical
 .intent/ gateway) rather than constructing Path(".intent") directly.
-Covers: success path, missing declaration, and load failure.
+Covers: success path, missing declaration, load failure, and explicit repo_root.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
@@ -18,6 +19,7 @@ from shared.workers.base import Worker, WorkerConfigurationError
 
 
 # ── Minimal concrete Worker for testing ───────────────────────────────────────
+
 
 class _StubWorker(Worker):
     declaration_name: ClassVar[str] = "stub_worker"
@@ -94,3 +96,51 @@ def test_load_declaration_unexpected_error_raises_worker_configuration_error() -
         worker = _StubWorker.__new__(_StubWorker)
         worker.declaration_name = "stub_worker"
         worker._load_declaration()
+
+
+# ID: 4f8a2e1c-9b3d-4a5f-8c7e-1d2f3e4a5b6c
+def test_load_declaration_uses_explicit_repo_root_not_global_singleton() -> None:
+    """When repo_root is provided, _load_declaration uses IntentRepository(root=...) and
+    does NOT call get_intent_repository() — bypasses the CWD-dependent singleton (#690)."""
+    mock_repo = MagicMock()
+    mock_repo.load_worker.return_value = _VALID_DECLARATION
+    explicit_root = Path("/fake/repo/root")
+
+    with (
+        patch("shared.workers.base.IntentRepository", return_value=mock_repo) as mock_cls,
+        patch("shared.workers.base.get_intent_repository") as mock_global,
+        patch("shared.workers.base.validate_worker_declaration"),
+    ):
+        worker = _StubWorker.__new__(_StubWorker)
+        worker.declaration_name = "stub_worker"
+        worker._repo_root = explicit_root
+        result = worker._load_declaration()
+
+    mock_cls.assert_called_once_with(
+        root=explicit_root / ".intent", strict=True
+    )
+    mock_global.assert_not_called()
+    mock_repo.load_worker.assert_called_once_with("workers/stub_worker")
+    assert result == _VALID_DECLARATION
+
+
+# ID: 5c9b3f2d-0e4a-4b6c-8d1e-2a3f4c5d6e7f
+def test_load_declaration_falls_back_to_singleton_when_no_repo_root() -> None:
+    """Without repo_root, _load_declaration falls back to get_intent_repository()
+    (existing behavior preserved for tests and bare instantiation)."""
+    mock_repo = MagicMock()
+    mock_repo.load_worker.return_value = _VALID_DECLARATION
+
+    with (
+        patch("shared.workers.base.get_intent_repository", return_value=mock_repo),
+        patch("shared.workers.base.IntentRepository") as mock_cls,
+        patch("shared.workers.base.validate_worker_declaration"),
+    ):
+        worker = _StubWorker.__new__(_StubWorker)
+        worker.declaration_name = "stub_worker"
+        # _repo_root not set (simulates __new__ without __init__)
+        result = worker._load_declaration()
+
+    mock_cls.assert_not_called()
+    mock_repo.load_worker.assert_called_once_with("workers/stub_worker")
+    assert result == _VALID_DECLARATION
