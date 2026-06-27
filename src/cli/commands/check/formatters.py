@@ -59,6 +59,10 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
         location = str(finding.file_path or "")
         if finding.line_number:
             location += f":{finding.line_number}"
+        # ADR-098 D3: surface iceberg scale on quality-gate findings
+        issue_count = finding.context.get("issue_count")
+        if isinstance(issue_count, int) and issue_count > 1 and finding.file_path:
+            location += f" (x{issue_count})"
         table.add_row(
             severity_styles.get(finding.severity, str(finding.severity)),
             _evidence_label(finding.evidence_class),
