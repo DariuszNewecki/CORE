@@ -38,8 +38,19 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 # ADR-071 D2.2 Phase 2: action impacts that warrant hermetic worktree
-# sandboxing. WRITE_DATA targets databases/external systems (not the
-# source tree), so the worktree isolation does nothing for it.
+# sandboxing. WRITE_DATA is intentionally excluded — worktree isolation
+# is a source-tree mechanism (git checkout of an isolated branch); it
+# does nothing for database rows or external API calls.
+#
+# All currently-registered WRITE_DATA actions target internal systems:
+#   - core DB writes (proposals, action_results, blackboard, sync)
+#   - repo-local file ops persisted through var/ or test runners
+# These are already governed by the proposal/claim system, which
+# provides the compensating-action contract for DB mutations (#708).
+#
+# New WRITE_DATA actions targeting external systems (object stores,
+# third-party APIs) MUST implement action-level pre-flight checks and
+# compensation logic — sandbox exclusion is not a substitute for that.
 _SANDBOXED_IMPACTS = frozenset({ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA})
 
 
