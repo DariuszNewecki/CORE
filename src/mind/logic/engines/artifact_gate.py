@@ -256,7 +256,10 @@ def _check_projection_consistency(repo_root: Path, check: str) -> EngineResult:
     proj = load_vocabulary_projection(repo_root)
     if isinstance(proj, VocabularyProjectionError):
         return _vocab_result(check, [f"Projection broken: {proj.reason}"])
-    assert isinstance(proj, VocabularyProjection)
+    if not isinstance(proj, VocabularyProjection):
+        return _vocab_result(
+            check, [f"Unexpected projection type: {type(proj).__name__}"]
+        )
 
     paper = repo_root / VOCABULARY_PAPER_REL
     canonical_terms, parse_err = _parse_canonical_terms(paper)
@@ -390,9 +393,10 @@ def _check_authoritative_paths(repo_root: Path, check: str) -> EngineResult:
     projection_paths: dict[str, str] = {}
     if isinstance(proj, VocabularyProjectionError):
         violations.append(f"Projection broken: {proj.reason}")
-    else:
-        assert isinstance(proj, VocabularyProjection)
+    elif isinstance(proj, VocabularyProjection):
         projection_paths = {t.term: t.authoritative_paper for t in proj.terms}
+    else:
+        violations.append(f"Unexpected projection type: {type(proj).__name__}")
 
     for term, path in canonical_paths.items():
         violations.extend(
@@ -925,6 +929,33 @@ def _resolve_watched_call(qualified: str) -> tuple[bool, str]:
     return True, ""
 
 
+# ID: e33eae0c-d9a4-4e02-9eef-1ba1f8c5c637
+def _find_repo_root(file_path: Path) -> Path | None:
+    """Walk parent dirs to find the repo root (both .intent/ and .specs/ present)."""
+    for parent in file_path.resolve().parents:
+        if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
+            return parent
+    return None
+
+
+# Dispatch tables keyed by check_type. Adding a new check_type requires:
+# (1) a module-level _check_* function, (2) an entry here, (3) an entry in
+# the appropriate _*_CHECK_TYPES frozenset. The async namespace_has_drainer
+# handler is intentionally absent — it requires await and special params merge.
+_VOCAB_DISPATCH: dict[str, Any] = {
+    "vocabulary_projection_consistency": _check_projection_consistency,
+    "vocabulary_canonical_format": _check_canonical_format,
+    "vocabulary_authoritative_paths": _check_authoritative_paths,
+}
+
+_GOVERNANCE_SYNC_DISPATCH: dict[str, Any] = {
+    "all_rules_mapped": _check_all_rules_mapped,
+    "active_routing_claimed_by_action": _check_active_routing_claimed_by_action,
+    "namespace_manifest_completeness": _check_namespace_manifest_completeness,
+    "fs_operations_completeness": _check_fs_operations_completeness,
+}
+
+
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -1135,11 +1166,7 @@ class ArtifactGateEngine(BaseEngine):
 
     def _check_vocabulary(self, file_path: Path, check_type: str) -> EngineResult:
         """Locate the repo root from file_path and dispatch the vocabulary check."""
-        repo_root: Path | None = None
-        for parent in file_path.resolve().parents:
-            if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
-                repo_root = parent
-                break
+        repo_root = _find_repo_root(file_path)
         if repo_root is None:
             return EngineResult(
                 ok=False,
@@ -1150,22 +1177,15 @@ class ArtifactGateEngine(BaseEngine):
                 ],
                 engine_id=self.engine_id,
             )
-
-        if check_type == "vocabulary_projection_consistency":
-            return _check_projection_consistency(repo_root, check_type)
-        if check_type == "vocabulary_canonical_format":
-            return _check_canonical_format(repo_root, check_type)
-        if check_type == "vocabulary_authoritative_paths":
-            return _check_authoritative_paths(repo_root, check_type)
-
-        # Should never reach here — verify() filters check_type — but keep
-        # a defensive return in case the dispatch table drifts.
-        return EngineResult(
-            ok=False,
-            message=f"artifact_gate[{check_type}]: dispatch fall-through.",
-            violations=[f"Unknown vocabulary check_type '{check_type}'"],
-            engine_id=self.engine_id,
-        )
+        handler = _VOCAB_DISPATCH.get(check_type)
+        if handler is None:
+            return EngineResult(
+                ok=False,
+                message=f"artifact_gate[{check_type}]: dispatch fall-through.",
+                violations=[f"Unknown vocabulary check_type '{check_type}'"],
+                engine_id=self.engine_id,
+            )
+        return handler(repo_root, check_type)
 
     # -------------------------------------------------------------------------
     # Governance meta-checks (ADR-066)
@@ -1180,13 +1200,9 @@ class ArtifactGateEngine(BaseEngine):
 
         Dispatcher is async because ``namespace_has_drainer`` (ADR-072 D4)
         runs a DB query via the injected auditor_context.db_session.
-        ``all_rules_mapped`` remains synchronous internally.
+        Sync handlers are looked up from _GOVERNANCE_SYNC_DISPATCH.
         """
-        repo_root: Path | None = None
-        for parent in file_path.resolve().parents:
-            if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
-                repo_root = parent
-                break
+        repo_root = _find_repo_root(file_path)
         if repo_root is None:
             return EngineResult(
                 ok=False,
@@ -1197,24 +1213,17 @@ class ArtifactGateEngine(BaseEngine):
                 ],
                 engine_id=self.engine_id,
             )
-
-        if check_type == "all_rules_mapped":
-            return _check_all_rules_mapped(repo_root, check_type)
-        if check_type == "active_routing_claimed_by_action":
-            return _check_active_routing_claimed_by_action(repo_root, check_type)
         if check_type == "namespace_has_drainer":
             return await _check_namespace_has_drainer(repo_root, check_type, params)
-        if check_type == "namespace_manifest_completeness":
-            return _check_namespace_manifest_completeness(repo_root, check_type)
-        if check_type == "fs_operations_completeness":
-            return _check_fs_operations_completeness(repo_root, check_type)
-
-        return EngineResult(
-            ok=False,
-            message=f"artifact_gate[{check_type}]: dispatch fall-through.",
-            violations=[f"Unknown governance check_type '{check_type}'"],
-            engine_id=self.engine_id,
-        )
+        handler = _GOVERNANCE_SYNC_DISPATCH.get(check_type)
+        if handler is None:
+            return EngineResult(
+                ok=False,
+                message=f"artifact_gate[{check_type}]: dispatch fall-through.",
+                violations=[f"Unknown governance check_type '{check_type}'"],
+                engine_id=self.engine_id,
+            )
+        return handler(repo_root, check_type)
 
     # -------------------------------------------------------------------------
     # Context-level dispatch (ADR-076 D3)
@@ -1255,41 +1264,15 @@ class ArtifactGateEngine(BaseEngine):
 
         repo_root = context.repo_path
 
-        if check_type in _VOCABULARY_CHECK_TYPES:
-            if check_type == "vocabulary_projection_consistency":
-                result = _check_projection_consistency(repo_root, check_type)
-            elif check_type == "vocabulary_canonical_format":
-                result = _check_canonical_format(repo_root, check_type)
-            elif check_type == "vocabulary_authoritative_paths":
-                result = _check_authoritative_paths(repo_root, check_type)
-            else:
-                result = EngineResult(
-                    ok=False,
-                    message=f"{self.engine_id}[{check_type}]: dispatch fall-through.",
-                    violations=[f"Unknown vocabulary check_type '{check_type}'"],
-                    engine_id=self.engine_id,
-                )
-        elif check_type in _GOVERNANCE_CHECK_TYPES:
-            if check_type == "all_rules_mapped":
-                result = _check_all_rules_mapped(repo_root, check_type)
-            elif check_type == "active_routing_claimed_by_action":
-                result = _check_active_routing_claimed_by_action(repo_root, check_type)
-            elif check_type == "namespace_has_drainer":
-                merged_params = {**params, "_context": context}
-                result = await _check_namespace_has_drainer(
-                    repo_root, check_type, merged_params
-                )
-            elif check_type == "namespace_manifest_completeness":
-                result = _check_namespace_manifest_completeness(repo_root, check_type)
-            elif check_type == "fs_operations_completeness":
-                result = _check_fs_operations_completeness(repo_root, check_type)
-            else:
-                result = EngineResult(
-                    ok=False,
-                    message=f"{self.engine_id}[{check_type}]: dispatch fall-through.",
-                    violations=[f"Unknown governance check_type '{check_type}'"],
-                    engine_id=self.engine_id,
-                )
+        if check_type in _VOCAB_DISPATCH:
+            result = _VOCAB_DISPATCH[check_type](repo_root, check_type)
+        elif check_type in _GOVERNANCE_SYNC_DISPATCH:
+            result = _GOVERNANCE_SYNC_DISPATCH[check_type](repo_root, check_type)
+        elif check_type == "namespace_has_drainer":
+            merged_params = {**params, "_context": context}
+            result = await _check_namespace_has_drainer(
+                repo_root, check_type, merged_params
+            )
         else:
             return [
                 AuditFinding(
