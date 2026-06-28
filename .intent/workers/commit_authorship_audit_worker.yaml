@@ -5,7 +5,7 @@ metadata:
   id: workers.commit_authorship_audit_worker
   title: Commit Authorship Audit Worker
   version: "1.0.0"
-  authority: constitution
+  authority: policy
   status: active
 
 identity:
