@@ -280,8 +280,7 @@ class TestRemediatorWorker(Worker):
                     if first_proposal_id is None:
                         first_proposal_id = proposal_id
                     logger.info(
-                        "TestRemediatorWorker: created symbol proposal '%s' "
-                        "for %s::%s",
+                        "TestRemediatorWorker: created symbol proposal '%s' for %s::%s",
                         proposal_id,
                         source_file,
                         symbol_name,
