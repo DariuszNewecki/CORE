@@ -164,6 +164,11 @@ class TestRunnerSensor(Worker):
 
         svc = await service_registry.get_blackboard_service()
 
+        # Fetch once per cycle; skip posting if the subject is already open.
+        existing_missing = await svc.fetch_active_finding_subjects_by_prefix(
+            f"{self._artifact_type}::{self._rule_namespace}.missing::%"
+        )
+
         for finding in findings:
             entry_id = finding["id"]
             payload = finding.get("payload", {})
@@ -183,16 +188,23 @@ class TestRunnerSensor(Worker):
             test_path = self._repo_root / test_file
 
             if not test_path.exists():
-                # Post python::test.runner.missing finding (ADR-091 D2)
-                await self.post_artifact_finding(
-                    artifact_type=self._artifact_type,
-                    sub_namespace=f"{self._rule_namespace}.missing",
-                    identity_key_value=source_file,
-                    payload={
-                        "source_file": source_file,
-                        "test_file": test_file,
-                    },
+                # Post python::test.runner.missing finding (ADR-091 D2),
+                # but only if one is not already open for this source file.
+                missing_subject = (
+                    f"{self._artifact_type}"
+                    f"::{self._rule_namespace}.missing"
+                    f"::{source_file}"
                 )
+                if missing_subject not in existing_missing:
+                    await self.post_artifact_finding(
+                        artifact_type=self._artifact_type,
+                        sub_namespace=f"{self._rule_namespace}.missing",
+                        identity_key_value=source_file,
+                        payload={
+                            "source_file": source_file,
+                            "test_file": test_file,
+                        },
+                    )
                 await svc.resolve_entries([entry_id])
                 count_missing += 1
                 continue
