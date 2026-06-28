@@ -37,7 +37,7 @@ class AnthropicProvider(AIProvider):
             headers["x-api-key"] = self.api_key
         return headers
 
-    # ID: 7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
+    # ID: b9350148-e8e8-42f9-aacf-23b132b8004c
     async def chat_completion(
         self,
         prompt: str,
@@ -100,7 +100,7 @@ class AnthropicProvider(AIProvider):
                     usage_sink["completion_tokens"] = int(usage["output_tokens"])
             return data["content"][0]["text"]
 
-    # ID: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
+    # ID: eb185ea3-e901-46c7-94ca-725a6ece1c25
     async def get_embedding(
         self,
         text: str,

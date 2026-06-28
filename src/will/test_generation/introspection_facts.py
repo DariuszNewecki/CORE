@@ -214,7 +214,7 @@ def _extract_awaited_call_sites(symbol_code: str, symbol_name: str) -> list[str]
     return sites
 
 
-# ID: 0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+# ID: 2c96e0ee-d5c1-488c-916b-6ed0d60497ad
 def _extract_target_decorators(symbol_code: str, symbol_name: str) -> list[str]:
     """Return the source form of each decorator on the target.
 

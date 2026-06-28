@@ -121,7 +121,7 @@ class ApplicabilityAssessment:
     rationale: str = ""
 
     @property
-    # ID: 8442974e-1817-4892-85c3-6250a672dee5
+    # ID: 54064e9f-0086-482a-849c-db10cadb8726
     def requires_confirmation(self) -> bool:
         """True unless the framework reads as clearly in-domain.
 

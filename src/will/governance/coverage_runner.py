@@ -453,7 +453,7 @@ async def run_and_persist_coverage_batch(
     )
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 98ebab69-eb10-4de4-b49d-28a670495a79
 async def get_latest_coverage_report(
     session: Any, *, format: str | None = None
 ) -> dict | None:
@@ -504,7 +504,7 @@ async def get_latest_coverage_report(
     return row[0]
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 64130eb6-26a8-4fcf-9604-f4894aebd10f
 async def run_and_persist_coverage_report(
     context: CoreContext,
     session: Any,

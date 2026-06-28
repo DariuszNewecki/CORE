@@ -196,7 +196,7 @@ def load_catalog(
     return rules
 
 
-# ID: c4414ad0-33ab-4d27-98b7-965e72496436
+# ID: 57ef4c15-643e-40ab-8920-5c5f2a8d7dbf
 def load_catalog_meta(name: str = "nist_800_171") -> dict[str, Any]:
     """Load a catalog's ``catalog:`` metadata block (title / source / authority).
 
@@ -311,7 +311,7 @@ class DocumentCorpusAnalysisService:
             corpus_excerpt=excerpt,
         )
 
-    # ID: 3da2a438-8ac4-4f14-a900-289d0dec5191
+    # ID: 1697ebaf-fd23-4e18-a4e9-405b0b459325
     def _sample_corpus(self, corpus_root: Path) -> str:
         """Read a bounded, representative text sample of the corpus.
 
