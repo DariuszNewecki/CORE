@@ -7,7 +7,12 @@ from rich.console import Console
 from api.cli import CoreApiClient
 from cli.logic.autonomy.actions import parse_action_options
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 console = Console()
@@ -17,6 +22,7 @@ console = Console()
     canonical_name="proposals.create",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.USER_FACING,
     summary="Create a new autonomous proposal for system modification.",
     dangerous=True,
 )

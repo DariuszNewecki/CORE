@@ -28,7 +28,12 @@ from cli.logic.legacy_scan_logic import (
     scan_for_legacy_markers,
 )
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -41,6 +46,7 @@ console = Console()
     canonical_name="admin.legacy",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.MIND,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Scan codebase for legacy markers and technical debt.",
 )
 @core_command(dangerous=False, requires_context=False)

@@ -58,6 +58,7 @@ from will.governance.census_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/census")
 
 

@@ -16,7 +16,12 @@ from rich.table import Table
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +32,7 @@ console = Console()
     canonical_name="inspect.patterns",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Analyze pattern classification and violations across decision traces",
 )
 @core_command(dangerous=False, requires_context=False)

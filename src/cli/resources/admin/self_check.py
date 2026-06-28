@@ -26,7 +26,12 @@ from rich.console import Console
 
 from body.atomic.executor import ActionExecutor
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.models import AuditFinding
 
 from .hub import app
@@ -52,6 +57,7 @@ _CLI_GATE_RULE_IDS: tuple[str, ...] = (
     canonical_name="admin.self-check",
     behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Validate CLI command registration and constitutional alignment",
 )
 @core_command(dangerous=True, requires_context=True)

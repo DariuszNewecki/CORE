@@ -4,7 +4,12 @@ from rich.console import Console
 
 from cli.logic.project_docs import docs as generate_docs
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from . import app
 
@@ -17,6 +22,7 @@ console = Console()
     canonical_name="project.docs",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Generate capability documentation.",
 )
 @core_command(dangerous=False, requires_context=False)

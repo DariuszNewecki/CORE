@@ -65,6 +65,7 @@ from will.governance.audit_runner import run_and_persist_audit, run_sync_audit
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/audit")
 
 

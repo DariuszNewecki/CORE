@@ -17,7 +17,12 @@ from rich.table import Table
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +37,7 @@ _DEFAULT_BY_TYPE_LIMIT = 50
     canonical_name="inspect.refusals",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="List recent constitutional refusals",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -71,6 +77,7 @@ async def refusals_list_cmd(
     canonical_name="inspect.refusal-stats",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Show refusal statistics and trends",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -92,6 +99,7 @@ async def refusals_stats_cmd(
     canonical_name="inspect.refusals-by-type",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Show refusals of a specific type",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -122,6 +130,7 @@ async def refusals_by_type_cmd(
     canonical_name="inspect.refusals-by-session",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Show all refusals for a specific decision trace session",
 )
 @core_command(dangerous=False, requires_context=False)

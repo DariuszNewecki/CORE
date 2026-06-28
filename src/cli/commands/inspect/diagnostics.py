@@ -17,7 +17,12 @@ from rich.tree import Tree
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +33,7 @@ console = Console()
     canonical_name="inspect.command-tree",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Displays a hierarchical tree view of all available CLI commands",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -68,6 +74,7 @@ async def command_tree_cmd(ctx: typer.Context) -> None:
     canonical_name="inspect.test-targets",
     behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Identifies and classifies functions as SIMPLE or COMPLEX test targets",
 )
 @core_command(dangerous=False, requires_context=False)

@@ -70,6 +70,7 @@ from will.governance.coverage_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/coverage")
 # /tests/interactive lives outside the /coverage namespace per ADR-057
 # D5 (the endpoint produces a one-shot interactive session response).

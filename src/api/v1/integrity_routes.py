@@ -37,6 +37,7 @@ from will.governance.integrity_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(
     prefix="/integrity",
     # F-40.1: internal — file-integrity baseline/verify is operator

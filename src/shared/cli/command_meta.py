@@ -16,6 +16,7 @@ Usage:
         canonical_name="inspect.drift.symbol",
         behavior=CommandBehavior.READ,
         layer=CommandLayer.BODY,
+        exposure=CommandExposure.USER_FACING,
         summary="Inspect symbol drift between code and capabilities"
     )
     async def symbol_drift_command(ctx: typer.Context):
@@ -48,6 +49,20 @@ class CommandLayer(str, Enum):
     WILL = "will"  # Autonomous/cognitive operations (requires AI decision-making)
 
 
+# ID: f4e2b3c1-8d9a-4f7e-b6c5-2a1d0e3f4b5c
+class CommandExposure(str, Enum):
+    """Who is the intended caller of this command?
+
+    USER_FACING  — safe for any authenticated user; surfaces in external docs
+                   and accessibility overviews.
+    GOVERNOR_ONLY — operator/governor surface; excluded from user-facing docs;
+                   may perform destructive or self-extension operations.
+    """
+
+    USER_FACING = "user-facing"
+    GOVERNOR_ONLY = "governor-only"
+
+
 @dataclass
 # ID: a28a8e9e-aacb-4cb4-940c-87d096f01dca
 class CommandMeta:
@@ -58,6 +73,7 @@ class CommandMeta:
         - canonical_name: Hierarchical name like "inspect.drift.symbol"
         - behavior: What category of operation (read/validate/mutate/transform)
         - layer: Which architectural layer (mind/body/will)
+        - exposure: Intended caller (user-facing / governor-only) — ADR-110 D5
         - summary: One-line description for --help
 
     OPTIONAL fields:
@@ -78,6 +94,9 @@ class CommandMeta:
 
     layer: CommandLayer
     """Which architectural layer? (mind/body/will)"""
+
+    exposure: CommandExposure
+    """Who is the intended caller? (user-facing / governor-only) — ADR-110 D5"""
 
     summary: str
     """One-line description shown in --help"""
@@ -218,6 +237,7 @@ def infer_metadata_from_function(
         canonical_name=full_name,
         behavior=behavior,
         layer=layer,
+        exposure=CommandExposure.GOVERNOR_ONLY,
         summary=first_line,
         module=module,
         entrypoint=func.__name__,

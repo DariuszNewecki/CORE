@@ -13,7 +13,12 @@ from rich.table import Table
 
 from cli.logic.governance.traceability_service import GovernanceTraceabilityService
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -26,6 +31,7 @@ console = Console()
     canonical_name="admin.coverage",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.MIND,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Audit the binding between constitutional rules and enforcement engines.",
 )
 @core_command(dangerous=False, requires_context=True)

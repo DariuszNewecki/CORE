@@ -13,7 +13,12 @@ from rich.table import Table
 
 from cli.logic.governance.limb_status_service import LimbStatusService
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -26,6 +31,7 @@ console = Console()
     canonical_name="admin.summary",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Display a summary of recent operational health and failures.",
 )
 @core_command(dangerous=False, requires_context=True)

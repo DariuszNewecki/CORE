@@ -35,6 +35,7 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 # ---------------------------------------------------------------------------

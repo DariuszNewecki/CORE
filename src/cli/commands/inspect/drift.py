@@ -17,7 +17,12 @@ import typer
 
 from cli.commands.guard import register_guard
 from cli.utils import core_command, deprecated_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +54,7 @@ def _try_forward_to_status_drift(scope: str, ctx: typer.Context) -> bool:
     canonical_name="inspect.drift.symbol",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Detects drift between filesystem symbols and database symbols",
     aliases=["symbol-drift"],
 )
@@ -69,6 +75,7 @@ async def symbol_drift_cmd(ctx: typer.Context) -> None:
     canonical_name="inspect.drift.vector",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Verifies synchronization between PostgreSQL and Qdrant",
     aliases=["vector-drift"],
 )

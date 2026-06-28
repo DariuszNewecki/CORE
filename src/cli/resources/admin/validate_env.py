@@ -11,7 +11,12 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.infrastructure.config_validator import ConfigValidator
 
 from .hub import app
@@ -25,6 +30,7 @@ console = Console()
     canonical_name="admin.validate-env",
     behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Validate that the environment configuration matches the required schema.",
 )
 @core_command(dangerous=False, requires_context=False)

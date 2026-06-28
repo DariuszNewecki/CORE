@@ -10,7 +10,12 @@ import typer
 
 from cli.logic.interactive_test_logic import run_interactive_test_generation
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -26,6 +31,7 @@ app = typer.Typer(
     canonical_name="interactive-test.generate",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Generate tests interactively with step-by-step prompts.",
     dangerous=True,
 )
@@ -67,6 +73,7 @@ async def generate_interactive(
     canonical_name="interactive-test.info",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Display information about the interactive test generation workflow.",
     dangerous=False,
 )

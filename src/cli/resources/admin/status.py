@@ -10,7 +10,12 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.infrastructure.diagnostic_service import DiagnosticService
 
 from .hub import app
@@ -24,6 +29,7 @@ console = Console()
     canonical_name="admin.status",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Sensory check of system infrastructure and connectivity.",
 )
 @core_command(dangerous=False, requires_context=True)

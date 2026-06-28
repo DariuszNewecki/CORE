@@ -56,6 +56,7 @@ from will.governance.refactor_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(prefix="/refactor")
 
 

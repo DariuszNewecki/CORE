@@ -11,7 +11,12 @@ from rich.console import Console
 
 from body.maintenance.idempotency_harness import IdempotencyHarness
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -24,6 +29,7 @@ console = Console()
     canonical_name="dev.test-stability",
     behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.USER_FACING,
     summary="Verify the idempotency (stability) of a specific atomic action.",
 )
 @core_command(dangerous=True, requires_context=True)

@@ -6,7 +6,12 @@ from rich.table import Table
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -20,6 +25,7 @@ console = Console()
     canonical_name="code.actions",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="List all registered Atomic Actions showing their IDs, categories, impact levels, and descriptions.",
     dangerous=False,
 )

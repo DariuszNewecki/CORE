@@ -3,7 +3,12 @@ import typer
 from rich.console import Console
 
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.context import CoreContext
 
 from .hub import app
@@ -17,6 +22,7 @@ console = Console()
     canonical_name="symbols.sync",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Synchronize database with codebase symbols.",
     dangerous=True,
 )

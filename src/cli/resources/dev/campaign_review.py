@@ -22,7 +22,12 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.task_repository import TaskRepository
@@ -68,6 +73,7 @@ def _review_state(task) -> str:
     canonical_name="dev.campaign.list",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.USER_FACING,
     summary="List a campaign's clusters and their review status.",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -114,6 +120,7 @@ async def list_clusters(
     canonical_name="dev.campaign.accept",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Accept one autonomous cluster for execution.",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -151,6 +158,7 @@ async def accept_cluster(
     canonical_name="dev.campaign.reject",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Reject one cluster, recording the reason.",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -180,6 +188,7 @@ async def reject_cluster(
     canonical_name="dev.campaign.execute",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Execute a campaign's approved clusters.",
     dangerous=True,
 )

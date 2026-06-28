@@ -65,6 +65,7 @@ logger = getLogger(__name__)
 FIX_CODE_FLOW_ID = "flow.fix_code"
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/fix")
 # Top-level router for GET /actions (ADR-055 D2 places it outside the
 # /fix namespace; mounted alongside `router` in api/main.py).

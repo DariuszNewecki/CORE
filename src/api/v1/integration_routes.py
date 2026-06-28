@@ -27,6 +27,7 @@ from will.lifecycle.integration_runner import run_integration
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/integrate",
     # F-40.1: internal — integration/build dispatch is CI-internal, not

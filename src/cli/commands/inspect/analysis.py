@@ -15,7 +15,12 @@ from rich.table import Table
 
 from api.cli import CoreApiClient
 from cli.utils import core_command, deprecated_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +31,7 @@ console = Console()
     canonical_name="inspect.clusters",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Finds and displays semantic capability clusters",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -62,6 +68,7 @@ async def clusters_cmd(
     canonical_name="inspect.find-clusters",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="DEPRECATED alias for 'inspect clusters'",
     aliases=["clusters"],
 )
@@ -82,6 +89,7 @@ async def find_clusters_cmd(
     canonical_name="inspect.duplicates",
     behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Runs semantic code duplication check",
 )
 @core_command(dangerous=False, requires_context=False)
@@ -118,6 +126,7 @@ async def duplicates_command(
     canonical_name="inspect.common-knowledge",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Finds structurally identical helper functions that can be consolidated",
 )
 @core_command(dangerous=False, requires_context=False)

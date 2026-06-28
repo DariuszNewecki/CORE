@@ -57,6 +57,7 @@ from will.governance.fix_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/quality",
     # F-40.1: internal — quality-gate dispatch (mypy/pytest/pip-audit/

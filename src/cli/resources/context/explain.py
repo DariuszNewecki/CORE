@@ -26,7 +26,12 @@ from body.infrastructure.bootstrap import create_core_context
 from body.infrastructure.storage.file_handler import FileHandler
 from body.services.service_registry import service_registry
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 
 from .hub import app
 
@@ -84,6 +89,7 @@ def _format_exploration_for_display(packet: dict[str, Any]) -> str:
     canonical_name="context.explain",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Explore codebase by concept using semantic search.",
 )
 @core_command(dangerous=False, requires_context=False)

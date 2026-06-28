@@ -51,6 +51,7 @@ logger = getLogger(__name__)
 API_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000002")
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/proposals")
 
 

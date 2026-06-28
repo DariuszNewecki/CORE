@@ -21,7 +21,12 @@ from body.infrastructure.bootstrap import create_core_context
 from body.infrastructure.storage.file_handler import FileHandler
 from body.services.service_registry import service_registry
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.infrastructure.context.models import ContextBuildRequest
 from shared.infrastructure.intent.task_type_phases import (
     allowed_task_types,
@@ -268,6 +273,7 @@ def _format_packet_for_display(
     canonical_name="context.build",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.USER_FACING,
     summary="Simulate exact context CoderAgent sees.",
 )
 @core_command(dangerous=False, requires_context=False)

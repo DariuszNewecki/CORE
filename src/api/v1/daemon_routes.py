@@ -36,6 +36,7 @@ from will.governance.daemon_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(
     prefix="/daemon",
     # F-40.1: internal — daemon lifecycle is operator concern, not part

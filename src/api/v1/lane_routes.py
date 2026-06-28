@@ -42,6 +42,7 @@ from will.autonomy.lane_service import LaneProposeError, LaneService
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/lane")
 
 _VALIDATE_ACTION = "assisted.validate_diff"

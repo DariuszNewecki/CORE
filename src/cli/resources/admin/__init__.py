@@ -5,6 +5,7 @@ from __future__ import annotations
 
 # Register Forensic Neurons
 from . import (
+    accessibility,
     coverage,
     debt_scan,
     forensics,

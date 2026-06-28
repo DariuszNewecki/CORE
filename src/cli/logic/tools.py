@@ -17,9 +17,10 @@ from body.maintenance.maintenance_service import rewire_imports
 from body.maintenance.scripts import context_export
 from shared.cli.command_meta import (
     CommandBehavior,
+    CommandExposure,
     CommandLayer,
     command_meta,
-)  # Add this import
+)
 from shared.logger import getLogger
 
 
@@ -38,6 +39,7 @@ tools_app = typer.Typer(
     canonical_name="imports.rewire",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Automatically fixes Python import statements across the codebase after major refactoring.",
     dangerous=True,
 )
@@ -86,6 +88,7 @@ def rewire_imports_cli(
     canonical_name="context.export",
     behavior=CommandBehavior.TRANSFORM,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Exports a complete operational snapshot including Mind, Body, State, and Vector data.",
     dangerous=True,
 )

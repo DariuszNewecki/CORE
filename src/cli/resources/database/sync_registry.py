@@ -5,9 +5,10 @@ import typer
 from cli.utils import core_command
 from shared.cli.command_meta import (
     CommandBehavior,
+    CommandExposure,
     CommandLayer,
     command_meta,
-)  # Add this import
+)
 from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app
@@ -18,8 +19,9 @@ from .hub import app
     canonical_name="database.sync-registry",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Synchronize the live CLI command structure to the database.",
-    dangerous=True,  # Explicitly mark as dangerous
+    dangerous=True,
 )
 @core_command(dangerous=True, requires_context=False)
 # ID: d71b92d9-d954-48dd-9059-68f0b3ed4442

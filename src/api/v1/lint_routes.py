@@ -23,6 +23,7 @@ from will.governance.lint_runner import run_lint
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/lint",
     # F-40.1: internal — lint dispatch is CI-internal, not part of the

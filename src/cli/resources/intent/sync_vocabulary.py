@@ -22,7 +22,12 @@ from rich.console import Console
 
 from body.infrastructure.storage.file_handler import FileHandler
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.context import CoreContext
 from shared.infrastructure.intent.vocabulary_projection import (
     CANONICAL_HEADING,
@@ -259,6 +264,7 @@ def _build_projection(
     canonical_name="intent.sync",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.MIND,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Regenerate a .intent/ projection from its source paper (ADR-023).",
     dangerous=True,
 )

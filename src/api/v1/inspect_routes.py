@@ -49,6 +49,7 @@ logger = getLogger(__name__)
 
 # Each top-level namespace gets its own router. They are mounted together
 # in api/main.py so the URL prefixes are preserved verbatim.
+ROUTER_EXPOSURE = "user-facing"
 status_router = APIRouter(prefix="/status")
 decisions_router = APIRouter(prefix="/decisions")
 refusals_router = APIRouter(prefix="/refusals")

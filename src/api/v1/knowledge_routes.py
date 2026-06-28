@@ -17,6 +17,7 @@ from api.dependencies import get_api_session
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/knowledge")
 
 

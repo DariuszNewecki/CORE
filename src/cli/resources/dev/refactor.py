@@ -14,7 +14,12 @@ from dotenv import load_dotenv
 from rich.console import Console
 
 from cli.utils import core_command
-from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import (
+    CommandBehavior,
+    CommandExposure,
+    CommandLayer,
+    command_meta,
+)
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.session_manager import get_session
@@ -30,6 +35,7 @@ console = Console()
     canonical_name="dev.refactor",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.WILL,
+    exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Invoke CORE's autonomous agent loop to refactor code toward a goal.",
     dangerous=True,
 )

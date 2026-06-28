@@ -53,6 +53,7 @@ from will.governance.sync_runner import (
 logger = getLogger(__name__)
 
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(
     prefix="/sync",
     # F-40.1: internal — knowledge-graph + vector sync is operator

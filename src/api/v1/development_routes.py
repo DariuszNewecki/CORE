@@ -21,6 +21,7 @@ from shared.infrastructure.repositories.task_repository import TaskRepository
 from will.autonomy.autonomous_developer import develop_from_goal
 
 
+ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(
     # F-40.1: internal — autonomous-developer goal submission is a
     # CORE-internal autonomy entry point, not part of the OEM API
