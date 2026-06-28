@@ -383,16 +383,32 @@ _SAMPLE_CANDIDATES = [
 ]
 
 
-def test_candidate_cache_key_deterministic() -> None:
-    key1 = _candidate_cache_key("signals text")
-    key2 = _candidate_cache_key("signals text")
+def test_candidate_cache_key_deterministic(tmp_path: Path) -> None:
+    key1 = _candidate_cache_key("signals text", tmp_path)
+    key2 = _candidate_cache_key("signals text", tmp_path)
     assert key1 == key2
     assert len(key1) == 16
     assert key1.isalnum()
 
 
-def test_candidate_cache_key_differs_on_different_input() -> None:
-    assert _candidate_cache_key("signals A") != _candidate_cache_key("signals B")
+def test_candidate_cache_key_differs_on_different_signals(tmp_path: Path) -> None:
+    assert _candidate_cache_key("signals A", tmp_path) != _candidate_cache_key(
+        "signals B", tmp_path
+    )
+
+
+def test_candidate_cache_key_differs_on_prompt_change(tmp_path: Path) -> None:
+    prompt_dir = tmp_path / "var" / "prompts" / "scout_rule_inducer"
+    prompt_dir.mkdir(parents=True)
+    system_txt = prompt_dir / "system.txt"
+
+    system_txt.write_text("original prompt")
+    key_before = _candidate_cache_key("same signals", tmp_path)
+
+    system_txt.write_text("updated prompt")
+    key_after = _candidate_cache_key("same signals", tmp_path)
+
+    assert key_before != key_after
 
 
 def test_load_candidate_cache_miss(tmp_path: Path) -> None:
@@ -401,7 +417,7 @@ def test_load_candidate_cache_miss(tmp_path: Path) -> None:
 
 
 def test_save_and_load_candidate_cache(tmp_path: Path) -> None:
-    key = _candidate_cache_key("test signals")
+    key = _candidate_cache_key("test signals", tmp_path)
     fh = MagicMock()
     cache_dir = tmp_path / "var" / "cache" / "scout"
 
@@ -427,7 +443,7 @@ def test_save_candidate_cache_failure_does_not_raise(tmp_path: Path) -> None:
 
 
 def test_evict_candidate_cache_removes_file(tmp_path: Path) -> None:
-    key = _candidate_cache_key("evict signals")
+    key = _candidate_cache_key("evict signals", tmp_path)
     cache_dir = tmp_path / "var" / "cache" / "scout"
     cache_dir.mkdir(parents=True)
     cache_file = cache_dir / f"{key}.json"

@@ -120,7 +120,7 @@ async def induce_rules(
     )
     signals = _extract_repo_signals(target_root)
     code_signals = _format_signal_report(signals)
-    cache_key = _candidate_cache_key(code_signals)
+    cache_key = _candidate_cache_key(code_signals, core_root)
 
     if reset:
         _evict_candidate_cache(core_root, cache_key)
@@ -510,14 +510,23 @@ def _format_signal_report(signals: dict[str, Any]) -> str:
 
 
 # ID: 3f8a2b1c-9d4e-4f7a-b8c5-6e2d1a0f9b3c
-def _candidate_cache_key(code_signals: str) -> str:
-    """16-hex SHA-256 prefix of the signal report text.
+def _candidate_cache_key(code_signals: str, core_root: Path) -> str:
+    """16-hex SHA-256 of signal report + Scout prompt files.
 
-    The signal report is deterministic for a given repo+commit (full AST pass,
-    sorted file order, fixed format). Keying the cache on its hash means the
-    same repo state always hits the same cache entry.
+    Including system.txt and model.yaml means the cache is automatically
+    invalidated when the prompt or model config changes — a prompt improvement
+    on unchanged code still triggers a fresh LLM call.
     """
-    return hashlib.sha256(code_signals.encode()).hexdigest()[:16]
+    prompt_dir = core_root.joinpath("var", "prompts", "scout_rule_inducer")
+
+    def _read(name: str) -> str:
+        try:
+            return (prompt_dir / name).read_text(encoding="utf-8")
+        except OSError:
+            return ""
+
+    fingerprint = code_signals + _read("system.txt") + _read("model.yaml")
+    return hashlib.sha256(fingerprint.encode()).hexdigest()[:16]
 
 
 # ID: 7c4d9e2f-1b8a-4c3d-9e5f-2a0b7c6d8e4f
