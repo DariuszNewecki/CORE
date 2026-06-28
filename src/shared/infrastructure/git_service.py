@@ -9,11 +9,15 @@ Responsibilities
 - Raise RuntimeError with useful stderr/stdout on git failures.
 
 Constitutional sanctuary: this module is the sole permitted user of
-subprocess for git operations. All other layers must go through this service.
+subprocess for git operations — both synchronous (_run_command) and
+asynchronous (_run_async). All other layers must go through this service;
+Will workers in particular must not spawn git subprocesses directly
+(governance.dangerous_execution_primitives [r]).
 """
 
 from __future__ import annotations
 
+import asyncio
 import shutil
 import subprocess
 import uuid
@@ -378,6 +382,76 @@ class GitService:
             sha[:12],
         )
         return ScopedGitService(worktree_path, parent=self)
+
+    # ------------------------------------------------------------------
+    # Async git operations — sanctuary for Will workers
+    # ------------------------------------------------------------------
+
+    async def _run_async(self, command: list[str]) -> tuple[int, str, str]:
+        """Run a git command asynchronously. Returns (returncode, stdout, stderr)."""
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            *command,
+            cwd=self.repo_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        return proc.returncode, stdout.decode(), stderr.decode()
+
+    # ID: 2ac7d7ba-e892-4858-b4ef-8f5f1c8094e5
+    async def is_commit_on_branch(self, sha: str) -> bool:
+        """Return True if sha is reachable from at least one branch.
+
+        Runs ``git branch --contains <sha>``. A non-empty stdout means the
+        commit is on a branch; empty stdout means it is orphaned.
+        Used by CommitReachabilityAuditor (ADR-019 D1).
+        """
+        rc, stdout, _ = await self._run_async(["branch", "--contains", sha])
+        return rc == 0 and bool(stdout.strip())
+
+    # ID: 29e23c01-dd18-450b-b36a-1a0ac4ad5c24
+    async def get_commit_meta(self, sha: str) -> dict[str, str]:
+        """Return subject / author / date for a commit SHA.
+
+        Runs ``git show -s --format=%s%n%an%n%cI <sha>``. Returns a sentinel
+        subject when the object is no longer in the store (already gc'd).
+        Used by CommitReachabilityAuditor to preserve orphan metadata before
+        the object is pruned (#658).
+        """
+        rc, stdout, _ = await self._run_async(
+            ["show", "-s", "--format=%s%n%an%n%cI", sha]
+        )
+        if rc != 0:
+            return {"commit_subject": "<object not in store — gc'd before reconcile>"}
+        lines = stdout.splitlines()
+        return {
+            "commit_subject": lines[0] if len(lines) > 0 else "",
+            "commit_author": lines[1] if len(lines) > 1 else "",
+            "commit_date": lines[2] if len(lines) > 2 else "",
+        }
+
+    # ID: 54c084b9-20ce-472e-abbf-45278c709d5b
+    async def diff_file_names(self, pre_sha: str, post_sha: str) -> list[str] | None:
+        """Return paths changed between two SHAs, or None on git failure.
+
+        Runs ``git diff --name-only <pre_sha> <post_sha>``. Returns None
+        rather than raising so callers can skip on failure without posting
+        false-positive findings. Used by CommitAuthorshipAuditWorker
+        (ADR-129 D4).
+        """
+        rc, stdout, stderr = await self._run_async(
+            ["diff", "--name-only", pre_sha, post_sha]
+        )
+        if rc != 0:
+            logger.warning(
+                "GitService.diff_file_names: git diff failed for %s..%s: %s",
+                pre_sha,
+                post_sha,
+                stderr.strip(),
+            )
+            return None
+        return [f for f in stdout.strip().splitlines() if f]
 
     # ID: 7990798e-4c6b-4aff-a8ce-26f7f1f9d480
     def sweep_orphan_worktrees(self) -> int:

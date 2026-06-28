@@ -20,12 +20,12 @@ Constitutional standing:
 - Approval: false
 
 DB access via Body service registry only (Will pattern per ADR-019 D1).
-Git diff via async subprocess to repo_path from core_context.git_service.
+Git diff via GitService.diff_file_names (shared sanctuary; no direct
+subprocess in Will per governance.dangerous_execution_primitives).
 """
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -70,7 +70,7 @@ class CommitAuthorshipAuditWorker(Worker):
         )
         entries = await consequence_svc.get_recent_for_audit(lookback_days=7)
 
-        repo_path = str(self._core_context.git_service.repo_path)
+        git_service = self._core_context.git_service
 
         checked = 0
         skipped_no_declared = 0
@@ -89,12 +89,11 @@ class CommitAuthorshipAuditWorker(Worker):
                 continue
 
             if not pre_sha:
-                # Without a pre-sha we can't compute the diff precisely.
                 skipped_no_declared += 1
                 continue
 
             checked += 1
-            actual_diff = await _get_diff_files(repo_path, pre_sha, post_sha)
+            actual_diff = await git_service.diff_file_names(pre_sha, post_sha)
             if actual_diff is None:
                 # git failure — don't post a false positive, just skip.
                 continue
@@ -153,38 +152,3 @@ class CommitAuthorshipAuditWorker(Worker):
             violations,
             suppressed,
         )
-
-
-async def _get_diff_files(
-    repo_path: str, pre_sha: str, post_sha: str
-) -> list[str] | None:
-    """Return paths in the diff between two SHAs, or None on git failure."""
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "git",
-            "diff",
-            "--name-only",
-            pre_sha,
-            post_sha,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=repo_path,
-        )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            logger.warning(
-                "CommitAuthorshipAuditWorker: git diff failed for %s..%s: %s",
-                pre_sha,
-                post_sha,
-                stderr.decode().strip(),
-            )
-            return None
-        return [f for f in stdout.decode().strip().splitlines() if f]
-    except Exception as exc:
-        logger.warning(
-            "CommitAuthorshipAuditWorker: subprocess error for %s..%s: %s",
-            pre_sha,
-            post_sha,
-            exc,
-        )
-        return None

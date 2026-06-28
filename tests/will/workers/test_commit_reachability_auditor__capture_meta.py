@@ -2,11 +2,16 @@
 
 The 3 historical orphans (``211c2dd2`` / ``bbbb27fe`` / ``fca9a971``) were
 resolvable only by manual git archaeology because the orphan finding carried
-just the bare sha. ``_capture_commit_meta`` reads a *dangling* commit's
+just the bare sha. ``GitService.get_commit_meta`` reads a *dangling* commit's
 subject / author / date — ``git show -s`` resolves branch-unreachable objects
 until ``git gc`` prunes them — so the orphan finding becomes self-describing
 and the audit trail survives past the point the recorded sha would otherwise
 point at nothing (ask #2 of #658).
+
+Previously tested via the module-level ``_capture_commit_meta`` helper in
+commit_reachability_auditor.py. That helper is now centralised in
+GitService.get_commit_meta (sanctuary for async git operations) and the
+worker delegates to it — so tests move here accordingly.
 """
 
 from __future__ import annotations
@@ -14,9 +19,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
-
-from will.workers.commit_reachability_auditor import _capture_commit_meta
+from shared.infrastructure.git_service import GitService
 
 
 def _run(args: list[str], cwd: Path) -> str:
@@ -32,7 +35,7 @@ def _init_repo(repo: Path) -> None:
     _run(["git", "config", "commit.gpgsign", "false"], repo)
 
 
-async def test_capture_meta_reads_dangling_commit(tmp_path: Path) -> None:
+async def test_get_commit_meta_reads_dangling_commit(tmp_path: Path) -> None:
     """A branch-unreachable (dangling) commit's metadata is still captured —
     the exact orphan scenario the auditor must reconcile before GC."""
     _init_repo(tmp_path)
@@ -51,13 +54,13 @@ async def test_capture_meta_reads_dangling_commit(tmp_path: Path) -> None:
     _run(["git", "reset", "--hard", "HEAD~1"], tmp_path)
     assert not _run(["git", "branch", "--contains", orphan_sha], tmp_path).strip()
 
-    meta = await _capture_commit_meta(str(tmp_path), orphan_sha)
+    meta = await GitService(tmp_path).get_commit_meta(orphan_sha)
     assert "fix.format" in meta["commit_subject"]
     assert meta["commit_author"] == "Test"
     assert meta["commit_date"], "ISO commit date must be captured"
 
 
-async def test_capture_meta_handles_gone_object(tmp_path: Path) -> None:
+async def test_get_commit_meta_handles_gone_object(tmp_path: Path) -> None:
     """A sha no longer in the object store (already gc'd) yields a sentinel
     subject rather than crashing the audit run."""
     _init_repo(tmp_path)
@@ -65,5 +68,31 @@ async def test_capture_meta_handles_gone_object(tmp_path: Path) -> None:
     _run(["git", "add", "-A"], tmp_path)
     _run(["git", "commit", "-m", "initial"], tmp_path)
 
-    meta = await _capture_commit_meta(str(tmp_path), "0" * 40)
+    meta = await GitService(tmp_path).get_commit_meta("0" * 40)
     assert "not in store" in meta["commit_subject"]
+
+
+async def test_is_commit_on_branch_true_for_reachable(tmp_path: Path) -> None:
+    """A commit on HEAD is reachable from a branch."""
+    _init_repo(tmp_path)
+    (tmp_path / "f.py").write_text("# v1\n")
+    _run(["git", "add", "-A"], tmp_path)
+    _run(["git", "commit", "-m", "initial"], tmp_path)
+    sha = _run(["git", "rev-parse", "HEAD"], tmp_path)
+
+    assert await GitService(tmp_path).is_commit_on_branch(sha) is True
+
+
+async def test_is_commit_on_branch_false_for_orphan(tmp_path: Path) -> None:
+    """A dangling commit is not reachable from any branch."""
+    _init_repo(tmp_path)
+    (tmp_path / "f.py").write_text("# v1\n")
+    _run(["git", "add", "-A"], tmp_path)
+    _run(["git", "commit", "-m", "initial"], tmp_path)
+
+    (tmp_path / "f.py").write_text("# v2\n")
+    _run(["git", "commit", "-am", "second"], tmp_path)
+    orphan_sha = _run(["git", "rev-parse", "HEAD"], tmp_path)
+    _run(["git", "reset", "--hard", "HEAD~1"], tmp_path)
+
+    assert await GitService(tmp_path).is_commit_on_branch(orphan_sha) is False
