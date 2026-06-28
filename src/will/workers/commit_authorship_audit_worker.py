@@ -44,6 +44,14 @@ class CommitAuthorshipAuditWorker(Worker):
     for each autonomous proposal in the last 7 days. Detects staging
     contamination introduced by the pre-ADR-129-D1 gap in commit_paths.
 
+    Rows written before ADR-129 was deployed have declared_production = []
+    (the column default). The worker skips those rows as unverifiable —
+    it cannot reconstruct what the action declared at the time, so treating
+    them as violations would produce false positives. Coverage begins from
+    the first proposal executed after the declared_production column was
+    populated (after migration 20260628_adr129_add_declared_production_
+    to_proposal_consequences.sql was applied).
+
     Runs hourly (schedule.max_interval: 3600 in YAML). Deduplicates
     against open blackboard findings to avoid re-posting on each cycle.
     """
