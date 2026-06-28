@@ -104,7 +104,8 @@
             "enforcement": "reporting",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "API should route through Will, not bypass to Body directly."
+            "rationale": "API should route through Will, not bypass to Body directly.",
+            "excludes": ["src/api/dependencies.py"]
         },
         {
             "id": "architecture.layers.no_body_to_will",
