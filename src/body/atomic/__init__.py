@@ -24,6 +24,7 @@ from body.atomic import (
     modularity_fix,
     proposal_lifecycle_actions,
     remediate_cognitive_role,
+    split_applier,
     sync_actions,
     test_actions,
 )
@@ -53,6 +54,7 @@ from body.atomic.fix_actions import (
 from body.atomic.metadata_ops import action_tag_metadata
 from body.atomic.modularity_fix import action_fix_modularity
 from body.atomic.registry import action_registry, register_action
+from body.atomic.split_applier import action_refactor_apply_split
 from body.atomic.sync_actions import (
     action_sync_code_vectors,
     action_sync_constitutional_vectors,
@@ -74,6 +76,7 @@ __all__ = [
     "action_fix_logging",
     "action_fix_modularity",
     "action_read_file",
+    "action_refactor_apply_split",
     "action_registry",
     "action_run_gap_analysis",
     "action_sync_code_vectors",

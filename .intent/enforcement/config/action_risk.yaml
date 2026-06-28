@@ -126,6 +126,9 @@ actions:
   fix.vulture_heal:
     impact_level: dangerous
     artifact_types: [python]
+  refactor.apply_split:
+    impact_level: dangerous
+    artifact_types: [python]
   test.execute:
     impact_level: moderate
     artifact_types: [python]

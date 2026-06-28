@@ -124,40 +124,33 @@ class ExecutionPhase:
         write: bool,
         start: float,
     ) -> PhaseResult:
-        """Write SplitResult files to disk and remove the original source."""
-        file_handler = self.context.file_handler
-        repo_root = self.context.git_service.repo_path
-        files_written: list[str] = []
-        files_deleted: list[str] = []
+        """Route deterministic split writes through ActionExecutor and commit.
 
-        for entry in split_results:
-            if not entry.get("ok"):
-                continue
+        Bug fixes (#672):
+        - Routes through ActionExecutor (refactor.apply_split) so writes are
+          governed and the production set is stamped for ADR-101 D2 audit.
+        - Commits written files after execution so changes are not left
+          dangling on disk (execution.commit_changes stage of the workflow).
+        """
+        from shared.infrastructure.git_service import StagingContaminationError
 
-            split_result = entry.get("split_result")
-            if split_result is None:
-                continue
+        executor = ActionExecutor(self.context)
+        result = await executor.execute(
+            "refactor.apply_split",
+            write=write,
+            split_results=split_results,
+        )
 
-            if not write:
-                for file_path, _content in split_result.files:
-                    logger.info("Dry-run: would write %s", file_path)
-                if split_result.original_path.exists():
-                    logger.info("Dry-run: would delete %s", split_result.original_path)
-                continue
+        if not result.ok:
+            return PhaseResult(
+                name="execution",
+                ok=False,
+                error=result.data.get("error", "refactor.apply_split failed"),
+                duration_sec=time.time() - start,
+            )
 
-            # Write each new module file
-            for file_path, content in split_result.files:
-                rel_path = str(file_path.relative_to(repo_root))
-                file_handler.write_runtime_text(rel_path, content)
-                files_written.append(rel_path)
-                logger.info("Wrote split module: %s", rel_path)
-
-            # Delete the original monolith file
-            if split_result.original_path.exists():
-                rel_original = str(split_result.original_path.relative_to(repo_root))
-                file_handler.remove_file(rel_original)
-                files_deleted.append(rel_original)
-                logger.info("Deleted original: %s", rel_original)
+        files_written: list[str] = result.data.get("files_written", [])
+        files_deleted: list[str] = result.data.get("files_deleted", [])
 
         if not write:
             return PhaseResult(
@@ -166,6 +159,30 @@ class ExecutionPhase:
                 data={"dry_run": True, "files_written": []},
                 duration_sec=time.time() - start,
             )
+
+        if files_written:
+            paths_to_commit = files_written + files_deleted
+            try:
+                self.context.git_service.commit_paths(
+                    paths_to_commit,
+                    f"refactor: deterministic split ({len(files_written)} module(s))",
+                )
+            except StagingContaminationError as e:
+                logger.warning(
+                    "commit refused by ADR-129 D1 contamination check: %s", e
+                )
+                return PhaseResult(
+                    name="execution",
+                    ok=False,
+                    error=f"commit refused (staging contamination): {e}",
+                    duration_sec=time.time() - start,
+                )
+            except Exception as git_err:
+                logger.warning(
+                    "commit after deterministic split failed — "
+                    "files written but not committed: %s",
+                    git_err,
+                )
 
         return PhaseResult(
             name="execution",
