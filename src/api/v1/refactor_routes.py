@@ -40,7 +40,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_role
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -57,7 +57,7 @@ logger = getLogger(__name__)
 
 
 ROUTER_EXPOSURE = "governor-only"
-router = APIRouter(prefix="/refactor")
+router = APIRouter(prefix="/refactor", dependencies=[require_governor])
 
 
 # ID: 3a7b9c5d-6e8f-4a0b-1c2d-3e4f5a6b7c8f
@@ -228,7 +228,6 @@ async def run_refactor_autonomous(
 @router.get(
     "/runs/{run_id}",
     summary="Fetch a persisted refactor run",
-    dependencies=[require_role("platform_admin")],
     description=(
         "Read back a refactor run's persisted record by `run_id`: status, "
         "timestamps, captured proposal_ids in `result`, error. Returns "

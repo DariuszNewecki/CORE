@@ -43,7 +43,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_role
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -143,7 +143,7 @@ async def create_census_run(
 @router.get(
     "/runs/{run_id}",
     summary="Fetch a persisted census run",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Read back a census run's persisted record by `run_id`: snapshot, "
         "baseline_name, status, timestamps, result, error. Returns 404 if "

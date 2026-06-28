@@ -26,6 +26,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Request
 from pydantic import BaseModel
 
+from api.dependencies import require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.integrity_runner import (
@@ -44,6 +45,7 @@ router = APIRouter(
     # concern, not part of the OEM API contract. Excluded from
     # /v1/openapi.json per ADR-087.
     include_in_schema=False,
+    dependencies=[require_governor],
 )
 
 

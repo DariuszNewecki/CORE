@@ -46,7 +46,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_role
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import (
     AsyncDispatchResponse,
     AuditRunResponse,
@@ -231,7 +231,7 @@ async def list_audit_runs(
     "/runs/{run_id}",
     response_model=AuditRunResponse,
     summary="Fetch a persisted audit run",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Read back an audit run's persisted record by `run_id`: verdict + "
         "counts + timestamps + status + findings list. Returns 404 if the run "
@@ -381,7 +381,7 @@ async def create_remediation_run(
     "/remediations/{run_id}",
     response_model=RemediationRunResponse,
     summary="Fetch a remediation run",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Read back a remediation run's persisted record by `run_id`: mode, "
         "write flag, status, timestamps, result, and error if any. Returns "

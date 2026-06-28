@@ -96,3 +96,7 @@ def require_role(*roles: str) -> Depends:
         return user
 
     return Depends(_check)
+
+
+# ID: 785e7466-57da-4135-a8b0-2fe611006d1d
+require_governor = require_role("platform_admin")

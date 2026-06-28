@@ -40,7 +40,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_role
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -61,6 +61,7 @@ router = APIRouter(
     # not part of the OEM API contract. Excluded from /v1/openapi.json
     # per ADR-087.
     include_in_schema=False,
+    dependencies=[require_governor],
 )
 
 
@@ -226,7 +227,7 @@ async def sync_dev_sync(
     )
 
 
-@router.get("/runs/{run_id}", dependencies=[require_role("platform_admin")])
+@router.get("/runs/{run_id}")
 # ID: 3f0b7a5c-9e4d-4a2b-7ba8-6de45678ef01
 async def get_sync_run(
     run_id: UUID,

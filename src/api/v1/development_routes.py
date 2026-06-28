@@ -15,7 +15,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import get_api_session, require_governor
 from shared.context import CoreContext
 from shared.infrastructure.repositories.task_repository import TaskRepository
 from will.autonomy.autonomous_developer import develop_from_goal
@@ -27,6 +27,7 @@ router = APIRouter(
     # CORE-internal autonomy entry point, not part of the OEM API
     # contract. Excluded from /v1/openapi.json per ADR-087.
     include_in_schema=False,
+    dependencies=[require_governor],
 )
 
 

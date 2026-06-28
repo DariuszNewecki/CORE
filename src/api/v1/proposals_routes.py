@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, require_role
+from api.dependencies import get_api_session, require_governor
 from api.v1.schemas import ProposalResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -100,7 +100,7 @@ class CreateProposalRequest(BaseModel):
     "",
     status_code=201,
     summary="Create a proposal",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Build a proposal from a goal + action sequence, compute its risk, "
         "and (when `write=true`) persist it via ProposalService. With "
@@ -235,7 +235,7 @@ async def get_proposal(
 @router.post(
     "/{proposal_id}/approve",
     summary="Approve a pending proposal",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Approve a proposal awaiting governance review. `approval_authority` "
         "is non-omittable per URS NFR.5 and validated against the "
@@ -248,7 +248,7 @@ async def get_proposal(
 async def approve_proposal(
     proposal_id: str,
     payload: ApproveRequest,
-    user: dict = require_role("platform_admin"),
+    user: dict = require_governor,
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """Approve a pending proposal.
@@ -283,7 +283,7 @@ async def approve_proposal(
 @router.post(
     "/{proposal_id}/reject",
     summary="Reject a proposal",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Reject a proposal with a reason. Per ADR-010 §7a, rejection is "
         "symmetric with `mark_failed`: any findings parked at "
@@ -325,7 +325,7 @@ async def reject_proposal(
 @router.post(
     "/{proposal_id}/execute",
     summary="Execute an approved proposal",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Execute an approved proposal as a governor-direct override. "
         'Defaults to dry-run; pass `{"write": true}` to apply changes. '

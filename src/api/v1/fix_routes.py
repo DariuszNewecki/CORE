@@ -44,7 +44,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_role
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import AsyncDispatchResponse, FixRunResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -126,7 +126,7 @@ class RunIRRequest(BaseModel):
     status_code=202,
     response_model=AsyncDispatchResponse,
     summary="Dispatch an atomic fix action",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Run an atomic action from the registry by `fix_id` (e.g. "
         "`fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if "
@@ -280,7 +280,7 @@ async def _dispatch_flow(
     status_code=202,
     response_model=AsyncDispatchResponse,
     summary="Dispatch the curated fix sequence",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Run the `flow.fix_code` curated sequence — a registered Flow YAML "
         "that bundles the standard fix-category atomic actions in their "
@@ -312,7 +312,7 @@ async def run_fix_all(
     status_code=202,
     response_model=AsyncDispatchResponse,
     summary="Dispatch the modularity remediation cycle",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Run the modularity remediation cycle — a Python-level workflow "
         "(ModularityRemediationService), not a Flow YAML — so there's no "
@@ -377,7 +377,7 @@ async def run_fix_modularity(
 @router.post(
     "/ir",
     summary="Bootstrap an IR scaffold file",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Bootstrap an Intent Representation (IR) scaffold file of the "
         "requested `kind` (`triage` or `log`). Synchronous — returns the "
@@ -429,7 +429,7 @@ async def list_fix_commands() -> dict:
     "/runs/{run_id}",
     response_model=FixRunResponse,
     summary="Fetch a persisted fix run",
-    dependencies=[require_role("platform_admin")],
+    dependencies=[require_governor],
     description=(
         "Read back a fix run's persisted record by `run_id`. The response "
         "shape matches ADR-055 D2: run_id, status, fix_id, kind, write, "
