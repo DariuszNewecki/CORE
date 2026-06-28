@@ -545,6 +545,45 @@ class AuthService:
         await self._session.commit()
         return True
 
+    # ID: d72141a2-3d60-42f2-92bf-edda86b0b73f
+    async def change_password(
+        self, user_id: str, current_password: str, new_password: str
+    ) -> bool:
+        """Verify current password then set a new one.
+
+        Returns True on success, False if current_password is wrong.
+        Raises ValueError if new_password fails validation.
+        Revokes all refresh tokens so other sessions must re-authenticate.
+        """
+        if len(new_password) < 8:
+            raise ValueError("Password must be at least 8 characters.")
+
+        row = await self._session.execute(
+            text("SELECT password_hash FROM core.users WHERE id = :uid"),
+            {"uid": user_id},
+        )
+        rec = row.fetchone()
+        if not rec or not verify_password(current_password, rec[0]):
+            await self._log_event(
+                "password_change_failed",
+                user_id=user_id,
+                metadata={"reason": "bad_current_password"},
+            )
+            return False
+
+        pw_hash = hash_password(new_password)
+        await self._session.execute(
+            text("UPDATE core.users SET password_hash = :pw WHERE id = :uid"),
+            {"pw": pw_hash, "uid": user_id},
+        )
+        await self._session.execute(
+            text("UPDATE core.refresh_tokens SET revoked = true WHERE user_id = :uid"),
+            {"uid": user_id},
+        )
+        await self._log_event("password_changed", user_id=user_id)
+        await self._session.commit()
+        return True
+
     # ------------------------------------------------------------------
     # Role promotion
     # ------------------------------------------------------------------

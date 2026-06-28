@@ -24,6 +24,7 @@ from cli.commands.status import status_app
 from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
+from cli.resources.auth import app as auth_app
 from cli.resources.code import app as code_app
 from cli.resources.coherence import app as coherence_app
 from cli.resources.constitution import app as constitution_app
@@ -59,6 +60,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     Legacy Verb-First groups (fix, check, inspect) have been purged.
     """
     app_instance.add_typer(admin_app, name="admin")
+    app_instance.add_typer(auth_app, name="auth")
     app_instance.add_typer(code_app, name="code")
     app_instance.add_typer(context_app, name="context")
     app_instance.add_typer(database_app, name="database")

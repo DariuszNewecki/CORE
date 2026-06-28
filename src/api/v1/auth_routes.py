@@ -357,6 +357,43 @@ async def logout(
     return {"message": "Logged out."}
 
 
+# ID: 59bf7730-9228-49fe-9140-41bdd5b5ee06
+class ChangePasswordRequest(BaseModel):
+    """Request payload for an authenticated password change."""
+
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+# ID: 7ddd819d-cf6d-4b14-9930-b360ef74d9f3
+async def change_password(
+    body: ChangePasswordRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+    svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict:
+    """Change the authenticated user's password.
+
+    Verifies the current password before applying the change.
+    Revokes all refresh tokens — caller must log in again.
+    """
+    try:
+        ok = await svc.change_password(
+            user_id=user["sub"],
+            current_password=body.current_password,
+            new_password=body.new_password,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect.",
+        )
+    return {"message": "Password changed. Please log in again."}
+
+
 @router.post("/password-reset/request")
 # ID: 2a5f8e1c-4b3d-4a9e-b7c0-1d5a3f8c2e4b
 async def password_reset_request(
