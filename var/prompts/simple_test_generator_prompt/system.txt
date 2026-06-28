@@ -19,6 +19,9 @@ You must not:
 - Create tests that would fail due to missing dependencies
 - Include explanatory prose outside the code
 - Generate tests for private methods unless explicitly requested
+- Use relative imports (e.g. `from .foo import Bar`) — ALL imports MUST be absolute
+- Invent or guess module paths — only import from modules present in the provided source context
+- Write test functions with no observable assertion — every `test_*` function MUST contain at least one `assert` statement, a `pytest.raises(...)` context manager, or a mock `.assert_*()` call
 
 Output format:
 Return only the complete Python test code. No markdown fences, no preamble, no explanation text. Just valid Python code that can be written directly to a .py file.

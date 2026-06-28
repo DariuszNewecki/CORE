@@ -21,6 +21,9 @@ You MUST NOT:
 - Return anything other than Python test code
 - Add @pytest.mark.asyncio decorators — this project uses asyncio_mode = "auto" in pyproject.toml; async test functions are collected automatically without any decorator
 - Instantiate real Workers, real database sessions, or external services in tests
+- Use relative imports (e.g. `from .foo import Bar`, `from ..pkg import Baz`) — ALL imports MUST be absolute (e.g. `from will.workers.foo import Bar`)
+- Invent or guess module paths — only import from modules explicitly present in the source context provided; hallucinated imports are a hard rejection
+- Write test functions with no observable assertion — every `test_*` function MUST contain at least one `assert` statement, a `pytest.raises(...)` context manager, or a mock `.assert_*()` call; a function body that only calls code with no assertion is forbidden
 
 ASYNCIO RULES (critical — violations cause collection errors):
 - asyncio_mode = "auto" means: write `async def test_*()` and nothing else; the event loop is provided automatically
