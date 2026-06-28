@@ -19,8 +19,14 @@ from shared.config import settings
 if TYPE_CHECKING:
     from body.infrastructure.storage.file_handler import FileHandler
     from body.services.file_service import FileService
+    from mind.governance.audit_context import AuditorContext
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from shared.infrastructure.git_service import GitService
     from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
+    from shared.models.execution_models import PlannerConfig
+    from shared.path_resolver import PathResolver
+    from shared.protocols.executor import ActionExecutorProtocol
+    from will.orchestration.cognitive_service import CognitiveService
 
 
 @dataclass
@@ -29,10 +35,15 @@ class CoreContext:
     """
     A container for shared services, passed explicitly to commands.
 
-    ARCHITECTURAL NOTE:
-    The 'registry' field is the authoritative source for services.
-    Direct service fields (git_service, etc.) are populated via JIT
-    injection in the CLI/API lifecycle.
+    ADR-128 three-tier model:
+    - Mandatory fields (git_service, knowledge_service, file_handler, file_service):
+      required at construction; missing one raises TypeError immediately.
+    - Post-construction infrastructure (path_resolver, action_executor):
+      Optional, set by bootstrap immediately after construction; remain None
+      in bare construction paths (daemon, alignment persistence).
+    - Genuinely-degradable services (cognitive_service, auditor_context,
+      qdrant_service, planner_config): Optional; daemon wires them in try/except
+      so the runtime degrades gracefully when LLM / Qdrant / audit is unavailable.
     """
 
     # The authoritative registry
@@ -57,12 +68,20 @@ class CoreContext:
     settings: Any = field(default_factory=lambda: settings)
 
     # --- Active Service Instances (genuinely optional / JIT-injected) ---
-    cognitive_service: Any | None = None
-    auditor_context: Any | None = None
-    planner_config: Any | None = None
-    qdrant_service: Any | None = None
+    # ADR-128: typed Optional rather than Any | None so attribute access is
+    # checked by mypy; callers guard with `if ctx.x is not None` before use.
+    cognitive_service: CognitiveService | None = None
+    auditor_context: AuditorContext | None = None
+    planner_config: PlannerConfig | None = None
+    qdrant_service: QdrantService | None = None
     debug: bool = False
     verbose: bool = False
+
+    # --- Post-construction infrastructure (ADR-128 D2) ---
+    # Set immediately after CoreContext() in bootstrap; None only in bare
+    # construction paths (daemon, alignment persistence) that don't need them.
+    path_resolver: PathResolver | None = field(default=None)
+    action_executor: ActionExecutorProtocol | None = field(default=None)
 
     # ALIGNED: Shared state for autonomous agents to pass file content between plan steps
     file_content_cache: dict[str, str] = field(default_factory=dict)
