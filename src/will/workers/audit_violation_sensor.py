@@ -50,6 +50,7 @@ to Body services via the service registry — no direct session import.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -114,8 +115,9 @@ class AuditViolationSensor(Worker):
         declaration_name: str,
         rule_namespace: str,
         dry_run: bool = True,
+        repo_root: Path | None = None,
     ) -> None:
-        super().__init__(declaration_name=declaration_name)
+        super().__init__(declaration_name=declaration_name, repo_root=repo_root)
         self._core_context = core_context
         self._rule_namespace = rule_namespace
         self._dry_run = dry_run
