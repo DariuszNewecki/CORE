@@ -154,8 +154,14 @@ async def induce_rules(
                 "[cyan]Suggest[/cyan] — observing repository patterns via LLM..."
             )
             try:
+                from shared.ai.prompt_model import PromptModel
+
+                _scout_model = PromptModel.load(
+                    "scout_rule_inducer",
+                    prompts_root=core_root / "var" / "prompts",
+                )
                 client = await cognitive_service.aget_client_for_role(
-                    "ConstitutionalCoherenceAnalyst"
+                    _scout_model.manifest.role
                 )
                 from mind.logic.scout_inducer import (
                     ScoutInducer,  # lazy — see module note

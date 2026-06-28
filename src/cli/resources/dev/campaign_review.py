@@ -123,10 +123,13 @@ async def list_clusters(
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Accept one autonomous cluster for execution.",
 )
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=True, requires_context=False)
 # ID: a1c2e3f4-5b60-4789-9a0b-1c2d3e4f5061
 async def accept_cluster(
     cluster_task_id: str = typer.Argument(..., help="Cluster Task id to accept."),
+    write: bool = typer.Option(
+        False, "--write", help="Apply the acceptance (default dry-run)."
+    ),
 ) -> None:
     """Move an autonomous cluster to 'approved' so it runs on the next execute."""
     cluster = _parse_uuid(cluster_task_id, "cluster_task_id")
@@ -147,6 +150,12 @@ async def accept_cluster(
                 f"[yellow]Cluster is '{_review_state(task)}', not awaiting review — no change.[/yellow]"
             )
             raise typer.Exit(code=1)
+        if not write:
+            console.print(
+                f"[yellow]Dry-run: cluster {cluster_task_id} would be approved. "
+                "Pass --write to apply.[/yellow]"
+            )
+            return
         await repo.set_approval(cluster, False)
     console.print(
         f"[green]✅ Cluster {cluster_task_id} approved (ready to execute).[/green]"
@@ -161,14 +170,24 @@ async def accept_cluster(
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Reject one cluster, recording the reason.",
 )
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=True, requires_context=False)
 # ID: b2d3f405-6c71-4890-ab1c-2d3e4f506172
 async def reject_cluster(
     cluster_task_id: str = typer.Argument(..., help="Cluster Task id to reject."),
     reason: str = typer.Option("", "--reason", help="Why the cluster is rejected."),
+    write: bool = typer.Option(
+        False, "--write", help="Apply the rejection (default dry-run)."
+    ),
 ) -> None:
     """Move a cluster to 'rejected'; it will not execute. Reason stored in context."""
     cluster = _parse_uuid(cluster_task_id, "cluster_task_id")
+    if not write:
+        console.print(
+            f"[yellow]Dry-run: cluster {cluster_task_id} would be rejected"
+            + (f" (reason: {reason!r})" if reason else "")
+            + ". Pass --write to apply.[/yellow]"
+        )
+        return
     async with get_session() as session:
         repo = TaskRepository(session)
         task = await repo.get_by_id(cluster)

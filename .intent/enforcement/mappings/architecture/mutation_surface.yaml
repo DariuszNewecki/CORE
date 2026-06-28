@@ -37,6 +37,11 @@ mappings:
         - "src/shared/action_logger.py" # Bootstrap-tier: module-level singleton instantiated at import; append-mode action audit log; FileHandler has no append surface
         - "src/shared/infrastructure/storage/integrity_service.py" # Bootstrap-tier (circular): sibling of file_handler.py; SHA256 baseline writer validates governance, cannot depend on it
         - "src/will/test_generation/sandbox.py" # Ephemeral-zone: writes under tempfile.TemporaryDirectory; FileHandler is repo-bound and refuses out-of-repo paths (separate /tmp/ hazard: #508)
+        # --- ADDED 2026-06-29 (ADR-132 session-file + BYOR CLI out-of-repo ops) ---
+        # Each entry mirrored in governance_basics.yaml's excludes set.
+        - "src/shared/infrastructure/cli_session.py" # ADR-132: writes ~/.config/core/session.json (user home, outside repo root); FileHandler is repo-bound and refuses out-of-repo paths
+        - "src/cli/logic/byor.py" # BYOR CLI: shutil.rmtree on external project staging dir (outside CORE repo root); cannot route through FileHandler
+        - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
         - "var/**"
         - "**/__pycache__/**"
         - "tests/**" # Tests may use direct writes for fixtures

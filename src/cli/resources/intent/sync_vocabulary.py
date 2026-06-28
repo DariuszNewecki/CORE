@@ -275,9 +275,9 @@ async def sync_intent(
     target: str = typer.Argument(
         ..., help="Projection target. Currently supported: 'vocabulary'."
     ),
-    stage: bool = typer.Option(
+    write: bool = typer.Option(
         False,
-        "--stage",
+        "--write",
         help=(
             "Write the regenerated projection to var/drafts/META/vocabulary.json "
             "for governor review. Apply with: "
@@ -289,7 +289,7 @@ async def sync_intent(
         "--check",
         help=(
             "Verify the projection is fresh (CI gate per ADR-023 D6). "
-            "Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --stage."
+            "Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --write."
         ),
     ),
 ) -> None:
@@ -305,9 +305,9 @@ async def sync_intent(
         console.print("Supported targets: vocabulary")
         raise typer.Exit(2)
 
-    if check and stage:
+    if check and write:
         console.print(
-            "[bold red]--check and --stage are mutually exclusive.[/bold red]"
+            "[bold red]--check and --write are mutually exclusive.[/bold red]"
         )
         raise typer.Exit(2)
 
@@ -400,7 +400,7 @@ async def sync_intent(
 
     rendered = json.dumps(projection, indent=2, ensure_ascii=False) + "\n"
 
-    mode = "STAGE" if stage else "DRY-RUN"
+    mode = "WRITE" if write else "DRY-RUN"
     console.print(f"[bold cyan]Vocabulary sync ({mode})[/bold cyan]")
     console.print(f"  source:        {VOCABULARY_PAPER_REL}")
     console.print(f"  target:        {VOCABULARY_JSON_REL}")
@@ -409,7 +409,7 @@ async def sync_intent(
     console.print(f"  generated_at:  {generated_at}")
     console.print(f"  generator:     {generator_version}")
 
-    if stage:
+    if write:
         file_handler = FileHandler(str(repo_root))
         file_handler.ensure_dir("var/drafts/META")
         file_handler.write(VOCABULARY_DRAFT_REL, rendered)
@@ -418,5 +418,5 @@ async def sync_intent(
         console.print(f"  cp {VOCABULARY_DRAFT_REL} {VOCABULARY_JSON_REL}")
     else:
         console.print(
-            "[yellow]Dry-run: no file written. Pass --stage to stage the draft.[/yellow]"
+            "[yellow]Dry-run: no file written. Pass --write to stage the draft.[/yellow]"
         )

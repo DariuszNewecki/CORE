@@ -37,16 +37,16 @@ def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
     """Resolve the GRC catalog corpus root.
 
     Defaults to ``PathResolver.grc_catalogs_dir``; an explicit ``catalog_root``
-    (e.g. a deploy-time entitlement mount, ADR-116 D3) overrides it. The
-    ``settings`` import is local — mirroring the established pattern in
-    ``gap_analysis_service`` — so the module carries no import-time settings
-    coupling.
+    (e.g. a deploy-time entitlement mount, ADR-116 D3) overrides it. PathResolver
+    is in shared/ and is the governed way for body/ to resolve repo-relative paths
+    without importing Settings (architecture.boundary.settings_access).
     """
     if catalog_root is not None:
         return Path(catalog_root).resolve()
-    from shared.config import settings
+    from shared.path_resolver import PathResolver
 
-    return settings.paths.grc_catalogs_dir
+    repo_root = Path(__file__).resolve().parents[4]
+    return PathResolver.from_repo(repo_root).grc_catalogs_dir
 
 
 # ID: c2d1814a-dc77-4b3a-b066-b5f66b274e28

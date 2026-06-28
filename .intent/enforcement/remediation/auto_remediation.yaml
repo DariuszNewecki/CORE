@@ -1185,6 +1185,25 @@ mappings:
       stays DELEGATE.
     status: DELEGATE
 
+  governance.taxonomy.action_supported_by_declaration:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      ADR-092-A (F-43): action↔artifact_type symmetry rule. Every atomic
+      action declaring artifact_types in action_risk.yaml must appear in
+      the artifact_type's supported_actions array, and every
+      supported_actions entry must correspond to a registered action with
+      a matching artifact_types declaration. Resolution is a governor
+      decision: register the action in the artifact_type's
+      supported_actions, remove the artifact_types declaration from
+      action_risk.yaml, or strip the dangling reference. The autonomous
+      remediator cannot choose between the paths. Mirrors
+      governance.taxonomy.sensor_supported_by_declaration (F-42).
+      Explicitly mapped to satisfy the ADR-066 unmapped-rules invariant.
+      Promotion path: ADR-092-A Phase 7 lifts from reporting to blocking
+      once the F-41⟺F-42⟺F-43 triad stabilizes; mapping stays DELEGATE.
+    status: DELEGATE
+
   purity.tempfile_default_dir:
     action: fix.tempfile_dir
     confidence: 0.60

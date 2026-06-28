@@ -23,11 +23,13 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # The single legitimate INSERT site: Worker base class's _post_entry
-        # method. This is the canonical attribution-preserving path; every
-        # post_finding / post_report / post_heartbeat call in Worker
-        # subclasses routes here.
+        # Legitimate INSERT sites within the Worker system.
+        # base.py thin-wraps BlackboardPublisher; the INSERT lives in the
+        # publisher after it was extracted from base.py for testability.
+        # Both belong here — the INSERT still originates exclusively within
+        # the Worker attribution path.
         - "src/shared/workers/base.py"
+        - "src/shared/workers/blackboard_publisher.py" # Extracted Worker _post_entry implementation; INSERT is Worker-system-internal
         # Standard exclusions matching the conventions of other mapping files.
         - "tests/**/*.py"
         - "**/__init__.py"

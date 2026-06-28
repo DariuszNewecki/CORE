@@ -177,9 +177,13 @@ def _write_report(
     """Write gap-analysis verdicts to var/reports/corpus/ as YAML."""
     import yaml
 
+    from shared.path_resolver import PathResolver
+
     slug = corpus_root.name or "corpus"
     ts = int(time.time())
-    rel_path = f"reports/corpus/{slug}_{catalog_name}_{ts}.yaml"
+    resolver = PathResolver.from_repo(file_handler.repo_path)
+    reports_sub = resolver.reports_dir.relative_to(resolver.var_dir)
+    rel_path = f"{reports_sub}/corpus/{slug}_{catalog_name}_{ts}.yaml"
 
     payload = {
         "catalog": catalog_name,
