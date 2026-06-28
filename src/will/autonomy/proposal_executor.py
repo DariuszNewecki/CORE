@@ -327,50 +327,79 @@ class ProposalExecutor:
 
             if write:
                 if all_ok:
-                    await state_manager.mark_completed(
-                        proposal.proposal_id,
-                        results=action_results,
-                    )
-                    logger.info(
-                        "Proposal completed successfully: %s (%.2fs)",
-                        proposal.proposal_id,
-                        total_duration,
-                    )
-                    commit_proposal_changes(
+                    # ADR-129 D7: commit before mark_completed so a D1
+                    # refusal routes to mark_failed rather than leaving
+                    # a completed row with no git record.
+                    commit_ok = commit_proposal_changes(
                         git_service=self.core_context.git_service,
                         proposal_id=proposal.proposal_id,
                         proposal_goal=proposal.goal,
                         action_results=action_results,
                     )
 
-                    # -- Consequence recording --
-                    # Delegated to ConsequenceLogService (Body layer).
-                    post_execution_sha = capture_git_sha(
-                        self.core_context.git_service,
-                        phase="post",
-                        proposal_id=proposal.proposal_id,
-                    )
+                    if not commit_ok:
+                        # D1 staging contamination — roll back and fail.
+                        all_ok = False
+                        reason = (
+                            "ADR-129 D1: staging contamination detected — "
+                            "commit refused to prevent authorship violation"
+                        )
+                        failure_reason = reason
+                        rollback_proposal(
+                            git_service=self.core_context.git_service,
+                            proposal_id=proposal.proposal_id,
+                            action_results=action_results,
+                            pre_sha=pre_execution_sha,
+                        )
+                        await state_manager.mark_failed(
+                            proposal.proposal_id,
+                            reason=reason,
+                            results=action_results,
+                        )
+                        logger.error(
+                            "Proposal %s failed: D1 staging contamination (%.2fs)",
+                            proposal.proposal_id,
+                            total_duration,
+                        )
+                    else:
+                        await state_manager.mark_completed(
+                            proposal.proposal_id,
+                            results=action_results,
+                        )
+                        logger.info(
+                            "Proposal completed successfully: %s (%.2fs)",
+                            proposal.proposal_id,
+                            total_duration,
+                        )
 
-                    changed_files = await compute_changed_files(
-                        repo_path=str(self.core_context.git_service.repo_path),
-                        pre_sha=pre_execution_sha,
-                        post_sha=post_execution_sha,
-                        proposal_id=proposal.proposal_id,
-                    )
+                        # -- Consequence recording --
+                        # Delegated to ConsequenceLogService (Body layer).
+                        post_execution_sha = capture_git_sha(
+                            self.core_context.git_service,
+                            phase="post",
+                            proposal_id=proposal.proposal_id,
+                        )
 
-                    await record_consequence(
-                        proposal_id=proposal.proposal_id,
-                        pre_sha=pre_execution_sha,
-                        post_sha=post_execution_sha,
-                        changed_files=changed_files,
-                        finding_ids=proposal.constitutional_constraints.get(
-                            "finding_ids", []
-                        ),
-                        policies=proposal.scope.policies,
-                        declared_production=compute_production_set(action_results),
-                    )
+                        changed_files = await compute_changed_files(
+                            repo_path=str(self.core_context.git_service.repo_path),
+                            pre_sha=pre_execution_sha,
+                            post_sha=post_execution_sha,
+                            proposal_id=proposal.proposal_id,
+                        )
 
-                    await resolve_deferred_findings(proposal.proposal_id)
+                        await record_consequence(
+                            proposal_id=proposal.proposal_id,
+                            pre_sha=pre_execution_sha,
+                            post_sha=post_execution_sha,
+                            changed_files=changed_files,
+                            finding_ids=proposal.constitutional_constraints.get(
+                                "finding_ids", []
+                            ),
+                            policies=proposal.scope.policies,
+                            declared_production=compute_production_set(action_results),
+                        )
+
+                        await resolve_deferred_findings(proposal.proposal_id)
 
                 else:
                     failed_actions = [

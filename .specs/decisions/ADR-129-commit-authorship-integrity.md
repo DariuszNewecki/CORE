@@ -160,6 +160,30 @@ or acceptance of the contamination as a documented exception). The PENDING entry
 satisfies `governance.remediation.all_rules_mapped` and prevents the abandoned-
 finding re-emission loop (ADR-066).
 
+### D7 — Executor ordering: commit before mark_completed
+
+Prior to this decision, `ProposalExecutor` called `mark_completed` then
+`commit_proposal_changes`. When D1 fired and refused the commit, the proposal
+row was already `completed` in the DB — execution had succeeded but the git
+record was absent. The consequence log would record `post_sha == pre_sha`
+(no new commit), making the row indistinguishable from a no-op proposal.
+
+D7 inverts the ordering: `commit_proposal_changes` is called first and returns
+`bool` — `True` on a successful commit or an empty production set (nothing to
+commit), `False` when `StagingContaminationError` blocks the commit. On `False`,
+the executor calls `rollback_proposal` (same as the action-failure path) then
+`mark_failed` with the D1 reason. `mark_completed` and consequence recording
+proceed only on `True`.
+
+`StagingContaminationError(RuntimeError)` is introduced in `git_service.py`
+as a typed exception distinct from generic `RuntimeError`, so `commit_proposal_
+changes` can catch D1 failures specifically without catching other git errors
+(unrecoverable pre-commit hook failures, etc.) that should not cause `mark_failed`.
+
+The net result: a D1 refusal now produces `status=failed` with
+`failure_reason="ADR-129 D1: staging contamination detected"`, which is
+honest about why the proposal did not land a commit.
+
 ### D6 — Claude Code and governor-direct paths: explicitly deferred
 
 This ADR closes the autonomous-path enforcement gap. The human/AI-agent paths

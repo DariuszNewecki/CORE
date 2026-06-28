@@ -32,6 +32,15 @@ logger = getLogger(__name__)
 
 _CFG_GIT = load_operational_config().git
 
+
+# ID: b483a756-582b-4b64-b96c-f5936639f7ae
+class StagingContaminationError(RuntimeError):
+    """Raised by commit_paths when the staging area contains paths outside
+    the declared production set (ADR-129 D1). Distinct from RuntimeError so
+    callers can route D1 failures to mark_failed without catching all git
+    errors (ADR-129 D7)."""
+
+
 # ADR-071 D2.2 Phase 1: hermetic action execution via git worktree.
 # Sandbox worktrees live under SANDBOX_PARENT (repo-relative) with names
 # beginning SANDBOX_PREFIX so the orphan sweep on daemon boot can identify
@@ -264,7 +273,7 @@ class GitService:
         extra = staged - production
         if extra:
             extra_sample = sorted(extra)[:3]
-            raise RuntimeError(
+            raise StagingContaminationError(
                 f"ADR-129 D1: staging area has {len(extra)} path(s) outside "
                 f"the declared production set — refusing autonomous commit to "
                 f"prevent authorship contamination. Commit or restore staged "

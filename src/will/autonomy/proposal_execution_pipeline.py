@@ -19,6 +19,7 @@ import asyncio
 from typing import Any
 
 from body.services.service_registry import service_registry
+from shared.infrastructure.git_service import StagingContaminationError
 from shared.logger import getLogger
 
 
@@ -234,7 +235,7 @@ def commit_proposal_changes(
     proposal_id: str,
     proposal_goal: str,
     action_results: dict[str, Any],
-) -> None:
+) -> bool:
     """Commit the proposal's actual production to git.
 
     Per ADR-101 D2, the commit set is derived from the action's actual
@@ -246,19 +247,21 @@ def commit_proposal_changes(
     permission scope (``scope.files``) does NOT participate; it remains
     a permission boundary, not a production postcondition.
 
-    Commits with message ``fix({proposal_id[:16]}): {goal}``. No-op when
-    *git_service* is None. When the production set is empty (idempotent
-    action against already-correct input, sandbox-only writes that never
-    reached the main tree), no commit is created — the honest outcome:
-    no production means no commit.
+    Commits with message ``fix({proposal_id[:16]}): {goal}``. Returns
+    ``True`` on success or when there is nothing to commit (empty
+    production set). Returns ``False`` only when a
+    ``StagingContaminationError`` (ADR-129 D1) blocks the commit;
+    the executor uses this to route to ``mark_failed`` rather than
+    ``mark_completed`` (ADR-129 D7).
 
-    Fail-soft: the commit failing is advisory. Execution has already
-    happened and the proposal row is already marked completed; we don't
-    unwind that over a commit failure. Warning is logged, control
-    returns normally.
+    Other git errors (e.g. pre-commit hook unrecoverable failure) are
+    still logged as warnings and return ``True`` — execution succeeded
+    and the proposal is completed; only the git record is missing.
+    ``StagingContaminationError`` is different because the commit was
+    intentionally refused, not merely failed.
     """
     if git_service is None:
-        return
+        return True
     try:
         paths_to_commit = compute_production_set(action_results)
         if not paths_to_commit:
@@ -266,18 +269,28 @@ def commit_proposal_changes(
                 "Proposal %s produced no changes — no commit emitted (ADR-101 D2)",
                 proposal_id,
             )
-            return
+            return True
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
         )
         logger.info("Git commit created for proposal %s", proposal_id)
+        return True
+    except StagingContaminationError as d1_err:
+        logger.warning(
+            "Git commit REFUSED for proposal %s — ADR-129 D1 staging "
+            "contamination: %s",
+            proposal_id,
+            d1_err,
+        )
+        return False
     except Exception as git_err:
         logger.warning(
             "Git commit failed for proposal %s — changes applied but not committed: %s",
             proposal_id,
             git_err,
         )
+        return True
 
 
 # ID: 6f3a8d9c-2b71-4a85-9e1c-7d2f8b4a6e09

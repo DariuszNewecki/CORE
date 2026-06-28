@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.git_service import GitService
+from shared.infrastructure.git_service import GitService, StagingContaminationError
 
 
 def _run(args: list[str], cwd: Path) -> str:
@@ -56,7 +56,7 @@ def test_commit_paths_raises_on_extra_staged_path(tmp_path: Path) -> None:
     # Autonomous action wants to commit only its own production.
     (tmp_path / "produced.py").write_text("x = 1\n")
 
-    with pytest.raises(RuntimeError, match="ADR-129 D1"):
+    with pytest.raises(StagingContaminationError, match="ADR-129 D1"):
         svc.commit_paths(["produced.py"], "fix(test): autonomous commit")
 
     # The staging area must not have been disturbed — WIP file still staged.
@@ -64,8 +64,27 @@ def test_commit_paths_raises_on_extra_staged_path(tmp_path: Path) -> None:
     assert "governor_wip.py" in staged
 
 
+def test_commit_paths_raises_staging_contamination_error_not_runtime_error(
+    tmp_path: Path,
+) -> None:
+    """D1 fires as StagingContaminationError (subclass of RuntimeError) so
+    callers can distinguish it from ordinary git failures (ADR-129 D7)."""
+    svc = _init_repo(tmp_path)
+    (tmp_path / "wip.py").write_text("# wip\n")
+    _run(["git", "add", "wip.py"], tmp_path)
+    (tmp_path / "produced.py").write_text("x = 1\n")
+
+    with pytest.raises(StagingContaminationError) as exc_info:
+        svc.commit_paths(["produced.py"], "fix(test): should be refused")
+
+    # Subclass of RuntimeError — existing broad except RuntimeError handlers
+    # still catch it; callers that want to distinguish can narrow to
+    # StagingContaminationError first.
+    assert isinstance(exc_info.value, RuntimeError)
+
+
 def test_commit_paths_raises_lists_extra_paths_in_message(tmp_path: Path) -> None:
-    """The RuntimeError message names the contaminating paths (up to 3)."""
+    """The StagingContaminationError message names the contaminating paths (up to 3)."""
     svc = _init_repo(tmp_path)
     for i in range(4):
         (tmp_path / f"wip_{i}.py").write_text(f"# wip {i}\n")
@@ -73,7 +92,7 @@ def test_commit_paths_raises_lists_extra_paths_in_message(tmp_path: Path) -> Non
 
     (tmp_path / "produced.py").write_text("x = 1\n")
 
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(StagingContaminationError) as exc_info:
         svc.commit_paths(["produced.py"], "fix(test): autonomous commit")
 
     msg = str(exc_info.value)
