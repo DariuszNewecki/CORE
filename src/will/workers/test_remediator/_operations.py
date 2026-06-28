@@ -336,6 +336,49 @@ async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
         )
 
 
+async def _query_recent_proposal_failures(
+    source_file: str, lookback_hours: int = 24
+) -> int:
+    """Count failed flow.build_tests proposals for source_file in the last lookback_hours.
+
+    Proposals that fail go through deferred_to_proposal → failed → revived, never
+    reaching `abandoned` status. So _query_source_file_attempt_count (which counts
+    abandoned findings) never increments for this failure path, and the cap_n circuit
+    breaker cannot trip. This query closes that gap by checking proposal history directly.
+    Returns 0 on error so the caller fails open (creates a proposal rather than blocking).
+    """
+    from sqlalchemy import text
+
+    from body.services.service_registry import service_registry
+
+    try:
+        async with service_registry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM core.autonomous_proposals
+                    WHERE status = 'failed'
+                      AND failure_reason LIKE 'Actions failed: flow.build_tests%'
+                      AND scope->'files' @> :source_file_json::jsonb
+                      AND updated_at > now() - make_interval(hours => :hours)
+                    """
+                ),
+                {
+                    "source_file_json": f'["{source_file}"]',
+                    "hours": lookback_hours,
+                },
+            )
+            return int(result.scalar_one())
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: could not query recent proposal failures "
+            "for '%s': %s — defaulting to 0",
+            source_file,
+            e,
+        )
+        return 0
+
+
 async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str]:
     """
     Immediately abandon findings whose inherited remediation_attempt_count has

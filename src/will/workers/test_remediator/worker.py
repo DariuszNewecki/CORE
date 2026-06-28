@@ -58,6 +58,7 @@ from ._operations import (
     _get_active_build_tests_source_files,
     _inherit_attempt_count,
     _load_open_findings,
+    _query_recent_proposal_failures,
     _query_source_file_attempt_count,
     _release_entries,
 )
@@ -183,6 +184,39 @@ class TestRemediatorWorker(Worker):
                     "abandoned immediately",
                     source_file,
                     inherited,
+                    cap_n,
+                    len(abandoned_ids),
+                )
+                continue
+
+            # Proposal-failure circuit breaker: failed proposals go through
+            # deferred_to_proposal → failed → revived, never reaching
+            # `abandoned`, so the inherited-count path above never trips for
+            # them. Check proposal history directly and stop retrying when
+            # cap_n failures have already been spent on this source_file.
+            recent_failures = await _query_recent_proposal_failures(source_file)
+            if recent_failures >= cap_n:
+                abandoned_ids = await _abandon_capped_findings(
+                    entry_ids, recent_failures
+                )
+                proposals_skipped_cap += 1
+                for entry_id in abandoned_ids:
+                    await self.post_observation(
+                        subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                        payload={
+                            "entry_id": entry_id,
+                            "source_file": source_file,
+                            "reason": "remediation_cap_exhausted_via_proposal_failures",
+                            "remediation_cap_n": cap_n,
+                            "recent_proposal_failures": recent_failures,
+                        },
+                        status="abandoned",
+                    )
+                logger.warning(
+                    "TestRemediatorWorker: '%s' — proposal-failure cap reached "
+                    "(recent_failures=%d, cap=%d); %d finding(s) abandoned",
+                    source_file,
+                    recent_failures,
                     cap_n,
                     len(abandoned_ids),
                 )
