@@ -125,7 +125,7 @@ def compute_canonical_section_hash(repo_root: Path) -> str | None:
 
     Returns None if the paper is missing or the section heading cannot be
     located. Bytes hashed are exactly text.splitlines()[start:end] joined
-    by '\\n', matching the regen command in sync_vocabulary.py.
+    by '\\n', matching the regen command (core-admin intent sync vocabulary --stage).
     """
     paper = repo_root / VOCABULARY_PAPER_REL
     if not paper.is_file():

@@ -272,9 +272,9 @@ class IntentGuard:
 
         - ``repo-source`` / ``runtime-output`` / ``governed-artifact``
           → existing behavior (hard invariant + policy rules). The
-          governed-artifact API-mediated tier is reserved for step 6;
-          today these paths hit the .intent/ hard invariant and the
-          ordinary policy rules just like repo-source paths.
+          governed-artifact tier has no API-mediated bypass (ADR-130 D1
+          closes ADR-097 step 6 as will-not-implement); ``.intent/``
+          paths hit the hard invariant unconditionally.
         - ``ephemeral-scratch`` → policy/invariant evaluation is
           skipped. Capability tier still runs (ADR-079 stage 1, log
           only). This is the structural sanctuary that lets
@@ -296,10 +296,16 @@ class IntentGuard:
                         message=(
                             "Governance vocabulary projection is broken; "
                             f"writes are blocked until restored. Reason: {projection.reason}. "
-                            "Run `core-admin intent sync vocabulary --write` to repair."
+                            "Run `core-admin intent sync vocabulary --stage`, "
+                            "then: cp var/drafts/META/vocabulary.json "
+                            ".intent/META/vocabulary.json"
                         ),
                         severity="error",
-                        suggested_fix="Repair .intent/META/vocabulary.json via the regen command.",
+                        suggested_fix=(
+                            "Run `core-admin intent sync vocabulary --stage`, "
+                            "then apply: cp var/drafts/META/vocabulary.json "
+                            ".intent/META/vocabulary.json"
+                        ),
                         source_policy="constitution",
                     )
                 ],

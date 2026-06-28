@@ -2,6 +2,10 @@
 """
 core-admin intent sync vocabulary — regen .intent/META/vocabulary.json
 from the canonical section of .specs/papers/CORE-Vocabulary.md (per ADR-023).
+
+ADR-130 D2: --stage writes to var/drafts/META/vocabulary.json via FileHandler.
+The governor reviews and applies: cp var/drafts/META/vocabulary.json .intent/META/vocabulary.json
+The hard invariant on .intent/ writes is unconditional (ADR-130 D1).
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from body.infrastructure.storage.file_handler import FileHandler
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.context import CoreContext
@@ -30,6 +35,9 @@ from shared.infrastructure.intent.vocabulary_projection import (
 )
 
 from .hub import app
+
+
+VOCABULARY_DRAFT_REL = "var/drafts/META/vocabulary.json"
 
 
 logger = logging.getLogger(__name__)
@@ -261,15 +269,21 @@ async def sync_intent(
     target: str = typer.Argument(
         ..., help="Projection target. Currently supported: 'vocabulary'."
     ),
-    write: bool = typer.Option(
-        False, "--write", help="Apply changes to the projection file."
+    stage: bool = typer.Option(
+        False,
+        "--stage",
+        help=(
+            "Write the regenerated projection to var/drafts/META/vocabulary.json "
+            "for governor review. Apply with: "
+            "cp var/drafts/META/vocabulary.json .intent/META/vocabulary.json"
+        ),
     ),
     check: bool = typer.Option(
         False,
         "--check",
         help=(
             "Verify the projection is fresh (CI gate per ADR-023 D6). "
-            "Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --write."
+            "Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --stage."
         ),
     ),
 ) -> None:
@@ -277,16 +291,17 @@ async def sync_intent(
     Regenerate a .intent/ projection from its canonical source paper.
 
     Target 'vocabulary' parses the canonical section of
-    .specs/papers/CORE-Vocabulary.md and emits .intent/META/vocabulary.json.
+    .specs/papers/CORE-Vocabulary.md and stages the result to
+    var/drafts/META/vocabulary.json (ADR-130 D2). The governor applies it.
     """
     if target != "vocabulary":
         console.print(f"[bold red]Unsupported target:[/bold red] {target}")
         console.print("Supported targets: vocabulary")
         raise typer.Exit(2)
 
-    if check and write:
+    if check and stage:
         console.print(
-            "[bold red]--check and --write are mutually exclusive.[/bold red]"
+            "[bold red]--check and --stage are mutually exclusive.[/bold red]"
         )
         raise typer.Exit(2)
 
@@ -302,8 +317,10 @@ async def sync_intent(
             console.print(
                 "vocabulary.json is stale — source_hash does not match the "
                 "current canonical section.\n"
-                "Run: core-admin intent sync vocabulary --write\n"
-                "Then commit the updated vocabulary.json before merging."
+                "Run: core-admin intent sync vocabulary --stage\n"
+                "Then apply: cp var/drafts/META/vocabulary.json "
+                ".intent/META/vocabulary.json\n"
+                "And commit the updated vocabulary.json before merging."
             )
             raise typer.Exit(1)
         console.print(
@@ -377,7 +394,7 @@ async def sync_intent(
 
     rendered = json.dumps(projection, indent=2, ensure_ascii=False) + "\n"
 
-    mode = "WRITE" if write else "DRY-RUN"
+    mode = "STAGE" if stage else "DRY-RUN"
     console.print(f"[bold cyan]Vocabulary sync ({mode})[/bold cyan]")
     console.print(f"  source:        {VOCABULARY_PAPER_REL}")
     console.print(f"  target:        {VOCABULARY_JSON_REL}")
@@ -386,11 +403,14 @@ async def sync_intent(
     console.print(f"  generated_at:  {generated_at}")
     console.print(f"  generator:     {generator_version}")
 
-    if write:
-        json_path.parent.mkdir(parents=True, exist_ok=True)
-        json_path.write_text(rendered, encoding="utf-8")
-        console.print(f"[bold green]✓ Wrote {VOCABULARY_JSON_REL}[/bold green]")
+    if stage:
+        file_handler = FileHandler(str(repo_root))
+        file_handler.ensure_dir("var/drafts/META")
+        file_handler.write(VOCABULARY_DRAFT_REL, rendered)
+        console.print(f"[bold green]✓ Staged to {VOCABULARY_DRAFT_REL}[/bold green]")
+        console.print("[cyan]Apply with:[/cyan]")
+        console.print(f"  cp {VOCABULARY_DRAFT_REL} {VOCABULARY_JSON_REL}")
     else:
         console.print(
-            "[yellow]Dry-run: no file written. Pass --write to apply.[/yellow]"
+            "[yellow]Dry-run: no file written. Pass --stage to stage the draft.[/yellow]"
         )

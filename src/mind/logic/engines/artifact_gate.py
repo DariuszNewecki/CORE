@@ -285,8 +285,8 @@ def _check_projection_consistency(repo_root: Path, check: str) -> EngineResult:
         violations.append(
             "source_hash mismatch: projection has "
             f"'{proj.source_hash[:12]}', canonical section currently hashes "
-            f"to '{recomputed[:12]}'. Regenerate the projection via "
-            "sync_vocabulary."
+            f"to '{recomputed[:12]}'. Run: core-admin intent sync vocabulary --stage, "
+            "then apply the staged draft to .intent/META/vocabulary.json"
         )
 
     return _vocab_result(check, violations)
