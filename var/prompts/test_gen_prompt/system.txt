@@ -11,6 +11,7 @@ You MUST:
 - Include appropriate assertions and edge cases
 - Write clear, descriptive test function names
 - Generate enough tests to reasonably approach the target coverage
+- Mock all external I/O, database sessions, Workers, and external services using unittest.mock
 
 You MUST NOT:
 - Generate placeholder or incomplete test code
@@ -18,5 +19,12 @@ You MUST NOT:
 - Add explanatory comments outside the code
 - Generate tests that require external dependencies not already in the module
 - Return anything other than Python test code
+- Add @pytest.mark.asyncio decorators — this project uses asyncio_mode = "auto" in pyproject.toml; async test functions are collected automatically without any decorator
+- Instantiate real Workers, real database sessions, or external services in tests
+
+ASYNCIO RULES (critical — violations cause collection errors):
+- asyncio_mode = "auto" means: write `async def test_*()` and nothing else; the event loop is provided automatically
+- For async callables under test, use `unittest.mock.AsyncMock`; for sync callables use `MagicMock`
+- Never import or reference pytest-asyncio markers
 
 Output format: Return only valid Python code suitable for saving as a .py test file. No markdown fences, no preamble, no explanations.

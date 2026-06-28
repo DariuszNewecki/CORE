@@ -23,26 +23,61 @@ excluded_filenames:
 # Scope limiter — if non-empty, only these files are scanned.
 # Remove or leave empty to scan the full source_root.
 #
-# Scope re-opened to the 1->4 widening (2026-06-14, restoring 3c6482ff after
-# the three rails the prior widening run surfaced all landed):
-#   - #629 / ADR-106: flow proposals execute in a hermetic worktree, so a
-#     failed run discards everything (no tests/-tree reformat, no staged
-#     rejected test) — live-verified, main-tree dirty-count 0.
-#   - #630 / ADR-107: on success the commit set is the steps' declared
-#     production (files_produced), not the worktree diff — incidental fix.*
-#     churn never reaches the commit.
-#   - #637 / ADR-104 D9: a generation that perpetually fails its gate is
-#     abandoned (terminal Type-B) after remediation_cap_n (3) attempts
-#     instead of churning generate->fail->revive forever.
-# The prior cap-exercise set (blackboard_shop_manager / audit_violation_filter /
-# audit_violation_normalizer / circuit_breaker) completed its purpose: #637's
-# remediation cap is now LIVE-VERIFIED — those findings abandoned terminal
-# Type-B at remediation_cap_n=3 with blackboard.remediation_cap_reached
-# attestations (2026-06-14). The remaining unproven item is the #638/#630
-# SUCCESS path — a tree-clean run that actually reaches the fix.* heal steps.
-# The single pure-function file below (fix_placeholders_in_content: str -> str,
-# stdlib-only `re` import) generates a clean passing test reliably, so it
-# exercises that path and demonstrates the #638 fix (fix.* now run inside the
-# hermetic worktree, not the real tree). Open in small batches.
+# 2026-06-28: Widened from 1 file (body pilot) to 25 files covering
+# all substantive uncovered files in src/will/workers/ (24 new +
+# the existing body pilot kept for continuity).
+#
+# Prerequisite fix landed same session (#703 context fix):
+#   - ContextBuildRequest gains task_type field (models.py)
+#   - build_for_task() passes task_type through (service.py)
+#   - _select_providers() skips "db" for test_generation (builder.py)
+#   - build_tests_action.py goal string now carries asyncio_mode=auto +
+#     mock constraints explicitly
+#   - test_gen_prompt/system.txt: ASYNCIO RULES block added
+#
+# Root cause of prior cap-hits (circuit_breaker, audit_violation_normalizer,
+# etc.): DB evidence provider was injecting async Worker base class + ORM
+# symbols into the LLM context, causing @pytest.mark.asyncio decorators and
+# real-Worker instantiation that broke pytest collection. That path is now
+# gated: test_generation task_type never reaches the DB provider.
+#
+# Ordering: low-risk files first (pure helpers, small models) so the sensor
+# exercises the success path before the complex orchestration files queue.
 include_files:
+  # ── body pilot (verified success path) ────────────────────────────────────
   - "src/body/self_healing/placeholder_fixer_service.py"
+
+  # ── will/workers — pure helpers / models (lowest risk) ────────────────────
+  - "src/will/workers/violation_remediator_body/models.py"
+  - "src/will/workers/repo_embedding/helpers.py"
+  - "src/will/workers/test_remediator/_operations.py"
+  - "src/will/workers/violation_remediator_body/ceremony.py"
+  - "src/will/workers/violation_remediator_blackboard.py"
+
+  # ── will/workers — sensors (bounded deps) ─────────────────────────────────
+  - "src/will/workers/coherence_sensor.py"
+  - "src/will/workers/test_coverage_sensor.py"
+  - "src/will/workers/test_runner_sensor.py"
+  - "src/will/workers/capability_tagger.py"
+  - "src/will/workers/audit_ingest_worker.py"
+
+  # ── will/workers — mid-complexity workers ─────────────────────────────────
+  - "src/will/workers/observer_worker.py"
+  - "src/will/workers/intent_inspector.py"
+  - "src/will/workers/prompt_extractor_worker.py"
+  - "src/will/workers/violation_remediator_body/_host.py"
+  - "src/will/workers/violation_remediator_body/llm.py"
+  - "src/will/workers/violation_remediator_body/context.py"
+  - "src/will/workers/violation_remediator_proposal.py"
+  - "src/will/workers/worker_shop_manager.py"
+
+  # ── will/workers — proposal pipeline ──────────────────────────────────────
+  - "src/will/workers/proposal_consumer_effects.py"
+  - "src/will/workers/proposal_consumer_revival.py"
+  - "src/will/workers/proposal_consumer_worker.py"
+
+  # ── will/workers — external-service-heavy (Qdrant / DB / FS) ─────────────
+  - "src/will/workers/governance_embedding/governance_embedder_worker.py"
+  - "src/will/workers/repo_embedding/repo_embedder_workers.py"
+  - "src/will/workers/repo_crawler.py"
+  - "src/will/workers/db_sync_worker.py"

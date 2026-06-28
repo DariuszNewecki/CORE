@@ -306,7 +306,10 @@ class ContextBuilder:
         if request.include_vectors and self.vectors:
             selected.append("vectors")
 
-        if self.db and not self.workspace:
+        # test_generation builds context from source symbols only — neighbour DB
+        # symbols (Worker base, ORM classes) contaminate the LLM context and
+        # cause wrong async fixture patterns that fail at pytest collection.
+        if self.db and not self.workspace and request.task_type != "test_generation":
             selected.append("db")
 
         return selected

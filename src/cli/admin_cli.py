@@ -15,10 +15,11 @@ from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
+from cli.commands.capabilities import capabilities_app
+from cli.commands.commands import commands_app
 from cli.commands.daemon import daemon_app
 from cli.commands.interactive_test import app as interactive_test_app
 from cli.commands.refactor import refactor_app
-from cli.commands.search import search_app
 from cli.commands.status import status_app
 from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
@@ -78,7 +79,8 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(tools_app, name="tools")
     app_instance.add_typer(secrets_app, name="secrets")
     app_instance.add_typer(daemon_app, name="daemon")
-    app_instance.add_typer(search_app, name="search")
+    app_instance.add_typer(capabilities_app, name="capabilities")
+    app_instance.add_typer(commands_app, name="commands")
     app_instance.add_typer(status_app, name="status")
 
 

@@ -1,7 +1,7 @@
 # src/cli/resources/dev/smell_test.py
 
 """
-core-admin dev smell-test — Shadow KG consequence-sensing CLI.
+core-admin dev analyze — Shadow KG consequence-sensing CLI.
 
 Octopus paper Phase 1 (Sensation Layer) end-to-end demonstration. Given a
 single proposed file change, builds a shadow workspace, runs the
@@ -56,7 +56,7 @@ from .hub import app
 console = Console()
 
 
-@app.command("smell-test")
+@app.command("analyze")
 @core_command(dangerous=False, requires_context=False, offline_capable=True)
 # ID: 18d85719-0854-4a98-86cd-63517ccf37b2
 async def smell_test_command(

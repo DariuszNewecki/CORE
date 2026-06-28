@@ -38,6 +38,10 @@ class ContextBuildRequest:
     include_vectors: bool = True
     include_runtime: bool = True
 
+    # Caller's task_type (e.g. "test_generation") — lets the builder tailor
+    # provider selection without adding task-domain logic to shared/.
+    task_type: str = ""
+
 
 @dataclass
 # ID: 63c589dd-c5ee-489b-afcd-0bb72efc62d6

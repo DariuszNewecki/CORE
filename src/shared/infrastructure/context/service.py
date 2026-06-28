@@ -214,6 +214,7 @@ class ContextService:
             goal=goal,
             trigger="agent",  # type: ignore[arg-type]
             phase=phase,
+            task_type=task_type,
             target_files=target_files,
             target_symbols=[target_symbol] if target_symbol else [],
             include_constitution=True,
@@ -246,6 +247,7 @@ class ContextService:
             "goal": request.goal,
             "trigger": request.trigger,
             "phase": request.phase,
+            "task_type": request.task_type,
             "workflow_id": request.workflow_id,
             "stage_id": request.stage_id,
             "target_files": list(request.target_files),

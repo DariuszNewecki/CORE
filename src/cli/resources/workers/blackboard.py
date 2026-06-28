@@ -18,7 +18,7 @@ from .run import workers_app
 console = Console()
 
 
-@workers_app.command("blackboard")
+@workers_app.command("show")
 @core_command(dangerous=False)
 # ID: 4a064a13-ac50-45be-aba5-dc9ce99540b6
 async def workers_blackboard_cmd(

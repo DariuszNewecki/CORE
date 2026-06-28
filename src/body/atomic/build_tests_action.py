@@ -289,7 +289,17 @@ async def action_build_tests(
         f"written to {test_file}. Cover the public symbols of the "
         f"source module. Use only imports, classes, and functions "
         f"that exist in the provided context evidence — do not "
-        f"invent symbols."
+        f"invent symbols. "
+        f"CRITICAL CONSTRAINTS for this project: "
+        f"(1) asyncio_mode = 'auto' is set in pyproject.toml — do NOT "
+        f"add @pytest.mark.asyncio decorators; async test functions run "
+        f"automatically. "
+        f"(2) Use unittest.mock.AsyncMock for async callables and "
+        f"MagicMock for sync ones. "
+        f"(3) Tests MUST be self-contained unit tests — do not "
+        f"instantiate real Workers, database sessions, or external "
+        f"services; mock all I/O and DB access. "
+        f"(4) The first import line MUST be: from __future__ import annotations"
     )
 
     try:
