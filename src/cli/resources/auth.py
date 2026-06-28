@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 
 from api.cli.client import CoreApiClient
+from cli.utils import core_command
 from shared.cli.command_meta import (
     CommandBehavior,
     CommandExposure,
@@ -36,8 +37,9 @@ console = Console()
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Authenticate as governor and persist session to ~/.config/core/session.json.",
 )
+@core_command(dangerous=False, requires_context=False)
 # ID: fa64277d-0da9-43e8-8d7f-705613ccbc26
-def login_cmd(
+async def login_cmd(
     email: str = typer.Option(
         ..., "--email", "-e", prompt=True, help="Governor email."
     ),
@@ -51,20 +53,15 @@ def login_cmd(
     ),
 ) -> None:
     """Authenticate and save the governor session cookie locally."""
-    import asyncio
-
-    async def _run() -> None:
-        client = CoreApiClient()
-        try:
-            await client.auth.login(email, password)
-            console.print(
-                "[green]Logged in.[/green] Session saved to ~/.config/core/session.json"
-            )
-        except Exception as exc:
-            console.print(f"[red]Login failed:[/red] {exc}")
-            raise typer.Exit(1)
-
-    asyncio.run(_run())
+    client = CoreApiClient()
+    try:
+        await client.auth.login(email, password)
+        console.print(
+            "[green]Logged in.[/green] Session saved to ~/.config/core/session.json"
+        )
+    except Exception as exc:
+        console.print(f"[red]Login failed:[/red] {exc}")
+        raise typer.Exit(1)
 
 
 @app.command("logout")
@@ -75,24 +72,19 @@ def login_cmd(
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Revoke the current governor session.",
 )
+@core_command(dangerous=False, requires_context=False)
 # ID: c07787ff-83a6-428d-af8d-b01d87069163
-def logout_cmd() -> None:
+async def logout_cmd() -> None:
     """Revoke the server-side refresh token and clear the local session file."""
-    import asyncio
-
     if not load_session():
         console.print("[yellow]No active session.[/yellow]")
         return
-
-    async def _run() -> None:
-        client = CoreApiClient()
-        try:
-            await client.auth.logout()
-        except Exception:
-            clear_session()
-        console.print("[green]Logged out.[/green]")
-
-    asyncio.run(_run())
+    client = CoreApiClient()
+    try:
+        await client.auth.logout()
+    except Exception:
+        clear_session()
+    console.print("[green]Logged out.[/green]")
 
 
 @app.command("change-password")
@@ -103,8 +95,9 @@ def logout_cmd() -> None:
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Change the governor password using the current session.",
 )
+@core_command(dangerous=False, requires_context=False)
 # ID: a2028733-9820-46a7-980e-9b0d179fa71b
-def change_password_cmd(
+async def change_password_cmd(
     current_password: str = typer.Option(
         ..., "--current", "-c", prompt=True, hide_input=True, help="Current password."
     ),
@@ -119,32 +112,18 @@ def change_password_cmd(
     ),
 ) -> None:
     """Change the governor password. Revokes all sessions — you must log in again."""
-    import asyncio
-
-    session = load_session()
-    if not session:
+    if not load_session():
         console.print("[yellow]No active session. Run: core-admin auth login[/yellow]")
         raise typer.Exit(1)
-
-    async def _run() -> None:
-        client = CoreApiClient()
-        try:
-            result = await client.auth.change_password(current_password, new_password)
-            clear_session()
-            console.print(
-                f"[green]{result.get('message', 'Password changed.')}[/green]"
-            )
-            console.print(
-                "[dim]Run core-admin auth login to start a new session.[/dim]"
-            )
-        except RuntimeError as exc:
-            console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(1)
-        except Exception as exc:
-            console.print(f"[red]Failed:[/red] {exc}")
-            raise typer.Exit(1)
-
-    asyncio.run(_run())
+    client = CoreApiClient()
+    try:
+        result = await client.auth.change_password(current_password, new_password)
+        clear_session()
+        console.print(f"[green]{result.get('message', 'Password changed.')}[/green]")
+        console.print("[dim]Run core-admin auth login to start a new session.[/dim]")
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
 
 
 @app.command("whoami")
@@ -155,25 +134,19 @@ def change_password_cmd(
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Print the identity encoded in the current session JWT.",
 )
+@core_command(dangerous=False, requires_context=False)
 # ID: 98eaf458-cc57-4774-b5b6-cabe7934f5e9
-def whoami_cmd() -> None:
+async def whoami_cmd() -> None:
     """Show the user identity from the current session token."""
-    import asyncio
-
-    session = load_session()
-    if not session:
+    if not load_session():
         console.print("[yellow]No active session. Run: core-admin auth login[/yellow]")
         raise typer.Exit(1)
-
-    async def _run() -> None:
-        client = CoreApiClient()
-        try:
-            data = await client.auth.whoami()
-            console.print(f"[bold]email:[/bold] {data.get('email')}")
-            console.print(f"[bold]role:[/bold]  {data.get('role')}")
-            console.print(f"[bold]user_id:[/bold] {data.get('user_id')}")
-        except RuntimeError as exc:
-            console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(1)
-
-    asyncio.run(_run())
+    client = CoreApiClient()
+    try:
+        data = await client.auth.whoami()
+        console.print(f"[bold]email:[/bold] {data.get('email')}")
+        console.print(f"[bold]role:[/bold]  {data.get('role')}")
+        console.print(f"[bold]user_id:[/bold] {data.get('user_id')}")
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
