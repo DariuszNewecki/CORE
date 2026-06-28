@@ -116,6 +116,9 @@ async def decisions_list(
     agent: str | None = Query(default=None),
     pattern: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
+    after: str | None = Query(
+        default=None, description="Keyset cursor from a previous response."
+    ),
 ) -> dict:
     """Return recent decision traces with optional filters."""
     return await get_decisions(
@@ -123,6 +126,7 @@ async def decisions_list(
         agent=agent,
         pattern=pattern,
         limit=limit,
+        after_cursor=after,
     )
 
 

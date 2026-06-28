@@ -14,10 +14,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.pagination import decode_cursor, encode_cursor
 from will.autonomy.proposal import Proposal, ProposalStatus
 from will.autonomy.proposal_mapper import ProposalMapper
 
@@ -96,6 +97,58 @@ class ProposalRepository:
         )
         result = await self._session.execute(stmt)
         return [ProposalMapper.from_db_model(p) for p in result.scalars().all()]
+
+    # ID: 1e309abf-d835-4f39-a9d9-03d9eedf4474
+    async def list_by_status_paginated(
+        self,
+        status: ProposalStatus,
+        limit: int,
+        after_cursor: str | None = None,
+    ) -> tuple[list[Proposal], bool, str | None]:
+        """Keyset-paginated list of proposals in a given status.
+
+        Returns (proposals, has_more, next_cursor). Callers pass next_cursor
+        as `after` on the next request to advance the page.
+        """
+        from sqlalchemy import and_
+
+        from shared.infrastructure.database.models.autonomous_proposals import (
+            AutonomousProposal,
+        )
+
+        stmt = (
+            select(AutonomousProposal)
+            .where(AutonomousProposal.status == status.value)
+            .order_by(
+                AutonomousProposal.created_at.desc(),
+                AutonomousProposal.proposal_id.desc(),
+            )
+            .limit(limit + 1)
+            .with_for_update(skip_locked=True)
+        )
+
+        if after_cursor is not None:
+            cursor_at, cursor_key = decode_cursor(after_cursor)
+            if cursor_at is not None:
+                stmt = stmt.where(
+                    or_(
+                        AutonomousProposal.created_at < cursor_at,
+                        and_(
+                            AutonomousProposal.created_at == cursor_at,
+                            AutonomousProposal.proposal_id < cursor_key,
+                        ),
+                    )
+                )
+
+        result = await self._session.execute(stmt)
+        rows = list(result.scalars().all())
+        has_more = len(rows) > limit
+        page = rows[:limit]
+        next_cursor: str | None = None
+        if has_more and page:
+            last = page[-1]
+            next_cursor = encode_cursor(last.created_at, last.proposal_id)
+        return [ProposalMapper.from_db_model(p) for p in page], has_more, next_cursor
 
     # ID: 23d0dc09-c889-41f3-8f11-284e0a894660
     async def update_fields(self, proposal_id: str, updates: dict[str, Any]) -> None:

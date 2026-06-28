@@ -38,6 +38,7 @@ from fastapi import (
     Body,
     Depends,
     HTTPException,
+    Query,
     Request,
     Response,
 )
@@ -53,6 +54,7 @@ from api.v1.schemas import (
 )
 from shared.context import CoreContext
 from shared.logger import getLogger
+from shared.pagination import decode_cursor, encode_cursor
 from will.governance.audit_remediation_runner import (
     MODE_ALIASES,
     run_and_persist_audit_remediation,
@@ -149,6 +151,78 @@ async def create_audit_run(
         "run_id": str(run_id),
         "status": "pending",
         "href": f"/v1/audit/runs/{run_id}",
+    }
+
+
+@router.get(
+    "/runs",
+    summary="List audit runs",
+    description=(
+        "List recent audit runs newest-first (ordered by `run_id DESC`). "
+        "`limit` defaults to 50 (max 500). Pass `after=<next_cursor>` from "
+        "a previous response to advance the page. Returns `has_more` and "
+        "`next_cursor` for keyset pagination."
+    ),
+)
+# ID: 6bcc5bfb-79c3-4ee8-bf6a-e9a3b05e470e
+async def list_audit_runs(
+    limit: int = Query(default=50, ge=1, le=500),
+    after: str | None = Query(
+        default=None, description="Keyset cursor from a previous response."
+    ),
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """List audit runs, newest-first, with keyset pagination."""
+    where_clause = ""
+    params: dict = {"limit": limit + 1}
+    if after is not None:
+        try:
+            _ts, cursor_key = decode_cursor(after)
+            # run_id is UUID; cast to text for comparison
+            where_clause = "WHERE CAST(run_id AS text) < :cursor_key"
+            params["cursor_key"] = cursor_key
+        except ValueError:
+            pass  # malformed cursor — return from start
+
+    result = await session.execute(
+        text(
+            f"""
+            SELECT run_id, verdict, finding_count, blocking_count,
+                   started_at, finished_at, status
+              FROM core.audit_runs
+            {where_clause}
+             ORDER BY run_id DESC
+             LIMIT :limit
+            """
+        ),
+        params,
+    )
+    rows = result.mappings().all()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    next_cursor: str | None = None
+    if has_more and page:
+        last = page[-1]
+        next_cursor = encode_cursor(None, str(last["run_id"]))
+
+    return {
+        "count": len(page),
+        "has_more": has_more,
+        "next_cursor": next_cursor,
+        "runs": [
+            {
+                "run_id": str(r["run_id"]),
+                "verdict": r["verdict"],
+                "finding_count": r["finding_count"],
+                "blocking_count": r["blocking_count"],
+                "started_at": r["started_at"].isoformat() if r["started_at"] else None,
+                "finished_at": r["finished_at"].isoformat()
+                if r["finished_at"]
+                else None,
+                "status": r["status"],
+            }
+            for r in page
+        ],
     }
 
 

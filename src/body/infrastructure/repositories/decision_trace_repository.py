@@ -11,17 +11,19 @@ CONSTITUTIONAL (proper, non-legacy):
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, or_, select
 
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.decision_traces import DecisionTrace
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.pagination import decode_cursor, encode_cursor
 
 
 logger = getLogger(__name__)
@@ -131,6 +133,59 @@ class DecisionTraceRepository:
 
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    # ID: a3f7c2e1-9b4d-4e88-a021-6c5d3f8b9e72
+    async def get_recent_paginated(
+        self,
+        limit: int = _CFG_REPO.decision_trace_default_limit,
+        after_cursor: str | None = None,
+        agent_name: str | None = None,
+        failures_only: bool = False,
+    ) -> tuple[list[DecisionTrace], bool, str | None]:
+        """Keyset-paginated recent decision traces.
+
+        Returns (traces, has_more, next_cursor). Cursor encodes (created_at, str(id)).
+        Post-DB filtering by agent_name/failures_only is applied before pagination,
+        so callers must account for page shrinkage when these filters are active.
+        """
+        from sqlalchemy import and_
+
+        stmt = select(DecisionTrace).order_by(
+            desc(DecisionTrace.created_at), desc(DecisionTrace.id)
+        )
+
+        if agent_name:
+            stmt = stmt.where(DecisionTrace.agent_name == agent_name)
+        if failures_only:
+            stmt = stmt.where(DecisionTrace.has_violations == "true")
+
+        if after_cursor is not None:
+            cursor_at, cursor_key = decode_cursor(after_cursor)
+            if cursor_at is not None:
+                try:
+                    cursor_uuid = uuid.UUID(cursor_key)
+                    stmt = stmt.where(
+                        or_(
+                            DecisionTrace.created_at < cursor_at,
+                            and_(
+                                DecisionTrace.created_at == cursor_at,
+                                DecisionTrace.id < cursor_uuid,
+                            ),
+                        )
+                    )
+                except ValueError:
+                    pass  # malformed cursor key — ignore, return from start
+
+        stmt = stmt.limit(limit + 1)
+        result = await self._session.execute(stmt)
+        rows = list(result.scalars().all())
+        has_more = len(rows) > limit
+        page = rows[:limit]
+        next_cursor: str | None = None
+        if has_more and page:
+            last = page[-1]
+            next_cursor = encode_cursor(last.created_at, str(last.id))
+        return page, has_more, next_cursor
 
     # ID: 3d680f10-ce36-4533-80bc-a589002c8e12
     async def get_by_date_range(

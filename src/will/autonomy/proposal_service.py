@@ -85,12 +85,35 @@ class ProposalService:
         """List proposals by status."""
         return await self._repository.list_by_status(status, limit)
 
+    # ID: bcb4b219-9c8e-4309-ab02-8fcdf3d35ecb
+    async def list_by_status_paginated(
+        self,
+        status: ProposalStatus,
+        limit: int = _CFG_PR.list_limit,
+        after_cursor: str | None = None,
+    ) -> tuple[list[Proposal], bool, str | None]:
+        """Keyset-paginated list. Returns (proposals, has_more, next_cursor)."""
+        return await self._repository.list_by_status_paginated(
+            status, limit, after_cursor
+        )
+
     # ID: f046639e-4ca6-4d4c-9068-e5d27bdd9857
     async def list_pending_approval(
         self, limit: int = _CFG_PR.pending_limit
     ) -> list[Proposal]:
         """List proposals awaiting approval (status == PENDING)."""
         return await self._repository.list_by_status(ProposalStatus.PENDING, limit)
+
+    # ID: 49307610-ac29-4e80-bab5-8bc21dd75b6d
+    async def list_pending_approval_paginated(
+        self,
+        limit: int = _CFG_PR.pending_limit,
+        after_cursor: str | None = None,
+    ) -> tuple[list[Proposal], bool, str | None]:
+        """Keyset-paginated pending-approval list. Returns (proposals, has_more, next_cursor)."""
+        return await self._repository.list_by_status_paginated(
+            ProposalStatus.PENDING, limit, after_cursor
+        )
 
     # -------------------------
     # State Transitions (delegate to state manager)

@@ -182,27 +182,37 @@ async def get_decisions(
     agent: str | None = None,
     pattern: str | None = None,
     limit: int = 50,
+    after_cursor: str | None = None,
 ) -> dict:
     """Return recent decision traces filtered by the supplied criteria.
 
     Backed by DecisionTraceRepository. When `session_id` is supplied
-    only that trace is returned. Otherwise the recent feed is paged by
-    `limit`, filtered downstream by `agent` and `pattern`.
+    only that trace is returned. Otherwise the recent feed is keyset-paged
+    by `limit` and `after_cursor`, filtered by `agent` and `pattern`.
     """
     async with DecisionTraceRepository.open() as repo:
         if session_id:
             trace = await repo.get_by_session_id(session_id)
             return {
                 "count": 1 if trace else 0,
+                "has_more": False,
+                "next_cursor": None,
                 "traces": [_trace_to_dict(trace)] if trace else [],
             }
-        traces = await repo.get_recent(limit=limit)
+        traces, has_more, next_cursor = await repo.get_recent_paginated(
+            limit=limit,
+            after_cursor=after_cursor,
+            agent_name=agent,
+        )
         rows = [_trace_to_dict(t) for t in traces]
-        if agent:
-            rows = [r for r in rows if r.get("agent_id") == agent]
         if pattern:
             rows = [r for r in rows if r.get("pattern") == pattern]
-        return {"count": len(rows), "traces": rows}
+        return {
+            "count": len(rows),
+            "has_more": has_more,
+            "next_cursor": next_cursor,
+            "traces": rows,
+        }
 
 
 # ID: 5e6f7a8b-9c0d-4e1f-2a3b-4c5d6e7f8091

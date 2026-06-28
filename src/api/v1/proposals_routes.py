@@ -154,25 +154,35 @@ async def create_proposal(
     summary="List proposals",
     description=(
         "List proposals, optionally filtered by `status`. When `status` is "
-        "omitted, returns proposals awaiting approval. The `limit` query "
-        "param caps the response size. F-34 (web dashboard) consumes this "
-        "endpoint to render the proposal queue."
+        "omitted, returns proposals awaiting approval. `limit` is capped at 500. "
+        "Pass `after=<next_cursor>` from a previous response to advance the page. "
+        "F-34 (web dashboard) consumes this endpoint to render the proposal queue."
     ),
 )
 # ID: b6575d68-b902-4071-8497-76b053430fec
 async def list_proposals(
     status: str | None = Query(None, description="ProposalStatus value to filter by."),
-    limit: int = Query(50, ge=1),
+    limit: int = Query(50, ge=1, le=500),
+    after: str | None = Query(
+        None, description="Keyset cursor from a previous response."
+    ),
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """List proposals, optionally filtered by status.
 
     When `status` is omitted, returns proposals awaiting approval.
+    Returns `has_more` and `next_cursor` for keyset pagination.
     """
     service = ProposalService(session)
 
     if status is None:
-        proposals = await service.list_pending_approval(limit=limit)
+        (
+            proposals,
+            has_more,
+            next_cursor,
+        ) = await service.list_pending_approval_paginated(
+            limit=limit, after_cursor=after
+        )
     else:
         try:
             parsed = ProposalStatus(status)
@@ -184,10 +194,14 @@ async def list_proposals(
                     f"{[s.value for s in ProposalStatus]}"
                 ),
             ) from exc
-        proposals = await service.list_by_status(parsed, limit=limit)
+        proposals, has_more, next_cursor = await service.list_by_status_paginated(
+            parsed, limit=limit, after_cursor=after
+        )
 
     return {
         "count": len(proposals),
+        "has_more": has_more,
+        "next_cursor": next_cursor,
         "proposals": [p.to_dict() for p in proposals],
     }
 
