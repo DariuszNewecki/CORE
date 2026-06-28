@@ -47,7 +47,7 @@ from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
-from shared.workers.base import _sanitize_payload
+from shared.workers.blackboard_publisher import _sanitize_payload
 
 
 __all__ = [

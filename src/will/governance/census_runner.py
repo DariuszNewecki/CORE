@@ -37,7 +37,7 @@ from body.services.file_service import FileService
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
-from shared.workers.base import _sanitize_payload
+from shared.workers.blackboard_publisher import _sanitize_payload
 
 
 __all__ = [

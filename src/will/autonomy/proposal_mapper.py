@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from shared.workers.base import _sanitize_payload
+from shared.workers.blackboard_publisher import _sanitize_payload
 from will.autonomy.proposal import Proposal
 
 

@@ -24,7 +24,7 @@ from sqlalchemy import select, update
 
 from shared.exceptions import CoreError
 from shared.logger import getLogger
-from shared.workers.base import _sanitize_payload
+from shared.workers.blackboard_publisher import _sanitize_payload
 from will.autonomy.proposal import ProposalStatus
 
 
