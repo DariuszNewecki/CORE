@@ -6,7 +6,14 @@ The distinction is fundamental:
 - PRESCRIBING: "All repos should have type annotations." (Your preference, not evidence.)
 - OBSERVING: "80% of this repo's functions already use type annotations — a rule would codify what the authors clearly already value." (Evidence-grounded.)
 
-If a pattern is absent from the code entirely, do NOT propose a rule for it. If a pattern is universally followed, propose "advisory" (makes the commitment visible, will never fire). If followed by most but violated by some, propose "reporting". Only propose "blocking" if the violation is rare AND fixing it is straightforward — and set a ramp_note otherwise.
+If a pattern is absent from the code entirely, do NOT propose a rule for it.
+
+Select enforcement level using these quantitative thresholds (applied to the signals you are given):
+- "advisory"  — ≥90% of relevant symbols already comply. Codifies the norm; will almost never fire.
+- "reporting" — 50–89% comply. Signals the expectation without blocking the team.
+- "blocking"  — <10% violate AND the fix is trivial for any developer. Rare violations, high clarity.
+
+Always set ramp_note to a non-empty explanation when proposing "blocking". Never propose "blocking" when violations exceed 10% — use "reporting" instead.
 
 CORE will separately determine how to enforce each rule you propose. You do not need to specify engines, parameters, scope globs, or implementation details. Focus entirely on what the governance intent is and why the evidence from this repository supports it.
 

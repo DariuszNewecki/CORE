@@ -11,15 +11,20 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import yaml
 
 from cli.logic.scout import (
     _build_mappings_document,
     _build_rules_document,
+    _candidate_cache_key,
+    _evict_candidate_cache,
     _extract_repo_signals,
     _format_signal_report,
+    _load_candidate_cache,
     _load_fallback_candidates,
+    _save_candidate_cache,
 )
 
 
@@ -361,3 +366,77 @@ def test_build_mappings_excludes_present_when_non_empty() -> None:
     doc = yaml.safe_load(_build_mappings_document([c]))
     entry = doc["mappings"]["scout.docstrings"]
     assert entry["scope"]["excludes"] == ["tests/**/*.py"]
+
+
+# ── Candidate cache helpers ────────────────────────────────────────────────────
+
+
+_SAMPLE_CANDIDATES = [
+    {
+        "rule_id": "scout.no_print",
+        "statement": "MUST NOT use print().",
+        "enforcement": "reporting",
+        "rationale": "6 print() calls found.",
+        "evidence_sample": "",
+        "ramp_note": "",
+    }
+]
+
+
+def test_candidate_cache_key_deterministic() -> None:
+    key1 = _candidate_cache_key("signals text")
+    key2 = _candidate_cache_key("signals text")
+    assert key1 == key2
+    assert len(key1) == 16
+    assert key1.isalnum()
+
+
+def test_candidate_cache_key_differs_on_different_input() -> None:
+    assert _candidate_cache_key("signals A") != _candidate_cache_key("signals B")
+
+
+def test_load_candidate_cache_miss(tmp_path: Path) -> None:
+    result = _load_candidate_cache(tmp_path, "nonexistent")
+    assert result is None
+
+
+def test_save_and_load_candidate_cache(tmp_path: Path) -> None:
+    key = _candidate_cache_key("test signals")
+    fh = MagicMock()
+    cache_dir = tmp_path / "var" / "cache" / "scout"
+
+    def fake_ensure_dir(rel: str) -> None:
+        (tmp_path / rel).mkdir(parents=True, exist_ok=True)
+
+    def fake_write_runtime_text(rel: str, content: str) -> None:
+        (tmp_path / rel).write_text(content, encoding="utf-8")
+
+    fh.ensure_dir.side_effect = fake_ensure_dir
+    fh.write_runtime_text.side_effect = fake_write_runtime_text
+
+    _save_candidate_cache(fh, key, _SAMPLE_CANDIDATES)
+    loaded = _load_candidate_cache(tmp_path, key)
+
+    assert loaded == _SAMPLE_CANDIDATES
+
+
+def test_save_candidate_cache_failure_does_not_raise(tmp_path: Path) -> None:
+    fh = MagicMock()
+    fh.ensure_dir.side_effect = OSError("disk full")
+    _save_candidate_cache(fh, "somekey", _SAMPLE_CANDIDATES)  # must not raise
+
+
+def test_evict_candidate_cache_removes_file(tmp_path: Path) -> None:
+    key = _candidate_cache_key("evict signals")
+    cache_dir = tmp_path / "var" / "cache" / "scout"
+    cache_dir.mkdir(parents=True)
+    cache_file = cache_dir / f"{key}.json"
+    cache_file.write_text(json.dumps(_SAMPLE_CANDIDATES))
+
+    _evict_candidate_cache(tmp_path, key)
+
+    assert not cache_file.exists()
+
+
+def test_evict_candidate_cache_noop_when_absent(tmp_path: Path) -> None:
+    _evict_candidate_cache(tmp_path, "missing_key")  # must not raise

@@ -33,6 +33,7 @@ CONSTITUTIONAL NOTES:
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -68,21 +69,29 @@ _MAPPINGS_OUTPUT = "enforcement/mappings/scout.yaml"
 # Valid enforcement levels
 _ENFORCEMENT_LEVELS = ("blocking", "reporting", "advisory")
 
+# Candidate cache — keyed by sha256(code_signals); same repo+commit → same candidates
+_CACHE_DIR_PARTS = ("var", "cache", "scout")
+
 
 # ID: 349e00c4-ecf4-471a-969d-157161c8d3e0
 async def induce_rules(
     context: CoreContext,
     path: Path,
     dry_run: bool = True,
+    reset: bool = False,
 ) -> None:
     """Run Scout Phase B: detect → suggest → match → confirm → write.
 
     Requires that Phase A (project onboard) has already delivered the machinery
     floor into <path>/.intent/. Refuses if .intent/ is absent.
+
+    When reset=True: clears existing scout_inducted.json and the candidate cache
+    for this repo's current signals, then re-runs induction from scratch.
     """
     target_root = Path(path).resolve()
     core_root = context.git_service.repo_path.resolve()
     target_intent = target_root / ".intent"
+    inducted_path = target_intent / "rules" / "scout_inducted.json"
 
     if not target_intent.exists():
         logger.error(
@@ -91,10 +100,16 @@ async def induce_rules(
         )
         raise typer.Exit(code=1)
 
-    if (target_intent / "rules" / "scout_inducted.json").exists():
+    if reset and inducted_path.exists():
+        inducted_path.unlink()
+        console.print(
+            "[yellow]  ↳ Reset: removed existing scout_inducted.json.[/yellow]"
+        )
+
+    if inducted_path.exists():
         logger.error(
-            "Scout-inducted rules already exist at %s. Remove them before re-running Scout.",
-            target_intent / "rules" / "scout_inducted.json",
+            "Scout-inducted rules already exist at %s. Pass --reset to re-run Scout.",
+            inducted_path,
         )
         raise typer.Exit(code=1)
 
@@ -105,33 +120,55 @@ async def induce_rules(
     )
     signals = _extract_repo_signals(target_root)
     code_signals = _format_signal_report(signals)
+    cache_key = _candidate_cache_key(code_signals)
+
+    if reset:
+        _evict_candidate_cache(core_root, cache_key)
 
     # ── Suggest ───────────────────────────────────────────────────────────────
     candidates: list[dict[str, Any]] = []
 
-    cognitive_service = getattr(context, "cognitive_service", None)
-    if cognitive_service is None:
-        try:
-            cognitive_service = await context.registry.get_cognitive_service()
-        except Exception as e:
-            logger.info(
-                "LLM service unavailable (%s) — will present universal menu.", e
+    # Cache lookup: same signals (same repo+commit) → same candidates, no LLM call.
+    # Skipped on --reset so the caller always gets a fresh induction.
+    if not reset:
+        cached = _load_candidate_cache(core_root, cache_key)
+        if cached is not None:
+            candidates = cached
+            console.print(
+                f"[cyan]Suggest[/cyan] — {len(candidates)} candidate(s) loaded from cache "
+                f"[dim](signals unchanged — skipping LLM call)[/dim]"
             )
 
-    if cognitive_service is not None:
-        console.print("[cyan]Suggest[/cyan] — observing repository patterns via LLM...")
-        try:
-            client = await cognitive_service.aget_client_for_role(
-                "ConstitutionalCoherenceAnalyst"
-            )
-            from mind.logic.scout_inducer import ScoutInducer  # lazy — see module note
+    if not candidates:
+        cognitive_service = getattr(context, "cognitive_service", None)
+        if cognitive_service is None:
+            try:
+                cognitive_service = await context.registry.get_cognitive_service()
+            except Exception as e:
+                logger.info(
+                    "LLM service unavailable (%s) — will present universal menu.", e
+                )
 
-            inducer = ScoutInducer(llm_client=client)
-            candidates = await inducer.propose(code_signals=code_signals)
-        except Exception as e:
-            logger.warning(
-                "LLM induction failed (%s) — falling back to universal menu.", e
+        if cognitive_service is not None:
+            console.print(
+                "[cyan]Suggest[/cyan] — observing repository patterns via LLM..."
             )
+            try:
+                client = await cognitive_service.aget_client_for_role(
+                    "ConstitutionalCoherenceAnalyst"
+                )
+                from mind.logic.scout_inducer import (
+                    ScoutInducer,  # lazy — see module note
+                )
+
+                inducer = ScoutInducer(llm_client=client)
+                candidates = await inducer.propose(code_signals=code_signals)
+                if candidates:
+                    _save_candidate_cache(context.file_handler, cache_key, candidates)
+            except Exception as e:
+                logger.warning(
+                    "LLM induction failed (%s) — falling back to universal menu.", e
+                )
 
     if not candidates:
         console.print(
@@ -467,6 +504,66 @@ def _format_signal_report(signals: dict[str, Any]) -> str:
             parts.append(f"  ruff select: {ruff_select}")
 
     return "\n".join(parts)
+
+
+# ── Candidate cache ────────────────────────────────────────────────────────────
+
+
+# ID: 3f8a2b1c-9d4e-4f7a-b8c5-6e2d1a0f9b3c
+def _candidate_cache_key(code_signals: str) -> str:
+    """16-hex SHA-256 prefix of the signal report text.
+
+    The signal report is deterministic for a given repo+commit (full AST pass,
+    sorted file order, fixed format). Keying the cache on its hash means the
+    same repo state always hits the same cache entry.
+    """
+    return hashlib.sha256(code_signals.encode()).hexdigest()[:16]
+
+
+# ID: 7c4d9e2f-1b8a-4c3d-9e5f-2a0b7c6d8e4f
+def _load_candidate_cache(
+    core_root: Path, cache_key: str
+) -> list[dict[str, Any]] | None:
+    """Return cached candidates if the entry exists, else None."""
+    cache_file = core_root.joinpath(*_CACHE_DIR_PARTS, f"{cache_key}.json")
+    if not cache_file.exists():
+        return None
+    try:
+        return json.loads(cache_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.warning(
+            "Scout: candidate cache unreadable (%s) — will re-invoke LLM.", e
+        )
+        return None
+
+
+# ID: 5a1b6c3d-8e2f-4a9b-c7d4-0e3f2a1b5c8d
+def _save_candidate_cache(
+    file_handler: Any, cache_key: str, candidates: list[dict[str, Any]]
+) -> None:
+    """Persist LLM-produced candidates keyed by signal hash.
+
+    Failures are non-fatal: a broken cache just means the next run re-invokes
+    the LLM rather than crashing the Scout workflow.
+    """
+    cache_rel = "/".join(_CACHE_DIR_PARTS)
+    try:
+        file_handler.ensure_dir(cache_rel)
+        file_handler.write_runtime_text(
+            f"{cache_rel}/{cache_key}.json",
+            json.dumps(candidates, indent=2),
+        )
+    except Exception as e:
+        logger.warning("Scout: could not write candidate cache (%s) — continuing.", e)
+
+
+# ID: 9e7f4a2b-3c1d-4e8f-a5b6-2c0d9e7f4a1b
+def _evict_candidate_cache(core_root: Path, cache_key: str) -> None:
+    """Remove the cache entry for this signal hash, if present."""
+    cache_file = core_root.joinpath(*_CACHE_DIR_PARTS, f"{cache_key}.json")
+    if cache_file.exists():
+        cache_file.unlink()
+        console.print("[yellow]  ↳ Reset: cleared candidate cache entry.[/yellow]")
 
 
 # ── Enforcement catalog (ADR-119 separation of observation from enforcement) ────

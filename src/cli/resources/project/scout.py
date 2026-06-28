@@ -25,6 +25,11 @@ async def scout_project(
     write: bool = typer.Option(
         False, "--write", help="Write inducted rules to .intent/ after ratification."
     ),
+    reset: bool = typer.Option(
+        False,
+        "--reset",
+        help="Clear existing scout_inducted.json and candidate cache, then re-run induction.",
+    ),
 ) -> None:
     """
     Induce and ratify governance rules for a repository — Phase B (BYOR Scout).
@@ -34,7 +39,10 @@ async def scout_project(
     LLM is available), and walks you through per-rule ratification. Only confirmed
     rules are written (ADR-119 D5 — no --accept-all). Requires Phase A first:
     run `project onboard <target> --write` before this command.
+
+    Pass --reset to clear a prior induction and start fresh (e.g. after the repo
+    has evolved significantly or to get a new LLM pass with updated signals).
     """
     core_context: CoreContext = ctx.obj
     console.print(f"[bold cyan]🔍 Scout (Phase B) — target:[/bold cyan] {path}")
-    await induce_rules(context=core_context, path=path, dry_run=not write)
+    await induce_rules(context=core_context, path=path, dry_run=not write, reset=reset)
