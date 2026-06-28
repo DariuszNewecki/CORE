@@ -47,3 +47,4 @@ migrations:
     - 20260626_add_blackboard_subject_status_index.sql
     - 20260626_create_llm_exchange_log_2026_07_12_partitions.sql
     - 20260626_create_suspended_users.sql
+    - 20260628_adr129_add_declared_production_to_proposal_consequences.sql

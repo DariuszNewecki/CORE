@@ -687,6 +687,18 @@ mappings:
   # Excluded from the active map at loader time (loader skips PENDING).
   # ===========================================================================
 
+  governance.commit_authorship_integrity:
+    action: fix.modularity
+    confidence: 0.10
+    description: >
+      ADR-129 D5: a contaminated autonomous commit (diff outside declared
+      production set) requires governor investigation — git history rewrite
+      with proper attribution, or documented acceptance as exception. No
+      autonomous remediation action exists. PENDING satisfies ADR-066
+      (governance.remediation.all_rules_mapped). action: field is a
+      placeholder only.
+    status: PENDING
+
   modularity.needs_refactor:
     action: fix.modularity
     confidence: 0.40

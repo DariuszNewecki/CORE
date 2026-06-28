@@ -1,0 +1,190 @@
+# src/will/workers/commit_authorship_audit_worker.py
+"""
+CommitAuthorshipAuditWorker — ADR-129 D4 authorship integrity sensor.
+
+For each autonomous commit in the recent consequence log, verifies that
+the actual git diff (files_changed between pre- and post-execution SHAs)
+is a subset of the declared production set (declared_production). Any path
+in the diff that is NOT in declared_production indicates staging contamination:
+bytes from a concurrent session were swept into the autonomous commit, violating
+ADR-101 D1 authorship integrity.
+
+Posts governance.commit_authorship_integrity::{proposal_id} findings for
+violations; audit posture is 'reporting' (ADR-129 D5, no auto-remediation).
+
+Constitutional standing:
+- Declaration: .intent/workers/commit_authorship_audit_worker.yaml
+- Class: governance
+- Phase: audit
+- Permitted tools: none (no LLM calls)
+- Approval: false
+
+DB access via Body service registry only (Will pattern per ADR-019 D1).
+Git diff via async subprocess to repo_path from core_context.git_service.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime
+from typing import Any
+
+from shared.logger import getLogger
+from shared.workers.base import Worker
+
+
+logger = getLogger(__name__)
+
+
+# ID: d293f6d4-1a2b-4c3d-8e5f-6a7b8c9d0e1f
+class CommitAuthorshipAuditWorker(Worker):
+    """
+    Governance worker. Compares declared_production (what commit_paths was
+    authorized to commit) against the actual git diff (what was committed)
+    for each autonomous proposal in the last 7 days. Detects staging
+    contamination introduced by the pre-ADR-129-D1 gap in commit_paths.
+
+    Runs hourly (schedule.max_interval: 3600 in YAML). Deduplicates
+    against open blackboard findings to avoid re-posting on each cycle.
+    """
+
+    declaration_name = "commit_authorship_audit_worker"
+
+    def __init__(self, core_context: Any) -> None:
+        super().__init__()
+        self._core_context = core_context
+
+    # ID: c4780228-9f0e-4d5a-b6c7-8d9e0f1a2b3c
+    async def run(self) -> None:
+        await self.post_heartbeat()
+
+        from body.services.service_registry import service_registry
+
+        blackboard_service = await service_registry.get_blackboard_service()
+        existing = await blackboard_service.fetch_active_finding_subjects_by_prefix(
+            "governance.commit_authorship_integrity::%"
+        )
+
+        consequence_svc = (
+            await self._core_context.registry.get_consequence_log_service()
+        )
+        entries = await consequence_svc.get_recent_for_audit(lookback_days=7)
+
+        repo_path = str(self._core_context.git_service.repo_path)
+
+        checked = 0
+        skipped_no_declared = 0
+        violations = 0
+        suppressed = 0
+
+        for entry in entries:
+            proposal_id = entry["proposal_id"]
+            pre_sha = entry["pre_execution_sha"]
+            post_sha = entry["post_execution_sha"]
+            declared = set(entry["declared_production"])
+
+            # Pre-ADR-129 rows have empty declared_production — unverifiable.
+            if not declared:
+                skipped_no_declared += 1
+                continue
+
+            if not pre_sha:
+                # Without a pre-sha we can't compute the diff precisely.
+                skipped_no_declared += 1
+                continue
+
+            checked += 1
+            actual_diff = await _get_diff_files(repo_path, pre_sha, post_sha)
+            if actual_diff is None:
+                # git failure — don't post a false positive, just skip.
+                continue
+
+            extra = set(actual_diff) - declared
+            if not extra:
+                continue
+
+            violations += 1
+            subject = f"governance.commit_authorship_integrity::{proposal_id}"
+            if subject in existing:
+                suppressed += 1
+                logger.debug(
+                    "CommitAuthorshipAuditWorker: %s already open, skipping.",
+                    subject,
+                )
+                continue
+
+            extra_sample = sorted(extra)[:5]
+            logger.warning(
+                "CommitAuthorshipAuditWorker: authorship violation for "
+                "proposal %s — %d extra path(s) in commit: %s",
+                proposal_id,
+                len(extra),
+                extra_sample,
+            )
+            await self.post_observation(
+                subject=subject,
+                payload={
+                    "proposal_id": proposal_id,
+                    "pre_execution_sha": pre_sha,
+                    "post_execution_sha": post_sha,
+                    "declared_production": sorted(declared),
+                    "extra_paths": sorted(extra),
+                    "extra_count": len(extra),
+                    "detected_at": datetime.now(UTC).isoformat(),
+                    "grounding_adr": "ADR-129",
+                },
+                status="indeterminate",
+            )
+
+        await self.post_report(
+            subject="commit_authorship_audit_worker.run.complete",
+            payload={
+                "checked": checked,
+                "skipped_no_declared": skipped_no_declared,
+                "violations_detected": violations,
+                "suppressed": suppressed,
+            },
+        )
+        logger.info(
+            "CommitAuthorshipAuditWorker: checked=%d skipped=%d "
+            "violations=%d suppressed=%d",
+            checked,
+            skipped_no_declared,
+            violations,
+            suppressed,
+        )
+
+
+async def _get_diff_files(
+    repo_path: str, pre_sha: str, post_sha: str
+) -> list[str] | None:
+    """Return paths in the diff between two SHAs, or None on git failure."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            "diff",
+            "--name-only",
+            pre_sha,
+            post_sha,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=repo_path,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            logger.warning(
+                "CommitAuthorshipAuditWorker: git diff failed for %s..%s: %s",
+                pre_sha,
+                post_sha,
+                stderr.decode().strip(),
+            )
+            return None
+        return [f for f in stdout.decode().strip().splitlines() if f]
+    except Exception as exc:
+        logger.warning(
+            "CommitAuthorshipAuditWorker: subprocess error for %s..%s: %s",
+            pre_sha,
+            post_sha,
+            exc,
+        )
+        return None

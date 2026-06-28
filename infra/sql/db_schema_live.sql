@@ -2245,7 +2245,8 @@ CREATE TABLE core.proposal_consequences (
     post_execution_sha text,
     files_changed jsonb DEFAULT '[]'::jsonb NOT NULL,
     findings_resolved jsonb DEFAULT '[]'::jsonb NOT NULL,
-    authorized_by_rules jsonb DEFAULT '[]'::jsonb NOT NULL
+    authorized_by_rules jsonb DEFAULT '[]'::jsonb NOT NULL,
+    declared_production jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 

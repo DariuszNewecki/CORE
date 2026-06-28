@@ -33,6 +33,7 @@ from will.autonomy.proposal_execution_pipeline import (
     capture_git_sha,
     commit_proposal_changes,
     compute_changed_files,
+    compute_production_set,
     record_consequence,
     resolve_deferred_findings,
     rollback_proposal,
@@ -366,6 +367,7 @@ class ProposalExecutor:
                             "finding_ids", []
                         ),
                         policies=proposal.scope.policies,
+                        declared_production=compute_production_set(action_results),
                     )
 
                     await resolve_deferred_findings(proposal.proposal_id)

@@ -1,0 +1,24 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.commit_authorship_integrity",
+        "title": "Commit Authorship Integrity",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.commit_authorship_integrity",
+            "statement": "Every autonomous proposal commit's actual diff (git diff --name-only pre_execution_sha post_execution_sha) MUST be a subset of its declared production set (the union of _sandbox_target_paths observed by SandboxLifecycle and files_produced declared by the action). A commit that includes files outside this set contains bytes the action did not author and violates ADR-101 D1. Checked post-commit by CommitAuthorshipAuditWorker against core.proposal_consequences. Pre-ADR-129 entries with empty declared_production are skipped as unverifiable.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-101 D1 establishes that a commit's diff must contain only bytes its author produced. ADR-129 D1/D2 close the write-side race (commit_paths staging check) and persist the production claim in core.proposal_consequences. This rule operationalises D1 as a post-commit audit invariant. Reporting rather than blocking because post-commit detection is the current implementation constraint; promotion to blocking requires a pre-push hook (ADR-129 D6 follow-on). Grounding: ADR-129 D3; detection: CommitAuthorshipAuditWorker (.intent/workers/commit_authorship_audit_worker.yaml); remediation: PENDING in auto_remediation.yaml (no autonomous fix; requires governor investigation).",
+            "grounding_adr": "ADR-129",
+            "worker": "commit_authorship_audit_worker"
+        }
+    ]
+}

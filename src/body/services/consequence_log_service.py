@@ -44,6 +44,7 @@ class ConsequenceLogService:
         files_changed: list[dict],
         findings_resolved: list,
         authorized_by_rules: list,
+        declared_production: list[str] | None = None,
     ) -> None:
         """
         Upsert consequence record for a completed proposal.
@@ -55,6 +56,9 @@ class ConsequenceLogService:
             files_changed: List of {"path": str} dicts for each modified file.
             findings_resolved: Finding IDs that this proposal addressed.
             authorized_by_rules: Policy/rule IDs that authorized execution.
+            declared_production: ADR-129 D2 — union of _sandbox_target_paths
+                and files_produced; the paths commit_paths was authorized to
+                commit. Empty list for pre-ADR-129 rows (worker skips them).
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -64,14 +68,16 @@ class ConsequenceLogService:
                     "INSERT INTO core.proposal_consequences "
                     "(proposal_id, pre_execution_sha, "
                     "post_execution_sha, files_changed, "
-                    "findings_resolved, authorized_by_rules) "
+                    "findings_resolved, authorized_by_rules, "
+                    "declared_production) "
                     "VALUES (:pid, :pre, :post, :files, "
-                    ":findings, :rules) "
+                    ":findings, :rules, :declared) "
                     "ON CONFLICT (proposal_id) DO UPDATE SET "
                     "files_changed = EXCLUDED.files_changed, "
                     "findings_resolved = EXCLUDED.findings_resolved, "
                     "authorized_by_rules = EXCLUDED.authorized_by_rules, "
-                    "post_execution_sha = EXCLUDED.post_execution_sha"
+                    "post_execution_sha = EXCLUDED.post_execution_sha, "
+                    "declared_production = EXCLUDED.declared_production"
                 ),
                 {
                     "pid": proposal_id,
@@ -80,6 +86,7 @@ class ConsequenceLogService:
                     "files": json.dumps(files_changed),
                     "findings": json.dumps(findings_resolved),
                     "rules": json.dumps(authorized_by_rules),
+                    "declared": json.dumps(declared_production or []),
                 },
             )
             await session.commit()
@@ -164,6 +171,46 @@ class ConsequenceLogService:
             "causing_proposal_id": row.proposal_id,
             "causing_commit_sha": row.post_execution_sha,
         }
+
+    # ID: a2f610da-3b85-4c67-9d12-8e7f5a4b3c21
+    async def get_recent_for_audit(self, lookback_days: int = 7) -> list[dict]:
+        """
+        Return consequence rows with a post-commit SHA from the last N days.
+
+        Used by CommitAuthorshipAuditWorker (ADR-129 D4) to cross-check
+        declared_production against the actual git diff without the worker
+        touching the git object store directly. Returns dicts with keys:
+        proposal_id, post_execution_sha, files_changed, declared_production.
+
+        Rows where declared_production is [] are pre-ADR-129 rows; the
+        caller skips them (empty list means "unverifiable", not "no files").
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT proposal_id, pre_execution_sha, "
+                    "post_execution_sha, files_changed, declared_production "
+                    "FROM core.proposal_consequences "
+                    "WHERE post_execution_sha IS NOT NULL "
+                    "AND recorded_at >= NOW() - "
+                    "make_interval(days => :lookback_days)"
+                ).bindparams(bindparam("lookback_days", type_=Integer)),
+                {"lookback_days": lookback_days},
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": row.proposal_id,
+                "pre_execution_sha": row.pre_execution_sha,
+                "post_execution_sha": row.post_execution_sha,
+                "files_changed": row.files_changed or [],
+                "declared_production": row.declared_production or [],
+            }
+            for row in rows
+        ]
 
     # ID: e6c7d8f9-0a1b-4c3d-9e4f-5a6b7c8d9e0f
     async def get_all_shas(self) -> list[tuple[str, str]]:

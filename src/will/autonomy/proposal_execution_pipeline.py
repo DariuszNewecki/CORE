@@ -98,6 +98,7 @@ async def record_consequence(
     changed_files: list[str],
     finding_ids: list[str],
     policies: list[str],
+    declared_production: list[str] | None = None,
 ) -> None:
     """Record the consequence log entry for a successfully executed proposal.
 
@@ -110,6 +111,11 @@ async def record_consequence(
     ``proposal.constitutional_constraints['finding_ids']`` (the open
     findings this proposal was meant to resolve); *policies* comes from
     ``proposal.scope.policies`` (the rules that authorized the changes).
+
+    ADR-129 D2: *declared_production* is the union of _sandbox_target_paths
+    and files_produced computed by compute_production_set() — the same set
+    that drove commit_paths(). Persisted so CommitAuthorshipAuditWorker can
+    compare it against the actual git diff post-commit.
     """
     try:
         consequence_svc = await service_registry.get_consequence_log_service()
@@ -120,6 +126,7 @@ async def record_consequence(
             files_changed=[{"path": p} for p in changed_files],
             findings_resolved=finding_ids,
             authorized_by_rules=policies,
+            declared_production=declared_production or [],
         )
     except Exception as cons_err:
         logger.warning(

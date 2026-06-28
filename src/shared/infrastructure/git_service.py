@@ -216,6 +216,11 @@ class GitService:
         self._run_command(["checkout", "--", *tracked])
         logger.info("GitService.restore_paths: reverted %d paths", len(tracked))
 
+    def _get_staged_paths(self) -> set[str]:
+        """Return paths currently staged in the index (git diff --cached --name-only)."""
+        output = self._run_command(["diff", "--cached", "--name-only"])
+        return {line for line in output.splitlines() if line}
+
     # ID: e5f6a7b8-c9d0-1234-5678-9abcdef01234
     def commit_paths(self, paths: list[str], message: str) -> None:
         """
@@ -224,6 +229,24 @@ class GitService:
         Used by ProposalExecutor's success branches per ADR-021 D3. Mirrors
         the two-pass retry pattern in `commit` for pre-commit hook
         auto-modifications.
+
+        ADR-129 D1: two-layer protection against staging contamination.
+
+        Layer 1 — early check: before staging anything, verifies that the
+        index contains no paths outside the production set. A concurrent
+        session that has staged work would otherwise be swept into the
+        autonomous commit, silently violating ADR-101 D1. The check raises
+        rather than clears — clearing would destroy the session's staged
+        work; raising makes the violation visible so the operator can commit
+        or restore their staged changes before the next daemon cycle.
+
+        Layer 2 — structural restriction: the commit command passes the
+        production paths as a pathspec (``git commit -m msg -- p1 p2 …``).
+        This tells git to commit only the staged changes for those specific
+        paths, regardless of what else is in the index. Belt-and-suspenders:
+        even if something slips into staging in the nanosecond window between
+        the check and the ``git add``, the pathspec ensures only production
+        bytes enter the commit object.
         """
         if not paths:
             raise ValueError(
@@ -231,9 +254,24 @@ class GitService:
                 "proposal that resolved to no files is malformed"
             )
 
+        # ADR-129 D1 Layer 1: early contamination check.
+        staged = self._get_staged_paths()
+        production = set(paths)
+        extra = staged - production
+        if extra:
+            extra_sample = sorted(extra)[:3]
+            raise RuntimeError(
+                f"ADR-129 D1: staging area has {len(extra)} path(s) outside "
+                f"the declared production set — refusing autonomous commit to "
+                f"prevent authorship contamination. Commit or restore staged "
+                f"work first: {extra_sample}"
+                f"{'...' if len(extra) > 3 else ''}"
+            )
+
+        # ADR-129 D1 Layer 2: pathspec-restricted commit.
         self._run_command(["add", "--", *paths])
         try:
-            self._run_command(["commit", "-m", message])
+            self._run_command(["commit", "-m", message, "--", *paths])
         except RuntimeError as first_err:
             logger.info(
                 "GitService.commit_paths: first commit attempt failed — "
@@ -241,7 +279,7 @@ class GitService:
                 first_err,
             )
             self._run_command(["add", "--", *paths])
-            self._run_command(["commit", "-m", message])
+            self._run_command(["commit", "-m", message, "--", *paths])
 
     # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
     def get_recent_commits(self, n: int = _CFG_GIT.recent_commits_n) -> list[str]:

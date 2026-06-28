@@ -1,0 +1,38 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.commit_authorship_audit_worker
+  title: Commit Authorship Audit Worker
+  version: "1.0.0"
+  authority: constitution
+  status: active
+
+identity:
+  uuid: "f21dff59-3a2d-4a4e-a326-f3db9a50c478"
+  class: governance
+
+mandate:
+  responsibility: >
+    Post-commit authorship integrity auditor (ADR-129 D4). Reads recent
+    core.proposal_consequences entries and verifies each autonomous
+    commit's actual diff (git diff --name-only pre_sha post_sha) is a
+    subset of the declared production set. Posts
+    governance.commit_authorship_integrity::{proposal_id} findings to the
+    blackboard for any discrepancy. Skips pre-ADR-129 entries whose
+    declared_production is empty. Does not modify any record — detection
+    only, per ADR-129 D4.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.commit_authorship_audit_worker
+  class: CommitAuthorshipAuditWorker
+  requires_core_context: true
