@@ -16,9 +16,7 @@
             "enforcement": "reporting",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "ADR-101 D1 establishes that a commit's diff must contain only bytes its author produced. ADR-129 D1/D2 close the write-side race (commit_paths staging check) and persist the production claim in core.proposal_consequences. This rule operationalises D1 as a post-commit audit invariant. Reporting rather than blocking because post-commit detection is the current implementation constraint; promotion to blocking requires a pre-push hook (ADR-129 D6 follow-on). Grounding: ADR-129 D3; detection: CommitAuthorshipAuditWorker (.intent/workers/commit_authorship_audit_worker.yaml); remediation: PENDING in auto_remediation.yaml (no autonomous fix; requires governor investigation).",
-            "grounding_adr": "ADR-129",
-            "worker": "commit_authorship_audit_worker"
+            "rationale": "ADR-101 D1 establishes that a commit's diff must contain only bytes its author produced. ADR-129 D1/D2 close the write-side race (commit_paths staging check) and persist the production claim in core.proposal_consequences. This rule operationalises D1 as a post-commit audit invariant. Reporting rather than blocking because post-commit detection is the current implementation constraint; promotion to blocking requires a pre-push hook (ADR-129 D6 follow-on). Grounding: ADR-129 D3; detection: CommitAuthorshipAuditWorker (.intent/workers/commit_authorship_audit_worker.yaml); remediation: PENDING in auto_remediation.yaml (no autonomous fix; requires governor investigation)."
         }
     ]
 }
