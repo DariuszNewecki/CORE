@@ -38,7 +38,8 @@ boundaries:
 
   # ---------------------------------------------------------------------------
   # governed-artifact — checked first so .intent/ and .specs/ never fall
-  # through to repo-source. API-mediated access path (ADR-097 D6).
+  # through to repo-source. Hard invariant: no code path may write here
+  # (ADR-130 D1 closes ADR-097 step 6 as will-not-implement).
   # ---------------------------------------------------------------------------
   - prefix: ".intent/"
     target_class: governed-artifact
@@ -61,11 +62,15 @@ boundaries:
   # not commit-bearing. reports/ is the audit/remediation evidence
   # sink; var/cache/ holds derived caches; var/logs/ holds operational
   # logs; var/workflows/pending_writes/ is the staging area for
-  # add_pending_write (proposal candidates not yet executed).
+  # add_pending_write (proposal candidates not yet executed);
+  # var/drafts/ holds governor-review staging content for derived
+  # constitutional artifacts (ADR-130 D2/D5).
   # ---------------------------------------------------------------------------
   - prefix: "reports/"
     target_class: runtime-output
   - prefix: "var/cache/"
+    target_class: runtime-output
+  - prefix: "var/drafts/"
     target_class: runtime-output
   - prefix: "var/logs/"
     target_class: runtime-output
