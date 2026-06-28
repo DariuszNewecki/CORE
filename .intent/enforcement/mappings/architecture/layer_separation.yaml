@@ -235,6 +235,11 @@ mappings:
         # in Body because it coordinates Body services; api/main.py's import
         # of it is the single allowed cross-layer reference by design.
         - "src/api/main.py"
+        # DI-root sanctuary — dependencies.py is the ADR-049 D1 §6 sanctioned
+        # infrastructure site. decode_access_token is a DI root (get_current_user
+        # dependency), not a business-logic bypass. auth_routes.py Body import
+        # tracked for Will facade in #718.
+        - "src/api/dependencies.py"
 
   # ==========================================================================
   # RULE 12: Body Never Invokes Will
