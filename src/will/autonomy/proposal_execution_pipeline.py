@@ -278,8 +278,7 @@ def commit_proposal_changes(
         return True
     except StagingContaminationError as d1_err:
         logger.warning(
-            "Git commit REFUSED for proposal %s — ADR-129 D1 staging "
-            "contamination: %s",
+            "Git commit REFUSED for proposal %s — ADR-129 D1 staging contamination: %s",
             proposal_id,
             d1_err,
         )
