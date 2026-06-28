@@ -4,7 +4,7 @@ role: RemoteCoder
 description: Generates code for a single task step.
 
 model:
-  max_tokens: 4096
+  max_tokens: 8192
 
 input:
   required:

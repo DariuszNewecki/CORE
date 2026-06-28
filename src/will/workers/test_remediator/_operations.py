@@ -23,10 +23,8 @@ from will.autonomy.proposal import (
 
 logger = getLogger(__name__)
 
-# ADR-046 D2: TestRemediator dispatches the build_tests flow, not the bare
-# build.tests action, so flow.build_tests' declared auto-heal steps
-# (fix.imports, fix.headers, fix.format) execute on generated tests.
-_TARGET_FLOW_ID = "flow.build_tests"
+# ADR-133 D3/D4: symbol-granular flow; file-level flow.build_tests removed.
+_TARGET_FLOW_ID_SYMBOL = "flow.build_test_for_symbol"
 # ADR-091 D2: rule names track the canonical sub_namespaces emitted by
 # TestRunnerSensor (`python::test.runner.missing` and `python::test.runner.failure`).
 # Used in proposal goal text and constitutional_constraints.rules for audit
@@ -106,156 +104,14 @@ async def _load_open_findings(worker_uuid: uuid.UUID) -> list[dict[str, Any]]:
     return valid
 
 
-async def _get_active_build_tests_source_files() -> set[str]:
-    """
-    Return the set of source_file values currently in flight for the
-    flow.build_tests flow — i.e. referenced by any active proposal.
-
-    A proposal is active when its status is in _ACTIVE_STATUSES. For
-    each such proposal, every action whose flow_id is flow.build_tests
-    contributes its parameters["source_file"] (when present) to the
-    returned set.
-
-    Fail open — if the lookup raises, return an empty set and the
-    caller proceeds without per-source_file deduplication.
-    """
-    from body.services.service_registry import service_registry
-    from will.autonomy.proposal_repository import ProposalRepository
-
-    active_source_files: set[str] = set()
-    try:
-        async with service_registry.session() as session:
-            repo = ProposalRepository(session)
-            for status in _ACTIVE_STATUSES:
-                proposals = await repo.list_by_status(status, limit=200)
-                for proposal in proposals:
-                    for action in proposal.actions:
-                        if action.flow_id != _TARGET_FLOW_ID:
-                            continue
-                        source_file = (action.parameters or {}).get("source_file")
-                        if source_file:
-                            active_source_files.add(source_file)
-    except Exception as e:
-        logger.warning(
-            "TestRemediatorWorker: could not load active proposals (%s). "
-            "Proceeding without per-source_file deduplication.",
-            e,
-        )
-    return active_source_files
-
-
-async def _create_proposal(
-    flow_id: str,
-    findings: list[dict[str, Any]],
-) -> str | None:
-    """Create and persist a Proposal for the given flow and findings.
-
-    All findings passed to this method must share a single source_file
-    (the caller groups them accordingly). The action parameter carries
-    exactly that source_file.
-
-    Safe proposals (approval_required=False) are created in APPROVED status
-    so ProposalConsumerWorker can execute them without a separate approval step.
-    Proposals requiring human approval are created in DRAFT.
-    """
-    from body.services.service_registry import service_registry
-    from will.autonomy.proposal_repository import ProposalRepository
-    from will.autonomy.proposal_state_manager import ProposalStateManager
-
-    affected_files: list[str] = sorted(
-        {
-            f["payload"].get("source_file", "")
-            for f in findings
-            if f["payload"].get("source_file")
-        }
-    )
-
-    primary_source_file = affected_files[0] if affected_files else None
-
-    proposal = Proposal(
-        goal=(
-            f"Autonomous test remediation: {flow_id} "
-            f"({len(findings)} finding(s) — rules: {', '.join(_TARGET_RULES)})"
-        ),
-        actions=[
-            ProposalAction(
-                flow_id=flow_id,
-                parameters={
-                    "source_file": primary_source_file,
-                    "write": True,
-                },
-                order=0,
-            )
-        ],
-        scope=ProposalScope(files=affected_files),
-        created_by="test_remediator_worker",
-        constitutional_constraints={
-            "source": "blackboard_findings",
-            "rules": list(_TARGET_RULES),
-            "affected_files_count": len(affected_files),
-        },
-    )
-
-    proposal.compute_risk()
-
-    # status remains DRAFT here; the auto-approval path below routes
-    # through ProposalStateManager.approve() so approval_authority is
-    # recorded on the row (URS NFR.5; ADR-015 D6).
-
-    is_valid, errors = proposal.validate()
-    if not is_valid:
-        logger.warning(
-            "TestRemediatorWorker: proposal for '%s' failed validation: %s",
-            flow_id,
-            errors,
-        )
-        return None
-
-    try:
-        async with service_registry.session() as session:
-            repo = ProposalRepository(session)
-            proposal_id = await repo.create(proposal)
-
-            if not proposal.approval_required:
-                state_manager = ProposalStateManager(session)
-                await state_manager.approve(
-                    proposal_id,
-                    approved_by="autonomous_self_promote",
-                    approval_authority="risk_classification.safe_auto_approval",
-                )
-                logger.info(
-                    "TestRemediatorWorker: proposal for '%s' auto-approved "
-                    "(risk=%s, approval_required=False)",
-                    flow_id,
-                    proposal.risk.overall_risk if proposal.risk else "unknown",
-                )
-            else:
-                logger.info(
-                    "TestRemediatorWorker: proposal for '%s' requires human approval "
-                    "(risk=%s) — created in DRAFT",
-                    flow_id,
-                    proposal.risk.overall_risk if proposal.risk else "unknown",
-                )
-
-            await session.commit()
-        return proposal_id
-    except Exception as e:
-        logger.error(
-            "TestRemediatorWorker: failed to persist proposal for '%s': %s",
-            flow_id,
-            e,
-        )
-        return None
-
-
 # ID: 0337c11c-7b70-4106-9e1f-3610556ed25c
 async def _defer_to_proposal(entry_ids: list[str], proposal_id: str) -> int:
     """
     Transition Blackboard entries to 'deferred_to_proposal' and store
     the proposal_id in each entry's payload.
 
-    Happy-path terminal transition for findings consumed into a newly-
-    created flow.build_tests proposal. Mirrors ViolationRemediatorWorker's
+    Happy-path terminal transition for findings consumed into a
+    flow.build_test_for_symbol proposal. Mirrors ViolationRemediatorWorker's
     contract (CORE-Finding.md §7 row 4, ADR-010); the §7a revival
     path in ProposalStateManager.mark_failed depends on this linkage.
 
@@ -336,49 +192,6 @@ async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
         )
 
 
-async def _query_recent_proposal_failures(
-    source_file: str, lookback_hours: int = 24
-) -> int:
-    """Count failed flow.build_tests proposals for source_file in the last lookback_hours.
-
-    Proposals that fail go through deferred_to_proposal → failed → revived, never
-    reaching `abandoned` status. So _query_source_file_attempt_count (which counts
-    abandoned findings) never increments for this failure path, and the cap_n circuit
-    breaker cannot trip. This query closes that gap by checking proposal history directly.
-    Returns 0 on error so the caller fails open (creates a proposal rather than blocking).
-    """
-    from sqlalchemy import text
-
-    from body.services.service_registry import service_registry
-
-    try:
-        async with service_registry.session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT count(*) FROM core.autonomous_proposals
-                    WHERE status = 'failed'
-                      AND failure_reason LIKE 'Actions failed: flow.build_tests%'
-                      AND scope->'files' @> :source_file_json::jsonb
-                      AND updated_at > now() - make_interval(hours => :hours)
-                    """
-                ),
-                {
-                    "source_file_json": f'["{source_file}"]',
-                    "hours": lookback_hours,
-                },
-            )
-            return int(result.scalar_one())
-    except Exception as e:
-        logger.warning(
-            "TestRemediatorWorker: could not query recent proposal failures "
-            "for '%s': %s — defaulting to 0",
-            source_file,
-            e,
-        )
-        return 0
-
-
 async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str]:
     """
     Immediately abandon findings whose inherited remediation_attempt_count has
@@ -420,4 +233,162 @@ async def _release_entries(entry_ids: list[str]) -> int:
         return await blackboard_service.release_claimed_entries(entry_ids)
     except Exception as e:
         logger.error("TestRemediatorWorker: failed to release entries: %s", e)
+        return 0
+
+
+async def _get_active_symbol_proposals() -> set[tuple[str, str]]:
+    """
+    Return (source_file, symbol_name) pairs currently in flight for
+    flow.build_test_for_symbol. Prevents duplicate per-symbol proposals.
+    Fail open — returns empty set on error (ADR-133 D4).
+    """
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_repository import ProposalRepository
+
+    active: set[tuple[str, str]] = set()
+    try:
+        async with service_registry.session() as session:
+            repo = ProposalRepository(session)
+            for status in _ACTIVE_STATUSES:
+                proposals = await repo.list_by_status(status, limit=500)
+                for proposal in proposals:
+                    for action in proposal.actions:
+                        if action.flow_id != _TARGET_FLOW_ID_SYMBOL:
+                            continue
+                        params = action.parameters or {}
+                        sf = params.get("source_file")
+                        sn = params.get("symbol_name")
+                        if sf and sn:
+                            active.add((sf, sn))
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: could not load active symbol proposals (%s). "
+            "Proceeding without per-symbol deduplication.",
+            e,
+        )
+    return active
+
+
+async def _create_symbol_proposal(
+    source_file: str,
+    symbol_name: str,
+    symbol_kind: str,
+    signature: str,
+    test_file: str,
+    findings: list[dict[str, Any]],
+) -> str | None:
+    """
+    Create and persist a flow.build_test_for_symbol proposal for one symbol.
+
+    Safe proposals (approval_required=False) are auto-approved so
+    ProposalConsumerWorker can execute them without a separate governor step.
+    """
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_repository import ProposalRepository
+    from will.autonomy.proposal_state_manager import ProposalStateManager
+
+    proposal = Proposal(
+        goal=(
+            f"Autonomous test generation: {_TARGET_FLOW_ID_SYMBOL} "
+            f"— {source_file}::{symbol_name} ({symbol_kind})"
+        ),
+        actions=[
+            ProposalAction(
+                flow_id=_TARGET_FLOW_ID_SYMBOL,
+                parameters={
+                    "source_file": source_file,
+                    "symbol_name": symbol_name,
+                    "symbol_kind": symbol_kind,
+                    "signature": signature,
+                    "write": True,
+                },
+                order=0,
+            )
+        ],
+        scope=ProposalScope(files=sorted({source_file, test_file})),
+        created_by="test_remediator_worker",
+        constitutional_constraints={
+            "source": "blackboard_findings",
+            "rules": list(_TARGET_RULES),
+            "symbol_name": symbol_name,
+            "symbol_kind": symbol_kind,
+        },
+    )
+
+    proposal.compute_risk()
+
+    is_valid, errors = proposal.validate()
+    if not is_valid:
+        logger.warning(
+            "TestRemediatorWorker: symbol proposal for '%s::%s' failed validation: %s",
+            source_file,
+            symbol_name,
+            errors,
+        )
+        return None
+
+    try:
+        async with service_registry.session() as session:
+            repo = ProposalRepository(session)
+            proposal_id = await repo.create(proposal)
+
+            if not proposal.approval_required:
+                state_manager = ProposalStateManager(session)
+                await state_manager.approve(
+                    proposal_id,
+                    approved_by="autonomous_self_promote",
+                    approval_authority="risk_classification.safe_auto_approval",
+                )
+            await session.commit()
+        return proposal_id
+    except Exception as e:
+        logger.error(
+            "TestRemediatorWorker: failed to persist symbol proposal for '%s::%s': %s",
+            source_file,
+            symbol_name,
+            e,
+        )
+        return None
+
+
+async def _query_recent_symbol_failures(
+    source_file: str,
+    symbol_name: str,
+    lookback_hours: int = 24,
+) -> int:
+    """
+    Count failed flow.build_test_for_symbol proposals for (source_file, symbol_name)
+    in the last lookback_hours. Per-symbol circuit breaker (ADR-133 D4).
+    Returns 0 on error so the caller fails open.
+    """
+    from sqlalchemy import text
+
+    from body.services.service_registry import service_registry
+
+    try:
+        async with service_registry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM core.autonomous_proposals
+                    WHERE status = 'failed'
+                      AND failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
+                      AND scope->'files' @> :source_file_json::jsonb
+                      AND updated_at > now() - make_interval(hours => :hours)
+                    """
+                ),
+                {
+                    "source_file_json": f'["{source_file}"]',
+                    "hours": lookback_hours,
+                },
+            )
+            return int(result.scalar_one())
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: could not query symbol failures "
+            "for '%s::%s': %s — defaulting to 0",
+            source_file,
+            symbol_name,
+            e,
+        )
         return 0

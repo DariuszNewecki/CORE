@@ -14,6 +14,7 @@ from .constitutional_evaluator import ConstitutionalEvaluator
 from .failure_evaluator import FailureEvaluator
 from .performance_evaluator import PerformanceEvaluator
 from .security_evaluator import SecurityEvaluator
+from .test_gap_evaluator import GapReport, SymbolGap, TestGapEvaluator
 
 
 __all__ = [
@@ -22,6 +23,9 @@ __all__ = [
     "ClarityEvaluator",
     "ConstitutionalEvaluator",
     "FailureEvaluator",
+    "GapReport",
     "PerformanceEvaluator",
     "SecurityEvaluator",
+    "SymbolGap",
+    "TestGapEvaluator",
 ]

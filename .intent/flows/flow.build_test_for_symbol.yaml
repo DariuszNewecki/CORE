@@ -1,0 +1,50 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.build_test_for_symbol
+  title: Build Test For Symbol Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Symbol-granular test generation (ADR-133 D3/D4). Generates one pytest test
+    function for one public source symbol and appends it to the test file. Bounded
+    output eliminates truncation risk; existing passing tests are preserved.
+    Replaces file-level flow.build_tests as the primary autonomous test generation
+    path; flow.build_tests is retained for explicit full-file regeneration.
+
+flow:
+  flow_id: flow.build_test_for_symbol
+  description: >
+    Generate one pytest test function for a single named source symbol via
+    context_aware_test_gen, auto-heal imports/headers/format, and validate in
+    sandbox.
+  policies:
+    - rules/code/purity
+
+  steps:
+    - ref_id: build.test_for_symbol
+      kind: action
+      required: true
+      consumes: [source_file, symbol_name, symbol_kind, signature, write]
+
+    - ref_id: fix.imports
+      kind: action
+      required: false
+      consumes: [write]
+
+    - ref_id: fix.headers
+      kind: action
+      required: false
+      consumes: [write]
+
+    - ref_id: fix.format
+      kind: action
+      required: false
+      consumes: [write]
+
+    - ref_id: test.sandbox_validate
+      kind: action
+      required: true
+      consumes: [source_file]

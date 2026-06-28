@@ -299,7 +299,11 @@ async def action_build_tests(
         f"(3) Tests MUST be self-contained unit tests — do not "
         f"instantiate real Workers, database sessions, or external "
         f"services; mock all I/O and DB access. "
-        f"(4) The first import line MUST be: from __future__ import annotations"
+        f"(4) The first import line MUST be: from __future__ import annotations. "
+        f"(5) Use ONLY absolute imports. Relative imports (from .foo import bar, "
+        f"from ..pkg import baz) are FORBIDDEN. "
+        f"(6) Import ONLY from modules that appear in the provided context. "
+        f"Do not invent module paths that are not present in the context evidence."
     )
 
     try:
