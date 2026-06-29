@@ -26,6 +26,7 @@ from pathlib import Path
 import yaml
 
 from shared.config import resolve_default_repo_path
+from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
@@ -51,9 +52,13 @@ def load_cognitive_roles(repo_root: Path | None = None) -> frozenset[str]:
     path = root / COGNITIVE_ROLES_REL
 
     if not path.is_file():
-        raise CognitiveRolesTaxonomyError(
-            f"cognitive-role taxonomy missing: {COGNITIVE_ROLES_REL}"
-        )
+        fallback = resolve_floor_path(COGNITIVE_ROLES_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise CognitiveRolesTaxonomyError(
+                f"cognitive-role taxonomy missing: {COGNITIVE_ROLES_REL}"
+            )
 
     try:
         text = path.read_text(encoding="utf-8")

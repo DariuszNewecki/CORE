@@ -43,6 +43,7 @@ from typing import Any
 import yaml
 
 from shared.config import resolve_default_repo_path
+from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
@@ -171,9 +172,13 @@ def _load_document(root: Path) -> dict[str, Any]:
     """Load and minimally validate the top-level taxonomy YAML document."""
     path = root / OPERATIONAL_CAPABILITIES_REL
     if not path.is_file():
-        raise OperationalCapabilityTaxonomyError(
-            f"operational-capability taxonomy missing: {OPERATIONAL_CAPABILITIES_REL}"
-        )
+        fallback = resolve_floor_path(OPERATIONAL_CAPABILITIES_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise OperationalCapabilityTaxonomyError(
+                f"operational-capability taxonomy missing: {OPERATIONAL_CAPABILITIES_REL}"
+            )
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -203,9 +208,13 @@ def _load_enums(root: Path) -> tuple[tuple[str, ...], frozenset[str]]:
     """
     path = root / ENUMS_REL
     if not path.is_file():
-        raise OperationalCapabilityTaxonomyError(
-            f"required enum file missing: {ENUMS_REL}"
-        )
+        fallback = resolve_floor_path(ENUMS_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise OperationalCapabilityTaxonomyError(
+                f"required enum file missing: {ENUMS_REL}"
+            )
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -263,9 +272,13 @@ def _load_action_risk(root: Path) -> Mapping[str, str]:
     """
     path = root / ACTION_RISK_REL
     if not path.is_file():
-        raise OperationalCapabilityTaxonomyError(
-            f"required risk file missing: {ACTION_RISK_REL}"
-        )
+        fallback = resolve_floor_path(ACTION_RISK_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise OperationalCapabilityTaxonomyError(
+                f"required risk file missing: {ACTION_RISK_REL}"
+            )
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:

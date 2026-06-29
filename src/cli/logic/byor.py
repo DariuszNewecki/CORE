@@ -39,11 +39,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-# ADR-111 D1/D4: examples/starter-intent/ is the canonical source for the
-# machinery floor (ADR-108 D2; ADR-119 D8). Located relative to the running
-# CORE repo root. ADR-108 D3 / #674: wheel fallback via shared._machinery_floor.
-_STARTER_REL = ("examples", "starter-intent", ".intent")
-
 # ADR-119 D2: machinery floor = META + constitution + enforcement/config + taxonomies.
 # Rules and enforcement/mappings are Phase B (project scout), never delivered here.
 _MACHINERY_FLOOR_PREFIXES = (
@@ -72,23 +67,18 @@ def _resolve_machinery_floor(core_root: Path) -> Path:
     """
     Locate the machinery floor directory (ADR-108 D3).
 
-    Resolution order:
-    1. Source tree — ``examples/starter-intent/.intent/`` relative to *core_root*.
-       Present on dev and editable installs; takes priority.
-    2. Wheel package data — ``shared/_machinery_floor/`` bundled in the
-       ``core-runtime`` wheel (ADR-108 D3 / ADR-119 D9, issue #674).
+    Always resolves from the bundled ``shared._machinery_floor`` package data —
+    present for both editable (source-tree) installs and installed wheels.
+    The ``examples/starter-intent/`` source-tree path was the pre-D3 fallback;
+    after D3 the starter contains only the rules layer, not the floor.
     """
-    source = core_root.joinpath(*_STARTER_REL)
-    if source.is_dir():
-        return source
     bundled = Path(
         str(importlib.resources.files("shared").joinpath("_machinery_floor"))
     )
     if bundled.is_dir():
-        logger.info("Using bundled machinery floor from wheel package data.")
         return bundled
     raise RuntimeError(
-        f"Machinery floor not found at {source} or in wheel package data. "
+        "Machinery floor not found in wheel package data. "
         "This is a packaging error — please report it."
     )
 

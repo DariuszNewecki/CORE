@@ -27,6 +27,7 @@ from referencing.exceptions import NoSuchResource
 from referencing.jsonschema import DRAFT7
 
 from shared.config import resolve_default_repo_path
+from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.logger import getLogger
 
 
@@ -188,13 +189,21 @@ def load_vocabulary_projection(
     schema_path = root / VOCABULARY_SCHEMA_REL
 
     if not json_path.is_file():
-        return VocabularyProjectionError(
-            state="broken", reason=f"projection missing: {VOCABULARY_JSON_REL}"
-        )
+        fallback = resolve_floor_path(VOCABULARY_JSON_REL)
+        if fallback is not None:
+            json_path = fallback
+        else:
+            return VocabularyProjectionError(
+                state="broken", reason=f"projection missing: {VOCABULARY_JSON_REL}"
+            )
     if not schema_path.is_file():
-        return VocabularyProjectionError(
-            state="broken", reason=f"schema missing: {VOCABULARY_SCHEMA_REL}"
-        )
+        fallback = resolve_floor_path(VOCABULARY_SCHEMA_REL)
+        if fallback is not None:
+            schema_path = fallback
+        else:
+            return VocabularyProjectionError(
+                state="broken", reason=f"schema missing: {VOCABULARY_SCHEMA_REL}"
+            )
 
     try:
         instance = json.loads(json_path.read_text(encoding="utf-8"))

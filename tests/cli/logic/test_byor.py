@@ -22,18 +22,21 @@ from cli.logic.byor import _resolve_machinery_floor
 # ── _resolve_machinery_floor ──────────────────────────────────────────────────
 
 
-def test_source_tree_preferred_when_present(tmp_path: Path) -> None:
-    """Source tree path takes priority over wheel data when both exist."""
-    source = tmp_path / "examples" / "starter-intent" / ".intent"
-    source.mkdir(parents=True)
+def test_always_uses_bundled_package_data(tmp_path: Path) -> None:
+    """After ADR-108 D3, _resolve_machinery_floor always uses the bundled package data.
 
+    The examples/starter-intent/ source-tree path is no longer the floor source —
+    it contains only the rules layer after D3.
+    """
     result = _resolve_machinery_floor(tmp_path)
 
-    assert result == source
+    assert result.is_dir()
+    assert (result / "META").is_dir()
+    assert (result / "taxonomies").is_dir()
 
 
 def test_falls_back_to_wheel_data_when_source_absent(tmp_path: Path) -> None:
-    """When source tree is absent, resolves bundled package data in shared._machinery_floor."""
+    """Bundled package data is found regardless of source-tree layout."""
     # tmp_path has no examples/ subtree; bundled data lives in the shared package.
     result = _resolve_machinery_floor(tmp_path)
 

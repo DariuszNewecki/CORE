@@ -27,6 +27,7 @@ from typing import Any
 import yaml
 
 from shared.config import resolve_default_repo_path
+from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
@@ -164,9 +165,13 @@ def _load_document(root: Path) -> dict[str, Any]:
     """Load and minimally validate the top-level taxonomy YAML document."""
     path = root / FILESYSTEM_OPERATIONS_REL
     if not path.is_file():
-        raise FilesystemOperationTaxonomyError(
-            f"filesystem-operation taxonomy missing: {FILESYSTEM_OPERATIONS_REL}"
-        )
+        fallback = resolve_floor_path(FILESYSTEM_OPERATIONS_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise FilesystemOperationTaxonomyError(
+                f"filesystem-operation taxonomy missing: {FILESYSTEM_OPERATIONS_REL}"
+            )
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -190,9 +195,13 @@ def _load_fs_audit_op_class_enum(root: Path) -> frozenset[str]:
     """Resolve fs_audit_op_class.enum from .intent/META/enums.json (ADR-080 D3)."""
     path = root / ENUMS_REL
     if not path.is_file():
-        raise FilesystemOperationTaxonomyError(
-            f"required enum file missing: {ENUMS_REL}"
-        )
+        fallback = resolve_floor_path(ENUMS_REL)
+        if fallback is not None:
+            path = fallback
+        else:
+            raise FilesystemOperationTaxonomyError(
+                f"required enum file missing: {ENUMS_REL}"
+            )
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
