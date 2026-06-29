@@ -48,5 +48,6 @@ Then:
 - [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
 - [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3) and roadmap
 - [Getting Started](getting-started.md) — install and run your first audit
+- [BYOR Quickstart](byor-quickstart.md) — govern your own repo from a naked machine, step by step
 - [CLI Reference](cli-reference.md) — commands and workflows
 - [Contributing](contributing.md) — how to engage with the project
