@@ -41,6 +41,22 @@
             "authority": "policy",
             "phase": "runtime",
             "rationale": "An unvalidated AI response can contain violations of constitutional standards. Output validation at the PromptModel layer is the last line of defense before unvetted content enters the system."
+        },
+        {
+            "id": "ai.prompt.constitutional_grounding_section",
+            "statement": "The system.txt of any governed prompt (one with adr_anchor declared) MUST contain a section beginning with '# CONSTITUTIONAL' that names the policies or ADR clauses being enforced. An empty or generic system prompt provides no constitutional grounding.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "The system prompt is the channel through which CORE communicates constitutional law to the AI. For governed prompts, that communication must be explicit. A system.txt that does not name what it enforces cannot be audited for drift. The section heading makes the grounding machine-detectable."
+        },
+        {
+            "id": "ai.prompt.governed_change_requires_review",
+            "statement": "Any modification to the system.txt or user.txt of a governed prompt (listed in governed_prompts.yaml) MUST be surfaced as a blackboard finding for governor review before the change is considered ratified. Governed prompt changes that are not reviewed are constitutional debt.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Governed prompts implement ADR-mandated behaviour. A silent change to system.txt can degrade a quality gate that an ADR was written to enforce. The review gate is the semantic equivalent of the .intent/ confirmation gate for source changes: it surfaces the change without blocking, preserving velocity while creating an explicit review obligation."
         }
     ]
 }

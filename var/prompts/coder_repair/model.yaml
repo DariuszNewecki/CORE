@@ -17,6 +17,8 @@ output:
   must_contain:
     - "```python"
 
+adr_anchor: "ADR-025"
+
 success_criteria: >
   Returns corrected Python code in ```python fences that addresses the
   pain signal without drifting from the original goal.

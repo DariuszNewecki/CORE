@@ -44,6 +44,8 @@ output:
     # Don't add "```" here — phi4 reliably ignored "no fences" guidance and
     # this check became the failure mechanism on 2026-05-21.
 
+adr_anchor: "ADR-027"
+
 success_criteria: >
   Output is a valid JSON array. Each element has exactly: relation (string,
   one of R1/R2/R3), documents (array of strings), claim (one sentence),

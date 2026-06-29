@@ -17,6 +17,8 @@ output:
   must_contain:
     - "```python"
 
+adr_anchor: "ADR-133:D6"
+
 success_criteria: >
   Returns a single pytest test function named test_{symbol_name} inside
   ```python fences. Imports correctly from the module path. Uses mocks

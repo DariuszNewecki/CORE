@@ -12,3 +12,8 @@ Import constraints (CRITICAL — violations cause hard rejection):
 - Use ONLY absolute imports. Relative imports (from .foo, from ..pkg) are FORBIDDEN.
 - Import ONLY from modules that appear in the provided symbol code or module path. Do not invent module paths.
 - The first line of the ```python block MUST be: from __future__ import annotations
+
+# CONSTITUTIONAL
+Governed by ADR-133 D6 (symbol-scoped test generation; single-function output contract).
+Output is one test function only. Multi-function output violates the ADR-133 D6 contract.
+Generated tests are validated by a sandbox execution gate before acceptance — failures are constitutional rejections.

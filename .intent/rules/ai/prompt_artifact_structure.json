@@ -33,6 +33,14 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "A role that is not declared in .intent/ cannot be governed, routed, or reasoned about. Using an undeclared role name is the equivalent of calling a function that does not exist — it silently removes governance from the invocation."
+        },
+        {
+            "id": "ai.prompt.governed_prompt_must_have_anchor",
+            "statement": "Any PromptModel listed in governed_prompts.yaml MUST declare an adr_anchor in its model.yaml. A governed prompt without a traceable ADR anchor has no constitutional standing.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Governed prompts implement ADR-mandated behaviour. Without an anchor, there is no machine-readable link between the prompt's contract and the decision that defined it. The anchor is the traceability record; its absence is equivalent to an ungoverned invocation."
         }
     ]
 }

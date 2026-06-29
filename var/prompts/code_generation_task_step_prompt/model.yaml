@@ -35,4 +35,6 @@ output:
   must_not_contain:
     - "```"
 
+adr_anchor: "ADR-003"
+
 success_criteria: Produces syntactically correct code implementing the specified task step.

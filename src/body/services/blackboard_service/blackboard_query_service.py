@@ -505,6 +505,38 @@ class BlackboardQueryService:
             row = result.fetchone()
             return int(row[0]) if row and row[0] is not None else 0
 
+    # ID: 80f3060d-f0bb-4974-913a-ee1b14d77263
+    async def fetch_latest_report_payload(self, subject: str) -> dict[str, Any] | None:
+        """Return the payload of the most recent report entry for *subject*, or None.
+
+        Used by PromptDriftSensor (ADR-134 D6) to recover its persisted hash
+        baseline between cycles without keeping in-process state.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT payload
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'report'
+                      AND subject = :subject
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """
+                ),
+                {"subject": subject},
+            )
+            row = result.fetchone()
+
+        if row is None:
+            return None
+        raw_payload = row[0]
+        if isinstance(raw_payload, dict):
+            return raw_payload
+        return json.loads(raw_payload)
+
     # ID: d505b762-9b10-4f2b-b7cf-a234b92f1df6
     async def fetch_delegated_finding(self, entry_id: str) -> dict[str, Any] | None:
         """

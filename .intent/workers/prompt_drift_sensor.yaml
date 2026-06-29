@@ -1,0 +1,39 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.prompt_drift_sensor
+  title: Prompt Drift Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "46d19160-d850-49d2-8091-4c3687af8b5d"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Hash the content of every governed AI prompt (listed in
+    .intent/enforcement/config/governed_prompts.yaml) each cycle, compare
+    against the persisted baseline, and post a prompt.drift_detected finding
+    for any prompt whose system.txt or user.txt changed. Posts a baseline
+    report each cycle so restart does not cause false-drift alerts.
+    Governed by ADR-134 D6.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    rule_namespace: "prompt.drift"
+    artifact_type:
+      - prompt
+    domains:
+      - ai_governance
+      - compliance
+  schedule:
+    max_interval: 900
+
+implementation:
+  module: will.workers.prompt_drift_sensor
+  class: PromptDriftSensor
+  requires_core_context: false

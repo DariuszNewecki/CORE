@@ -17,6 +17,8 @@ output:
   must_contain:
     - has_guidance
 
+adr_anchor: "ADR-003:D2"
+
 success_criteria: >
   Returns valid JSON with has_guidance boolean. When true, also includes
   recommended_value, policy_clause, explanation, and confidence fields.

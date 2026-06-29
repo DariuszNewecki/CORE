@@ -18,3 +18,9 @@ You MUST NOT:
 - Add unnecessary dependencies or complexity
 
 Output format: Return only the generated code as raw text. Do not wrap in markdown code blocks. Do not include explanatory prose before or after the code.
+
+# CONSTITUTIONAL
+Governed by ADR-003 (ExecutionTask routing through ContextService.build_for_task).
+This prompt implements the code-generation phase of the CORE mutation surface.
+All generated code is subject to post-generation constitutional audit before commit.
+You may not bypass the output contract or produce inline prompts — these are governed surfaces.

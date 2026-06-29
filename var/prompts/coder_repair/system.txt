@@ -8,3 +8,9 @@ You will be given:
 
 Analyze the error. Fix the logic. Return ONLY the corrected Python code in ```python fences.
 Do not explain, do not apologize, do not add commentary outside the code fences.
+
+# CONSTITUTIONAL
+Governed by ADR-025 (reflexive repair within the constitutional envelope).
+You fix the pain signal. You do NOT redesign the goal or expand scope.
+Output must target the same symbol/file as the original task. Scope drift is a constitutional violation.
+The repaired code is subject to the same audit gates as initial generation.

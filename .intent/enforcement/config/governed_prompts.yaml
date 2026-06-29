@@ -1,0 +1,26 @@
+# .intent/enforcement/config/governed_prompts.yaml
+# Prompts whose behavioural contract is defined by an ADR clause.
+# Changes to any listed prompt's content require governor review (ADR-134 D5).
+# Each entry must have adr_anchor in its model.yaml (ADR-134 D1/D2).
+# PromptDriftSensor (ADR-134 D6) posts prompt.drift_detected findings on content change.
+
+governed_prompts:
+  - name: code_generation_task_step_prompt
+    anchors: ["ADR-003"]
+    rationale: Routes ExecutionTask.task_type through ContextService.build_for_task to the correct generation phase.
+
+  - name: context_aware_test_gen
+    anchors: ["ADR-133:D6"]
+    rationale: Symbol-scoped test generation; single-function output contract enforced by ADR-133 D6.
+
+  - name: assumption_extractor
+    anchors: ["ADR-003:D2"]
+    rationale: Constitutional assumption synthesis — extracts operational guidance from .intent/ for context building.
+
+  - name: coder_repair
+    anchors: ["ADR-025"]
+    rationale: Reflexive repair strategy constrained by the constitutional envelope; CoderAgent context wiring per ADR-025.
+
+  - name: constitutional_coherence_analyst
+    anchors: ["ADR-027"]
+    rationale: CCC coherence checking; must reflect live coherence ruleset. No verdicts, candidates only.

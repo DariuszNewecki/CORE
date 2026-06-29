@@ -90,6 +90,10 @@ class PromptModelManifest:
     # Example model.yaml: scope: { layers: ["body", "shared"] }
     scope_layers: list[str] = field(default_factory=list)
 
+    # ADR traceability — required for governed prompts listed in governed_prompts.yaml.
+    # String "ADR-NNN" or "ADR-NNN:DN", or a list for multi-clause anchors (ADR-134 D1).
+    adr_anchor: str | list[str] | None = None
+
 
 @dataclass
 # ID: 6fe4bcb7-6c81-4635-95e2-fcb146a82fc2
@@ -220,6 +224,10 @@ class PromptModel:
         instance = cls()
         instance._artifact = artifact
         logger.debug("PromptModel '%s' loaded from %s", name, artifact_dir)
+        if artifact.manifest.adr_anchor:
+            logger.debug(
+                "PromptModel '%s' adr_anchor=%s", name, artifact.manifest.adr_anchor
+            )
         return instance
 
     @property
@@ -387,6 +395,13 @@ class PromptModel:
                 f"PromptModel '{name}' field 'output.max_length' must be >= 0."
             )
 
+        raw_anchor = raw.get("adr_anchor")
+        adr_anchor: str | list[str] | None = None
+        if isinstance(raw_anchor, list):
+            adr_anchor = [str(a) for a in raw_anchor]
+        elif raw_anchor is not None:
+            adr_anchor = str(raw_anchor)
+
         return PromptModelManifest(
             id=str(raw["id"]),
             version=str(raw["version"]),
@@ -404,6 +419,7 @@ class PromptModel:
             temperature=model_block.get("temperature"),
             success_criteria=str(raw.get("success_criteria", "")),
             scope_layers=list(scope_block.get("layers", [])),
+            adr_anchor=adr_anchor,
         )
 
     @staticmethod
