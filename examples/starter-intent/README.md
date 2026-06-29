@@ -16,8 +16,8 @@ the mirror directly.
 CORE's onboarding is two steps:
 
 1. **`project onboard <path> --write`** — delivers the machinery floor into your
-   repo (the `META/`, `taxonomies/`, and `enforcement/config/` subtrees from this
-   directory). No rules, no LLM.
+   repo (`META/`, `taxonomies/`, and `enforcement/config/`) from the bundled
+   `core-runtime` wheel. No rules, no LLM.
 2. **`project scout <path> --write`** — reads your source code, proposes candidate
    rules that fit your codebase via LLM analysis, and requires you to ratify each
    before delivery. If no LLM is available, it presents the four rules from this
@@ -30,9 +30,10 @@ This directory serves two roles in that model:
 | **Illustrative** | Shows what a minimal, four-rule constitution looks like in CORE's vocabulary — good onboarding reading |
 | **Scout LLM-fallback** | The four rules here are the curated menu `project scout` presents when no LLM is available |
 
-> The machinery layer (`META/`, `taxonomies/`, `enforcement/config/`) will be
-> bundled into the `core-runtime` wheel in a future release ([#674](https://github.com/DariuszNewecki/CORE/issues/674)),
-> after which `project onboard` will not need to copy those files.
+> The machinery layer (`META/`, `taxonomies/`, `enforcement/config/`) is bundled
+> in the `core-runtime` wheel (`shared._machinery_floor` package data, ADR-108 D3).
+> `project onboard` reads the floor from the installed package — this directory
+> serves only as the Scout LLM-fallback rules source, not as the machinery floor source.
 
 ## What the four rules enforce
 

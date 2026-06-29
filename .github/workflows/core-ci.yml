@@ -119,6 +119,9 @@ jobs:
       - name: Lint (ruff — static, no server)
         run: poetry run ruff check src tests
 
+      - name: Dependency audit (pip-audit)
+        run: poetry run pip-audit
+
       - name: Run tests with coverage (XML for Codecov)
         run: |
           poetry run pytest \

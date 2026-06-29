@@ -23,8 +23,6 @@ universal rules for you to accept, reject, or adjust — ratification is always 
 Dry-run (no `--write`) previews what would be written in either command. Once both steps are
 done, add the workflow below and open a pull request.
 
-> **`pip install core-runtime` users:** the machinery floor is not yet bundled in the wheel ([#674](https://github.com/DariuszNewecki/CORE/issues/674)), and `project scout` is not yet shipped. Run both commands from the CORE source tree until those land.
-
 To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 
 For verifying CORE's claims *about itself* (single gateway, no bypass, no untracked mutation), see the [Proof Index](proof-index.md) instead — that page assumes a running CORE.

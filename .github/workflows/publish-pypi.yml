@@ -69,6 +69,27 @@ jobs:
       - name: Inspect built artifacts
         run: ls -la dist/
 
+      - name: Wheel smoke test (bundled floor + CLI entry points)
+        # Installs the built wheel into a clean venv and verifies:
+        # 1. CLI entry points are wired correctly (core-admin --help runs).
+        # 2. Bundled machinery floor is accessible from the installed package
+        #    (the BYOR adoption path depends on this — ADR-108 D3 / #674).
+        # Full write-path BYOR test (project onboard --write) requires a live
+        # database and is covered by the core-ci.yml integration suite on main.
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/pip install --quiet dist/*.whl
+          .smoke-venv/bin/core-admin --help > /dev/null
+          cat > /tmp/smoke_floor.py << 'PYEOF'
+          import importlib.resources as r, sys
+          f = r.files("shared").joinpath("_machinery_floor")
+          for d in ["META", "constitution", "taxonomies", "enforcement/config"]:
+              if not (f / d).is_dir():
+                  sys.exit(f"Bundled floor FAIL: {d} missing from installed package")
+          print("Bundled floor OK — wheel BYOR path verified")
+          PYEOF
+          .smoke-venv/bin/python /tmp/smoke_floor.py
+
       - name: Publish to PyPI (Trusted Publisher OIDC)
         uses: pypa/gh-action-pypi-publish@release/v1
         # No `with: password` — Trusted Publisher uses the OIDC token
