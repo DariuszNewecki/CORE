@@ -567,7 +567,7 @@ async def suspend_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
-    _: Annotated[None, Depends(require_governor)],
+    _: Annotated[None, require_governor],
 ) -> dict:
     """Suspend a user account (PLATFORM_ADMIN only)."""
     await svc.set_active(user_id=user_id, active=False, actor_id=current_user["sub"])
@@ -580,7 +580,7 @@ async def reactivate_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
-    _: Annotated[None, Depends(require_governor)],
+    _: Annotated[None, require_governor],
 ) -> dict:
     """Reactivate a suspended account (PLATFORM_ADMIN only)."""
     await svc.set_active(user_id=user_id, active=True, actor_id=current_user["sub"])
