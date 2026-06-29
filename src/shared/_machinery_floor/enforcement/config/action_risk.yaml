@@ -60,6 +60,8 @@ actions:
   fix.vulture_heal: dangerous
   logging.reconfigure: safe
   manage.define_symbols: moderate
+  build.test_for_symbol: moderate
+  refactor.apply_split: dangerous
   remediate.cognitive_role: moderate
   secrets.delete: dangerous
   secrets.get: safe

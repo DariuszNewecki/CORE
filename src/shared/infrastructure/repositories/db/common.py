@@ -63,12 +63,27 @@ def _get_repo_root_for_migration() -> pathlib.Path:
     raise RuntimeError("Could not determine the repository root for migration.")
 
 
-REPO_ROOT = _get_repo_root_for_migration()
+def _resolve_repo_root() -> pathlib.Path | None:
+    """Return the migration repo root, or None when running as an installed wheel."""
+    try:
+        return _get_repo_root_for_migration()
+    except RuntimeError:
+        return None
+
+
+# Lazy sentinel — None when running as a pip-installed wheel outside the source tree.
+# Migration commands check for None and raise a helpful error at call time.
+REPO_ROOT: pathlib.Path | None = _resolve_repo_root()
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
     """Load the migration manifest from infra/migrations/manifest.yaml."""
+    if REPO_ROOT is None:
+        raise RuntimeError(
+            "Migration commands require the CORE source tree and cannot run "
+            "from a pip-installed wheel. Clone the repository to use db migrate."
+        )
     manifest_path = REPO_ROOT / _MANIFEST_REL
     return yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
 

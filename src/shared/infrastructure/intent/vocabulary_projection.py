@@ -229,16 +229,14 @@ def load_vocabulary_projection(
 
     recomputed_hash = compute_canonical_section_hash(root)
     if recomputed_hash is None:
-        return VocabularyProjectionError(
-            state="broken",
-            reason=(
-                f"cannot recompute hash: canonical section not found in "
-                f"{VOCABULARY_PAPER_REL}"
-            ),
-        )
-
-    stored_hash = instance["metadata"].get("source_hash", "")
-    drift = stored_hash != recomputed_hash
+        # Paper absent (wheel install / BYOR environment without .specs/).
+        # The vocabulary.json is authoritative — no canonical source to drift from.
+        # Treat as healthy rather than broken; drift comparison requires both sides.
+        drift = False
+        stored_hash = instance["metadata"].get("source_hash", "")
+    else:
+        stored_hash = instance["metadata"].get("source_hash", "")
+        drift = stored_hash != recomputed_hash
 
     terms = tuple(
         VocabularyTerm(

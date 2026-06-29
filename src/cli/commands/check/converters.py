@@ -20,12 +20,6 @@ from shared.path_resolver import PathResolver
 from shared.path_utils import get_repo_root
 
 
-# Evidence artifact path written by the governance auditor
-LEGACY_AUDIT_EVIDENCE_PATH = (
-    PathResolver.from_repo(get_repo_root()).reports_dir / "audit" / "latest_audit.json"
-)
-
-
 # ID: a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d
 def parse_min_severity(severity: str) -> AuditSeverity:
     """Parse severity string to AuditSeverity enum with validation."""
@@ -118,9 +112,16 @@ def read_legacy_executed_ids_from_evidence() -> set[str]:
     Returns empty set if evidence is missing or invalid.
     """
     try:
-        if not LEGACY_AUDIT_EVIDENCE_PATH.exists():
+        # Computed lazily — get_repo_root() raises when .intent/ is absent
+        # (e.g. during BYOR onboarding before the floor has been delivered).
+        evidence_path = (
+            PathResolver.from_repo(get_repo_root()).reports_dir
+            / "audit"
+            / "latest_audit.json"
+        )
+        if not evidence_path.exists():
             return set()
-        payload = json.loads(LEGACY_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+        payload = json.loads(evidence_path.read_text(encoding="utf-8"))
         executed = payload.get("executed_checks", [])
         if not isinstance(executed, list):
             return set()

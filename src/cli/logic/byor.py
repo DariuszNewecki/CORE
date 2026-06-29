@@ -22,14 +22,12 @@ CONSTITUTIONAL NOTES (#640):
 from __future__ import annotations
 
 import importlib.resources
-import os
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import typer
 
-from body.atomic.executor import ActionExecutor
 from shared.logger import getLogger
 
 
@@ -128,23 +126,17 @@ async def initialize_repository(
             )
             raise typer.Exit(code=1)
 
-    # The file.create action resolves file_path relative to CORE's repo root.
-    # A path that does NOT start with the literal `.intent/` prefix classifies as
-    # writable (target_class_boundaries.yaml), so we address the external repo via
-    # a CORE-root-relative path. This is how `project new` writes a sibling's .intent/.
-    rel_base = os.path.relpath(dest_root, core_root)
-
     # ADR-119 D2: machinery floor only — exclude rules/ and enforcement/mappings/.
     source_files = sorted(
         p
         for p in starter_dir.rglob("*")
         if p.is_file()
+        and not any(part.startswith("__") for part in p.parts)
         and any(
             p.relative_to(starter_dir).as_posix().startswith(prefix)
             for prefix in _MACHINERY_FLOOR_PREFIXES
         )
     )
-    executor = ActionExecutor(context)
 
     dest_label = f"stage:{dest_root}" if stage_dir is not None else str(target_root)
     mode = "WRITE" if write else "DRY RUN"
@@ -155,42 +147,22 @@ async def initialize_repository(
         mode,
     )
 
-    # Ensure the destination's .intent/ subdirectories exist before file.create.
-    parent_dirs = sorted(
-        {
-            (
-                Path(rel_base) / ".intent" / src.relative_to(starter_dir).parent
-            ).as_posix()
-            for src in source_files
-        }
-    )
-    for rel_dir in parent_dirs:
-        if write:
-            context.file_handler.ensure_dir(rel_dir)
-        else:
-            logger.info("   -> [DRY RUN] would ensure dir %s", rel_dir)
-
+    # Direct stdlib writes to the external target (ADR-111 D3 sanctioned exception:
+    # FileHandler's is_relative_to boundary guard cannot cross the repo boundary to an
+    # external project; byor.py is excluded from no_direct_writes in mutation_surface.yaml
+    # for this reason). No git-add: the operator commits .intent/ in the target repo.
     delivered = 0
     for src in source_files:
-        rel = src.relative_to(starter_dir).as_posix()
-        file_path = (Path(rel_base) / ".intent" / rel).as_posix()
-        content = src.read_text(encoding="utf-8")
-        await executor.execute(
-            action_id="file.create",
-            write=write,
-            file_path=file_path,
-            code=content,
-        )
-        # Confirm delivery by disk presence — the file is the ground truth. The
-        # executor's ActionResult.ok can be re-stamped by post-body policy
-        # validation even when the write succeeded, so it is not a reliable signal.
-        if write and not (core_root / file_path).is_file():
-            logger.error("   ❌ not delivered: %s", file_path)
-            continue
+        rel = src.relative_to(starter_dir)
+        dest = dest_root / ".intent" / rel
+        if write:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            if not dest.is_file():
+                logger.error("   ❌ not delivered: %s", rel)
+                continue
         delivered += 1
-        logger.info(
-            "   -> %s %s", "✅" if write else "[DRY RUN] would write", file_path
-        )
+        logger.info("   -> %s %s", "✅" if write else "[DRY RUN] would write", rel)
 
     if not write:
         logger.info(
@@ -276,37 +248,19 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
         logger.error("Stage at %s is empty. Re-stage before promoting.", stage_dir)
         raise typer.Exit(code=1)
 
-    rel_base = os.path.relpath(target_root, core_root)
-    executor = ActionExecutor(context)
-
-    # Ensure the target .intent/ subdirectories.
-    parent_dirs = sorted(
-        {
-            (
-                Path(rel_base) / ".intent" / src.relative_to(stage_intent).parent
-            ).as_posix()
-            for src in source_files
-        }
-    )
-    for rel_dir in parent_dirs:
-        context.file_handler.ensure_dir(rel_dir)
-
+    # Direct stdlib writes to external target (same sanctioned exception as
+    # initialize_repository — FileHandler boundary guard cannot cross repos).
     delivered = 0
     for src in source_files:
-        rel = src.relative_to(stage_intent).as_posix()
-        file_path = (Path(rel_base) / ".intent" / rel).as_posix()
-        content = src.read_text(encoding="utf-8")
-        await executor.execute(
-            action_id="file.create",
-            write=True,
-            file_path=file_path,
-            code=content,
-        )
-        if not (core_root / file_path).is_file():
-            logger.error("   ❌ not delivered: %s", file_path)
+        rel = src.relative_to(stage_intent)
+        dest = target_intent / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        if not dest.is_file():
+            logger.error("   ❌ not delivered: %s", rel)
             continue
         delivered += 1
-        logger.info("   -> ✅ %s", file_path)
+        logger.info("   -> ✅ %s", rel)
 
     # ADR-123 D2 step 5: remove stage on success.
     shutil.rmtree(stage_dir)

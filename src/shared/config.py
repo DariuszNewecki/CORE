@@ -53,6 +53,42 @@ def resolve_default_repo_path() -> Path:
     return REPO_ROOT
 
 
+# ID: 3a7b9c2d-1e4f-5a8b-c9d0-2e3f4a5b6c7d
+def resolve_default_mind_path() -> Path:
+    """Resolve the ``.intent/`` root for this invocation.
+
+    Priority:
+    1. First ``.intent/`` found walking up from cwd (consumer repo, post-onboard).
+    2. Source-tree REPO_ROOT / ``.intent/`` (CORE dev environment).
+    3. Bundled machinery floor at ``shared/_machinery_floor/`` (wheel install
+       before ``project onboard`` has run — allows ``core-admin`` to start and
+       deliver the floor without a chicken-and-egg crash).
+    """
+    cwd = Path.cwd()
+    for candidate in [cwd, *cwd.parents]:
+        intent = candidate / ".intent"
+        if intent.is_dir():
+            return intent
+    # Source-tree: REPO_ROOT should have .intent/
+    source_intent = REPO_ROOT / ".intent"
+    if source_intent.is_dir():
+        return source_intent
+    # Wheel install without a consumer .intent/ yet: use the bundled floor.
+    # This is a read-only, schema-only root — rules/ and mappings/ are absent,
+    # so governance evaluation is inert until the consumer runs `project onboard`.
+    try:
+        import importlib.resources
+
+        floor = Path(
+            str(importlib.resources.files("shared").joinpath("_machinery_floor"))
+        )
+        if floor.is_dir():
+            return floor
+    except Exception:
+        pass
+    return source_intent  # fall through — will surface a clear error at validation
+
+
 # ID: 8d63432d-6c04-4696-b9e0-33d1174ebdf8
 class Settings(BaseSettings):
     """
@@ -81,7 +117,7 @@ class Settings(BaseSettings):
     # Resolved via resolve_default_repo_path() so pip-installed
     # consumers auto-discover their repo from cwd. See #544.
     REPO_PATH: Path = Field(default_factory=resolve_default_repo_path)
-    MIND: Path = Field(default_factory=lambda: resolve_default_repo_path() / ".intent")
+    MIND: Path = Field(default_factory=resolve_default_mind_path)
     SPECS: Path = Field(default_factory=lambda: resolve_default_repo_path() / ".specs")
     BODY: Path = Field(default_factory=lambda: resolve_default_repo_path() / "src")
 

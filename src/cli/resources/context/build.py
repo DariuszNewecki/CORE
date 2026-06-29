@@ -39,11 +39,17 @@ from .hub import app
 logger = logging.getLogger(__name__)
 console = Console()
 
+
 # ADR-004: Typer --task autocompletion and help binding. The choice list
 # is derived from the governed vocabulary in
-# .intent/enforcement/config/task_type_phases.yaml and materialised once
-# at module load. No hardcoded copy of the vocabulary is permitted.
-_TASK_CHOICES: list[str] = sorted(allowed_task_types())
+# .intent/enforcement/config/task_type_phases.yaml. Computed lazily on
+# first call so core-admin can start from a repo without .intent/ yet
+# (BYOR onboarding — the floor is delivered by `project onboard`).
+def _get_task_choices() -> list[str]:
+    try:
+        return sorted(allowed_task_types())
+    except Exception:
+        return []
 
 
 def _format_item_source(item: dict[str, Any]) -> str:
@@ -288,7 +294,7 @@ async def build_cmd(
         "code_modification",
         "--task",
         "-t",
-        help=f"Task type: {', '.join(_TASK_CHOICES)}",
+        help=f"Task type: {', '.join(_get_task_choices())}",
     ),
     goal: str = typer.Option("", "--goal", "-g", help="Optional goal override"),
     show_prompt: bool = typer.Option(

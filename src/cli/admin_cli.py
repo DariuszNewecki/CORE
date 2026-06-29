@@ -50,7 +50,6 @@ app = typer.Typer(
     help="CORE: The Self-Improving System Architect's Toolkit.",
     no_args_is_help=False,
 )
-core_context = create_core_context(service_registry)
 
 
 # ID: ceac52ff-a86d-47f6-9c1e-2580932a3767
@@ -94,7 +93,7 @@ register_all_commands(app)
 def main(ctx: typer.Context) -> None:
     """Bootstrap services and launch TUI if no command given."""
     service_registry.prime(get_session)
-    ctx.obj = core_context
+    ctx.obj = create_core_context(service_registry)
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
