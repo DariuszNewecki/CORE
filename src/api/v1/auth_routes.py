@@ -22,7 +22,12 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, get_current_user, require_governor
+from api.dependencies import (
+    get_api_session,
+    get_current_user,
+    require_governor,
+    require_operator,
+)
 from shared.config import settings
 from shared.logger import getLogger
 from will.governance.auth_runner import AuthLockedError, AuthRunner
@@ -468,7 +473,7 @@ class InviteRequest(BaseModel):
 # ID: 9b4e2f7c-1a3d-4c8e-b5f0-3d1a6c9e2f7b
 async def invite(
     body: InviteRequest,
-    user: Annotated[dict, Depends(get_current_user)],
+    user: Annotated[dict, require_operator],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Create an invitation link for a new user (ORG_ADMIN or PLATFORM_ADMIN)."""
@@ -544,7 +549,7 @@ class PromoteUserRequest(BaseModel):
 async def promote_user(
     user_id: str,
     body: PromoteUserRequest,
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[dict, require_operator],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Promote a user to a new role (ORG_ADMIN or PLATFORM_ADMIN only)."""
@@ -619,7 +624,7 @@ class CreateApiKeyRequest(BaseModel):
 # ID: 5a3f8e2c-1b4d-4c9e-b7a0-6d1f3a5e8c2b
 async def create_api_key(
     body: CreateApiKeyRequest,
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[dict, require_operator],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Generate a new API key for the current user's organisation (ORG_ADMIN+)."""
@@ -655,7 +660,7 @@ async def create_api_key(
 @router.get("/api-keys")
 # ID: 8c1f4e7a-3d2b-4a9c-b5e0-2f6d1c4e8a3b
 async def list_api_keys(
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[dict, require_operator],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """List active API keys for the current organisation (ORG_ADMIN+)."""
@@ -674,7 +679,7 @@ async def list_api_keys(
 # ID: 3b7e1c9f-4a2d-4f8e-b6c0-5d1a3f7e2c9b
 async def revoke_api_key(
     key_id: str,
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[dict, require_operator],
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Revoke an API key (ORG_ADMIN+ within their own org)."""

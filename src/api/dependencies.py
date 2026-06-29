@@ -99,3 +99,6 @@ def require_role(*roles: str) -> Depends:
 
 
 require_governor = require_role("platform_admin")
+
+# ID: d3b30226-7e2d-40c6-a02b-d34784a657a5
+require_operator = require_role("org_admin", "platform_admin")
