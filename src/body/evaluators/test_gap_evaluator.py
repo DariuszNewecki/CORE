@@ -77,9 +77,10 @@ class TestGapEvaluator(BaseEvaluator):
     """
     AUDIT phase evaluator: identifies untested public symbols in a source file.
 
-    Reads source AST for public module-level functions and classes. Reads
-    existing test file AST (when present) for test_<name> functions to
-    determine which symbols already have coverage. Returns the gap set for
+    Reads source AST for public module-level functions, classes, and class
+    methods (ADR-133 D2). Reads existing test file AST (when present) for
+    test_<name> functions and TestClassName.test_<method> methods to determine
+    which symbols already have coverage. Returns the gap set for
     TestRemediatorWorker to convert into per-symbol build.test_for_symbol
     proposals (ADR-133 D1/D2/D4).
     """
@@ -196,7 +197,7 @@ class TestGapEvaluator(BaseEvaluator):
 
 # ID: a6b5bc75-c1b5-4cc2-b2b5-ceed9349d070
 def _extract_public_symbols(source_path: Path) -> list[SymbolGap]:
-    """Extract module-level public functions and classes from source_path via AST."""
+    """Extract public module-level functions, classes, and class methods via AST."""
     source = source_path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(source_path))
     symbols: list[SymbolGap] = []
@@ -219,19 +220,42 @@ def _extract_public_symbols(source_path: Path) -> list[SymbolGap]:
                         signature=f"class {node.name}",
                     )
                 )
+                for child in ast.iter_child_nodes(node):
+                    if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if (
+                            not child.name.startswith("_")
+                            and child.name not in _DUNDER_SKIP
+                        ):
+                            symbols.append(
+                                SymbolGap(
+                                    name=f"{node.name}.{child.name}",
+                                    kind="method",
+                                    signature=_format_signature(child),
+                                )
+                            )
     return symbols
 
 
 # ID: 26137180-53a9-4360-8535-a221d09ae847
 def _extract_tested_names(test_path: Path) -> set[str]:
-    """Return the set of symbol names implied by test_<name> functions in test_path."""
+    """Return symbol names covered by test_<name> functions/methods in test_path.
+
+    Module-level test_<name> → covers top-level symbol <name>.
+    TestClassName.test_<method> → covers class method ClassName.<method>.
+    """
     source = test_path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(test_path))
     tested: set[str] = set()
-    for node in ast.walk(tree):
+    for node in ast.iter_child_nodes(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.name.startswith("test_"):
                 tested.add(node.name[5:])
+        elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+            class_name = node.name[4:]
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if child.name.startswith("test_"):
+                        tested.add(f"{class_name}.{child.name[5:]}")
     return tested
 
 
