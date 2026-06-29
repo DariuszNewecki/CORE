@@ -59,6 +59,10 @@ _KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
 # stale tree is impossible by construction: different bytes => different key
 # => forced re-parse, so the cache only ever reuses an identical parse and
 # never decides whether a file is audited.
+# ADR-039 (Option F, 2026-06-29): a second cache layer in rule_executor.py
+# extends the same content-identity design one level deeper: engine.verify()
+# is skipped entirely for (rule_id, file, rule_content_hash, mtime_ns, size)
+# tuples seen in a prior cycle. See _EVAL_CACHE in rule_executor.py.
 _AST_CACHE: dict[Path, tuple[tuple[int, int], ast.AST]] = {}
 # Bound the cache so a long-lived daemon scanning a churning tree cannot grow
 # it without limit (~969 source files today; generous headroom). FIFO

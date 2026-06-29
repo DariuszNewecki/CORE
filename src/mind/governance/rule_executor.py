@@ -18,6 +18,47 @@ from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 # returns a legitimate "violation: true" verdict — that path is unaffected.
 _TRANSIENT_LLM_FAILURE_MARKER = "SYSTEM_ERROR_AI_OFFLINE"
 
+# ADR-039 Option F (2026-06-29): evaluation-level cache extends the parse
+# cache (Option E, audit_context._AST_CACHE) one layer deeper. Where Option E
+# skips read_text()+ast.parse() for unchanged files, Option F skips
+# engine.verify() entirely. Cache key: (rule_id, abs_path_str,
+# rule_content_hash, mtime_ns, size). Content-identity keying (not git-ref
+# keying) ensures uncommitted edits are caught on the same cycle they occur —
+# consistent with Option E. A changed file produces a different key and misses;
+# an edited rule's rule_content_hash changes and invalidates all its entries.
+# llm_gate rules are excluded: they carry their own DB-backed verdict cache
+# (ADR-044) and their verdicts depend on factors beyond file+rule content
+# identity (LLM state, model selection). ENFORCEMENT_FAILURE and transient LLM
+# failure results are never cached — they are infrastructure signals that must
+# re-evaluate each cycle.
+_EVAL_CACHE: dict[tuple[str, str, str, int, int], list[AuditFinding]] = {}
+_EVAL_CACHE_MAX_ENTRIES: int = 10_000
+# Engines whose verdicts depend on state outside file+rule content identity.
+_EVAL_CACHE_SKIP_ENGINES: frozenset[str] = frozenset({"llm_gate"})
+
+
+def _eval_cache_store(
+    key: tuple[str, str, str, int, int],
+    findings: list[AuditFinding],
+) -> None:
+    """Store per-file evaluation findings under their content-identity key, FIFO-evicting past the cap."""
+    if key in _EVAL_CACHE:
+        del _EVAL_CACHE[key]
+    elif len(_EVAL_CACHE) >= _EVAL_CACHE_MAX_ENTRIES:
+        del _EVAL_CACHE[next(iter(_EVAL_CACHE))]
+    _EVAL_CACHE[key] = findings
+
+
+# ID: 3f8a1d2e-9b7c-4e5f-a6d0-1c2b3e4f5a6b
+def clear_eval_cache() -> None:
+    """Discard all evaluation-level cache entries.
+
+    Intended for tests that need a cold-start guarantee and for
+    force-reaudit paths where the caller explicitly wants every file
+    re-evaluated regardless of content identity.
+    """
+    _EVAL_CACHE.clear()
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
@@ -193,8 +234,38 @@ async def execute_rule(
     # aggregate finding preserves the engine's diagnostic string.
     transient_llm_failures: list[tuple[str, str]] = []
 
+    # ADR-039 Option F: evaluation cache is active when the engine's verdicts
+    # are content-deterministic and the rule has a non-empty content hash.
+    use_eval_cache = rule.engine not in _EVAL_CACHE_SKIP_ENGINES and bool(
+        rule.rule_content_hash
+    )
+
     for file_path in files:
         try:
+            # ADR-039 Option F: stat the file for a content-identity cache
+            # lookup before dispatching engine.verify(). A hit means this
+            # (rule, file, rule-definition, file-content) combination was
+            # evaluated in a prior cycle and the result is still valid — skip
+            # the engine entirely and carry the cached findings forward.
+            if use_eval_cache:
+                try:
+                    st = file_path.stat()
+                    eval_key: tuple[str, str, str, int, int] | None = (
+                        rule.rule_id,
+                        str(file_path),
+                        rule.rule_content_hash,
+                        st.st_mtime_ns,
+                        st.st_size,
+                    )
+                except OSError:
+                    eval_key = None
+                else:
+                    if eval_key in _EVAL_CACHE:
+                        findings.extend(_EVAL_CACHE[eval_key])
+                        continue
+            else:
+                eval_key = None
+
             # We add '_context' to the params so the Engine knows where to find the Cache.
             # ADR-044: thread rule identity, content hash, and force-llm flag
             # through so the llm_gate engine can perform DB-backed verdict
@@ -212,7 +283,8 @@ async def execute_rule(
                 # #306/#307: transient LLM infrastructure failures are
                 # aggregated, not emitted per-file. The marker is set by
                 # LLMGateEngine when its LLM call fails for non-verdict
-                # reasons (timeout, connection error, etc.).
+                # reasons (timeout, connection error, etc.). Never cached —
+                # the infrastructure condition may clear next cycle.
                 marker_violation = next(
                     (
                         v
@@ -226,6 +298,7 @@ async def execute_rule(
                     err_msg, _ = normalize_violation(marker_violation)
                     transient_llm_failures.append((rel_path, err_msg))
                     continue
+                file_findings: list[AuditFinding] = []
                 for v in result.violations:
                     # Normalize whether engine emitted a bare string or a
                     # structured dict. Details (when present) flow into
@@ -237,7 +310,7 @@ async def execute_rule(
                     # inline annotations land at the actual violation line
                     # rather than the file-level fallback.
                     line_number = extract_line_number(msg, details)
-                    findings.append(
+                    file_findings.append(
                         AuditFinding(
                             check_id=rule.rule_id,
                             severity=severity,
@@ -248,11 +321,20 @@ async def execute_rule(
                             evidence_class=engine_evidence_class,  # ADR-113
                         )
                     )
+                findings.extend(file_findings)
+                if eval_key is not None:
+                    _eval_cache_store(eval_key, file_findings)
+            else:
+                # Clean file — cache the empty result so the next cycle skips
+                # evaluation entirely for this (rule, file) pair.
+                if eval_key is not None:
+                    _eval_cache_store(eval_key, [])
         except Exception as e:
             # HARDENING P0.1 (per-file): Engine crash on a single file →
             # ENFORCEMENT_FAILURE finding. A crashing per-file check is NOT
             # a passing check. Silent continue would make this rule
             # indistinguishable from a clean pass for this file.
+            # Never cached — the crash may be transient or the file in flux.
             logger.error(
                 "ENFORCEMENT_FAILURE: Rule %s crashed on file %s: %s",
                 rule.rule_id,
