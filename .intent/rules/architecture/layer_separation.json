@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.layer_separation",
         "title": "Mind/Body/Will Layer Separation",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -16,7 +16,7 @@
             "enforcement": "reporting",
             "authority": "constitution",
             "phase": "parse",
-            "rationale": "The constitution defines exactly three layers: Mind, Body, Will — plus shared infrastructure and API entrypoints. Code that exists outside these boundaries is ungoverned by definition. This rule closes the perimeter so that no shadow layers can accumulate undetected."
+            "rationale": "The constitution defines exactly three layers: Mind, Body, Will \u2014 plus shared infrastructure and API entrypoints. Code that exists outside these boundaries is ungoverned by definition. This rule closes the perimeter so that no shadow layers can accumulate undetected."
         },
         {
             "id": "architecture.mind.no_database_access",
@@ -136,7 +136,15 @@
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "Shared is layer-independent substrate. A shared module that imports from a layer fails the constitutional admission test (CORE-Mind-Body-Will-Separation.md §7.2 Test 1) and belongs in that layer, not in shared/. This rule makes the admission test mechanically enforceable. Added 2026-03-28 as a blocking AST gate, replacing previously advisory-only governance."
+            "rationale": "Shared is layer-independent substrate. A shared module that imports from a layer fails the constitutional admission test (CORE-Mind-Body-Will-Separation.md \u00a77.2 Test 1) and belongs in that layer, not in shared/. This rule makes the admission test mechanically enforceable. Added 2026-03-28 as a blocking AST gate, replacing previously advisory-only governance."
+        },
+        {
+            "id": "architecture.api.router_exposure_must_match_dependencies",
+            "statement": "Every APIRouter module declaring ROUTER_EXPOSURE=\"governor-only\" MUST carry require_governor in its APIRouter constructor dependencies list. No APIRouter module declaring ROUTER_EXPOSURE=\"user-facing\" MAY carry require_governor at the router constructor level (per-route gates are permitted).",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ROUTER_EXPOSURE is the machine-readable declaration of who may call a route. If the enforcement dependency does not match the declaration, the declaration is lying \u2014 a governed route can be called without the required authority, or an unintended restriction blocks legitimate callers. This rule ensures ROUTER_EXPOSURE is never decorative. Introduced by ADR-132 D7."
         }
     ]
 }

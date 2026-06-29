@@ -20,6 +20,7 @@ from mind.logic.engines.ast_gate.checks import (
     PurityChecks,
     SchemaConformanceChecks,
 )
+from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
 from mind.logic.engines.ast_gate.checks.artifact_discovery_check import (
     ArtifactDiscoveryCheck,
 )
@@ -111,6 +112,7 @@ class ASTGateEngine(BaseEngine):
             "indeterminate_requires_human_mechanism",
             "future_annotations",
             "type_annotations",
+            "router_exposure_enforcement",
         }
     )
 
@@ -334,6 +336,10 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "type_annotations":
             violations.extend(NamingChecks.check_type_annotations(tree))
+
+        # --- API Authentication Boundary (ADR-132 D7) ---
+        elif check_type == "router_exposure_enforcement":
+            violations.extend(ApiAuthChecks.check_router_exposure_enforcement(tree))
 
         # --- Logging & Channel Discipline ---
         elif check_type == "logger_not_presentation":

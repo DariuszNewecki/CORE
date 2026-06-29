@@ -1,0 +1,18 @@
+# .intent/enforcement/mappings/architecture/api_auth_boundary.yaml
+#
+# Enforcement mapping for architecture.api.router_exposure_must_match_dependencies
+# (ADR-132 D7) — ROUTER_EXPOSURE and APIRouter dependencies must agree.
+#
+# Scope: API v1 route modules only. Excludes main.py (composition root),
+# dependencies.py (defines require_governor itself), and __init__.py files.
+
+mappings:
+  architecture.api.router_exposure_must_match_dependencies:
+    engine: ast_gate
+    params:
+      check_type: router_exposure_enforcement
+    scope:
+      applies_to:
+        - "src/api/v1/**/*.py"
+      excludes:
+        - "src/api/v1/__init__.py"
