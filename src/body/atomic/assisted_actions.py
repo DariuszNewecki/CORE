@@ -14,22 +14,22 @@ happens later, on governor approval, through the existing proposal-execution
 path (ADR-101 D2). The verdict is the auto-firing oracle ADR-109 §Mechanism 4
 requires: it fires regardless of what the authoring agent claims.
 
-Constitutional note (governance.dangerous_execution_primitives): this module
-shells out to ``git apply`` and ``ruff`` against the hermetic worktree. This is
-the designated Body validation sanctuary — the same posture as the pytest
-subprocess in ``shared.infrastructure.validation.test_runner`` — and runs only
-against the throwaway worktree, never the main tree.
+Constitutional note (governance.dangerous_execution_primitives): subprocess calls
+for ``git apply`` and ``ruff`` are concentrated in ``ToolRunner``
+(``body.atomic.tool_runner``) — the designated Body validation sanctuary,
+mirroring the pytest subprocess in ``shared.infrastructure.validation.test_runner``.
+Calls run only against the throwaway worktree, never the main tree.
 """
 
 from __future__ import annotations
 
 import hashlib
-import subprocess
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
+from body.atomic.tool_runner import ToolRunner
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
@@ -39,32 +39,6 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-
-
-def _git(
-    worktree: Path, *args: str, stdin: str | None = None
-) -> subprocess.CompletedProcess[str]:
-    """Run a git command scoped to *worktree* (validation sanctuary)."""
-    # git, fixed argv, run against the throwaway worktree only (Body sanctuary)
-    return subprocess.run(
-        ["git", "-C", str(worktree), *args],
-        input=stdin,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-
-def _ruff_ok(worktree: Path, files: list[str]) -> bool:
-    """Run ruff against *files* in the worktree (sync; Body sanctuary)."""
-    proc = subprocess.run(
-        ["ruff", "check", *files],
-        cwd=str(worktree),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    return proc.returncode == 0
 
 
 def _norm_path(path: str | None) -> str:
@@ -191,7 +165,9 @@ async def action_assisted_validate_diff(
     touched: list[str] = []
     try:
         # 1. Patch must apply cleanly in the hermetic worktree.
-        applied = _git(wt_path, "apply", "--whitespace=nowarn", stdin=patch)
+        applied = ToolRunner.run_git(
+            wt_path, "apply", "--whitespace=nowarn", stdin=patch
+        )
         checks["patch_applies"] = applied.returncode == 0
         if applied.returncode != 0:
             return ActionResult(
@@ -207,7 +183,11 @@ async def action_assisted_validate_diff(
             )
 
         touched = [
-            p for p in _git(wt_path, "diff", "--name-only").stdout.splitlines() if p
+            p
+            for p in ToolRunner.run_git(
+                wt_path, "diff", "--name-only"
+            ).stdout.splitlines()
+            if p
         ]
         touched_py = [p for p in touched if p.endswith(".py")]
 
@@ -247,7 +227,9 @@ async def action_assisted_validate_diff(
             )
 
         # 2. ruff must pass on the touched Python files.
-        checks["ruff"] = _ruff_ok(wt_path, touched_py) if touched_py else True
+        checks["ruff"] = (
+            ToolRunner.run_ruff(wt_path, touched_py) if touched_py else True
+        )
 
         # 3. The offending rule must no longer flag the finding's subject or
         #    any touched file. Body invokes the Mind auditor against the
@@ -374,7 +356,7 @@ async def action_assisted_apply_diff(
         )
 
     repo = Path(core_context.git_service.repo_path)
-    applied = _git(repo, "apply", "--whitespace=nowarn", stdin=patch)
+    applied = ToolRunner.run_git(repo, "apply", "--whitespace=nowarn", stdin=patch)
     if applied.returncode != 0:
         return ActionResult(
             action_id=aid,
@@ -383,7 +365,11 @@ async def action_assisted_apply_diff(
             impact=ActionImpact.WRITE_CODE,
             duration_sec=time.perf_counter() - started,
         )
-    touched = [p for p in _git(repo, "diff", "--name-only").stdout.splitlines() if p]
+    touched = [
+        p
+        for p in ToolRunner.run_git(repo, "diff", "--name-only").stdout.splitlines()
+        if p
+    ]
     return ActionResult(
         action_id=aid,
         ok=True,

@@ -23,14 +23,9 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, get_current_user, require_governor
-from body.services.auth.email import (
-    send_invitation_email,
-    send_password_reset_email,
-    send_verification_email,
-)
-from body.services.auth.service import AuthLockedError, AuthService
 from shared.config import settings
 from shared.logger import getLogger
+from will.governance.auth_runner import AuthLockedError, AuthRunner
 
 
 logger = getLogger(__name__)
@@ -112,24 +107,16 @@ def _clear_auth_cookies(response: Response) -> None:
 # ID: 1d6b4f9c-3e2a-4c8e-b0d7-5a1c3f6b9d4e
 def get_auth_service(
     session: Annotated[AsyncSession, Depends(get_api_session)],
-) -> AuthService:
-    """
-    Dependency injection factory for the AuthService layer.
-
-    Creates a fully-configured AuthService instance using database session and
-    application-level JWT authentication settings.
-
-    Args:
-        session: AsyncSession injected by the FastAPI dependency resolver.
-
-    Returns:
-        AuthService instance wired with session, JWT secret, and token lifetime settings.
-    """
-    return AuthService(
+) -> AuthRunner:
+    """DI factory — constructs an AuthRunner for this request."""
+    return AuthRunner(
         session=session,
         jwt_secret=settings.JWT_SECRET_KEY,
         access_expire_minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
         refresh_expire_days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS,
+        resend_api_key=settings.RESEND_API_KEY,
+        app_base_url=settings.APP_BASE_URL,
+        mail_from=settings.MAIL_FROM,
     )
 
 
@@ -233,7 +220,7 @@ class PromoteRequest(BaseModel):
 async def register(
     body: RegisterRequest,
     request: Request,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Register a new user.  Returns a verification token to send via email."""
     _check_rate(request.client.host if request.client else "unknown", "register")
@@ -247,15 +234,9 @@ async def register(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
-    email_sent = False
-    if settings.RESEND_API_KEY:
-        email_sent = await send_verification_email(
-            to=str(body.email),
-            token=result["email_verify_token"],
-            base_url=settings.APP_BASE_URL,
-            api_key=settings.RESEND_API_KEY,
-            from_address=settings.MAIL_FROM,
-        )
+    email_sent = await svc.send_verification_email(
+        str(body.email), result["email_verify_token"]
+    )
 
     return {
         "user_id": result["user_id"],
@@ -273,7 +254,7 @@ async def register(
 # ID: 7e1f4b9c-2a3d-4c8e-b6f0-3d1a5c7e4f2b
 async def verify_email(
     token: str,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Verify email address via the token from the registration email."""
     try:
@@ -289,7 +270,7 @@ async def login(
     body: LoginRequest,
     request: Request,
     response: Response,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Authenticate and set httpOnly auth cookies."""
     ip = request.client.host if request.client else None
@@ -322,7 +303,7 @@ async def login(
 async def refresh(
     request: Request,
     response: Response,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
     core_refresh: Annotated[str | None, Cookie()] = None,
 ) -> dict:
     """Exchange a valid refresh cookie for new access + refresh cookies (rotation)."""
@@ -347,7 +328,7 @@ async def refresh(
 # ID: 6d1a3c8f-5e2b-4f7c-b9a0-2c4d1a6e3f5b
 async def logout(
     response: Response,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
     core_refresh: Annotated[str | None, Cookie()] = None,
 ) -> dict:
     """Revoke refresh token and clear auth cookies."""
@@ -370,7 +351,7 @@ class ChangePasswordRequest(BaseModel):
 async def change_password(
     body: ChangePasswordRequest,
     user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Change the authenticated user's password.
 
@@ -399,21 +380,15 @@ async def change_password(
 async def password_reset_request(
     body: PasswordResetRequest,
     request: Request,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Request a password reset token (sent via email by the caller)."""
     _check_rate(str(body.email), "password_reset")
     raw_token = await svc.request_password_reset(str(body.email))
 
     email_sent = False
-    if raw_token and settings.RESEND_API_KEY:
-        email_sent = await send_password_reset_email(
-            to=str(body.email),
-            token=raw_token,
-            base_url=settings.APP_BASE_URL,
-            api_key=settings.RESEND_API_KEY,
-            from_address=settings.MAIL_FROM,
-        )
+    if raw_token:
+        email_sent = await svc.send_password_reset_email(str(body.email), raw_token)
 
     return {
         "message": "If that email is registered, a reset link will be sent.",
@@ -432,7 +407,7 @@ async def password_reset_request(
 async def password_reset_confirm(
     body: PasswordResetConfirmRequest,
     response: Response,
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Apply a password reset and revoke all existing sessions."""
     try:
@@ -494,7 +469,7 @@ class InviteRequest(BaseModel):
 async def invite(
     body: InviteRequest,
     user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Create an invitation link for a new user (ORG_ADMIN or PLATFORM_ADMIN)."""
     _ORG_ADMIN_MAX = {"visitor", "analyst", "auditor"}
@@ -529,17 +504,9 @@ async def invite(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
     org_name = target_org or "CORE"
-    email_sent = False
-    if settings.RESEND_API_KEY:
-        email_sent = await send_invitation_email(
-            to=str(body.email),
-            token=raw_token,
-            role=body.role,
-            org_name=org_name,
-            base_url=settings.APP_BASE_URL,
-            api_key=settings.RESEND_API_KEY,
-            from_address=settings.MAIL_FROM,
-        )
+    email_sent = await svc.send_invitation_email(
+        str(body.email), raw_token, body.role, org_name
+    )
 
     return {
         "message": f"Invitation created for {body.email}.",
@@ -578,7 +545,7 @@ async def promote_user(
     user_id: str,
     body: PromoteUserRequest,
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Promote a user to a new role (ORG_ADMIN or PLATFORM_ADMIN only)."""
     try:
@@ -599,7 +566,7 @@ async def promote_user(
 async def suspend_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
     _: Annotated[None, Depends(require_governor)],
 ) -> dict:
     """Suspend a user account (PLATFORM_ADMIN only)."""
@@ -612,7 +579,7 @@ async def suspend_user(
 async def reactivate_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
     _: Annotated[None, Depends(require_governor)],
 ) -> dict:
     """Reactivate a suspended account (PLATFORM_ADMIN only)."""
@@ -653,7 +620,7 @@ class CreateApiKeyRequest(BaseModel):
 async def create_api_key(
     body: CreateApiKeyRequest,
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Generate a new API key for the current user's organisation (ORG_ADMIN+)."""
     if current_user["role"] not in {"org_admin", "platform_admin"}:
@@ -689,7 +656,7 @@ async def create_api_key(
 # ID: 8c1f4e7a-3d2b-4a9c-b5e0-2f6d1c4e8a3b
 async def list_api_keys(
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """List active API keys for the current organisation (ORG_ADMIN+)."""
     if current_user["role"] not in {"org_admin", "platform_admin"}:
@@ -708,7 +675,7 @@ async def list_api_keys(
 async def revoke_api_key(
     key_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
-    svc: Annotated[AuthService, Depends(get_auth_service)],
+    svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Revoke an API key (ORG_ADMIN+ within their own org)."""
     if current_user["role"] not in {"org_admin", "platform_admin"}:
