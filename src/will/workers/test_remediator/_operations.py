@@ -361,7 +361,7 @@ async def _query_recent_symbol_failures(
     in the last lookback_hours. Per-symbol circuit breaker (ADR-133 D4).
     Returns 0 on error so the caller fails open.
     """
-    from sqlalchemy import text
+    from sqlalchemy import Integer, String, bindparam, text
 
     from body.services.service_registry import service_registry
 
@@ -373,9 +373,12 @@ async def _query_recent_symbol_failures(
                     SELECT count(*) FROM core.autonomous_proposals
                     WHERE status = 'failed'
                       AND failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
-                      AND scope->'files' @> :source_file_json::jsonb
+                      AND scope->'files' @> cast(:source_file_json as jsonb)
                       AND updated_at > now() - make_interval(hours => :hours)
                     """
+                ).bindparams(
+                    bindparam("source_file_json", type_=String),
+                    bindparam("hours", type_=Integer),
                 ),
                 {
                     "source_file_json": f'["{source_file}"]',
