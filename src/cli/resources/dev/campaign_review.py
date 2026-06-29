@@ -170,6 +170,7 @@ async def accept_cluster(
     layer=CommandLayer.WILL,
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Reject one cluster, recording the reason.",
+    dangerous=True,
 )
 @core_command(dangerous=True, requires_context=False)
 # ID: b2d3f405-6c71-4890-ab1c-2d3e4f506172
