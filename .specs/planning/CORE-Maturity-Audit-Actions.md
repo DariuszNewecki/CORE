@@ -167,6 +167,52 @@ heterogeneous axes discards the only signal that matters (which axis is weak and
 
 ---
 
+## 9. 2026-06-30 External Review — governance enforcement maturity
+
+Second external review (blind, description-only). Items below are the **strategic / long-horizon** findings; discrete actionable items were filed as GH issues (#722–#727). Items here are either too large for a single issue or require a governance decision before scoping.
+
+- [ ] ✅ **VERIFIED-REAL — Shared layer periodic audit cadence (finding 1b).** `src/shared/`
+  has no active audit cadence to detect upward dependencies or workflow assumptions leaking
+  in. The `architecture.shared.no_layer_imports` blocking rule catches explicit imports, but
+  conceptual coupling (shared encoding Body/Will assumptions without importing them) is not
+  detected. **Action:** establish a quarterly "shared independence audit" motion — walk every
+  `src/shared/` module for workflow-specific assumptions and split anything that doesn't
+  belong. No GH issue yet; needs a governance framing first.
+
+- [ ] ✅ **VERIFIED-REAL — Will fan-in/fan-out metrics (finding 1c).** No tooling tracks
+  how many Body services Will imports per worker. If Will begins depending heavily on Body
+  internals (rather than using the blackboard/service layer), it becomes a god layer.
+  **Action:** add a `will_fan_in` metric to the dashboard or a periodic `import-count` check
+  in CI that alerts when any Will worker exceeds N direct Body imports. Filed as planning
+  input; not yet a concrete issue.
+
+- [ ] ✅ **VERIFIED-REAL — Intent read access logging (finding 2c).** `IntentRepository`
+  does not log reads. The `architecture.namespace.no_direct_protected_access` reporting rule
+  catches raw `Path` access at audit time, but shadow access via undiscovered code paths is
+  undetected at runtime. **Action:** add `logger.debug` on every `IntentRepository.load_*`
+  call — cost is negligible; gain is a runtime tap for shadow-access detection.
+  Small — could be a one-liner change, but the value is in the *operational visibility*
+  story, so it warrants a brief ADR note when implemented.
+
+- [ ] ✅ **VERIFIED-REAL — ADR invariant tests for key ADR clauses (findings 3a/3b).** Some
+  ADRs have dedicated tests (`test_role_enforcement.py` for ADR-132, atomic-action tests for
+  ADR-021/ADR-101). Most do not. No framework exists for "given this ADR clause, here is the
+  test that asserts the invariant." **Action:** as part of the next governance maturity cycle,
+  require a `tests/adrs/test_ADR_NNN_DN.py` alongside each multi-phase ADR D-step that can
+  be mechanically tested. Start with the highest-risk ADRs (ADR-104 liveness, ADR-129
+  GitService, ADR-132 auth boundary). Relates to #726 (ADR phase tracking).
+
+- [ ] ❓ **UNVERIFIED — Perf / cost / observability SLA governance (finding 9a).** The
+  reviewer correctly identified three missing risk categories: (1) no latency governance
+  (no constitutional rule on AI call duration or API response time); (2) no AI cost budget
+  (LLM spend is unmonitored at the governance layer); (3) no SLA on what must be logged /
+  retained. #413 [F-39] covers SLA support at the product level but does not address the
+  constitutional framing. **Action:** confirm whether these belong as `.intent/` rules
+  (e.g. `governance.cost.llm_budget_required`) or as operational ADRs. Scope decision
+  needed before filing an issue.
+
+---
+
 ## 8. References
 
 - [`CORE-Operational-Completeness.md`](CORE-Operational-Completeness.md) — authoritative
