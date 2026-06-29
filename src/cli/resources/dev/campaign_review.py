@@ -122,6 +122,7 @@ async def list_clusters(
     layer=CommandLayer.WILL,
     exposure=CommandExposure.GOVERNOR_ONLY,
     summary="Accept one autonomous cluster for execution.",
+    dangerous=True,
 )
 @core_command(dangerous=True, requires_context=False)
 # ID: a1c2e3f4-5b60-4789-9a0b-1c2d3e4f5061
@@ -216,8 +217,17 @@ async def reject_cluster(
 async def execute_campaign(
     ctx: typer.Context,
     parent_task_id: str = typer.Argument(..., help="Campaign parent Task id."),
+    write: bool = typer.Option(
+        False, "--write", help="Execute approved clusters (default dry-run)."
+    ),
 ) -> None:
     """Run only the clusters the governor has accepted (status='approved')."""
+    if not write:
+        console.print(
+            "[yellow]Dry-run: approved clusters for campaign would be executed. "
+            "Pass --write to run.[/yellow]"
+        )
+        return
     from will.agents.strategic_auditor.effects import execute_approved_clusters
 
     parent = _parse_uuid(parent_task_id, "parent_task_id")

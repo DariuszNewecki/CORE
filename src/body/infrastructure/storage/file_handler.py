@@ -49,13 +49,13 @@ class FileHandler:
         if not self.repo_path.is_dir():
             raise ValueError(f"Invalid repository path provided: {repo_path}")
 
-        self.log_dir = self.repo_path / "var" / "logs"
-        self.pending_dir = self.repo_path / "var" / "workflows" / "pending_writes"
-
         path_resolver = PathResolver.from_repo(
             repo_root=self.repo_path,
             intent_root=self.repo_path / ".intent",
         )
+
+        self.log_dir = path_resolver.logs_dir
+        self.pending_dir = self.repo_path / "var" / "workflows" / "pending_writes"
 
         self._guard = get_intent_guard(
             repo_path=self.repo_path,
