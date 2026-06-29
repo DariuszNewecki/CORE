@@ -22,7 +22,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, get_current_user
+from api.dependencies import get_api_session, get_current_user, require_governor
 from body.services.auth.email import (
     send_invitation_email,
     send_password_reset_email,
@@ -35,7 +35,7 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-ROUTER_EXPOSURE = "governor-only"
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 # ---------------------------------------------------------------------------
@@ -600,12 +600,9 @@ async def suspend_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
     svc: Annotated[AuthService, Depends(get_auth_service)],
+    _: Annotated[None, Depends(require_governor)],
 ) -> dict:
     """Suspend a user account (PLATFORM_ADMIN only)."""
-    if current_user["role"] != "platform_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="PLATFORM_ADMIN only."
-        )
     await svc.set_active(user_id=user_id, active=False, actor_id=current_user["sub"])
     return {"message": f"User {user_id} suspended."}
 
@@ -616,12 +613,9 @@ async def reactivate_user(
     user_id: str,
     current_user: Annotated[dict, Depends(get_current_user)],
     svc: Annotated[AuthService, Depends(get_auth_service)],
+    _: Annotated[None, Depends(require_governor)],
 ) -> dict:
     """Reactivate a suspended account (PLATFORM_ADMIN only)."""
-    if current_user["role"] != "platform_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="PLATFORM_ADMIN only."
-        )
     await svc.set_active(user_id=user_id, active=True, actor_id=current_user["sub"])
     return {"message": f"User {user_id} reactivated."}
 

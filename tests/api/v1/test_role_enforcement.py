@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.dependencies import get_current_user
+from api.v1.auth_routes import router as auth_router
 from api.v1.daemon_routes import router as daemon_router
 from api.v1.development_routes import router as development_router
 from api.v1.fix_routes import router as fix_router
@@ -33,6 +34,7 @@ def _app_with_role(role: str) -> FastAPI:
     """Minimal FastAPI app with all governor-gated routers; get_current_user returns role."""
     user = {"sub": "uid-1", "email": "user@example.com", "role": role, "org_id": "o"}
     app = FastAPI()
+    app.include_router(auth_router)
     app.include_router(fix_router)
     app.include_router(proposals_router)
     app.include_router(daemon_router)
@@ -50,6 +52,9 @@ def _app_with_role(role: str) -> FastAPI:
 @pytest.mark.parametrize(
     "method,path,body",
     [
+        # auth_routes — per-route governor gates (ADR-132 alignment)
+        ("POST", "/auth/users/uid-x/suspend", None),
+        ("POST", "/auth/users/uid-x/reactivate", None),
         # fix_routes — per-route governor gates
         ("POST", "/fix/run/fix.format", None),
         ("POST", "/fix/all", None),
@@ -89,6 +94,8 @@ def test_mutation_endpoint_rejects_non_admin(method: str, path: str, body: dict 
 @pytest.mark.parametrize(
     "method,path,body",
     [
+        ("POST", "/auth/users/uid-x/suspend", None),
+        ("POST", "/auth/users/uid-x/reactivate", None),
         ("POST", "/fix/run/fix.format", None),
         ("POST", "/fix/all", None),
         ("POST", "/fix/modularity", None),
@@ -132,7 +139,9 @@ def test_require_governor_is_canonical_platform_admin_gate() -> None:
     api_root = pathlib.Path(__file__).parents[3] / "src" / "api"
     violations: list[str] = []
 
-    # auth_routes.py uses imperative if-checks (pre-ADR-132 pattern, not DI-based)
+    # auth_routes.py: invite handler legitimately checks platform_admin inline
+    # because org_admin is also a valid caller (multi-role path, not DI-expressible).
+    # suspend/reactivate have been migrated to require_governor (ADR-132 D2).
     _EXCLUDED = {"dependencies.py", "auth_routes.py"}
 
     for py_file in api_root.rglob("*.py"):
