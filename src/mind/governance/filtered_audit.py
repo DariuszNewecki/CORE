@@ -18,12 +18,12 @@ import re
 from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
+from shared.models.audit_models import AuditFinding, AuditSeverity, EvidenceClass
 
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from mind.governance.executable_rule import ExecutableRule
-    from shared.models import AuditFinding
 
 logger = getLogger(__name__)
 
@@ -244,6 +244,23 @@ async def run_filtered_audit(
                 exc_info=True,
             )
             failed_rules.append(rule.rule_id)
+            all_findings.append(
+                AuditFinding(
+                    check_id="governance.audit_engine.rule_evaluation_failed",
+                    severity=AuditSeverity.HIGH,
+                    message=(
+                        f"Rule '{rule.rule_id}' could not be evaluated: "
+                        f"{type(e).__name__}: {e}"
+                    ),
+                    context={
+                        "rule_id": rule.rule_id,
+                        "policy_id": getattr(rule, "policy_id", None),
+                        "error_type": type(e).__name__,
+                        "error": str(e),
+                    },
+                    evidence_class=EvidenceClass.ATTESTED,
+                )
+            )
 
     stats = {
         "total_rules": len(all_rules),
