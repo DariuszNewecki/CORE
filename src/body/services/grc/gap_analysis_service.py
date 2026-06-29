@@ -349,18 +349,17 @@ class DocumentCorpusAnalysisService:
         Returns one ``RequirementVerdict`` per requirement, each carrying its
         corpus-level status, evidence class, and localized evidence (D1/D3/D5/D6).
         """
-        from pathlib import Path
-
         from mind.logic.engines.registry import EngineRegistry
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
         from shared.path_resolver import PathResolver
 
         # Engine internals (e.g. llm_gate prompts under var/prompts/) resolve
         # against CORE's own root; the corpus is addressed only via the
         # _CorpusContext below. Two independent roots — the Intent/Artifact split.
-        # PathResolver is in shared/ — the governed path for body/ to locate
-        # repo-relative resources without importing Settings
-        # (architecture.boundary.settings_access).
-        _repo_root = Path(__file__).resolve().parents[4]
+        # get_intent_repository().root.parent is the governed way to locate the
+        # repo root from body/ without importing Settings or using __file__ navigation
+        # (which breaks on pip-install where parents[N] points into site-packages).
+        _repo_root = get_intent_repository().root.parent
         EngineRegistry.initialize(
             PathResolver.from_repo(_repo_root),
             llm_client=self._llm_client,

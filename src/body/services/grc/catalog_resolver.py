@@ -43,9 +43,10 @@ def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
     """
     if catalog_root is not None:
         return Path(catalog_root).resolve()
+    from shared.infrastructure.intent.intent_repository import get_intent_repository
     from shared.path_resolver import PathResolver
 
-    repo_root = Path(__file__).resolve().parents[4]
+    repo_root = get_intent_repository().root.parent
     return PathResolver.from_repo(repo_root).grc_catalogs_dir
 
 
