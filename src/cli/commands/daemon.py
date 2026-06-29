@@ -33,6 +33,7 @@ import logging
 import os
 import re
 import signal
+import socket
 import sys
 from pathlib import Path
 from typing import Any
@@ -583,6 +584,39 @@ def _release_singleton_lock(fd: int, pid_file_rel: Path) -> None:
         pass
 
 
+# ID: 3a7e9c1f-4b2d-4e8f-a5c6-7d8e9f0a1b2c
+async def _watchdog_pinger() -> None:
+    """Ping systemd watchdog at half the configured WatchdogSec interval.
+
+    Systemd sets WATCHDOG_USEC when WatchdogSec is active. Without periodic
+    sd_notify(WATCHDOG=1) the daemon is killed after WatchdogSec seconds —
+    the root cause of the 131.5s restart cycle observed in ADR-081 telemetry.
+    No-ops silently when WATCHDOG_USEC or NOTIFY_SOCKET are absent (not under
+    a watchdog-enabled systemd unit).
+    """
+    usec_raw = os.environ.get("WATCHDOG_USEC")
+    notify_path = os.environ.get("NOTIFY_SOCKET", "")
+    if not usec_raw or not notify_path:
+        return
+    try:
+        interval_sec = int(usec_raw) / 1_000_000 / 2
+    except ValueError:
+        return
+    # Abstract sockets are prefixed with '@' in systemd; the kernel uses '\0'.
+    sock_addr = ("\0" + notify_path[1:]) if notify_path.startswith("@") else notify_path
+    logger.info(
+        "CORE daemon: systemd watchdog pinger started (interval=%.1fs)",
+        interval_sec,
+    )
+    while True:
+        await asyncio.sleep(interval_sec)
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+                sock.sendto(b"WATCHDOG=1", sock_addr)
+        except OSError as exc:
+            logger.warning("CORE daemon: watchdog ping failed: %s", exc)
+
+
 # ID: ea1f2f3a-280e-4d88-a120-4b310a2ef31f
 async def _run_daemon(only: str | None = None) -> None:
     """
@@ -908,6 +942,12 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             len(workers_by_stem),
         )
 
+    # Systemd watchdog pinger — must be started before stop_event.wait() so it
+    # keeps pinging for the full daemon lifetime (ADR-081; see _watchdog_pinger).
+    watchdog_task: asyncio.Task[None] = asyncio.create_task(
+        _watchdog_pinger(), name="watchdog_pinger"
+    )
+
     # loop is acquired above (ADR-081 Step 0); reuse it for signal handling.
     stop_event = asyncio.Event()
 
@@ -938,5 +978,11 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             await telemetry_task
         except asyncio.CancelledError:
             pass
+
+    watchdog_task.cancel()
+    try:
+        await watchdog_task
+    except asyncio.CancelledError:
+        pass
 
     logger.info("CORE daemon: stopped cleanly.")
