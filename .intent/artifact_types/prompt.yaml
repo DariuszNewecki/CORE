@@ -21,4 +21,5 @@ crawler_indexed: true
 
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
   - repo_crawler
+  - prompt_drift_sensor   # ADR-134 D6
 supported_actions: []   # F-43 forward (ADR-090 D5)
