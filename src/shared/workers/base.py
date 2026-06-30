@@ -33,6 +33,7 @@ from shared.infrastructure.intent.intent_repository import (
 )
 from shared.logger import getLogger
 from shared.workers.blackboard_publisher import BlackboardPublisher
+from shared.workers.declaration_validator import validate_worker_declaration
 
 
 logger = getLogger(__name__)
@@ -407,7 +408,6 @@ class Worker(ABC):
         architecture.namespace.no_direct_protected_access.
         """
         from shared.infrastructure.intent.errors import GovernanceError
-        from shared.workers.declaration_validator import validate_worker_declaration
 
         worker_id = f"workers/{self.declaration_name}"
 

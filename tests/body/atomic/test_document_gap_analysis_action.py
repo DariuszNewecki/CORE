@@ -15,7 +15,9 @@ import pytest
 
 from body.atomic.document.gap_analysis_action import action_run_gap_analysis
 from shared.action_types import ActionResult
+from shared.governance_token import authorize_execution
 from shared.models.grc_verdict import (
+    Applicability,
     EvidenceClass,
     RequirementStatus,
     RequirementVerdict,
@@ -30,6 +32,7 @@ def _make_verdict(req_id: str, status: RequirementStatus) -> RequirementVerdict:
     return RequirementVerdict(
         requirement_id=req_id,
         status=status,
+        applicability=Applicability.IN_SCOPE,
         evidence_class=EvidenceClass.PROVEN,
         statement="",
         rationale="",
@@ -64,6 +67,7 @@ async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
             "body.services.grc.gap_analysis_service.load_catalog",
             return_value=[],
         ),
+        authorize_execution("document.run.gap_analysis"),
     ):
         result: ActionResult = await action_run_gap_analysis(
             corpus_root=str(corpus_dir),
@@ -112,6 +116,7 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path
             "body.services.grc.gap_analysis_service.load_catalog",
             return_value=[],
         ),
+        authorize_execution("document.run.gap_analysis"),
     ):
         result: ActionResult = await action_run_gap_analysis(
             corpus_root="docs",
@@ -127,7 +132,7 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path
 # ID: bd3266f2-9c4a-4ed0-a131-bdef15a529a1
 async def test_run_gap_analysis_relative_corpus_root_no_context_raises() -> None:
     """Relative corpus_root without core_context raises ValueError before any I/O."""
-    with pytest.raises(ValueError, match="core_context"):
+    with authorize_execution("document.run.gap_analysis"), pytest.raises(ValueError, match="core_context"):
         await action_run_gap_analysis(
             corpus_root="relative/path",
             write=False,

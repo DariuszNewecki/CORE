@@ -53,20 +53,30 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
     Return a dict of patches for all _operations helpers used by run().
     Callers can override individual mocks via keyword arguments.
     """
+    _gap_result = MagicMock()
+    _gap_result.ok = True
+    _gap_result.data = {
+        "gaps": [{"name": "sym", "kind": "function", "signature": "def sym()"}],
+        "test_file": "tests/foo/test_bar.py",
+        "covered_count": 0,
+    }
     defaults = {
         "will.workers.test_remediator.worker._load_open_findings": AsyncMock(
             return_value=[_FINDING]
         ),
-        "will.workers.test_remediator.worker._get_active_build_tests_source_files": AsyncMock(
+        "will.workers.test_remediator.worker._get_active_symbol_proposals": AsyncMock(
             return_value=set()
         ),
         "will.workers.test_remediator.worker._query_source_file_attempt_count": AsyncMock(
             return_value=0
         ),
+        "will.workers.test_remediator.worker._query_recent_symbol_failures": AsyncMock(
+            return_value=0
+        ),
         "will.workers.test_remediator.worker._abandon_capped_findings": AsyncMock(
             return_value=["entry-id-1"]
         ),
-        "will.workers.test_remediator.worker._create_proposal": AsyncMock(
+        "will.workers.test_remediator.worker._create_symbol_proposal": AsyncMock(
             return_value="proposal-id-1"
         ),
         "will.workers.test_remediator.worker._inherit_attempt_count": AsyncMock(),
@@ -75,6 +85,9 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
         ),
         "will.workers.test_remediator.worker._release_entries": AsyncMock(
             return_value=0
+        ),
+        "body.evaluators.test_gap_evaluator.TestGapEvaluator": MagicMock(
+            return_value=MagicMock(execute=AsyncMock(return_value=_gap_result))
         ),
     }
     defaults.update(overrides)
@@ -116,7 +129,7 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     call_payload = worker.post_observation.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert call_payload["reason"] == "remediation_cap_exhausted_via_inheritance"
     assert call_payload["source_file"] == _SOURCE_FILE
-    patches["will.workers.test_remediator.worker._create_proposal"].assert_not_awaited()
+    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_not_awaited()
 
 
 async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
@@ -141,7 +154,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches["will.workers.test_remediator.worker._create_proposal"].assert_not_awaited()
+    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_not_awaited()
     patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_awaited_once()
 
 
@@ -168,7 +181,7 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._create_proposal"].assert_awaited_once()
+    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_awaited_once()
     patches["will.workers.test_remediator.worker._defer_to_proposal"].assert_awaited_once()
 
 
@@ -196,7 +209,7 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
 
     patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_not_awaited()
     patches["will.workers.test_remediator.worker._inherit_attempt_count"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._create_proposal"].assert_awaited_once()
+    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_awaited_once()
 
 
 async def test_report_includes_proposals_skipped_cap() -> None:

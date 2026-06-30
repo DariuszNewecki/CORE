@@ -9,9 +9,10 @@ Tests cover:
 
 from __future__ import annotations
 
+from io import StringIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
+from rich.console import Console
 
 from cli.commands.tests import _liveness_color, tests_app
 
@@ -61,8 +62,7 @@ def test_tests_app_registered_in_admin_cli() -> None:
 
 
 # ID: 9f2b1c4a-d7e8-4f5b-8e3a-0c6d7e1f2a3b
-@pytest.mark.asyncio
-async def test_tests_status_runs_without_db_errors() -> None:
+def test_tests_status_runs_without_db_errors() -> None:
     """status command should complete without raising when DB returns empty sets."""
     from typer.testing import CliRunner
 
@@ -76,9 +76,16 @@ async def test_tests_status_runs_without_db_errors() -> None:
     _mock_session.__aenter__ = AsyncMock(return_value=_mock_session)
     _mock_session.__aexit__ = AsyncMock(return_value=False)
 
-    with patch("cli.commands.tests.get_session", return_value=_mock_session):
-        result = runner.invoke(tests_app, [])
+    captured = StringIO()
+    mock_console = Console(file=captured, no_color=True)
+
+    with (
+        patch("cli.commands.tests.get_session", return_value=_mock_session),
+        patch("cli.commands.tests.console", mock_console),
+    ):
+        result = runner.invoke(tests_app, ["status"])
 
     # Rich output should contain at least the Worker Liveness panel header
     assert result.exit_code == 0, f"Unexpected exit code {result.exit_code}: {result.output}"
-    assert "Worker" in result.output or "Liveness" in result.output
+    output = captured.getvalue()
+    assert "Worker" in output or "Liveness" in output

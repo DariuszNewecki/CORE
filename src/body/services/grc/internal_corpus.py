@@ -43,7 +43,7 @@ _TEXT_SUFFIXES = {".txt", ".md"}
 # Section IDs are dot-separated digit sequences (e.g. "3.1.1", "AC-2").
 # We accept digit-only segments; alphanumeric control IDs (e.g. "AC-2") are
 # stored as-is when matched, null otherwise.
-_SECTION_ID_RE = re.compile(r"^\d[\d.\-]*$")
+_SECTION_ID_RE = re.compile(r"^(?=.*\d)[A-Za-z0-9][A-Za-z0-9.\-]*$")
 
 
 # ID: 3870b99c-82cd-4d36-97bd-606a7ef8d929

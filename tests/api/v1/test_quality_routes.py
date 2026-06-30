@@ -160,7 +160,7 @@ async def test_quality_lint_inserts_quality_check_row_and_returns_202():
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/fix/runs/{new_id}",
+        "href": f"/v1/fix/runs/{new_id}",
     }
     assert background_tasks.add_task.call_count == 1
     bind = session.execute.call_args[0][1]

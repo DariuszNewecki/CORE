@@ -61,7 +61,7 @@ async def test_create_census_run_inserts_pending_and_schedules_background():
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/census/runs/{new_id}",
+        "href": f"/v1/census/runs/{new_id}",
     }
     background_tasks.add_task.assert_called_once()
     session.execute.assert_awaited_once()

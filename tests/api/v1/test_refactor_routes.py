@@ -66,7 +66,7 @@ async def test_autonomous_dry_run_inserts_and_schedules():
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/refactor/runs/{new_id}",
+        "href": f"/v1/refactor/runs/{new_id}",
     }
     background_tasks.add_task.assert_called_once()
 

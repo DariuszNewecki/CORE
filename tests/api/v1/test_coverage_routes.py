@@ -76,7 +76,7 @@ async def test_generate_inserts_pending_and_schedules_background(target_file):
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/coverage/runs/{new_id}",
+        "href": f"/v1/coverage/runs/{new_id}",
     }
     background_tasks.add_task.assert_called_once()
     session.execute.assert_awaited_once()

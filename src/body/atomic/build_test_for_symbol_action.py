@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
+from body.governance.intent_guard import get_intent_guard
 from shared.action_types import ActionImpact, ActionResult
 from shared.ai.prompt_model import PromptModel
 from shared.atomic_action import atomic_action
@@ -114,8 +115,6 @@ async def action_build_test_for_symbol(
 
     Returns ActionResult with files_produced=[test_file] on write (ADR-107 D2).
     """
-    from body.governance.intent_guard import get_intent_guard
-
     start = time.time()
     repo_root: Path = core_context.git_service.repo_path
 

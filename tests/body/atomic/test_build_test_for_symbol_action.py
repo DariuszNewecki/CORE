@@ -12,6 +12,7 @@ from body.atomic.build_test_for_symbol_action import (
     _extract_from_fences,
     _extract_symbol_code,
 )
+from shared.governance_token import authorize_execution
 
 
 # ── Pure helpers ─────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ async def test_action_dry_run_returns_ok_no_write(mock_core_context, source_setu
             "body.atomic.build_test_for_symbol_action.source_to_test_path",
             return_value="tests/mypkg/service/test_generated.py",
         ),
+        authorize_execution("build.test_for_symbol"),
     ):
         result = await action_build_test_for_symbol(
             source_file=source_setup,
@@ -183,6 +185,7 @@ async def test_action_write_true_calls_file_handler(mock_core_context, source_se
             "body.atomic.build_test_for_symbol_action.source_to_test_path",
             return_value="tests/mypkg/service/test_generated.py",
         ),
+        authorize_execution("build.test_for_symbol"),
     ):
         result = await action_build_test_for_symbol(
             source_file=source_setup,
@@ -241,6 +244,7 @@ async def test_action_returns_not_ok_on_intent_guard_violation(
             "body.atomic.build_test_for_symbol_action.source_to_test_path",
             return_value="tests/mypkg/service/test_generated.py",
         ),
+        authorize_execution("build.test_for_symbol"),
     ):
         result = await action_build_test_for_symbol(
             source_file=source_setup,

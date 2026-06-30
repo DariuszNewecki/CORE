@@ -51,16 +51,16 @@ async def test_list_proposals_no_status_returns_pending_approval():
     fake_proposal.to_dict = MagicMock(return_value=_mk_proposal_dict())
 
     service = AsyncMock()
-    service.list_pending_approval = AsyncMock(return_value=[fake_proposal])
-    service.list_by_status = AsyncMock()
+    service.list_pending_approval_paginated = AsyncMock(return_value=([fake_proposal], False, None))
+    service.list_by_status_paginated = AsyncMock()
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         out = await list_proposals(status=None, limit=50, session=session)
 
     assert out["count"] == 1
     assert out["proposals"] == [_mk_proposal_dict()]
-    service.list_pending_approval.assert_awaited_once_with(limit=50)
-    service.list_by_status.assert_not_called()
+    service.list_pending_approval_paginated.assert_awaited_once()
+    service.list_by_status_paginated.assert_not_called()
 
 
 async def test_list_proposals_with_status_filter_calls_list_by_status():
@@ -72,15 +72,15 @@ async def test_list_proposals_with_status_filter_calls_list_by_status():
     fake_proposal.to_dict = MagicMock(return_value=_mk_proposal_dict(status="approved"))
 
     service = AsyncMock()
-    service.list_pending_approval = AsyncMock()
-    service.list_by_status = AsyncMock(return_value=[fake_proposal])
+    service.list_pending_approval_paginated = AsyncMock()
+    service.list_by_status_paginated = AsyncMock(return_value=([fake_proposal], False, None))
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         out = await list_proposals(status="approved", limit=20, session=session)
 
     assert out["count"] == 1
-    service.list_by_status.assert_awaited_once()
-    service.list_pending_approval.assert_not_called()
+    service.list_by_status_paginated.assert_awaited_once()
+    service.list_pending_approval_paginated.assert_not_called()
 
 
 async def test_list_proposals_invalid_status_raises_400():
