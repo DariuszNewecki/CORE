@@ -6,7 +6,6 @@ Tests for RequestInterpreter and subclasses.
 Verifies that interpreters correctly parse various inputs into TaskStructure.
 """
 
-import pytest
 
 from will.interpreters import (
     CLIArgsInterpreter,

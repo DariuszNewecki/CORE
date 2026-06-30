@@ -8,7 +8,6 @@
 
 from pathlib import Path
 
-import pytest
 
 from body.analyzers.prompt_analyzer import PromptAnalyzer
 

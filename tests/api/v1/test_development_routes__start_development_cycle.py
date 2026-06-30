@@ -8,7 +8,6 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from fastapi import BackgroundTasks, Request
 
 from api.v1.development_routes import start_development_cycle

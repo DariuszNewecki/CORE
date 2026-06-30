@@ -5,7 +5,6 @@
 - Generated: 2026-01-11 03:40:34
 """
 
-import pytest
 
 
 # Detected return type: The function is async and returns None, raising typer.Exit on failure.

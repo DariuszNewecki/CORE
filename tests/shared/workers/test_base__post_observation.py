@@ -23,7 +23,8 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.workers.base import _TERMINAL_STATUSES, Worker
+from shared.workers.base import Worker
+from shared.workers.blackboard_publisher import _TERMINAL_STATUSES
 
 
 pytestmark = [pytest.mark.integration]

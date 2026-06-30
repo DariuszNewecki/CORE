@@ -8,7 +8,6 @@
 
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 
 from body.atomic.sync_actions import action_sync_constitutional_vectors
 from shared.governance_token import authorize_execution

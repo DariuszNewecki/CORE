@@ -7,7 +7,6 @@
 
 from pathlib import Path
 
-import pytest
 
 from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
 

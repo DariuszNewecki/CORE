@@ -15,7 +15,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
 
 from body.atomic.fix_actions import action_format_code
 from shared.governance_token import authorize_execution

@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, MagicMock, Mock
 
-import pytest
 
 from mind.logic.grc_applicability import GRCApplicabilityGate
 from shared.models import Applicability, EvidenceClass

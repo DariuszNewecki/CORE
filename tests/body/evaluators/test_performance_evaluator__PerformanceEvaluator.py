@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 03:21:37
 """
 
-import pytest
 
 from body.evaluators.performance_evaluator import PerformanceEvaluator
 

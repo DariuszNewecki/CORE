@@ -5,7 +5,6 @@
 - Generated: 2026-01-11 03:40:24
 """
 
-import pytest
 
 
 # Detected return type: 'get' is an async function returning None.

@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 03:27:29
 """
 
-import pytest
 
 from body.evaluators.security_evaluator import SecurityEvaluator
 

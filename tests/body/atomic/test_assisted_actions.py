@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from body.atomic.assisted_actions import (
     _rule_cleared,

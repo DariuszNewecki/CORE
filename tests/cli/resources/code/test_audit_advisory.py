@@ -17,7 +17,6 @@ import io
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 
-import pytest
 from rich.console import Console
 
 from body.services.coherence_service import CoherenceService

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from body.services.grc import GRCGapAnalysisService, load_catalog
 from shared.models import EvidenceClass

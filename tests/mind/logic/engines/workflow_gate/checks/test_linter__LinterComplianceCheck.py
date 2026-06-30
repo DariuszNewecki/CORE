@@ -8,7 +8,6 @@
 import asyncio
 from pathlib import Path
 
-import pytest
 
 from mind.logic.engines.workflow_gate.checks.linter import LinterComplianceCheck
 

@@ -7,7 +7,6 @@
 
 from pathlib import Path
 
-import pytest
 
 from mind.logic.engines.workflow_gate.checks.canary import CanaryDeploymentCheck
 

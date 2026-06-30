@@ -25,7 +25,6 @@ import ast
 import textwrap
 from pathlib import Path
 
-import pytest
 
 from mind.logic.engines.ast_gate.checks.awaiting_reaudit_checks import (
     AwaitingReauditChecks,

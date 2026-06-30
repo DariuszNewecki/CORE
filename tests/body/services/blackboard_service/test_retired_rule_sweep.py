@@ -11,7 +11,6 @@ that predicate, extracted pure for these tests.
 
 from __future__ import annotations
 
-import pytest
 
 from body.services.blackboard_service.blackboard_service import (
     BlackboardService,

@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 02:23:54
 """
 
-import pytest
 
 from mind.logic.engines.regex_gate import RegexGateEngine
 

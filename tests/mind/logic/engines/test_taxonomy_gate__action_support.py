@@ -16,7 +16,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
 import yaml
 
 from mind.logic.engines.taxonomy_gate import TaxonomyGateEngine

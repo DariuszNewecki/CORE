@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 
 from will.autonomy.proposal import Proposal
 from will.autonomy.proposal_service import ProposalService
