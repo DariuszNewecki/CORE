@@ -64,7 +64,7 @@ async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
             new=AsyncMock(return_value=verdicts),
         ),
         patch(
-            "body.services.grc.gap_analysis_service.load_catalog",
+            "body.atomic.document.gap_analysis_action.load_catalog",
             return_value=[],
         ),
         authorize_execution("document.run.gap_analysis"),
@@ -113,7 +113,7 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path
             new=AsyncMock(return_value=verdicts),
         ),
         patch(
-            "body.services.grc.gap_analysis_service.load_catalog",
+            "body.atomic.document.gap_analysis_action.load_catalog",
             return_value=[],
         ),
         authorize_execution("document.run.gap_analysis"),

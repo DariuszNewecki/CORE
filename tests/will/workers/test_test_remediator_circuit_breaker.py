@@ -27,7 +27,7 @@ def _make_worker() -> object:
 
     w = object.__new__(TestRemediatorWorker)
     w._declaration = {}
-    w._core_context = None
+    w._core_context = MagicMock()
     w._worker_uuid = "worker-uuid-test"
     # Stub blackboard posting methods
     w.post_heartbeat = AsyncMock()

@@ -12,9 +12,10 @@ from __future__ import annotations
 from io import StringIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from rich.console import Console
 
-from cli.commands.tests import _liveness_color, tests_app
+from cli.commands.tests import _liveness_color, tests_status
 
 
 # ── _liveness_color ──────────────────────────────────────────────────────────
@@ -62,12 +63,9 @@ def test_tests_app_registered_in_admin_cli() -> None:
 
 
 # ID: 9f2b1c4a-d7e8-4f5b-8e3a-0c6d7e1f2a3b
-def test_tests_status_runs_without_db_errors() -> None:
+@pytest.mark.asyncio
+async def test_tests_status_runs_without_db_errors() -> None:
     """status command should complete without raising when DB returns empty sets."""
-    from typer.testing import CliRunner
-
-    runner = CliRunner()
-
     _empty_result = MagicMock()
     _empty_result.fetchall.return_value = []
 
@@ -83,9 +81,8 @@ def test_tests_status_runs_without_db_errors() -> None:
         patch("cli.commands.tests.get_session", return_value=_mock_session),
         patch("cli.commands.tests.console", mock_console),
     ):
-        result = runner.invoke(tests_app, ["status"])
+        await tests_status.__wrapped__(MagicMock(), days=30, gaps=20)
 
     # Rich output should contain at least the Worker Liveness panel header
-    assert result.exit_code == 0, f"Unexpected exit code {result.exit_code}: {result.output}"
     output = captured.getvalue()
     assert "Worker" in output or "Liveness" in output
