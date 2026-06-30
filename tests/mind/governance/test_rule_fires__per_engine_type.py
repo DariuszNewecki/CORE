@@ -30,7 +30,7 @@ from mind.logic.engines.regex_gate import RegexGateEngine
 from shared.path_resolver import PathResolver
 
 
-_REPO_ROOT = Path("/opt/dev/CORE")
+_REPO_ROOT = Path(__file__).parent.parent.parent.parent
 _MAPPINGS = _REPO_ROOT / ".intent" / "enforcement" / "mappings"
 
 
