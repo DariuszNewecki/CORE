@@ -6,6 +6,118 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
+## [2.8.0] — 2026-06-30
+
+### 🎯 Governed Delivery
+
+The external-adoption surface opens and the governance machinery itself becomes governed.
+BYOR users can now `pip install core-runtime` and run `project onboard` without a source
+checkout. A full SaaS auth stack (JWT, refresh tokens, 5-role model, SPA frontend) makes
+the platform accessible to external users. And CORE's own prompts, operator roles, and
+command-exposure axis each acquire a governing rule set — closing the gap between what CORE
+enforces on others and what it enforces on itself.
+
+#### BYOR delivery — pip users can onboard
+
+- **ADR-108 D3 — machinery floor in wheel (T3 closed).** The `core-runtime` wheel now bundles
+  the machinery floor with a loader fallback. A `pip install` adopter can run
+  `project onboard` end-to-end without a source-tree checkout.
+- **BYOR quickstart.** A seven-step guide takes a naked machine from `pip install` to a
+  PASS audit verdict. Docs updated to remove stale source-tree assumptions.
+- **ADR-119 — Scout.** LLM-driven rule induction + human ratification (BYOR Path 1).
+  `project scout <path>` observes an external repo's conventions, proposes rules, and
+  writes `scout_inducted.json` only after per-rule governor confirmation.
+- **ADR-111 — `project onboard` delivers the authored starter.** The command writes a
+  four-rule constitution into `<target>/.intent/` directly; the previous generator path
+  is removed.
+- **ADR-123 — `--stage` airlock.** `project onboard --stage` redirects writes to
+  `work/staged/<name>/`; `project onboard promote <path>` completes delivery.
+
+#### SaaS delivery — auth stack
+
+- **ADR-124 — User Access Control foundation.** bcrypt password hashing (cost 12), JWT
+  access tokens (1 hr, HS256, httpOnly cookie), opaque refresh tokens (30 d, SHA-256
+  stored), 5-role model (VISITOR / ANALYST / AUDITOR / ORG_ADMIN / PLATFORM_ADMIN), org
+  + org membership tables, invitation flow, API key management, audit event log. 14 REST
+  endpoints under `/auth/`. Sliding-window rate limiting on login/register/password-reset.
+- **ADR-125 — SPA frontend scaffold.** Vite 8, React 19, TypeScript 6, Tailwind v4,
+  shadcn/ui, TanStack Router v1 (file-based routing), TanStack Query v5, Orval v8 (typed
+  API client from OpenAPI). Auth screens (login / register / forgot-password / reset).
+- **ADR-132 — Governor authentication boundary.** Operator-tier routes (invite, promote,
+  API key management) gated with `require_operator`; governor routes with
+  `require_governor`. CLI session persistence + auth commands. ROUTER_EXPOSURE /
+  `require_governor` agreement enforced as a blocking audit rule.
+- **CORS narrowed** from `["*"]` to `settings.CORS_ORIGINS`; all `/v1/` routes gated with
+  `Depends(get_current_user)`; `/health` and `/auth/*` remain public.
+- **Resend transactional email.** `core-governance.com` domain verified; invitation and
+  password-reset emails delivered. Graceful dev-mode degradation (tokens returned in
+  response when `RESEND_API_KEY` absent).
+
+#### Prompt governance
+
+- **ADR-134 — Prompt content governance.** Three new blocking/reporting rules:
+  `prompt.adr_anchor` (every prompt must cite a governing ADR), `prompt.registered`
+  (prompts must appear in the governed registry), `prompt.drift` (content must not drift
+  from the registered hash). `PromptDriftSensor` worker posts findings on each cycle.
+  Five existing prompt manifests updated to carry `adr_anchor` and hash.
+
+#### Governance machinery
+
+- **ADR-133 — Symbol-granular test generation.** `TestGapEvaluator` targets individual
+  public symbols rather than whole files; generated tests track symbol-level coverage.
+- **ADR-131 — Governance Application Data Model.** Typed data model for governance
+  applications built on CORE's finding + proposal surfaces.
+- **ADR-130 — Constitutional artifact staging.** Governor-applied draft pattern:
+  `var/drafts/` as a staging area before intent artifacts land in `.intent/`.
+- **ADR-129 — Commit authorship integrity (D1/D2/D4/D5/D6).** All async git operations
+  centralised in `GitService` sanctuary; staging-contamination detection; commit set
+  derives from declared production output, not worktree diff.
+- **ADR-128 — CoreContext DI typing.** Git, knowledge, and file-handler services promoted
+  from `Optional` to mandatory DI fields; `CoreContext` construction now fails fast on
+  missing services rather than silently deferring.
+- **CommandExposure axis (#671).** Every CLI command and API endpoint carries an `exposure`
+  field; accessibility overview generated from the registry.
+- **Write-safety rails on directed AI-mutation path (#672).** `ExecutionPhase._execute_deterministic_split`
+  propagates `write=False` correctly; non-interactive mutation paths gated.
+
+#### Performance and infrastructure
+
+- **Evaluation-level cache in `rule_executor` (#720, ADR-039 Option F).** Rule results
+  are cached per `(rule_id, file_path)` within an audit cycle; redundant re-evaluation
+  eliminated.
+- **Keyset pagination (#699).** `proposals`, `decisions`, and `audit-runs` list endpoints
+  switch from offset to keyset pagination; stable under concurrent writes.
+- **Systemd watchdog pinger.** Reads `WATCHDOG_USEC`, pings `sd_notify(WATCHDOG=1)` at
+  half the watchdog interval; prevents the 120-second SIGABRT restart cycle on loaded
+  instances.
+- **ToolRunner sanctuary + AuthRunner Will facade (#718/#719).** Subprocess and auth
+  operations isolated into dedicated sanctuary modules in Will.
+
+#### Security and bug fixes
+
+- **`SECURITY.md` added.** Supported versions, vulnerability reporting process, disclosure
+  contact, and known security boundaries documented at repo root.
+- asyncpg cast fixes: `::jsonb` binding (`_log_event`), `:count` cast in `to_jsonb()`,
+  `bindparam` replacement for `_query_recent_symbol_failures` (#721).
+- `Depends` double-wrap fix on `require_governor` — `require_role()` returns a `Depends`
+  already; unwrapping prevented a FastAPI startup crash.
+- Rule evaluation failures now surface as `HIGH` findings on the blackboard rather than
+  being swallowed silently.
+- `parents[4]` replaced with `get_intent_repository().root.parent` in GRC services
+  (fragile path arithmetic removed).
+
+## Closes
+
+- ADR-119, ADR-123, ADR-124, ADR-125, ADR-128, ADR-129, ADR-130, ADR-131, ADR-132,
+  ADR-133, ADR-134
+- #670 (CLI auth gap), #671 (CommandExposure axis), #672 (write-safety rails),
+  #674 (ADR-108 D3 wheel packaging), #699 (keyset pagination), #718, #719, #720, #721
+
+PyPI `core-runtime==2.8.0`; Docker `ghcr.io/dariusznewecki/core-engine:2.8.0`;
+classifier `Development Status :: 4 - Beta`.
+
+---
+
 ## [2.7.0] — 2026-06-14
 
 ### 🎯 Bounded Autonomy

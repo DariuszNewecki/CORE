@@ -5,7 +5,7 @@
 **Status:** Authoritative (operational surface — implements ADR-086 D7 + ADR-088 D5; deliverable of F-48.5 #541)
 **Authority:** governor
 **Audience:** Anyone installing, depending on, or releasing `core-runtime` — and future-you deciding the next version number.
-**Last updated:** 2026-06-17
+**Last updated:** 2026-06-30
 
 ---
 
@@ -28,10 +28,10 @@ bump higher. Honest-and-consistent beats clever.
 There is **one** version line. `pyproject.toml`'s `version` is canonical; the PyPI release,
 the GitHub release tag, and the OEM wire `info.version` (ADR-087) all mirror it.
 
-- **Baseline:** `2.7.0` (PyPI + GitHub latest, tagged 2026-06-14) — a **minor** bump over
-  `2.6.0` (additive features and fixes; no removed or renamed CLI command, no removed API
+- **Baseline:** `2.8.0` (PyPI + GitHub latest, tagged 2026-06-30) — a **minor** bump over
+  `2.7.0` (additive features and fixes; no removed or renamed CLI command, no removed API
   route, no public-surface break).
-- **Prior baseline:** `2.6.0` (2026-06-02).
+- **Prior baseline:** `2.7.0` (2026-06-14).
 
 The `v0.1.0`–`v0.1.6` tags are **bootstrap artifacts** from the first PyPI publish, not a
 pre-1.0 track (ADR-088 D3). They are preserved unchanged per the standing tag-collision
