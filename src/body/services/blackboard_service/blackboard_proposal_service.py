@@ -654,7 +654,7 @@ class BlackboardProposalService:
                             payload = jsonb_set(
                                 payload,
                                 '{remediation_attempt_count}',
-                                to_jsonb(:count)
+                                to_jsonb(cast(:count as int))
                             ),
                             updated_at = now()
                         WHERE id = ANY(cast(:ids as uuid[]))
