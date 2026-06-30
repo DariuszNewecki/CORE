@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-134
-title: ADR-134 — Prompt Content Governance: Traceability and Drift Review Gate
+title: "ADR-134 — Prompt Content Governance: Traceability and Drift Review Gate"
 status: accepted
 ---
 
