@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from rich.console import Console
 
-from cli.commands.tests import _liveness_color, tests_status
+from cli.commands.tests import _liveness_color
 
 
 # ── _liveness_color ──────────────────────────────────────────────────────────
@@ -77,11 +77,13 @@ async def test_tests_status_runs_without_db_errors() -> None:
     captured = StringIO()
     mock_console = Console(file=captured, no_color=True)
 
+    from cli.commands.tests import tests_status as _tests_status_fn
+
     with (
         patch("cli.commands.tests.get_session", return_value=_mock_session),
         patch("cli.commands.tests.console", mock_console),
     ):
-        await tests_status.__wrapped__(MagicMock(), days=30, gaps=20)
+        await _tests_status_fn.__wrapped__(MagicMock(), days=30, gaps=20)
 
     # Rich output should contain at least the Worker Liveness panel header
     output = captured.getvalue()
