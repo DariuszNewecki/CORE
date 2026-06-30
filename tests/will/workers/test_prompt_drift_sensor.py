@@ -74,7 +74,7 @@ def test_compute_hash_stable(tmp_path: Path) -> None:
 
     sensor, _, _ = _make_sensor(prompts_root)
 
-    with patch("shared.infrastructure.settings.settings") as mock_settings:
+    with patch("shared.config.settings") as mock_settings:
         mock_settings.paths.prompts_dir = prompts_root
         h1 = sensor._compute_hash("test_prompt")
         h2 = sensor._compute_hash("test_prompt")
@@ -91,7 +91,7 @@ def test_compute_hash_changes_on_content_change(tmp_path: Path) -> None:
 
     sensor, _, _ = _make_sensor(prompts_root)
 
-    with patch("shared.infrastructure.settings.settings") as mock_settings:
+    with patch("shared.config.settings") as mock_settings:
         mock_settings.paths.prompts_dir = prompts_root
         h1 = sensor._compute_hash("test_prompt")
         (prompts_root / "test_prompt" / "system.txt").write_text("Version 2.")
@@ -107,7 +107,7 @@ def test_compute_hash_returns_none_for_missing_dir(tmp_path: Path) -> None:
 
     sensor, _, _ = _make_sensor(prompts_root)
 
-    with patch("shared.infrastructure.settings.settings") as mock_settings:
+    with patch("shared.config.settings") as mock_settings:
         mock_settings.paths.prompts_dir = prompts_root
         result = sensor._compute_hash("nonexistent_prompt")
 
@@ -127,7 +127,7 @@ async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
         patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=None),
-        patch("shared.infrastructure.settings.settings") as mock_settings,
+        patch("shared.config.settings") as mock_settings,
     ):
         mock_settings.paths.prompts_dir = prompts_root
         await sensor.run()
@@ -156,7 +156,7 @@ async def test_run_detects_drift(tmp_path: Path) -> None:
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
         patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
-        patch("shared.infrastructure.settings.settings") as mock_settings,
+        patch("shared.config.settings") as mock_settings,
     ):
         mock_settings.paths.prompts_dir = prompts_root
         await sensor.run()

@@ -151,7 +151,7 @@ class PromptDriftSensor(Worker):
 
     def _compute_hash(self, prompt_name: str) -> str | None:
         """Return SHA-256 hex digest of system.txt + user.txt for *prompt_name*."""
-        from shared.infrastructure.settings import settings
+        from shared.config import settings
 
         prompt_dir: Path = settings.paths.prompts_dir / prompt_name
         if not prompt_dir.is_dir():
