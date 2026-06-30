@@ -70,7 +70,7 @@ actions:
 
   # ── Python-specific actions (artifact_types: [python]) ──────────────────────
   build.test_for_symbol:
-    impact_level: moderate
+    impact_level: safe
     artifact_types: [python]
   build.tests:
     impact_level: safe
