@@ -140,6 +140,7 @@ async def test_post_observation_writes_with_terminal_status(
     """
     worker = _ObservationMinimalWorker()
     worker._worker_uuid = uuid.uuid4()
+    worker._blackboard._worker_uuid = worker._worker_uuid
     await _ensure_worker_registered(db_session, worker._worker_uuid)
 
     entry_id = await worker.post_observation(

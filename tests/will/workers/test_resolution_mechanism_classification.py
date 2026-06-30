@@ -222,7 +222,7 @@ async def test_post_artifact_finding_auto_supplies_reaudit_mechanism(
     # allowance branch (debug log, no validation). Sufficient for the
     # wrapper-passthrough contract under test.
     captured = AsyncMock()
-    monkeypatch.setattr(worker, "post_finding", captured)
+    monkeypatch.setattr(worker._blackboard, "post_finding", captured)
 
     await worker.post_artifact_finding(
         artifact_type="python",

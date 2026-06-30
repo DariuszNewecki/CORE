@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import typer
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +136,7 @@ async def test_promote_refuses_missing_stage(tmp_path: Path) -> None:
 
     context = _make_context(core_root)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises((SystemExit, typer.Exit)):
         await promote_staged(context=context, path=target)
 
 
@@ -158,7 +159,7 @@ async def test_promote_refuses_existing_intent(tmp_path: Path) -> None:
 
     context = _make_context(core_root)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises((SystemExit, typer.Exit)):
         await promote_staged(context=context, path=target)
 
 

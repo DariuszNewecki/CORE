@@ -33,9 +33,9 @@ async def test_proven_gap_on_unfinalized_document() -> None:
     finalized = by_id["nist_800_171.doc_finalized"]
     assert finalized.status == "deficient"
     assert finalized.evidence_class is EvidenceClass.PROVEN
-    assert finalized.findings, "expected at least one placeholder finding"
+    assert finalized.evidence, "expected at least one placeholder finding"
     # the gap is anchored on the unfinalized patching policy, not the clean docs
-    assert any("patching" in f.file_path for f in finalized.findings)
+    assert any("patching" in f.document for f in finalized.evidence)
 
 
 async def test_judged_lane_degrades_honestly_without_llm() -> None:
