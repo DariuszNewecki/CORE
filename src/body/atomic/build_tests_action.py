@@ -179,7 +179,7 @@ async def action_build_tests(
         test_file,
     )
 
-    # 2. Verify source file exists
+    # 2. Verify source file exists and read content for LLM grounding.
     source_path = repo_root / source_file
     if not source_path.exists():
         return ActionResult(
@@ -188,6 +188,7 @@ async def action_build_tests(
             data={"error": f"Source file not found: {source_file}"},
             duration_sec=time.time() - start,
         )
+    source_content = source_path.read_text(encoding="utf-8")
 
     # 3. Initialize CoderAgent (mirrors _initialize_services in workflow.py)
     try:
@@ -303,7 +304,9 @@ async def action_build_tests(
         f"(5) Use ONLY absolute imports. Relative imports (from .foo import bar, "
         f"from ..pkg import baz) are FORBIDDEN. "
         f"(6) Import ONLY from modules that appear in the provided context. "
-        f"Do not invent module paths that are not present in the context evidence."
+        f"Do not invent module paths that are not present in the context evidence.\n\n"
+        f"SOURCE FILE TO TEST ({source_file}):\n"
+        f"{source_content}"
     )
 
     try:

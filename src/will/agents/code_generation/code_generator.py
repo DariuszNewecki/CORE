@@ -81,6 +81,7 @@ class CodeGenerator:
         self.semantic_enabled = context_builder is not None
         self.context_enrichment_enabled = context_service is not None
         self._code_gen_model = PromptModel.load("code_generation_task_step_prompt")
+        self._test_gen_model = PromptModel.load("test_gen_prompt")
 
     # ID: 08c73be8-7d10-4399-b527-a7702fc9cecd
     async def generate_code(
@@ -173,11 +174,25 @@ class CodeGenerator:
             confidence=0.9,
         )
 
-        raw_response = await self._code_gen_model.invoke(
-            context={"task_step": enriched_prompt},
-            client=generator,
-            user_id="coder_agent_a2",
-        )
+        # test_generation uses a purpose-built prompt with test-specific
+        # system rules (absolute imports, no hallucination, pytest constraints).
+        # The same RemoteCoder client is used — only the prompt template changes.
+        if task.task_type == "test_generation":
+            raw_response = await self._test_gen_model.invoke(
+                context={
+                    "module_path": target_file,
+                    "goal": enriched_prompt,
+                    "target_coverage": "80",
+                },
+                client=generator,
+                user_id="coder_agent_a2",
+            )
+        else:
+            raw_response = await self._code_gen_model.invoke(
+                context={"task_step": enriched_prompt},
+                client=generator,
+                user_id="coder_agent_a2",
+            )
 
         # OBSERVABILITY FIX: Log raw LLM response for debugging
         logger.debug("Raw LLM response length: %d chars", len(raw_response))
