@@ -24,7 +24,9 @@ from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
+from shared.ai.prompt_model import PromptModel
 from shared.atomic_action import atomic_action
+from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
 
 
@@ -113,8 +115,6 @@ async def action_build_test_for_symbol(
     Returns ActionResult with files_produced=[test_file] on write (ADR-107 D2).
     """
     from body.governance.intent_guard import get_intent_guard
-    from shared.ai.prompt_model import PromptModel
-    from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 
     start = time.time()
     repo_root: Path = core_context.git_service.repo_path

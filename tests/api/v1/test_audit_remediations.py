@@ -62,7 +62,7 @@ async def test_create_remediation_accepts_all_three_modes(mode):
     assert out == {
         "run_id": str(new_id),
         "status": "pending",
-        "href": f"/audit/remediations/{new_id}",
+        "href": f"/v1/audit/remediations/{new_id}",
     }
     background_tasks.add_task.assert_called_once()
 

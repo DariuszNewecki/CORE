@@ -316,12 +316,12 @@ def _make_proposals_client(role: str) -> TestClient:
 def test_create_proposal_non_admin_receives_403() -> None:
     """POST / (create proposal) requires platform_admin — visitor gets 403."""
     client = _make_proposals_client(role="visitor")
-    r = client.post("/", json={"goal": "test"})
+    r = client.post("/proposals/", json={"goal": "test"})
     assert r.status_code == 403
 
 
 def test_reject_proposal_non_admin_receives_403() -> None:
     """POST /{id}/reject requires platform_admin — visitor gets 403."""
     client = _make_proposals_client(role="visitor")
-    r = client.post("/some-id/reject", json={"reason": "stale"})
+    r = client.post("/proposals/some-id/reject", json={"reason": "stale"})
     assert r.status_code == 403

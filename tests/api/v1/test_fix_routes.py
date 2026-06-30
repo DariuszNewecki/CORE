@@ -591,12 +591,12 @@ def _make_fix_client(role: str) -> TestClient:
 def test_run_fix_ir_non_admin_receives_403() -> None:
     """POST /ir requires platform_admin — visitor gets 403 (#707)."""
     client = _make_fix_client(role="visitor")
-    r = client.post("/ir", json={"kind": "triage"})
+    r = client.post("/fix/ir", json={"kind": "triage"})
     assert r.status_code == 403
 
 
 def test_get_fix_run_non_admin_receives_403() -> None:
     """GET /runs/{run_id} requires platform_admin — visitor gets 403 (#710)."""
     client = _make_fix_client(role="visitor")
-    r = client.get(f"/runs/{uuid4()}")
+    r = client.get(f"/fix/runs/{uuid4()}")
     assert r.status_code == 403

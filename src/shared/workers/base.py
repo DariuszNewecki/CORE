@@ -27,6 +27,10 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.intent_repository import (
+    IntentRepository,
+    get_intent_repository,
+)
 from shared.logger import getLogger
 from shared.workers.blackboard_publisher import BlackboardPublisher
 
@@ -403,10 +407,6 @@ class Worker(ABC):
         architecture.namespace.no_direct_protected_access.
         """
         from shared.infrastructure.intent.errors import GovernanceError
-        from shared.infrastructure.intent.intent_repository import (
-            IntentRepository,
-            get_intent_repository,
-        )
         from shared.workers.declaration_validator import validate_worker_declaration
 
         worker_id = f"workers/{self.declaration_name}"

@@ -6,7 +6,7 @@ Covers the new `SandboxLifecycle.build_flow_execution_context` gate and the
 primitives are shared with the per-action path (`_make_scoped_context`,
 `propagate_changes`) and are exercised there; the full flow-in-worktree +
 pytest-in-worktree path is an integration concern verified post-deploy via a
-live `flow.build_tests` proposal (ADR-106 "Verification").
+live `flow.build_test_for_symbol` proposal (ADR-106 "Verification").
 """
 
 from __future__ import annotations
@@ -71,10 +71,10 @@ def _make_sandbox(repo: Path) -> tuple[SandboxLifecycle, CoreContext]:
 
 # ID: 1f9c4e72-6a3d-4b58-90e1-2c7f8d4a6b13
 def test_build_tests_flow_is_sandboxable() -> None:
-    """flow.build_tests writes code (build.tests = WRITE_CODE), so it must
+    """flow.build_test_for_symbol writes code (build.tests = WRITE_CODE), so it must
     resolve as sandboxable — the condition that makes its proposals run in a
     worktree."""
-    assert _flow_has_sandboxable_step("flow.build_tests") is True
+    assert _flow_has_sandboxable_step("flow.build_test_for_symbol") is True
 
 
 # ID: 8a2d6f31-4c97-4e05-b1a8-5d3e9c7f2b40
@@ -93,7 +93,7 @@ def test_sandboxes_write_bearing_flow(repo: Path) -> None:
     sandbox, ctx = _make_sandbox(repo)
     sha = ctx.git_service.get_current_commit()
     scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
-        "flow.build_tests", write=True, pre_execution_sha=sha
+        "flow.build_test_for_symbol", write=True, pre_execution_sha=sha
     )
     try:
         assert scoped_git is not None
@@ -110,7 +110,7 @@ def test_sandboxes_write_bearing_flow(repo: Path) -> None:
 def test_passthrough_when_pre_execution_sha_is_none(repo: Path) -> None:
     sandbox, ctx = _make_sandbox(repo)
     scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
-        "flow.build_tests", write=True, pre_execution_sha=None
+        "flow.build_test_for_symbol", write=True, pre_execution_sha=None
     )
     assert scoped_ctx is ctx
     assert scoped_git is None
@@ -121,7 +121,7 @@ def test_passthrough_when_write_is_false(repo: Path) -> None:
     sandbox, ctx = _make_sandbox(repo)
     sha = ctx.git_service.get_current_commit()
     scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
-        "flow.build_tests", write=False, pre_execution_sha=sha
+        "flow.build_test_for_symbol", write=False, pre_execution_sha=sha
     )
     assert scoped_ctx is ctx
     assert scoped_git is None
@@ -217,7 +217,7 @@ def test_propagate_only_paths_discards_incidental_churn(repo: Path) -> None:
     sandbox, ctx = _make_sandbox(repo)
     sha = ctx.git_service.get_current_commit()
     _scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
-        "flow.build_tests", write=True, pre_execution_sha=sha
+        "flow.build_test_for_symbol", write=True, pre_execution_sha=sha
     )
     try:
         wt = Path(scoped_git.repo_path)
@@ -243,7 +243,7 @@ def test_declared_production_unions_files_produced() -> None:
     from will.autonomy.proposal_executor import _declared_production
 
     fr = FlowResult(
-        flow_id="flow.build_tests",
+        flow_id="flow.build_test_for_symbol",
         ok=True,
         steps=[
             StepResult(

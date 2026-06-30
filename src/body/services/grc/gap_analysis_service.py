@@ -28,6 +28,7 @@ import yaml
 
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.rule_executor import execute_rule
+from mind.logic.engines.registry import EngineRegistry
 from shared.logger import getLogger
 from shared.models import (
     Applicability,
@@ -349,7 +350,6 @@ class DocumentCorpusAnalysisService:
         Returns one ``RequirementVerdict`` per requirement, each carrying its
         corpus-level status, evidence class, and localized evidence (D1/D3/D5/D6).
         """
-        from mind.logic.engines.registry import EngineRegistry
         from shared.infrastructure.intent.intent_repository import get_intent_repository
         from shared.path_resolver import PathResolver
 
@@ -384,7 +384,6 @@ class DocumentCorpusAnalysisService:
         - deterministic     → binary gap/satisfied from execute_rule
         """
         from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
-        from mind.logic.engines.registry import EngineRegistry
 
         engine = EngineRegistry.get(rule.engine)
 

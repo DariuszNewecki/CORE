@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -176,8 +177,12 @@ def test_pattern_entries_have_tuple_modes(intent_tree: Callable[..., Path]) -> N
 
 def test_missing_taxonomy_file_raises(intent_tree: Callable[..., Path]) -> None:
     root = intent_tree(skip_taxonomy=True)
-    with pytest.raises(OperationalCapabilityTaxonomyError, match="taxonomy missing"):
-        load_operational_capabilities(repo_root=root)
+    with patch(
+        "shared.infrastructure.intent.operational_capabilities.resolve_floor_path",
+        return_value=None,
+    ):
+        with pytest.raises(OperationalCapabilityTaxonomyError, match="taxonomy missing"):
+            load_operational_capabilities(repo_root=root)
 
 
 def test_malformed_yaml_raises(intent_tree: Callable[..., Path]) -> None:
@@ -402,18 +407,26 @@ def test_pattern_entry_unknown_field_raises(intent_tree: Callable[..., Path]) ->
 
 def test_missing_enums_file_raises(intent_tree: Callable[..., Path]) -> None:
     root = intent_tree(skip_enums=True)
-    with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="required enum file missing"
+    with patch(
+        "shared.infrastructure.intent.operational_capabilities.resolve_floor_path",
+        return_value=None,
     ):
-        load_operational_capabilities(repo_root=root)
+        with pytest.raises(
+            OperationalCapabilityTaxonomyError, match="required enum file missing"
+        ):
+            load_operational_capabilities(repo_root=root)
 
 
 def test_missing_action_risk_file_raises(intent_tree: Callable[..., Path]) -> None:
     root = intent_tree(skip_action_risk=True)
-    with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="required risk file missing"
+    with patch(
+        "shared.infrastructure.intent.operational_capabilities.resolve_floor_path",
+        return_value=None,
     ):
-        load_operational_capabilities(repo_root=root)
+        with pytest.raises(
+            OperationalCapabilityTaxonomyError, match="required risk file missing"
+        ):
+            load_operational_capabilities(repo_root=root)
 
 
 def test_malformed_enums_json_raises(intent_tree: Callable[..., Path]) -> None:

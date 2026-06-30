@@ -21,6 +21,7 @@ from typing import Any
 
 from body.evaluators.base_evaluator import BaseEvaluator
 from shared.component_primitive import ComponentResult
+from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
 
 
@@ -106,8 +107,6 @@ class TestGapEvaluator(BaseEvaluator):
             ComponentResult with data containing "gaps" (untested) and
             "already_covered" (tested) lists, each a list of SymbolGap dicts.
         """
-        from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
-
         start = time.time()
 
         try:

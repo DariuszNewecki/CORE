@@ -20,6 +20,11 @@ from pathlib import Path
 from typing import Any
 
 from body.atomic.registry import ActionCategory, register_action
+from body.services.grc.catalog_resolver import discover_catalogs
+from body.services.grc.gap_analysis_service import (
+    DocumentCorpusAnalysisService,
+    load_catalog,
+)
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
@@ -65,12 +70,6 @@ async def action_run_gap_analysis(
                        The corpus itself is never modified regardless of this flag.
     """
     start = time.monotonic()
-
-    from body.services.grc.catalog_resolver import discover_catalogs
-    from body.services.grc.gap_analysis_service import (
-        DocumentCorpusAnalysisService,
-        load_catalog,
-    )
 
     resolved_corpus = Path(corpus_root)
     if not resolved_corpus.is_absolute():

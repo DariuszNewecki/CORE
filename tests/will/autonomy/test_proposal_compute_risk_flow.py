@@ -8,7 +8,7 @@ ActionExecutor.__init__ (executor.apply_risk_config). TestRemediatorWorker
 computes proposal risk before any executor exists in its process, so every
 action read an empty impact_level. The two risk-lookup defaults diverged —
 direct actions defaulted to "safe" (0), flow steps defaulted to "moderate"
-(1) — so flow-based proposals (flow.build_tests) computed "moderate",
+(1) — so flow-based proposals (flow.build_test_for_symbol) computed "moderate",
 flipped approval_required=True, and stuck in DRAFT, silently stalling the
 autonomous test-gen loop. ADR-008: impact_level is governed externally;
 risk computation must read it from action_risk.yaml directly.
@@ -33,12 +33,12 @@ from will.autonomy.proposal import (
 )
 
 
-_BUILD_TESTS_FLOW = "flow.build_tests"
+_BUILD_TESTS_FLOW = "flow.build_test_for_symbol"
 
 
 # ID: 6f3d2a1c-9b4e-47d8-8a52-1e6c0f9b7d34
 def test_build_tests_flow_risk_is_safe_without_executor_init() -> None:
-    """flow.build_tests must resolve to "safe" on a fresh registry.
+    """flow.build_test_for_symbol must resolve to "safe" on a fresh registry.
 
     All of its steps (build.tests, fix.imports, fix.headers, fix.format,
     test.sandbox_validate) are classified "safe" in action_risk.yaml, so the
@@ -63,7 +63,7 @@ def test_build_tests_proposal_auto_approves() -> None:
     left the proposal stuck in DRAFT and the autonomous loop never executed.
     """
     proposal = Proposal(
-        goal="Autonomous test remediation: flow.build_tests",
+        goal="Autonomous test remediation: flow.build_test_for_symbol",
         actions=[
             ProposalAction(
                 flow_id=_BUILD_TESTS_FLOW,

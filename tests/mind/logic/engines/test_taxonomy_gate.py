@@ -27,6 +27,7 @@ import textwrap
 from collections.abc import Iterable
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from mind.logic.engines.taxonomy_gate import TaxonomyGateEngine
 from shared.path_resolver import PathResolver
@@ -305,9 +306,14 @@ async def test_taxonomy_load_failure_surfaces_under_distinct_check_id(
     a distinct check_id so the operator sees the underlying YAML defect
     rather than a phantom-shaped misattribution."""
     # No skeleton written → loader fails (taxonomy file missing).
-    findings = await _engine(tmp_path).verify_context(
-        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
-    )
+    # Patch resolve_floor_path so the bundled floor file is not used as fallback.
+    with patch(
+        "shared.infrastructure.intent.operational_capabilities.resolve_floor_path",
+        return_value=None,
+    ):
+        findings = await _engine(tmp_path).verify_context(
+            _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
+        )
     assert len(findings) == 1
     assert findings[0].check_id.endswith(".load_failed")
     assert "cannot load" in findings[0].message

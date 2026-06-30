@@ -22,6 +22,7 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, get_origin, get_type_hints
 
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
 
@@ -800,10 +801,6 @@ def load_operational_config() -> OperationalConfig:
     """
     raw: dict[str, Any] = {}
     try:
-        from shared.infrastructure.intent.intent_repository import (
-            get_intent_repository,
-        )
-
         repo = get_intent_repository()
         config_path = repo.resolve_rel("enforcement/config/operational_config.yaml")
         loaded = repo.load_document(config_path)

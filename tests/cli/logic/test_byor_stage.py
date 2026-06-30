@@ -9,7 +9,7 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,23 +24,6 @@ def _make_context(core_root: Path) -> MagicMock:
     ctx.git_service.repo_path = core_root
     ctx.file_handler.ensure_dir = MagicMock()
     return ctx
-
-
-def _fake_executor_factory(core_root: Path):
-    """Return a patched ActionExecutor whose execute() actually writes the file to disk."""
-
-    class _FakeExecutor:
-        def __init__(self, context: object) -> None:
-            pass
-
-        async def execute(self, action_id: str, write: bool, file_path: str, code: str, **kwargs) -> MagicMock:
-            if write:
-                dest = core_root / file_path
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                dest.write_text(code, encoding="utf-8")
-            return MagicMock(ok=True)
-
-    return _FakeExecutor
 
 
 # ---------------------------------------------------------------------------
@@ -87,9 +70,8 @@ async def test_stage_skips_existing_intent_check(tmp_path: Path) -> None:
     context = _make_context(core_root)
     stage_dir = _stage_dir_for(core_root, target)
 
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        # Should NOT raise — stage_dir bypasses the existence check.
-        await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    # Should NOT raise — stage_dir bypasses the existence check.
+    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
 
     # Staged files landed in work/staged/target-repo/.intent/, not in target/.intent/.
     staged_intent = stage_dir / ".intent"
@@ -110,8 +92,7 @@ async def test_stage_writes_to_stage_not_target(tmp_path: Path) -> None:
     context = _make_context(core_root)
     stage_dir = _stage_dir_for(core_root, target)
 
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
 
     # Real target has no .intent/.
     assert not (target / ".intent").exists()
@@ -131,8 +112,7 @@ async def test_stage_without_write_is_dry_run(tmp_path: Path) -> None:
     context = _make_context(core_root)
     stage_dir = _stage_dir_for(core_root, target)
 
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        await initialize_repository(context=context, path=target, dry_run=True, stage_dir=stage_dir)
+    await initialize_repository(context=context, path=target, dry_run=True, stage_dir=stage_dir)
 
     # Dry run: no files written anywhere.
     assert not stage_dir.is_dir()
@@ -200,8 +180,7 @@ async def test_promote_copies_to_target_and_cleans_stage(tmp_path: Path) -> None
 
     context = _make_context(core_root)
 
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        await promote_staged(context=context, path=target)
+    await promote_staged(context=context, path=target)
 
     # Files landed in the target.
     assert (target / ".intent" / "META" / "schema.yaml").is_file()
@@ -224,15 +203,13 @@ async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
     stage_dir = _stage_dir_for(core_root, target)
 
     # Stage.
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
 
     assert (stage_dir / ".intent").is_dir(), "Stage should have .intent/ after staging"
     assert not (target / ".intent").exists(), "Target should be untouched after staging"
 
     # Promote.
-    with patch("cli.logic.byor.ActionExecutor", _fake_executor_factory(core_root)):
-        await promote_staged(context=context, path=target)
+    await promote_staged(context=context, path=target)
 
     assert (target / ".intent").is_dir(), "Target should have .intent/ after promotion"
     assert not stage_dir.exists(), "Stage dir should be cleaned up after promotion"

@@ -32,7 +32,7 @@ def test_to_yaml_delegates_to_file_handler(tmp_path: Path) -> None:
     """to_yaml with a FileHandler must call write_runtime_text with the YAML content."""
     mock_fh = MagicMock()
     packet = {"header": {"task_id": "t2"}, "evidence": []}
-    output = str(tmp_path / "sub" / "packet.yaml")
+    output = "var/tmp/test_context_serializer/sub/packet.yaml"
 
     ContextSerializer.to_yaml(packet, output, file_handler=mock_fh)
 

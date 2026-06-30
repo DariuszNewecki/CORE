@@ -32,7 +32,7 @@ _SECRET = "test-secret-key-not-for-production"
 def test_hash_is_not_plaintext() -> None:
     hashed = hash_password("hunter2")
     assert hashed != "hunter2"
-    assert hashed.startswith("$2b$")
+    assert hashed.startswith("$argon2id$")
 
 
 def test_verify_correct_password() -> None:

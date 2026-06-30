@@ -69,7 +69,7 @@ async def test_requirement_satisfied(path_resolver, tmp_doc):
     result = await engine.verify(tmp_doc, params)
 
     assert result.ok
-    assert result.message == "Requirement satisfied by the document corpus."
+    assert result.message == "Requirement satisfied by the document."
     assert result.violations == []
     assert result.engine_id == "grc_judge"
     invoke_mock.assert_awaited_once()

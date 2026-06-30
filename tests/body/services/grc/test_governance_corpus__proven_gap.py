@@ -31,7 +31,7 @@ async def test_proven_gap_on_unfinalized_document() -> None:
     by_id = {r.requirement_id: r for r in results}
 
     finalized = by_id["nist_800_171.doc_finalized"]
-    assert finalized.status == "gap"
+    assert finalized.status == "deficient"
     assert finalized.evidence_class is EvidenceClass.PROVEN
     assert finalized.findings, "expected at least one placeholder finding"
     # the gap is anchored on the unfinalized patching policy, not the clean docs
@@ -45,4 +45,4 @@ async def test_judged_lane_degrades_honestly_without_llm() -> None:
     judged = [r for r in results if r.evidence_class is EvidenceClass.JUDGED]
 
     assert judged, "the NIST catalog must carry at least one judged requirement"
-    assert all(r.status == "pending_ai" for r in judged)
+    assert all(r.status == "unavailable" for r in judged)

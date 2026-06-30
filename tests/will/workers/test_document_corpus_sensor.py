@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from shared.models.grc_verdict import (
+    Applicability,
     EvidenceClass,
     RequirementStatus,
     RequirementVerdict,
@@ -67,6 +68,7 @@ def _make_verdict(
     return RequirementVerdict(
         requirement_id=requirement_id,
         status=status,
+        applicability=Applicability.IN_SCOPE,
         evidence_class=EvidenceClass.PROVEN,
         statement="Test statement",
         rationale="Test rationale",

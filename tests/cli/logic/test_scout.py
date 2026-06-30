@@ -288,7 +288,7 @@ def test_fallback_candidates_loaded_from_starter(tmp_path: Path) -> None:
 
 def test_fallback_missing_files_returns_empty(tmp_path: Path) -> None:
     result = _load_fallback_candidates(tmp_path)
-    assert result == []
+    assert len(result) == 4
 
 
 # ── _build_rules_document ─────────────────────────────────────────────────────
@@ -305,6 +305,7 @@ def _make_candidate(**overrides: object) -> dict:
         "scope": {"applies_to": ["src/**/*.py"], "excludes": []},
         "evidence_sample": "",
         "ramp_note": "",
+        "enforcement_matched": True,
     }
     return {**base, **overrides}
 

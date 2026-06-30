@@ -43,6 +43,8 @@ def _app_with_role(role: str) -> FastAPI:
     app.include_router(refactor_router)
     app.include_router(sync_router)
     app.dependency_overrides[get_current_user] = lambda: user
+    from api.v1.auth_routes import get_auth_service
+    app.dependency_overrides[get_auth_service] = lambda: None
     return app
 
 

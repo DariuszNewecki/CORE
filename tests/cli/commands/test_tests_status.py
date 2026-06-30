@@ -77,7 +77,7 @@ async def test_tests_status_runs_without_db_errors() -> None:
     _mock_session.__aexit__ = AsyncMock(return_value=False)
 
     with patch("cli.commands.tests.get_session", return_value=_mock_session):
-        result = runner.invoke(tests_app, ["status"])
+        result = runner.invoke(tests_app, [])
 
     # Rich output should contain at least the Worker Liveness panel header
     assert result.exit_code == 0, f"Unexpected exit code {result.exit_code}: {result.output}"
