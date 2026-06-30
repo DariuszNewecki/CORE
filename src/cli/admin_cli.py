@@ -21,6 +21,7 @@ from cli.commands.daemon import daemon_app
 from cli.commands.interactive_test import app as interactive_test_app
 from cli.commands.refactor import refactor_app
 from cli.commands.status import status_app
+from cli.commands.tests import tests_app
 from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
@@ -83,6 +84,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(capabilities_app, name="capabilities")
     app_instance.add_typer(commands_app, name="commands")
     app_instance.add_typer(status_app, name="status")
+    app_instance.add_typer(tests_app, name="tests")
 
 
 register_all_commands(app)
