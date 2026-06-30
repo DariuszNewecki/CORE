@@ -8,7 +8,6 @@
 
 from pathlib import Path
 
-
 from mind.logic.engines.glob_gate import GlobGateEngine
 
 

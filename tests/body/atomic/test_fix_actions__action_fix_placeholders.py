@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-
 from body.atomic.fix_actions import action_fix_placeholders
 from shared.governance_token import authorize_execution
 

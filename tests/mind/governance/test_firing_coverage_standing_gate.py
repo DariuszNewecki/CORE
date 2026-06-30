@@ -23,7 +23,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-
 from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
 from mind.governance.constitutional_auditor_dynamic import (
     _check_per_file_scope_coverage,

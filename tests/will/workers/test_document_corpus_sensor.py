@@ -15,7 +15,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-
 from shared.models.grc_verdict import (
     EvidenceClass,
     RequirementStatus,

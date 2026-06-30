@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-
 from api.v1.inspect_routes import (
     analysis_clusters,
     analysis_command_tree,

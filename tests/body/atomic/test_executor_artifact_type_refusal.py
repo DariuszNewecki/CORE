@@ -22,7 +22,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
 from body.atomic.executor import ActionExecutor
 from body.atomic.registry import ActionCategory, ActionDefinition, ActionRegistry
 from shared.action_types import ActionResult

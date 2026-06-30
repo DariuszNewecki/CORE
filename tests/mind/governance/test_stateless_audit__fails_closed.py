@@ -19,7 +19,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.stateless_audit import run_stateless_audit
 

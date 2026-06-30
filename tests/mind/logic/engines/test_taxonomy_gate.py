@@ -28,7 +28,6 @@ from collections.abc import Iterable
 from pathlib import Path
 from types import SimpleNamespace
 
-
 from mind.logic.engines.taxonomy_gate import TaxonomyGateEngine
 from shared.path_resolver import PathResolver
 

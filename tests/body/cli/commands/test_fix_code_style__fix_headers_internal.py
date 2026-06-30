@@ -17,7 +17,6 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-
 from body.self_healing.header_service import fix_headers_internal
 from shared.action_types import ActionResult
 

@@ -12,7 +12,6 @@ would defeat the gate.
 
 from __future__ import annotations
 
-
 from body.atomic.test_actions import action_test_sandbox_validate
 
 
