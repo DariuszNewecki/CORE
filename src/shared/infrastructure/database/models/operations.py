@@ -117,7 +117,6 @@ class Task(Base):
     context_retrieved_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
     context_tokens_used: Mapped[int | None] = mapped_column(Integer)
     requires_approval: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    proposal_id: Mapped[int | None] = mapped_column(Integer)
     estimated_complexity: Mapped[int | None] = mapped_column(Integer)
     actual_duration_seconds: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[Any] = mapped_column(
