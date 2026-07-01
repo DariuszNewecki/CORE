@@ -1,0 +1,22 @@
+{
+  "$schema": "META/rule_document.schema.json",
+  "kind": "rule_document",
+  "metadata": {
+    "id": "rules.governance.operational_config",
+    "title": "Operational Config Discipline",
+    "version": "1.0.0",
+    "authority": "policy",
+    "phase": "audit",
+    "status": "active"
+  },
+  "rules": [
+    {
+      "id": "governance.operational_config.no_hardcoded_thresholds",
+      "statement": "Numeric confidence scores and decision thresholds used as operation gates in Will-tier logic MUST be loaded from operational_config.yaml via load_operational_config(), not hardcoded as float literals in src/. Per ADR-040: no hardcoded operational values in src/.",
+      "enforcement": "reporting",
+      "authority": "policy",
+      "phase": "audit",
+      "rationale": "ADR-040 declared operational_config.yaml as the single canonical home for all runtime numeric values. Hardcoded thresholds in strategists and orchestrators mean a threshold change requires a code edit, review, and deployment rather than a config edit. It also breaks the audit trail: a governance decision about acceptable confidence levels is invisible when buried in a return statement or dict literal. Compliant pattern: from shared.infrastructure.intent.operational_config import load_operational_config; _CFG = load_operational_config().section; then _CFG.field. See complexity_strategist.py and clarity_strategist.py for established precedent."
+    }
+  ]
+}

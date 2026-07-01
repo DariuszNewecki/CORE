@@ -33,7 +33,8 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 _RUNTIME_DIR_PATTERN = re.compile(
-    r"""["'](?:reports|logs)/|/\s*["'](?:reports|logs)["']"""
+    r"""["'](?:reports|logs|prompts|exports|workflows|build|context)/"""
+    r"""|/\s*["'](?:reports|logs|prompts|exports|workflows|build|context)["']"""
 )
 
 
@@ -799,7 +800,15 @@ async def action_fix_settings_access(
     )
 
 
-_PATH_RESOLVER_PROPS: dict[str, str] = {"reports": "reports_dir", "logs": "logs_dir"}
+_PATH_RESOLVER_PROPS: dict[str, str] = {
+    "reports": "reports_dir",
+    "logs": "logs_dir",
+    "prompts": "prompts_dir",
+    "exports": "exports_dir",
+    "workflows": "workflows_dir",
+    "build": "build_dir",
+    "context": "context_dir",
+}
 
 
 def _is_target_constant(node: Any) -> bool:
@@ -813,12 +822,12 @@ def _is_target_constant(node: Any) -> bool:
 
 
 def _is_embedded_target_constant(node: Any) -> tuple[bool, str, str]:
-    """Detect a Constant str whose value starts with ``reports/`` or ``logs/``.
+    """Detect a Constant str whose value starts with a governed dir prefix (e.g. ``reports/``).
 
     Returns ``(matched, prop_name, remainder)`` where ``prop_name`` is the
-    matching PathResolver property (``reports_dir``/``logs_dir``) and
-    ``remainder`` is the substring after the prefix-and-slash. ``remainder``
-    may be empty for bare cases where only the prefix-and-slash is present.
+    matching PathResolver property and ``remainder`` is the substring after the
+    prefix-and-slash. ``remainder`` may be empty for bare cases where only the
+    prefix-and-slash is present.
     """
     import ast as _ast
 
@@ -932,9 +941,9 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
     """Deterministic AST rewrite of hardcoded runtime dir literals.
 
     Walks the source for ``BinOp(op=Div)`` nodes where one operand is a
-    ``Constant("reports")`` or ``Constant("logs")``. Each leaf match is
-    replaced with ``PathResolver.from_repo(<other operand>).<dir>`` where
-    ``<dir>`` is ``reports_dir`` or ``logs_dir`` respectively. Outer BinOps
+    Constant matching a key in ``_PATH_RESOLVER_PROPS`` (reports, logs, prompts,
+    exports, workflows, build, context). Each leaf match is replaced with
+    ``PathResolver.from_repo(<other operand>).<dir_property>``. Outer BinOps
     that contain a deeper match are skipped (leaf-only strategy) so source
     edits never overlap. Chained path-division expressions with a runtime
     directory name as an intermediate operand are handled by the leaf
@@ -1027,8 +1036,9 @@ async def action_fix_path_resolver(
 
     The rewrite is fully deterministic — no LLM call. ``_transform_path_resolver``
     parses the file with ``ast``/``asttokens`` and replaces leaf
-    ``BinOp(op=Div)`` nodes whose operand is ``Constant("reports")`` or
-    ``Constant("logs")`` with ``PathResolver.from_repo(<other>).<dir>``.
+    ``BinOp(op=Div)`` nodes whose operand matches a key in ``_PATH_RESOLVER_PROPS``
+    (reports, logs, prompts, exports, workflows, build, context) with
+    ``PathResolver.from_repo(<other>).<dir_property>``.
     The required ``from shared.path_resolver import PathResolver`` is
     inserted into the file's imports if not already present.
 

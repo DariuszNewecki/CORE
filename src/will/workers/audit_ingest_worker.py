@@ -23,17 +23,18 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from shared.infrastructure.intent.rule_registry import get_rule_registry
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-# The rule we are ingesting findings for
-_TARGET_RULE = "ai.prompt.model_required"
+# The rule we are ingesting findings for — validated against .intent/ at import time
+_TARGET_RULE = get_rule_registry()["ai.prompt.model_required"]
 
-# Blackboard sub-namespace for findings posted by this worker
-_SUB_NAMESPACE = "ai.prompt.model_required"
+# Blackboard sub-namespace mirrors the rule this worker tracks
+_SUB_NAMESPACE = _TARGET_RULE
 
 # Artifact type these findings are about (Python source files).
 # ADR-091 D2: subjects are <artifact_type>::<sub_namespace>::<identity_key_value>.

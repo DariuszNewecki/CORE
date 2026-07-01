@@ -1,0 +1,22 @@
+{
+  "$schema": "META/rule_document.schema.json",
+  "kind": "rule_document",
+  "metadata": {
+    "id": "rules.governance.rule_references",
+    "title": "Rule ID Reference Discipline",
+    "version": "1.0.0",
+    "authority": "policy",
+    "phase": "audit",
+    "status": "active"
+  },
+  "rules": [
+    {
+      "id": "governance.intent_vocabulary.no_hardcoded_rule_ids",
+      "statement": "Rule IDs from the constitutional registry MUST NOT appear as hardcoded string literals assigned to module-level constants in src/. All references to rule IDs MUST route through get_rule_registry() from shared.infrastructure.intent.rule_registry so that renames surface as KeyError at import time rather than silently routing findings to a dead blackboard subject.",
+      "enforcement": "reporting",
+      "authority": "policy",
+      "phase": "audit",
+      "rationale": "Rule IDs are governed vocabulary declared in .intent/rules/**/*.json. Hardcoding them as Python string constants creates silent brittleness: if a rule is renamed, the constant still compiles, the worker routes findings to a non-existent subject, and the blackboard accumulates dead entries with no audit trail. get_rule_registry() validates existence at import time and raises KeyError on a stale key, making the breakage immediate and unambiguous. Compliant pattern: from shared.infrastructure.intent.rule_registry import get_rule_registry; _RULE = get_rule_registry()[\"the.rule.id\"]."
+    }
+  ]
+}

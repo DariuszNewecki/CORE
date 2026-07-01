@@ -229,6 +229,25 @@ mappings:
       files before #343/#344 deletion).
     status: DELEGATE
 
+  ai.prompt.constitutional_grounding_section:
+    action: fix.placeholders
+    confidence: 0.40
+    description: >
+      Governed prompt system.txt lacks a '# CONSTITUTIONAL' section naming
+      the enforced policies/ADR clauses. Content is semantic — only the
+      governor knows which clauses apply to a given prompt. Non-automatable.
+      Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
+  ai.prompt.governed_change_requires_review:
+    action: fix.placeholders
+    confidence: 0.40
+    description: >
+      A governed prompt (system.txt or user.txt) changed without ratification.
+      Review decision — approve or revert — belongs to the governor.
+      Non-automatable. Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
   architecture.api.must_route_through_will:
     action: fix.modularity
     confidence: 0.40
@@ -475,6 +494,27 @@ mappings:
       declaration and cardinality mismatch (per-symbol findings vs
       whole-repo crawl). Validate wiring in a separate issue before
       promoting to ACTIVE. Until then, DELEGATE.
+    status: DELEGATE
+
+  governance.intent_vocabulary.no_hardcoded_rule_ids:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      Hardcoded rule ID string constant in Will-tier worker. Replace with
+      get_rule_registry()["rule.id"] from shared.infrastructure.intent.rule_registry.
+      The fix is mechanical but requires confirming the correct rule ID key.
+      Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
+  governance.operational_config.no_hardcoded_thresholds:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      Hardcoded numeric threshold or confidence score in Will-tier logic.
+      Migration requires: (1) identifying the correct operational_config.yaml
+      section, (2) adding the key, (3) replacing the literal with a
+      load_operational_config() call. Judgment call on section placement
+      makes this non-automatable. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
   governance.artifact_mutation.traceable:

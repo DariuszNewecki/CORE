@@ -1,0 +1,38 @@
+# .intent/enforcement/mappings/governance/operational_config.yaml
+#
+# Enforcement mapping for governance.operational_config.* rules.
+# Authority: ADR-040 (no hardcoded operational values in src/).
+#
+# Compliant pattern:
+#   from shared.infrastructure.intent.operational_config import load_operational_config
+#   _CFG = load_operational_config().section
+#   # then use _CFG.field throughout the module
+#
+# See src/will/strategists/complexity_strategist.py and clarity_strategist.py
+# for established compliant examples.
+
+mappings:
+  governance.operational_config.no_hardcoded_thresholds:
+    engine: regex_gate
+    params:
+      check_type: pattern_match
+      patterns:
+        # Parameter defaults and variable assignments: confidence_threshold: float = 0.3
+        - '\b(?:confidence|threshold|min_score|max_score)[_\w]*\s*(?::\s*float)?\s*=\s*0\.\d+'
+        # Dict .get() fallbacks with hardcoded threshold: thresholds.get(strategy, 0.8)
+        - '\.get\(\w+,\s*0\.\d+\)'
+      message: >
+        Hardcoded numeric threshold or confidence score. Load from
+        operational_config.yaml instead:
+          from shared.infrastructure.intent.operational_config import load_operational_config
+          _CFG = load_operational_config().your_section
+        Add the value under the appropriate section in
+        .intent/enforcement/config/operational_config.yaml.
+        ADR-040: no hardcoded operational values in src/.
+    scope:
+      applies_to:
+        - "src/will/strategists/**/*.py"
+        - "src/will/self_healing/**/*.py"
+        - "src/will/orchestration/**/*.py"
+      excludes:
+        - "tests/**/*.py"

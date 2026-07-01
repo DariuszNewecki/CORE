@@ -10,11 +10,17 @@ mappings:
     params:
       check_type: pattern_match
       patterns:
-        - '["''](?:reports|logs)/'
-        - '/\s*["''](?:reports|logs)["'']'
+        # Full var/ path in string literal — "var/reports", "var/prompts/foo", etc.
+        - '["'']var/(?:reports|logs|prompts|exports|workflows|build|tmp|mind|run|drafts|context)[/"'']'
+        # Directory name as standalone or prefixed path-division operand — base / "reports"
+        - '/\s*["''](?:reports|logs|prompts|exports|workflows|build|context|mind)["''/]'
       message: >
         Runtime directory name used in path construction expression. Route through
         PathResolver (src/shared/path_resolver.py) or FileHandler instead.
+        PathResolver properties: reports_dir, logs_dir, prompts_dir, exports_dir,
+        workflows_dir, build_dir, context_dir, knowledge_dir (var/mind/knowledge/).
+        Directories without a PathResolver property yet (tmp, run, drafts,
+        var/mind/rollbacks) require a PathResolver addition before auto-fix can apply.
         See ADR-031, ADR-032.
     scope:
       applies_to:

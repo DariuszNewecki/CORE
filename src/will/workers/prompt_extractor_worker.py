@@ -25,13 +25,14 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
+from shared.infrastructure.intent.rule_registry import get_rule_registry
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-_SOURCE_RULE = "ai.prompt.model_required"
+_SOURCE_RULE = get_rule_registry()["ai.prompt.model_required"]
 _EXTRACTION_SUB_NAMESPACE = "prompt.extraction"
 
 # Artifact type these findings are about (Python source files).

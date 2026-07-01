@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/governance/rule_references.yaml
+#
+# Enforcement mapping for governance.intent_vocabulary.* rules.
+# Authority: governance — rule IDs are constitutional vocabulary.
+#
+# Compliant pattern:
+#   from shared.infrastructure.intent.rule_registry import get_rule_registry
+#   _TARGET_RULE = get_rule_registry()["the.rule.id"]
+#
+# The registry validates at import time; KeyError surfaces renames immediately.
+
+mappings:
+  governance.intent_vocabulary.no_hardcoded_rule_ids:
+    engine: regex_gate
+    params:
+      check_type: pattern_match
+      patterns:
+        # Module-level constant assigned a string whose prefix matches a known rule namespace
+        - '\b\w+\s*=\s*["''](?:ai|architecture|governance|quality|purity|style|linkage|atomic_actions|async|logic|modernization|autonomy|coherence|cli|data|infrastructure|runtime|will)\.[a-z][a-z_.]+["'']'
+      message: >
+        Hardcoded rule ID string assigned to a constant. Route through
+        get_rule_registry() instead:
+          from shared.infrastructure.intent.rule_registry import get_rule_registry
+          _TARGET_RULE = get_rule_registry()["the.rule.id"]
+        This validates the ID exists at import time and raises KeyError on rename.
+    scope:
+      applies_to:
+        - "src/will/workers/**/*.py"
+      excludes:
+        - "tests/**/*.py"
