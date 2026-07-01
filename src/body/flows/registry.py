@@ -98,6 +98,13 @@ class FlowDefinition:
     policies: list[str]
     """Policy IDs governing this Flow."""
 
+    generation_mode: str = "single_shot"
+    """
+    Generation execution strategy declared for this flow (ADR-135 D5).
+    'single_shot' (default) or 'iterative'. Metadata only at the FlowDefinition
+    level — actions that support iterative mode receive the value via step params.
+    """
+
     source_path: Path | None = None
     """The .intent/flows/*.yaml file this definition was loaded from."""
 
@@ -173,6 +180,7 @@ class FlowRegistry:
         flow_id = flow_block.get("flow_id")
         description = flow_block.get("description", "").strip()
         policies = flow_block.get("policies", [])
+        generation_mode = str(data.get("generation_mode", "single_shot"))
         raw_steps = flow_block.get("steps", [])
 
         if not flow_id:
@@ -238,6 +246,7 @@ class FlowRegistry:
             description=description,
             steps=steps,
             policies=policies,
+            generation_mode=generation_mode,
             source_path=yaml_path,
         )
         self._flows[flow_id] = definition

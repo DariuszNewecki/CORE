@@ -1,0 +1,28 @@
+# path: .intent/enforcement/config/generation_budget.yaml
+#
+# Governed iteration caps for IterativeCoderAgent and the iterative loop
+# inside build.test_for_symbol (ADR-135 D4).
+#
+# max_iterations  — maximum number of LLM calls per generation task before the
+#                   loop gives up and returns accepted=False. Counts from 1;
+#                   a cap of 5 means 1 initial + 4 repair attempts.
+# wall_clock_cap_secs — hard wall-clock limit per task. Enforced by asyncio.wait_for
+#                        wrapping each generate call. If hit, the iteration is
+#                        abandoned and the loop returns accepted=False.
+#
+# The "default" entry is the fallback when task_type is not explicitly listed.
+# Callers MUST NOT exceed the governed cap even if they supply their own value.
+
+budgets:
+  test_generation:
+    max_iterations: 5
+    wall_clock_cap_secs: 600
+  code_modification:
+    max_iterations: 3
+    wall_clock_cap_secs: 600
+  code_generation:
+    max_iterations: 3
+    wall_clock_cap_secs: 600
+  default:
+    max_iterations: 3
+    wall_clock_cap_secs: 600

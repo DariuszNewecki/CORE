@@ -1,10 +1,12 @@
 $schema: "META/flow.schema.json"
 kind: flow
 
+generation_mode: iterative
+
 metadata:
   id: flows.build_test_for_symbol
   title: Build Test For Symbol Flow
-  version: "1.0.0"
+  version: "2.0.0"
   authority: policy
   status: active
   rationale: >
@@ -14,12 +16,16 @@ metadata:
     Replaces file-level flow.build_tests as the primary autonomous test generation
     path; flow.build_tests is retained for explicit full-file regeneration.
 
+    v2.0.0 (ADR-135 D5/D6): declares generation_mode: iterative. The
+    build.test_for_symbol action loops with IntentGuard feedback up to the cap
+    declared in .intent/enforcement/config/generation_budget.yaml.
+
 flow:
   flow_id: flow.build_test_for_symbol
   description: >
     Generate one pytest test function for a single named source symbol via
-    context_aware_test_gen, auto-heal imports/headers/format, and validate in
-    sandbox.
+    context_aware_test_gen (iterative mode), auto-heal imports/headers/format,
+    and validate in sandbox.
   policies:
     - rules/code/purity
 
@@ -27,6 +33,8 @@ flow:
     - ref_id: build.test_for_symbol
       kind: action
       required: true
+      params:
+        generation_mode: iterative
       consumes: [source_file, symbol_name, symbol_kind, signature, write]
 
     - ref_id: fix.imports

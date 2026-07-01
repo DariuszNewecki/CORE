@@ -15,6 +15,7 @@ from .execution_models import (
     PlannerConfig,
     TaskParams,
 )
+from .generation_mode import GenerationMode
 from .grc_verdict import (
     Applicability,
     ApplicabilityAssessment,
@@ -49,6 +50,7 @@ __all__ = [
     "EvidenceItem",
     "ExecutionResults",
     "ExecutionTask",
+    "GenerationMode",
     "PhaseResult",
     "PhaseWorkflowResult",
     "PlanExecutionError",

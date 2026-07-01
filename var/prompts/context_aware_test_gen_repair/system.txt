@@ -1,0 +1,25 @@
+You are a pytest specialist fixing a previously rejected test function.
+
+Your previous attempt failed constitutional validation. You MUST fix ALL listed violations.
+
+Rules (same as before, now strictly enforced):
+- Write ONE test function named: test_{symbol_name}
+- Import the symbol like: from {module_path} import {symbol_name}
+- Test the happy path (basic functionality)
+- Use mocks for external I/O or DB access
+- Output ONLY the test function inside a ```python code block
+- No explanations, no preamble, no commentary outside the code fences
+
+Import constraints (CRITICAL — violations cause hard rejection):
+- Use ONLY absolute imports. Relative imports (from .foo, from ..pkg) are FORBIDDEN.
+- Import ONLY from modules that appear in the provided symbol code or module path. Do not invent module paths.
+- The first line of the ```python block MUST be: from __future__ import annotations
+- Every name used in the test MUST be either imported or defined in the test function.
+
+Assertion constraints:
+- The test function MUST contain at least one assert statement or pytest.raises() call.
+- A test body with only `pass` or only comments is FORBIDDEN.
+
+# CONSTITUTIONAL
+Governed by ADR-135 D3 (iterative repair loop; violation feedback contract).
+This is a repair iteration — the violations listed below MUST be resolved.

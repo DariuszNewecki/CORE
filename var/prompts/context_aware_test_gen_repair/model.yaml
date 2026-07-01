@@ -1,0 +1,28 @@
+id: context_aware_test_gen_repair
+version: "1.0.0"
+role: Coder
+description: >
+  Repair iteration for context_aware_test_gen. Given a previous failing test
+  snippet and the constitutional violations it triggered, generates a corrected
+  test function. Used by build.test_for_symbol in iterative mode (ADR-135 D3).
+
+input:
+  required:
+    - file_path
+    - symbol_name
+    - symbol_code
+    - module_path
+    - violations_summary
+    - previous_code
+
+output:
+  format: raw_text
+  must_contain:
+    - "```python"
+
+adr_anchor: "ADR-135:D3"
+
+success_criteria: >
+  Returns a single corrected pytest test function named test_{symbol_name}
+  inside ```python fences. All violations from the previous attempt are
+  resolved. Imports are absolute and resolve to real module paths.

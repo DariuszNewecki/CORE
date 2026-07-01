@@ -3,7 +3,10 @@
 """
 Main orchestration for EnhancedTestGenerator.
 
-This is the conductor - coordinates generation, repair, execution, and fixing.
+DEPRECATED (ADR-135 D7): EnhancedTestGenerator is superseded by IterativeCoderAgent
+(src/will/agents/iterative_coder_agent.py) for CoderAgent-based flows, and by the
+iterative loop inside build.test_for_symbol for PromptModel-based flows. No new flows
+or workers may invoke EnhancedTestGenerator. Retained until all callers are migrated.
 """
 
 from __future__ import annotations
