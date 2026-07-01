@@ -126,12 +126,12 @@ class Settings(BaseSettings):
         default_factory=lambda: resolve_default_repo_path() / ".intent" / "keys"
     )
     CORE_ACTION_LOG_PATH: Path = Field(
-        default_factory=lambda: __import__(
-            "shared.path_resolver", fromlist=["PathResolver"]
+        default_factory=lambda: (
+            __import__("shared.path_resolver", fromlist=["PathResolver"])
+            .PathResolver.from_repo(REPO_ROOT)
+            .logs_dir
+            / "actions.jsonl"
         )
-        .PathResolver.from_repo(REPO_ROOT)
-        .logs_dir
-        / "actions.jsonl"
     )
 
     # --- Infrastructure Attributes ---
