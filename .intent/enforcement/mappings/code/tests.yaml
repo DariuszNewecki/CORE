@@ -1,0 +1,44 @@
+# .intent/enforcement/mappings/code/tests.yaml
+#
+# Test-quality rules enforced at write-time by PatternValidators (issue #589).
+# These rules gate the autonomous test generator's output before any generated
+# test file is committed to disk. The audit engine pipeline does NOT dispatch
+# them (passive_gate is the canonical declared-but-not-audit-dispatched engine).
+#
+# Enforcement surface:
+#   src/body/governance/intent_pattern_validators.py::PatternValidators
+#   Called by IntentGuard.validate_generated_code with pattern_id="test_file".
+
+mappings:
+  # LAW: Generated test code MUST use AsyncMock (not MagicMock) for awaited mocks.
+  # Enforcement: write-time via PatternValidators.check_no_magicmock_on_await.
+  code.tests.no_magicmock_on_await:
+    engine: passive_gate
+    params:
+      note: >
+        Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_magicmock_on_await
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        MagicMock on an awaited attribute raises TypeError at runtime; the AST check
+        rejects the pattern before the generated file lands (#572 root cause, #589 Tier 2).
+        The audit engine does not scan committed files for this pattern because the rule
+        is scoped to the autogen output gate, not the live test tree.
+    scope:
+      applies_to: ["tests/**/*.py"]
+
+  # LAW: Every test_X function in generated test code MUST contain at least one
+  # observable assertion (assert statement, pytest.raises context, or mock.assert_* call).
+  # Enforcement: write-time via PatternValidators.check_no_placeholder_test_body.
+  code.tests.no_placeholder_test_body:
+    engine: passive_gate
+    params:
+      note: >
+        Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_placeholder_test_body
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        Placeholder test functions with no assert / pytest.raises / mock.assert_* call
+        pass trivially and report false coverage (#572 batch 20, #589 Tier 2).
+        The audit engine does not scan committed files for this pattern; the write-time
+        gate prevents placeholder tests from landing.
+    scope:
+      applies_to: ["tests/**/*.py"]

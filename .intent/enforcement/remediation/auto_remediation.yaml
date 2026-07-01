@@ -486,6 +486,31 @@ mappings:
       required.
     status: DELEGATE
 
+  code.tests.no_magicmock_on_await:
+    action: fix.code
+    confidence: 0.40
+    description: >
+      Generated test assigns MagicMock to an attribute that is later awaited.
+      The fix is mechanical (swap MagicMock for AsyncMock at the mocked site),
+      but confirming which call sites are awaited requires reading both the test
+      and the system-under-test. Write-time gate in PatternValidators prevents
+      this from landing; if a finding reaches the blackboard it is from a
+      pre-gate file and requires human review. Routed to governor inbox as
+      DELEGATE.
+    status: DELEGATE
+
+  code.tests.no_placeholder_test_body:
+    action: build.tests
+    confidence: 0.35
+    description: >
+      Test function has no observable assertion — no assert, no pytest.raises,
+      no mock.assert_* call. Correct remediation requires regenerating the test
+      with proper assertions, which demands understanding the contract under
+      test. build.tests could regenerate but would face the same context
+      constraints that produced the placeholder. Human review is the reliable
+      path. Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
   data.integrity.vector_sync:
     action: fix.modularity
     confidence: 0.40
