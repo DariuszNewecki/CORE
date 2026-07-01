@@ -64,7 +64,7 @@ dependencies = [
     "radon>=6.0.1,<7.0.0",
     "sqlparse>=0.5.3,<0.6.0",
     # Vector Database
-    "qdrant-client>=1.9.0,<2.0.0",
+    "qdrant-client>=1.18.0,<2.0.0",
     # Scientific Computing
     "numpy>=2.3.2,<3.0.0",
     "scikit-learn>=1.5.1,<2.0.0",
