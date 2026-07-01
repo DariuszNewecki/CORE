@@ -19,10 +19,11 @@
         },
         {
             "id": "logic.di.no_global_session",
-            "statement": "Modules MUST NOT import 'get_session' globally; database access MUST be injected.",
+            "statement": "SUPERSEDED by architecture.boundary.database_session_access (issue #512). That constitutional rule carries full layer-permission semantics (Mind/Will MUST use DI; Body/infra/shared MAY import directly) and renders this terse policy rule redundant. Append-only closure marker: rule retained as historical record; enforcement downgraded to advisory; mapping entry removed so no findings are dispatched.",
             "authority": "policy",
             "phase": "load",
-            "enforcement": "blocking"
+            "enforcement": "advisory",
+            "rationale": "The original statement 'MUST NOT import get_session globally' was ambiguous between Reading A (no module-global session instance) and Reading B (no module-scope import statement). architecture.boundary.database_session_access resolves both readings with explicit layer permissions. Scope of the retired mapping (src/features/**  — directory removed — and src/body/services/**) was fully subsumed. Retired per direction 2, issue #512."
         },
         {
             "id": "logic.logging.standard_only",

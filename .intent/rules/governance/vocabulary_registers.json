@@ -20,11 +20,11 @@
         },
         {
             "id": "governance.vocabulary_registers.diagnostic_fields_must_be_uppercase",
-            "statement": "Values declared in diagnostic-register fields of .intent/ artifacts MUST match the Diagnostic-register grammar `^[A-Z][A-Z0-9_]*$`. Diagnostic-register fields include `severity` and verdict-state fields. A value such as `severity: error` (lowercase) or `verdict: pass` imports the wrong register into a Diagnostic-register field and is governance failure.",
+            "statement": "Values declared in diagnostic-register fields of .intent/ artifacts MUST match the Diagnostic-register grammar `^[a-z][a-z0-9_]*$`. Diagnostic-register fields include `severity` and verdict-state fields. A value such as `severity: ERROR` (UPPER_CASE) imports the wrong register into a Diagnostic-register field and is governance failure. (Historical note: the rule ID retains 'uppercase' from its original form; ADR-059 D2 inverted the canonical casing to lowercase \u2014 see rationale.)",
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "parse",
-            "rationale": "Diagnostic-register values inherit the cross-system convention of UPPER_CASE established by logging, monitoring, and alerting frameworks. A lowercase severity value cannot be matched against `AuditSeverity` enum members without a transformation that itself becomes a drift surface. Article I \u00a75 of the Constitution declares the three registers; this rule enforces that diagnostic fields stay in the Diagnostic register. See `.specs/papers/CORE-Vocabulary-Registers.md` for the doctrinal source and the full register-assignment table."
+            "rationale": "ADR-059 D2 replaced the audit_severity enum from UPPER_CASE (INFO, WARNING, ERROR) to lowercase (info, low, medium, high, block). The lowercase form is now canonical across the Python codebase and all .intent/ artifacts. This rule is updated (option 2, issue #453) to enforce the ADR-059 D2 canonical form: diagnostic fields must match `^[a-z][a-z0-9_]*$`. A UPPER_CASE value such as `severity: ERROR` is now the governance failure. Article I \u00a75 of the Constitution declares the three registers; this rule enforces that diagnostic fields stay in the Diagnostic register at its canonical casing. See `.specs/papers/CORE-Vocabulary-Registers.md` for the doctrinal source and the full register-assignment table."
         }
     ]
 }

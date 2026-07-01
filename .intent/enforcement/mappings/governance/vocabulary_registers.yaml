@@ -55,7 +55,7 @@ mappings:
       register: diagnostic
       fields:
         - severity
-      expected_pattern: "^[A-Z][A-Z0-9_]*$"
+      expected_pattern: "^[a-z][a-z0-9_]*$"
     scope:
       applies_to:
         - ".intent/**/*.yaml"
