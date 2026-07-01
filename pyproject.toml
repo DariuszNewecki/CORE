@@ -66,7 +66,7 @@ dependencies = [
     # Vector Database
     "qdrant-client>=1.9.0,<2.0.0",
     # Scientific Computing
-    "numpy>=2.3.2,<3.0.0",
+    "numpy>=2.5.0,<3.0.0",
     "scikit-learn>=1.5.1,<2.0.0",
     # Utilities
     "msgpack>=1.2.1,<2.0.0",
