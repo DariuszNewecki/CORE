@@ -123,7 +123,7 @@ aiosqlite = "^0.21.0"
 # Code Quality
 pre-commit = "^3.7.1"
 mypy = "^1.11"
-ruff = "^0.14.8"
+ruff = "^0.15.20"
 
 # Documentation
 sphinx = "^7.0"
@@ -193,6 +193,10 @@ ignore = [
     "C414",
     "N806",
     "F841",
+    # UP042: we use str+Enum intentionally (StrEnum has different Pydantic serialization)
+    "UP042",
+    # ASYNC240: fires on asyncio codebases; rule targets trio/anyio path wrappers we don't use
+    "ASYNC240",
 ]
 
 [tool.ruff.lint.isort]
