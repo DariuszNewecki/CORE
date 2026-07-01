@@ -338,6 +338,35 @@ mappings:
         - "src/shared/**/test_*.py"
         - "tests/**"
 
+  # ==========================================================================
+  # RULE 16: Workers Never Import Other Workers
+  # Blocking AST gate — inter-worker communication via blackboard only.
+  # Existing helper modules in will/workers/ are excluded pending extraction.
+  # ==========================================================================
+
+  architecture.workers.no_direct_worker_import:
+    engine: ast_gate
+    params:
+      check_type: runtime_import_boundary
+      forbidden:
+        - "will.workers"
+        - "body.workers"
+      type_checking_exempt: true
+    scope:
+      applies_to:
+        - "src/will/workers/**/*.py"
+        - "src/body/workers/**/*.py"
+      excludes:
+        # Helper modules co-located in will/workers/ — not Worker subclasses.
+        # These import utility functions (not Worker instances) from sibling
+        # helper files. Pending extraction to will/ or shared/ (#723 follow-up).
+        - "src/will/workers/proposal_consumer_worker.py"
+        - "src/will/workers/proposal_pipeline_shop_manager.py"
+        - "src/will/workers/violation_remediator.py"
+        - "src/will/workers/violation_remediator_proposal.py"
+        - "src/will/workers/audit_violation_sensor.py"
+        - "src/will/workers/violation_executor.py"
+
 # ==============================================================================
 # Meta: This mapping file restores CORE's founding architectural principle
 # ==============================================================================

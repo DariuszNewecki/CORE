@@ -49,6 +49,17 @@ class WorkerRegistrationError(RuntimeError):
     """Raised when a Worker fails to register in worker_registry."""
 
 
+# ID: e3ec800b-3683-48fd-b33c-181b140ee735
+class WorkerSilenceError(RuntimeError):
+    """Raised when a Worker's run() completes without posting any blackboard entry.
+
+    Constitutional obligation: every Worker cycle MUST produce at least one
+    blackboard entry via post_finding(), post_report(), or post_heartbeat().
+    Silence (no entry) is a constitutional violation — the blackboard is the
+    sole evidence of a Worker's work.
+    """
+
+
 @dataclass(frozen=True)
 # ID: 6e048274-0303-4354-9018-07a12b57d9ec
 class WorkerDeclaration:
@@ -126,6 +137,7 @@ class Worker(ABC):
             phase=self._phase,
             declaration=self._declaration,
         )
+        self._cycle_post_count: int = 0
 
         logger.info(
             "Worker initialized: %s (uuid=%s, phase=%s)",
@@ -179,7 +191,14 @@ class Worker(ABC):
         await self._register()
         lease_task = asyncio.create_task(self._renew_lease_until_cancelled())
         try:
+            self._cycle_post_count = 0
             await self.run()
+            if self._cycle_post_count == 0:
+                raise WorkerSilenceError(
+                    f"Worker {self._worker_name!r} completed run() without posting "
+                    "any blackboard entry — silence is a constitutional violation. "
+                    "Call at least one of: post_finding(), post_report(), post_heartbeat()."
+                )
         except Exception as e:
             await self._blackboard._post_entry(
                 entry_type="report",
@@ -321,6 +340,7 @@ class Worker(ABC):
 
         See BlackboardPublisher.post_finding for the full contract.
         """
+        self._cycle_post_count += 1
         return await self._blackboard.post_finding(
             subject, payload, resolution_mechanism=resolution_mechanism
         )
@@ -337,6 +357,7 @@ class Worker(ABC):
 
         See BlackboardPublisher.post_artifact_finding for the full contract.
         """
+        self._cycle_post_count += 1
         return await self._blackboard.post_artifact_finding(
             artifact_type, sub_namespace, identity_key_value, payload
         )
@@ -344,11 +365,13 @@ class Worker(ABC):
     # ID: 1b5d39a0-8d4c-475c-bcf5-5d50af2c6c2e
     async def post_report(self, subject: str, payload: dict[str, Any]) -> uuid.UUID:
         """Post a completion report to the blackboard."""
+        self._cycle_post_count += 1
         return await self._blackboard.post_report(subject, payload)
 
     # ID: fdb25fd6-e20f-4e6c-b7bf-a39b2c60cc4e
     async def post_heartbeat(self) -> uuid.UUID:
         """Post a heartbeat — proves worker is alive and constitutionally compliant."""
+        self._cycle_post_count += 1
         return await self._blackboard.post_heartbeat()
 
     # ID: 90d3435b-06b4-407e-8aee-7380942946c9
@@ -359,6 +382,7 @@ class Worker(ABC):
 
         See BlackboardPublisher.post_observation for the full contract.
         """
+        self._cycle_post_count += 1
         return await self._blackboard.post_observation(subject, payload, status=status)
 
     # -------------------------------------------------------------------------

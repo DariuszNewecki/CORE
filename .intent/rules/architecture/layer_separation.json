@@ -139,6 +139,14 @@
             "rationale": "Shared is layer-independent substrate. A shared module that imports from a layer fails the constitutional admission test (CORE-Mind-Body-Will-Separation.md \u00a77.2 Test 1) and belongs in that layer, not in shared/. This rule makes the admission test mechanically enforceable. Added 2026-03-28 as a blocking AST gate, replacing previously advisory-only governance."
         },
         {
+            "id": "architecture.workers.no_direct_worker_import",
+            "statement": "Workers in src/will/workers/ and src/body/workers/ MUST NOT directly import from other modules within those directories at runtime. All inter-worker communication routes exclusively through the blackboard (post_finding, post_report, post_heartbeat). Utility functions shared between workers belong in shared/ or in a non-workers Will subdirectory.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Direct worker-to-worker imports create structural coupling that makes it possible for one Worker to call another Worker's methods directly, bypassing the blackboard-only communication contract. The constitutional guarantee that every Worker action is recorded on the blackboard is only enforceable if workers cannot obtain references to other worker instances via import. Existing helper modules co-located in will/workers/ are excluded pending extraction to shared/; no new cross-worker imports are permitted."
+        },
+        {
             "id": "architecture.api.router_exposure_must_match_dependencies",
             "statement": "Every APIRouter module declaring ROUTER_EXPOSURE=\"governor-only\" MUST carry require_governor in its APIRouter constructor dependencies list. No APIRouter module declaring ROUTER_EXPOSURE=\"user-facing\" MAY carry require_governor at the router constructor level (per-route gates are permitted).",
             "enforcement": "blocking",
