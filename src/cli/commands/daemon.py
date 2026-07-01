@@ -69,7 +69,6 @@ _STARTUP_JITTER_CAP_SEC = 30
 # fcntl lock on the same fd is the actual mutex (the file's contents are
 # advisory — kernel-released flock is the source of truth, so crashes never
 # leave stale locks).
-_PID_DIR_REL = ("var", "run")
 # ADR-081 Step 2c — the unit list is computed dynamically (see _systemd_units).
 # Base set always present.
 _SYSTEMD_BASE_UNITS = ("core-daemon", "core-api")

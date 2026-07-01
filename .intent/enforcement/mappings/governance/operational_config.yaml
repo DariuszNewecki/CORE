@@ -18,7 +18,9 @@ mappings:
       check_type: pattern_match
       patterns:
         # Parameter defaults and variable assignments: confidence_threshold: float = 0.3
-        - '\b(?:confidence|threshold|min_score|max_score)[_\w]*\s*(?::\s*float)?\s*=\s*0\.\d+'
+        # Keyword arguments (confidence=0.9) are excluded — PEP 8 / ruff forbid spaces
+        # around keyword-arg = so requiring \s+ before = eliminates that class.
+        - '\b(?:confidence|threshold|min_score|max_score)[_\w]*(?:\s*:\s*float)?\s+=\s+0\.\d+'
         # Dict .get() fallbacks with hardcoded threshold: thresholds.get(strategy, 0.8)
         - '\.get\(\w+,\s*0\.\d+\)'
       message: >
