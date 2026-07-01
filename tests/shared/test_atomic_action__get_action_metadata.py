@@ -47,13 +47,13 @@ def test_get_action_metadata_preserves_metadata_identity():
         def __init__(self):
             self.value = 42
 
-    def test_func():
+    def subject_func():
         pass
 
     original_metadata = MockActionMetadata()
-    test_func._atomic_action_metadata = original_metadata
+    subject_func._atomic_action_metadata = original_metadata
 
-    retrieved_metadata = get_action_metadata(test_func)
+    retrieved_metadata = get_action_metadata(subject_func)
     # For object identity comparison, 'is' is appropriate here
     # since we're testing it's the same object, not just equal
     assert retrieved_metadata is original_metadata

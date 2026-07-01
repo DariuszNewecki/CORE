@@ -15,14 +15,20 @@ mappings:
     params:
       check_type: pattern_match
       patterns:
-        # Module-level constant assigned a string whose prefix matches a known rule namespace
-        - '\b\w+\s*=\s*["''](?:ai|architecture|governance|quality|purity|style|linkage|atomic_actions|async|logic|modernization|autonomy|coherence|cli|data|infrastructure|runtime|will)\.[a-z][a-z_.]+["'']'
+        # Module-level constant whose name contains "RULE" (e.g. _TARGET_RULE, _SOURCE_RULE)
+        # assigned a dotted-namespace rule ID string.
+        # Narrowed from the original broad pattern to exclude blackboard subject strings
+        # (post_finding(subject="governance.foo") uses the same namespace format but is NOT
+        # a rule ID — false positives caused by broad match confirmed in triage 2026-07-01).
+        - '^\s*[A-Z_]*RULE[A-Z_]*\s*=\s*["''](?:ai|architecture|governance|quality|purity|style|linkage|atomic_actions|async|logic|modernization|autonomy|coherence|cli|data|infrastructure|runtime|will)\.[a-z][a-z_.]+["'']'
       message: >
-        Hardcoded rule ID string assigned to a constant. Route through
+        Hardcoded rule ID string assigned to a *_RULE* constant. Route through
         get_rule_registry() instead:
           from shared.infrastructure.intent.rule_registry import get_rule_registry
           _TARGET_RULE = get_rule_registry()["the.rule.id"]
         This validates the ID exists at import time and raises KeyError on rename.
+        Note: blackboard subject strings (post_finding(subject="...")) are exempt —
+        they share the same namespace format but are not governed rule IDs.
     scope:
       applies_to:
         - "src/will/workers/**/*.py"

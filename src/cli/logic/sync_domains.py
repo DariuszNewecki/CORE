@@ -12,6 +12,7 @@ from sqlalchemy import text
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -21,7 +22,7 @@ async def _sync_domains(repo_root):
     """
     Reads the canonical domains.yaml file and upserts them into the core.domains table.
     """
-    domains_path = repo_root / "var" / "mind" / "knowledge" / "domains.yaml"
+    domains_path = PathResolver(repo_root).knowledge_dir / "domains.yaml"
     if not domains_path.exists():
         logger.error("Constitutional domains file not found at %s", domains_path)
         raise typer.Exit(code=1)

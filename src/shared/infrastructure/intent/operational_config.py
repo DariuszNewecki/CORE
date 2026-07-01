@@ -426,6 +426,19 @@ class ExecutionConfig:
     task_timeout_sec: int = 300
     workflow_timeout_minutes: int = 30
     orchestrator_max_steps: int = 10
+    orchestrator_adaptive_confidence: float = 0.3
+
+
+@dataclass(frozen=True)
+# ID: ee1df82a-359f-48ef-a220-971826be7ea0
+class ValidationStrategyConfig:
+    """Confidence thresholds per named validation strategy (ADR-040)."""
+
+    minimal_threshold: float = 0.7
+    standard_threshold: float = 0.8
+    comprehensive_threshold: float = 0.9
+    critical_path_threshold: float = 0.95
+    default_threshold: float = 0.8
 
 
 @dataclass(frozen=True)
@@ -743,6 +756,9 @@ class OperationalConfig:
     )
     strategic_auditor: StrategicAuditorConfig = field(
         default_factory=StrategicAuditorConfig
+    )
+    validation_strategy: ValidationStrategyConfig = field(
+        default_factory=ValidationStrategyConfig
     )
     misc: MiscConfig = field(default_factory=MiscConfig)
 

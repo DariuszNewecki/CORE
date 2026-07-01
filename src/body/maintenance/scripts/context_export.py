@@ -24,6 +24,7 @@ from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.time import now_iso
 
 if TYPE_CHECKING:
@@ -89,9 +90,10 @@ class ContextExporter:
     def __init__(self, context: CoreContext, output_base: Path | None = None):
         self.repo_root = context.git_service.repo_path
         self._context = context
-        self.output_base = output_base or (self.repo_root / "var" / "exports")
+        _exports = PathResolver(self.repo_root).exports_dir
+        self.output_base = output_base or _exports
         self.timestamp = now_iso().replace(":", "-").split(".")[0]
-        self.export_rel_dir = f"var/exports/core_export_{self.timestamp}"
+        self.export_rel_dir = str(_exports.relative_to(self.repo_root)) + f"/core_export_{self.timestamp}"
 
         # Mutation surface
         self.fh = FileHandler(str(self.repo_root))

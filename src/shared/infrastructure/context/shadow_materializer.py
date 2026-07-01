@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -96,8 +97,9 @@ def materialize_workspace_for_audit(
     # Ensure var/tmp/ exists so tempfile can create the shadow tempdir
     # inside it. Routed through FileHandler so no direct Path.mkdir call
     # appears in this source (governance.mutation_surface.filehandler_required).
-    file_handler.ensure_dir("var/tmp")
-    tmp_parent = repo_root / "var" / "tmp"
+    _pr = PathResolver(repo_root)
+    file_handler.ensure_dir(str(_pr.tmp_dir.relative_to(repo_root)))
+    tmp_parent = _pr.tmp_dir
 
     with tempfile.TemporaryDirectory(
         prefix="core-shadow-", dir=str(tmp_parent)

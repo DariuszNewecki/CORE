@@ -9,6 +9,7 @@ import typer
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 from . import formatter
 from .introspection import resolve_module_file
@@ -97,7 +98,7 @@ async def hub_doctor_cmd(ctx: typer.Context) -> dict[str, object]:
         count = len(cmds)
 
     core_context: CoreContext = ctx.obj
-    exports_dir = core_context.git_service.repo_path / "var" / "mind" / "knowledge"
+    exports_dir = PathResolver(core_context.git_service.repo_path).knowledge_dir
     yaml_count = len(list(exports_dir.glob("*.yaml"))) if exports_dir.exists() else 0
 
     return {

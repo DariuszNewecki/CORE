@@ -47,11 +47,10 @@ async def _export_domains(file_handler: FileHandler):
     yaml_content = {"version": 2, "domains": domains_data}
     content_str = yaml.dump(yaml_content, indent=2, sort_keys=False)
 
-    # Resolve the relative path under the project root
-    # Note: var/mind/knowledge/ is the canonical home for runtime knowledge artifacts.
-    rel_path = "var/mind/knowledge/domains.yaml"
+    from shared.path_resolver import PathResolver
 
-    # Governed write: checks IntentGuard and logs the action
+    _pr = PathResolver(file_handler.repo_path)
+    rel_path = str((_pr.knowledge_dir / "domains.yaml").relative_to(_pr.repo_root))
     file_handler.write_runtime_text(rel_path, content_str)
 
     logger.info(

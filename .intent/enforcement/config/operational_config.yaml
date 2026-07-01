@@ -337,6 +337,7 @@ execution:
   task_timeout_sec: 300
   workflow_timeout_minutes: 30
   orchestrator_max_steps: 10
+  orchestrator_adaptive_confidence: 0.3
 
 # ---------------------------------------------------------------------------
 # Action and pipeline limits
@@ -402,6 +403,16 @@ sync:
 # ---------------------------------------------------------------------------
 authority_package:
   search_limit: 10
+
+# ---------------------------------------------------------------------------
+# Validation strategy — confidence thresholds per named strategy (ADR-040)
+# ---------------------------------------------------------------------------
+validation_strategy:
+  minimal_threshold: 0.7
+  standard_threshold: 0.8
+  comprehensive_threshold: 0.9
+  critical_path_threshold: 0.95
+  default_threshold: 0.8
 
 # ---------------------------------------------------------------------------
 # Strategic auditor

@@ -81,13 +81,13 @@ class DecisionTracer:
         self.decisions: list[Decision] = []
         self.start_time = datetime.now()
 
-        self.trace_dir = Path("var/reports/decisions")
-
         # Safe path resolution: use repo_root from resolver if available,
         # fall back to cwd for uninitialized bootstrap contexts.
         resolved_root = Path.cwd()
         if self._paths and hasattr(self._paths, "repo_root"):
             resolved_root = self._paths.repo_root
+
+        self.trace_dir = PathResolver(resolved_root).reports_dir / "decisions"
 
         self.file_service = file_service or FileService(resolved_root)
 

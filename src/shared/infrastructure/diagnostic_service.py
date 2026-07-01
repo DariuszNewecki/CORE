@@ -19,6 +19,7 @@ from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -89,7 +90,7 @@ class DiagnosticService:
         required = [
             self.repo_root / "src",
             self.repo_root / ".intent",
-            self.repo_root / "var/prompts",
+            PathResolver(self.repo_root).prompts_dir,
             self.repo_root / "sql",
         ]
 

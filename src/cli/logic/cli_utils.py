@@ -175,7 +175,12 @@ def archive_rollback_plan(
     if not rollback_plan:
         return
 
-    rel_rollbacks_dir = "var/mind/rollbacks"
+    from shared.path_resolver import PathResolver
+
+    _pr = PathResolver(
+        file_handler.repo_path if hasattr(file_handler, "repo_path") else Path(".")
+    )
+    rel_rollbacks_dir = str(_pr.rollbacks_dir.relative_to(_pr.repo_root))
     file_handler.ensure_dir(rel_rollbacks_dir)
 
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")

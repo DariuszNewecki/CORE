@@ -28,9 +28,8 @@ import yaml
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-
-# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -58,9 +57,9 @@ class CrateCreationService:
         # REFACTOR: Access repo_path via context -> git_service
         self.repo_path = core_context.git_service.repo_path
 
-        # REFACTOR: Construct canonical inbox path manually (var/workflows/crates/inbox)
-        # This avoids depending on 'context.settings.paths'
-        self.inbox_path = self.repo_path / "var" / "workflows" / "crates" / "inbox"
+        self.inbox_path = (
+            PathResolver(self.repo_path).workflows_dir / "crates" / "inbox"
+        )
 
         self.fs = core_context.file_handler
 

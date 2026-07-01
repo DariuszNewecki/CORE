@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from pathlib import Path
 
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import run_command_async
 
 from ._host import HostBase
@@ -59,7 +59,13 @@ class CeremonyMixin(HostBase):
         does not trip on trivial style issues. Failures are logged but
         never raised — Canary will catch anything that remains.
         """
-        staged = Path(f"var/workflows/crates/inbox/{crate_id}/{file_path}")
+        staged = (
+            PathResolver(self._ctx.git_service.repo_path).workflows_dir
+            / "crates"
+            / "inbox"
+            / crate_id
+            / file_path
+        )
         if not staged.exists():
             logger.warning(
                 "ViolationRemediator: staged file not found for alignment - %s",
@@ -136,11 +142,13 @@ class CeremonyMixin(HostBase):
         """Archive rollback plan to var/mind/rollbacks/ via governed FileHandler."""
         try:
             file_handler = self._ctx.file_handler
+            _pr = PathResolver(self._ctx.git_service.repo_path)
+            _rollbacks_rel = str(_pr.rollbacks_dir.relative_to(_pr.repo_root))
             timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
             safe_name = file_path.replace("/", "_").replace(".", "_")
-            rel_path = f"var/mind/rollbacks/{timestamp}-{safe_name}.json"
+            rel_path = f"{_rollbacks_rel}/{timestamp}-{safe_name}.json"
 
-            file_handler.ensure_dir("var/mind/rollbacks")
+            file_handler.ensure_dir(_rollbacks_rel)
             file_handler.write_runtime_json(
                 rel_path,
                 {

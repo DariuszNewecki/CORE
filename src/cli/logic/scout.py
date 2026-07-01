@@ -45,6 +45,7 @@ from rich.prompt import Prompt
 from rich.rule import Rule
 
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -295,7 +296,7 @@ async def induce_rules(
 
                 _scout_model = PromptModel.load(
                     "scout_rule_inducer",
-                    prompts_root=core_root / "var" / "prompts",
+                    prompts_root=PathResolver(core_root).prompts_dir,
                 )
                 client = await cognitive_service.aget_client_for_role(
                     _scout_model.manifest.role
@@ -513,7 +514,7 @@ def _extract_repo_signals(target_root: Path) -> dict[str, Any]:
                 ):
                     file_has_type_checking = True
 
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 if not node.name.startswith("_"):
                     public_defs += 1
                     if node.returns is not None:

@@ -176,7 +176,10 @@ def _log_test_result_to_file(
     if file_handler is None:
         return
     try:
-        rel_log_path = "var/logs/tests.jsonl"
+        from shared.path_resolver import PathResolver
+
+        _pr = PathResolver(file_handler.repo_path)
+        rel_log_path = str((_pr.logs_dir / "tests.jsonl").relative_to(_pr.repo_root))
         new_line = json.dumps(data, ensure_ascii=False) + "\n"
         file_handler.write_runtime_text(rel_log_path, new_line)
     except Exception as e:
@@ -189,7 +192,12 @@ def _store_failure_artifact(
     if file_handler is None:
         return
     try:
-        failure_rel = "var/reports/test_failures.json"
+        from shared.path_resolver import PathResolver
+
+        _pr = PathResolver(file_handler.repo_path)
+        failure_rel = str(
+            (_pr.reports_dir / "test_failures.json").relative_to(_pr.repo_root)
+        )
         if data.get("exit_code") != 0:
             file_handler.write_runtime_json(failure_rel, data)
         else:

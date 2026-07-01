@@ -32,7 +32,9 @@ class SpecialistDispatcher:
     async def _prompt_path(self, prompt_name: str) -> Path:
         repo_root = await self._repo_root()
         safe = prompt_name.strip().replace("\\", "/").split("/")[-1]
-        return repo_root / "var" / "prompts" / f"{safe}.prompt"
+        from shared.path_resolver import PathResolver
+
+        return PathResolver(repo_root).prompts_dir / f"{safe}.prompt"
 
     # ID: 3415c10d-1be1-4113-88db-9c3c57443219
     async def trigger_modularizer(self, file_path: str, write: bool) -> bool:

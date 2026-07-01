@@ -46,6 +46,7 @@ from rich.table import Table
 from cli.utils import async_command
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import list_all_processes, run_systemctl
 
 
@@ -68,7 +69,7 @@ _STARTUP_JITTER_CAP_SEC = 30
 # fcntl lock on the same fd is the actual mutex (the file's contents are
 # advisory — kernel-released flock is the source of truth, so crashes never
 # leave stale locks).
-_PID_FILE_REL = Path("var/run/core-daemon.pid")
+_PID_DIR_REL = ("var", "run")
 # ADR-081 Step 2c — the unit list is computed dynamically (see _systemd_units).
 # Base set always present.
 _SYSTEMD_BASE_UNITS = ("core-daemon", "core-api")
@@ -148,7 +149,7 @@ def _enabled_template_stems() -> set[str]:
 
 
 # ID: 0b1ce63d-8b46-4d8b-b1d7-2c5b6a93e0a9
-def _pid_file_for(only: str | None) -> Path:
+def _pid_file_for(only: str | None, repo_root: Path = Path(".")) -> Path:
     """Repo-relative PID file path for this daemon invocation.
 
     Default mode (``only is None``): the lightweight core-daemon PID file.
@@ -157,9 +158,10 @@ def _pid_file_for(only: str | None) -> Path:
     operator can run the lightweight daemon and one or more dedicated
     daemons simultaneously without lock contention. Per ADR-081 D4.
     """
+    run_dir = PathResolver(repo_root).run_dir
     if only is None:
-        return _PID_FILE_REL
-    return Path("var/run") / f"core-daemon-worker-{only}.pid"
+        return run_dir / "core-daemon.pid"
+    return run_dir / f"core-daemon-worker-{only}.pid"
 
 
 async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:

@@ -358,10 +358,14 @@ class CallSiteRewriter(Worker):
         """Archive rollback plan to var/mind/rollbacks/ via governed FileHandler."""
         try:
             fh = self._ctx.file_handler
+            from shared.path_resolver import PathResolver
+
+            _pr = PathResolver(self._ctx.git_service.repo_path)
+            _rollbacks_rel = str(_pr.rollbacks_dir.relative_to(_pr.repo_root))
             timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
             safe_name = file_path.replace("/", "_").replace(".", "_")
-            rel_path = f"var/mind/rollbacks/{timestamp}-{safe_name}.json"
-            fh.ensure_dir("var/mind/rollbacks")
+            rel_path = f"{_rollbacks_rel}/{timestamp}-{safe_name}.json"
+            fh.ensure_dir(_rollbacks_rel)
             fh.write_runtime_json(
                 rel_path,
                 {

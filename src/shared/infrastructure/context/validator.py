@@ -74,9 +74,7 @@ class ContextValidator:
         self.schema: dict[str, Any] = self._load_schema()
 
     def _default_schema_path(self) -> Path:
-        if hasattr(settings.paths, "context_schema_path"):
-            return settings.paths.context_schema_path()
-        return settings.REPO_PATH / "var" / "context" / "schema.yaml"
+        return settings.paths.context_schema_path()
 
     def _load_schema(self) -> dict[str, Any]:
         if not self.schema_path.exists():

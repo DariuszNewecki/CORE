@@ -156,7 +156,7 @@ class ProcessOrchestrator:
         initial_component: Component,
         initial_inputs: dict[str, Any],
         max_steps: int = _CFG_EXEC.orchestrator_max_steps,
-        confidence_threshold: float = 0.3,
+        confidence_threshold: float = _CFG_EXEC.orchestrator_adaptive_confidence,
     ) -> ComponentResult:
         """
         Run adaptive workflow following next_suggested hints.

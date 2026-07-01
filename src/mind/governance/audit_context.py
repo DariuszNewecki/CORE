@@ -269,7 +269,7 @@ class AuditorContext:
     # ID: 9c7c2ef9-1b23-4c3a-9f4c-8b9d1d0b2e21
     def mind_path(self) -> Path:
         """Canonical Mind runtime root."""
-        return self.paths.var_dir / "mind"
+        return self.paths.mind_dir
 
     # ID: 7d3e8c2a-9f4b-4c1d-8e6a-2b7f9d5c3a1e
     def invalidate_file_cache(self) -> None:

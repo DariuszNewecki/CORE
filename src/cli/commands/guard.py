@@ -19,6 +19,7 @@ from api.cli import CoreApiClient
 from body.infrastructure.storage.file_handler import FileHandler
 from cli.logic.cli_utils import should_fail
 from cli.utils import core_command
+from shared.path_resolver import PathResolver
 
 
 __all__ = ["guard_drift_cmd", "register_guard", "run_guard_drift"]
@@ -29,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_FORMAT = "json"
 _DEFAULT_FAIL_ON = "any"
-_DEFAULT_EVIDENCE_PATH = Path("var/reports") / "guard_drift.json"
 
 
 # ID: 206eca11-fb40-4c24-af72-2c29376638c4
@@ -61,7 +61,7 @@ async def run_guard_drift(
         )
         raise typer.Exit(code=1) from exc
 
-    evidence_path = output or (root / _DEFAULT_EVIDENCE_PATH)
+    evidence_path = output or (PathResolver(root).reports_dir / "guard_drift.json")
     file_handler = FileHandler(str(root))
     rel_evidence = str(evidence_path.relative_to(root))
     file_handler.ensure_dir(str(evidence_path.parent.relative_to(root)))

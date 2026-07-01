@@ -42,9 +42,6 @@ from shared.infrastructure.intent.vocabulary_projection import (
 from .hub import app
 
 
-VOCABULARY_DRAFT_REL = "var/drafts/META/vocabulary.json"
-
-
 logger = logging.getLogger(__name__)
 console = Console()
 
@@ -410,12 +407,19 @@ async def sync_intent(
     console.print(f"  generator:     {generator_version}")
 
     if write:
+        from shared.path_resolver import PathResolver
+
         file_handler = FileHandler(str(repo_root))
-        file_handler.ensure_dir("var/drafts/META")
-        file_handler.write(VOCABULARY_DRAFT_REL, rendered)
-        console.print(f"[bold green]✓ Staged to {VOCABULARY_DRAFT_REL}[/bold green]")
+        _pr = PathResolver(repo_root)
+        _draft_meta_rel = str((_pr.drafts_dir / "META").relative_to(_pr.repo_root))
+        _draft_vocab_rel = str(
+            (_pr.drafts_dir / "META" / "vocabulary.json").relative_to(_pr.repo_root)
+        )
+        file_handler.ensure_dir(_draft_meta_rel)
+        file_handler.write(_draft_vocab_rel, rendered)
+        console.print(f"[bold green]✓ Staged to {_draft_vocab_rel}[/bold green]")
         console.print("[cyan]Apply with:[/cyan]")
-        console.print(f"  cp {VOCABULARY_DRAFT_REL} {VOCABULARY_JSON_REL}")
+        console.print(f"  cp {_draft_vocab_rel} {VOCABULARY_JSON_REL}")
     else:
         console.print(
             "[yellow]Dry-run: no file written. Pass --write to stage the draft.[/yellow]"

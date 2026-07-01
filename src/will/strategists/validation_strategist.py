@@ -28,12 +28,15 @@ import time
 from typing import Any
 
 from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
 from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
+
+_CFG_VS = load_operational_config().validation_strategy
 
 
 # ID: 8f3a2d1b-4c5e-6f7a-8b9c-0d1e2f3a4b5c
@@ -281,13 +284,13 @@ class ValidationStrategist(BaseStrategist):
         Returns: Float between 0.0 (permissive) and 1.0 (strict)
         """
         thresholds = {
-            "minimal": 0.7,
-            "standard": 0.8,
-            "comprehensive": 0.9,
-            "critical_path": 0.95,
+            "minimal": _CFG_VS.minimal_threshold,
+            "standard": _CFG_VS.standard_threshold,
+            "comprehensive": _CFG_VS.comprehensive_threshold,
+            "critical_path": _CFG_VS.critical_path_threshold,
         }
 
-        base_threshold = thresholds.get(strategy, 0.8)
+        base_threshold = thresholds.get(strategy, _CFG_VS.default_threshold)
 
         # Increase threshold for critical operations (unless already at max)
         if risk_tier == "CRITICAL" and strategy != "critical_path":

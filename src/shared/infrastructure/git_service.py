@@ -26,6 +26,7 @@ from pathlib import Path
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -42,11 +43,10 @@ class StagingContaminationError(RuntimeError):
 
 
 # ADR-071 D2.2 Phase 1: hermetic action execution via git worktree.
-# Sandbox worktrees live under SANDBOX_PARENT (repo-relative) with names
+# Sandbox worktrees live under var/tmp/ (via PathResolver.tmp_dir) with names
 # beginning SANDBOX_PREFIX so the orphan sweep on daemon boot can identify
 # and reclaim them without touching unrelated worktrees.
 # /tmp is prohibited per CLAUDE.md; all temp writes use var/tmp/.
-SANDBOX_PARENT = Path("var/tmp")
 SANDBOX_PREFIX = "core-action-sandbox-"
 
 
@@ -381,7 +381,7 @@ class GitService:
 
         ADR-071 D2.2 Phase 1.
         """
-        sandbox_parent = (self.repo_path / SANDBOX_PARENT).resolve()
+        sandbox_parent = PathResolver(self.repo_path).tmp_dir
         sandbox_parent.mkdir(parents=True, exist_ok=True)
         worktree_path = sandbox_parent / f"{SANDBOX_PREFIX}{uuid.uuid4().hex}"
         self._run_command(["worktree", "add", "--detach", str(worktree_path), sha])
@@ -481,7 +481,7 @@ class GitService:
             logger.warning("GitService.sweep_orphan_worktrees: list failed: %s", exc)
             return 0
 
-        sandbox_parent = (self.repo_path / SANDBOX_PARENT).resolve()
+        sandbox_parent = PathResolver(self.repo_path).tmp_dir
         removed = 0
         for line in output.splitlines():
             if not line.startswith("worktree "):

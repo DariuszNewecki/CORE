@@ -61,6 +61,11 @@ class PathResolver:
     _DEFAULT_REPORTS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "reports")
     _DEFAULT_WORKFLOWS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "workflows")
     _DEFAULT_BUILD_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "build")
+    _DEFAULT_TMP_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "tmp")
+    _DEFAULT_MIND_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "mind")
+    _DEFAULT_ROLLBACKS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "mind", "rollbacks")
+    _DEFAULT_RUN_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "run")
+    _DEFAULT_DRAFTS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "drafts")
 
     @classmethod
     # ID: b4295e1a-8a41-4f2f-9383-d18990179ba9
@@ -211,6 +216,36 @@ class PathResolver:
     def prompts_dir(self) -> Path:
         return self._repo_root.joinpath(*self._DEFAULT_PROMPTS_SUBDIR)
 
+    @property
+    # ID: 4a1b2c3d-5e6f-7890-abcd-ef1234567890
+    def tmp_dir(self) -> Path:
+        """Temporary scratch space for in-process work (var/tmp/)."""
+        return self._repo_root.joinpath(*self._DEFAULT_TMP_SUBDIR)
+
+    @property
+    # ID: 5b2c3d4e-6f70-8901-bcde-f12345678901
+    def mind_dir(self) -> Path:
+        """Root of the mind knowledge store (var/mind/)."""
+        return self._repo_root.joinpath(*self._DEFAULT_MIND_SUBDIR)
+
+    @property
+    # ID: 6c3d4e5f-7081-9012-cdef-012345678902
+    def rollbacks_dir(self) -> Path:
+        """Directory for rollback snapshots (var/mind/rollbacks/)."""
+        return self._repo_root.joinpath(*self._DEFAULT_ROLLBACKS_SUBDIR)
+
+    @property
+    # ID: 7d4e5f60-8192-0123-def0-123456789013
+    def run_dir(self) -> Path:
+        """Runtime PID and socket files (var/run/)."""
+        return self._repo_root.joinpath(*self._DEFAULT_RUN_SUBDIR)
+
+    @property
+    # ID: 8e5f6071-9203-1234-ef01-234567890124
+    def drafts_dir(self) -> Path:
+        """Staging area for draft artifacts (var/drafts/)."""
+        return self._repo_root.joinpath(*self._DEFAULT_DRAFTS_SUBDIR)
+
     # =========================================================================
     # GOVERNANCE PATHS (V2.7)
     # These replace hardcoded Path("...") constants in Body and Will layers.
@@ -305,6 +340,8 @@ class PathResolver:
             (self.reports_dir, "var/reports/"),
             (self.exports_dir, "var/exports/"),
             (self.build_dir, "var/build/"),
+            (self.tmp_dir, "var/tmp/"),
+            (self.run_dir, "var/run/"),
         ]
 
         errors: list[str] = []

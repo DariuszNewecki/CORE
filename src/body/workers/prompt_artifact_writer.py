@@ -166,10 +166,15 @@ class PromptArtifactWriter(Worker):
                 continue
 
             try:
-                base = f"var/prompts/{suggested_name}"
-                file_handler.write_runtime_text(f"{base}/model.yaml", model_yaml)
-                file_handler.write_runtime_text(f"{base}/system.txt", system_txt)
-                file_handler.write_runtime_text(f"{base}/user.txt", user_txt)
+                from shared.path_resolver import PathResolver
+
+                _pr = PathResolver(file_handler.repo_path)
+                _base = str(
+                    (_pr.prompts_dir / suggested_name).relative_to(_pr.repo_root)
+                )
+                file_handler.write_runtime_text(f"{_base}/model.yaml", model_yaml)
+                file_handler.write_runtime_text(f"{_base}/system.txt", system_txt)
+                file_handler.write_runtime_text(f"{_base}/user.txt", user_txt)
             except Exception as e:
                 logger.warning(
                     "PromptArtifactWriter: file write failed for %s — %s",
@@ -189,7 +194,7 @@ class PromptArtifactWriter(Worker):
                     "file_path": file_path,
                     "line_number": line_number,
                     "artifact_name": suggested_name,
-                    "artifact_path": f"var/prompts/{suggested_name}",
+                    "artifact_path": _base,
                     "cognitive_role": cognitive_role,
                     "status": "written",
                 },
