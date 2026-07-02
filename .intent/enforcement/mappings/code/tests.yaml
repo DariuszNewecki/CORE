@@ -42,3 +42,48 @@ mappings:
         gate prevents placeholder tests from landing.
     scope:
       applies_to: ["tests/**/*.py"]
+
+  # LAW: Generated test code MUST NOT mutate module-level state at module scope.
+  # Enforcement: write-time via PatternValidators.check_no_global_module_mutation.
+  code.tests.no_global_module_mutation:
+    engine: passive_gate
+    params:
+      note: >
+        Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_global_module_mutation
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        Module-level state mutation (e.g. patching yaml.safe_load globally) leaks
+        across test isolation boundaries (#572 batch 13 pattern, #589 Tier 2).
+        No audit-engine dispatch; the gate prevents the pattern from landing.
+    scope:
+      applies_to: ["tests/**/*.py"]
+
+  # LAW: Generated test code MUST NOT redefine an already-imported symbol.
+  # Enforcement: write-time via PatternValidators.check_no_imported_symbol_redeclared.
+  code.tests.no_imported_symbol_redeclared:
+    engine: passive_gate
+    params:
+      note: >
+        Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        Redefining an imported symbol as a speculative stub masks the real import
+        (#572 batch 19/20 pattern — context-budget exhaustion, #589 Tier 2).
+        No audit-engine dispatch; the gate prevents the pattern from landing.
+    scope:
+      applies_to: ["tests/**/*.py"]
+
+  # LAW: Generated test code MUST NOT reference free names that are not imported.
+  # Enforcement: write-time via PatternValidators.check_no_unresolved_free_names.
+  code.tests.no_unresolved_free_names:
+    engine: passive_gate
+    params:
+      note: >
+        Enforced at write-time by
+        src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_unresolved_free_names
+        when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
+        Free names without an import (e.g. MagicMock without `from unittest.mock import MagicMock`)
+        cause NameError at runtime (#572 batch 19 pattern, #589 Tier 2).
+        No audit-engine dispatch; the gate prevents the pattern from landing.
+    scope:
+      applies_to: ["tests/**/*.py"]
