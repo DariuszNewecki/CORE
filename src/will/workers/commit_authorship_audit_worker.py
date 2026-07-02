@@ -64,6 +64,7 @@ class CommitAuthorshipAuditWorker(Worker):
 
     # ID: c4780228-9f0e-4d5a-b6c7-8d9e0f1a2b3c
     async def run(self) -> None:
+        """Audit recent autonomous commits for authorship integrity violations."""
         await self.post_heartbeat()
 
         from body.services.service_registry import service_registry

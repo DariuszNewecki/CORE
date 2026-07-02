@@ -49,6 +49,7 @@ class CommitReachabilityAuditor(Worker):
 
     # ID: d5b6c7e8-9f0a-4b2c-8d3e-4f5a6b7c8d9e
     async def run(self) -> None:
+        """Scan all post_execution_sha values and post findings for orphan commits."""
         await self.post_heartbeat()
 
         from body.services.service_registry import service_registry
