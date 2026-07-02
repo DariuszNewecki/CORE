@@ -161,6 +161,38 @@ that every `APIRouter` declared `governor-only` in `ROUTER_EXPOSURE` carries
 exceptions are permitted). This rule is not authored in this ADR; it is the
 implementation gate for closing #670 fully.
 
+### D8 — `ActionExecutor._check_authorization()` is intentionally pass-through
+
+`ActionExecutor._check_authorization()` (`src/body/atomic/executor.py`) always returns
+`authorized: True`. It is not an authorization gate and was not designed to be one.
+
+The real authorization chain for autonomous actions is:
+
+```
+action_risk.yaml  →  Proposal.requires_approval  →  governor approval (API gate)
+                                                            ↓
+                                                     ActionExecutor.execute()
+```
+
+By the time `execute()` is reached on the autonomous path, the action's authority to
+run has already been adjudicated. `action_risk.yaml` classifies every action as
+`safe | moderate | dangerous`; `Proposal.requires_approval` gates execution on that
+classification — only `safe` auto-executes; `moderate` and `dangerous` (and any
+unmapped action, which fails closed to `moderate`) require explicit governor approval
+before a proposal can reach execution. Duplicating that check in the executor would not
+add safety; it would add two conflicting authorization surfaces.
+
+**The one uncovered path** is a direct CLI invocation (no proposal, no
+`requires_approval` check). That path is governor-operated and trusted-operator today.
+The executor logs a warning on `dangerous` + `write` via the CLI path. The activation
+criterion for replacing the pass-through with a real deny: a dangerous action becoming
+reachable by a non-governor caller (API-exposed action execution endpoint, or
+non-governor CLI users). Until then, the pass-through is the correct design.
+
+This decision corrects a prior docstring that cited ADR-015/017/019 as the deferral
+basis; those are consequence-chain attribution decisions with no authorization deferral
+semantics. The correction is recorded at #633.
+
 ---
 
 ## Consequences
