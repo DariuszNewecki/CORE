@@ -9,4 +9,6 @@ input:
     - target_coverage
 output:
   format: raw_text
+adr_anchor: "ADR-003"
+
 success_criteria: Valid Python test code that imports the target module and includes test cases aligned with the stated goal

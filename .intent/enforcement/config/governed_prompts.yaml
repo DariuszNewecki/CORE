@@ -77,6 +77,10 @@ governed_prompts:
     anchors: ["ADR-134:D8"]
     rationale: Fixes failing tests; output written via SingleTestFixer → FileHandler / ActionExecutor.
 
+  - name: test_gen_prompt
+    anchors: ["ADR-003"]
+    rationale: File-level test generation path. Used by CodeGenerator when task_type="test_generation" (build.tests action) and by the coverage_remediation workflow (EnhancedTestGenerator → GenerationWorkflow). Parallel to context_aware_test_gen (symbol-level, ADR-133:D6); both retained.
+
 # Explicit exclusions — active in src/ but out of scope for governed_prompts.yaml (ADR-134:D8).
 # These are intermediate correction passes whose output feeds a governed prompt downstream;
 # they do not themselves produce the write artifact.
