@@ -20,17 +20,24 @@ See `.specs/planning/CORE-Operational-Completeness.md` §2.2 note (6).
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
 
 from body.services.worker_registry_service import WorkerRegistryService
+from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.schedule import load_worker_schedule_state
 
 
 logger = getLogger(__name__)
+
+# Rolling JSONL artifact written after each health-log cycle so the convergence
+# trajectory is readable without a DB query (e.g. governor meetings, CI dashboards).
+_CONVERGENCE_ARTIFACT = "var/reports/convergence.jsonl"
+_CONVERGENCE_ROLLING_WINDOW = 30
 
 _CFG = load_operational_config().health_log
 
@@ -273,3 +280,40 @@ class HealthLogService:
                         ),
                     },
                 )
+        self._append_convergence_artifact(state)
+
+    # ID: e3a12f47-9c8b-4d5e-b6f0-2a3c8d9e0f1a
+    def _append_convergence_artifact(self, state: dict[str, Any]) -> None:
+        """Append one JSONL entry to var/reports/convergence.jsonl.
+
+        Maintains a rolling window of _CONVERGENCE_ROLLING_WINDOW entries so
+        the file stays ~30 lines. Reads existing content with Path.read_text
+        (reads are ungoverned); writes back via FileHandler (governed write
+        surface). Fail-soft: any error is logged and swallowed so the artifact
+        never disrupts the main health-log path.
+        """
+        from body.infrastructure.storage.file_handler import FileHandler
+
+        entry = {
+            "observed_at": state.get("observed_at"),
+            "open_findings": state.get("open_findings", 0),
+            "governor_inbox": state.get("governor_inbox", 0),
+            "flow_24h": state.get("flow_24h", {}),
+        }
+        try:
+            repo_root: Path = bootstrap_registry.get_repo_path()
+            artifact_path = repo_root / _CONVERGENCE_ARTIFACT
+            existing: list[str] = []
+            if artifact_path.exists():
+                existing = [
+                    ln
+                    for ln in artifact_path.read_text(encoding="utf-8").splitlines()
+                    if ln.strip()
+                ]
+            tail = existing[-(_CONVERGENCE_ROLLING_WINDOW - 1) :]
+            tail.append(json.dumps(entry))
+            FileHandler(str(repo_root)).write_runtime_text(
+                _CONVERGENCE_ARTIFACT, "\n".join(tail)
+            )
+        except Exception as err:
+            logger.warning("Could not append convergence artifact: %s", err)

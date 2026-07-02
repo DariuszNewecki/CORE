@@ -15,7 +15,6 @@ no file writes outside what the orchestrated atomic actions perform.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from body.services.service_registry import service_registry
@@ -139,37 +138,25 @@ async def record_consequence(
 
 # ID: b38dbf84-ec1c-473d-8f42-d8b613e9a4c8
 async def compute_changed_files(
-    repo_path: str,
+    git_service,
     pre_sha: str | None,
     post_sha: str | None,
     proposal_id: str,
 ) -> list[str]:
     """Return paths changed between two git SHAs, or [] on missing/failure.
 
-    Runs ``git diff --name-only <pre> <post>`` in *repo_path*. Used by
-    ProposalExecutor to record which files an executed proposal touched
-    so the consequence log captures the actual diff (not just the
-    declared scope.files). Returns [] if either SHA is missing or the
-    subprocess call fails — non-fatal: consequence recording prefers
-    incomplete data over a failed proposal completion.
+    Delegates to ``GitService.diff_file_names`` (ADR-129). Returns [] if
+    either SHA is missing, *git_service* is None, or the git call fails —
+    non-fatal: consequence recording prefers incomplete data over a failed
+    proposal completion.
 
     *proposal_id* is included for log attribution only.
     """
-    if not (pre_sha and post_sha):
+    if not (pre_sha and post_sha) or git_service is None:
         return []
     try:
-        diff_proc = await asyncio.create_subprocess_exec(
-            "git",
-            "diff",
-            "--name-only",
-            pre_sha,
-            post_sha,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=repo_path,
-        )
-        stdout, _ = await diff_proc.communicate()
-        return [f for f in stdout.decode().strip().splitlines() if f]
+        result = await git_service.diff_file_names(pre_sha, post_sha)
+        return result if result is not None else []
     except Exception as diff_err:
         logger.warning(
             "Could not determine changed files for %s: %s",

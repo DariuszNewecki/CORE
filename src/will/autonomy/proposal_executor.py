@@ -381,7 +381,7 @@ class ProposalExecutor:
                         )
 
                         changed_files = await compute_changed_files(
-                            repo_path=str(self.core_context.git_service.repo_path),
+                            git_service=self.core_context.git_service,
                             pre_sha=pre_execution_sha,
                             post_sha=post_execution_sha,
                             proposal_id=proposal.proposal_id,
