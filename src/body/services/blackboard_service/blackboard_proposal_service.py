@@ -651,6 +651,7 @@ class BlackboardProposalService:
                         """
                         UPDATE core.blackboard_entries
                         SET status = 'abandoned',
+                            resolved_at = now(),
                             payload = jsonb_set(
                                 payload,
                                 '{remediation_attempt_count}',
@@ -694,6 +695,7 @@ class BlackboardProposalService:
                         """
                         UPDATE core.blackboard_entries
                         SET status = 'abandoned',
+                            resolved_at = now(),
                             payload = jsonb_set(
                                 payload,
                                 '{remediation_attempt_count}',
