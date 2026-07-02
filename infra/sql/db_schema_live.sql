@@ -1036,7 +1036,7 @@ CREATE TABLE core.coherence_candidates (
     triage_note text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     triaged_at timestamp with time zone,
-    CONSTRAINT coherence_candidates_relation_check CHECK ((relation = ANY (ARRAY['R1_SCOPED'::text, 'SAMECONCERN'::text, 'ROW2_GROUNDING'::text, 'ROW3_CITATION'::text, 'ROW4_NAMING'::text, 'SPECGAP'::text, 'VOCABULARY'::text, 'R1'::text, 'R2'::text, 'R3'::text, 'R4'::text]))),
+    CONSTRAINT coherence_candidates_relation_check CHECK ((relation = ANY (ARRAY['R1_SCOPED'::text, 'SAMECONCERN'::text, 'ROW2_GROUNDING'::text, 'ROW3_CITATION'::text, 'ROW4_NAMING'::text, 'SPECGAP'::text, 'VOCABULARY'::text, 'R1'::text, 'R2'::text, 'R3'::text, 'R4'::text, 'DISPATCH_PARITY'::text]))),
     CONSTRAINT coherence_candidates_triage_decision_check CHECK ((triage_decision = ANY (ARRAY['unreviewed'::text, 'confirmed'::text, 'dismissed'::text, 'deferred'::text])))
 );
 
