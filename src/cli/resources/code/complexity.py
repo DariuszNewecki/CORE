@@ -42,11 +42,11 @@ async def complexity_cmd(
 
     Targets high cyclomatic complexity and 'God Methods' to improve modularity.
     """
-    from will.self_healing.complexity_service import ComplexityService
+    from will.self_healing.complexity_service import ComplexityRemediationService
 
     core_context: CoreContext = ctx.obj
 
-    await ComplexityService(context=core_context).remediate(
+    await ComplexityRemediationService(context=core_context).remediate(
         file_path=file_path,
         write=write,
     )

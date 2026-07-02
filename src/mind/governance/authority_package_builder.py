@@ -377,6 +377,7 @@ class AuthorityPackageBuilder:
                 name=match.rule_id,
                 pattern=match.policy_id,  # Simplified for now
                 action="block" if match.enforcement == "blocking" else "allow",
+                description=match.rule_id,
                 authority=match.authority,
                 source_policy=match.policy_id,
             )

@@ -23,8 +23,8 @@ from pathlib import Path
 from typing import Any
 
 from body.infrastructure.storage.file_handler import FileHandler
+from body.services.cim.models import CheckResult
 from shared.logger import getLogger
-from shared.models import CheckResult
 from shared.path_utils import get_repo_root
 from shared.processors.yaml_processor import strict_yaml_processor
 from shared.utils.glob_match import matches_any_glob

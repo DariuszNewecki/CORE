@@ -131,7 +131,7 @@ class RemediationOrchestrator:
                 total_scanned += 1
 
                 # Mind layer tells us: Does this file have violations?
-                has_violation = self.auditor.check_file_header(str(py_file))
+                has_violation = self.auditor.check_file_header(str(py_file))  # type: ignore[attr-defined]
 
                 if has_violation:
                     # Decision: Record this as needing remediation

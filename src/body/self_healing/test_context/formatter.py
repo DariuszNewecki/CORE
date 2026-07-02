@@ -35,10 +35,8 @@ def format_to_prompt(ctx: ModuleContext) -> str:
         lines.append(
             f"  - {cls['name']}: {cls.get('docstring', 'No description')[:80]}"
         )
-    for func in ctx.functions:
-        lines.append(
-            f"  - {func['name']}: {func.get('docstring', 'No description')[:80]}"
-        )
+    for fn in ctx.functions:
+        lines.append(f"  - {fn['name']}: {fn.get('docstring', 'No description')[:80]}")
 
     lines.append("\n## Dependencies to Mock")
     if ctx.external_deps:

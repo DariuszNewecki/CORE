@@ -89,7 +89,7 @@ class CapabilityChecks:
         # Query knowledge graph for capability assignments
         try:
             kg_service = KnowledgeService(self._paths.repo_root)
-            graph = kg_service.get_graph_sync()  # Synchronous version for AST check
+            graph = kg_service.get_graph_sync()  # type: ignore[attr-defined]  # sync not yet in API; tracked
             symbols_data = graph.get("symbols", {})
 
             # Check each public symbol

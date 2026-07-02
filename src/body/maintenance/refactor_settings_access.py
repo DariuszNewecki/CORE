@@ -214,7 +214,7 @@ class SettingsRefactorer:
         if not layer_path.exists():
             return {"error": f"Layer {layer} not found"}
 
-        results = {
+        results: dict[str, Any] = {
             "analyzed": 0,
             "planned": 0,
             "refactored": 0,

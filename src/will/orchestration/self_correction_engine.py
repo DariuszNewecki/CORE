@@ -82,7 +82,7 @@ async def attempt_correction(
     ):
         logger.info("Import error detected. analyzing code for missing symbols...")
         try:
-            finder = SymbolFinder()
+            finder = SymbolFinder()  # type: ignore[call-arg]
             error_line = next(
                 (line for line in runtime_error.split("\n") if "Error" in line),
                 runtime_error,

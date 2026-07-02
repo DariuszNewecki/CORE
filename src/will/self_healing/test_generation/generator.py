@@ -45,43 +45,42 @@ class EnhancedTestGenerator:
     4. Execute tests and fix individual failures
     """
 
+    def __init__(
+        self,
+        cognitive_service: CognitiveService,
+        auditor_context: AuditorContext,
+        file_handler: FileService,
+        repo_root: Path,
+        use_iterative_fixing: bool = True,
+        max_fix_attempts: int = 3,
+        max_complexity: str = "MODERATE",
+    ):
+        auto_repair = AutomaticRepairService()
+        complexity_filter = ComplexityFilter(max_complexity=max_complexity)
 
-def __init__(
-    self,
-    cognitive_service: CognitiveService,
-    auditor_context: AuditorContext,
-    file_handler: FileService,
-    repo_root: Path,
-    use_iterative_fixing: bool = True,
-    max_fix_attempts: int = 3,
-    max_complexity: str = "MODERATE",
-):
-    auto_repair = AutomaticRepairService()
-    complexity_filter = ComplexityFilter(max_complexity=max_complexity)
-
-    self.generation = GenerationWorkflow(
-        cognitive_service,
-        complexity_filter,
-        auto_repair,
-        file_handler,
-        repo_root,
-        max_complexity,
-    )
-    self.validator = TestValidator(auditor_context)
-    self.repair = RepairWorkflow(
-        auto_repair,
-        LLMCorrectionService(cognitive_service, auditor_context),
-        self.validator,
-        max_fix_attempts,
-    )
-    self.executor = TestExecutor()
-    self.test_fixer = SingleTestFixer(
-        cognitive_service, file_handler, repo_root, max_attempts=3
-    )
-    self.failure_parser = TestFailureParser()
-    self.scorer = TestScorer()
-    self.use_iterative_fixing = use_iterative_fixing
-    self.repo_root = repo_root
+        self.generation = GenerationWorkflow(
+            cognitive_service,
+            complexity_filter,
+            auto_repair,
+            file_handler,
+            repo_root,
+            max_complexity,
+        )
+        self.validator = TestValidator(auditor_context)
+        self.repair = RepairWorkflow(
+            auto_repair,
+            LLMCorrectionService(cognitive_service, auditor_context),
+            self.validator,
+            max_fix_attempts,
+        )
+        self.executor = TestExecutor()
+        self.test_fixer = SingleTestFixer(
+            cognitive_service, file_handler, repo_root, max_attempts=3
+        )
+        self.failure_parser = TestFailureParser()
+        self.scorer = TestScorer()
+        self.use_iterative_fixing = use_iterative_fixing
+        self.repo_root = repo_root
 
     # ID: 04ccde33-fbfa-481e-8b53-b6f9df07c80f
     async def generate_test(

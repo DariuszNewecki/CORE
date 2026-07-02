@@ -44,7 +44,7 @@ class GenerationWorkflow:
         self.cognitive = cognitive_service
         self.file_handler = file_handler
         self.repo_root = repo_root
-        self.context_builder = ContextPackageBuilder()
+        self.context_builder = ContextPackageBuilder()  # type: ignore[call-arg]
         self.code_extractor = CodeExtractor()
         self.complexity_filter = complexity_filter
         self.auto_repair = auto_repair
@@ -72,7 +72,7 @@ class GenerationWorkflow:
             "task_type": "test_generation",
             "target_file": module_path,
         }
-        return await self.context_builder.build(task_spec)
+        return await self.context_builder.build(task_spec)  # type: ignore[call-arg]
 
     # ID: d3a80664-59cc-4831-9651-cf59cca349e7
     async def generate_initial_code(

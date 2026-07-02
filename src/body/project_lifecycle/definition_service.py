@@ -153,7 +153,7 @@ async def define_single_symbol(
         similar_context = _extract_similar_capabilities(packet, target_qualname)
 
         model = PromptModel.load("symbol_definer_capability_definer")
-        agent = await context_service.cognitive_service.aget_client_for_role(
+        agent = await context_service._cognitive_service.aget_client_for_role(
             model.manifest.role
         )
         response = await model.invoke(

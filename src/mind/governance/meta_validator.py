@@ -129,9 +129,9 @@ class MetaValidator:
                     _json.loads(target.read_text(encoding="utf-8")),
                     default_specification=DRAFT7,
                 )
-            raise NoSuchResource(ref=uri)
+            raise NoSuchResource(uri)
 
-        return Registry(retrieve=_retrieve)
+        return Registry(retrieve=_retrieve)  # type: ignore[call-arg]
 
     def _load_meta_schema(self) -> dict[str, Any]:
         rel_path = "META/GLOBAL-DOCUMENT-META-SCHEMA.json"

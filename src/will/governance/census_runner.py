@@ -270,7 +270,7 @@ def get_diff(
         previous = history.load_snapshot(record.snapshot_file)
 
     engine = DiffEngine()
-    diff = engine.compute_diff(previous=previous, current=latest)
+    diff = engine.compute_diff(baseline=previous, current=latest)
     return {
         "available": True,
         "baseline": baseline,

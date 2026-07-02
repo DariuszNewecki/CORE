@@ -56,9 +56,9 @@ class ModuleContext:
                 )
         if self.functions:
             lines.append(f"Functions ({len(self.functions)}):")
-            for func in self.functions:
+            for fn in self.functions:
                 lines.append(
-                    f"  - {func['name']}: {func.get('docstring', 'No description')[:80]}"
+                    f"  - {fn['name']}: {fn.get('docstring', 'No description')[:80]}"
                 )
         lines.append("\n## Dependencies to Mock")
         if self.external_deps:

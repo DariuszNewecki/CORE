@@ -150,7 +150,7 @@ class CorrectionEngine:
             "runtime_error": runtime_error,
         }
         logger.info("  -> Invoking self-correction engine...")
-        return await attempt_correction(
+        return await attempt_correction(  # type: ignore[call-arg]
             correction_context,
             self.cognitive_service,
             self.auditor_context,

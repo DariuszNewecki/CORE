@@ -36,7 +36,7 @@ class AlignmentOrchestrator:
         """Initializes a governance agent with cognitive and configuration services. It sets up symbol finding and dispatcher components. The `align_file` method inspects a file and returns audit results."""
         self.cognitive = cognitive_service
         self.config_service = config_service
-        self.symbol_finder = SymbolFinder()
+        self.symbol_finder = SymbolFinder()  # type: ignore[call-arg]
         self.dispatcher = SpecialistDispatcher(
             cognitive_service, self.symbol_finder, config_service
         )

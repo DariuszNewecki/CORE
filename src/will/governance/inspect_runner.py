@@ -219,7 +219,7 @@ async def get_decisions(
 async def get_decisions_patterns(*, days: int = 7) -> dict:
     """Return classification stats grouped by pattern."""
     async with DecisionTraceRepository.open() as repo:
-        stats = await repo.get_pattern_stats(days=days)
+        stats = await repo.get_pattern_stats(days=days)  # type: ignore[call-arg]
     return {"days": days, "patterns": stats}
 
 
@@ -350,7 +350,7 @@ def get_analysis_command_tree(context: CoreContext) -> dict:
     """
     try:
         from body.maintenance.command_sync_service import (
-            collect_commands,  # type: ignore[import-not-found]
+            collect_commands,  # type: ignore[attr-defined]
         )
 
         rows = collect_commands(context.git_service.repo_path)

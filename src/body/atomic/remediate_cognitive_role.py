@@ -80,8 +80,10 @@ async def remediate_cognitive_role(
         ActionResult with finding_to_post in data for the caller to post.
     """
     if not file_path:
-        return ActionResult.failure(
-            message="Missing required parameter: file_path", data={"rule": rule}
+        return ActionResult(
+            action_id="remediate.cognitive_role",
+            ok=False,
+            data={"rule": rule, "error": "Missing required parameter: file_path"},
         )
 
     payload: dict[str, Any] = {
@@ -94,8 +96,9 @@ async def remediate_cognitive_role(
         "severity": "error",
     }
 
-    return ActionResult.success(
-        message=f"Prepared prompt.artifact finding for {file_path}",
+    return ActionResult(
+        action_id="remediate.cognitive_role",
+        ok=True,
         data={
             "finding_to_post": {
                 "artifact_type": "python",

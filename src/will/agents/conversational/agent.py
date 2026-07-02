@@ -37,7 +37,7 @@ from __future__ import annotations
 from typing import Any
 
 from shared.ai.prompt_model import PromptModel
-from shared.infrastructure.context.builder import ContextBuilder
+from shared.infrastructure.context.service import ContextService
 from shared.logger import getLogger
 from shared.universal import get_deterministic_id
 from will.interpreters import NaturalLanguageInterpreter, TaskType
@@ -64,7 +64,7 @@ class ConversationalAgent:
     """
 
     def __init__(
-        self, context_builder: ContextBuilder, cognitive_service: CognitiveService
+        self, context_builder: ContextService, cognitive_service: CognitiveService
     ):
         """
         Initialize conversational agent.

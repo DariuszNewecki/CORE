@@ -76,10 +76,12 @@ def load_generation_budget() -> GenerationBudget:
     Never raises. Falls back to hardcoded defaults on any failure.
     """
     try:
+        import yaml
+
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         repo = get_intent_repository()
-        raw = repo.load_config(_CONFIG_PATH)
+        raw = yaml.safe_load(repo.load_text(_CONFIG_PATH))
         if not isinstance(raw, dict):
             logger.warning(
                 "generation_budget: unexpected top-level type %s — using defaults",

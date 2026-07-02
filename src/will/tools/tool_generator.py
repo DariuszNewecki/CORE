@@ -60,7 +60,7 @@ def generate_tool_definition(func: Callable) -> dict[str, Any]:
 
     doc = inspect.getdoc(func) or "No description provided."
 
-    parameters = {
+    parameters: dict[str, Any] = {
         "type": "object",
         "properties": {},
         "required": [],

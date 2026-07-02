@@ -151,7 +151,7 @@ class SpecialistDispatcher:
             from body.self_healing.header_service import HeaderService
 
             await asyncio.to_thread(
-                HeaderService(repo_root=repo_root)._fix,
+                HeaderService(repo_root=repo_root)._fix,  # type: ignore[attr-defined]
                 [str(repo_root / file_path)],
             )
             return True

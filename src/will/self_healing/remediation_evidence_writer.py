@@ -49,7 +49,7 @@ class RemediationEvidenceWriter:
         """
         logger.info("Running validation audit...")
         try:
-            findings_after = await self.auditor.audit()
+            findings_after = await self.auditor.audit()  # type: ignore[attr-defined]
             findings_after_count = len(findings_after)
             improvement = findings_before_count - findings_after_count
             passed = improvement > 0

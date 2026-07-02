@@ -126,6 +126,21 @@ class _HeaderTools:
         return components
 
     @staticmethod
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    def has_valid_header(content: str) -> bool:
+        """Return True if content begins with a # src/... location comment."""
+        return _HeaderTools.parse(content).location is not None
+
+    @staticmethod
+    # ID: 8286191e-614d-48f8-8d44-d24789e36eae
+    def add_header_if_missing(content: str) -> str:
+        """Normalize header if present; return unchanged if location comment absent."""
+        components = _HeaderTools.parse(content)
+        if components.location is None:
+            return content
+        return _HeaderTools.reconstruct(components)
+
+    @staticmethod
     # ID: e85d9dde-b46f-43f7-b83f-106a63103c48
     def reconstruct(components: HeaderComponents) -> str:
         """Reconstructs the source code from its parsed components."""

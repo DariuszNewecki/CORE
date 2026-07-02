@@ -118,7 +118,7 @@ class DatabaseService:
         """
         async with get_session() as session:
             result = await session.execute(
-                select(CognitiveRole).where(CognitiveRole.id == role_id)
+                select(CognitiveRole).where(CognitiveRole.role == str(role_id))  # type: ignore[attr-defined]
             )
             role = result.scalar_one_or_none()
 
@@ -149,7 +149,7 @@ class DatabaseService:
         """
         async with get_session() as session:
             result = await session.execute(
-                select(LlmResource).where(LlmResource.id == resource_id)
+                select(LlmResource).where(LlmResource.name == str(resource_id))  # type: ignore[attr-defined]
             )
             resource = result.scalar_one_or_none()
 

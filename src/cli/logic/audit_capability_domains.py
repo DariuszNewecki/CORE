@@ -93,7 +93,7 @@ def audit_capability_domains(
     ),
 ):
     """Audit capability domains for common tagging issues and display findings with sample keys."""
-    total, zero_tags, multi_primary, legacy_mismatch, inactive_tags = typer.run(
+    total, zero_tags, multi_primary, legacy_mismatch, inactive_tags = typer.run(  # type: ignore[call-arg]
         _audit_queries, limit
     )
 

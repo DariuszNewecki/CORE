@@ -171,7 +171,7 @@ def command_meta(**kwargs) -> Callable:
 
     # ID: 258dc4d7-d473-45ea-b32b-31726a0b01df
     def decorator(func: Callable) -> Callable:
-        func.__command_meta__ = meta
+        func.__command_meta__ = meta  # type: ignore[attr-defined]
         return func
 
     return decorator

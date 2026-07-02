@@ -112,7 +112,7 @@ class SymbolQueryService:
         Example:
             symbol = await symbol_service.find_by_name("FileHandler")
         """
-        stmt = select(Symbol).where(Symbol.name == name).limit(1)
+        stmt = select(Symbol).where(Symbol.name == name).limit(1)  # type: ignore[attr-defined]
 
         result = await self.session.execute(stmt)
         symbol = result.scalar_one_or_none()

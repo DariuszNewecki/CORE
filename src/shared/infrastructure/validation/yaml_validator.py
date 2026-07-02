@@ -38,7 +38,7 @@ def validate_yaml_code(code: str) -> tuple[str, list[Violation]]:
             {
                 "rule": "syntax.yaml",
                 "message": f"Invalid YAML format: {e}",
-                "line": e.problem_mark.line + 1 if e.problem_mark else 0,
+                "line": e.problem_mark.line + 1 if e.problem_mark else 0,  # type: ignore[attr-defined]
                 "severity": "error",
             }
         )

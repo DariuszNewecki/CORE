@@ -166,10 +166,10 @@ class ContextRetriever:
             examples.append(
                 CodeExample(
                     file_path=row.file_path,
-                    qualname=row.qualname,
-                    snippet=snippet,
-                    docstring=row.docstring[:100] if row.docstring else "",
-                    score=0.0,
+                    symbol_name=row.qualname,
+                    code_snippet=snippet,
+                    purpose=row.docstring[:100] if row.docstring else "",
+                    similarity_score=0.0,
                 )
             )
 

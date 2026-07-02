@@ -232,7 +232,7 @@ class RefusalRepository:
                 refusals = list(result.scalars().all())
 
                 # Calculate statistics
-                stats = {
+                stats: dict[str, Any] = {
                     "total_refusals": len(refusals),
                     "days_analyzed": days,
                     "by_type": {},

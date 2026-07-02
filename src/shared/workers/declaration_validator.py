@@ -62,9 +62,9 @@ def _build_validator() -> Draft7Validator:
         name = uri.split("#", 1)[0].rsplit("/", 1)[-1]
         if name in by_name:
             return Resource.from_contents(by_name[name], default_specification=DRAFT7)
-        raise NoSuchResource(ref=uri)
+        raise NoSuchResource(uri)
 
-    registry = Registry(retrieve=_retrieve)
+    registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
 
     # Principle 2: worker_phase must exist and be non-empty before any
     # worker declaration may validate. get_enum_members raises

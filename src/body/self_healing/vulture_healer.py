@@ -110,7 +110,7 @@ async def heal_dead_code(
             errors += 1
             continue
 
-        prompt_model = PromptModel(cognitive_service=cognitive_service)
+        prompt_model = PromptModel(cognitive_service=cognitive_service)  # type: ignore[call-arg]
         prompt = (
             f"You are a precise Python refactoring tool.\n\n"
             f"The following finding was reported by Vulture (dead code detector):\n"
@@ -124,7 +124,7 @@ async def heal_dead_code(
         )
 
         try:
-            response = await prompt_model.complete(prompt)
+            response = await prompt_model.complete(prompt)  # type: ignore[attr-defined]
             updated_code = extract_python_code_from_response(response)
         except Exception as e:
             logger.error("LLM healing failed for %s: %s", file_path_str, e)

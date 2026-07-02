@@ -114,7 +114,7 @@ async def sort_imports_handler(
                 )
             try:
                 rel_path = str(file_path.relative_to(repo_root))
-                file_handler.write_source_code(rel_path, new_content)
+                file_handler.write(rel_path, new_content)
                 duration_ms = int((time.time() - start_time) * 1000)
                 logger.info(
                     "Successfully sorted imports in %s (%d ms)",

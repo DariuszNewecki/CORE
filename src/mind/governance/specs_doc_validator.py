@@ -113,9 +113,9 @@ class SpecsDocValidator:
                     json.loads(enums_path.read_text(encoding="utf-8")),
                     default_specification=DRAFT7,
                 )
-            raise NoSuchResource(ref=uri)
+            raise NoSuchResource(uri)
 
-        return Registry(retrieve=_retrieve)
+        return Registry(retrieve=_retrieve)  # type: ignore[call-arg]
 
     # ID: 8b2787f8-73fe-4d83-b77e-98fabb52a807
     def validate_header(

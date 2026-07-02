@@ -23,6 +23,7 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from mind.governance.enforcement_loader import EnforcementMappingLoader
     from mind.governance.executable_rule import ExecutableRule
+    from mind.logic.engines.base import BaseEngine
 
 logger = getLogger(__name__)
 
@@ -353,7 +354,7 @@ def _topologically_sort_rules(
     return sorted_rules
 
 
-def _lookup_engine_class(engine_id: str) -> type | None:
+def _lookup_engine_class(engine_id: str) -> type[BaseEngine] | None:
     """Return the engine class for ``engine_id`` without instantiating it.
 
     ADR-076 D2. The extractor must consult an engine's

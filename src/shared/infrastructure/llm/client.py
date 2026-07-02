@@ -483,7 +483,9 @@ async def create_llm_client_for_role(
     if "anthropic" in api_url:
         from .providers.anthropic import AnthropicProvider
 
-        provider = AnthropicProvider(api_key=api_key, model_name=model_name)
+        provider = AnthropicProvider(
+            api_url=api_url, api_key=api_key, model_name=model_name
+        )
     elif "deepseek" in api_url:
         from .providers.openai import OpenAIProvider
 

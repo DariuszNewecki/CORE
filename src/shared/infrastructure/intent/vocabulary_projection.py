@@ -162,9 +162,9 @@ def _validate_schema(instance: dict, schema_path: Path, schema: dict) -> str | N
                 json.loads(target.read_text(encoding="utf-8")),
                 default_specification=DRAFT7,
             )
-        raise NoSuchResource(ref=uri)
+        raise NoSuchResource(uri)
 
-    registry = Registry(retrieve=_retrieve)
+    registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
     try:
         Draft7Validator(schema, registry=registry).validate(instance)
     except jsonschema.ValidationError as e:

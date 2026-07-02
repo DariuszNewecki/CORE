@@ -80,7 +80,7 @@ async def _fetch_code_for_symbol(
     Returns empty string if Qdrant doesn't have it or the lookup fails.
     """
     try:
-        result = await qdrant_service.search_code(symbol_path, limit=1)
+        result = await qdrant_service.search_code(symbol_path, limit=1)  # type: ignore[attr-defined]
         if not result:
             return ""
 

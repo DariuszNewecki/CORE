@@ -33,7 +33,7 @@ class TracedAgentMixin:
     # ID: e3f4a5b6-c7d8-9012-efab-234567890123
     def get_decision_trace(self) -> str:
         """Return formatted decision trace from this agent's tracer."""
-        return self.tracer.format_trace()
+        return self.tracer.explain_chain()
 
     # ID: f4a5b6c7-d8e9-0123-fabc-345678901234
     async def save_decision_trace(self) -> None:

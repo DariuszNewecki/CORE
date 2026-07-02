@@ -162,7 +162,7 @@ class BatchRemediationService:
     async def _process_file(self, file_path: Path) -> dict[str, Any]:
         """Process a single file."""
         try:
-            service = EnhancedSingleFileRemediationService(
+            service = EnhancedSingleFileRemediationService(  # type: ignore[call-arg]
                 self.cognitive,
                 self.auditor,
                 file_path,

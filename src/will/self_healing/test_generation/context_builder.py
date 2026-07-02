@@ -76,7 +76,7 @@ class ContextPackageBuilder:
         }
 
         # Build packet with injected session
-        dbp = DBProvider(db_service=session)
+        dbp = DBProvider(session_factory=session)
         astp = ASTProvider(project_root=str(repo_root))
         vecp = VectorProvider()
         builder = ContextBuilder(
@@ -85,7 +85,7 @@ class ContextPackageBuilder:
             ast_provider=astp,
             config={"max_tokens": 50000, "max_context_items": 30},
         )
-        packet = await builder.build_for_task(task_spec)
+        packet = await builder.build_for_task(task_spec)  # type: ignore[attr-defined]
 
         return self._packet_to_context(packet, module_path, source, tree)
 

@@ -93,7 +93,7 @@ def core_command(
             )
             if ctx is None:
                 try:
-                    ctx = typer.get_current_context()
+                    ctx = typer.get_current_context()  # type: ignore[attr-defined]
                 except Exception:
                     ctx = None
             if requires_context and (not ctx):

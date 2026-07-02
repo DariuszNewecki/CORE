@@ -149,7 +149,9 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         console.print()
         result = await interpreter.execute(user_message=request)
         if not result.ok:
-            console.print(f"[red]✗[/red] Intent parsing failed: {result.error}")
+            console.print(
+                f"[red]✗[/red] Intent parsing failed: {result.data.get('error', 'unknown error')}"
+            )
             raise typer.Exit(1)
         task = result.data.get("task")
         if task is None:

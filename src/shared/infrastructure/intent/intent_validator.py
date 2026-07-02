@@ -209,9 +209,9 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
                 return Resource.from_contents(
                     by_name[name], default_specification=DRAFT7
                 )
-            raise NoSuchResource(ref=uri)
+            raise NoSuchResource(uri)
 
-        registry = Registry(retrieve=_retrieve)
+        registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
         try:
             Draft7Validator(schema, registry=registry).validate(document)
         except jsonschema.ValidationError as e:

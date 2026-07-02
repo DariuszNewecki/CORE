@@ -91,7 +91,7 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
                 len(integration_steps) + 2,
                 step["description"],
             )
-            command_parts = step["command"].split()
+            command_parts = step["command"].split()  # type: ignore[attr-defined]
             process = await asyncio.create_subprocess_exec(
                 *command_parts,
                 stdout=asyncio.subprocess.PIPE,

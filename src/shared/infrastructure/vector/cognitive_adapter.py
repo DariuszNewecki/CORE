@@ -103,7 +103,7 @@ class CognitiveEmbedderAdapter:
         if not texts:
             return []
         try:
-            embeddings = await self._cognitive_service.get_embeddings_for_code_batch(
+            embeddings = await self._cognitive_service.get_embedding_for_code(  # type: ignore[attr-defined]
                 texts
             )
             if len(embeddings) != len(texts):

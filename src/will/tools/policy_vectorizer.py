@@ -130,7 +130,7 @@ async def vectorize_policies_command(repo_root: Path) -> dict[str, Any]:
     cognitive_service = CognitiveService(
         repo_path=repo_root, qdrant_service=qdrant_service
     )
-    await cognitive_service.initialize()
+    await cognitive_service.initialize()  # type: ignore[call-arg]
 
     vectorizer = PolicyVectorizer(repo_root, cognitive_service, qdrant_service)
     return await vectorizer.vectorize_all_policies()

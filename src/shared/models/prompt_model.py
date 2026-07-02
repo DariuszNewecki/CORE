@@ -32,12 +32,17 @@ from __future__ import annotations
 
 import dataclasses
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
 from shared.config import settings
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.infrastructure.llm.client import LLMClient
 
 
 logger = getLogger(__name__)
@@ -169,7 +174,7 @@ class PromptModel:
         return cls(manifest, system_prompt, user_template)
 
     # ID: b0792772-4524-4133-bf88-cede80f0a207
-    async def invoke(self, client: object, inputs: dict) -> str:
+    async def invoke(self, client: LLMClient, inputs: dict) -> str:
         """
         Renders the user template, calls the AI, and validates the response.
 

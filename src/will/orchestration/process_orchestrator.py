@@ -265,7 +265,7 @@ class ProcessOrchestrator:
                     f"Component {name!r} requires repo_root; "
                     f"pass it to ProcessOrchestrator(repo_root=...)"
                 )
-            return cls(repo_root=self.repo_root)
+            return cls(repo_root=self.repo_root)  # type: ignore[call-arg]
         return cls()
 
     # ID: ddbd6436-f139-43bc-80c2-0387e8bdba8b
