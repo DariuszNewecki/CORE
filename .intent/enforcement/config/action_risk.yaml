@@ -69,9 +69,15 @@ actions:
     artifact_types: [document_corpus]
 
   # ── Python-specific actions (artifact_types: [python]) ──────────────────────
+  # Primary autonomous path (ADR-133 D3): per-symbol generation via
+  # context_aware_test_gen. Prompt: context_aware_test_gen (ADR-134 governed).
   build.test_for_symbol:
     impact_level: safe
     artifact_types: [python]
+  # File-level generation path (ADR-133 D3: retained, not primary).
+  # Callers: CoderAgent (task_type="test_generation") and the
+  # coverage_remediation workflow (EnhancedTestGenerator → GenerationWorkflow).
+  # Prompt: test_gen_prompt (ADR-134 governed, ADR-003 anchor).
   build.tests:
     impact_level: safe
     artifact_types: [python]

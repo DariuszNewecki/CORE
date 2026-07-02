@@ -201,7 +201,10 @@ A separate `test.execute` or `sandbox_validate` step in `flow.build_tests` (or a
   fails no longer blocks the other 9.
 - **`build.tests` is not removed.** It remains valid for explicit full-file regeneration
   (governor-invoked), canary testing, and backward compatibility with any existing
-  integrations.
+  integrations. It is also the action underlying the `coverage_remediation` workflow
+  (`EnhancedTestGenerator` → `GenerationWorkflow` → `build.tests`), which is a named
+  workflow type in `AutonomousDeveloper` and `runtime_phase.py`. Both paths use
+  `test_gen_prompt` (ADR-003 governed, ADR-134 registered).
 - **`flow.build_tests` must be updated** to route through `build.test_for_symbol` per
   symbol rather than one `build.tests` call per file. This is a `.intent/flows/` change
   (governor-applied) and a `FlowExecutor` invocation change.
