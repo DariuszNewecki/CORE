@@ -10,4 +10,6 @@ input:
     - source_code
 output:
   format: raw_text
+adr_anchor: "ADR-134:D8"
+
 success_criteria: Returns syntactically valid Python code that resolves the detected violation while preserving existing functionality and adhering to CORE's constitutional principles.

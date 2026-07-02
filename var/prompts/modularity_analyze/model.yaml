@@ -35,6 +35,8 @@ model:
   max_tokens: 8192
   temperature: 0.1
 
+adr_anchor: "ADR-134:D8"
+
 success_criteria: >
   Returns valid JSON with can_split boolean and confidence level.
   When can_split is true, modules covers every symbol in the file

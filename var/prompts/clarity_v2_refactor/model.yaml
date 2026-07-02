@@ -7,4 +7,6 @@ input:
     - improvement_ratio
 output:
   format: raw_text
+adr_anchor: "ADR-134:D8"
+
 success_criteria: Provides specific, actionable refactoring suggestions with concrete code examples that would reduce complexity by the target percentage

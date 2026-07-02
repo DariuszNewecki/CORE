@@ -18,6 +18,8 @@ output:
   must_contain:
     - "PromptModel"
 
+adr_anchor: "ADR-134:D8"
+
 success_criteria: >
   The returned source compiles, contains no direct make_request_async or
   make_request_with_system_async calls, and every former violation site

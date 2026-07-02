@@ -14,5 +14,7 @@ input:
 output:
   format: raw_text
 
+adr_anchor: "ADR-134:D8"
+
 success_criteria: >
   Returns the corrected test function code.

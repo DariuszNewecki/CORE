@@ -216,7 +216,46 @@ entry rather than in-memory state, so restarts do not lose the comparison point.
 Cadence: `max_interval: 300` (5-minute cycle; prompt files change rarely, so a tight
 cadence is not needed).
 
-### D7 — `external-review.md` prompt is explicitly out of scope
+### D8 — Self-healing write-feeder prompts governed under ADR-134
+
+**Scope correction.** D1 listed "docstring writer, format fixer, enrichment helpers" as
+"purely operational" with `adr_anchor` optional. On full-surface audit of `var/prompts/`
+(2026-07-02), eleven prompts were found to produce source or test artifacts written to disk
+via `ActionExecutor` or `FileHandler.write_runtime_text` but were absent from
+`governed_prompts.yaml`. These constitute the **self-healing write-feeder group** and are
+brought into scope under the same governance framework as D1–D6.
+
+| Prompt | Write surface |
+|---|---|
+| `violation_remediator` | ViolationRemediatorWorker → ActionExecutor / FileHandler |
+| `call_site_rewriter` | CallSiteRewriter → ActionExecutor("crate.create") |
+| `body_contracts_fixer` | BodyUiFixer → FileHandler.write_runtime_text |
+| `docstring_writer` | DocstringService → FileHandler.write_runtime_text |
+| `modularity_analyze` | modularity_fix atomic action (Body-layer LLM call) |
+| `line_length_refactorer` | LineLengthService → ActionExecutor |
+| `clarity_v2_refactor` | ClarityService → ActionExecutor |
+| `logic_alignment_generic_repair` | alignment specialists → ActionExecutor |
+| `complexity_reflex_refactor` | ComplexityService → ActionExecutor |
+| `godd_object_modularizer` | alignment specialists → ActionExecutor |
+| `single_test_fixer` | SingleTestFixer → FileHandler / ActionExecutor |
+
+All eleven carry `adr_anchor: "ADR-134:D8"` in their `model.yaml` and are registered in
+`governed_prompts.yaml` with `anchors: ["ADR-134:D8"]`.
+
+**Explicit exclusions.** The following active prompts are **out of scope** for
+`governed_prompts.yaml`:
+
+- `pattern_correction` — intermediate correction pass inside `CorrectionEngine`; does not
+  produce the write artifact; output feeds a governed prompt downstream.
+- `self_correction_engine_correction_prompt` — self-correction refinement inside the
+  generation loop; same reasoning.
+- `test_generation_test_executor` — validates test output before a write decision; advisory,
+  not generative.
+
+These do not require `adr_anchor` per D1's optional category. Explicit declaration here
+closes the question for future audits.
+
+### D9 — `external-review.md` prompt is explicitly out of scope
 
 `var/prompts/external-review.md` (the template for human-initiated external LLM reviews)
 is NOT listed in `governed_prompts.yaml` and is exempt from D2/D3/D5/D6. It is a human
@@ -281,4 +320,4 @@ This ADR is closed when:
 - `.intent/artifact_types/prompt.yaml` — prompt artifact type; `vector_collection: core-prompts`.
 - `var/prompts/assumption_extractor/system.txt` — existing `# CONSTITUTIONAL PRINCIPLE`
   section; the pattern this ADR makes normative.
-- `var/prompts/external-review.md` — explicitly out of scope (D7).
+- `var/prompts/external-review.md` — explicitly out of scope (D9).

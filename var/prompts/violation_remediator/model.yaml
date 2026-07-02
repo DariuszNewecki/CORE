@@ -31,6 +31,8 @@ model:
   temperature: 0.1
   max_tokens: 8192
 
+adr_anchor: "ADR-134:D8"
+
 success_criteria: >
   The returned JSON must contain a "code" field with a complete, syntactically
   valid Python file that resolves all listed violations, preserves the file's

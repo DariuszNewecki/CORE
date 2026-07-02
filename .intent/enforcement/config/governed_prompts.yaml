@@ -28,3 +28,59 @@ governed_prompts:
   - name: constitutional_coherence_analyst
     anchors: ["ADR-027"]
     rationale: CCC coherence checking; must reflect live coherence ruleset. No verdicts, candidates only.
+
+  # Self-healing write-feeder group (ADR-134:D8).
+  # These prompts produce source or test artifacts written to disk via
+  # ActionExecutor or FileHandler.write_runtime_text.
+
+  - name: violation_remediator
+    anchors: ["ADR-134:D8"]
+    rationale: Produces corrected source written via ViolationRemediatorWorker → ActionExecutor / FileHandler.
+
+  - name: call_site_rewriter
+    anchors: ["ADR-134:D8"]
+    rationale: Rewrites call sites in source files via ActionExecutor("crate.create").
+
+  - name: body_contracts_fixer
+    anchors: ["ADR-134:D8"]
+    rationale: Fixes Body-layer contract violations; output written via FileHandler.write_runtime_text.
+
+  - name: docstring_writer
+    anchors: ["ADR-134:D8"]
+    rationale: Generates docstrings written to source files via FileHandler.write_runtime_text.
+
+  - name: modularity_analyze
+    anchors: ["ADR-134:D8"]
+    rationale: Analyzes and produces split plans inside the modularity_fix atomic action (Body-layer LLM call).
+
+  - name: line_length_refactorer
+    anchors: ["ADR-134:D8"]
+    rationale: Refactors source lines; output written via LineLengthService → ActionExecutor.
+
+  - name: clarity_v2_refactor
+    anchors: ["ADR-134:D8"]
+    rationale: Produces clarity refactors written via ClarityService → ActionExecutor.
+
+  - name: logic_alignment_generic_repair
+    anchors: ["ADR-134:D8"]
+    rationale: Generates alignment repairs written via alignment specialists → ActionExecutor.
+
+  - name: complexity_reflex_refactor
+    anchors: ["ADR-134:D8"]
+    rationale: Produces complexity refactors written via ComplexityService → ActionExecutor.
+
+  - name: godd_object_modularizer
+    anchors: ["ADR-134:D8"]
+    rationale: Generates God Object decomposition plans written via alignment specialists → ActionExecutor.
+
+  - name: single_test_fixer
+    anchors: ["ADR-134:D8"]
+    rationale: Fixes failing tests; output written via SingleTestFixer → FileHandler / ActionExecutor.
+
+# Explicit exclusions — active in src/ but out of scope for governed_prompts.yaml (ADR-134:D8).
+# These are intermediate correction passes whose output feeds a governed prompt downstream;
+# they do not themselves produce the write artifact.
+#
+#   pattern_correction                    — intermediate pass inside CorrectionEngine
+#   self_correction_engine_correction_prompt — self-correction refinement in generation loop
+#   test_generation_test_executor         — validates test output before write decision; advisory

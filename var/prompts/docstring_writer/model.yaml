@@ -31,6 +31,8 @@ output:
     - "source_code"  # AI must not echo the placeholder name
     - "pass"
 
+adr_anchor: "ADR-134:D8"
+
 success_criteria: >
   Docstring explains what the symbol MEANS and WHY it exists, not what each
   line does. If the function has parameters, an Args section is present.

@@ -7,4 +7,6 @@ input:
     - file_path
 output:
   format: raw_text
+adr_anchor: "ADR-134:D8"
+
 success_criteria: Provides actionable refactoring plan with specific class/module suggestions, responsibility boundaries, and migration strategy for breaking down the God Object.
