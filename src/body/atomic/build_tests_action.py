@@ -14,10 +14,9 @@ Constitutional Alignment:
 - Atomicity: Does not invoke ActionExecutor.execute() on other actions;
   auto-heal is delegated to flow.build_tests as subsequent Flow steps.
   See CORE-Flow.md §7.
-- Remediation: Declares remediates=["test.runner.failure", "test.runner.missing"]
-  matching the canonical sub_namespaces emitted by TestRunnerSensor under
-  ADR-091 D2, so the remediation map stays honest about which findings this
-  action targets.
+- Remediation: remediates=[] — build.tests is retained for explicit full-file
+  regeneration only (flow.build_tests). Autonomous remediation of test.runner.*
+  findings is owned by build.test_for_symbol (ADR-133 D3/D4).
 - Path mapping: source_file -> test_file is resolved via
   shared.infrastructure.intent.test_coverage_paths.source_to_test_path
   (governed by .intent/enforcement/config/test_coverage.yaml).
@@ -119,7 +118,7 @@ def _run_intent_guard_check(
     description="Generate a test file for a source file using CoderAgent",
     category=ActionCategory.BUILD,
     policies=["rules/code/purity"],
-    remediates=["test.runner.failure", "test.runner.missing"],
+    remediates=[],
 )
 @atomic_action(
     action_id="build.tests",
