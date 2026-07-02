@@ -29,14 +29,12 @@ from body.services.worker_registry_service import WorkerRegistryService
 from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.workers.schedule import load_worker_schedule_state
 
 
 logger = getLogger(__name__)
 
-# Rolling JSONL artifact written after each health-log cycle so the convergence
-# trajectory is readable without a DB query (e.g. governor meetings, CI dashboards).
-_CONVERGENCE_ARTIFACT = "var/reports/convergence.jsonl"
 _CONVERGENCE_ROLLING_WINDOW = 30
 
 _CFG = load_operational_config().health_log
@@ -302,7 +300,12 @@ class HealthLogService:
         }
         try:
             repo_root: Path = bootstrap_registry.get_repo_path()
-            artifact_path = repo_root / _CONVERGENCE_ARTIFACT
+            path_resolver = PathResolver.from_repo(
+                repo_root=repo_root,
+                intent_root=repo_root / ".intent",
+            )
+            artifact_path = path_resolver.reports_dir / "convergence.jsonl"
+            rel_path = str(artifact_path.relative_to(repo_root))
             existing: list[str] = []
             if artifact_path.exists():
                 existing = [
@@ -312,8 +315,6 @@ class HealthLogService:
                 ]
             tail = existing[-(_CONVERGENCE_ROLLING_WINDOW - 1) :]
             tail.append(json.dumps(entry))
-            FileHandler(str(repo_root)).write_runtime_text(
-                _CONVERGENCE_ARTIFACT, "\n".join(tail)
-            )
+            FileHandler(str(repo_root)).write_runtime_text(rel_path, "\n".join(tail))
         except Exception as err:
             logger.warning("Could not append convergence artifact: %s", err)

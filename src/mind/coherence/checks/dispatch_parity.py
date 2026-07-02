@@ -18,10 +18,11 @@ No LLM. No vectors. Pure YAML/JSON data reading.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import yaml
+
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 
 from .base import CoherenceCandidate
 
@@ -89,17 +90,7 @@ class DispatchParityCheck:
         return candidates
 
     def _load_rule_ids(self) -> set[str]:
-        rule_ids: set[str] = set()
-        rules_root = self._repo_root / ".intent" / "rules"
-        for path in rules_root.rglob("*.json"):
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                for rule in data.get("rules", []):
-                    if isinstance(rule, dict) and "id" in rule:
-                        rule_ids.add(rule["id"])
-            except Exception:
-                pass
-        return rule_ids
+        return get_intent_repository().known_rule_ids()
 
     def _load_mappings(self) -> tuple[set[str], dict[str, str]]:
         mapping_keys: set[str] = set()

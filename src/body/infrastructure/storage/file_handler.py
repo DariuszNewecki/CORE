@@ -55,7 +55,7 @@ class FileHandler:
         )
 
         self.log_dir = path_resolver.logs_dir
-        self.pending_dir = self.repo_path / "var" / "workflows" / "pending_writes"
+        self.pending_dir = path_resolver.pending_writes_dir
 
         self._guard = get_intent_guard(
             repo_path=self.repo_path,

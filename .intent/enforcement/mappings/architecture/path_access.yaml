@@ -37,3 +37,5 @@ mappings:
         - "src/body/services/crawl_service/main_module.py"
         - "src/body/services/crawl_service/orchestrator.py"
         - "src/body/introspection/symbol_index_builder.py"
+        # Display string in console.print() message — not a path construction expression
+        - "src/cli/logic/scout.py"

@@ -24,7 +24,7 @@ from . import fix_app
 logger = logging.getLogger(__name__)
 console = Console()
 
-_IR_DIR = Path(".intent") / "mind" / "ir"
+_IR_DIR = Path(".intent/mind/ir")
 _DRY_RUN_PATHS = {
     "triage": _IR_DIR / "triage_log.yaml",
     "log": _IR_DIR / "incident_log.yaml",

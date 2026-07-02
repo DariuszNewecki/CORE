@@ -130,7 +130,7 @@ class QualityGateResult(BaseModel):
         return self.model_dump()
 
 
-_IR_DIR = Path(".intent") / "mind" / "ir"
+_IR_DIR = Path(".intent/mind/ir")
 _IR_FILES: dict[str, tuple[Path, str]] = {
     "triage": (
         _IR_DIR / "triage_log.yaml",
