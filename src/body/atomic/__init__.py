@@ -14,6 +14,7 @@ import body.self_healing.body_ui_fixer
 # Import modules to trigger registration
 from body.atomic import (
     assisted_actions,
+    build_test_for_symbol_action,
     build_tests_action,
     check_actions,
     crate_ops,
@@ -32,6 +33,7 @@ from body.atomic.assisted_actions import (
     action_assisted_apply_diff,
     action_assisted_validate_diff,
 )
+from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
 from body.atomic.build_tests_action import action_build_tests
 from body.atomic.check_actions import action_check_imports
 from body.atomic.crate_ops import action_create_crate
@@ -65,6 +67,7 @@ from body.atomic.sync_actions import (
 __all__ = [
     "action_assisted_apply_diff",
     "action_assisted_validate_diff",
+    "action_build_test_for_symbol",
     "action_build_tests",
     "action_check_imports",
     "action_create_crate",
