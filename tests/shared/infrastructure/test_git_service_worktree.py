@@ -12,11 +12,11 @@ from pathlib import Path
 import pytest
 
 from shared.infrastructure.git_service import (
-    SANDBOX_PARENT,
     SANDBOX_PREFIX,
     GitService,
     ScopedGitService,
 )
+from shared.path_resolver import PathResolver
 
 
 def _run(args: list[str], cwd: Path) -> None:
@@ -42,7 +42,7 @@ def test_create_worktree_returns_scoped_service_at_sha(repo: GitService) -> None
     try:
         assert isinstance(scoped, ScopedGitService)
         assert scoped.repo_path.exists()
-        assert scoped.repo_path.parent == (repo.repo_path / SANDBOX_PARENT).resolve()
+        assert scoped.repo_path.parent == PathResolver(repo.repo_path).tmp_dir
         assert scoped.repo_path.name.startswith(SANDBOX_PREFIX)
         assert scoped.get_current_commit() == sha
         assert (scoped.repo_path / "file.txt").read_text() == "hello\n"
