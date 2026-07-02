@@ -1,0 +1,42 @@
+# path: .intent/enforcement/config/deployment_mode.yaml
+#
+# Deployment mode declaration.
+# Authority: ADR-110 D1 (exposure trust tiers); ADR-086 D3 (pre-flight checks).
+#
+# Declares the current deployment mode and the prerequisites that must be
+# closed before CORE may be operated in multi_user mode. Read at startup
+# by src/api/lifespan.py (or equivalent) to surface mode in
+# `core-admin health` output and the API /v1/health endpoint.
+#
+# mode values:
+#   solo        — single governor, local-only trust (current).
+#                 Mutation endpoints gated by governor authentication only.
+#   multi_user  — multiple users with role-differentiated access.
+#                 Requires all multi_user_prerequisites below to be CLOSED.
+#
+# Changing mode: solo → multi_user without closing all prerequisites is a
+# constitutional violation of ADR-110 D1. The change requires a governor
+# commit referencing the closed issue numbers and their verification commits.
+
+mode: solo
+
+# Prerequisites that must be closed before mode: multi_user is safe.
+multi_user_prerequisites:
+  - issue: 671
+    title: "ADR-110 D5: add exposure to command/endpoint metadata + accessibility overview"
+    why: >
+      Without the exposure tier on every command and endpoint, there is no
+      machine-readable distinction between user-facing and governor-only
+      capabilities. Role-based access control cannot be correctly applied
+      without this metadata. Closing this issue produces the accessibility
+      census that defines what any-authenticated vs governor-only means.
+
+  - issue: 672
+    title: "ADR-110 D3/D4: write-safety rails on directed AI-mutation path"
+    why: >
+      The directed mutation path (StrategicAuditor / dev refactor / API dev
+      routes) currently commits directly with no per-execution sandbox (ADR-106)
+      and no declared-production commit-set (ADR-107). Under multi_user, a
+      lower-trust caller exercising this path would produce unattributed commits.
+      ADR-106 sandbox + ADR-107 declared-production rails must wrap every
+      AI-delegating mutation before multi_user mode is safe.
