@@ -46,4 +46,7 @@ async def fix_ids_command(
         console.print(
             "[bold red]🧪 Applying missing ID anchors to source code...[/bold red]"
         )
+    if core_context.action_executor is None:
+        console.print("[red]Error: action_executor not initialized[/red]")
+        raise typer.Exit(1)
     await core_context.action_executor.execute("fix.ids", write=write)

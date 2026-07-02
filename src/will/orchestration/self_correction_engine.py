@@ -123,7 +123,7 @@ async def attempt_correction(
                 "violations_json": violations_json,
                 "runtime_error": runtime_error,
                 "hint_section": hint_section,
-                "code": code.strip(),
+                "code": (code or "").strip(),
             },
             client=generator,
             user_id="auto_repair",

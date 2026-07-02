@@ -558,6 +558,14 @@ async def action_fix_modularity(
     symbol_inventory = _extract_symbol_inventory(original_content)
 
     # 3. Phase 1 — find the seam via LLM
+    if core_context.cognitive_service is None:
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": "cognitive_service not initialized"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.time() - start,
+        )
     try:
         analyze_model = PromptModel.load("modularity_analyze")
         analyze_client = await core_context.cognitive_service.aget_client_for_role(

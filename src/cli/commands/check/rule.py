@@ -96,6 +96,9 @@ async def rule_cmd(
         )
         console.print("\nUse --help for examples")
         raise typer.Exit(1)
+    if core_context.auditor_context is None:
+        console.print("[red]Error: auditor_context not initialized[/red]")
+        raise typer.Exit(1)
     await core_context.auditor_context.load_knowledge_graph()
     console.print("[bold cyan]🔍 Running Filtered Constitutional Audit[/bold cyan]\n")
     if rule:

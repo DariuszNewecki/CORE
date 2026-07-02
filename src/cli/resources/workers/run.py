@@ -80,6 +80,9 @@ async def workers_run_cmd(
     class_name: str = impl["class"]
     needs_context: bool = impl.get("requires_core_context", False)
     core_context: CoreContext = ctx.obj
+    if core_context.cognitive_service is None:
+        logger.error("cognitive_service not initialized")
+        raise typer.Exit(1)
     async with get_session() as session:
         await core_context.cognitive_service.initialize(session)
     module = importlib.import_module(module_path)

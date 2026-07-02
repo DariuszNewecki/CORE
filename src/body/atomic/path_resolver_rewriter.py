@@ -98,6 +98,8 @@ def _insert_path_resolver_import(source: str) -> str:
     except (SyntaxError, ImportError):
         return source
     tree = atok.tree
+    if tree is None:
+        return source
 
     new_module = "shared.path_resolver"
     first_party_roots = {"api", "body", "cli", "mind", "shared", "will"}

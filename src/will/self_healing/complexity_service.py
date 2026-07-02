@@ -153,6 +153,8 @@ class ComplexityRemediationService:
             logger.info("🔁 Reflex Attempt %d/3...", attempt + 1)
 
             # ── GENERATE ──────────────────────────────────────────────────────
+            if self.context.cognitive_service is None:
+                return None
             coder = await self.context.cognitive_service.aget_client_for_role(
                 model.manifest.role
             )

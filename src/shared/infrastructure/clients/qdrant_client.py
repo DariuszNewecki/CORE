@@ -69,14 +69,11 @@ class QdrantService:
         Initialize Qdrant client from constitutional settings.
         """
         self.url = url or settings.QDRANT_URL
-        self.api_key = (
-            api_key
-            if api_key is not None
-            else settings.model_extra.get("QDRANT_API_KEY")
-        )
+        _extra = settings.model_extra or {}
+        self.api_key = api_key if api_key is not None else _extra.get("QDRANT_API_KEY")
         self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME
         self.vector_size = int(vector_size or settings.LOCAL_EMBEDDING_DIM)
-        self.vector_name: str | None = settings.model_extra.get("QDRANT_VECTOR_NAME")
+        self.vector_name: str | None = _extra.get("QDRANT_VECTOR_NAME")
 
         if not self.url and not client:
             raise ValueError("QDRANT_URL is not configured and no client provided.")

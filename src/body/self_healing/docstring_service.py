@@ -298,6 +298,9 @@ async def _async_fix_docstrings(
     predicate (ast.get_docstring on public defs/classes) is the single
     source of truth for "needs a docstring."
     """
+    if context.cognitive_service is None:
+        logger.warning("cognitive_service not initialized; skipping docstring healing")
+        return
     prompt_model = PromptModel.load("docstring_writer")
     writer_client = await context.cognitive_service.aget_client_for_role(
         prompt_model.manifest.role

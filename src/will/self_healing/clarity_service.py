@@ -107,6 +107,11 @@ async def remediate_clarity_v2(
 
         try:
             # 4. PHASE: GENERATE (Will Layer)
+            if context.cognitive_service is None:
+                logger.warning(
+                    "cognitive_service not initialized; aborting clarity workflow"
+                )
+                return
             coder = await context.cognitive_service.aget_client_for_role(
                 model.manifest.role, high_reasoning=use_expert
             )

@@ -167,6 +167,14 @@ async def fix_body_ui_violations(
         items = items[:limit]
 
     cognitive = core_context.cognitive_service
+    if cognitive is None:
+        return ActionResult(
+            action_id="fix.body_ui",
+            ok=False,
+            data={"error": "cognitive_service not initialized"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.time() - start_time,
+        )
     model = PromptModel.load("body_contracts_fixer")
     agent = await cognitive.aget_client_for_role(model.manifest.role)
     processor = ThrottledParallelProcessor(description="Fixing Body UI violations...")

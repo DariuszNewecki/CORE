@@ -432,6 +432,8 @@ class AuditViolationSensor(Worker):
 
         try:
             repo = get_intent_repository()
+            if repo._rule_index is None:
+                return []
             return sorted(
                 rid
                 for rid in repo._rule_index

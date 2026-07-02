@@ -248,6 +248,8 @@ class CodeGenerator:
                 },
             }
 
+            if self.context_service is None:
+                return {}
             context_package = await self.context_service.build_for_task(
                 task_spec, use_cache=True
             )

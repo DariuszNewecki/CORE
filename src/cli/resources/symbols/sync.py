@@ -42,4 +42,7 @@ async def sync_symbols(
     core_context: CoreContext = ctx.obj
     mode = "WRITE" if write else "DRY-RUN"
     console.print(f"[bold cyan]🔄 Synchronizing Symbols to DB ({mode})...[/bold cyan]")
+    if core_context.action_executor is None:
+        console.print("[red]Error: action_executor not initialized[/red]")
+        raise typer.Exit(1)
     await core_context.action_executor.execute("sync.db", write=write)

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import qdrant_client.models as qm
+
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from will.orchestration.cognitive_service import CognitiveService
 from will.tools.anchors.storage import ANCHOR_COLLECTION
@@ -30,11 +32,13 @@ async def find_best_placement(
         return []
 
     # Try module-level search first
-    module_results = await qdrant_service.client.search(
+    module_results = await qdrant_service.search(
         collection_name=ANCHOR_COLLECTION,
         query_vector=embedding,
         limit=limit * 2,
-        query_filter={"must": [{"key": "type", "match": {"value": "module"}}]},
+        query_filter=qm.Filter(
+            must=[qm.FieldCondition(key="type", match=qm.MatchValue(value="module"))]
+        ),
     )
 
     if module_results:
@@ -44,7 +48,7 @@ async def find_best_placement(
                 "type": "module",
                 "path": hit.payload["path"],
                 "name": hit.payload["name"],
-                "purpose": hit.payload.get("purpose", ""),
+                "purpose": hit.payload.get("purpose", "") if hit.payload else "",
                 "layer": hit.payload["layer"],
                 "confidence": "high" if hit.score > 0.5 else "medium",
             }
@@ -52,11 +56,13 @@ async def find_best_placement(
         ]
 
     # Fallback to layer-level search
-    layer_results = await qdrant_service.client.search(
+    layer_results = await qdrant_service.search(
         collection_name=ANCHOR_COLLECTION,
         query_vector=embedding,
         limit=limit,
-        query_filter={"must": [{"key": "type", "match": {"value": "layer"}}]},
+        query_filter=qm.Filter(
+            must=[qm.FieldCondition(key="type", match=qm.MatchValue(value="layer"))]
+        ),
     )
 
     return [

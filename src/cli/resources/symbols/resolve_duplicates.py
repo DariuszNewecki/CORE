@@ -27,4 +27,7 @@ async def resolve_symbol_duplicates(
     core_context: CoreContext = ctx.obj
     mode = "RESOLVING" if write else "ANALYZING"
     console.print(f"[bold cyan]👯 {mode} duplicate ID collisions...[/bold cyan]")
+    if core_context.action_executor is None:
+        console.print("[red]Error: action_executor not initialized[/red]")
+        raise typer.Exit(1)
     await core_context.action_executor.execute("fix.duplicate_ids", write=write)

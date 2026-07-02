@@ -36,7 +36,11 @@ async def run_audit_workflow(context: CoreContext) -> tuple[bool, list[AuditFind
     """
     # Inject Qdrant service from CoreContext into AuditorContext
     auditor_context = context.auditor_context
-    if context.qdrant_service and not hasattr(auditor_context, "qdrant_service"):
+    if (
+        auditor_context is not None
+        and context.qdrant_service
+        and not hasattr(auditor_context, "qdrant_service")
+    ):
         auditor_context.qdrant_service = context.qdrant_service
 
     auditor = ConstitutionalAuditor(auditor_context)
@@ -75,4 +79,11 @@ async def test_system(core_context: CoreContext, **kwargs) -> ActionResult:
     runs with ``_executor_token == "test.execute"`` (ADR-079 identity
     propagation) rather than the enclosing ``test.system`` token.
     """
+    if core_context.action_executor is None:
+        return ActionResult(
+            action_id="test.system",
+            ok=False,
+            data={"error": "action_executor not initialized"},
+            impact=ActionImpact.WRITE_CODE,
+        )
     return await core_context.action_executor.execute("test.execute")

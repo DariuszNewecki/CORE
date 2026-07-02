@@ -39,5 +39,8 @@ async def vectorize_cmd(
     if dry_run:
         write = False
 
+    if context.action_executor is None:
+        logger.error("action_executor not initialized")
+        raise typer.Exit(1)
     logger.info("🚀 Starting vectorization via constitutional worker pipeline...")
     await context.action_executor.execute("sync.vectors_code", write=write)

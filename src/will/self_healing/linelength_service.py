@@ -65,6 +65,9 @@ async def _async_fix_line_lengths(
 
     executor = ActionExecutor(context)
     cognitive_service = context.cognitive_service
+    if cognitive_service is None:
+        logger.warning("cognitive_service not initialized; skipping line length fixing")
+        return
     # Load PromptModel artifact once
     model = PromptModel.load("line_length_refactorer")
     fixer_client = await cognitive_service.aget_client_for_role(model.manifest.role)

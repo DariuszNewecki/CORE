@@ -437,6 +437,8 @@ No ```json fences. Start your response with {{ and end with }}.
         )
 
         try:
+            if self.context.cognitive_service is None:
+                return None
             model = PromptModel.load("code_generation_task_step_prompt")
             client = await self.context.cognitive_service.aget_client_for_role(
                 model._artifact.manifest.role

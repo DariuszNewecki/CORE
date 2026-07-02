@@ -69,6 +69,8 @@ async def get_coverage_check(context: CoreContext) -> dict:
     PASS / FAIL verdict.
     """
     auditor_ctx = context.auditor_context
+    if auditor_ctx is None:
+        raise RuntimeError("auditor_context not initialized on CoreContext")
     await auditor_ctx.load_knowledge_graph()
     findings, executed_ids, stats = await run_filtered_audit(
         auditor_ctx,

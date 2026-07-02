@@ -118,6 +118,9 @@ async def remediate_cmd(
         raise typer.Exit(code=1)
 
     core_context: CoreContext = ctx.obj
+    if core_context.cognitive_service is None:
+        logger.error("cognitive_service not initialized")
+        raise typer.Exit(1)
     async with get_session() as session:
         await core_context.cognitive_service.initialize(session)
 

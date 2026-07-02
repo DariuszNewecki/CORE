@@ -67,7 +67,7 @@ async def run_tests(
     tests_path = repo_root / "tests"
     pytest_target = str(repo_root / target) if target else str(tests_path)
 
-    timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 300)
+    timeout = (settings.model_extra or {}).get("TEST_RUNNER_TIMEOUT", 300)
 
     try:
         process = await asyncio.create_subprocess_exec(

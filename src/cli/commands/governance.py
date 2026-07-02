@@ -152,6 +152,9 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
             console.print(f"[red]✗[/red] Intent parsing failed: {result.error}")
             raise typer.Exit(1)
         task = result.data.get("task")
+        if task is None:
+            console.print("[red]✗[/red] Intent parsing returned no task")
+            raise typer.Exit(1)
         console.print(f"[green]✓[/green] TaskType: {task.task_type.value}")
         console.print(f"[green]✓[/green] Target: {task.target}")
         console.print(

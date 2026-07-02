@@ -126,6 +126,9 @@ class CoverageWatcher:
     ) -> dict:
         """Senses the current coverage state and reacts to violations."""
         await self._ensure_initialized(context)
+        assert self.gate_check is not None
+        assert self._paths is not None
+        assert self.state is not None
         logger.info("📡 Coverage Watch: Sensing system state via Workflow Gate...")
 
         # In V2.3, verify() returns a list of violation strings. Empty = Pass.
@@ -163,6 +166,8 @@ class CoverageWatcher:
             return {"status": "error", "error": str(e)}
 
     def _is_in_cooldown(self) -> bool:
+        if self.state is None:
+            return False
         last = self.state.get_last_remediation()
         if not last:
             return False

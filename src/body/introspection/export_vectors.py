@@ -82,7 +82,7 @@ async def _async_export(
         for record in all_vectors:
             vector_data = record.vector
             if hasattr(vector_data, "tolist"):
-                vector_data = vector_data.tolist()
+                vector_data = getattr(vector_data, "tolist")()
 
             line_data = {
                 "id": str(record.id),

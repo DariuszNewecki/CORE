@@ -56,7 +56,9 @@ async def refactor_command(
         raise typer.Exit(code=1)
 
     raw_goal = (
-        from_file.read_text(encoding="utf-8").strip() if from_file else goal.strip()
+        from_file.read_text(encoding="utf-8").strip()
+        if from_file
+        else (goal or "").strip()
     )
     goal_content = _format_refactor_goal(raw_goal)
     if goal_content != raw_goal:

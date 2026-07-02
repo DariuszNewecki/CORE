@@ -212,6 +212,14 @@ async def run_sync_audit(
     files = list(files or [])
     filtered = bool(rule_ids or policy_ids or files)
 
+    if context.auditor_context is None:
+        return {
+            "error": "auditor_context not initialized",
+            "passed": False,
+            "findings": [],
+            "stats": {},
+        }
+
     context.auditor_context.db_session = session
     context.auditor_context.force_llm = force_llm
 

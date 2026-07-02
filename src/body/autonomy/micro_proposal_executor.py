@@ -20,6 +20,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -82,7 +83,10 @@ class MicroProposalExecutor:
             logger.warning(
                 "micro_proposal_policy not found in any expected location, using empty policy"
             )
-            self.policy = {"policy_id": "micro_proposal_policy", "rules": []}
+            self.policy: dict[str, Any] = {
+                "policy_id": "micro_proposal_policy",
+                "rules": [],
+            }
         else:
             self.policy = self._load_policy()
 
@@ -91,7 +95,7 @@ class MicroProposalExecutor:
 
         logger.debug("MicroProposalExecutor initialized (repo_root=%s)", self.repo_root)
 
-    def _load_policy(self) -> dict:
+    def _load_policy(self) -> dict[str, Any]:
         """
         Load and validate the micro_proposal_policy.
 
