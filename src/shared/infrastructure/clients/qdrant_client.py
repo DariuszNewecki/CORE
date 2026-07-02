@@ -234,16 +234,17 @@ class QdrantService:
     ) -> list[qm.ScoredPoint]:
         """
         Generic safe search wrapper.
-        The ONLY method allowed to call client.search.
+        The ONLY method allowed to call client.query_points.
         """
         try:
-            return await self.client.search(
+            result = await self.client.query_points(
                 collection_name=collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=limit,
                 query_filter=query_filter,
                 score_threshold=score_threshold,
             )
+            return result.points
         except Exception as e:
             logger.error("Search failed in %s: %s", collection_name, e)
             raise
