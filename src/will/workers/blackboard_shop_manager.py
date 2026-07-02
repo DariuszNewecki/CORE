@@ -62,13 +62,11 @@ ADR-091 D2 Revision B resolution classification:
 
 from __future__ import annotations
 
-import asyncio
-import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -87,7 +85,7 @@ _HEALTH = load_operational_config().health
 
 
 # ID: d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b
-class BlackboardShopManager(Worker):
+class BlackboardShopManager(ScheduledWorker):
     """
     Governance worker. Scans the Blackboard for entries that have
     exceeded their constitutional SLA and posts a finding for each.
@@ -100,51 +98,6 @@ class BlackboardShopManager(Worker):
 
     def __init__(self) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 120)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
-
-    # -------------------------------------------------------------------------
-    # Self-scheduling entry point — called once by Sanctuary
-    # -------------------------------------------------------------------------
-
-    # ID: e5f6a7b8-d9e0-4f1a-2b3c-4d5e6f7a8b9c
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one audit cycle per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-        """
-        logger.info(
-            "BlackboardShopManager: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error(
-                    "BlackboardShopManager: cycle failed: %s", exc, exc_info=True
-                )
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="blackboard_shop_manager.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception(
-                        "BlackboardShopManager: failed to post error report"
-                    )
-
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single audit cycle

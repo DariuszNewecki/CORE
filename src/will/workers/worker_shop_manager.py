@@ -38,18 +38,16 @@ ADR-091 D2 Revision B resolution classification:
 
 from __future__ import annotations
 
-import asyncio
 import re
-import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.workers.base import Worker
 from shared.workers.schedule import (
     WorkerScheduleState,
     load_worker_schedule_state,
 )
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -72,7 +70,7 @@ def _sanitize(value: str) -> str:
 
 
 # ID: c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a
-class WorkerShopManager(Worker):
+class WorkerShopManager(ScheduledWorker):
     """
     Governance worker. Reads worker_registry, computes per-worker liveness
     thresholds from .intent/ declarations, and posts a finding for each
@@ -86,11 +84,6 @@ class WorkerShopManager(Worker):
 
     def __init__(self) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 120)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * _CFG.glide_off_multiplier), 10)
-        )
         # Per-worker schedule state loaded once per cycle from .intent/workers/.
         # Sourced via the shared loader (ADR-041 D4) so the dashboard and
         # health_log_service apply the same per-worker thresholds and the same
@@ -100,43 +93,6 @@ class WorkerShopManager(Worker):
             active_uuids=frozenset(),
             fallback_sec=_CFG.fallback_threshold_sec,
         )
-
-    # -------------------------------------------------------------------------
-    # Self-scheduling entry point — called once by Sanctuary
-    # -------------------------------------------------------------------------
-
-    # ID: d4f5a6b7-c8d9-4e0f-1a2b-3c4d5e6f7a8b
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one audit cycle per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-        """
-        logger.info(
-            "WorkerShopManager: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("WorkerShopManager: cycle failed: %s", exc, exc_info=True)
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="worker_shop_manager.cycle_error",
-                        payload={"error": _sanitize(str(exc))},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception("WorkerShopManager: failed to post error report")
-
-            elapsed = time.monotonic() - cycle_start
-            # Cycle-cap arithmetic per ADR-103: next cycle starts at max(elapsed, max_interval).
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single audit cycle

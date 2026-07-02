@@ -15,21 +15,19 @@ survives daemon restarts without false-drift alerts.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import time
 from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
 
 
 # ID: f837f009-1f3c-4c9c-a5a8-411f29fa9b6a
-class PromptDriftSensor(Worker):
+class PromptDriftSensor(ScheduledWorker):
     """
     Sensing worker. Detects drift in governed prompt artifacts (ADR-134 D6).
 
@@ -45,26 +43,7 @@ class PromptDriftSensor(Worker):
 
     def __init__(self, core_context: Any = None) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 900)
         self._core_context = core_context
-
-    # ID: 91c5734d-fa9c-415c-9a3d-97d25077913e
-    async def run_loop(self) -> None:
-        """Continuous self-scheduling loop. Sanctuary calls this once on bootstrap."""
-        logger.info(
-            "PromptDriftSensor: starting loop (max_interval=%ds)", self._max_interval
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("PromptDriftSensor: cycle failed: %s", exc, exc_info=True)
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: 9a53bb07-a3f4-4611-878f-c527f338f8ec
     async def run(self) -> None:

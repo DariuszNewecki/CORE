@@ -28,9 +28,7 @@ Posts findings to Blackboard. No LLM. No direct file writes.
 
 from __future__ import annotations
 
-import asyncio
 import re
-import time
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +38,7 @@ from shared.infrastructure.intent.test_coverage_paths import (
     uncovered_source_files,
 )
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -57,7 +55,7 @@ _FAILURE_REAUDIT_PREFIX = "python::test.runner.failure"
 
 
 # ID: 3a7c9e1b-d4f2-4680-b8a5-6e0f2c3d5a19
-class TestRunnerSensor(Worker):
+class TestRunnerSensor(ScheduledWorker):
     """
     Sensing worker. Consumes `python::test.coverage` blackboard findings,
     runs pytest on existing test files, and posts
@@ -71,11 +69,6 @@ class TestRunnerSensor(Worker):
 
     def __init__(self, core_context: Any = None) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 300)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
 
         # ADR-091 D1: artifact_type + rule_namespace required on class:sensing.
         # The two sub_namespaces emitted (`test.runner.missing` and
@@ -89,42 +82,6 @@ class TestRunnerSensor(Worker):
 
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         self._core_context = core_context
-
-    # -------------------------------------------------------------------------
-    # Self-scheduling entry point — called once by Sanctuary
-    # -------------------------------------------------------------------------
-
-    # ID: 5b8d0f2a-e6c3-4791-a9d7-7f1a3e4c6b82
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one sensing cycle per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-        """
-        logger.info(
-            "TestRunnerSensor: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("TestRunnerSensor: cycle failed: %s", exc, exc_info=True)
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="test_runner_sensor.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception("TestRunnerSensor: failed to post error report")
-
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single sensing cycle

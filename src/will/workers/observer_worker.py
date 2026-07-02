@@ -23,13 +23,11 @@ system_health_log. No LLM. No file writes. No direct worker communication.
 
 from __future__ import annotations
 
-import asyncio
-import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -42,7 +40,7 @@ _CFG = load_operational_config().workers.observer
 
 
 # ID: a7f3c2e1-b4d5-4e6f-8a9b-0c1d2e3f4a5b
-class ObserverWorker(Worker):
+class ObserverWorker(ScheduledWorker):
     """
     Sensing worker. Reads system state from the DB and posts a structured
     situation report to the Blackboard and core.system_health_log.
@@ -54,51 +52,6 @@ class ObserverWorker(Worker):
 
     def __init__(self) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 300)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
-
-    # -------------------------------------------------------------------------
-    # Self-scheduling entry point — called once by Sanctuary
-    # -------------------------------------------------------------------------
-
-    # ID: b8c4d3e2-a5f6-4e7f-9b0c-1d2e3f4a5b6c
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one observation cycle per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-
-        Never raises — exceptions are caught, logged, and posted to the
-        Blackboard. The loop continues regardless of individual cycle failures.
-        """
-        logger.info(
-            "ObserverWorker: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("ObserverWorker: cycle failed: %s", exc, exc_info=True)
-                # Post error to Blackboard so Orchestrator can see it
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="observer.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception("ObserverWorker: failed to post error report")
-
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single observation cycle

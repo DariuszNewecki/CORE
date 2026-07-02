@@ -4,14 +4,12 @@
 
 from __future__ import annotations
 
-import asyncio
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -20,7 +18,7 @@ from .helpers import _chunk_file, _embed_and_upsert
 
 
 # ID: 1f09a2d8-0307-4172-b1b0-e3f14a918e00
-class RepoEmbedderWorker(Worker):
+class RepoEmbedderWorker(ScheduledWorker):
     """
     Sensing worker. Consumes unembedded repo_artifacts and upserts
     semantic chunks into the appropriate Qdrant collections.
@@ -35,55 +33,14 @@ class RepoEmbedderWorker(Worker):
         self._cognitive_service = cognitive_service
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 43200)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
         self._batch_size: int = schedule.get("batch_size", 10)
 
-    # ID: c4d5e6f7-a8b9-0c1d-3456-789012abcdef
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one embedding pass per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-
-        In daemon context, self-initializes CognitiveService since no
-        CLI runner is present to inject it.
-
-        Never raises — exceptions are caught, logged, and posted to Blackboard.
-        """
+    async def _before_loop(self) -> None:
+        """Lazy-load CognitiveService if not injected (daemon context)."""
         from body.services.service_registry import service_registry
 
-        logger.info(
-            "RepoEmbedderWorker: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-
-        # Self-initialize CognitiveService if not injected (daemon context)
         if self._cognitive_service is None:
             self._cognitive_service = await service_registry.get_cognitive_service()
-
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("RepoEmbedderWorker: cycle failed: %s", exc, exc_info=True)
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="repo_embedder.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception("RepoEmbedderWorker: failed to post error report")
-
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: b3c4d5e6-f7a8-9b0c-2345-678901abcdef
     async def run(self) -> None:

@@ -12,21 +12,19 @@ Constitutional grounding:
 
 from __future__ import annotations
 
-import asyncio
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
 
 
 # ID: 130f77a0-7c07-4dae-994e-c769e7f48fbe
-class GovernanceEmbedderWorker(Worker):
+class GovernanceEmbedderWorker(ScheduledWorker):
     """Sensing worker that incrementally embeds governance normative claims.
 
     Per ADR-073 D4:
@@ -47,49 +45,14 @@ class GovernanceEmbedderWorker(Worker):
         self._cognitive_service = cognitive_service
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 600)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
         self._batch_size: int = schedule.get("batch_size", 50)
 
-    # ID: 98701894-cf93-4a02-ad9f-7185e4b0c159
-    async def run_loop(self) -> None:
-        """Continuous self-scheduling loop. Never raises."""
+    async def _before_loop(self) -> None:
+        """Lazy-load CognitiveService if not injected (daemon context)."""
         from body.services.service_registry import service_registry
-
-        logger.info(
-            "GovernanceEmbedderWorker: starting loop (max_interval=%ds, batch=%d)",
-            self._max_interval,
-            self._batch_size,
-        )
 
         if self._cognitive_service is None:
             self._cognitive_service = await service_registry.get_cognitive_service()
-
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error(
-                    "GovernanceEmbedderWorker: cycle failed: %s", exc, exc_info=True
-                )
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="governance.embed.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception(
-                        "GovernanceEmbedderWorker: failed to post error report"
-                    )
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: 4c7e0f2a-786d-4423-97d5-060b7e67eee7
     async def run(self) -> None:

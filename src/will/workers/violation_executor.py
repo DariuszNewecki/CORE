@@ -532,7 +532,7 @@ class ViolationExecutorWorker(Worker):
         JSONB row.
         """
         try:
-            await self._post_entry(
+            await self._blackboard._post_entry(
                 entry_type="finding",
                 subject=_BLAST_BOUND_SUBJECT,
                 payload={

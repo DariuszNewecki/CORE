@@ -30,8 +30,6 @@ Posts findings to Blackboard. No LLM. No file writes.
 
 from __future__ import annotations
 
-import asyncio
-import time
 from pathlib import Path
 from typing import Any
 
@@ -40,14 +38,14 @@ from shared.infrastructure.intent.test_coverage_paths import (
     uncovered_source_files,
 )
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
 
 
 # ID: f7e8d9c0-b1a2-4345-8901-234567890abc
-class TestCoverageSensor(Worker):
+class TestCoverageSensor(ScheduledWorker):
     """
     Sensing worker. Scans the declared source root for Python source files
     with no corresponding test file, and posts a `python::test.coverage`
@@ -61,11 +59,6 @@ class TestCoverageSensor(Worker):
 
     def __init__(self, core_context: Any = None) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 600)
-        self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * 0.10), 10)
-        )
 
         # ADR-091 D1: artifact_type and rule_namespace are required on every
         # class:sensing worker. D5 Phase 5 routes subject construction through
@@ -79,28 +72,6 @@ class TestCoverageSensor(Worker):
 
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         self._core_context = core_context
-
-    # ID: a2b3c4d5-e6f7-4890-9012-345678901bcd
-    async def run_loop(self) -> None:
-        """
-        Continuous self-scheduling loop. Runs one sensing cycle per
-        max_interval seconds. Sanctuary calls this once on bootstrap.
-        """
-        logger.info(
-            "TestCoverageSensor: starting loop (max_interval=%ds, glide_off=%ds)",
-            self._max_interval,
-            self._glide_off,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error("TestCoverageSensor: cycle failed: %s", exc, exc_info=True)
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: b3c4d5e6-f7a8-4901-0123-456789012cde
     async def run(self) -> None:

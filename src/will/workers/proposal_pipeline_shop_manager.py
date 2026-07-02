@@ -49,13 +49,11 @@ stuck_executing termination contract:
 
 from __future__ import annotations
 
-import asyncio
-import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.workers.base import Worker
+from shared.workers.scheduled_worker import ScheduledWorker
 
 
 logger = getLogger(__name__)
@@ -68,7 +66,7 @@ _CFG = load_operational_config().workers.proposal_pipeline_shop
 
 
 # ID: fc948532-8f3a-40d2-991e-a7156a22bb91
-class ProposalPipelineShopManager(Worker):
+class ProposalPipelineShopManager(ScheduledWorker):
     """
     Pipeline health worker: detect pathologies and terminate stuck-executing
     proposals so the remediation-attempt counter accumulates correctly.
@@ -83,42 +81,6 @@ class ProposalPipelineShopManager(Worker):
 
     def __init__(self) -> None:
         super().__init__()
-        schedule = self._declaration.get("mandate", {}).get("schedule", {})
-        self._max_interval: int = schedule.get("max_interval", 300)
-
-    # ID: 4312be9a-df25-4fc2-b19e-2cc8eb413d26
-    async def run_loop(self) -> None:
-        """Continuous self-scheduling loop. Started once by the daemon."""
-        logger.info(
-            "ProposalPipelineShopManager: starting loop (max_interval=%ds)",
-            self._max_interval,
-        )
-        await self._register()
-
-        while True:
-            cycle_start = time.monotonic()
-            try:
-                await self.run()
-            except Exception as exc:
-                logger.error(
-                    "ProposalPipelineShopManager: cycle failed: %s",
-                    exc,
-                    exc_info=True,
-                )
-                try:
-                    await self._post_entry(
-                        entry_type="report",
-                        subject="proposal_pipeline_shop_manager.cycle_error",
-                        payload={"error": str(exc)},
-                        status="abandoned",
-                    )
-                except Exception:
-                    logger.exception(
-                        "ProposalPipelineShopManager: failed to post error report"
-                    )
-
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: 451a310d-f5eb-48c7-8c23-eea73eb44485
     async def run(self) -> None:
