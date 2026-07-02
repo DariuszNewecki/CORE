@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (134 decisions),
+  .specs/      — human-authored reasoning: ADRs (through ADR-134),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -59,13 +59,17 @@ Key architectural patterns to know before reading the code:
                       is a constitutional violation in production code
   • IntentRepository — the only authorised reader of .intent/; raw Path reads
                        are a constitutional violation
+  • Prompt governance — AI prompts are governed artifacts (ADR-134): governed
+                        prompts must declare an adr_anchor in model.yaml and
+                        appear in .intent/enforcement/config/governed_prompts.yaml;
+                        content changes surface as prompt.drift_detected findings
 
 ────────────────────────────────────────────────────────────────────────────
 WHAT TO READ FIRST (in this order)
 ────────────────────────────────────────────────────────────────────────────
 1. CLAUDE.md              — the development contract; defines rules, patterns,
                             and what Claude Code (the AI pair) is allowed to do
-2. .specs/decisions/      — the 10 most recent ADRs (ADR-124 through ADR-133)
+2. .specs/decisions/      — the 10 most recent ADRs (ADR-125 through ADR-134)
 3. .intent/rules/architecture/   — the constitutional ruleset (JSON)
 4. src/shared/            — the substrate all layers depend on
 5. src/body/atomic/       — atomic actions (mutation surface)
@@ -116,9 +120,13 @@ STANDING QUESTIONS — answer all of these
     on the line immediately before its definition? Private symbols (_name)
     are exempt.
 
+2f. Do the governed prompts under var/prompts/ carry the adr_anchor
+    declarations required by ADR-134, and does governed_prompts.yaml cover
+    every prompt whose output feeds an @atomic_action?
+
 ## 3. ADR alignment
 
-3a. Look at the 10 most recent ADRs (ADR-124 through ADR-133). For each,
+3a. Look at the 10 most recent ADRs (ADR-125 through ADR-134). For each,
     is the implementation decision visible and faithful in src/? Name any
     where the code and the ADR have drifted.
 
@@ -235,15 +243,21 @@ THIS SESSION'S DEEP-DIVE FOCUS
 In addition to the standing questions, spend extra depth on:
 
   [FOCUS AREA — replace before sending, e.g.:
-   "the Will layer's autonomous test generation loop (TestCoverageSensor /
-    TestRemediatorWorker / ProposalConsumerWorker) — how safe and correct
-    is the proposal lifecycle?"
+   "the Will layer's autonomous test generation loop — post-ADR-133, the
+    symbol-granular path (TestGapEvaluator / build.test_for_symbol /
+    flow.build_test_for_symbol) — is the per-symbol proposal lifecycle
+    safe and correct, and is the retained file-level flow.build_tests
+    path properly demoted?"
    or
    "the audit engine dispatch chain — is the pipeline trustworthy, or are
     there silent-failure modes that would let a violation slip through?"
    or
    "the API authentication surface introduced in ADR-132 — is the boundary
-    complete, or are there routes that escape the governor check?"]
+    complete, or are there routes that escape the governor check?"
+   or
+   "the prompt governance surface introduced in ADR-134 — is the
+    adr_anchor / governed_prompts.yaml / PromptDriftSensor chain complete,
+    or can a governed prompt's content still drift silently?"]
 
 ────────────────────────────────────────────────────────────────────────────
 OUTPUT FORMAT

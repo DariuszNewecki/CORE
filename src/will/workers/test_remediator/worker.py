@@ -123,10 +123,11 @@ class TestRemediatorWorker(Worker):
 
             repo_root = resolve_default_repo_path()
 
+        await self.post_heartbeat()
+
         open_findings = await _load_open_findings(self._worker_uuid)
 
         if not open_findings:
-            await self.post_heartbeat()
             logger.info("TestRemediatorWorker: no open test findings")
             return
 

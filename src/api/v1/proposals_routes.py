@@ -153,6 +153,7 @@ async def create_proposal(
 @router.get(
     "",
     summary="List proposals",
+    dependencies=[require_governor],
     description=(
         "List proposals, optionally filtered by `status`. When `status` is "
         "omitted, returns proposals awaiting approval. `limit` is capped at 500. "
@@ -211,6 +212,7 @@ async def list_proposals(
     "/{proposal_id}",
     response_model=ProposalResponse,
     summary="Fetch a single proposal",
+    dependencies=[require_governor],
     description=(
         "Return a proposal by `proposal_id`. Returns 404 if no proposal "
         "exists with that id."
