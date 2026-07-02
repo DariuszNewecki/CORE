@@ -13,6 +13,10 @@ governed_prompts:
     anchors: ["ADR-133:D6"]
     rationale: Symbol-scoped test generation; single-function output contract enforced by ADR-133 D6.
 
+  - name: context_aware_test_gen_repair
+    anchors: ["ADR-135:D3"]
+    rationale: Repair-iteration companion to context_aware_test_gen. Produces corrected test source written via build.test_for_symbol iterative mode (ADR-135 D3). Content drift silently degrades repair quality under the same governance envelope as the primary generation prompt.
+
   - name: assumption_extractor
     anchors: ["ADR-003:D2"]
     rationale: Constitutional assumption synthesis — extracts operational guidance from .intent/ for context building.
