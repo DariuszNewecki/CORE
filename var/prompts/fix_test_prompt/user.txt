@@ -1,8 +1,0 @@
-Test Name: {test_name}
-
-Failure Type: {failure_type}
-
-Current Test Code:
-{test_code}
-
-Generate the corrected test code:

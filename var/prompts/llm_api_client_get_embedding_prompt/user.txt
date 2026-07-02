@@ -1,7 +1,0 @@
-Format an embedding request with the following details:
-
-Original prompt: {prompt}
-User ID: {user_id}
-Task type: {task_type}
-
-Generate the formatted prompt for embedding.

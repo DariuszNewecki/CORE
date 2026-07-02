@@ -1,6 +1,0 @@
-GOAL: {goal}
-
-CURRENT CONTEXT:
-{current_context}
-
-Respond in strict JSON format only.

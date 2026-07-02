@@ -1,8 +1,0 @@
-File: {file_rel}
-
-Vulture Finding: {msg}
-
-Source Code:
-{source}
-
-Remove the dead code identified above and return the corrected Python code.

@@ -1,3 +1,0 @@
-Extract policy guidance relevant to: {aspect}
-
-Analyze the governance policy and return the guidance, exact citation, and confidence rating.

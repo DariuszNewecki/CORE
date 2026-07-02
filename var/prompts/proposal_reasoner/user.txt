@@ -1,6 +1,0 @@
-Evaluate the following violation group and determine if it is autonomously actionable.
-
-Violation group:
-{violations}
-
-Respond with a single JSON object following the schema in your instructions.

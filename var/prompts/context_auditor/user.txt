@@ -1,7 +1,0 @@
-TASK: Audit the Context Dossier for missing logic.
-GOAL: {goal}
-
-CURRENT DOSSIER CONTENT:
-{dossier_summary}
-
-Respond in strict JSON format only.
