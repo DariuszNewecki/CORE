@@ -475,7 +475,7 @@ class CoherenceService(SessionAttachedService):
             ),
             {"old": old_run_id, "note": note},
         )
-        dismissed_count = int(dismiss.rowcount or 0)
+        dismissed_count = int(getattr(dismiss, "rowcount", 0) or 0)
 
         await session.execute(
             text(

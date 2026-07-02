@@ -141,6 +141,8 @@ class PromptModel:
         # Constitutional rules for the 'body' layer are automatically injected.
     """
 
+    _artifact: PromptModelArtifact
+
     @classmethod
     # ID: d24a1c7f-2165-4fb4-8a7f-181c0a2743f3
     def load(cls, name: str, prompts_root: Path | None = None) -> PromptModel:

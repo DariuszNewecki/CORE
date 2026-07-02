@@ -9,12 +9,12 @@ from __future__ import annotations
 from .blackboard_claim_service import BlackboardClaimService
 from .blackboard_proposal_service import BlackboardProposalService
 from .blackboard_query_service import BlackboardQueryService
-from .blackboard_service import BlackboardService
+from .blackboard_service import BlackboardService as _BlackboardServiceBase
 
 
 # ID: 88382dd0-e47a-4538-88b7-40c050a649f8
 class BlackboardService(
-    BlackboardService,
+    _BlackboardServiceBase,
     BlackboardProposalService,
     BlackboardQueryService,
     BlackboardClaimService,

@@ -175,7 +175,7 @@ class SecretsService:
         )
         result = await db.execute(query, {"key": key})
         await db.commit()
-        if result.rowcount == 0:
+        if getattr(result, "rowcount", 0) == 0:
             raise SecretNotFoundError(key)
         logger.info("Secret '%s' deleted", key)
 

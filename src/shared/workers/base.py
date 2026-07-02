@@ -312,7 +312,7 @@ class Worker(ABC):
                     ),
                     {"worker_uuid": self._worker_uuid},
                 )
-                released = result.rowcount
+                released = getattr(result, "rowcount", 0)
 
         if released:
             logger.info(

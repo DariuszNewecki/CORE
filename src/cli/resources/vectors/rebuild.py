@@ -120,7 +120,7 @@ async def rebuild_collection(
         )
         await session.commit()
     console.print(
-        f"[green]Reset[/green] chunk_count=0 on {result.rowcount} artifact(s)."
+        f"[green]Reset[/green] chunk_count=0 on {getattr(result, 'rowcount', 0)} artifact(s)."
     )
     console.print(
         "[dim]RepoEmbedderWorker will recreate the collection and repopulate "

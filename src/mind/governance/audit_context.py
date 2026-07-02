@@ -259,6 +259,11 @@ class AuditorContext:
         self.force_llm: bool = False
         self._llm_gate_cache_swept: bool = False
 
+        # Dynamic attrs injected by callers before specific audit paths.
+        # Declared here so mypy sees them; None is the correct default.
+        self.db_session: Any = None
+        self.qdrant_service: Any = None
+
     @property
     # ID: 2e3a5e67-17c7-4c86-8ad5-8a5bfe1b2b14
     def intent_root(self) -> Path:

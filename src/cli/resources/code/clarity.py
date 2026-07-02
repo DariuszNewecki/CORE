@@ -43,9 +43,9 @@ async def clarity_cmd(
     This command uses a Cognitive Workflow (Analyze -> Strategize -> Refactor -> Evaluate).
     It will only apply changes if the Evaluator proves the code is more readable.
     """
-    from will.self_healing.clarity_service import remediate_clarity
+    from will.self_healing.clarity_service import remediate_clarity_v2
 
     core_context: CoreContext = ctx.obj
 
     # Execute the V2 Cognitive Workflow (Will Layer)
-    await remediate_clarity(context=core_context, file_path=file_path, write=write)
+    await remediate_clarity_v2(context=core_context, file_path=file_path, write=write)

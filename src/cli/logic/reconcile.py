@@ -115,8 +115,9 @@ async def _async_reconcile() -> None:
         async with session.begin():
             for u in updates:
                 res = await session.execute(update_stmt, u)
-                if res.rowcount and res.rowcount > 0:
-                    linked_count += int(res.rowcount)
+                _rc = int(getattr(res, "rowcount", 0) or 0)
+                if _rc > 0:
+                    linked_count += _rc
 
     logger.info("Successfully linked %s capability mappings.", linked_count)
 

@@ -186,7 +186,7 @@ class FileProvider:
         if scope_key == "demos":
             return self._paths.repo_root / "demos"
         if scope_key == "work":
-            return self._paths.work_dir
+            return self._paths.repo_root / "work"
 
         # Runtime (var/*) via PathResolver canonical layout
         if scope_key == "var":

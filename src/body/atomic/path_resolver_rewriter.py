@@ -189,11 +189,11 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
         # Form 0 — leaf target: runtime directory name as a standalone Constant operand.
         if _is_target_constant(node.right):
             target, other = node.right, node.left
-            prop_name = _PATH_RESOLVER_PROPS[target.value]
+            prop_name = _PATH_RESOLVER_PROPS[getattr(target, "value")]
             remainder = ""
         elif _is_target_constant(node.left):
             target, other = node.left, node.right
-            prop_name = _PATH_RESOLVER_PROPS[target.value]
+            prop_name = _PATH_RESOLVER_PROPS[getattr(target, "value")]
             remainder = ""
         else:
             # Form 1 — embedded target: runtime directory name as the prefix of

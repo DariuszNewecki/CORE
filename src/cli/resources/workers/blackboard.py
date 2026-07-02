@@ -214,7 +214,7 @@ async def workers_blackboard_purge_cmd(
 
         result = await session.execute(delete_query, params)
         await session.commit()
-        deleted = result.rowcount
+        deleted = getattr(result, "rowcount", 0)
 
     console.print(f"\n[bold green]Purged {deleted} blackboard entries.[/bold green]")
 

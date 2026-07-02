@@ -53,14 +53,14 @@ class MemoryRepository:
         decisions_result = await self.session.execute(
             decisions_sql, {"cutoff": cutoff_date}
         )
-        decisions_count = decisions_result.rowcount
+        decisions_count = getattr(decisions_result, "rowcount", 0)
 
         # Delete episodes
         episodes_sql = text("DELETE FROM agent_episodes WHERE created_at < :cutoff")
         episodes_result = await self.session.execute(
             episodes_sql, {"cutoff": cutoff_date}
         )
-        episodes_count = episodes_result.rowcount
+        episodes_count = getattr(episodes_result, "rowcount", 0)
 
         logger.info(
             "Deleted %d episodes and %d decisions (not yet committed)",
@@ -99,7 +99,7 @@ class MemoryRepository:
             },
         )
 
-        count = result.rowcount
+        count = getattr(result, "rowcount", 0)
         logger.info("Deleted %d reflections (not yet committed)", count)
         return count
 

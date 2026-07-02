@@ -42,14 +42,11 @@ async def complexity_cmd(
 
     Targets high cyclomatic complexity and 'God Methods' to improve modularity.
     """
-    # CONSTITUTIONAL FIX: V2.3 Roadmap-Compliant complexity remediation logic
-    from will.self_healing.complexity_service import remediate_complexity
+    from will.self_healing.complexity_service import ComplexityService
 
     core_context: CoreContext = ctx.obj
 
-    # This uses the high-resilience loop similar to 'code clarity'
-    await remediate_complexity(
-        context=core_context,
+    await ComplexityService(context=core_context).remediate(
         file_path=file_path,
         write=write,
     )
