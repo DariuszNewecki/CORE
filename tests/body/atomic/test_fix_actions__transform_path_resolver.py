@@ -9,7 +9,7 @@ so the assertions are about textual rewrites — exactly what the action emits.
 
 from __future__ import annotations
 
-from body.atomic.fix_actions import _transform_path_resolver
+from body.atomic.path_resolver_rewriter import _transform_path_resolver
 
 
 def _wrap(expr: str) -> str:
