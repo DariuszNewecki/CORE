@@ -977,9 +977,9 @@ class ArtifactGateEngine(BaseEngine):
         Seven repo-level check_types (vocabulary projection/canonical_format/
         authoritative_paths + governance all_rules_mapped/namespace_has_drainer/
         namespace_manifest_completeness/fs_operations_completeness) dispatch
-        context-level. The three PromptModel check_types (required_fields,
-        no_provider_leak, role_abstraction) dispatch per-file over
-        var/prompts/**/model.yaml.
+        context-level. The four PromptModel check_types (required_fields,
+        no_provider_leak, role_abstraction, governed_prompt_has_anchor) dispatch
+        per-file over var/prompts/**/model.yaml.
         """
         if check_type is None:
             return False
@@ -995,9 +995,10 @@ class ArtifactGateEngine(BaseEngine):
 
         Dispatches to a specific check based on params['check_type'].
         Supported check types:
-          - required_fields       — structural completeness
-          - no_provider_leak      — preference field abstraction boundary
-          - role_abstraction      — role field must be a cognitive role
+          - required_fields            — structural completeness
+          - no_provider_leak           — preference field abstraction boundary
+          - role_abstraction           — role field must be a cognitive role
+          - governed_prompt_has_anchor — adr_anchor required for governed prompts
 
         Args:
             file_path: Absolute path to the model.yaml being audited.
@@ -1044,6 +1045,8 @@ class ArtifactGateEngine(BaseEngine):
             return self._check_no_provider_leak(file_path, raw)
         if check_type == "role_abstraction":
             return self._check_role_abstraction(file_path, raw)
+        if check_type == "governed_prompt_has_anchor":
+            return self._check_governed_prompt_has_anchor(file_path, raw)
 
         return EngineResult(
             ok=False,
@@ -1135,6 +1138,74 @@ class ArtifactGateEngine(BaseEngine):
                 )
 
         return self._result(file_path, violations, "role_abstraction")
+
+    # ID: 11034afd-fa76-439d-bdd4-04522161cda4
+    def _check_governed_prompt_has_anchor(
+        self, file_path: Path, manifest: dict[str, Any]
+    ) -> EngineResult:
+        """
+        Verify that a prompt listed in governed_prompts.yaml declares a
+        non-empty adr_anchor in its model.yaml (ADR-134 D1/D2).
+
+        Prompts not listed in governed_prompts.yaml are silently passed —
+        adr_anchor is optional for ungoverned prompts. The check resolves
+        the governed list by walking parent dirs to the repo root, so it
+        works from any absolute path inside the repo.
+        """
+        prompt_name = file_path.parent.name
+        repo_root = _find_repo_root(file_path)
+        if repo_root is None:
+            return EngineResult(
+                ok=False,
+                message="artifact_gate[governed_prompt_has_anchor]: repo root not found.",
+                violations=[
+                    f"Cannot locate repo root from {file_path}; "
+                    "check that both .intent/ and .specs/ are present."
+                ],
+                engine_id=self.engine_id,
+            )
+
+        governed_config = (
+            repo_root / ".intent" / "enforcement" / "config" / "governed_prompts.yaml"
+        )
+        if not governed_config.exists():
+            return EngineResult(
+                ok=False,
+                message="artifact_gate[governed_prompt_has_anchor]: governed_prompts.yaml missing.",
+                violations=[f"Missing config: {governed_config}"],
+                engine_id=self.engine_id,
+            )
+
+        try:
+            governed_data = (
+                yaml.safe_load(governed_config.read_text(encoding="utf-8")) or {}
+            )
+        except Exception as exc:
+            return EngineResult(
+                ok=False,
+                message="artifact_gate[governed_prompt_has_anchor]: parse error.",
+                violations=[f"governed_prompts.yaml parse error: {exc}"],
+                engine_id=self.engine_id,
+            )
+
+        governed_names: set[str] = {
+            entry.get("name", "")
+            for entry in governed_data.get("governed_prompts", [])
+            if entry.get("name")
+        }
+
+        if prompt_name not in governed_names:
+            return self._result(file_path, [], "governed_prompt_has_anchor")
+
+        violations: list[str] = []
+        if not manifest.get("adr_anchor"):
+            violations.append(
+                f"governed prompt '{prompt_name}' is missing 'adr_anchor' in model.yaml. "
+                "Add the ADR clause that grounds this prompt's governance contract. "
+                "[ai.prompt.governed_prompt_must_have_anchor]"
+            )
+
+        return self._result(file_path, violations, "governed_prompt_has_anchor")
 
     # -------------------------------------------------------------------------
     # Helpers

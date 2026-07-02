@@ -39,3 +39,16 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**/model.yaml"
+
+  # RULE: ai.prompt.governed_prompt_must_have_anchor
+  # Any prompt listed in governed_prompts.yaml MUST declare a non-empty
+  # adr_anchor field in its model.yaml. Prompts NOT listed in
+  # governed_prompts.yaml are silently skipped (the anchor is optional
+  # for ungoverned prompts).
+  ai.prompt.governed_prompt_must_have_anchor:
+    engine: artifact_gate
+    params:
+      check_type: governed_prompt_has_anchor
+    scope:
+      applies_to:
+        - "var/prompts/**/model.yaml"

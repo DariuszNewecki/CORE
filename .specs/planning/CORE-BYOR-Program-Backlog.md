@@ -130,12 +130,10 @@ Three surfaces updated in `5f15ded7`: `docs/cold-reviewer.md` dead-end replaced 
 callout added; `README.md` Quick Start callout updated. `pip install` users caveated
 until #674 lands (T3).
 
-### T3 — #674: ADR-108 D3 machinery-in-wheel  **[SCOPE CORRECTED — ADR-119 D9]**
-Bundle the **machinery floor only** in the `core-runtime` wheel + loader fallback
-so `pip install` adopters can run `project onboard` (Phase A), not only source-tree
-runs. The rules layer is never bundled — it is per-repo-inducted by `project scout`
-or per-repo-authored; there is no canonical rule set to ship. Unblocks wheel-user
-BYOR Phase A. Tracked: issue #674.
+### T3 — #674: ADR-108 D3 machinery-in-wheel  **[DONE — 2026-06-29]**
+Machinery floor bundled in the `core-runtime` wheel + loader fallback; `pip install`
+adopters can now run `project onboard` (Phase A) without a source-tree clone. Rules
+layer is never bundled per ADR-119 D9. #674 CLOSED 2026-06-29.
 
 ### T4 — `work/`-staging airlock for onboard  **[DONE — 2026-06-21]**
 ADR-123 accepted + implemented. `--stage` flag on `project onboard` redirects writes to
@@ -184,13 +182,13 @@ Auth backend live. Frontend + auth gate shipped. Remaining before external users
 
 ## 3. Sequencing
 
-**As of 2026-06-22:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e (BYOR program) + UAC foundation
-(ADR-124) + SaaS delivery T6a/T6b/T6c/T6d are all shipped.
+**As of 2026-07-02:** T1/T2/T3/T4/T5a/T5b/T5c/T5d/T5e (BYOR program) + UAC foundation
+(ADR-124) + SaaS delivery T6a/T6b/T6c/T6d are all shipped. T3 (#674) closed 2026-06-29.
 
 Remaining operator actions:
 - **T5d procurement** — iso_27001/gamp5/cyfun require a commercial licence before
   `core-admin grc ingest` will run. Engineering done; blocker is procurement.
-- **T6e/T6f** — v2 (Google OAuth, MFA). Separate ADRs; no urgency.
+- **T6e/T6f** — v2 (Google OAuth, MFA). Separate ADRs; no urgency. Unfiled.
 
 The commercial center of gravity is GRC (governor decision 2026-06-17). Code
 self-development runs on a maintenance track. SaaS delivery (T6) is the next engineering

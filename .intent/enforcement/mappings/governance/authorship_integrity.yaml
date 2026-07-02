@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/governance/authorship_integrity.yaml
+# Constitutional enforcement for Commit Authorship Integrity
+# Version: 1.0.0
+# Authority: policy
+#
+# WHAT THIS ENFORCES:
+#   Rules from .intent/rules/governance/commit_authorship_integrity.json
+#
+# THE LAW: Autonomous commits MUST NOT contain bytes outside the declared
+# production set for the originating proposal. Detected by
+# CommitAuthorshipAuditWorker (ADR-129 D5); findings posted directly to
+# the blackboard as governance.commit_authorship_integrity::{proposal_id}.
+#
+# NOTE: passive_gate is correct here — the worker is the detector.
+# This mapping satisfies governance.remediation.all_rules_mapped (ADR-066);
+# static engine-level analysis does not apply to worker-driven runtime rules.
+
+mappings:
+  # RULE: governance.commit_authorship_integrity
+  # Worker-based detection via CommitAuthorshipAuditWorker (ADR-129 D5).
+  # The worker compares actual git diffs against
+  # proposal_consequences.declared_production and posts findings to the
+  # blackboard. passive_gate signals that the audit engine does not
+  # duplicate the worker's runtime check.
+  governance.commit_authorship_integrity:
+    engine: passive_gate
+    params: {}
+    scope:
+      applies_to:
+        - "src/**/*.py"
