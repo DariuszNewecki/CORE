@@ -129,7 +129,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 33 blocking + 27 reporting + 9 advisory = 69.
+the other two surface findings. At digest time: 32 blocking + 27 reporting + 9 advisory = 68.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -171,7 +171,6 @@ digest has drifted — surface it to the governor.
 
 **Async / module-time / paths (`src/**` unless noted)**
 - `async.no_manual_loop_run` — Logic modules MUST NOT call `asyncio.run()` or manually create event loops.
-- `logic.di.no_global_session` (`src/features/** | src/body/services/**`) — MUST NOT import `get_session` globally; database access MUST be injected.
 - `architecture.no_module_async_engine` — Async execution engines MUST NOT be instantiated at module import time.
 - `architecture.path_access.no_hardcoded_runtime_dirs` — Runtime output directory names MUST NOT appear as string literals in path construction; route through `PathResolver` or `FileHandler`.
 

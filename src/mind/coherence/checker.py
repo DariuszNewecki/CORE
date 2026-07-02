@@ -119,6 +119,7 @@ class CoherenceChecker:
         from shared.governance.coherence_harvester import NormativeMarkerRegister
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
+        from .checks.dispatch_parity import DispatchParityCheck
         from .checks.r1_scoped import R1ScopedCheck
         from .checks.row2_grounding import Row2GroundingCheck
         from .checks.row3_citation import Row3CitationCheck
@@ -135,6 +136,7 @@ class CoherenceChecker:
             )
 
         checks: list[CheckClass] = [
+            DispatchParityCheck(self._repo_root),
             Row2GroundingCheck(self._repo_root),
             Row3CitationCheck(self._repo_root, register),
             Row4NamingCheck(self._repo_root),

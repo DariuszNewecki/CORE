@@ -174,6 +174,33 @@ class AuditViolationSensor(Worker):
             rule_count,
         )
 
+        # ADR-137 D1: no-data guard — zero files is a distinct verdict, not a
+        # clean pass. If the artifact glob walk returns an empty universe, post a
+        # no_data report and return. This operationalizes the frozen-flow principle
+        # (health.py:479-484) at the sensor level: the blackboard record is
+        # distinguishable from audit_violation_sensor.run.complete, allowing
+        # dashboard queries and future rules to detect universe-empty cycles.
+        if file_count == 0:
+            await self.post_report(
+                subject="audit_violation_sensor.no_data",
+                payload={
+                    "rule_namespace": self._rule_namespace,
+                    "file_count": 0,
+                    "artifact_type": artifact_type_id,
+                    "message": (
+                        f"No files matched artifact_type '{artifact_type_id}' globs. "
+                        "Universe is empty — verdict is no_data, not clean."
+                    ),
+                },
+            )
+            logger.warning(
+                "AuditViolationSensor[%s]: file universe is empty (artifact_type=%s). "
+                "Posted no_data report.",
+                self._rule_namespace,
+                artifact_type_id,
+            )
+            return
+
         rule_ids = self._resolve_rule_ids()
         if not rule_ids:
             await self.post_report(

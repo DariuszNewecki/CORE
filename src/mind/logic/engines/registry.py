@@ -21,8 +21,11 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-# Metadata-only engines defined in YAML that should be handled silently
-PASSIVE_ALIASES = {
+# Metadata-only engines defined in YAML that should be handled silently.
+# Source of truth: .intent/taxonomies/substrate_enforcement.yaml (ADR-136 D1).
+# This set is the cold-start fallback; EngineRegistry.initialize() replaces it
+# with the taxonomy's entry keys once a path_resolver is available.
+PASSIVE_ALIASES: set[str] = {
     "python_runtime",
     "type_system",
     "runtime_metric",
@@ -71,6 +74,7 @@ class EngineRegistry:
         cls._engine_classes.clear()
         cls._discovered = False
         cls._discover_engines()
+        cls._load_passive_aliases_from_taxonomy()
         logger.debug("EngineRegistry primed with dynamic discovery.")
 
     @classmethod
@@ -96,6 +100,41 @@ class EngineRegistry:
                 logger.warning("Failed to load engine module %s: %s", name, e)
 
         cls._discovered = True
+
+    @classmethod
+    def _load_passive_aliases_from_taxonomy(cls) -> None:
+        """Reload PASSIVE_ALIASES from the substrate-enforcement taxonomy (ADR-136 D4).
+
+        Replaces the module-level constant with the taxonomy's entry keys so the
+        runtime registry and the governance file cannot silently diverge. Failures
+        are non-fatal: the cold-start constant remains in effect.
+        """
+        if cls._path_resolver is None:
+            return
+        import yaml
+
+        global PASSIVE_ALIASES
+        taxonomy_path = (
+            cls._path_resolver.repo_root
+            / ".intent"
+            / "taxonomies"
+            / "substrate_enforcement.yaml"
+        )
+        try:
+            data = yaml.safe_load(taxonomy_path.read_text(encoding="utf-8")) or {}
+            entries = data.get("entries", {})
+            if isinstance(entries, dict) and entries:
+                PASSIVE_ALIASES = set(entries.keys())
+                logger.debug(
+                    "EngineRegistry: loaded %d passive aliases from taxonomy.",
+                    len(PASSIVE_ALIASES),
+                )
+        except Exception as exc:
+            logger.warning(
+                "EngineRegistry: could not load substrate_enforcement.yaml (%s); "
+                "using cold-start PASSIVE_ALIASES fallback.",
+                exc,
+            )
 
     @classmethod
     # ID: 8ef22fc4-2090-41a6-b59c-f6167a0f832c

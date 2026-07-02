@@ -36,6 +36,11 @@ class SpecialistDispatcher:
 
         return PathResolver(repo_root).prompts_dir / f"{safe}.prompt"
 
+    def _make_file_service(self, repo_root: Path):
+        from body.services.file_service import FileService
+
+        return FileService(str(repo_root))
+
     # ID: 3415c10d-1be1-4113-88db-9c3c57443219
     async def trigger_modularizer(self, file_path: str, write: bool) -> bool:
         """Agentic healing for God Objects."""
@@ -62,10 +67,9 @@ class SpecialistDispatcher:
         if not blocks:
             return False
         if write:
+            file_service = self._make_file_service(repo_root)
             for path, content in blocks.items():
-                await asyncio.to_thread(
-                    (repo_root / path).write_text, content, encoding="utf-8"
-                )
+                await asyncio.to_thread(file_service.write, path, content)
                 logger.info("? Modularizer: Created/Updated %s", path)
             return True
         return False
@@ -97,11 +101,8 @@ class SpecialistDispatcher:
         fixed_code = extract_python_code_from_response(response)
 
         if fixed_code and write:
-            await asyncio.to_thread(
-                (repo_root / file_path).write_text,
-                fixed_code,
-                encoding="utf-8",
-            )
+            file_service = self._make_file_service(repo_root)
+            await asyncio.to_thread(file_service.write, file_path, fixed_code)
             logger.info("? Logic Specialist: Repaired imports in %s", file_path)
             return True
         return False
@@ -133,11 +134,8 @@ class SpecialistDispatcher:
         fixed_code = extract_python_code_from_response(response)
 
         if fixed_code and write:
-            await asyncio.to_thread(
-                (repo_root / file_path).write_text,
-                fixed_code,
-                encoding="utf-8",
-            )
+            file_service = self._make_file_service(repo_root)
+            await asyncio.to_thread(file_service.write, file_path, fixed_code)
             return True
         return False
 

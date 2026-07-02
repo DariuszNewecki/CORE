@@ -1,0 +1,74 @@
+# .intent/taxonomies/substrate_enforcement.yaml
+#
+# Substrate-Enforcement Taxonomy
+# Authority: ADR-136 D1
+# Status: active
+#
+# PURPOSE:
+#   Declares which governance engine names delegate enforcement to a runtime
+#   substrate (MyPy, Pydantic, Python runtime) rather than to a CORE audit-time
+#   engine. Entries in this taxonomy are resolved to passive_gate by
+#   EngineRegistry.get() — they structurally cannot fail at audit time because
+#   enforcement happens outside CORE's scan.
+#
+#   Every passive-routed enforcement mapping MUST reference an entry from this
+#   taxonomy. The taxonomy is the governance source of truth; the Python constant
+#   PASSIVE_ALIASES in registry.py is a cache populated from this file at
+#   EngineRegistry.initialize() time.
+#
+# ADDING AN ENTRY:
+#   Requires a companion closure-ADR stating (a) which substrate surface enforces
+#   the rule and (b) how the enforcement claim has been verified. Substrate
+#   enforcement is not a catch-all for "we don't have a check yet."
+
+version: "1.0.0"
+status: active
+title: CORE Substrate-Enforcement Taxonomy
+
+entries:
+  python_runtime:
+    description: >
+      Enforcement delegated to the Python runtime. Violations produce
+      AttributeError, TypeError, or similar runtime exceptions — not
+      audit-time findings.
+    enforcement_surface: python_runtime
+    closure_adr: ADR-136
+
+  type_system:
+    description: >
+      Enforcement delegated to static type checking (MyPy). Rules in this
+      class assert type-annotation constraints that MyPy catches at
+      type-check time; CORE's ast_gate would duplicate that work.
+    enforcement_surface: mypy
+    closure_adr: ADR-136
+
+  runtime_metric:
+    description: >
+      Behavioral metrics observable only at runtime (latency, throughput,
+      error rates). No audit-time check is possible; monitoring surfaces
+      these via the blackboard telemetry pipeline.
+    enforcement_surface: runtime_monitoring
+    closure_adr: ADR-136
+
+  advisory:
+    description: >
+      Rules requiring human judgment that cannot be operationalized as a
+      deterministic check. Findings are surfaced to the governor inbox via
+      the DELEGATE path in auto_remediation.yaml.
+    enforcement_surface: human_review
+    closure_adr: ADR-136
+
+  runtime_check:
+    description: >
+      Invariants enforced by base-class contracts at Python instantiation or
+      method-call time (e.g., Worker.start() silence check, ActionResult
+      validation). CORE's audit-time check would be redundant.
+    enforcement_surface: python_runtime
+    closure_adr: ADR-136
+
+  dataclass_validation:
+    description: >
+      Field-level validation enforced by Pydantic or Python dataclass
+      post-init. Violations raise ValidationError at construction time.
+    enforcement_surface: pydantic_runtime
+    closure_adr: ADR-136

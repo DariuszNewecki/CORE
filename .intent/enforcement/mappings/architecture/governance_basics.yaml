@@ -155,6 +155,15 @@
           - "os.spawnv"
           - "os.spawnvp"
           - "os.fork"
+          # Added 2026-07-02: asyncio async-subprocess family — functionally
+          # equivalent to subprocess.Popen but escapes the original forbidden
+          # list because the call site uses asyncio.create_subprocess_exec /
+          # create_subprocess_shell rather than subprocess.*. Three Will-layer
+          # sites caught by this widening; two are sanctioned below, one
+          # (proposal_execution_pipeline.py) requires proper delegation to
+          # GitService and has no exclude.
+          - "asyncio.create_subprocess_exec"
+          - "asyncio.create_subprocess_shell"
       scope:
         applies_to:
           - "src/**/*.py"
@@ -183,6 +192,8 @@
           - "src/cli/commands/check/quality_gates.py"
           - "src/cli/commands/coverage/services/coverage_rep*"
           - "src/body/self_healing/test_context/metrics.py"
+          - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation — same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
+          - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess — same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
 
           # --- BOOTSTRAP & LIFECYCLE ---
           - "src/body/atomic/check_actions.py"

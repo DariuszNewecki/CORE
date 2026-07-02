@@ -10,7 +10,7 @@ status: accepted
 # ADR-135 — Dual-Mode Generation: Single-Shot and Iterative Execution Primitives
 
 **Date:** 2026-07-01
-**Status:** Draft
+**Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-01)
 **Band:** C — Autonomy Loop
