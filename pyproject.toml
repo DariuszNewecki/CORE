@@ -291,7 +291,6 @@ ignore_missing_imports = true
 branch = true
 source = ["src"]
 relative_files = true
-parallel = true
 omit = [
     "tests/*",
 ]

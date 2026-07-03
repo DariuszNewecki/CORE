@@ -403,6 +403,20 @@ async def action_build_test_for_symbol(
 
         try:
             core_context.file_handler.write(test_file, full_content)
+            # Ensure every ancestor directory of test_generated.py has an
+            # __init__.py so pytest-cov + importlib mode gives each file a
+            # fully-qualified module path (avoids pycache name collisions when
+            # multiple test_generated.py files exist across different dirs).
+            tests_root = repo_root / "tests"
+            ancestor = test_path.parent
+            while True:
+                init_path = ancestor / "__init__.py"
+                if not init_path.exists():
+                    rel_init = str(init_path.relative_to(repo_root))
+                    core_context.file_handler.write(rel_init, "")
+                if ancestor == tests_root or ancestor == repo_root:
+                    break
+                ancestor = ancestor.parent
         except Exception as e:
             return ActionResult(
                 action_id="build.test_for_symbol",

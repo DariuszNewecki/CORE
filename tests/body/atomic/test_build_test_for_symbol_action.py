@@ -198,7 +198,12 @@ async def test_action_write_true_calls_file_handler(mock_core_context, source_se
 
     assert result.ok
     assert result.data["files_produced"] == ["tests/mypkg/service/test_generated.py"]
-    mock_core_context.file_handler.write.assert_called_once()
+    # First call must be the test file; subsequent calls are __init__.py creation
+    # in ancestor directories (tests/mypkg/service/, tests/mypkg/, tests/).
+    calls = mock_core_context.file_handler.write.call_args_list
+    assert calls[0][0][0] == "tests/mypkg/service/test_generated.py"
+    init_paths = [c[0][0] for c in calls[1:]]
+    assert all(p.endswith("__init__.py") for p in init_paths)
 
 
 @pytest.mark.asyncio
