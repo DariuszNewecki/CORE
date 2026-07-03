@@ -70,7 +70,7 @@ class WorkflowGateEngine(BaseEngine):
             QualityGateCheck(
                 path_resolver,
                 "mypy_check",
-                ["mypy", "src/", "--ignore-missing-imports"],
+                ["mypy", "src/"],
             ),
             QualityGateCheck(path_resolver, "security_check", ["pip-audit"]),
             QualityGateCheck(

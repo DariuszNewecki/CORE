@@ -159,8 +159,8 @@ class SpecialistDispatcher:
             from body.self_healing.id_tagging_service import assign_missing_ids
 
             await assign_missing_ids(
-                context=None,
-                write=False,  # type: ignore[arg-type]
+                context=None,  # type: ignore[arg-type]
+                write=False,
             )  # Context handled by Registry
             return True
         return False

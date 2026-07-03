@@ -124,6 +124,7 @@ aiosqlite = "^0.21.0"
 pre-commit = "^3.7.1"
 mypy = "^1.11"
 types-PyYAML = "^6.0"
+types-jsonschema = "^4.0"
 ruff = "^0.15.20"
 
 # Documentation
@@ -262,6 +263,28 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "src.mind.logic.engines.ast_gate.*"
 ignore_errors = false
+
+# Third-party packages with no published stubs
+[[tool.mypy.overrides]]
+module = ["radon.*", "sklearn.*"]
+ignore_missing_imports = true
+
+# Internal modules referenced via optional/lazy imports that may be absent
+# (orphaned dead code or optional extensions not present in all installs)
+[[tool.mypy.overrides]]
+module = [
+    "mind.governance.enforcement.async_units",
+    "mind.governance.enforcement.base",
+    "mind.governance.enforcement.sync_units",
+    "mind.governance.checks.rule_enforcement_check",
+    "body.self_healing.cluster_inspector",
+    "body.self_healing.common_knowledge_inspector",
+    "body.quality.test_target_classifier",
+    "body.introspection.vectorization_service",
+    "will.agents.capability_tagger_agent",
+    "shared.infrastructure.paths",
+]
+ignore_missing_imports = true
 
 # --- Migrated from .coveragerc ---
 [tool.coverage.run]

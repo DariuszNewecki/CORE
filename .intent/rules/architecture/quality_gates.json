@@ -12,8 +12,8 @@
     "rules": [
         {
             "id": "quality.type_safety",
-            "statement": "Production code SHOULD be type-safe as verified by MyPy static analysis.",
-            "enforcement": "advisory",
+            "statement": "Production code MUST be type-safe as verified by MyPy static analysis.",
+            "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit"
         },
