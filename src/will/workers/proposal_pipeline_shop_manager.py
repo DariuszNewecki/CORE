@@ -279,7 +279,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
                             SET status = 'failed',
                                 execution_completed_at = now(),
                                 failure_reason = :reason
-                            WHERE proposal_id = cast(:proposal_id as uuid)
+                            WHERE proposal_id = :proposal_id
                               AND status = 'executing'
                             """
                         ),
