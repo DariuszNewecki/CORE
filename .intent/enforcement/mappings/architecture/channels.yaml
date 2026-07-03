@@ -149,3 +149,19 @@ mappings:
     scope:
       applies_to:
         - "src/cli/**/*.py"
+
+  # API routes returning blackboard/audit data must declare an explicit
+  # response_model. enforcement: reporting (ramps to blocking once full
+  # coverage is confirmed — #727). No AST engine exists yet for response_model
+  # detection; passive_gate until one is authored.
+  architecture.api.response_must_use_declared_schema:
+    engine: passive_gate
+    params:
+      note: >
+        Passive gate — no AST check authored yet. The rule is enforcement:
+        reporting. Violations are surfaced manually via code review.
+        Ramps to an ast_gate check once the decorator-response_model
+        detection pattern is implemented.
+    scope:
+      applies_to:
+        - "src/api/**/*.py"

@@ -35,6 +35,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session
+from api.v1.schemas import (
+    LaneClaimResponse,
+    LaneFindingListResponse,
+    LaneFindingWithBundle,
+    LaneProposeResponse,
+)
 from shared.logger import getLogger
 from will.autonomy.lane_service import LaneProposeError, LaneService
 
@@ -65,6 +71,7 @@ class ProposeRequest(BaseModel):
 
 @router.get(
     "",
+    response_model=LaneFindingListResponse,
     summary="List delegated findings (the assisted-lane work queue)",
     description=(
         "Return findings delegated for human-gated remediation — the "
@@ -94,6 +101,7 @@ async def list_delegated_findings(
 
 @router.get(
     "/next",
+    response_model=LaneFindingWithBundle,
     summary="Pull the next delegated finding (FIFO head)",
     description=(
         "Return the oldest delegated finding — the lane's 'pull next work' "
@@ -113,6 +121,7 @@ async def next_delegated_finding() -> dict:
 
 @router.get(
     "/{finding_id}",
+    response_model=LaneFindingWithBundle,
     summary="Get a single delegated finding with its context bundle",
     description=(
         "Return one delegated finding by id (same governor-inbox predicate as "
@@ -138,6 +147,7 @@ async def get_delegated_finding(
 
 @router.post(
     "/{finding_id}/claim",
+    response_model=LaneClaimResponse,
     summary="Mark a delegated finding as being worked",
     description=(
         "Stamp a delegated finding as in-progress by an external agent (ADR-109 "
@@ -164,6 +174,7 @@ async def claim_delegated_finding(
 @router.post(
     "/{finding_id}/propose",
     status_code=201,
+    response_model=LaneProposeResponse,
     summary="Ingest a validated agent diff as a human-gated proposal",
     description=(
         "Create a human-gated multi-file proposal from an agent-authored diff "

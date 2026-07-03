@@ -45,7 +45,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_governor
-from api.v1.schemas import AsyncDispatchResponse, FixRunResponse
+from api.v1.schemas import (
+    AsyncDispatchResponse,
+    FixCommandListResponse,
+    FixIRResponse,
+    FixRunResponse,
+)
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
@@ -376,6 +381,7 @@ async def run_fix_modularity(
 
 @router.post(
     "/ir",
+    response_model=FixIRResponse,
     summary="Bootstrap an IR scaffold file",
     dependencies=[require_governor],
     description=(
@@ -407,6 +413,7 @@ async def run_fix_ir(
 
 @router.get(
     "/commands",
+    response_model=FixCommandListResponse,
     summary="List registered fix-category atomic actions",
     description=(
         "Return metadata for atomic actions whose category is `fix`. Use "

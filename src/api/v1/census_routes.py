@@ -44,7 +44,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_governor
-from api.v1.schemas import AsyncDispatchResponse
+from api.v1.schemas import (
+    AsyncDispatchResponse,
+    CensusBaselineCreateResponse,
+    CensusBaselineListResponse,
+    CensusDiffResponse,
+    CensusRunResponse,
+)
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.census_runner import (
@@ -142,6 +148,7 @@ async def create_census_run(
 
 @router.get(
     "/runs/{run_id}",
+    response_model=CensusRunResponse,
     summary="Fetch a persisted census run",
     dependencies=[require_governor],
     description=(
@@ -193,6 +200,7 @@ async def get_census_run(
 
 @router.post(
     "/baselines/{name}",
+    response_model=CensusBaselineCreateResponse,
     summary="Create a named census baseline",
     description=(
         "Promote a census snapshot to a named baseline. F-20 dashboards use "
@@ -220,6 +228,7 @@ async def create_census_baseline(
 
 @router.get(
     "/baselines",
+    response_model=CensusBaselineListResponse,
     summary="List census baselines",
     description="Return all named baselines (newest first).",
 )
@@ -232,6 +241,7 @@ async def list_census_baselines(request: Request) -> dict:
 
 @router.get(
     "/diff",
+    response_model=CensusDiffResponse,
     summary="Compare current state to a baseline",
     description=(
         "Diff the current census state against a baseline. The optional "

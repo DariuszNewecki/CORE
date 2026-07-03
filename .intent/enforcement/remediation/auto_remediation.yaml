@@ -288,6 +288,16 @@ mappings:
       violated (precedent: #371 hand migration).
     status: DELEGATE
 
+  architecture.api.response_must_use_declared_schema:
+    action: fix.body_ui
+    confidence: 0.40
+    description: >
+      API route missing explicit response_model. Requires authoring a
+      Pydantic schema in api/v1/schemas.py and wiring response_model=
+      to the route decorator — non-automatable, human review required.
+      Tracked in #727.
+    status: DELEGATE
+
   architecture.intent.gateway_is_shared_infrastructure:
     action: fix.modularity
     confidence: 0.40
