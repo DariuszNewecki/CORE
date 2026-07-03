@@ -183,7 +183,6 @@ class ConfigService:
         self.db = None
         self._secrets_service = None
 
-    # ID: 59a5c363-943b-42aa-a048-b4c34a0e19cb
     @overload
     # ID: 4960b91c-128b-4aaa-b652-083349902fc2
     async def get(
@@ -196,6 +195,7 @@ class ConfigService:
         self, key: str, default: str | None = ..., required: bool = ...
     ) -> str | None: ...
 
+    # ID: ad1081e4-2c8d-41c3-afd9-6eb675dfa5de
     async def get(
         self, key: str, default: str | None = None, required: bool = False
     ) -> str | None:
