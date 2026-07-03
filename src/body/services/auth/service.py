@@ -33,6 +33,8 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 _LOCKOUT_THRESHOLD = 10

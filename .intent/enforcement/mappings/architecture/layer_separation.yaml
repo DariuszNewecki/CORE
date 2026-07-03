@@ -112,6 +112,12 @@ mappings:
         # a write is metadata-only before allowing it — uses Mind utility
         # as a validation primitive, not for governance rule evaluation
         - "src/body/atomic/metadata_ops.py"
+        # Assisted action lane uses EngineRegistry as a validation primitive
+        # (same role as metadata_ops.py); proper DI path tracked as architecture debt
+        - "src/body/atomic/assisted_actions.py"
+        # GRC gap analysis service uses EngineRegistry + GRCApplicabilityGate for
+        # document-corpus rule evaluation; DI refactor deferred pending ADR-049 tightening
+        - "src/body/services/grc/gap_analysis_service.py"
         # CLI reporting tools: use Mind checks for display only,
         # no governance decisions made
         - "src/body/cli/commands/refactor_support/analyzer.py"

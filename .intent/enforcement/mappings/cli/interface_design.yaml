@@ -58,8 +58,12 @@ mappings:
       # (accept, claim, gap-analysis, ingest, next, promote, propose,
       # scout, search) covering Lane workflow, GRC operations, and Project
       # lifecycle idioms that were absent from the list.
+      # 2026-07-03 vocabulary expansion: 4 auth/admin idioms added
+      # (accessibility, login, logout, whoami) covering UAC CLI surface
+      # (ADR-124) that postdated the prior expansions.
       allowed_verbs:
         - accept
+        - accessibility
         - actions
         - analyze
         - approve
@@ -102,6 +106,8 @@ mappings:
         - ingest
         - inspect
         - legacy
+        - login
+        - logout
         - lint
         - list
         - logging
@@ -154,6 +160,7 @@ mappings:
         - validate
         - validate-env
         - verify
+        - whoami
     scope:
       applies_to: ["src/cli/**/*.py"]
 

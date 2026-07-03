@@ -13,6 +13,8 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 # ID: f83444e2-fae1-46f0-a704-d592d62a116e
 class BlackboardProposalService:

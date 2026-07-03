@@ -35,6 +35,7 @@ from will.governance.auth_runner import AuthLockedError, AuthRunner
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

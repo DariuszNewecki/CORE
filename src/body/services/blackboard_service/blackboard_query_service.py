@@ -20,6 +20,8 @@ _SLA: dict[str, int] = {
 
 _CFG = load_operational_config().blackboard
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 # ID: 0f7e0bf6-9fba-44b1-9605-b7dcadf97fac
 class BlackboardQueryService:

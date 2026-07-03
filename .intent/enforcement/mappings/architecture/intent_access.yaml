@@ -39,6 +39,7 @@ mappings:
         - "tests/**/*.py"
         - "src/cli/logic/byor.py"                        # External repo delivery — reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
         - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence — same exemption as artifact_gate.py and runtime_gate.py
+        - "src/mind/logic/engines/registry.py"            # EngineRegistry loads passive-alias taxonomy from .intent/taxonomies/ at registration time — same pattern as artifact_gate.py and runtime_gate.py
 
   # ADVISORY DECLARATIONS — architectural guidance, not engine-checkable.
   # These rules describe how .intent/ should be structured and accessed.

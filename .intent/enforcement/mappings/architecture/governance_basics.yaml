@@ -188,16 +188,27 @@
           # --- LINTING / QUALITY TOOLING ---
           # These invoke external tools (ruff, pytest, coverage) by design
           - "src/shared/infrastructure/validation/ruff_linter.py"
+          - "src/shared/infrastructure/validation/test_runner.py"         # shared test-execution substrate; subprocess is the only pytest interface
           - "src/body/quality/coverage_analyzer.py"
           - "src/cli/commands/check/quality_gates.py"
           - "src/cli/commands/coverage/services/coverage_rep*"
           - "src/body/self_healing/test_context/metrics.py"
           - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation — same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
           - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess — same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
+          # Workflow gate checks invoke external quality tools inline — no Body delegation
+          # surface exists for synchronous gate execution; tool call is the fundamental operation
+          - "src/mind/logic/engines/workflow_gate/checks/ruff_format.py"
+          - "src/mind/logic/engines/workflow_gate/checks/quality.py"
+          - "src/mind/logic/engines/workflow_gate/checks/linter.py"
+          - "src/mind/logic/engines/workflow_gate/checks/import_resolution.py"
 
           # --- BOOTSTRAP & LIFECYCLE ---
           - "src/body/atomic/check_actions.py"
+          - "src/body/atomic/tool_runner.py"                               # git/ruff subprocess sanctuary (ADR-109 D2); tool invocation is the fundamental operation
           - "src/body/project_lifecycle/bootstrap_service.py"
+          - "src/body/project_lifecycle/integration_service.py"            # pg_dump subprocess for schema capture; no FileHandler path for DB introspection
+          - "src/body/maintenance/scripts/context_export.py"               # subprocess for context export pipeline
+          - "src/body/self_healing/handlers/import_sorting_handler.py"     # isort/ruff subprocess for import-sort remediation
           - "src/body/workers/violation_remediator/ceremony.py" # Runs ruff/linting as remediation — subprocess sanctuary
           - "src/cli/commands/daemon.py" # 2026-06-06: systemd control surface — subprocess intrinsic to daemon command
 
@@ -220,6 +231,15 @@
           - "src/body/infrastructure/lifespan.py"
           - "src/cli/logic/interactive_test/steps/utils.py"
           - "src/will/test_generation/sandbox.py" # os.environ for PYTHONPATH only
+
+          # --- AUTONOMOUS TEST EXECUTION (WILL) ---
+          # Self-healing and canary paths invoke pytest as subprocess; routing through
+          # Body's test.execute atomic action via ActionExecutor is the long-term target
+          # but requires non-trivial DI plumbing in the autonomous pipeline.
+          - "src/will/self_healing/test_generation/executor.py"
+          - "src/will/self_healing/context_aware_test_generator.py"
+          - "src/will/self_healing/alignment/sandbox.py"
+          - "src/will/phases/canary/pytest_runner.py"
 
           - "tests/**"
 
