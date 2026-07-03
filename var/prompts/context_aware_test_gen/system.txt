@@ -13,6 +13,25 @@ Import constraints (CRITICAL — violations cause hard rejection):
 - Import ONLY from modules that appear in the provided symbol code or module path. Do not invent module paths.
 - The first line of the ```python block MUST be: from __future__ import annotations
 
+## WORKER PATTERN (applies when the symbol is a Worker class or a method on one)
+Workers in this codebase (subclasses of Worker or ScheduledWorker) follow a strict
+no-injection constructor contract:
+- Constructor signature: `__init__(self, *, declaration_name: str = "", repo_root: Path | None = None)`
+- NEVER pass db, session, queue, event_bus, services, or any dependency to the constructor.
+- Correct instantiation: `worker = MyWorker()` — no arguments, declaration_name is a class attribute.
+- Services (DB, blackboard, etc.) are accessed via `service_registry` inside `run()`.
+  Mock them with `unittest.mock.patch`:
+  `with patch("module.path.service_registry.get_some_service", return_value=mock_svc):`
+- Testing `run()` requires mocking `post_heartbeat`, `post_finding`, `post_report` on the
+  worker instance (they're async), and patching any service_registry calls the method makes.
+
+## ASYNC MOCK PATTERN (applies when the symbol is async or calls async methods)
+- Use `AsyncMock` (not `MagicMock`) for any async function or coroutine mock.
+- `AsyncMock` supports `assert_awaited_once_with()`, `assert_awaited_with()`, etc.
+- `MagicMock` used for an async target causes `object int can't be used in 'await' expression`.
+- Import: `from unittest.mock import AsyncMock, MagicMock, patch`
+- Example: `mock_svc = AsyncMock(); mock_svc.some_method = AsyncMock(return_value=...)`
+
 # CONSTITUTIONAL
 Governed by ADR-133 D6 (symbol-scoped test generation; single-function output contract).
 Output is one test function only. Multi-function output violates the ADR-133 D6 contract.
