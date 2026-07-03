@@ -120,6 +120,9 @@ class CapabilityTaggerWorker(Worker):
         from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
         from will.agents.capability_tagger_agent import CapabilityTaggerAgent
 
+        if self._repo_root is None:
+            logger.error("CapabilityTaggerWorker: _repo_root unavailable")
+            return 0
         knowledge_service = KnowledgeService(self._repo_root)
         agent = CapabilityTaggerAgent(
             cognitive_service=self._cognitive_service,

@@ -852,7 +852,7 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
         else:
             signal = "green"
             headline = "Full autonomous reach — no blocked findings"
-        rows: list[tuple[str, str]] = [
+        rows = [
             ("Dry-run candidates (ready to graduate)", str(dry_run_candidates)),
             ("Currently on ViolationExecutor path", str(in_flight)),
             ("Abandoned (no path forward)", str(abandoned)),

@@ -81,8 +81,8 @@ class KnowledgeSourceCheck(RuleEnforcementCheck):
                 # Properly await the DB check
                 findings = await method.verify_async(context, rule_data)
                 all_findings.extend(findings)
-            elif isinstance(method, Any):  # Fallback for sync methods if added later
-                findings = method.verify(context, rule_data)
+            else:  # Fallback for sync methods if added later
+                findings = method.verify(context, rule_data)  # type: ignore[union-attr]
                 all_findings.extend(findings)
 
         return all_findings

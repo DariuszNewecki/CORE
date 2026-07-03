@@ -208,7 +208,7 @@ class ConversationalAgent:
         }
 
         return {
-            "task_id": f"chat-{task_hash & 0xFFFFFFFF:08x}",
+            "task_id": f"chat-{int(task_hash.replace('-', ''), 16) & 0xFFFFFFFF:08x}",
             "task_type": task_type_map.get(task.task_type, "conversational"),
             "summary": task.intent,
             "privacy": "local_only",

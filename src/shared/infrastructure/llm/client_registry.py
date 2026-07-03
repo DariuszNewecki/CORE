@@ -13,6 +13,7 @@ This is part of the Mind-Body-Will refactoring to separate concerns:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any
 
 from shared.infrastructure.config_service import ConfigService, LLMResourceConfig
@@ -74,7 +75,7 @@ class LLMClientRegistry:
 
     # ID: f8ada660-100e-4ea3-a1d5-acdd27a8d0df
     async def get_or_create_client(
-        self, resource: LlmResource, provider_factory: callable
+        self, resource: LlmResource, provider_factory: Callable[..., Any]
     ) -> LLMClient:
         """
         Get cached client or create new one using provided factory.
@@ -100,7 +101,7 @@ class LLMClientRegistry:
                 real_config_service = await ConfigService.create(session)
                 config_cache = dict(real_config_service._cache)
             cached_service = CachedConfigService(config_cache)
-            resource_config = LLMResourceConfig(cached_service, resource.name)
+            resource_config = LLMResourceConfig(cached_service, resource.name)  # type: ignore[arg-type]
             client = LLMClient(provider, resource_config)
             max_concurrent = await resource_config.get_max_concurrent()
             client._semaphore = asyncio.Semaphore(max_concurrent)

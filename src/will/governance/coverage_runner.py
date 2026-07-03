@@ -219,7 +219,7 @@ def get_coverage_gaps(
         for file_path, pct in coverage.items()
         if pct < threshold
     ]
-    gaps.sort(key=lambda g: g["deficit"], reverse=True)
+    gaps.sort(key=lambda g: g["deficit"], reverse=True)  # type: ignore[arg-type, return-value]
     if limit > 0:
         gaps = gaps[:limit]
 
@@ -354,6 +354,12 @@ async def run_and_persist_coverage_generation(
         )
         return
 
+    if context.cognitive_service is None or context.auditor_context is None:
+        await _update_coverage_run_status(
+            session, run_id, "failed", finished=True, error="Brain services unavailable"
+        )
+        return
+
     try:
         result = await remediate_coverage_enhanced(
             cognitive_service=context.cognitive_service,
@@ -415,6 +421,12 @@ async def run_and_persist_coverage_batch(
     repo_root = context.git_service.repo_path
 
     target_coverage = 90 if batch_priority == "high" else 75
+
+    if context.cognitive_service is None or context.auditor_context is None:
+        await _update_coverage_run_status(
+            session, run_id, "failed", finished=True, error="Brain services unavailable"
+        )
+        return
 
     try:
         result = await remediate_coverage_enhanced(
@@ -592,6 +604,9 @@ async def run_tests_interactive(
                 "ok": False,
                 "error": f"target_file does not exist: {target_file}",
             }
+
+    if context.cognitive_service is None or context.auditor_context is None:
+        return {"ok": False, "error": "Brain services unavailable"}
 
     try:
         result = await remediate_coverage_enhanced(

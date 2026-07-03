@@ -395,5 +395,5 @@ class BlackboardShopManager(ScheduledWorker):
             reclaim_cap_n=_CFG.reclaim_cap_n,
             batch_max=_CFG.sweep_batch_max,
         )
-        result["skipped"] = False
+        result["skipped"] = False  # type: ignore[assignment]
         return result

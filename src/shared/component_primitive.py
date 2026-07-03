@@ -85,7 +85,7 @@ class ComponentResult:
     "Constitutional phase this component operates in"
     confidence: float = 1.0
     "Confidence in result (0.0-1.0). Used for workflow decisions."
-    next_suggested: str = ""
+    next_suggested: str | None = None
     "\n    Optional suggestion for next component to run.\n    This is a hint, not a requirement - orchestrators may ignore it.\n    "
     metadata: dict[str, Any] = field(default_factory=dict)
     "\n    Additional context that may be useful for subsequent components.\n    Examples: error details, pattern history, accumulated state.\n    "
@@ -149,7 +149,7 @@ class Component:
         return self.__doc__.split("\n")[0] if self.__doc__ else "No description"
 
     # ID: 2f422a72-23bc-4a64-a8c7-61903576c911
-    async def execute(self, **inputs) -> ComponentResult:
+    async def execute(self, *args: Any, **kwargs: Any) -> ComponentResult:
         """
         Execute the component.
 

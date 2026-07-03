@@ -65,7 +65,7 @@ class _WatcherState:
     def record_success(self, violation: CoverageViolation):
         from body.services.file_service import FileService
 
-        fh = FileService(str(self.repo_root))
+        fh = FileService(self.repo_root)
         state = {
             "last_check": datetime.now().isoformat(),
             "last_remediation": datetime.now().isoformat(),

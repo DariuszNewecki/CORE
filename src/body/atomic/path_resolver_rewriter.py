@@ -180,6 +180,8 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
     except (SyntaxError, ImportError):
         return source, 0
     tree = atok.tree
+    if tree is None:
+        return source, 0
 
     replacements: list[tuple[int, int, str]] = []
     for node in _ast.walk(tree):

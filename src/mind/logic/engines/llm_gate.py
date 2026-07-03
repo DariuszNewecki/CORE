@@ -125,6 +125,9 @@ class LLMGateEngine(BaseEngine):
         file_content_hash: str | None = None
 
         if cache_eligible:
+            assert (
+                rule_id is not None
+            )  # guaranteed by cache_eligible = bool(rule_id and ...)
             file_content_hash = await _resolve_file_content_hash(
                 session, rel_path, content
             )
@@ -192,6 +195,9 @@ class LLMGateEngine(BaseEngine):
         # verdicts (transient infra failures, not a stable judgement) and
         # when rule identity / session aren't plumbed.
         if cache_eligible and verdict_label != "ERROR":
+            assert (
+                rule_id is not None
+            )  # guaranteed by cache_eligible = bool(rule_id and ...)
             assert file_content_hash is not None
             await _write_cached_verdict(
                 session,

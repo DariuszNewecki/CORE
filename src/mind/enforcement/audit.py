@@ -36,11 +36,9 @@ async def run_audit_workflow(context: CoreContext) -> tuple[bool, list[AuditFind
     """
     # Inject Qdrant service from CoreContext into AuditorContext
     auditor_context = context.auditor_context
-    if (
-        auditor_context is not None
-        and context.qdrant_service
-        and not hasattr(auditor_context, "qdrant_service")
-    ):
+    if auditor_context is None:
+        return False, []
+    if context.qdrant_service and not hasattr(auditor_context, "qdrant_service"):
         auditor_context.qdrant_service = context.qdrant_service
 
     auditor = ConstitutionalAuditor(auditor_context)

@@ -258,7 +258,7 @@ class TruncatedDocstringFixer:
                             i + 1,
                         )
             else:
-                if multiline_quote in line:
+                if multiline_quote is not None and multiline_quote in line:
                     in_multiline = False
                     multiline_quote = None
                 stripped = line.rstrip()

@@ -349,8 +349,8 @@ def get_analysis_command_tree(context: CoreContext) -> dict:
     that re-binding is tracked as a follow-up ADR per ADR-057 D3.
     """
     try:
-        from body.maintenance.command_sync_service import (
-            collect_commands,  # type: ignore[attr-defined]
+        from body.maintenance.command_sync_service import (  # type: ignore[attr-defined]
+            collect_commands,
         )
 
         rows = collect_commands(context.git_service.repo_path)

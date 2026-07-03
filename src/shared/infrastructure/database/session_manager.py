@@ -79,6 +79,8 @@ def _create_state() -> _DbState:
     """
     Create a new engine + session factory.
     """
+    if settings.DATABASE_URL is None:
+        raise RuntimeError("DATABASE_URL is not configured")
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=_engine_echo(),

@@ -17,6 +17,7 @@ Transaction management at controller level, not service level.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
@@ -50,7 +51,7 @@ async def _fetch_all_qdrant_ids(
         collection_name: Name of the Qdrant collection to scroll.
     """
     all_ids: set[str] = set()
-    offset: str | None = None
+    offset: Any = None
     while True:
         points, offset = await client.scroll(
             collection_name=collection_name,

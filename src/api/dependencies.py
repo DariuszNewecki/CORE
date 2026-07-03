@@ -13,7 +13,7 @@ these providers — never by importing session_manager themselves.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Annotated
+from typing import Annotated, Any
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, status
@@ -84,7 +84,7 @@ async def get_current_user(
 
 
 # ID: 7a1e5c3f-2b4d-4f9e-b8a0-6c2d1a7e5f3b
-def require_role(*roles: str) -> Depends:
+def require_role(*roles: str) -> Any:
     """Return a FastAPI dependency that enforces one of the given roles."""
 
     async def _check(user: Annotated[dict, Depends(get_current_user)]) -> dict:

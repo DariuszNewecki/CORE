@@ -5,7 +5,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -20,11 +20,7 @@ class PlanStep:
     action: str
     parameters: dict[str, Any]
     description: str
-    dependencies: list[str] = None
-
-    def __post_init__(self):
-        if self.dependencies is None:
-            self.dependencies = []
+    dependencies: list[str] = field(default_factory=list)
 
 
 # ID: 3969e529-7e45-4670-9dbb-581019fe4e68

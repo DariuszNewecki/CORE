@@ -26,8 +26,11 @@ async def find_common_knowledge(min_occurrences: int = 3, max_lines: int = 10):
     CLI logic to find and display structurally similar helper functions.
     """
     logger.info("Scanning for structurally similar helper functions...")
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
+    repo_root = BootstrapRegistry.get_repo_path()
     duplicates = await asyncio.to_thread(
-        find_structurally_similar_helpers, min_occurrences, max_lines
+        find_structurally_similar_helpers, repo_root, min_occurrences, max_lines
     )
     if not duplicates:
         logger.info("No common helper functions found meeting the criteria.")

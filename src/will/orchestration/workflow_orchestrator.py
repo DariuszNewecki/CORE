@@ -223,7 +223,7 @@ class WorkflowOrchestrator:
 
         workflow_duration = time.time() - workflow_start
 
-        result = PhaseWorkflowResult(
+        final_result = PhaseWorkflowResult(
             ok=workflow_ok,
             workflow_type=workflow_type,
             phase_results=phase_results,
@@ -243,7 +243,7 @@ class WorkflowOrchestrator:
         logger.info("Total Duration: %.2fs", workflow_duration)
         logger.info("=" * 80)
 
-        return result
+        return final_result
 
     def _load_phase_definition(self, phase_name: str) -> dict[str, Any]:
         """Load phase definition from the constitutional repository."""

@@ -264,9 +264,9 @@ def _extract_symbol(finding: AuditFinding) -> str | None:
     ctx = finding.context or {}
     symbol_key = ctx.get("symbol_key") or ctx.get("symbol_path")
     if symbol_key:
-        name = str(symbol_key).split("::")[-1].strip()
-        if name and name not in _CALL_PATTERNS:
-            return name
+        sym_name = str(symbol_key).split("::")[-1].strip()
+        if sym_name and sym_name not in _CALL_PATTERNS:
+            return sym_name
     name = ctx.get("name") or ctx.get("symbol_name")
     if name and str(name).strip() not in _CALL_PATTERNS:
         return str(name).strip()

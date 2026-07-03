@@ -65,10 +65,10 @@ def _node_imports_cli(node: ast.AST) -> bool:
             if isinstance(func, ast.Attribute) and func.attr == "import_module":
                 if isinstance(func.value, ast.Name) and func.value.id == "importlib":
                     if descendant.args and isinstance(descendant.args[0], ast.Constant):
-                        target = descendant.args[0].value or ""
+                        target = str(descendant.args[0].value or "")
             elif isinstance(func, ast.Name) and func.id == "__import__":
                 if descendant.args and isinstance(descendant.args[0], ast.Constant):
-                    target = descendant.args[0].value or ""
+                    target = str(descendant.args[0].value or "")
             if isinstance(target, str) and (
                 target == "cli" or target.startswith("cli.")
             ):

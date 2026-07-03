@@ -189,10 +189,10 @@ def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
                         )
                     )
 
-            for kwarg, default in zip(args.kwonlyargs, args.kw_defaults):
+            for kwarg, kw_default in zip(args.kwonlyargs, args.kw_defaults):
                 if kwarg.arg != "write":
                     continue
-                if isinstance(default, ast.Constant) and default.value is True:
+                if isinstance(kw_default, ast.Constant) and kw_default.value is True:
                     violations.append(
                         Violation(
                             rule_id="write_defaults_false",

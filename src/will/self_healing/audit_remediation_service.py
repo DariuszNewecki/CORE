@@ -185,7 +185,7 @@ class AuditRemediationService:
 
                 findings.append(
                     AuditFinding(
-                        check_id=item.get("check_id", item.get("rule_id", "")),
+                        check_id=str(item.get("check_id") or item.get("rule_id") or ""),
                         severity=severity,
                         message=item.get("message", ""),
                         file_path=item.get("file_path"),

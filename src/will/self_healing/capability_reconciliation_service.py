@@ -86,7 +86,7 @@ class CapabilityReconciliationService:
             reconciliation_result = extract_json_from_response(response)
             if not reconciliation_result:
                 raise ValueError("No valid JSON object found.")
-            return reconciliation_result
+            return reconciliation_result  # type: ignore[return-value]
         except Exception as e:
             logger.error("Failed to parse reconciliation plan: %s", e)
             # Fallback: return original plan unchanged

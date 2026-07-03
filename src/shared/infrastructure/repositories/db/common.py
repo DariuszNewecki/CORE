@@ -122,6 +122,11 @@ async def apply_sql_file(path: pathlib.Path) -> None:
     repo-relative strings without depending on the process working directory.
     """
     if not path.is_absolute():
+        if REPO_ROOT is None:
+            raise RuntimeError(
+                "Migration commands require the CORE source tree and cannot run "
+                "from a pip-installed wheel. Clone the repository to use db migrate."
+            )
         path = REPO_ROOT / path
     sql_text = path.read_text(encoding="utf-8")
     statements: list[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]

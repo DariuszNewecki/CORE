@@ -14,7 +14,9 @@ from contextlib import contextmanager
 
 
 # The Token. If this is None or empty, the caller is "Unauthorized".
-_executor_token = contextvars.ContextVar("executor_token", default=None)
+_executor_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "executor_token", default=None
+)
 
 
 # ID: 7eb1f5ae-8822-4087-afb1-7b10127fb63f

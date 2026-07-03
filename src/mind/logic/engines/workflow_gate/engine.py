@@ -12,7 +12,7 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.workflow_gate.base_check import (
@@ -209,7 +209,7 @@ class WorkflowGateEngine(BaseEngine):
                     if not violations
                     else "Workflow violations found"
                 ),
-                violations=violations,
+                violations=cast(list[str | dict[str, Any]], list(violations)),
                 engine_id=self.engine_id,
             )
         except Exception as e:

@@ -128,7 +128,7 @@ def export_context_cmd(
     except SystemExit as e:
         # The script calls sys.exit(), we catch it to prevent CLI crash
         if e.code != 0:
-            raise typer.Exit(e.code)
+            raise typer.Exit(e.code if isinstance(e.code, int) else 1)
     except Exception as e:
         logger.error("Export failed: %s", e)
         raise typer.Exit(1)

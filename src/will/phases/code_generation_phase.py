@@ -117,6 +117,21 @@ class CodeGenerationPhase:
         from will.agents.coder_agent import CoderAgent
         from will.orchestration.prompt_pipeline import PromptPipeline
 
+        if self.context.cognitive_service is None:
+            return PhaseResult(
+                name="code_generation",
+                ok=False,
+                error="cognitive_service not available",
+            )
+        if self.context.action_executor is None:
+            return PhaseResult(
+                name="code_generation", ok=False, error="action_executor not available"
+            )
+        if self.context.auditor_context is None:
+            return PhaseResult(
+                name="code_generation", ok=False, error="auditor_context not available"
+            )
+
         # 3. Initialize Agent with the Localized Senses
         coder = CoderAgent(
             cognitive_service=self.context.cognitive_service,
@@ -228,7 +243,7 @@ class CodeGenerationPhase:
 
                 current_code = code
 
-                for attempt in range(metadata["max_repair_attempts"]):
+                for attempt in range(int(str(metadata["max_repair_attempts"]))):
                     logger.info(
                         "Repair attempt %d/%d...",
                         attempt + 1,

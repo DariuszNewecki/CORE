@@ -76,6 +76,7 @@ async def attempt_correction(
             "status": "error",
             "message": "Missing required failure context fields (file_path, code).",
         }
+    assert isinstance(code, str)  # guaranteed by the all() guard above
     symbol_hints = ""
     if runtime_error and (
         "ImportError" in runtime_error or "ModuleNotFoundError" in runtime_error

@@ -87,7 +87,7 @@ class ContextRetriever:
 
         content = await self.snippet_extractor.read_file(file_path)
 
-        return content, file_path if content else (None, None)
+        return (content, file_path) if content else (None, None)
 
     # ID: 639643e0-8ec2-4db5-a592-d75a7082f5e0
     async def find_examples(

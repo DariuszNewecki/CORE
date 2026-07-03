@@ -318,6 +318,8 @@ class CoherenceService(SessionAttachedService):
             ),
         )
         row = result.fetchone()
+        if row is None:
+            return {"open_runs": 0, "unreviewed": 0}
         return {"open_runs": int(row[0]), "unreviewed": int(row[1])}
 
     # ID: a21764d3-ce5f-420e-bc31-1272a187ad6c

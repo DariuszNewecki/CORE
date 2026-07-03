@@ -75,16 +75,21 @@ async def self_check_cmd(
     Validate CLI registry against structural and constitutional rules.
     Use --write to automatically assign missing @command_meta decorators.
     """
+    from typing import cast
+
     from cli.admin_cli import app as main_app
     from mind.governance.enforcement_loader import EnforcementMappingLoader
     from mind.logic.engines.registry import EngineRegistry
     from shared.cli.app_introspection import walk_typer_app
     from shared.infrastructure.intent.intent_repository import get_intent_repository
+    from shared.protocols.typer_protocols import TyperAppLike
     from will.maintenance.metadata_scribe_service import MetadataScribeService
 
     core_context = ctx.obj
 
-    commands = walk_typer_app(main_app, include_missing_handlers=True)
+    commands = walk_typer_app(
+        cast(TyperAppLike, main_app), include_missing_handlers=True
+    )
     unassigned = [c for c in commands if not c.get("has_explicit_meta")]
 
     if write:

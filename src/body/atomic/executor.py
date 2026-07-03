@@ -513,7 +513,7 @@ class ActionExecutor:
         unsandboxed pass-through); a scoped CoreContext is supplied by
         _build_execution_context when ADR-071 D2.2 sandboxing applies.
         """
-        exec_params = {"write": write}
+        exec_params: dict[str, Any] = {"write": write}
         effective_context = context if context is not None else self.core_context
 
         sig = inspect.signature(definition.executor)

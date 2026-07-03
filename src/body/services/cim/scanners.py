@@ -322,9 +322,9 @@ def scan_mutation_surfaces(
 
     unique_surfaces = {}
     for s in surfaces:
-        key = (s.path, s.type, s.operation, s.line)
-        if key not in unique_surfaces:
-            unique_surfaces[key] = s
+        dedup_key = (s.path, s.type, s.operation, s.line)
+        if dedup_key not in unique_surfaces:
+            unique_surfaces[dedup_key] = s
 
     return (
         sorted(unique_surfaces.values(), key=lambda x: (x.path, x.type, x.line)),

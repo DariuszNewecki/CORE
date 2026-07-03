@@ -103,7 +103,10 @@ class ComplexityRemediationService:
         )
 
         # ── 5. EXECUTE (Will delegates to Agent) ─────────────────────────────
-        agent = ExecutionAgent(executor=self.context.action_executor, write=write)
+        if self.context.action_executor is None:
+            logger.error("❌ ExecutionAgent unavailable: action_executor is None")
+            return False
+        agent = ExecutionAgent(executor=self.context.action_executor, write=write)  # type: ignore[arg-type]
         exec_results = await agent.execute_plan(blueprint)
 
         duration = time.perf_counter() - start_time
@@ -147,7 +150,7 @@ class ComplexityRemediationService:
             f"Refactor {rel_path} to reduce complexity. "
             f"Strategy: {strategy['instruction']}\n\nCODE:\n{original_code}"
         )
-        conservation_validator = LogicConservationValidator()
+        conservation_validator = LogicConservationValidator()  # type: ignore[abstract]
 
         for attempt in range(3):
             logger.info("🔁 Reflex Attempt %d/3...", attempt + 1)

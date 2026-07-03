@@ -32,7 +32,7 @@ class ActionGateEngine(BaseEngine):
         Natively async verification.
         Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
         """
-        violations = []
+        violations: list[str | dict[str, Any]] = []
 
         # FACT: The Auditor must provide the 'action_id' being attempted.
         # This usually comes from the @atomic_action decorator or the Agent Task.

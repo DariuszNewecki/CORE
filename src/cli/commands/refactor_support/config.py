@@ -59,7 +59,7 @@ def get_source_files(repo_root: Path) -> Iterable[Path]:
     }
     src_root = repo_root / "src"
     if not src_root.exists():
-        return []
+        return
 
     for file in src_root.rglob("*.py"):
         if any(part in file.parts for part in skip_dirs):

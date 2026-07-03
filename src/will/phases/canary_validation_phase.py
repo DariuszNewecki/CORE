@@ -60,6 +60,8 @@ class CanaryValidationPhase:
     def __init__(self, core_context: CoreContext):
         self.context = core_context
         self.tracer = DecisionTracer()
+        if core_context.path_resolver is None:
+            raise ValueError("path_resolver is required for CanaryValidationPhase")
         self.test_discovery = TestDiscoveryService(core_context.path_resolver)
         self.pytest_runner = PytestRunner(core_context.path_resolver)
         self.result_builder = CanaryResultBuilder()

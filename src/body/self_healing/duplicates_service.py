@@ -14,6 +14,7 @@ pattern established by purge_legacy_tags_service.
 from __future__ import annotations
 
 import traceback
+from typing import cast
 
 from mind.governance.audit_context import AuditorContext
 from shared.context import CoreContext
@@ -65,7 +66,7 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
         nodes = list(cluster)
         for i, node1 in enumerate(nodes):
             for node2 in nodes[i + 1 :]:
-                key = tuple(sorted((node1, node2)))
+                key = cast(tuple[str, str], tuple(sorted((node1, node2))))
                 if key in finding_map:
                     cluster_findings.append(finding_map[key])
 

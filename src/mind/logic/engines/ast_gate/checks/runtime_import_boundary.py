@@ -26,7 +26,7 @@ rather than hidden in engine behaviour.
 from __future__ import annotations
 
 import ast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from mind.logic.engines.ast_gate.base import ASTHelpers
 from mind.logic.engines.base import EngineResult
@@ -87,7 +87,7 @@ class RuntimeImportBoundaryCheck:
         else:
             type_checking_nodes = set()
 
-        violations = []
+        violations: list[str | dict[str, Any]] = []
 
         for node in ast.walk(tree):
             if node in type_checking_nodes:

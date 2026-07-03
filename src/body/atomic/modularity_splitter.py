@@ -102,9 +102,9 @@ class ModularitySplitter:
         # Also index top-level assignments (constants, module-level vars)
         for node in ast.iter_child_nodes(tree):
             if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        top_level[target.id] = node
+                for assign_target in node.targets:
+                    if isinstance(assign_target, ast.Name):
+                        top_level[assign_target.id] = node
 
         # Determine up-front whether the plan targets class members.
         is_class_split_plan = any(m.is_class_split for m in plan.modules)
@@ -153,9 +153,9 @@ class ModularitySplitter:
                     ):
                         class_methods[member.target.id] = member
                     elif isinstance(member, ast.Assign):
-                        for target in member.targets:
-                            if isinstance(target, ast.Name):
-                                class_methods[target.id] = member
+                        for assign_target in member.targets:
+                            if isinstance(assign_target, ast.Name):
+                                class_methods[assign_target.id] = member
 
         # Build symbol → module_name map for cross-module resolution
         symbol_to_module: dict[str, str] = {}
@@ -167,9 +167,9 @@ class ModularitySplitter:
         module_assigns: set[str] = set()
         for node in ast.iter_child_nodes(tree):
             if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        module_assigns.add(target.id)
+                for assign_target in node.targets:
+                    if isinstance(assign_target, ast.Name):
+                        module_assigns.add(assign_target.id)
             elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 module_assigns.add(node.target.id)
 

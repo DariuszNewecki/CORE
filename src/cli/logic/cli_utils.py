@@ -161,7 +161,7 @@ def load_private_key(repo_root: Path) -> ed25519.Ed25519PrivateKey:
             key_path,
         )
         raise typer.Exit(code=1)
-    return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+    return serialization.load_pem_private_key(key_path.read_bytes(), password=None)  # type: ignore[return-value]
 
 
 # ID: f803faac-7a8d-40b1-84cb-659379a4b512

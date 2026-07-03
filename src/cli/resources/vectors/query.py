@@ -67,6 +67,9 @@ async def query_vectors(
             if collection == "patterns"
             else "core_specs"
         )
+        if core_context.cognitive_service is None:
+            console.print("[red]Error: cognitive_service not available[/red]")
+            return
         embedder = CognitiveEmbedderAdapter(core_context.cognitive_service)
         service = VectorIndexService(
             qdrant_service=qdrant_service,

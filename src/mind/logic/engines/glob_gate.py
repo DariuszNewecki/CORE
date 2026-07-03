@@ -43,7 +43,7 @@ class GlobGateEngine(BaseEngine):
         Natively async verification.
         Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
         """
-        violations = []
+        violations: list[str | dict[str, Any]] = []
 
         # Normalize the path relative to project root for consistent matching
         try:

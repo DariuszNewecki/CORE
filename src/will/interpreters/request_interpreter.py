@@ -95,7 +95,7 @@ class RequestInterpreter(Component):
         return ComponentPhase.INTERPRET
 
     # ID: b5008a8d-629d-4c07-b1bf-b6f3ba667e0b
-    async def execute(self, **inputs) -> ComponentResult:
+    async def execute(self, *args: Any, **kwargs: Any) -> ComponentResult:
         """
         Parse input → TaskStructure.
 

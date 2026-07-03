@@ -10,7 +10,7 @@ from pathlib import Path
 
 def _iter_capability_files(base: Path) -> Iterable[Path]:
     if not base.exists():
-        return []
+        return
     for p in sorted(base.glob("**/*")):
         if p.is_dir():
             continue

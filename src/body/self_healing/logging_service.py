@@ -257,6 +257,7 @@ class LoggingTransformer(ast.NodeTransformer):
 
     def _transform_fstring_to_percent(self, node: ast.Call) -> ast.Call | None:
         """Transform logger.info(f"text {var}") to logger.info("text %s", var)."""
+        assert isinstance(node.args[0], ast.JoinedStr)  # caller guards isinstance
         converted = self._fstring_to_percent_args(node.args[0])
         if not converted:
             return None

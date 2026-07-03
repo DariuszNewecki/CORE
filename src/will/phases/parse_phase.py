@@ -53,6 +53,8 @@ class ParsePhase:
 
         # Wire PlannerAgent from CoreContext services.
         # qdrant_service is optional — PlannerAgent degrades gracefully if absent.
+        if core_context.cognitive_service is None:
+            raise ValueError("cognitive_service required for ParsePhase")
         self._planner = PlannerAgent(
             cognitive_service=core_context.cognitive_service,
             repo_path=repo_path,

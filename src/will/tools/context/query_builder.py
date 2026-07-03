@@ -6,7 +6,7 @@ SQL query builder for symbol retrieval.
 
 from __future__ import annotations
 
-from sqlalchemy import text
+from sqlalchemy import TextClause, text
 
 
 # ID: b4c13c27-9de5-4e0a-a65b-60cbec617ccd
@@ -17,7 +17,7 @@ class SymbolQueryBuilder:
     # ID: efb3d7e9-3422-4364-8334-2747efce05cf
     def build_symbols_by_ids_query(
         symbol_ids: list[str],
-    ) -> tuple[text, dict[str, str]]:
+    ) -> tuple[TextClause, dict[str, str]]:
         """
         Build parameterized query to fetch symbols by IDs.
 

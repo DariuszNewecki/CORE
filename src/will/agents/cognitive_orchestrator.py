@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 from body.services.mind_state_service import MindStateService
 from shared.infrastructure.database.models import (
@@ -149,7 +150,9 @@ class CognitiveOrchestrator:
             for resource in ordered
         ]
 
+        from shared.infrastructure.llm.client import LLMClient
+
         return FallbackAwareLLMClient(
-            client_factories=factories,
+            client_factories=cast(list[Callable[[], Awaitable[LLMClient]]], factories),
             resource_names=[r.name for r in ordered],
         )

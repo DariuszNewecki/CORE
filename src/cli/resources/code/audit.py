@@ -46,6 +46,7 @@ from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
 )
+from shared.models import AuditSeverity
 from shared.path_utils import get_repo_root
 
 from .hub import app
@@ -346,7 +347,7 @@ def _emit_error(output_format: str, kind: str, exc: Exception) -> None:
 
 
 # ID: c70adf31-b238-466d-9e78-f1461e437f67
-def _render_text_summary(result: dict, min_severity: object) -> None:
+def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
     """Human-readable Rich rendering for the offline path."""
     all_findings = [to_audit_finding(f) for f in result["findings"]]
     stats = result.get("stats", {})

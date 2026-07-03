@@ -76,7 +76,7 @@ class KnowledgeGateEngine(BaseEngine):
         }
 
     # ID: d2fa4e12-5198-462f-9615-0d286c200529
-    def verify(self, file_path, params: dict[str, Any]) -> EngineResult:
+    def verify(self, file_path, params: dict[str, Any]) -> EngineResult:  # type: ignore[override]
         return EngineResult(
             ok=False,
             message="KnowledgeGateEngine requires AuditorContext.",

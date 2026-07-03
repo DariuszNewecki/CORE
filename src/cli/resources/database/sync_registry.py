@@ -41,10 +41,13 @@ async def sync_registry_cmd(
         )
         return
 
+    from typing import cast
+
     from body.maintenance.command_sync_service import _sync_commands_to_db
     from cli.admin_cli import app as main_app
+    from shared.protocols.typer_protocols import TyperAppLike
 
     async with get_session() as session:
-        await _sync_commands_to_db(session, main_app)
+        await _sync_commands_to_db(session, cast(TyperAppLike, main_app))
 
     typer.echo("✅ CLI Registry synchronized to database.")

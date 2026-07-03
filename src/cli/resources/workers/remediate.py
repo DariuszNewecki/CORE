@@ -157,7 +157,10 @@ async def _run_file_pipeline(
     # Step 1 — File-scoped full audit
     logger.info("Step 1/2 - Full audit scoped to %s", file_path)
 
-    auditor_context: AuditorContext = core_context.auditor_context
+    auditor_context: AuditorContext | None = core_context.auditor_context
+    if auditor_context is None:
+        logger.error("auditor_context not initialized")
+        return
     async with get_session() as session:
         auditor_context.db_session = session
         await auditor_context.load_knowledge_graph()

@@ -748,7 +748,7 @@ async def action_fix_modularity(
     # 6. Logic Conservation Gate
     proposed_map = {f["path"]: f["content"] for f in files}
     try:
-        conservation_validator = LogicConservationValidator()
+        conservation_validator = LogicConservationValidator()  # type: ignore[abstract]
         verdict = await conservation_validator.evaluate(
             original_code=original_content,
             proposed_map=proposed_map,

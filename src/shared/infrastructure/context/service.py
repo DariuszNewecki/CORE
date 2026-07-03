@@ -229,7 +229,7 @@ class ContextService:
         # Re-shape ContextPacket -> the dict shape consumed by callers.
         # Callers index on "context"; ContextPacket stores evidence under .evidence.
         # The builder produces a list; the dataclass annotation says dict — guard both.
-        evidence = packet.evidence
+        evidence: dict[str, Any] | list[Any] = packet.evidence
         if isinstance(evidence, dict):
             evidence = list(evidence.values()) if evidence else []
 

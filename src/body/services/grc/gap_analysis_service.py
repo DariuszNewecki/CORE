@@ -389,7 +389,7 @@ class DocumentCorpusAnalysisService:
 
         if rule.is_context_level:
             # attestation_gate: always NEEDS_HUMAN; attestation_prompt → rationale.
-            findings = await execute_rule(rule, context)
+            findings = await execute_rule(rule, context)  # type: ignore[arg-type]
             rationale = next(
                 (
                     f.context.get("attestation_prompt", "")
@@ -424,7 +424,7 @@ class DocumentCorpusAnalysisService:
             return await self._evaluate_judged_requirement(rule, context, engine)
 
         # Deterministic engines (regex_gate, etc.)
-        findings = await execute_rule(rule, context)
+        findings = await execute_rule(rule, context)  # type: ignore[arg-type]
         return self._classify_deterministic(rule, findings, engine)
 
     # ID: 4555210b-5a8c-4031-9063-976e587c7155

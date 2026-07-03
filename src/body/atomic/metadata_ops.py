@@ -16,7 +16,7 @@ NOT used by: file.edit, file.create (those are WRITE_CODE)
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
@@ -111,7 +111,7 @@ async def action_tag_metadata(
             )
 
         # 3. CONSTITUTIONAL PROOF: verify metadata-only diff
-        proof_params = {"max_comment_length": max_comment_length}
+        proof_params: dict[str, Any] = {"max_comment_length": max_comment_length}
         if allowed_operations is not None:
             proof_params["allowed_operations"] = allowed_operations
 

@@ -30,7 +30,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 
@@ -227,7 +227,7 @@ def _vocab_result(check: str, violations: list[str]) -> EngineResult:
     return EngineResult(
         ok=False,
         message=f"artifact_gate[{check}]: {len(violations)} violation(s).",
-        violations=violations,
+        violations=cast(list[str | dict[str, Any]], violations),
         engine_id=_ENGINE_ID,
     )
 
@@ -743,7 +743,7 @@ async def _check_namespace_has_drainer(
             f"artifact_gate[{check}]: {len(unmapped)} unmapped quarantine "
             "namespace(s) — ADR-072 invariant violated."
         ),
-        violations=violations,
+        violations=cast(list[str | dict[str, Any]], violations),
         engine_id=_ENGINE_ID,
     )
 
@@ -1225,7 +1225,7 @@ class ArtifactGateEngine(BaseEngine):
         return EngineResult(
             ok=False,
             message=f"artifact_gate[{check}]: {len(violations)} violation(s) in {file_path.name}.",
-            violations=violations,
+            violations=cast(list[str | dict[str, Any]], violations),
             engine_id=self.engine_id,
         )
 

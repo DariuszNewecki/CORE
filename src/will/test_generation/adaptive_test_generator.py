@@ -43,7 +43,7 @@ class AdaptiveTestGenerator:
         repo_path = context.git_service.repo_path
 
         # Primitives
-        self.file_service = FileService(str(repo_path))
+        self.file_service = FileService(repo_path)
         self.artifacts = TestGenArtifactStore(self.file_service)
         self.session_dir = self.artifacts.start_session().session_dir
 
@@ -88,6 +88,8 @@ class AdaptiveTestGenerator:
 
         # 3. CORE GENERATION
         strategy = await TestStrategist().execute(analysis.data["file_type"])
+        if context_service is None:
+            return self._empty_fail(file_path)
         gen_data = await self.generation_phase.execute(
             file_path=file_path,
             symbols=symbols,

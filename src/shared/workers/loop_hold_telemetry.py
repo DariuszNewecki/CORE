@@ -100,7 +100,7 @@ class SlowCallbackBlackboardHandler(logging.Handler):
             if not args or not isinstance(args, tuple) or len(args) < 2:
                 return
             try:
-                duration_sec = float(args[1])
+                duration_sec = float(args[1])  # type: ignore[arg-type]
             except (TypeError, ValueError):
                 return
             handle_repr = str(args[0])

@@ -55,8 +55,8 @@ def _split_capability_key(suggested_name: str) -> tuple[str | None, str | None]:
     if "." not in key:
         return None, None
     proposed_domain, namespace = key.split(".", 1)
-    proposed_domain = proposed_domain.strip() or None
-    namespace = namespace.strip() or None
+    proposed_domain = proposed_domain.strip() or None  # type: ignore[assignment]
+    namespace = namespace.strip() or None  # type: ignore[assignment]
     return proposed_domain, namespace
 
 
@@ -92,7 +92,7 @@ async def _async_tag_capabilities(
     # 1. Consult the Will (Agent) to get suggestions
     agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
     suggestions = await agent.suggest_and_apply_tags(
-        file_path=file_path.as_posix() if file_path else None,
+        file_path=file_path,
         limit=limit,
     )
 

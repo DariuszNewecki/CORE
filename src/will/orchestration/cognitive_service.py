@@ -148,7 +148,7 @@ class CognitiveService:
         """
         self._require_ready()
         assert self._orch is not None
-        return await self._orch.get_client_for_role(
+        return await self._orch.get_client_for_role(  # type: ignore[return-value]
             role_name, high_reasoning=high_reasoning
         )
 

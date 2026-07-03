@@ -39,7 +39,7 @@ class AuthClient:
             access_token = response.cookies.get("core_access", "")
             refresh_token = response.cookies.get("core_refresh", "")
             if access_token:
-                save_session(access_token, refresh_token)
+                save_session(access_token, refresh_token or "")
             return response.json()
 
     # ID: 209ef33f-414e-4795-8ddb-dc3a36f2c91f

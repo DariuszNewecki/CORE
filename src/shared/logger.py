@@ -22,7 +22,9 @@ _LOG_FORMAT_TYPE = os.getenv("LOG_FORMAT_TYPE", "human").lower()  # json or huma
 _VALID_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 
 # Context variable for Activity correlation (Workflow Tracing)
-_current_run_id = contextvars.ContextVar("run_id", default=None)
+_current_run_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "run_id", default=None
+)
 
 # Use a module logger for internal bootstrap events
 _boot_logger = logging.getLogger(__name__)

@@ -47,7 +47,7 @@ See: .specs/papers/CORE-Infrastructure-Definition.md Section 5
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, overload
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -184,6 +184,18 @@ class ConfigService:
         self._secrets_service = None
 
     # ID: 59a5c363-943b-42aa-a048-b4c34a0e19cb
+    @overload
+    # ID: 4960b91c-128b-4aaa-b652-083349902fc2
+    async def get(
+        self, key: str, default: str | None = ..., *, required: Literal[True]
+    ) -> str: ...
+
+    @overload
+    # ID: a981a162-33d8-46e8-8782-253ce1b502f0
+    async def get(
+        self, key: str, default: str | None = ..., required: bool = ...
+    ) -> str | None: ...
+
     async def get(
         self, key: str, default: str | None = None, required: bool = False
     ) -> str | None:
@@ -350,7 +362,7 @@ class LLMResourceConfig:
         value = await self.config.get(key)
         if not value:
             value = await self.config.get(default_key, default="2")
-        return int(value)
+        return int(value or "2")
 
     # ID: e3d22f99-4b0f-4715-be5b-752e0df97356
     async def get_rate_limit(self) -> float:
@@ -360,7 +372,7 @@ class LLMResourceConfig:
         value = await self.config.get(key)
         if not value:
             value = await self.config.get(default_key, default="2.0")
-        return float(value)
+        return float(value or "2.0")
 
     # ID: aaeb75b1-3017-44f8-818f-80575ed1461b
     async def get_timeout(self) -> int:
@@ -370,7 +382,7 @@ class LLMResourceConfig:
         value = await self.config.get(key)
         if not value:
             value = await self.config.get(default_key, default="300")
-        return int(value)
+        return int(value or "300")
 
 
 # ID: 9d684627-5b6e-49c0-be02-cbab851e6067

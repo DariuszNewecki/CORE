@@ -118,15 +118,14 @@ async def export_vectors(
             / "vectors_export.jsonl"
         )
     output_path = Path(output)
-    if not getattr(context, "qdrant_service", None) or not getattr(
-        context, "file_handler", None
-    ):
+    qdrant_service = context.qdrant_service
+    if qdrant_service is None or context.file_handler is None:
         raise VectorExportError(
             "CoreContext must provide qdrant_service and file_handler.", exit_code=1
         )
 
     await _async_export(
-        context.qdrant_service,
+        qdrant_service,
         context.file_handler,
         output_path,
         context.git_service.repo_path,

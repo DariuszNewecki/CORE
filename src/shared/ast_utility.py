@@ -267,7 +267,8 @@ def normalize_ast(node: ast.AST) -> str:
                 node.id = new_name
             elif node.id in self._var_map:
                 node.id = self._var_map[node.id]
-            return self.generic_visit(node)
+            self.generic_visit(node)
+            return node
 
         # ID: 86ecbe35-65c3-4338-bfbd-1c55c3ca53fb
         def visit_Constant(self, node: ast.Constant) -> ast.Constant:

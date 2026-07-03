@@ -103,15 +103,15 @@ class CognitiveEmbedderAdapter:
         if not texts:
             return []
         try:
-            embeddings = await self._cognitive_service.get_embedding_for_code(  # type: ignore[attr-defined]
-                texts
-            )
+            embeddings = await self._cognitive_service.get_embedding_for_code(texts)  # type: ignore[attr-defined, arg-type]
+            if embeddings is None:
+                raise RuntimeError("CognitiveService returned None for batch embedding")
             if len(embeddings) != len(texts):
                 raise RuntimeError(
                     f"CognitiveService returned {len(embeddings)} embeddings "
                     f"for {len(texts)} inputs — batch response misalignment"
                 )
-            return embeddings
+            return embeddings  # type: ignore[return-value]
         except Exception as e:
             logger.error(
                 "Failed to generate batch embeddings via CognitiveService: %s", e

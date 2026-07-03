@@ -36,7 +36,7 @@ def find_similar_tests(
                 )
         except Exception:
             continue
-    return sorted(examples, key=lambda x: x["similarity"], reverse=True)[:3]
+    return sorted(examples, key=lambda x: x["similarity"], reverse=True)[:3]  # type: ignore[arg-type, return-value]
 
 
 # ID: 0f835005-0080-4f59-a4db-4b4e2da92c17

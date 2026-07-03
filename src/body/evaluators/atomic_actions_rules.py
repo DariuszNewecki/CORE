@@ -152,6 +152,8 @@ def _validate_decorator_metadata(
     decorator_args: dict[str, Any] = {}
 
     for keyword in decorator.keywords:
+        if keyword.arg is None:
+            continue
         if isinstance(keyword.value, ast.Constant):
             decorator_args[keyword.arg] = keyword.value.value
         elif isinstance(keyword.value, ast.Attribute):

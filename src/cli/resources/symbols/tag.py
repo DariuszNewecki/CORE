@@ -35,6 +35,9 @@ async def tag_symbols_command(
     from will.self_healing.capability_tagging_service import main_async
 
     core_context: CoreContext = ctx.obj
+    if core_context.cognitive_service is None:
+        console.print("[red]Error: cognitive_service not available[/red]")
+        return
     mode = "APPLYING" if write else "PREVIEWING"
     console.print(f"[bold cyan]🧠 {mode} AI capability tagging...[/bold cyan]")
     await main_async(

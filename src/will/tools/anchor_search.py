@@ -46,13 +46,14 @@ async def find_best_placement(
             {
                 "score": hit.score,
                 "type": "module",
-                "path": hit.payload["path"],
-                "name": hit.payload["name"],
-                "purpose": hit.payload.get("purpose", "") if hit.payload else "",
-                "layer": hit.payload["layer"],
+                "path": (hit.payload or {}).get("path", ""),
+                "name": (hit.payload or {}).get("name", ""),
+                "purpose": (hit.payload or {}).get("purpose", ""),
+                "layer": (hit.payload or {}).get("layer", ""),
                 "confidence": "high" if hit.score > 0.5 else "medium",
             }
             for hit in module_results[:limit]
+            if hit.payload
         ]
 
     # Fallback to layer-level search
@@ -69,11 +70,12 @@ async def find_best_placement(
         {
             "score": hit.score,
             "type": "layer",
-            "path": hit.payload["path"],
-            "name": hit.payload["name"],
-            "purpose": hit.payload["purpose"],
-            "layer": hit.payload["name"],
+            "path": (hit.payload or {}).get("path", ""),
+            "name": (hit.payload or {}).get("name", ""),
+            "purpose": (hit.payload or {}).get("purpose", ""),
+            "layer": (hit.payload or {}).get("name", ""),
             "confidence": "high" if hit.score > 0.5 else "medium",
         }
         for hit in layer_results
+        if hit.payload
     ]

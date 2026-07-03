@@ -108,7 +108,7 @@ class NamingChecks:
                 continue
 
             # Calculate function length
-            if hasattr(node, "end_lineno") and hasattr(node, "lineno"):
+            if node.end_lineno is not None and node.lineno is not None:
                 func_length = node.end_lineno - node.lineno + 1
 
                 if func_length > limit:

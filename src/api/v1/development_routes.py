@@ -70,7 +70,7 @@ async def start_development_cycle(
             goal=payload.goal,
             workflow_type=payload.workflow_type,
             write=payload.write,
-            task_id=new_task.id,
+            task_id=str(new_task.id),
         )
 
     background_tasks.add_task(run_development)

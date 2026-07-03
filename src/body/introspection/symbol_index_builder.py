@@ -28,7 +28,7 @@ logger = getLogger(__name__)
 try:
     import yaml
 except Exception:
-    yaml = None
+    yaml = None  # type: ignore[assignment]
 
 
 @dataclass

@@ -42,8 +42,8 @@ _CFG = load_operational_config().testing
 class SandboxResult:
     passed: bool  # Overall: True if ALL tests passed
     error: str = ""
-    passed_tests: list[str] = None  # List of test function names that passed
-    failed_tests: list[str] = None  # List of test function names that failed
+    passed_tests: list[str] | None = None
+    failed_tests: list[str] | None = None
     total_tests: int = 0
 
     def __post_init__(self):

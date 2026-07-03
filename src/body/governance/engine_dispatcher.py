@@ -78,6 +78,8 @@ class EngineDispatcher:
 
         try:
             # Get engine from registry
+            if rule.engine is None:
+                return violations
             engine = EngineRegistry.get(rule.engine)
 
             # Invoke engine verification with absolute path

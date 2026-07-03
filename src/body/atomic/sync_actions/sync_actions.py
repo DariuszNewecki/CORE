@@ -361,6 +361,14 @@ async def action_sync_constitutional_vectors(
                 duration_sec=time.time() - start,
             )
 
+        if core_context.qdrant_service is None:
+            return ActionResult(
+                action_id="sync.vectors_constitution",
+                ok=True,
+                data={"status": "skipped", "reason": "qdrant_service_unavailable"},
+                duration_sec=time.time() - start,
+            )
+
         from shared.infrastructure.vector.cognitive_adapter import (
             CognitiveEmbedderAdapter,
         )

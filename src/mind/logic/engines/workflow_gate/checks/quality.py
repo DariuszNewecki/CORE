@@ -38,7 +38,7 @@ _CFG = load_operational_config().workflow_gate
 # remains reproducible by re-running the tool; the payload stays bounded.
 _SAMPLE_CAP = 10
 
-# mypy: "src/foo.py:36: error: message  [code]" (column is optional).
+# Pattern: "src/foo.py:36: error: message  [code]" (column is optional).
 _MYPY_LINE = re.compile(
     r"^(?P<file>[^:]+?\.py):(?P<line>\d+):(?:\d+:)?\s*error:\s*(?P<msg>.*)$"
 )

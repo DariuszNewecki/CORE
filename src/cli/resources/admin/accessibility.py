@@ -79,12 +79,14 @@ async def accessibility_cmd(
     Filter with --tier user-facing or --tier governor-only.
     """
     import json as _json
+    from typing import cast
 
     from cli.admin_cli import app as main_app
     from shared.cli.app_introspection import walk_typer_app
+    from shared.protocols.typer_protocols import TyperAppLike
 
     # ── CLI commands ──────────────────────────────────────────────────────────
-    all_cmds = walk_typer_app(main_app)
+    all_cmds = walk_typer_app(cast(TyperAppLike, main_app))
     cli_rows: list[tuple[str, str, str, str]] = []
     for cmd in all_cmds:
         callback = cmd.get("callback")

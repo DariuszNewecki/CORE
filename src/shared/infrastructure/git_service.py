@@ -406,6 +406,7 @@ class GitService:
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
+        assert proc.returncode is not None  # guaranteed after communicate()
         return proc.returncode, stdout.decode(), stderr.decode()
 
     # ID: 2ac7d7ba-e892-4858-b4ef-8f5f1c8094e5

@@ -106,7 +106,7 @@ class VectorIndexService:
             return [
                 IndexResult(
                     item_id=item.item_id,
-                    point_id=get_deterministic_id(item.item_id),
+                    point_id=get_deterministic_id(item.item_id),  # type: ignore[arg-type]
                     vector_dim=self.vector_dim,
                 )
                 for item in items
@@ -148,7 +148,7 @@ class VectorIndexService:
                 logger.warning("Failed to embed %s: empty embedding", item.item_id)
                 continue
 
-            vector = list(emb)
+            vector = list(emb)  # type: ignore[arg-type]
 
             # Constitutional invariant: vector dim must match collection dim
             if len(vector) != self.vector_dim:
@@ -192,7 +192,7 @@ class VectorIndexService:
         return [
             IndexResult(
                 item_id=item.item_id,
-                point_id=get_deterministic_id(item.item_id),
+                point_id=get_deterministic_id(item.item_id),  # type: ignore[arg-type]
                 vector_dim=self.vector_dim,
             )
             for item, _vector in valid_pairs

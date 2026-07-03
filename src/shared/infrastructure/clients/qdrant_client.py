@@ -189,7 +189,7 @@ class QdrantService:
         """
         target_collection = collection_name or self.collection_name
         all_points: list[qm.Record] = []
-        offset: str | None = None
+        offset: Any = None
 
         while True:
             try:

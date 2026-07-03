@@ -77,6 +77,11 @@ class CodeValidator:
         # 3. Engine Dispatch
         try:
             engine_id = strategy.get("engine")
+            if engine_id is None:
+                logger.warning("No engine specified in strategy for rule: %s", rule_id)
+                return ConstitutionalValidationResult(
+                    is_valid=True, source="CodeValidator"
+                )
             params = strategy.get("params", {})
 
             engine = EngineRegistry.get(engine_id)

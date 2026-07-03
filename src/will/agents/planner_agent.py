@@ -54,14 +54,13 @@ class PlannerAgent:
         self.tracer = DecisionTracer()
 
         # PolicyVectorizer requires qdrant_service ? degrade gracefully if absent
+        self.policy_vectorizer: PolicyVectorizer | None = None
         if qdrant_service is not None:
             self.policy_vectorizer = PolicyVectorizer(
                 repo_root=repo_path,
                 cognitive_service=cognitive_service,
                 qdrant_service=qdrant_service,
             )
-        else:
-            self.policy_vectorizer = None
             logger.warning("PlannerAgent: Qdrant not available, policy RAG disabled.")
 
         # Load PromptModel artifact once
@@ -203,6 +202,8 @@ class PlannerAgent:
             Formatted string of relevant constitutional rules, or empty string
         """
         try:
+            if self.policy_vectorizer is None:
+                return ""
             policy_hits = await self.policy_vectorizer.search_policies(
                 query=goal, limit=5
             )

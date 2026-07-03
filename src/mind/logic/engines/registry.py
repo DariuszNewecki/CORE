@@ -177,8 +177,8 @@ class EngineRegistry:
 
         # JIT Initialization with Smart Injection
         # We check the constructor to see what dependencies the engine actually wants.
-        sig = inspect.signature(engine_cls.__init__)
-        params = {}
+        sig = inspect.signature(engine_cls.__init__)  # type: ignore[misc]
+        params: dict[str, Any] = {}
 
         if "path_resolver" in sig.parameters:
             params["path_resolver"] = cls._path_resolver

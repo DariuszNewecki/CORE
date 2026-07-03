@@ -139,7 +139,7 @@ class CrawlOrchestrator:
         """
         logger.info("CrawlOrchestrator.run_crawl: starting crawl pass")
         crawl_run_id = uuid.uuid4()
-        stats: dict[str, int] = {
+        stats: dict[str, Any] = {
             "files_scanned": 0,
             "files_changed": 0,
             "symbols_linked": 0,

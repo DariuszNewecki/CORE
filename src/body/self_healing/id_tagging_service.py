@@ -12,7 +12,8 @@ import re
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionImpact, ActionResult
@@ -85,7 +86,7 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     executor = ActionExecutor(context)
     src_dir = context.git_service.repo_path / "src"
     total_ids_assigned = 0
-    files_to_fix = defaultdict(list)
+    files_to_fix: dict[Path, list[dict[str, Any]]] = defaultdict(list)
 
     if not src_dir.exists():
         logger.warning("Source directory not found: %s", src_dir)
@@ -145,14 +146,14 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     # 2. Execution Phase (Gateway dispatch)
     for file_path, fixes in files_to_fix.items():
         # Sort by line number descending to prevent line-shift errors during insertion
-        fixes.sort(key=lambda x: x["line_number"], reverse=True)
+        fixes.sort(key=lambda x: int(x["line_number"]), reverse=True)
 
         try:
             rel_path = str(file_path.relative_to(context.git_service.repo_path))
             lines = file_path.read_text("utf-8").splitlines()
 
             for fix in fixes:
-                line_index = fix["line_number"] - 1
+                line_index = int(fix["line_number"]) - 1
                 original_line = lines[line_index]
                 indentation = len(original_line) - len(original_line.lstrip(" "))
                 new_id = str(uuid.uuid4())

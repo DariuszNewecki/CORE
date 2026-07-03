@@ -19,7 +19,7 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from mind.logic.engines.cli_gate.base_check import CliCheck
@@ -173,8 +173,11 @@ class CliGateEngine(BaseEngine):
         """
         from cli.admin_cli import app as main_app
         from shared.cli.app_introspection import walk_typer_app
+        from shared.protocols.typer_protocols import TyperAppLike
 
-        commands = walk_typer_app(main_app, include_missing_handlers=True)
+        commands = walk_typer_app(
+            cast(TyperAppLike, main_app), include_missing_handlers=True
+        )
         repo_root = self._path_resolver.repo_root
         filtered: list[dict[str, Any]] = []
         for cmd in commands:

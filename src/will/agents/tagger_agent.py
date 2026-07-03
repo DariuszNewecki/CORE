@@ -38,7 +38,7 @@ class CapabilityTaggerAgent:
         self.knowledge_service = knowledge_service
         self.tracer = DecisionTracer()
         self.prompt_model = PromptModel.load("capability_definer")
-        self.tagger_client = None
+        self.tagger_client: Any = None
         self.entry_point_patterns = entry_point_patterns or []
 
     def _is_entry_point(self, symbol_data: dict[str, Any]) -> bool:

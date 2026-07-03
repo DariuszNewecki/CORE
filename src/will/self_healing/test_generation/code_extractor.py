@@ -193,6 +193,7 @@ class CodeExtractor:
 
         for line in lines:
             if in_broken_string:
+                assert quote_char is not None  # set whenever in_broken_string is True
                 stripped = line.rstrip()
                 if stripped.endswith(quote_char) and not stripped.endswith(
                     f"\\{quote_char}"

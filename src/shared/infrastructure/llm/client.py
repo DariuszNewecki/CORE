@@ -480,6 +480,7 @@ async def create_llm_client_for_role(
     api_key = await resource_config.get_api_key(audit_context=cognitive_role)
     model_name = await resource_config.get_model_name()
 
+    provider: AIProvider
     if "anthropic" in api_url:
         from .providers.anthropic import AnthropicProvider
 

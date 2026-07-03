@@ -509,7 +509,7 @@ async def action_fix_atomic_actions(
     # str/Path confusion in this function (keys are Path, consumed as str). That
     # is a real bug tracked separately, not a mechanical annotation — suppressing
     # the var-annotated finding here would hide it. See #644 (str/Path confusion).
-    violations_by_file = {}
+    violations_by_file = {}  # type: ignore[var-annotated]
     for v in violations:
         violations_by_file.setdefault(v.file_path, []).append(v)
 
@@ -678,6 +678,17 @@ async def action_fix_capability_tagging(
     legitimately depends on will/orchestration, so it stays in will/.
     """
     start = time.time()
+    if core_context.cognitive_service is None:
+        return ActionResult(
+            action_id="fix.capability_tagging",
+            ok=False,
+            data={
+                "error": "cognitive_service not available",
+                "write": write,
+                "limit": limit,
+            },
+            duration_sec=0.0,
+        )
     from shared.infrastructure.database.session_manager import get_session
     from will.self_healing.capability_tagging_service import main_async as tag
 

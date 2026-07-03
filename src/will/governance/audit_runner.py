@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -64,7 +65,7 @@ logger = getLogger(__name__)
 _BLOCKING_SEVERITIES = {"error", "critical"}
 
 
-def _blocking_count_from_dicts(findings: list[dict]) -> int:
+def _blocking_count_from_dicts(findings: Iterable[Mapping[str, object]]) -> int:
     return sum(
         1
         for f in findings

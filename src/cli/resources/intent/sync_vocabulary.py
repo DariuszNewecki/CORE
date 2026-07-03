@@ -386,7 +386,7 @@ async def sync_intent(
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     generator_version = _read_package_version()
 
-    projection = _build_projection(
+    projection = _build_projection(  # type: ignore[assignment]
         schema_value=schema_value,
         preserved_meta=preserved_meta,
         source_hash=source_hash,

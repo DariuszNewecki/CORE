@@ -64,7 +64,7 @@ async def create_conversational_agent() -> ConversationalAgent:
 
     # Create and return agent
     agent = ConversationalAgent(
-        context_builder=context_builder,
+        context_builder=context_builder,  # type: ignore[arg-type]
         cognitive_service=cognitive_service,
     )
 

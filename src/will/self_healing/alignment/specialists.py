@@ -39,7 +39,7 @@ class SpecialistDispatcher:
     def _make_file_service(self, repo_root: Path):
         from body.services.file_service import FileService
 
-        return FileService(str(repo_root))
+        return FileService(repo_root)
 
     # ID: 3415c10d-1be1-4113-88db-9c3c57443219
     async def trigger_modularizer(self, file_path: str, write: bool) -> bool:
@@ -159,7 +159,8 @@ class SpecialistDispatcher:
             from body.self_healing.id_tagging_service import assign_missing_ids
 
             await assign_missing_ids(
-                context=None, write=False
+                context=None,
+                write=False,  # type: ignore[arg-type]
             )  # Context handled by Registry
             return True
         return False

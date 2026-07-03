@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from shared.infrastructure.context.service import ContextService
     from shared.models import ExecutionTask
     from shared.path_resolver import PathResolver  # Added for type safety
-    from will.orchestration.cognitive_service import CognitiveService
+    from shared.protocols.cognitive import CognitiveProtocol
     from will.orchestration.decision_tracer import DecisionTracer
     from will.orchestration.prompt_pipeline import PromptPipeline
     from will.tools.architectural_context_builder import ArchitecturalContextBuilder
@@ -62,7 +62,7 @@ class CodeGenerator:
 
     def __init__(
         self,
-        cognitive_service: CognitiveService,
+        cognitive_service: CognitiveProtocol,
         path_resolver: PathResolver,  # ADDED: Boundary alignment
         prompt_pipeline: PromptPipeline,
         tracer: DecisionTracer,

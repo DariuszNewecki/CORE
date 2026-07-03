@@ -81,7 +81,7 @@ class _CallGraphExtractor(ast.NodeVisitor):
         self.generic_visit(node)
         self._current_caller_id = None
 
-    visit_AsyncFunctionDef = visit_FunctionDef
+    visit_AsyncFunctionDef = visit_FunctionDef  # type: ignore[assignment]
 
     # ID: 216190a2-ca25-4659-9cac-7659d3fefef4
     def visit_ClassDef(self, node: ast.ClassDef) -> None:

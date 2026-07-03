@@ -260,7 +260,7 @@ class PatternValidator:
                 return (False, [{"message": f"Syntax error: {e}", "severity": "error"}])
 
         # Complex patterns are delegated to the IntentGuard (The Law)
-        return await self.intent_guard.validate_generated_code(
+        return await self.intent_guard.validate_generated_code(  # type: ignore[misc]
             code=code,
             pattern_id=pattern_id,
             component_type=component_type,

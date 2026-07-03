@@ -57,8 +57,8 @@ class ImportChecks:
 
     @staticmethod
     def _find_type_checking_blocks(
-        tree: ast.Module,
-    ) -> set[ast.stmt]:  # ← Changed from set[ast.AST]
+        tree: ast.AST,
+    ) -> set[ast.stmt]:
         """Find all nodes inside TYPE_CHECKING blocks."""
         type_checking_nodes: set[ast.stmt] = set()  # ← Added explicit type annotation
 

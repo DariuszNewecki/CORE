@@ -35,7 +35,7 @@ class RegexGateEngine(BaseEngine):
         Natively async verification.
         Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
         """
-        violations = []
+        violations: list[str | dict[str, Any]] = []
 
         # FACT 1: Check Filename Naming Conventions
         name_pattern = params.get("naming_pattern")

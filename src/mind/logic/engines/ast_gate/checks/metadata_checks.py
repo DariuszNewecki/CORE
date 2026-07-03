@@ -218,7 +218,11 @@ def _extract_docstrings(code: str) -> dict[str, str]:
     result: dict[str, str] = {}
 
     def _visit(node: ast.AST, prefix: str = "") -> None:
-        targets = []
+        targets: list[
+            tuple[
+                str, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
+            ]
+        ] = []
         if isinstance(node, ast.Module):
             targets = [("Module", node)]
         if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):

@@ -144,6 +144,16 @@ async def run_and_persist_audit_remediation(
         )
         return
 
+    if context.auditor_context is None:
+        await _update_remediation_run_status(
+            session,
+            run_id,
+            "failed",
+            finished=True,
+            error="auditor_context not available",
+        )
+        return
+
     try:
         service = AuditRemediationService(
             file_handler=context.file_service,

@@ -568,7 +568,7 @@ class AuthService:
         if not rec or not verify_password(current_password, rec[0]):
             await self._log_event(
                 "password_change_failed",
-                user_id=user_id,
+                user_id=UUID(user_id),
                 metadata={"reason": "bad_current_password"},
             )
             return False
@@ -582,7 +582,7 @@ class AuthService:
             text("UPDATE core.refresh_tokens SET revoked = true WHERE user_id = :uid"),
             {"uid": user_id},
         )
-        await self._log_event("password_changed", user_id=user_id)
+        await self._log_event("password_changed", user_id=UUID(user_id))
         await self._session.commit()
         return True
 

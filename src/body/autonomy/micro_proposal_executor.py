@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 from body.infrastructure.storage.file_handler import FileHandler
-from body.services.cim.models import CheckResult
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 from shared.processors.yaml_processor import strict_yaml_processor
@@ -43,6 +42,18 @@ class MicroProposal:
     content: str
     validation_report_id: str | None = None
     intent_bundle_id: str | None = None  # Added for constitutional audit traceability
+
+
+@dataclass
+# ID: 3b4e9c2a-1f7d-4a8b-b5e0-c9d0e1f23456
+class CheckResult:
+    """Local validation result for micro-proposal policy checks."""
+
+    policy_id: str
+    rule_id: str
+    severity: str
+    message: str
+    path: str | None
 
 
 # ID: 91fbe5a7-9add-46b5-9443-c9759e49fa28
