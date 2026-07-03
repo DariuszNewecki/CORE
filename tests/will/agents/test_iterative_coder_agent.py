@@ -44,20 +44,21 @@ async def test_accepted_on_first_attempt():
     cond = _make_accept_condition(accepted=True)
     iterative = IterativeCoderAgent(coder_agent=agent)
 
+    task = _make_task()
     with patch(
         "will.agents.iterative_coder_agent.load_generation_budget"
     ) as mock_budget:
         from shared.infrastructure.intent.generation_budget import TaskBudget
         mock_budget.return_value.for_task_type.return_value = TaskBudget(5, 600)
         result = await iterative.generate_until_accepted(
-            task=_make_task(), goal="generate test", acceptance=cond
+            task=task, goal="generate test", acceptance=cond
         )
 
     assert result.accepted
     assert result.iterations_used == 1
     assert result.final_violations == []
     agent.generate_or_repair.assert_called_once_with(
-        task=_make_task(), goal="generate test", pain_signal=None, previous_code=None
+        task=task, goal="generate test", pain_signal=None, previous_code=None
     )
 
 

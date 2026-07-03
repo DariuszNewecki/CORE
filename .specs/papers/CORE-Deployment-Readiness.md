@@ -3,7 +3,7 @@ kind: paper
 id: CORE-Deployment-Readiness
 title: CORE — Deployment Mode and Multi-User Prerequisites
 status: canonical
-doctrine_tier: policy
+doctrine_tier: informational
 ---
 
 <!-- path: .specs/papers/CORE-Deployment-Readiness.md -->

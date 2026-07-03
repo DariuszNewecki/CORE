@@ -137,12 +137,12 @@ async def test_cache_miss_on_file_content_change(
 
     await execute_rule(rule, ctx)
 
-    # Yield so the event loop can process anything pending, then write new
-    # content. On filesystems with nanosecond mtime resolution this is enough;
-    # on coarser filesystems the write itself changes st_size, which is the
-    # second component of the cache key and is always reliable.
+    # Write content of a DIFFERENT LENGTH so st_size changes — this guarantees
+    # cache invalidation regardless of mtime resolution or event-loop timing.
+    # "x = 1" is 5 bytes; "x = 2  # changed" is longer, making size the
+    # reliable distinguisher under load when mtime may not advance.
     await asyncio.sleep(0)
-    target.write_text("x = 2")
+    target.write_text("x = 2  # changed")
 
     await execute_rule(rule, ctx)
 

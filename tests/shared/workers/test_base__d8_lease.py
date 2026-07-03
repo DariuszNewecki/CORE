@@ -122,7 +122,14 @@ async def test_start_spawns_and_cancels_lease_cleanly(
     db_session: AsyncSession,
 ) -> None:
     """start() spawns the lease task and cancels it in the finally block when
-    run() completes — no error surfaced, no lingering task."""
+    run() completes — no error surfaced, no lingering task.
+
+    run() increments _cycle_post_count directly to satisfy the silence check
+    without hitting the DB (the test is about lease spawn/cancel, not blackboard
+    writes). _blackboard is also mocked to keep the test fully in-memory.
+    """
+    from unittest.mock import MagicMock, patch
+
     worker = _LeaseMinimalWorker()
     worker._worker_uuid = uuid.uuid4()
     # Isolate the lifecycle from registration/release DB writes — this test
@@ -130,8 +137,20 @@ async def test_start_spawns_and_cancels_lease_cleanly(
     worker._register = AsyncMock()
     worker._release_held_claims = AsyncMock(return_value=0)
 
-    # run() returns immediately; the lease task (which sleeps before its first
-    # renewal) must be cancelled cleanly by start()'s finally block.
+    # Satisfy the silence check without a real DB write: bump _cycle_post_count
+    # inside run() so start() does not raise WorkerSilenceError.
+    async def _run_with_heartbeat() -> None:
+        worker._cycle_post_count += 1
+
+    worker.run = _run_with_heartbeat  # type: ignore[method-assign]
+
+    # Mock the blackboard entirely so no FK-constrained DB insert is attempted.
+    mock_bb = MagicMock()
+    mock_bb._post_entry = AsyncMock(return_value=uuid.uuid4())
+    mock_bb.post_heartbeat = AsyncMock(return_value=uuid.uuid4())
+    worker._blackboard = mock_bb
+
+    # run() completes immediately; the lease task must be cancelled cleanly.
     await worker.start()
 
     worker._register.assert_awaited_once()

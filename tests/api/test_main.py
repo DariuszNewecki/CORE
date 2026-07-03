@@ -61,6 +61,7 @@ def test_create_app():
     assert hasattr(app, "router")
     assert app.router.lifespan_context is not None
 
-    # Test that the app can handle a 404 (exception handlers working)
-    response = client.get("/nonexistent")
+    # Test that the app can handle a 404 — use v1/ prefix which the SPA
+    # catch-all explicitly re-raises as 404 (api/main.py SPA handler).
+    response = client.get("/v1/nonexistent_endpoint")
     assert response.status_code == 404

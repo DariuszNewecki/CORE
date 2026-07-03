@@ -17,8 +17,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
-def _make_sensor(tmp_prompts: Path) -> Any:
-    """Instantiate PromptDriftSensor with Worker infrastructure mocked out."""
+def _make_sensor(repo_root: Path) -> Any:
+    """Instantiate PromptDriftSensor with Worker infrastructure mocked out.
+
+    Provides a mock _core_context with git_service.repo_path = repo_root so
+    _compute_hash can derive prompts_dir via PathResolver without crashing.
+    """
     from will.workers.prompt_drift_sensor import PromptDriftSensor
 
     decl: dict[str, Any] = {
@@ -50,7 +54,9 @@ def _make_sensor(tmp_prompts: Path) -> Any:
         sensor._phase = "audit"
         sensor._approval_required = False
         sensor._max_interval = 900
-        sensor._core_context = None
+        sensor._core_context = MagicMock()
+        sensor._core_context.git_service.repo_path = repo_root
+        sensor._cycle_post_count = 0
 
     publisher = MagicMock()
     publisher.post_heartbeat = AsyncMock(return_value=uuid.uuid4())
@@ -58,7 +64,8 @@ def _make_sensor(tmp_prompts: Path) -> Any:
     publisher.post_finding = AsyncMock(return_value=uuid.uuid4())
     sensor._blackboard = publisher
 
-    return sensor, publisher, tmp_prompts
+    prompts_root = repo_root / "var" / "prompts"
+    return sensor, publisher, prompts_root
 
 
 def _write_prompt(prompts_root: Path, name: str, system_txt: str) -> None:
@@ -69,15 +76,11 @@ def _write_prompt(prompts_root: Path, name: str, system_txt: str) -> None:
 
 def test_compute_hash_stable(tmp_path: Path) -> None:
     """_compute_hash returns the same digest on two calls with identical content."""
-    prompts_root = tmp_path / "prompts"
+    sensor, _, prompts_root = _make_sensor(tmp_path)
     _write_prompt(prompts_root, "test_prompt", "You are a coder.")
 
-    sensor, _, _ = _make_sensor(prompts_root)
-
-    with patch("shared.config.settings") as mock_settings:
-        mock_settings.paths.prompts_dir = prompts_root
-        h1 = sensor._compute_hash("test_prompt")
-        h2 = sensor._compute_hash("test_prompt")
+    h1 = sensor._compute_hash("test_prompt")
+    h2 = sensor._compute_hash("test_prompt")
 
     assert h1 is not None
     assert h1 == h2
@@ -86,30 +89,22 @@ def test_compute_hash_stable(tmp_path: Path) -> None:
 
 def test_compute_hash_changes_on_content_change(tmp_path: Path) -> None:
     """_compute_hash produces a different digest after system.txt changes."""
-    prompts_root = tmp_path / "prompts"
+    sensor, _, prompts_root = _make_sensor(tmp_path)
     _write_prompt(prompts_root, "test_prompt", "Version 1.")
 
-    sensor, _, _ = _make_sensor(prompts_root)
-
-    with patch("shared.config.settings") as mock_settings:
-        mock_settings.paths.prompts_dir = prompts_root
-        h1 = sensor._compute_hash("test_prompt")
-        (prompts_root / "test_prompt" / "system.txt").write_text("Version 2.")
-        h2 = sensor._compute_hash("test_prompt")
+    h1 = sensor._compute_hash("test_prompt")
+    (prompts_root / "test_prompt" / "system.txt").write_text("Version 2.")
+    h2 = sensor._compute_hash("test_prompt")
 
     assert h1 != h2
 
 
 def test_compute_hash_returns_none_for_missing_dir(tmp_path: Path) -> None:
     """_compute_hash returns None when the prompt directory does not exist."""
-    prompts_root = tmp_path / "prompts"
-    prompts_root.mkdir()
+    sensor, _, prompts_root = _make_sensor(tmp_path)
+    prompts_root.mkdir(parents=True, exist_ok=True)
 
-    sensor, _, _ = _make_sensor(prompts_root)
-
-    with patch("shared.config.settings") as mock_settings:
-        mock_settings.paths.prompts_dir = prompts_root
-        result = sensor._compute_hash("nonexistent_prompt")
+    result = sensor._compute_hash("nonexistent_prompt")
 
     assert result is None
 
@@ -117,19 +112,15 @@ def test_compute_hash_returns_none_for_missing_dir(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
     """On the first cycle (no baseline), run() posts a report and no findings."""
-    prompts_root = tmp_path / "prompts"
+    sensor, publisher, prompts_root = _make_sensor(tmp_path)
     _write_prompt(prompts_root, "my_prompt", "System content.")
-
-    sensor, publisher, _ = _make_sensor(prompts_root)
 
     governed = [{"name": "my_prompt", "anchors": ["ADR-134"]}]
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
         patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=None),
-        patch("shared.config.settings") as mock_settings,
     ):
-        mock_settings.paths.prompts_dir = prompts_root
         await sensor.run()
 
     publisher.post_heartbeat.assert_called_once()
@@ -145,10 +136,8 @@ async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_run_detects_drift(tmp_path: Path) -> None:
     """run() posts a drift finding when current hash differs from baseline."""
-    prompts_root = tmp_path / "prompts"
+    sensor, publisher, prompts_root = _make_sensor(tmp_path)
     _write_prompt(prompts_root, "my_prompt", "New content.")
-
-    sensor, publisher, _ = _make_sensor(prompts_root)
 
     governed = [{"name": "my_prompt", "anchors": ["ADR-134"]}]
     prior_baseline = {"hashes": {"my_prompt": "aabbccdd" * 8}}  # stale hash
@@ -156,9 +145,7 @@ async def test_run_detects_drift(tmp_path: Path) -> None:
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
         patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
-        patch("shared.config.settings") as mock_settings,
     ):
-        mock_settings.paths.prompts_dir = prompts_root
         await sensor.run()
 
     publisher.post_finding.assert_called_once()

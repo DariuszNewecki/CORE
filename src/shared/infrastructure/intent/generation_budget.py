@@ -14,6 +14,7 @@ import functools
 from dataclasses import dataclass
 from typing import Any
 
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
 
@@ -77,8 +78,6 @@ def load_generation_budget() -> GenerationBudget:
     """
     try:
         import yaml
-
-        from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         repo = get_intent_repository()
         raw = yaml.safe_load(repo.load_text(_CONFIG_PATH))

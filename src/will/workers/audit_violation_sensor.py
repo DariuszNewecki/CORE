@@ -53,6 +53,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.workers.audit_violation_filter import filter_actionable_violations
@@ -143,10 +144,6 @@ class AuditViolationSensor(Worker):
         # ADR-039: refresh governance and filesystem inputs before
         # resolving rules so content committed since the previous cycle
         # is visible without daemon restart.
-        from shared.infrastructure.intent.intent_repository import (
-            get_intent_repository,
-        )
-
         intent_repo = get_intent_repository()
 
         auditor_context = self._core_context.auditor_context
@@ -428,8 +425,6 @@ class AuditViolationSensor(Worker):
         .intent/ at runtime, not hardcoded. Adding a rule to an existing
         namespace automatically brings it into this sensor's scope.
         """
-        from shared.infrastructure.intent.intent_repository import get_intent_repository
-
         try:
             repo = get_intent_repository()
             if repo._rule_index is None:

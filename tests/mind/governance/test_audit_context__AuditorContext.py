@@ -68,7 +68,7 @@ def test_mind_path_property():
     repo_path = Path("/test/repo")
     context = AuditorContext(repo_path)
     mock_paths = MagicMock()
-    mock_paths.var_dir = Path("/test/repo/var")
+    mock_paths.mind_dir = Path("/test/repo/var/mind")
     context.paths = mock_paths
     assert context.mind_path == Path("/test/repo/var/mind")
 

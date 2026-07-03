@@ -309,6 +309,8 @@ class TestPathResolver:
                 "reports_dir",
                 "exports_dir",
                 "build_dir",
+                "tmp_dir",
+                "run_dir",
             ]:
                 prop = getattr(resolver, prop_name)
                 prop.mkdir(parents=True, exist_ok=True)

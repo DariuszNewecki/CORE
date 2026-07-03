@@ -40,7 +40,7 @@ def get_rule_registry() -> dict[str, str]:
     """
     try:
         repo = get_intent_repository()
-        rules_root: Path = repo.root / ".intent" / "rules"
+        rules_root: Path = repo.root / "rules"
         if not rules_root.exists():
             logger.warning("RuleRegistry: .intent/rules/ not found at %s", rules_root)
             return {}

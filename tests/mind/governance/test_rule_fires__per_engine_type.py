@@ -124,7 +124,7 @@ async def test_regex_gate_fires_on_hardcoded_runtime_dir(tmp_py: Path) -> None:
         "architecture.path_access.no_hardcoded_runtime_dirs",
     )
     tmp_py.write_text(
-        'from __future__ import annotations\n\npath = "reports/output.json"\n',
+        'from __future__ import annotations\n\npath = base / "reports"\n',
         encoding="utf-8",
     )
 
