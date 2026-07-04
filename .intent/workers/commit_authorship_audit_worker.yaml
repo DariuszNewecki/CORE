@@ -30,7 +30,7 @@ mandate:
       - governance
       - compliance
   schedule:
-    max_interval: 3600
+    max_interval: 7200
 
 implementation:
   module: will.workers.commit_authorship_audit_worker
