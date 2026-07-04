@@ -339,6 +339,10 @@ classifications:
   - path: .specs/northstar/core_northstar.md
     governance_namespace: framework
 
+  # .specs/ root — project::core contributor documents
+  - path: .specs/CONTRIBUTOR-MINDSET.md
+    governance_namespace: project::core
+
   # ---------------------------------------------------------------------
   # .specs/papers/** — framework subset.
   # Heuristic: papers naming abstract patterns and concepts → framework;
@@ -1348,6 +1352,10 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .specs/papers/CORE-AutonomousProposalWorker.md
     governance_namespace: project::core
+  - path: .specs/papers/CORE-Blackboard-State-Machine.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Deployment-Readiness.md
+    governance_namespace: project::core
   - path: .specs/papers/CORE-CapabilityTagger.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-CoherenceSensor.md
@@ -1568,6 +1576,26 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-130-constitutional-artifact-regeneration-staging.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-131-governance-application-data-model.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-132-governor-authentication-boundary.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-133-test-gap-evaluator.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-133.phases.yaml
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-134-prompt-content-governance.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-135-dual-mode-generation-primitives.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-136-substrate-enforcement-taxonomy-dispatch-parity.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-137-instrument-no-data-semantics-sanctuary-registry.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-138-prompt-governance-authorship-enforcement-dispatch.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-139-mypy-type-safety-remediation.md
+    governance_namespace: project::core
 
   # .intent/ — framework entries added in ADR-075 D7 backfill (2026-06-28)
   - path: .intent/artifact_types/document_corpus.yaml
@@ -1591,6 +1619,36 @@ classifications:
   - path: .intent/workers/document_corpus_sensor.yaml
     governance_namespace: framework
   - path: .intent/workers/var_tmp_janitor.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/config/deployment_mode.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/config/generation_budget.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/config/governed_prompts.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/architecture/api_auth_boundary.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/code/tests.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/authorship_integrity.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/operational_config.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/rule_references.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/sanctuaries.yaml
+    governance_namespace: framework
+  - path: .intent/flows/flow.audit_remediate_validate.yaml
+    governance_namespace: framework
+  - path: .intent/flows/flow.build_test_for_symbol.yaml
+    governance_namespace: framework
+  - path: .intent/rules/governance/operational_config.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/rule_references.json
+    governance_namespace: framework
+  - path: .intent/taxonomies/substrate_enforcement.yaml
+    governance_namespace: framework
+  - path: .intent/workers/prompt_drift_sensor.yaml
     governance_namespace: framework
 
   # .specs/META/ — framework schema definitions
@@ -1686,6 +1744,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/commercial/socials/Dev.to/when-one-enum-is-secretly-two.md
     governance_namespace: project::core
+  - path: .specs/commercial/socials/Dev.to/2026.06.29.md
+    governance_namespace: project::core
+  - path: .specs/commercial/socials/Dev.to/2026.07.01.md
+    governance_namespace: project::core
   - path: .specs/commercial/socials/GitHub/2025.08.15.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/GitHub/2025.10.01.md
@@ -1708,11 +1770,21 @@ classifications:
     governance_namespace: project::core
   - path: .specs/commercial/socials/GitHub/_repo.md
     governance_namespace: project::core
+
+  # .specs/commercial/socials/LinkedIn/ — project::core
+  - path: .specs/commercial/socials/LinkedIn/2026.04.15.md
+    governance_namespace: project::core
+  - path: .specs/commercial/socials/LinkedIn/_profile.md
+    governance_namespace: project::core
   - path: .specs/commercial/socials/HN/2025.11.24.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/HN/2026.01.08.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/HN/2026.02.28.md
+    governance_namespace: project::core
+  - path: .specs/commercial/socials/HN/2026.06.29.md
+    governance_namespace: project::core
+  - path: .specs/commercial/socials/HN/2026.07.01.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/X.com/2025.08.07.md
     governance_namespace: project::core
@@ -1748,6 +1820,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/commercial/socials/X.com/2026.06.23.md
     governance_namespace: project::core
+  - path: .specs/commercial/socials/X.com/2026.06.29.md
+    governance_namespace: project::core
+  - path: .specs/commercial/socials/X.com/2026.07.01.md
+    governance_namespace: project::core
 
   # .specs/planning/ — project::core (planning and roadmap documents)
   - path: .specs/planning/CORE-Maturity-Audit-Actions.md
@@ -1761,4 +1837,6 @@ classifications:
   - path: .specs/planning/archive/ADR-105-stage2b-completion-plan.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-OptimizerWorker-Scope-Reconciliation.md
+    governance_namespace: project::core
+  - path: .specs/planning/archive/CORE-Scout-v2-Workplan.md
     governance_namespace: project::core
