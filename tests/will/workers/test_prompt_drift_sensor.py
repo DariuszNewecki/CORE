@@ -3,6 +3,7 @@
 Verifies:
 - _compute_hashes returns a stable combined SHA-256 and per-file hashes
 - _compute_hashes returns (None, {}) for a missing prompt directory
+- _compute_hashes covers system.txt, user.txt, AND model.yaml (ADR-134)
 - run() posts a baseline report and no findings on the first cycle (no prior baseline)
 - run() posts a drift finding when system.txt changes between cycles
 - drift finding payload includes adr_anchor, changed_files, and git_commit (ADR-134 D6)
@@ -67,12 +68,20 @@ def _make_sensor(repo_root: Path, git_commit: str = "abc123") -> Any:
     return sensor, publisher, prompts_root
 
 
-def _write_prompt(prompts_root: Path, name: str, system_txt: str, user_txt: str | None = None) -> None:
+def _write_prompt(
+    prompts_root: Path,
+    name: str,
+    system_txt: str,
+    user_txt: str | None = None,
+    model_yaml: str | None = None,
+) -> None:
     d = prompts_root / name
     d.mkdir(parents=True, exist_ok=True)
     (d / "system.txt").write_text(system_txt)
     if user_txt is not None:
         (d / "user.txt").write_text(user_txt)
+    if model_yaml is not None:
+        (d / "model.yaml").write_text(model_yaml)
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +136,41 @@ def test_compute_hashes_tracks_per_file(tmp_path: Path) -> None:
     assert "system.txt" in per_file
     assert "user.txt" in per_file
     assert per_file["system.txt"] != per_file["user.txt"]
+
+
+def test_compute_hashes_tracks_model_yaml(tmp_path: Path) -> None:
+    """_compute_hashes includes model.yaml in the per-file map when present (ADR-134)."""
+    sensor, _, prompts_root = _make_sensor(tmp_path)
+    _write_prompt(
+        prompts_root,
+        "test_prompt",
+        "system content",
+        model_yaml="model: gpt-4\nmax_tokens: 2048\n",
+    )
+
+    _, per_file = sensor._compute_hashes("test_prompt")
+
+    assert "system.txt" in per_file
+    assert "model.yaml" in per_file
+
+
+def test_compute_hashes_changes_on_model_yaml_change(tmp_path: Path) -> None:
+    """_compute_hashes combined digest changes when model.yaml changes (ADR-134)."""
+    sensor, _, prompts_root = _make_sensor(tmp_path)
+    _write_prompt(
+        prompts_root,
+        "test_prompt",
+        "system content",
+        model_yaml="model: gpt-4\nmax_tokens: 2048\n",
+    )
+
+    combined1, _ = sensor._compute_hashes("test_prompt")
+    (prompts_root / "test_prompt" / "model.yaml").write_text(
+        "model: gpt-4\nmax_tokens: 4096\n"
+    )
+    combined2, _ = sensor._compute_hashes("test_prompt")
+
+    assert combined1 != combined2
 
 
 # ---------------------------------------------------------------------------

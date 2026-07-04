@@ -155,9 +155,10 @@ class PromptDriftSensor(ScheduledWorker):
     def _compute_hashes(self, prompt_name: str) -> tuple[str | None, dict[str, str]]:
         """Return (combined SHA-256, per-file SHA-256 map) for *prompt_name*.
 
-        The combined hash covers system.txt and user.txt together and is used
-        for drift detection. The per-file map is stored in the baseline so that
-        changed_files can be reported accurately on the next drift cycle.
+        The combined hash covers system.txt, user.txt, and model.yaml (ADR-134)
+        and is used for drift detection. The per-file map is stored in the
+        baseline so that changed_files can be reported accurately on the next
+        drift cycle.
         """
         from shared.path_resolver import PathResolver
 
@@ -173,7 +174,7 @@ class PromptDriftSensor(ScheduledWorker):
 
         combined = hashlib.sha256()
         per_file: dict[str, str] = {}
-        for filename in ("system.txt", "user.txt"):
+        for filename in ("system.txt", "user.txt", "model.yaml"):
             candidate = prompt_dir / filename
             if candidate.is_file():
                 content = candidate.read_bytes()
