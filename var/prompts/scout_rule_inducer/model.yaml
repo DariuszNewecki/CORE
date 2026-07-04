@@ -14,6 +14,8 @@ input:
     - code_signals
 output:
   format: json
+  must_not_contain:
+    - "```"
   schema:
     candidates: array
 success_criteria: >

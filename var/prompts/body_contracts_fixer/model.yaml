@@ -14,6 +14,8 @@ input:
 
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
 
 adr_anchor: "ADR-134:D8"
 

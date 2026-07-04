@@ -16,6 +16,8 @@ input:
                        # internal corpus (ADR-122 D4); empty string when unavailable.
 output:
   format: json
+  must_not_contain:
+    - "```"
   schema:
     coverage: '"satisfied" | "gap" | "silent"'
     violation: boolean

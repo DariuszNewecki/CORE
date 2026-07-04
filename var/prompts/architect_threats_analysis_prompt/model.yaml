@@ -17,6 +17,8 @@ input:
     - constitution_summary
 output:
   format: json
+  must_not_contain:
+    - "```"
 success_criteria: >
   Produces a structured campaign with root-cause clusters, each carrying
   an explicit workflow_type, confidence score, and estimated impact.

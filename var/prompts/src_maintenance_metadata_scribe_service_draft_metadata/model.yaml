@@ -7,4 +7,6 @@ input:
     - function_name
 output:
   format: json
+  must_not_contain:
+    - "```"
 success_criteria: Returns valid JSON with canonical_name, behavior, dangerous, and description fields conforming to CORE metadata standards.

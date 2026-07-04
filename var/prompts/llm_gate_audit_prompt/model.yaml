@@ -9,6 +9,8 @@ input:
     - content
 output:
   format: json
+  must_not_contain:
+    - "```"
   schema:
     violation: boolean
     reasoning: string

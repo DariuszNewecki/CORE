@@ -7,6 +7,8 @@ input:
     - source_code
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
 adr_anchor: "ADR-134:D8"
 
 success_criteria: Returns syntactically valid code with all lines under 100 characters, maintaining original logic and improving readability.

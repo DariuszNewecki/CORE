@@ -8,4 +8,6 @@ input:
     - code
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
 success_criteria: A clear, concise description of what the symbol does, its purpose, and key behavior

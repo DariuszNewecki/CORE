@@ -10,7 +10,7 @@ doctrine_tier: constitution
 
 # CORE: Authority Without Registries
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Depends on:**
 

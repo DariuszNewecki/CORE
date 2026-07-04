@@ -10,7 +10,7 @@ doctrine_tier: foundational
 
 # CORE: Rule Evaluation Semantics
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Depends on:** `papers/CORE-Constitutional-Foundations.md`
 

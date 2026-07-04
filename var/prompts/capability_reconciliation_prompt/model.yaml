@@ -8,6 +8,8 @@ input:
     - refactored_code_json
 output:
   format: json
+  must_not_contain:
+    - "```"
   schema:
     code_modifications:
       type: object

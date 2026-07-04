@@ -16,6 +16,8 @@ input:
 
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
 
 success_criteria: >
   Returns complete corrected Python code with all violations resolved,

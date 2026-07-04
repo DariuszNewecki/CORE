@@ -10,7 +10,7 @@ doctrine_tier: foundational
 
 # CORE as a Legal System, Not a Framework
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Depends on:**
 

@@ -14,6 +14,8 @@ input:
     - corpus_excerpt
 output:
   format: json
+  must_not_contain:
+    - "```"
   schema:
     applicability: string
     detected_domains: string

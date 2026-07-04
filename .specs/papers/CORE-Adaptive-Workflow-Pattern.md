@@ -10,7 +10,7 @@ doctrine_tier: constitution
 
 # CORE: V2 Adaptive Workflow Pattern
 
-**Status:** Draft (Greenfield)
+**Status:** Draft
 
 **Depends on:**
 

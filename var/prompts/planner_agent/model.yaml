@@ -9,4 +9,6 @@ input:
     - reconnaissance_report
 output:
   format: json
+  must_not_contain:
+    - "```"
 success_criteria: A valid JSON plan with ordered steps, each specifying an action, parameters, and rationale that collectively achieve the goal without violating constitutional rules.

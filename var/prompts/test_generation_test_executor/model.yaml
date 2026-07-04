@@ -15,4 +15,8 @@ input:
     - context_packet
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
+    - "TODO"
+    - "FIXME"
 success_criteria: Produces valid, executable Python test code that follows the specified strategy and properly handles all dependencies and context.

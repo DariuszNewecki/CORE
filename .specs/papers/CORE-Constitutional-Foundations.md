@@ -10,7 +10,7 @@ doctrine_tier: constitution
 
 # CORE: Constitutional Foundations for Governing Acting Systems
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Audience:** Systems architects, governance engineers, AI safety researchers
 

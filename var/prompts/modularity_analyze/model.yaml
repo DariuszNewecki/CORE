@@ -25,6 +25,8 @@ output:
   # The verbal schema (can_split semantics, confidence-band scale, modules
   # and import_updates shape) lives in system.txt / user.txt.
   format: json
+  must_not_contain:
+    - "```"
   max_length: 8192
   must_contain:
     - "can_split"

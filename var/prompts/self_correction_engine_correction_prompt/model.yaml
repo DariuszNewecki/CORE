@@ -11,4 +11,8 @@ input:
     - code
 output:
   format: raw_text
+  must_not_contain:
+    - "```"
+    - "TODO"
+    - "FIXME"
 success_criteria: Response contains a single write block with the file path and fully corrected code that addresses all violations and runtime errors.

@@ -10,7 +10,7 @@ doctrine_tier: foundational
 
 # CORE: Deliberate Non-Goals
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Depends on:**
 

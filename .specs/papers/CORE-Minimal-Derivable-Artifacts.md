@@ -10,7 +10,7 @@ doctrine_tier: informational
 
 # CORE: Minimal Derivable Artifacts
 
-**Status:** Draft (Greenfield)
+**Status:** Draft
 
 **Depends on:**
 

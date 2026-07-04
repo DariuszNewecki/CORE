@@ -10,7 +10,7 @@ doctrine_tier: foundational
 
 # CORE: Common Governance Failure Modes
 
-**Status:** Draft (Greenfield)
+**Status:** Canonical
 
 **Depends on:**
 

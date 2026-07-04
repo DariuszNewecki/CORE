@@ -13,6 +13,8 @@ input:
 
 output:
   format: json
+  must_not_contain:
+    - "```"
   must_contain:
     - violation
     - reasoning
