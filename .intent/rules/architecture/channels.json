@@ -53,7 +53,9 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "Prevents internal state leakage (worker UUIDs, DB metadata, internal paths) through unguarded API endpoints. Ramps to blocking once all /v1/lane, /v1/census, /v1/fix, /v1/audit, /v1/proposals routes are covered. Tracked in #727.",
-            "scope": "src/api/**/*.py"
+            "scope": {
+                "paths": ["src/api/**/*.py"]
+            }
         }
     ]
 }
