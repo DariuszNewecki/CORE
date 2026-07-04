@@ -72,6 +72,7 @@ mappings:
         - baseline
         - bootstrap
         - build
+        - change_password
         - chat
         - check
         - check-imports
