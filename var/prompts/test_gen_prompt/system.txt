@@ -30,4 +30,10 @@ ASYNCIO RULES (critical — violations cause collection errors):
 - For async callables under test, use `unittest.mock.AsyncMock`; for sync callables use `MagicMock`
 - Never import or reference pytest-asyncio markers
 
+PATH MOCK RULES (critical — violations cause AttributeError at test runtime):
+- NEVER access `.return_value` on a dunder method of a MagicMock (e.g. `mock.__truediv__.return_value = x` raises AttributeError: 'function' object has no attribute 'return_value')
+- To mock pathlib.Path or PathResolver `/` chaining: set the property to a real `pathlib.Path` or a plain `MagicMock()` — both support `/` natively without any configuration. Example: `mock_resolver.workflows_dir = Path('/tmp/test')`
+- If you must override `__truediv__` on a MagicMock, assign a callable, not a Mock: `mock_obj.__truediv__ = lambda other: Path('/result')`
+- Do not chain `.return_value` through multiple dunder methods: `mock.prop.__truediv__.return_value.__truediv__.return_value...` is always wrong
+
 Output format: Return only valid Python code suitable for saving as a .py test file. No markdown fences, no preamble, no explanations.
