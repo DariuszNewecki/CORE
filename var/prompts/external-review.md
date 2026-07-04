@@ -1,7 +1,7 @@
 # CORE — External LLM Review Prompt
 
-Paste the block below verbatim into the external LLM session. Update the
-`[SNAPSHOT DATE]` and `[FOCUS AREA]` placeholders before sending.
+Paste the block below verbatim into the external LLM session. Fill in the
+two placeholders (`[SNAPSHOT DATE]`, `[FOCUS AREA]`) before sending.
 
 > **Intent.** This is a collaborative review, not an audit. We are looking
 > for a third eye — fresh perspective, pattern recognition, things we may
@@ -10,8 +10,8 @@ Paste the block below verbatim into the external LLM session. Update the
 
 ---
 
-```
 ROLE
+
 ────
 You are a senior software architect reviewing an open-source project called
 CORE. You have no prior knowledge of it. Treat this as a paid engagement
@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-134),
+  .specs/      — human-authored reasoning: ADRs (through ADR-139),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -44,7 +44,7 @@ The code layers (src/) are:
 
 These layer boundaries are enforced by constitutional rules in .intent/.
 Violations are blocking (stop a commit) or reporting (surface findings).
-The runtime enforces 34 blocking + 27 reporting + 8 advisory rules.
+The runtime enforces 35 blocking + 27 reporting + 9 advisory rules.
 
 Key architectural patterns to know before reading the code:
   • Atomic actions  — mutations wrapped in @atomic_action + @register_action,
@@ -54,7 +54,13 @@ Key architectural patterns to know before reading the code:
   • Flows           — multi-step compositions declared in .intent/flows/*.yaml;
                       never hard-coded in Python
   • Workers         — long-running loops governed by .intent/workers/*.yaml;
-                      one heartbeat per cycle minimum
+                      one blackboard entry per cycle minimum (finding, report,
+                      or heartbeat); the silence invariant is enforced at
+                      runtime — a cycle that posts nothing raises an error
+  • Proposals       — the lifecycle by which the autonomous loop requests
+                      and executes mutations: DRAFT → APPROVED → EXECUTING
+                      → COMPLETE (or REJECTED / ABANDONED). ProposalConsumer-
+                      Worker is the executor; ActionExecutor is the kernel.
   • FileHandler     — the single authorised write surface; Path.write_text()
                       is a constitutional violation in production code
   • IntentRepository — the only authorised reader of .intent/; raw Path reads
@@ -67,18 +73,27 @@ Key architectural patterns to know before reading the code:
 ────────────────────────────────────────────────────────────────────────────
 WHAT TO READ FIRST (in this order)
 ────────────────────────────────────────────────────────────────────────────
-1. CLAUDE.md              — the development contract; defines rules, patterns,
-                            and what Claude Code (the AI pair) is allowed to do
-2. .specs/decisions/      — the 10 most recent ADRs (ADR-125 through ADR-134)
-3. .intent/rules/architecture/   — the constitutional ruleset (JSON)
-4. src/shared/            — the substrate all layers depend on
-5. src/body/atomic/       — atomic actions (mutation surface)
-6. src/will/              — the autonomous developer layer
-7. src/mind/logic/engines/ — the audit engine implementations
-8. tests/                 — test suite structure and coverage density
+1. CLAUDE.md                        — the development contract; defines rules,
+                                      patterns, and what Claude Code is allowed
+                                      to do
+2. .specs/decisions/                — the 10 most recent ADRs (ADR-130 through
+                                      ADR-139)
+3. .intent/rules/architecture/      — the constitutional ruleset (JSON)
+4. .intent/enforcement/remediation/
+   auto_remediation.yaml            — autonomous dispatch routing; maps rule
+                                      findings to fix actions
+5. .intent/flows/                   — all declared Flow YAML definitions
+6. src/shared/                      — the substrate all layers depend on
+7. src/body/atomic/                 — atomic actions (mutation surface);
+                                      pay particular attention to executor.py
+                                      (the constitutional kernel)
+8. src/will/workers/                — the worker implementations (autonomous
+                                      loop participants)
+9. src/mind/logic/engines/          — the audit engine implementations
+10. tests/                          — test suite structure and coverage density
 
 Snapshot date: [SNAPSHOT DATE]
-GitHub repo:   https://github.com/[YOUR_ORG]/CORE
+GitHub repo:   https://github.com/DariuszNewecki/CORE
 
 ────────────────────────────────────────────────────────────────────────────
 STANDING QUESTIONS — answer all of these
@@ -126,7 +141,7 @@ STANDING QUESTIONS — answer all of these
 
 ## 3. ADR alignment
 
-3a. Look at the 10 most recent ADRs (ADR-125 through ADR-134). For each,
+3a. Look at the 10 most recent ADRs (ADR-130 through ADR-139). For each,
     is the implementation decision visible and faithful in src/? Name any
     where the code and the ADR have drifted.
 
@@ -138,7 +153,7 @@ STANDING QUESTIONS — answer all of these
     where the code appears to have stalled or gone a different direction?
     Flag the ones where the gap is largest.
 
-## 4. Blackboard and worker health
+## 4. Blackboard, worker, and proposal health
 
 4a. Do workers have the sleep-after-run anti-pattern? (Sleeping at the END
     of a cycle rather than computing max(max_interval - elapsed, 0) before
@@ -150,10 +165,18 @@ STANDING QUESTIONS — answer all of these
 
 4c. Are there workers that post no blackboard entry in their run() method?
     At least one entry per cycle (finding, report, or heartbeat) is
-    required by the worker contract.
+    required. Note that CORE has two worker base classes: Worker (Model A,
+    enforces silence at Worker.start()) and ScheduledWorker (Model B,
+    enforces silence at run_loop()). Check both independently.
 
 4d. Do workers correctly handle the case where their claimed entries may
     have been released mid-run by a liveness reaper?
+
+4e. Look at the proposal lifecycle (DRAFT → APPROVED → EXECUTING → COMPLETE
+    / REJECTED / ABANDONED). Are the state transitions atomic and correctly
+    guarded? Is ProposalConsumerWorker the sole executor, or are there paths
+    that mutate proposal state outside the consumer? Are abandoned proposals
+    distinguishable from genuinely completed ones?
 
 ## 5. Test coverage and quality
 
@@ -171,6 +194,13 @@ STANDING QUESTIONS — answer all of these
 
 5d. Are signature or behaviour changes in src/ accompanied by test updates
     in the same commit, or are tests lagging behind?
+
+5e. Trace the autonomous test-generation loop: TestCoverageSensor posts
+    test.run_required → TestRunnerSensor posts test.failure / test.missing
+    → TestRemediatorWorker creates a build.tests proposal → Proposal-
+    ConsumerWorker executes via ActionExecutor → build.tests atomic action
+    → CoderAgent → LLM. Is each handoff correct? Are there silent failure
+    modes where the chain halts without surfacing a finding?
 
 ## 6. Security posture
 
@@ -243,21 +273,22 @@ THIS SESSION'S DEEP-DIVE FOCUS
 In addition to the standing questions, spend extra depth on:
 
   [FOCUS AREA — replace before sending, e.g.:
-   "the Will layer's autonomous test generation loop — post-ADR-133, the
-    symbol-granular path (TestGapEvaluator / build.test_for_symbol /
-    flow.build_test_for_symbol) — is the per-symbol proposal lifecycle
-    safe and correct, and is the retained file-level flow.build_tests
-    path properly demoted?"
+   "the Will layer's autonomous developer loop — are the worker
+    implementations (TestRemediatorWorker, ProposalConsumerWorker,
+    DbSyncWorker) correctly isolated from each other via the blackboard,
+    or are there shared-state shortcuts that could cause races?"
    or
    "the audit engine dispatch chain — is the pipeline trustworthy, or are
-    there silent-failure modes that would let a violation slip through?"
+    there silent-failure modes that would let a violation slip through
+    without a finding?"
    or
-   "the API authentication surface introduced in ADR-132 — is the boundary
-    complete, or are there routes that escape the governor check?"
+   "the API authentication surface (ADR-132) — is the governor boundary
+    complete across all routers in src/api/v1/, including secondary
+    APIRouter instances that are not named 'router'?"
    or
-   "the prompt governance surface introduced in ADR-134 — is the
-    adr_anchor / governed_prompts.yaml / PromptDriftSensor chain complete,
-    or can a governed prompt's content still drift silently?"]
+   "the proposal lifecycle from DRAFT to COMPLETE — is every state
+    transition atomic and correctly guarded, and are there execution paths
+    that can leave a proposal visibly stuck without emitting a finding?"]
 
 ────────────────────────────────────────────────────────────────────────────
 OUTPUT FORMAT
@@ -301,4 +332,3 @@ CONSTRAINTS
   Respect the design intent before suggesting it be removed. If you think
   a governance rule is wrong, say why — but the burden of proof is on the
   suggestion, not the rule.
-```
