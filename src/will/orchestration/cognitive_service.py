@@ -96,7 +96,7 @@ class CognitiveService:
         assert self._config is not None
 
         # Key convention: <env_prefix>.<setting> (lowercase dot-notation)
-        # e.g. grok.api_url, ollama_reasoner.api_url, anthropic_claude_sonnet.model_name
+        # e.g. ollama_reasoner.api_url, anthropic_claude_sonnet.model_name
         prefix = (resource.env_prefix or "").strip().lower()
         if not prefix:
             raise ValueError(f"Resource '{resource.name}' is missing env_prefix.")
