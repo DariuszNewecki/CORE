@@ -36,4 +36,10 @@ PATH MOCK RULES (critical — violations cause AttributeError at test runtime):
 - If you must override `__truediv__` on a MagicMock, assign a callable, not a Mock: `mock_obj.__truediv__ = lambda other: Path('/result')`
 - Do not chain `.return_value` through multiple dunder methods: `mock.prop.__truediv__.return_value.__truediv__.return_value...` is always wrong
 
+PATCH TARGET RULES (critical — violations cause AttributeError: module does not have attribute):
+- ONLY patch names that appear in the target module's top-level import statements (i.e. names imported at module scope, not inside functions or methods)
+- To confirm a name is patchable: it must appear as `import X`, `from Y import X`, or be defined at module level in the source file provided in context
+- If a dependency is imported only inside a function body, patch it at its origin module instead: `patch('origin_module.ClassName')` not `patch('target_module.ClassName')`
+- Never guess or invent patch targets — only patch symbols you can see in the source context
+
 Output format: Return only valid Python code suitable for saving as a .py test file. No markdown fences, no preamble, no explanations.
