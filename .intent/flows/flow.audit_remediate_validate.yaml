@@ -1,0 +1,59 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.audit_remediate_validate
+  title: Audit → Remediate → Validate Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Canonical governance documentation for the three-stage violation cycle
+    (issue #691, external review 2026-06-26 Architecture §Finding High).
+    Workers that currently hard-wire this sequence in run() should be
+    migrated to invoke this flow via FlowExecutor.
+
+    This initial declaration covers the imports dimension — the only
+    dimension where both audit (check.imports) and remediation (fix.imports)
+    are registered atomic actions.  Future dimensions require additional
+    registered check.* actions (e.g. check.ids, check.headers) before
+    they can be added as flow steps.
+
+    The advisory rule architecture.flows.worker_must_not_hardwire_sequence
+    documents the long-term migration target; each new check.* action added
+    to the registry unlocks a new instance of this pattern.
+
+flow:
+  flow_id: flow.audit_remediate_validate
+  description: >
+    Detect import violations, remediate them, reformat, then re-audit to
+    confirm zero violations remain.  Represents the canonical
+    audit→remediate→validate governance cycle for the imports dimension.
+  policies:
+    - rules/code/imports
+    - rules/code/purity
+
+  steps:
+    # Stage 1 — AUDIT: detect violations before touching anything
+    - ref_id: check.imports
+      kind: action
+      required: true
+      consumes: []
+
+    # Stage 2 — REMEDIATE: fix the detected violations
+    - ref_id: fix.imports
+      kind: action
+      required: true
+      consumes: [write]
+
+    # Stage 3a — CLEAN: formatting pass after structural changes
+    - ref_id: fix.format
+      kind: action
+      required: false
+      consumes: [write]
+
+    # Stage 3b — VALIDATE: re-audit to confirm violations are resolved
+    - ref_id: check.imports
+      kind: action
+      required: true
+      consumes: []
