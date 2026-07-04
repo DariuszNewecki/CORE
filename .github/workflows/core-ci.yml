@@ -23,6 +23,21 @@ jobs:
       - name: Re-derive README quantitative claims from source
         run: bash scripts/check_readme_counts.sh
 
+  # #726 — advisory check: multi-phase ADRs with open phases must have a
+  # linked issue so they don't quietly stall. continue-on-error: true keeps
+  # this advisory (visible in workflow run, never blocks merge).
+  adr-phases:
+    name: ADR phase tracking (#726)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check for untracked open ADR phases
+        run: python scripts/check_adr_phases.py --specs-dir .specs/decisions
+
   validate:
     name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

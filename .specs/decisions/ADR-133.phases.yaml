@@ -1,0 +1,32 @@
+adr: ADR-133
+# ADR-133: TestGapEvaluator + build.test_for_symbol flow
+# All decisions shipped as of 2026-07-01 (session dd44b2d6).
+phases:
+  D1:
+    status: shipped
+    commit: dd44b2d6
+    summary: "TestGapEvaluator — new BaseEvaluator (AUDIT phase)"
+  D2:
+    status: shipped
+    commit: dd44b2d6
+    summary: "Gap detection uses AST only; heuristic is test_<name> match"
+  D3:
+    status: shipped
+    commit: dd44b2d6
+    summary: "Atomic action build.test_for_symbol"
+  D4:
+    status: shipped
+    commit: dd44b2d6
+    summary: "TestRemediatorWorker calls TestGapEvaluator before proposal creation"
+  D5:
+    status: shipped
+    commit: dd44b2d6
+    summary: "action_risk.yaml entry for build.test_for_symbol"
+  D6:
+    status: shipped
+    commit: dd44b2d6
+    summary: "context_aware_test_gen prompt authorised for build.test_for_symbol"
+  D7:
+    status: shipped
+    commit: dd44b2d6
+    summary: "IntentGuard validation applies to appended function, not whole file"
