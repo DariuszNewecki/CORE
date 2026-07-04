@@ -28,7 +28,7 @@ mandate:
     rule_namespace: "document_corpus"
   approval_required: false
   schedule:
-    max_interval: 3600
+    max_interval: 7200
 
 config:
   corpus_root: ""          # REQUIRED: project configures path to document library
