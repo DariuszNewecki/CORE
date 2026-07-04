@@ -271,10 +271,6 @@ mappings:
         # TEMPORARY — violations pending closure ADRs per ADR-049 D3.
         # Each entry below requires a closure ADR in .specs/decisions/
         # with a named deadline date before the entry may be removed.
-        # proposal_lifecycle_actions.py: module-level import of
-        #   will.autonomy.proposal.ProposalStatus —
-        #   Closure ADR-062, deadline 2026-09-16
-        - "src/body/atomic/proposal_lifecycle_actions.py"
         # bootstrap.py: lazy imports inside _factory() closure of
         #   will.tools.architectural_context_builder,
         #   will.tools.module_anchor_generator,

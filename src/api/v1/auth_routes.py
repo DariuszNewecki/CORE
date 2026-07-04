@@ -5,17 +5,14 @@ All auth routes live under /auth/ (no /v1/ prefix — these are identity
 infrastructure, not OEM API).  Tokens are delivered as httpOnly cookies;
 the frontend never touches them in JavaScript.
 
-Rate limiting is enforced in-process via a sliding-window counter.
-This is adequate for single-process deployments; replace with Redis-backed
-limiting if running multiple API workers.
+Rate limiting is delegated to api.rate_limiter, which uses a Redis-backed
+sliding window when REDIS_RATE_LIMIT_URL is configured and falls back to
+an in-process window for single-process deployments.
 """
 
 from __future__ import annotations
 
-import time
-from collections import defaultdict
 from datetime import UTC, datetime
-from threading import Lock
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
@@ -28,6 +25,7 @@ from api.dependencies import (
     require_governor,
     require_operator,
 )
+from api.rate_limiter import check_rate
 from shared.config import settings
 from shared.logger import getLogger
 from will.governance.auth_runner import AuthLockedError, AuthRunner
@@ -38,35 +36,6 @@ logger = getLogger(__name__)
 CORE_ROLE = "facade"  # ADR-095 D3
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-# ---------------------------------------------------------------------------
-# In-process rate limiter (sliding window, per-IP)
-# ---------------------------------------------------------------------------
-
-_rate_lock = Lock()
-_rate_buckets: dict[str, list[float]] = defaultdict(list)
-
-_RATE_LIMITS: dict[str, tuple[int, int]] = {
-    "login": (10, 60),
-    "register": (5, 60),
-    "refresh": (60, 3600),
-    "password_reset": (3, 3600),
-}
-
-
-# ID: 2b7e4c1f-9a3d-4f8c-b5e0-6d1a3c7f9e2b
-def _check_rate(key: str, limit_key: str) -> None:
-    max_calls, window_seconds = _RATE_LIMITS[limit_key]
-    now = time.monotonic()
-    with _rate_lock:
-        bucket = _rate_buckets[key]
-        bucket[:] = [t for t in bucket if now - t < window_seconds]
-        if len(bucket) >= max_calls:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests. Please try again later.",
-            )
-        bucket.append(now)
 
 
 # ---------------------------------------------------------------------------
@@ -229,7 +198,7 @@ async def register(
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Register a new user.  Returns a verification token to send via email."""
-    _check_rate(request.client.host if request.client else "unknown", "register")
+    await check_rate(request.client.host if request.client else "unknown", "register")
     try:
         result = await svc.register(
             email=str(body.email),
@@ -281,7 +250,7 @@ async def login(
     """Authenticate and set httpOnly auth cookies."""
     ip = request.client.host if request.client else None
     ua = request.headers.get("user-agent")
-    _check_rate(ip or "unknown", "login")
+    await check_rate(ip or "unknown", "login")
 
     try:
         tokens = await svc.login(str(body.email), body.password, ip=ip, ua=ua)
@@ -314,7 +283,7 @@ async def refresh(
 ) -> dict:
     """Exchange a valid refresh cookie for new access + refresh cookies (rotation)."""
     ip = request.client.host if request.client else "unknown"
-    _check_rate(ip, "refresh")
+    await check_rate(ip, "refresh")
     if not core_refresh:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token."
@@ -389,7 +358,7 @@ async def password_reset_request(
     svc: Annotated[AuthRunner, Depends(get_auth_service)],
 ) -> dict:
     """Request a password reset token (sent via email by the caller)."""
-    _check_rate(str(body.email), "password_reset")
+    await check_rate(str(body.email), "password_reset")
     raw_token = await svc.request_password_reset(str(body.email))
 
     email_sent = False

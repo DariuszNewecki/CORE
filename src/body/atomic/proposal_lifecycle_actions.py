@@ -21,8 +21,8 @@ from body.atomic.registry import ActionCategory, register_action
 from body.services.service_registry import service_registry
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.lifecycles.proposal import ProposalStatus
 from shared.logger import getLogger
-from will.autonomy.proposal import ProposalStatus
 
 
 if TYPE_CHECKING:

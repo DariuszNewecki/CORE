@@ -145,6 +145,9 @@ class Settings(BaseSettings):
     # time. See #544 for the full incident.
     DATABASE_URL: str | None = Field(None, validation_alias="DATABASE_URL")
     QDRANT_URL: str | None = Field(None, validation_alias="QDRANT_URL")
+    REDIS_RATE_LIMIT_URL: str | None = Field(
+        None, validation_alias="REDIS_RATE_LIMIT_URL"
+    )
 
     LLM_API_URL: str = Field("", validation_alias="LLM_API_URL")
     LLM_API_KEY: str | None = Field(None, validation_alias="LLM_API_KEY")

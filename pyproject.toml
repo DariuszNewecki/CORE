@@ -74,6 +74,8 @@ dependencies = [
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
     "dependency-injector>=4.42.0,<5.0.0",
+    # Rate limiting (optional Redis backend)
+    "redis>=5.0,<6.0",
 ]
 
 [project.optional-dependencies]

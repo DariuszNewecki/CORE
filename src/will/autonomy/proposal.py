@@ -19,12 +19,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
 from typing import Any
 from uuid import uuid4
 
+from shared.lifecycles.proposal import ProposalStatus
 from shared.logger import getLogger
 
+
+# Re-export for backward compatibility — canonical location is shared.lifecycles.proposal
+__all__ = ["Proposal", "ProposalScope", "ProposalStatus"]
 
 logger = getLogger(__name__)
 
@@ -37,19 +40,6 @@ logger = getLogger(__name__)
 # enforced at write time (Proposal.validate) in addition to audit time
 # (ADR-056 D6 SchemaConformanceChecks).
 _SCOPE_FILES_MAX_ITEMS = 50
-
-
-# ID: 86a456a9-13eb-415f-96e3-7a8622556dfe
-class ProposalStatus(str, Enum):
-    """Proposal lifecycle states."""
-
-    DRAFT = "draft"  # Being created
-    PENDING = "pending"  # Ready for review
-    APPROVED = "approved"  # Authorized to execute
-    EXECUTING = "executing"  # Currently running
-    COMPLETED = "completed"  # Successfully finished
-    FAILED = "failed"  # Execution failed
-    REJECTED = "rejected"  # Rejected during review
 
 
 @dataclass
