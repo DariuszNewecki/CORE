@@ -271,12 +271,6 @@ mappings:
         # TEMPORARY — violations pending closure ADRs per ADR-049 D3.
         # Each entry below requires a closure ADR in .specs/decisions/
         # with a named deadline date before the entry may be removed.
-        # bootstrap.py: lazy imports inside _factory() closure of
-        #   will.tools.architectural_context_builder,
-        #   will.tools.module_anchor_generator,
-        #   will.tools.policy_vectorizer —
-        #   Closure ADR-063, deadline 2026-09-16
-        - "src/body/infrastructure/bootstrap.py"
         # fix_actions.py: lazy (function-scoped) import of
         #   will.self_healing.capability_tagging_service.main_async
         #   inside fix.capability_tagging action body. CapabilityTaggerAgent

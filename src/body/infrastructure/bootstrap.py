@@ -59,11 +59,11 @@ def _build_context_builder_factory(core_context: CoreContext):
     """
 
     def _factory():
-        from will.tools.architectural_context_builder import (
+        from shared.tools.architectural_context_builder import (
             ArchitecturalContextBuilder,
         )
-        from will.tools.module_anchor_generator import ModuleAnchorGenerator
-        from will.tools.policy_vectorizer import PolicyVectorizer
+        from shared.tools.module_anchor_generator import ModuleAnchorGenerator
+        from shared.tools.policy_vectorizer import PolicyVectorizer
 
         cognitive = core_context.cognitive_service
         qdrant = core_context.qdrant_service

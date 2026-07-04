@@ -1,0 +1,182 @@
+# src/shared/tools/context/retriever.py
+
+"""
+Context retrieval orchestration for code generation.
+
+Constitutional Compliance:
+- Will layer: Orchestrates context retrieval for decision-making
+- Mind/Body/Will separation: Uses SymbolQueryBuilder for query construction
+- No direct database access: Receives session via dependency injection
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from shared.infrastructure.intent.operational_config import load_operational_config
+from shared.logger import getLogger
+
+from .code_snippet_extractor import CodeSnippetExtractor
+from .embedding_search import EmbeddingSearchService
+from .models import CodeExample
+from .query_builder import SymbolQueryBuilder
+
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
+
+
+# ID: ee1dc1a7-5076-4c65-afe2-3abe6ab52280
+class ContextRetriever:
+    """
+    Orchestrates retrieval of code context for AI-driven code generation.
+
+    Coordinates embedding search, database queries, and snippet extraction.
+
+    Constitutional Note:
+    This class REQUIRES AsyncSession for database queries.
+    No backward compatibility - this is the constitutional pattern.
+    """
+
+    def __init__(self, repo_root: Path, cog, qdrant):
+        """
+        Initialize context retriever.
+
+        Args:
+            repo_root: Repository root path
+            cog: Cognitive service for AI operations
+            qdrant: Qdrant service for embedding search
+        """
+        self.repo_root = repo_root
+        self.search = EmbeddingSearchService(cog, qdrant)
+        self.snippet_extractor = CodeSnippetExtractor(repo_root)
+        self.query_builder = SymbolQueryBuilder()
+
+    # ID: 16312ff7-2d23-49b2-9f18-44580f40032f
+    async def read_target_file(
+        self, goal: str, target_file: str | None = None
+    ) -> tuple[str | None, str | None]:
+        """
+        Read the target file for a test-generation context.
+
+        Args:
+            goal: Goal string. Used as fallback when `target_file` is not
+                provided — parsed for "for src/path/to/file.py".
+            target_file: Explicit target file path. Preferred when available;
+                avoids fragile coupling to the goal string's exact wording.
+
+        Returns:
+            Tuple of (file_content, file_path) or (None, None)
+
+        Constitutional Note:
+        This method only reads files, no database access needed.
+        """
+        if target_file:
+            file_path = target_file
+        else:
+            match = re.search(r"for\s+(src/[^\s]+\.py)", goal)
+            if not match:
+                return None, None
+            file_path = match.group(1)
+
+        content = await self.snippet_extractor.read_file(file_path)
+
+        return (content, file_path) if content else (None, None)
+
+    # ID: 639643e0-8ec2-4db5-a592-d75a7082f5e0
+    async def find_examples(
+        self, goal: str, layer: str, session: AsyncSession
+    ) -> list[CodeExample]:
+        """
+        Find relevant code examples from a specific architectural layer.
+
+        Args:
+            goal: Description of what code to find
+            layer: Architectural layer to search in
+            session: AsyncSession for database queries
+
+        Returns:
+            List of CodeExample objects with snippets and metadata
+
+        Constitutional Note:
+        Session is REQUIRED via parameter. No fallback, no exceptions.
+        This enforces Mind/Body/Will separation at the type level.
+        """
+        # Search for relevant symbols
+        hits = await self.search.search_by_layer(
+            goal, layer, limit=_CFG.retriever_search_limit
+        )
+        if not hits:
+            return []
+
+        symbol_ids = self.search.extract_symbol_ids(hits)
+        if not symbol_ids:
+            return []
+
+        # Fetch symbol metadata from database
+        symbol_data = await self._fetch_symbol_data(symbol_ids, session)
+
+        # Build code examples with snippets
+        examples = await self._build_examples(symbol_data)
+
+        return examples
+
+    async def _fetch_symbol_data(
+        self, symbol_ids: list[str], session: AsyncSession
+    ) -> list:
+        """
+        Fetch symbol metadata from database.
+
+        Args:
+            symbol_ids: List of symbol IDs to fetch
+            session: AsyncSession for database queries
+
+        Constitutional Note:
+        Session is REQUIRED. No fallback, no exceptions.
+        """
+        query, params = self.query_builder.build_symbols_by_ids_query(symbol_ids)
+        result: Any = await session.execute(query, params)
+        return result.fetchall()
+
+    async def _build_examples(self, symbol_rows) -> list[CodeExample]:
+        """
+        Build CodeExample objects from database rows with code snippets.
+
+        Constitutional Note:
+        This method only reads files, no database access needed.
+        """
+        examples = []
+
+        for row in symbol_rows:
+            snippet = await self.snippet_extractor.extract_snippet(
+                file_path=row.file_path,
+                line_number=row.line_number,
+                context_lines=_CFG.retriever_context_lines,
+            )
+
+            if snippet is None:
+                continue
+
+            examples.append(
+                CodeExample(
+                    file_path=row.file_path,
+                    symbol_name=row.qualname,
+                    code_snippet=snippet,
+                    purpose=row.docstring[:100] if row.docstring else "",
+                    similarity_score=0.0,
+                )
+            )
+
+        return examples
+
+
+# Constitutional Note:
+# This is the constitutional pattern: session required via method signature.
+# No get_session imports anywhere - pure dependency injection.
+# Type system enforces Mind/Body/Will separation.
