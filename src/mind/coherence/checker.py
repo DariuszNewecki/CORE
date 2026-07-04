@@ -136,7 +136,7 @@ class CoherenceChecker:
             )
 
         checks: list[CheckClass] = [
-            DispatchParityCheck(self._repo_root),
+            DispatchParityCheck(self._repo_root, get_intent_repository()),
             Row2GroundingCheck(self._repo_root),
             Row3CitationCheck(self._repo_root, register),
             Row4NamingCheck(self._repo_root),

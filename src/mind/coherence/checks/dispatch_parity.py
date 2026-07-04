@@ -18,12 +18,16 @@ No LLM. No vectors. Pure YAML/JSON data reading.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
 from .base import CoherenceCandidate
+
+
+if TYPE_CHECKING:
+    from shared.infrastructure.intent.intent_repository import IntentRepository
 
 
 # ID: 0804a181-d8ea-4d6d-9552-9dffba1ffcd4
@@ -33,8 +37,9 @@ class DispatchParityCheck:
     relation = "DISPATCH_PARITY"
 
     # ID: 0383fa90-16a6-4556-b16b-9cd78cbf49ff
-    def __init__(self, repo_root: Path) -> None:
+    def __init__(self, repo_root: Path, intent_repo: IntentRepository) -> None:
         self._repo_root = Path(repo_root)
+        self._intent_repo = intent_repo
 
     # ID: 0349a8d5-13ee-4c3d-afcc-fbdca1b7b23b
     async def run(self) -> list[CoherenceCandidate]:
@@ -89,37 +94,24 @@ class DispatchParityCheck:
         return candidates
 
     def _load_rule_ids(self) -> set[str]:
-        rules_root = self._repo_root / ".intent" / "rules"
-        rule_ids: set[str] = set()
-        if not rules_root.exists():
-            return rule_ids
-        for path in rules_root.rglob("*.json"):
-            try:
-                doc = json.loads(path.read_text(encoding="utf-8"))
-                for rule in doc.get("rules", []):
-                    rid = rule.get("id")
-                    if isinstance(rid, str) and rid:
-                        rule_ids.add(rid)
-            except Exception:
-                pass
-        return rule_ids
+        return self._intent_repo.known_rule_ids()
 
     def _load_mappings(self) -> tuple[set[str], dict[str, str]]:
         mapping_keys: set[str] = set()
         mapping_engines: dict[str, str] = {}
-        mappings_root = self._repo_root / ".intent" / "enforcement" / "mappings"
-        for path in mappings_root.rglob("*.yaml"):
-            try:
-                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                entries = data.get("mappings", {})
-                if isinstance(entries, dict):
-                    for rule_id, entry in entries.items():
-                        if isinstance(rule_id, str) and not rule_id.startswith("#"):
-                            mapping_keys.add(rule_id)
-                            if isinstance(entry, dict) and "engine" in entry:
-                                mapping_engines[rule_id] = entry["engine"]
-            except Exception:
-                pass
+        for path, data in self._intent_repo.iter_documents():
+            parts = path.parts
+            if "enforcement" not in parts or "mappings" not in parts:
+                continue
+            if path.suffix not in (".yaml", ".yml"):
+                continue
+            entries = data.get("mappings", {})
+            if isinstance(entries, dict):
+                for rule_id, entry in entries.items():
+                    if isinstance(rule_id, str) and not rule_id.startswith("#"):
+                        mapping_keys.add(rule_id)
+                        if isinstance(entry, dict) and "engine" in entry:
+                            mapping_engines[rule_id] = entry["engine"]
         return mapping_keys, mapping_engines
 
     def _load_substrate_taxonomy(self) -> set[str]:
