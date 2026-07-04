@@ -38,10 +38,10 @@ validate_app = typer.Typer(help="Commands for validating constitutional integrit
 @validate_app.command("intent-schema")
 # ID: 3c97e5c8-ad67-4865-b636-0860ab74775b
 def validate_intent_schema(
-    intent_path: Path = typer.Option(
-        Path(".intent"),
+    intent_path: Path | None = typer.Option(
+        None,
         "--intent-path",
-        help="Path to the .intent directory (Mind root).",
+        help="Path to the .intent directory (Mind root). Defaults to repo root .intent/.",
     ),
 ) -> None:
     """
@@ -55,6 +55,11 @@ def validate_intent_schema(
 
     This allows gradual rollout of schema governance across the Mind.
     """
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
+    if intent_path is None:
+        intent_path = BootstrapRegistry.get_repo_path() / ".intent"
+
     logger.info("Running .intent JSON-schema validation via core-admin.")
 
     # Use service for validation logic

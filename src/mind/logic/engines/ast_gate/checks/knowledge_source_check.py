@@ -11,7 +11,6 @@ CONSTITUTIONAL COMPLIANCE:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, ClassVar
 
 from mind.governance.enforcement_methods import (
@@ -24,9 +23,6 @@ from shared.models import AuditFinding
 
 
 logger = getLogger(__name__)
-
-# The policy defines the "Spirit of the Law"
-GOVERNANCE_POLICY = Path(".intent/standards/data/governance.json")
 
 
 # ID: 81d6e8ed-a6f6-444c-acda-9064896c5111
@@ -46,8 +42,6 @@ class KnowledgeSourceCheck(RuleEnforcementCheck):
         "db.cognitive_roles_in_db",
         "db.domains_in_db",
     ]
-
-    policy_file: ClassVar[Path] = GOVERNANCE_POLICY
 
     # We use the Async enforcement methods defined in the mind.governance home
     enforcement_methods: ClassVar[list[AsyncEnforcementMethod]] = [

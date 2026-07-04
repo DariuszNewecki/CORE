@@ -111,17 +111,13 @@ class EngineRegistry:
         """
         if cls._path_resolver is None:
             return
-        import yaml
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         global PASSIVE_ALIASES
-        taxonomy_path = (
-            cls._path_resolver.repo_root
-            / ".intent"
-            / "taxonomies"
-            / "substrate_enforcement.yaml"
-        )
         try:
-            data = yaml.safe_load(taxonomy_path.read_text(encoding="utf-8")) or {}
+            data = get_intent_repository().load_policy(
+                "taxonomies/substrate_enforcement"
+            )
             entries = data.get("entries", {})
             if isinstance(entries, dict) and entries:
                 PASSIVE_ALIASES = set(entries.keys())

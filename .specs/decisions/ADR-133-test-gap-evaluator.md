@@ -158,12 +158,15 @@ with:
 
 ```yaml
 build.test_for_symbol:
-  impact_level: moderate
+  impact_level: safe
   reversible: true
   rationale: >
     Appends or creates a test file. Test files are not production code;
-    the change is reversible via git. Impact is lower than write_code
-    because the target is always a tests/ path, never a src/ path.
+    the change is reversible via git. Target is always a tests/ path,
+    never a src/ path. Auto-approval by TestRemediatorWorker is intentional:
+    human confirmation would break the autonomous test-generation loop.
+    Reclassified from moderate (ADR-133 D5 original) after governor confirmation
+    that safe auto-approval matches operational intent.
 ```
 
 ### D6 — `context_aware_test_gen` prompt is authorised for `build.test_for_symbol`

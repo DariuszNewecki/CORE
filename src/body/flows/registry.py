@@ -18,6 +18,7 @@ from pathlib import Path
 
 import yaml
 
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
 
@@ -273,8 +274,7 @@ class FlowRegistry:
     def _ensure_loaded(self) -> None:
         """Lazy-load from .intent/flows/ if not yet loaded."""
         if not self._loaded:
-            intent_root = Path(".intent").resolve()
-            self.load(intent_root / "flows")
+            self.load(get_intent_repository().root / "flows")
 
 
 # Global singleton — mirrors action_registry pattern

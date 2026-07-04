@@ -28,7 +28,7 @@ from abc import ABC
 from typing import Any
 
 from shared.logger import getLogger
-from shared.workers.base import Worker, WorkerConfigurationError
+from shared.workers.base import Worker, WorkerConfigurationError, WorkerSilenceError
 
 
 logger = getLogger(__name__)
@@ -80,7 +80,14 @@ class ScheduledWorker(Worker, ABC):
         while True:
             cycle_start = time.monotonic()
             try:
+                self._cycle_post_count = 0
                 await self.run()
+                if self._cycle_post_count == 0:
+                    raise WorkerSilenceError(
+                        f"{self._worker_name} completed a cycle without posting "
+                        "any blackboard entry. Call at least one of: "
+                        "post_finding(), post_report(), post_heartbeat()."
+                    )
             except Exception as exc:
                 logger.error(
                     "%s: cycle failed: %s", self._worker_name, exc, exc_info=True

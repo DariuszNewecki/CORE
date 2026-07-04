@@ -23,6 +23,64 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+async def _validate_and_write(
+    action_id: str,
+    file_path: str,
+    code: str,
+    core_context: CoreContext,
+    write: bool,
+) -> ActionResult:
+    """Shared validation + write logic for file.create and file.edit.
+
+    Not decorated \u2014 callers are responsible for their own action identity.
+    Each caller passes its own action_id so audit records are correct.
+    """
+    start = time.time()
+    try:
+        if file_path.endswith(".py"):
+            try:
+                ast.parse(code)
+            except SyntaxError as e:
+                logger.error(
+                    "\u274c CONSTITUTIONAL VIOLATION: AI generated invalid Python in %s",
+                    file_path,
+                )
+                return ActionResult(
+                    action_id=action_id,
+                    ok=False,
+                    data={
+                        "error": "Syntax Error: Refusing to write invalid Python code.",
+                        "details": str(e),
+                        "line": e.lineno,
+                    },
+                    duration_sec=time.time() - start,
+                )
+
+        if write:
+            core_context.file_handler.write_runtime_text(file_path, code)
+            if core_context.git_service.is_git_repo():
+                core_context.git_service.add(file_path)
+
+        return ActionResult(
+            action_id=action_id,
+            ok=True,
+            data={
+                "path": file_path,
+                "written": write,
+                "status": "Verified & Persisted" if write else "Verified (Dry Run)",
+            },
+            duration_sec=time.time() - start,
+            impact=ActionImpact.WRITE_CODE,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id=action_id,
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
 @register_action(
     action_id="file.create",
     description="Create a new file with validated content",
@@ -40,57 +98,9 @@ async def action_create_file(
     file_path: str, code: str, core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Creates a file. Enforces strict pre-flight syntax and metadata checks."""
-    start = time.time()
-    try:
-        # 1. THE IRON GATE: Syntax Validation
-        # If this is a Python file, it MUST parse or we halt immediately.
-        if file_path.endswith(".py"):
-            try:
-                ast.parse(code)
-            except SyntaxError as e:
-                logger.error(
-                    "\u274c CONSTITUTIONAL VIOLATION: AI generated invalid Python in %s",
-                    file_path,
-                )
-                return ActionResult(
-                    action_id="file.create",
-                    ok=False,
-                    data={
-                        "error": "Syntax Error: Refusing to write invalid Python code.",
-                        "details": str(e),
-                        "line": e.lineno,
-                    },
-                    duration_sec=time.time() - start,
-                )
-
-        # 2. THE FINALIZER: Auto-Metadata
-        # If the write is approved, we ensure the 'Paperwork' is done.
-        # This is handled by the FileHandler inside the write_runtime_text call.
-
-        if write:
-            # We use the governed mutation surface
-            core_context.file_handler.write_runtime_text(file_path, code)
-            if core_context.git_service.is_git_repo():
-                core_context.git_service.add(file_path)
-
-        return ActionResult(
-            action_id="file.create",
-            ok=True,
-            data={
-                "path": file_path,
-                "written": write,
-                "status": "Verified & Persisted" if write else "Verified (Dry Run)",
-            },
-            duration_sec=time.time() - start,
-            impact=ActionImpact.WRITE_CODE,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="file.create",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
+    return await _validate_and_write(
+        "file.create", file_path, code, core_context, write
+    )
 
 
 @register_action(
@@ -109,8 +119,8 @@ async def action_create_file(
 async def action_edit_file(
     file_path: str, code: str, core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
-    """Edits a file. Reuses creation logic to ensure identical safety gates."""
-    return await action_create_file(file_path, code, core_context, write=write)
+    """Edits a file. Enforces the same safety gates as file.create."""
+    return await _validate_and_write("file.edit", file_path, code, core_context, write)
 
 
 @register_action(

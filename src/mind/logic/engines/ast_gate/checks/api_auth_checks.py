@@ -16,10 +16,14 @@ class ApiAuthChecks:
         """Verify ROUTER_EXPOSURE and router-level require_governor agree (ADR-132 D7).
 
         Rules:
-        - ROUTER_EXPOSURE='governor-only' → APIRouter constructor MUST carry
-          require_governor in its dependencies list.
-        - ROUTER_EXPOSURE='user-facing' → APIRouter constructor MUST NOT carry
-          require_governor in its router-level dependencies (per-route gates are fine).
+        - ROUTER_EXPOSURE='governor-only' → every APIRouter() assignment in the
+          file MUST carry require_governor in its constructor dependencies. A
+          secondary router without the gate is as much a violation as the primary
+          one — the checker was previously blind to non-'router' variables.
+        - ROUTER_EXPOSURE='user-facing' → the primary APIRouter (named 'router')
+          MUST NOT carry require_governor at the constructor level. Secondary
+          routers MAY carry it (being more restrictive than the file tier is fine;
+          per-route gates on individual endpoints are always fine).
 
         Returns an empty list for files that declare no ROUTER_EXPOSURE (not a
         route module; the rule scope limits calls to src/api/v1/**/*.py).
@@ -34,26 +38,32 @@ class ApiAuthChecks:
                 f"expected 'governor-only' or 'user-facing'"
             ]
 
-        router_has_gate = _router_constructor_has_require_governor(tree)
+        all_gates = _find_all_router_gates(tree)
 
-        if exposure == "governor-only" and not router_has_gate:
-            return [
-                "ROUTER_EXPOSURE='governor-only' but APIRouter constructor lacks "
-                "require_governor in its dependencies list. "
-                "Add: router = APIRouter(..., dependencies=[require_governor])"
-            ]
+        findings: list[str] = []
 
-        if exposure == "user-facing" and router_has_gate:
-            return [
-                "ROUTER_EXPOSURE='user-facing' but APIRouter constructor carries "
-                "require_governor in its router-level dependencies. "
-                "Remove it from the APIRouter constructor; per-route gates are fine."
-            ]
+        if exposure == "governor-only":
+            for name in sorted(all_gates):
+                if not all_gates[name]:
+                    findings.append(
+                        f"ROUTER_EXPOSURE='governor-only' but APIRouter '{name}' "
+                        "constructor lacks require_governor in its dependencies list. "
+                        f"Add: {name} = APIRouter(..., dependencies=[require_governor])"
+                    )
+        else:  # user-facing
+            # Only the primary router is constrained — secondary routers may be
+            # more restrictive (constructor gate present) without it being a violation.
+            if all_gates.get("router", False):
+                findings.append(
+                    "ROUTER_EXPOSURE='user-facing' but APIRouter 'router' constructor "
+                    "carries require_governor in its router-level dependencies. "
+                    "Remove it from the APIRouter constructor; per-route gates are fine."
+                )
 
-        return []
+        return findings
 
 
-# ID: f89a11d0-f923-42bc-bf2b-f31824b37008
+# ID: a906415b-311a-42d5-8df8-8a8db0b856fe
 def _find_router_exposure(tree: ast.AST) -> str | None:
     """Return the string value of ROUTER_EXPOSURE if declared, else None."""
     for node in ast.walk(tree):
@@ -69,19 +79,23 @@ def _find_router_exposure(tree: ast.AST) -> str | None:
     return None
 
 
-# ID: 16f3b196-720c-4ac6-ac0f-2beade1c1629
-def _router_constructor_has_require_governor(tree: ast.AST) -> bool:
-    """Return True if the main router's APIRouter() call lists require_governor in dependencies."""
+# ID: 793f2ded-04ad-4710-a813-76ff72f339be
+def _find_all_router_gates(tree: ast.AST) -> dict[str, bool]:
+    """Return {var_name: has_require_governor} for every APIRouter() assignment in the module.
+
+    Covers all simple assignments of the form `name = APIRouter(...)`, regardless
+    of the variable name. Previously only 'router' was checked, leaving secondary
+    routers (e.g. 'actions_router', 'admin_router') invisible to the checker.
+    """
+    result: dict[str, bool] = {}
     for node in ast.walk(tree):
         if not (
             isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
-            and node.targets[0].id == "router"
             and isinstance(node.value, ast.Call)
         ):
             continue
-
         call = node.value
         func = call.func
         is_api_router = (isinstance(func, ast.Name) and func.id == "APIRouter") or (
@@ -89,23 +103,28 @@ def _router_constructor_has_require_governor(tree: ast.AST) -> bool:
         )
         if not is_api_router:
             continue
+        result[node.targets[0].id] = _call_has_require_governor(call)
+    return result
 
-        for kw in call.keywords:
-            if kw.arg != "dependencies":
-                continue
-            if not isinstance(kw.value, ast.List):
-                continue
-            for elt in kw.value.elts:
-                if isinstance(elt, ast.Name) and elt.id == "require_governor":
-                    return True
-                if (
-                    isinstance(elt, ast.Call)
-                    and isinstance(elt.func, ast.Name)
-                    and elt.func.id == "Depends"
-                    and elt.args
-                    and isinstance(elt.args[0], ast.Name)
-                    and elt.args[0].id == "require_governor"
-                ):
-                    return True
 
+# ID: de091033-f205-4114-b6f3-3aa101da4312
+def _call_has_require_governor(call: ast.Call) -> bool:
+    """Return True if an APIRouter() call lists require_governor in its dependencies."""
+    for kw in call.keywords:
+        if kw.arg != "dependencies":
+            continue
+        if not isinstance(kw.value, ast.List):
+            continue
+        for elt in kw.value.elts:
+            if isinstance(elt, ast.Name) and elt.id == "require_governor":
+                return True
+            if (
+                isinstance(elt, ast.Call)
+                and isinstance(elt.func, ast.Name)
+                and elt.func.id == "Depends"
+                and elt.args
+                and isinstance(elt.args[0], ast.Name)
+                and elt.args[0].id == "require_governor"
+            ):
+                return True
     return False

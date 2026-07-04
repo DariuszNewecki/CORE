@@ -74,6 +74,9 @@ ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/fix")
 # Top-level router for GET /actions (ADR-055 D2 places it outside the
 # /fix namespace; mounted alongside `router` in api/main.py).
+# Intentionally user-facing (no constructor gate): authenticated OEM
+# integrators need catalog discovery. Execution remains governor-gated
+# at each mutation endpoint. ROUTER_EXPOSURE above covers both routers.
 actions_router = APIRouter()
 
 

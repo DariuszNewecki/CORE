@@ -13,13 +13,9 @@ Ref: .intent/policies/code/purity.json
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import ClassVar
 
 from mind.governance.checks.rule_enforcement_check import RuleEnforcementCheck
-
-
-PURITY_POLICY = Path(".intent/policies/code/purity.json")
 
 
 # ID: f9e2d7c5-8b4a-6e1f-3d9c-2a7b5e8f4c1d
@@ -44,8 +40,6 @@ class PurityEnforcementCheck(RuleEnforcementCheck):
         "purity.forbidden_decorators",
         "purity.forbidden_primitives",
     ]
-
-    policy_file: ClassVar[Path] = PURITY_POLICY
 
     # These rules are enforced via ast_gate engine dispatch
     # No enforcement_methods needed - engine handles verification

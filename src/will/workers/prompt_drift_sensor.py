@@ -26,6 +26,12 @@ from shared.workers.scheduled_worker import ScheduledWorker
 logger = getLogger(__name__)
 
 
+def _diff_file_hashes(prior: dict[str, str], current: dict[str, str]) -> list[str]:
+    """Return filenames whose hash changed or that are new/removed."""
+    all_keys = prior.keys() | current.keys()
+    return [k for k in sorted(all_keys) if prior.get(k) != current.get(k)]
+
+
 # ID: f837f009-1f3c-4c9c-a5a8-411f29fa9b6a
 class PromptDriftSensor(ScheduledWorker):
     """
@@ -51,7 +57,7 @@ class PromptDriftSensor(ScheduledWorker):
         Execute one drift-sensing cycle:
         1. Post heartbeat
         2. Load governed prompt list from .intent/
-        3. Hash current content of each governed prompt
+        3. Hash current content of each governed prompt (combined + per-file)
         4. Recover stored baseline from blackboard
         5. Post prompt.drift_detected findings for changed prompts
         6. Persist new baseline as a blackboard report
@@ -65,32 +71,49 @@ class PromptDriftSensor(ScheduledWorker):
             )
             await self.post_report(
                 subject="prompt_drift_sensor.baseline",
-                payload={"hashes": {}, "checked": 0, "drifted": []},
+                payload={"hashes": {}, "file_hashes": {}, "checked": 0, "drifted": []},
             )
             return
 
+        anchors_by_name: dict[str, list[str]] = {
+            entry["name"]: entry.get("anchors", [])
+            for entry in governed
+            if entry.get("name")
+        }
+
+        git_commit = self._get_current_commit()
+
         current_hashes: dict[str, str] = {}
-        for entry in governed:
-            name = entry.get("name", "")
-            if not name:
-                continue
-            h = self._compute_hash(name)
-            if h is not None:
-                current_hashes[name] = h
+        current_file_hashes: dict[str, dict[str, str]] = {}
+        for name in anchors_by_name:
+            combined, per_file = self._compute_hashes(name)
+            if combined is not None:
+                current_hashes[name] = combined
+                current_file_hashes[name] = per_file
 
         baseline = await self._fetch_baseline()
         prior_hashes: dict[str, str] = baseline.get("hashes", {}) if baseline else {}
+        prior_file_hashes: dict[str, dict[str, str]] = (
+            baseline.get("file_hashes", {}) if baseline else {}
+        )
 
         drifted: list[str] = []
         for name, digest in current_hashes.items():
             if name in prior_hashes and prior_hashes[name] != digest:
                 drifted.append(name)
+                changed_files = _diff_file_hashes(
+                    prior_file_hashes.get(name, {}),
+                    current_file_hashes.get(name, {}),
+                )
                 await self.post_finding(
                     subject=f"prompt::drift::{name}",
                     payload={
                         "prompt_name": name,
+                        "adr_anchor": anchors_by_name.get(name, []),
                         "previous_hash": prior_hashes[name],
                         "current_hash": digest,
+                        "changed_files": changed_files,
+                        "git_commit": git_commit,
                         "rule": "ai.prompt.governed_change_requires_review",
                     },
                     resolution_mechanism="human",
@@ -103,6 +126,7 @@ class PromptDriftSensor(ScheduledWorker):
             subject="prompt_drift_sensor.baseline",
             payload={
                 "hashes": current_hashes,
+                "file_hashes": current_file_hashes,
                 "checked": len(current_hashes),
                 "drifted": drifted,
             },
@@ -128,8 +152,13 @@ class PromptDriftSensor(ScheduledWorker):
             )
             return []
 
-    def _compute_hash(self, prompt_name: str) -> str | None:
-        """Return SHA-256 hex digest of system.txt + user.txt for *prompt_name*."""
+    def _compute_hashes(self, prompt_name: str) -> tuple[str | None, dict[str, str]]:
+        """Return (combined SHA-256, per-file SHA-256 map) for *prompt_name*.
+
+        The combined hash covers system.txt and user.txt together and is used
+        for drift detection. The per-file map is stored in the baseline so that
+        changed_files can be reported accurately on the next drift cycle.
+        """
         from shared.path_resolver import PathResolver
 
         prompt_dir: Path = (
@@ -140,18 +169,28 @@ class PromptDriftSensor(ScheduledWorker):
             logger.warning(
                 "PromptDriftSensor: prompt directory not found: %s", prompt_dir
             )
-            return None
+            return None, {}
 
-        h = hashlib.sha256()
-        found_any = False
+        combined = hashlib.sha256()
+        per_file: dict[str, str] = {}
         for filename in ("system.txt", "user.txt"):
             candidate = prompt_dir / filename
             if candidate.is_file():
-                h.update(filename.encode())
-                h.update(candidate.read_bytes())
-                found_any = True
+                content = candidate.read_bytes()
+                combined.update(filename.encode())
+                combined.update(content)
+                per_file[filename] = hashlib.sha256(content).hexdigest()
 
-        return h.hexdigest() if found_any else None
+        if not per_file:
+            return None, {}
+        return combined.hexdigest(), per_file
+
+    def _get_current_commit(self) -> str:
+        """Return HEAD commit hash, or 'unknown' if git is unavailable."""
+        try:
+            return self._core_context.git_service.get_current_commit()
+        except Exception:
+            return "unknown"
 
     async def _fetch_baseline(self) -> dict[str, Any] | None:
         from body.services.blackboard_service import BlackboardQueryService

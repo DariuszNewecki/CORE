@@ -12,7 +12,7 @@ def _parse(src: str) -> ast.AST:
     return ast.parse(textwrap.dedent(src))
 
 
-# ── happy paths ────────────────────────────────────────────────────────────────
+# ── happy paths — single router ───────────────────────────────────────────────
 
 def test_governor_only_with_dependency_passes() -> None:
     tree = _parse("""
@@ -30,8 +30,12 @@ def test_user_facing_without_router_dependency_passes() -> None:
     assert ApiAuthChecks.check_router_exposure_enforcement(tree) == []
 
 
-def test_user_facing_with_per_route_dependency_passes() -> None:
-    """require_governor on individual routes is fine for mixed routers."""
+def test_user_facing_with_secondary_router_gate_passes() -> None:
+    """Secondary router with require_governor is fine in a user-facing file.
+
+    Being more restrictive than the file tier is allowed. The checker only
+    constrains the primary 'router' variable for user-facing files.
+    """
     tree = _parse("""
         ROUTER_EXPOSURE = "user-facing"
         router = APIRouter(prefix="/mixed")
@@ -57,7 +61,27 @@ def test_depends_wrapped_require_governor_passes() -> None:
     assert ApiAuthChecks.check_router_exposure_enforcement(tree) == []
 
 
-# ── violations ────────────────────────────────────────────────────────────────
+def test_governor_only_multiple_routers_all_gated_passes() -> None:
+    """Every APIRouter in a governor-only file carries the gate — no violation."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "governor-only"
+        router = APIRouter(prefix="/ops", dependencies=[require_governor])
+        admin_router = APIRouter(prefix="/admin", dependencies=[require_governor])
+    """)
+    assert ApiAuthChecks.check_router_exposure_enforcement(tree) == []
+
+
+def test_user_facing_multiple_routers_none_gated_passes() -> None:
+    """Multiple ungated routers in a user-facing file — no violation."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/fix")
+        actions_router = APIRouter()
+    """)
+    assert ApiAuthChecks.check_router_exposure_enforcement(tree) == []
+
+
+# ── violations — single router ────────────────────────────────────────────────
 
 def test_governor_only_missing_dependency_is_violation() -> None:
     tree = _parse("""
@@ -68,6 +92,7 @@ def test_governor_only_missing_dependency_is_violation() -> None:
     assert len(violations) == 1
     assert "governor-only" in violations[0]
     assert "require_governor" in violations[0]
+    assert "'router'" in violations[0]
 
 
 def test_governor_only_wrong_dependency_is_violation() -> None:
@@ -101,3 +126,36 @@ def test_unknown_exposure_value_is_violation() -> None:
     assert len(violations) == 1
     assert "unrecognised" in violations[0]
     assert "internal" in violations[0]
+
+
+# ── violations — multiple routers (the previously blind case) ─────────────────
+
+def test_governor_only_secondary_router_missing_gate_is_violation() -> None:
+    """Secondary router without require_governor in a governor-only file is a violation.
+
+    Previously the checker only inspected 'router' and would have missed
+    'ops_router' entirely.
+    """
+    tree = _parse("""
+        ROUTER_EXPOSURE = "governor-only"
+        router = APIRouter(prefix="/admin", dependencies=[require_governor])
+        ops_router = APIRouter(prefix="/ops")
+    """)
+    violations = ApiAuthChecks.check_router_exposure_enforcement(tree)
+    assert len(violations) == 1
+    assert "governor-only" in violations[0]
+    assert "'ops_router'" in violations[0]
+
+
+def test_governor_only_both_routers_missing_gate_reports_both() -> None:
+    """Every ungated router in a governor-only file produces its own finding."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "governor-only"
+        router = APIRouter(prefix="/admin")
+        ops_router = APIRouter(prefix="/ops")
+    """)
+    violations = ApiAuthChecks.check_router_exposure_enforcement(tree)
+    assert len(violations) == 2
+    names_in_findings = " ".join(violations)
+    assert "'ops_router'" in names_in_findings
+    assert "'router'" in names_in_findings
