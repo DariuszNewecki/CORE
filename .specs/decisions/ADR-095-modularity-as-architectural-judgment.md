@@ -226,6 +226,32 @@ The verification bullet "no longer contains routings for [the 6 rules]" should b
 
 ---
 
+## Note — D7: `POST /fix/modularity` is a sanctioned permanent FlowExecutor bypass (2026-07-05)
+
+External architectural review surfaced that `src/api/v1/fix_routes.py`'s `POST /fix/modularity` endpoint dispatches directly to `ModularityRemediationService` without going through `FlowExecutor`, with no `flow.modularity` YAML declaration. This note formalises that bypass as a permanent, sanctioned exception under D1's governor-tool authority — not an open governance gap.
+
+**D7 — The `POST /fix/modularity` HTTP route is permanently exempt from FlowExecutor governance.**
+
+The bypass is intentional for two reasons:
+
+1. **`fix.modularity` is a governor tool, not an autonomous pipeline component (D1).** The Flow system governs *autonomous mutation sequences* initiated by the daemon. A governor-invoked tool — whether reached by CLI (`core-admin tools fix-modularity`) or HTTP (`POST /fix/modularity`) — operates outside the autonomous pipeline. Wrapping it in FlowExecutor would add ceremony without adding governance.
+
+2. **`ModularityRemediationService` is itself a governed Python-level workflow.** Converting it to a Flow YAML would require decomposing the service into atomic action steps whose granularity is undefined until the agentic-invocation path described in D6 ships. The right decomposition mechanism is D6's successor ADR, not a premature Flow YAML wrapper now.
+
+The bypass does not degrade governance because the two properties that matter are already present:
+
+- The route is gated by `require_governor` — only the governor can invoke it.
+- The `write` flag from the request payload is propagated faithfully through `run_and_persist_modularity` — there is no governance bypass on the mutation gate itself.
+
+**Boundary conditions.** This sanction is conditional:
+
+- If the route's `require_governor` gate is ever removed, the FlowExecutor exemption lapses — a user-facing mutation surface without Flow governance is not sanctioned.
+- If `ModularityRemediationService` is decomposed into atomic actions (the D6 agentic path), the resulting steps MUST go through Flow YAML. The exemption covers the monolithic service, not a future decomposed version.
+
+The comment in `src/will/governance/fix_runner.py` ("no `flow.modularity` declaration, so this path runs directly against...") is load-bearing documentation of this decision and MUST NOT be removed.
+
+---
+
 ## References
 
 - ADR-006 — alignment of `needs_split` with its statement.
