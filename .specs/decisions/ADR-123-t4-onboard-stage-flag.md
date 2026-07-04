@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-21
 **Date:** 2026-06-21
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Grounds:** `CORE-BYOR.md` §5 parameter 1 (read-only until invited); ADR-111 D3 (no overwrite safety invariant).
 **Relates:** ADR-111 (amended by ADR-119) — onboard delivers the machinery floor; the airlock is an additive delivery mode, not a change to *what* is delivered.
 

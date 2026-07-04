@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-18
+**Governing paper:** `.specs/papers/CORE-Mind-Body-Will-Separation.md`
 **Deciders:** Darek Newecki (Principal Architect)
 **Context:** Shared/ boundary audit revealed constitutional violations requiring architectural resolution
 

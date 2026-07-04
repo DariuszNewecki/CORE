@@ -13,9 +13,11 @@ and no aspirational/pending/deferred marker.
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import Path
 
 from shared.governance.coherence_harvester import NormativeMarkerRegister
+from shared.infrastructure.git_service import GitService
 
 from .base import CoherenceCandidate
 
@@ -23,6 +25,12 @@ from .base import CoherenceCandidate
 _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*$", re.MULTILINE)
 _RULE_CITE = re.compile(r"\.intent/[\w\-.]+/[\w\-./*{}]+\.[a-z]+", re.IGNORECASE)
 _LEADING_NUMBERING = re.compile(r"^[\d.]+\s*")
+
+# Papers authored before this date are grandfathered: ADR-073 D6 operationalized
+# the ROW3_CITATION invariant on 2026-05-26; pre-existing papers were never
+# authored with this citation obligation in mind and are exempt from retroactive
+# enforcement. Post-acceptance papers carry the full obligation.
+_ROW3_OPERATIONALIZED = date(2026, 5, 26)
 
 # Headings that legitimately use normative vocabulary about the paper's own
 # process (amendment mechanism, status lifecycle) rather than about runtime
@@ -83,10 +91,14 @@ class Row3CitationCheck:
         for glob in spec_md_globs:
             universe.update(self._repo_root.glob(glob))
         paper_paths = sorted(p for p in universe if p.is_relative_to(papers))
+        git = GitService(self._repo_root)
         candidates: list[CoherenceCandidate] = []
         for path in paper_paths:
             content = path.read_text(encoding="utf-8", errors="replace")
             rel = str(path.relative_to(self._repo_root))
+            first_seen = git.first_seen_date(rel)
+            if first_seen is not None and first_seen < _ROW3_OPERATIONALIZED:
+                continue
             for heading, section_text in _iter_sections(content):
                 normalized = _LEADING_NUMBERING.sub("", heading).strip().lower()
                 if normalized in _BOILERPLATE_HEADINGS:

@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-17 (revised 2026-05-18)
+**Governing paper:** `.specs/papers/CORE-OEM-API.md`
 **Authors:** Darek (Dariusz Newecki)
 **Parent:** ADR-053 (API as Governance Interface)
 **Relates to:** ADR-054 (Phase 1), ADR-046 (flow risk), ADR-038 (circuit

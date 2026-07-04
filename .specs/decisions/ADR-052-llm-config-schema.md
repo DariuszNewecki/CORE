@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-16
+**Governing paper:** `.specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md`
 **Domain:** Infrastructure / LLM Configuration
 **Band:** D — Engine Integrity
 **Replaces:** implicit schema carried by `runtime_settings` since initial .env migration

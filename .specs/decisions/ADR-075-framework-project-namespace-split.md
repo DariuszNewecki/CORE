@@ -8,6 +8,7 @@ status: accepted
 # ADR-075 — Framework / Project Namespace Split
 
 **Date:** 2026-05-28
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Outward-Facing

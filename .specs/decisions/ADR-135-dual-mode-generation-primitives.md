@@ -10,6 +10,7 @@ status: accepted
 # ADR-135 — Dual-Mode Generation: Single-Shot and Iterative Execution Primitives
 
 **Date:** 2026-07-01
+**Governing paper:** `.specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-01)

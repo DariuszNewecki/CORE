@@ -10,6 +10,7 @@ status: accepted
 # ADR-136 — Substrate-Enforcement Taxonomy and Dispatch-Parity CCC Check
 
 **Date:** 2026-07-02
+**Governing paper:** `.specs/papers/CORE-Enforcement-Completeness.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-02)

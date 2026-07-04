@@ -10,6 +10,7 @@ status: accepted
 # ADR-095 — Modularity family as architectural-judgment, role-declared sanctuary
 
 **Date:** 2026-06-06
+**Governing paper:** `.specs/papers/CORE-ModularizationLessons.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-06 — drafted under explicit "write that ADR" confirmation at the close of a triage thread that surfaced the modularity mess as a coherent family problem rather than per-finding noise. The governor explicitly asked for the full rule inventory before drafting; the decisions below are scoped against that inventory, not against the single triage case (`3703c54a`) that opened the thread.)

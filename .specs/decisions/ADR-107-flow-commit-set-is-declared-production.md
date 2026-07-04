@@ -10,6 +10,7 @@ status: accepted
 # ADR-107 — A flow's commit set is its steps' declared production, not the sandbox worktree diff
 
 **Date:** 2026-06-13
+**Governing paper:** `.specs/papers/CORE-Flow.md`
 **Status:** Accepted — D1–D4 ratified by the governor on 2026-06-13 ("Approve ADR, commit it, then implement it"). Drafted under the governor's "start #630 → draft an ADR for your review, then implement" direction. Implementation lands as one governor-reviewed change-set.
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-13). The success-path half of #629, split out as #630 when ADR-106 landed the failure-path fix.

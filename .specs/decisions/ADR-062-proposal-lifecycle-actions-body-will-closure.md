@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-19
+**Governing paper:** `.specs/papers/CORE-Proposal.md`
 **Authors:** Darek (Dariusz Newecki)
 **Deadline:** 2026-09-16 (120 days)
 **Closes:** First bullet of #313 (proposal_lifecycle_actions.py exclude)

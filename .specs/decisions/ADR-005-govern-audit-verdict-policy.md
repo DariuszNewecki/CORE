@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-20
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Authors:** Darek (Dariusz Newecki)
 **Related:** ADR-004 (task_type phase map in `.intent/`)
 **Reconnaissance:** `.specs/state/2026-04-20-audit-verdict-governance.md`

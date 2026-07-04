@@ -10,6 +10,7 @@ status: accepted
 # ADR-015 — Consequence Chain Attribution: Write Paths and Storage Shapes
 
 **Date:** 2026-04-27
+**Governing paper:** `.specs/papers/CORE-Finding.md`
 **Status:** Accepted
 **Commits:** pending
 

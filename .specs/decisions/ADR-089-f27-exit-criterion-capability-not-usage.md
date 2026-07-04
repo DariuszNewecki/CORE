@@ -10,6 +10,7 @@ status: accepted
 # ADR-089 — F-27 exit criterion: capability proof replaces usage window
 
 **Date:** 2026-06-03
+**Governing paper:** `.specs/papers/CORE-Capability-Taxonomy.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-03 — drafted under Path A execute-verb authorization, "draft the ADR-085 amendment", after the governor interrogated the original "≥7-day reliable run" criterion and arrived at "local Ollama is weak, DeepSeek is cheap enough — why run that observation at all?")

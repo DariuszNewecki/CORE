@@ -10,6 +10,7 @@ status: accepted
 # ADR-127 — Indeterminate clean-pass drain via AuditViolationSensor
 
 **Date:** 2026-06-27
+**Governing paper:** `.specs/papers/CORE-Blackboard-State-Machine.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-27 — drafted under governor direction)

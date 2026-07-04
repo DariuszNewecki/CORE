@@ -10,6 +10,7 @@ status: accepted
 # ADR-033 — Flow→Step Parameter Routing Contract
 
 **Date:** 2026-05-10
+**Governing paper:** `.specs/papers/CORE-Flow.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #216

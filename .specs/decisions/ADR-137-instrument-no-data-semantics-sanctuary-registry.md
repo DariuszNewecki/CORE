@@ -10,6 +10,7 @@ status: accepted
 # ADR-137 — Instrument No-Data Semantics and Sanctuary Registry
 
 **Date:** 2026-07-02
+**Governing paper:** `.specs/papers/CORE-Instrument-Attestation.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-02)

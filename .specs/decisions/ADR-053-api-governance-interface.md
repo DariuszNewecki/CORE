@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted (revised 2026-05-18 — D4 amended to assign unassigned capability map items)
 **Date:** 2026-05-16
+**Governing paper:** `.specs/papers/CORE-OEM-API.md`
 **Revised:** 2026-05-18
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** API incompleteness gap identified by ADR-050 capability audit

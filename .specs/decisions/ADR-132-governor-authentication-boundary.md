@@ -8,6 +8,7 @@ status: accepted
 # ADR-132 — Governor Authentication Boundary
 
 **Date:** 2026-06-28
+**Governing paper:** `.specs/papers/CORE-Constitutional-Foundations.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Outward-Facing

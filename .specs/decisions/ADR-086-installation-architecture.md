@@ -10,6 +10,7 @@ status: accepted
 # ADR-086 — Installation Architecture
 
 **Date:** 2026-06-02
+**Governing paper:** `.specs/papers/CORE-Infrastructure-Definition.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-02 — drafted under Path A execute-verb authorization, "draft ADR-086" + governor confirmation of expanded scope after the F-10.3 / installation-script memory thread surfaced the Band E Track 2 ADR trigger and the `lira_user`/`core_db` ownership split)

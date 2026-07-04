@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-17
 **Date:** 2026-06-17
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Grounding paper:** `CORE-BYOR.md` (§4 the code×Induce cell; §8 byor.py disposition) — primary.
 **Builds on:** ADR-108 (external adoption ships a minimal *authored* starter, not a copy), ADR-075 (framework/project namespace), ADR-095 D1 (drift is named, not papered over).
 **Operationalizes:** UR-04 (Constitution Before Artifact) — primary; UR-01 (Universal Input Acceptance) — secondary.

@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-19
 **Date:** 2026-06-19
+**Governing paper:** `.specs/papers/CORE-Disposition-Governance.md`
 **Grounding paper:** `CORE-BYOR.md` — §9 grounding item 3 ("the document/records Repository type + **regulation→Intent representation** — the GRC second domain") — primary; §3 (the Repository as the single parametrization seam; F-41/F-42/F-43) — the seam this binds; §7 (the honesty guardrail) and §6 (GRC monetizes Reach at low autonomy) — why the corpus is the commercial center of gravity.
 **Operationalizes:** the GRC gap-analysis service (Scenario 4 — the revenue priority). Supplies the **Intent** side of GRC gap-analysis; the customer brings the **Artifact** (their document corpus), CORE/us supply the licensed law.
 **Relates:** ADR-113 (per-finding evidence class — what each catalog *check* declares) — distinct surface; this ADR governs where the catalog *lives*, ADR-113 governs how its findings are *labelled*. ADR-108/ADR-111 (external adoption, the `examples/starter-intent/` precedent for shipped reference data).

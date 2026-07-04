@@ -10,6 +10,7 @@ status: accepted
 # ADR-129 — Commit authorship integrity enforcement (ADR-101 D6 delivery)
 
 **Date:** 2026-06-28
+**Governing paper:** `.specs/papers/CORE-Constitutional-Foundations.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-28 — drafted under governor direction)

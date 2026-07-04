@@ -11,6 +11,7 @@ status: superseded
 
 **Status:** Accepted
 **Date:** 2026-05-15
+**Governing paper:** `.specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md`
 **Authors:** Darek (Dariusz Newecki)
 **Deadline:** 2026-09-12 (120 days)
 **Closes:** Final bullet of #315 (Tier B/1)

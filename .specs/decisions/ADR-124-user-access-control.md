@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** accepted
 **Date:** 2026-06-21
+**Governing paper:** `.specs/papers/CORE-Governance-Topology.md`
 **Deciders:** Governor
 
 ---

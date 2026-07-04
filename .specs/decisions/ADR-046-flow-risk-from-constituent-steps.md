@@ -12,6 +12,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-15
+**Governing paper:** `.specs/papers/CORE-Flow.md`
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** #290 (Should flows be invoked from the autonomous remediation
 pipeline at all?)

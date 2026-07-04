@@ -9,6 +9,7 @@ status: accepted
 # ADR-077 — Config-driven protected-namespace access with an introspective filesystem-operation taxonomy
 
 **Date:** 2026-05-30
+**Governing paper:** `.specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (protected-namespace access session 2026-05-30)

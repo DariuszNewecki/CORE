@@ -8,6 +8,7 @@ status: accepted
 # ADR-133 — Test Gap Evaluator and Symbol-Granular Test Generation
 
 **Date:** 2026-06-28
+**Governing paper:** `.specs/papers/CORE-TestGovernance.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** C — Autonomy Loop

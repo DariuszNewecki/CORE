@@ -10,6 +10,7 @@ status: accepted
 # ADR-139 — MyPy Type Safety Remediation Strategy
 
 **Date:** 2026-07-02
+**Governing paper:** `.specs/papers/CORE-Constitutional-Foundations.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-02)

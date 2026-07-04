@@ -8,6 +8,7 @@ status: accepted
 # ADR-036 — PathResolver excluded from modularity.needs_split
 
 **Date:** 2026-05-11
+**Governing paper:** `.specs/papers/CORE-Mind-Body-Will-Separation.md`
 **Status:** Accepted
 
 ## Decision

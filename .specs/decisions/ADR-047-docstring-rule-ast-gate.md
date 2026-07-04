@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-15
+**Governing paper:** `.specs/papers/CORE-Rule-Authoring-Discipline.md`
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** none directly; informs #311
 **Relates to:** ADR-043 (llm_gate throughput — established the pre-selector

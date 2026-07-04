@@ -10,6 +10,7 @@ status: accepted
 # ADR-106 — Flow proposals execute in a hermetic worktree (sandboxing is per-execution, not per-action)
 
 **Date:** 2026-06-13
+**Governing paper:** `.specs/papers/CORE-Flow.md`
 **Status:** Accepted — D1–D5 ratified by the governor on 2026-06-13 ("Approve and proceed"). Drafted under explicit "draft ADR first" authorization; the governor elected to anchor the extension in an ADR before implementation. Implementation landed as one governor-reviewed change-set the same session (`SandboxLifecycle.build_flow_execution_context`, the `proposal_executor` flow branch, and the `run_tests` repo-root threading that lets `test.sandbox_validate` execute inside the worktree — see D1).
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-13). Surfaced while implementing #629: the autonomous test-gen loop, once unblocked (ADR-008 risk-compute fix, commit `c7acb56f`), reformatted 26 unrelated test files and left failing generated tests in the working tree on every run. Root-cause recon traced all of it to one gap — flow proposals skip the sandbox that single-action proposals get.

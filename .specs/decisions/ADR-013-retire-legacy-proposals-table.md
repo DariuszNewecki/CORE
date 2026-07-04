@@ -8,6 +8,7 @@ status: accepted
 # ADR-013 — Retire core.proposals; Reserve Name for core.autonomous_proposals
 
 **Date:** 2026-04-26
+**Governing paper:** `.specs/papers/CORE-Proposal.md`
 **Status:** Accepted
 **Commits:** 107887b9 → cbc6820d (7-commit chain)
 

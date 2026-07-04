@@ -8,6 +8,7 @@ status: accepted
 # ADR-059 — Severity Vocabulary Governance
 
 **Date:** 2026-05-19
+**Governing paper:** `.specs/papers/CORE-Finding.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

@@ -10,6 +10,7 @@ status: accepted
 # ADR-085 — Open operational completeness as engineering's sole goal
 
 **Date:** 2026-06-02
+**Governing paper:** `.specs/papers/CORE-Governance-Topology.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-02 — drafted under Path A execute-verb authorization, "yes, that 5+3 list matches — let's lock it in" + answered scoping questions selecting "all three artifacts" and "exit criteria as proposed")

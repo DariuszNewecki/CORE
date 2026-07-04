@@ -10,6 +10,7 @@ status: accepted
 # ADR-138 — Prompt Governance and Authorship Integrity Enforcement Dispatch
 
 **Date:** 2026-07-02
+**Governing paper:** `.specs/papers/CORE-PromptGovernancePipeline.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-02)

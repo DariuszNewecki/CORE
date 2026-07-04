@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-21
 **Date:** 2026-06-21
+**Governing paper:** `.specs/papers/CORE-DocumentationPipeline.md`
 **Grounds:** ADR-116 D9 (the internal corpus decision boundary this ADR implements).
 **Relates:** ADR-113 (evidence class — JUDGED stays JUDGED with or without augmentation);
   ADR-118 (RequirementVerdict — the consumer of the augmented judge);

@@ -10,6 +10,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-25
+**Governing paper:** `.specs/papers/CORE-Blackboard-State-Machine.md`
 **Authority:** policy
 **Closes:** TBD (issue to be filed once accepted)
 **Band:** F (post-ADR-069)

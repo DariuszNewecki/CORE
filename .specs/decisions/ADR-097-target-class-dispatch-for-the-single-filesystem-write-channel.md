@@ -10,6 +10,7 @@ status: accepted
 # ADR-097 — Target-class dispatch for the single filesystem write channel
 
 **Date:** 2026-06-08
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-08, after shadow_materializer.py prototype landed and produced a 510-row/24h abandoned-pile bleed against `governance.mutation_surface.filehandler_required`. Initial frame was "two surfaces" — a sibling chokepoint for ephemeral writes alongside FileHandler. Governor reframed in concept-mode: *one channel, target/non-target doesn't matter*, with the future move of `.intent`/`.specs` via API already prepared by the single-channel shape. The reframe collapsed two parallel chokepoints into one path-aware chokepoint and made `shadow_materializer.py` the forcing function rather than the exception.)

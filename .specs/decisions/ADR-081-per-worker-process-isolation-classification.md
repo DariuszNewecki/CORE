@@ -10,6 +10,7 @@ status: accepted
 # ADR-081 — Per-worker process-isolation classification
 
 **Date:** 2026-06-01
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-01 — drafted under Path A execute-verb authorization, "you write it, I review")

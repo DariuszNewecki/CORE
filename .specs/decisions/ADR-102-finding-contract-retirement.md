@@ -11,6 +11,7 @@ status: accepted
 # ADR-102 — Finding.json retirement: class-shape was the wrong enforcement site for the constitutional Finding nucleus
 
 **Date:** 2026-06-09
+**Governing paper:** `.specs/papers/CORE-Finding.md`
 **Status:** Accepted (2026-06-09)
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-09, ADR-099 implementation pass — step 3's worker_registry seed surfaced a schema mismatch which triggered a step-back review of the whole migration's purpose. The investigation found that CheckResult and AuditFinding are local data carriers, not blackboard-persisted Findings; the bind that produced the 16 findings on `data.contracts.finding_nucleus_conforms` was a category error in ADR-056 D3.)

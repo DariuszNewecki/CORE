@@ -8,6 +8,7 @@ status: accepted
 # ADR-027 — Sensor-fixer coherence detection via consequence chain query
 
 **Date:** 2026-05-07
+**Governing paper:** `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`
 **Status:** Accepted
 **Authority:** Architecture
 **Closes:** Issue #114

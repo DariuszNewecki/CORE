@@ -10,6 +10,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-05
+**Governing paper:** `.specs/papers/CORE-Context-Packet-Doctrine.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

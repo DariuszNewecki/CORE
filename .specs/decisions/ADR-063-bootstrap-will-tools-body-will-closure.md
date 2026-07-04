@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-19
+**Governing paper:** `.specs/papers/CORE-Mind-Body-Will-Separation.md`
 **Authors:** Darek (Dariusz Newecki)
 **Deadline:** 2026-09-16 (120 days)
 **Closes:** Second/third/fourth bullets of #313 (bootstrap.py exclude)

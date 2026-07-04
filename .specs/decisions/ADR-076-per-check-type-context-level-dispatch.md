@@ -8,6 +8,7 @@ status: accepted
 # ADR-076 — Context-Level Dispatch as a Per-Check-Type Engine Property
 
 **Date:** 2026-05-29
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Outward-Facing

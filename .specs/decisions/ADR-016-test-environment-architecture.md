@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-27
+**Governing paper:** `.specs/papers/CORE-TestGovernance.md`
 **Authors:** Darek (Dariusz Newecki)
 **Reconnaissance:** `.specs/state/2026-04-27-test-environment-recon.md`
 

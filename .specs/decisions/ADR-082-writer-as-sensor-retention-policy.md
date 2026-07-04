@@ -10,6 +10,7 @@ status: accepted
 # ADR-082 — Writer-as-sensor retention policy
 
 **Date:** 2026-06-01
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-01 — drafted under Path A execute-verb authorization, "yes, proceed with that plan")

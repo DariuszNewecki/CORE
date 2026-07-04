@@ -10,6 +10,7 @@ status: accepted
 # ADR-108 — External adoption ships a minimal authored starter-intent, not a copy of CORE's `.intent/`
 
 **Date:** 2026-06-14
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Status:** Accepted — D1 and D2 implemented this session (`examples/starter-intent/`, demo synced). D3 (machinery-in-wheel) is the agreed direction; implementation deferred to its own change-set. Drafted under the governor's direction "do both — ADR, commit, push."
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-14).

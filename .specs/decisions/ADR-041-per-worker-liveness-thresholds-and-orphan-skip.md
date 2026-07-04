@@ -10,6 +10,7 @@ status: accepted
 # ADR-041 — Per-worker liveness thresholds and orphan-skip in the DAL
 
 **Date:** 2026-05-12
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Status:** Accepted
 **Author:** Draft for governor review
 **Amends:** ADR-020 D3 (DAL signature). ADR-020 D1, D2, D4 preserved.

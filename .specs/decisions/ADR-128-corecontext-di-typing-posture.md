@@ -10,6 +10,7 @@ status: accepted
 # ADR-128 — CoreContext DI typing posture (three-tier model)
 
 **Date:** 2026-06-28
+**Governing paper:** `.specs/papers/CORE-Mind-Body-Will-Separation.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-28 — drafted under governor direction)

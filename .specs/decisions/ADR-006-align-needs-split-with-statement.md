@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-20
+**Governing paper:** `.specs/papers/CORE-Rule-Authoring-Discipline.md`
 **Authors:** Darek (Dariusz Newecki)
 **Related:** ADR-005 (audit verdict governance)
 **Reconnaissance:** `.specs/state/2026-04-20-modularity-needs-split-diagnostic.md`

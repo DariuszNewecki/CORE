@@ -10,6 +10,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-19
+**Governing paper:** `.specs/papers/CORE-Phases-as-Governance-Boundaries.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

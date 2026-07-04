@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-22
+**Governing paper:** `.specs/papers/CORE-Action.md`
 **Closed:** 2026-05-08
 **Commit:** ae07f839
 

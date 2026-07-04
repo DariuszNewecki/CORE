@@ -8,6 +8,7 @@ status: accepted
 # ADR-071 — Action Diff Coherence Enforcement
 
 **Date:** 2026-05-25
+**Governing paper:** `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`
 **Status:** Accepted (Revised 2026-05-25); D2.2 Implemented 2026-05-25 (commits d23ecb57, 7d5c6945, bc166daa)
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-21
+**Governing paper:** `.specs/papers/CORE-ModularizationLessons.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

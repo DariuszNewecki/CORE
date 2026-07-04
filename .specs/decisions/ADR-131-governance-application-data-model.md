@@ -8,6 +8,7 @@ status: accepted
 # ADR-131 — Governance Application Data Model
 
 **Date:** 2026-06-28
+**Governing paper:** `.specs/papers/CORE-Governance-Topology.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Outward-Facing

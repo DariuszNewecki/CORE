@@ -10,6 +10,7 @@ status: accepted
 # ADR-080 — Filesystem-operation-class vocabulary split
 
 **Date:** 2026-05-31
+**Governing paper:** `.specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (vocabulary-split session 2026-05-31)

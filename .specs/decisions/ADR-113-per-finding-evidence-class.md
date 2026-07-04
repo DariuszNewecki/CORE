@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-18
 **Date:** 2026-06-18
+**Governing paper:** `.specs/papers/CORE-Finding.md`
 **Grounding paper:** `CORE-BYOR.md` — §9 grounding item 4 ("per-finding attestation as a first-class evidence-trail field"), §5 parameter 2 (deterministic skeleton vs. semantic satisfaction), §7 (the honesty guardrail) — primary.
 **Kindred (distinct) principle:** `CORE-Instrument-Attestation.md` — the honesty of the *instruments*; this ADR is the honesty of each *finding*. Same value (UR-07 defensibility), different surface; neither subsumes the other.
 **Operationalizes:** UR-07 (Defensibility is Non-Negotiable) — primary; UR-01 (governs any artifact type) — secondary.

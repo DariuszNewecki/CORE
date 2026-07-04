@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-08
+**Governing paper:** `.specs/papers/CORE-Enforcement-Completeness.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ---

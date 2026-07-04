@@ -8,6 +8,7 @@ status: accepted
 # ADR-070 — Source–Projection Coherence as Bounded Drift
 
 **Date:** 2026-05-24
+**Governing paper:** `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

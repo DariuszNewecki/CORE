@@ -10,6 +10,7 @@ status: accepted
 # ADR-088 — PyPI version alignment with the narrative release track
 
 **Date:** 2026-06-02
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-02 — drafted under Path A execute-verb authorization: governor's "we will bump it to 2.6.0 with CLEAR reason behind it: PyPI" + delegated ADR numbering + explicit "on disk" instruction).

@@ -8,6 +8,7 @@ status: accepted
 # ADR-068 — Principal Role Taxonomy
 
 **Date:** 2026-05-22
+**Governing paper:** `.specs/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

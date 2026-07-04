@@ -10,6 +10,7 @@ status: accepted
 # ADR-035 — One Finding, One Proposal
 
 **Date:** 2026-05-11
+**Governing paper:** `.specs/papers/CORE-Finding.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #284

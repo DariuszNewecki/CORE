@@ -10,6 +10,7 @@ status: accepted
 # ADR-104 — Orphaned-claim reaper (claim lifecycle is process-scoped, not loop-scoped)
 
 **Date:** 2026-06-13
+**Governing paper:** `.specs/papers/CORE-Blackboard-State-Machine.md`
 **Status:** Accepted — **Revision B** (governor agreed the revised logic on 2026-06-13: the four ratifications stand, and the two altitude-review corrections — ADR-069 grounding + the D8 lease — are accepted. The three originals were resolved earlier the same day; a "are we doing it right" review then surfaced the two gaps recorded under "Revision B — altitude-review corrections," which this accepted revision incorporates. Implementation is the execution arm's responsibility per the CORE development contract; it lands as one change-set, governor-reviewed at the logic/ADR level.)
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-13 — drafted under explicit "yes, draft the ADR stub" authorization. The original recon claimed `release_claimed_entries` runs "only at normal loop completion"; Revision B corrects this — the recon did not read `Worker.start()`, whose ADR-069 D8 `finally` block already releases held claims on graceful shutdown and on exception. Governor pre-selected the continuous-sweep approach over a startup-only reaper, and elected to anchor the new autonomous rail in an ADR before implementation.)

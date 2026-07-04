@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-15
+**Governing paper:** `.specs/papers/CORE-Remediation.md`
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** none directly; closes the detection-vs-remediation gap that
 ADR-047 exposed.

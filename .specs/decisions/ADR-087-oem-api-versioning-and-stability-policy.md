@@ -10,6 +10,7 @@ status: accepted
 # ADR-087 — OEM API versioning and stability policy
 
 **Date:** 2026-06-02
+**Governing paper:** `.specs/papers/CORE-OEM-API.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-02 — drafted under Path A execute-verb authorization, F-40 decomposition path: "proceed as suggested" + governor pick of option 1 from the F-40.1 closure handoff)

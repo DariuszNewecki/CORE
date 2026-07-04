@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-16
+**Governing paper:** `.specs/papers/CORE-OEM-API.md`
 **Authors:** Darek (Dariusz Newecki)
 **Parent:** ADR-053 (API as Governance Interface)
 **Closes:** #335

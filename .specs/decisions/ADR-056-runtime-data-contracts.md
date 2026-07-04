@@ -8,6 +8,7 @@ status: accepted
 # ADR-056 — Runtime Data Contracts as First-Class Constitutional Artifacts
 
 **Date:** 2026-05-17
+**Governing paper:** `.specs/papers/CORE-DataContracts.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 

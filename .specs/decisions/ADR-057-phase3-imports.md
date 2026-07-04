@@ -10,6 +10,7 @@ status: accepted
 **Status:** Accepted (revised 2026-05-18 — D5 amended to add three `/inspect` endpoints
 for unassigned capability map items; migration scope in Context updated accordingly)
 **Date:** 2026-05-18
+**Governing paper:** `.specs/papers/CORE-Phases-as-Governance-Boundaries.md`
 **Revised:** 2026-05-18
 **Authors:** Darek (Dariusz Newecki)
 **Parent:** ADR-053 (API as Governance Interface)

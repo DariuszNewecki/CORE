@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-13
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** #TBD
 **Relates to:** ADR-039 (audit-input cache invalidation), ADR-043 (llm_gate

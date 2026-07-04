@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-03
+**Governing paper:** `.specs/papers/CORE-Context-Packet-Doctrine.md`
 **Authors:** Darek (Dariusz Newecki)
 **Surfaced via:** Issue #198 (parent #197)
 

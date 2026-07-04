@@ -10,6 +10,7 @@ status: accepted
 # ADR-092 — F-43 exit criterion: contract-readiness replaces invented-proof
 
 **Date:** 2026-06-06
+**Governing paper:** `.specs/papers/CORE-DataContracts.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-06 — drafted under Path A execute-verb authorization, "draft ADR-092 under Path 1", after the governor interrogated whether F-43's exit criterion required inventing its own proof when every other gate item ratified a pre-existing live capability)

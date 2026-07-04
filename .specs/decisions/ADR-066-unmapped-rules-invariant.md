@@ -10,6 +10,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-21
+**Governing paper:** `.specs/papers/CORE-Enforcement-Completeness.md`
 **Authority:** policy
 **Closes:** #418
 **Band:** E

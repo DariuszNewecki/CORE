@@ -8,6 +8,7 @@ status: accepted
 # ADR-134 — Prompt Content Governance: Traceability and Drift Review Gate
 
 **Date:** 2026-06-29
+**Governing paper:** `.specs/papers/CORE-PromptGovernancePipeline.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

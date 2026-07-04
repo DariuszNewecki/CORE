@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-24
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

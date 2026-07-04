@@ -8,6 +8,7 @@ status: accepted
 # ADR-032 — Tighten `no_hardcoded_runtime_dirs` regex to path-construction context
 
 **Date:** 2026-05-10
+**Governing paper:** `.specs/papers/CORE-Rule-Canonical-Form.md`
 **Status:** Accepted
 **Deciders:** Governor (Dariusz Newecki)
 

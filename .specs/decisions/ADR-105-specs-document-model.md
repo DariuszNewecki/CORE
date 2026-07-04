@@ -10,6 +10,7 @@ status: accepted
 # ADR-105 — Document model for `.specs/`: typed headers, forked vocabulary
 
 **Date:** 2026-06-13
+**Governing paper:** `.specs/papers/CORE-Specification-as-Source.md`
 **Status:** Accepted (governor decision 2026-06-13 — the distinction (operational vs documentary lifecycle) and all decisions D1–D8 stand; D3 Option B (`doctrine_tier`, not reused `authority`) ratified for the stated reasons (non-identical sets + token collision); D7 confirmed as YAML frontmatter (not flipped to the prose-convention fallback). Implementation lands as one change-set per the Consequences section; `.intent/META/enums.json` is constitutional core and is surfaced for the heightened-confirmation gate before writing.)
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-13 — drafted under explicit "lets implement it" authorization after a recon thread that established the gap from source: `.intent/META/`, `enums.json`, `GLOBAL-DOCUMENT-META-SCHEMA.json`, and the `spec_markdown` artifact type were read directly; the free-text `**Status:**` distribution across `.specs/papers/` was counted, not recalled. The governor pre-selected the forked-vocabulary direction — Option B, a distinct `doctrine_tier` rather than a reused `authority` — on the grounds that the sets are not identical and the shared token is itself a drift vector.)

@@ -10,6 +10,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-08
+**Governing paper:** `.specs/papers/CORE-Rule-Authoring-Discipline.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

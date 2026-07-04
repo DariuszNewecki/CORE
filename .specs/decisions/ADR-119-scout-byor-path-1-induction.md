@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-20
 **Date:** 2026-06-20
+**Governing paper:** `.specs/papers/CORE-BYOR.md`
 **Amended:** 2026-06-22 — D7 fallback menu updated: `symbol_ids` removed (CORE-specific
 UUID anchor, not domain-general); `no_bare_except` promoted to blocking (universal bad
 practice); `no_secrets` added (reporting). Commit `15a3dd67`.

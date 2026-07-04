@@ -10,6 +10,7 @@ status: accepted
 # ADR-034 — OptimizerWorker Formal Deferral
 
 **Date:** 2026-05-10
+**Governing paper:** `.specs/papers/CORE-OptimizerWorker.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #246

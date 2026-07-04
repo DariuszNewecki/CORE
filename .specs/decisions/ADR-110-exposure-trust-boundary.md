@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted (governor-ratified 2026-06-16)
 **Date:** 2026-06-16
+**Governing paper:** `.specs/papers/CORE-Constitutional-Foundations.md`
 **Builds on:** ADR-050 (CLI is a standalone HTTP client), ADR-053 (API as resource-oriented governance interface), ADR-101/106/107 (commit-authorship, per-execution sandbox, declared-production commit-set)
 **Supplies:** the authentication/trust boundary ADR-053 explicitly deferred
 

@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-delegated 2026-06-19 (the governor entrusted the technical CI-posture decision to the implementer; this ADR records the design and reasoning for review).
 **Date:** 2026-06-19
+**Governing paper:** `.specs/papers/CORE-TestGovernance.md`
 **Grounding:** the CORE honesty thesis (a gate must measure what it claims to measure); schema-as-truth (`infra/sql/db_schema_live.sql` is canonical, no migration framework, per the existing DB posture); reproducibility (a build's result must not depend on machine- or network-specific state).
 **Prompted by:** the smoke-suite remediation of 2026-06-19 (#681) — the suite was red because CI could not reach the LAN test database named in `.env.test`; closing that surfaced that the deeper failure is an *architectural* one, not a test bug.
 

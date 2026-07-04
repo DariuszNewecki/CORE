@@ -8,6 +8,7 @@ status: accepted
 # ADR-069 — Claim Lifecycle: Lease Semantics
 
 **Date:** 2026-05-23
+**Governing paper:** `.specs/papers/CORE-Blackboard-State-Machine.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness

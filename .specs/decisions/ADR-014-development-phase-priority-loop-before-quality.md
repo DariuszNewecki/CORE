@@ -8,6 +8,7 @@ status: accepted
 # ADR-014 — Development-Phase Priority: Loop Liveness Before Artifact Quality
 
 **Date:** 2026-04-26
+**Governing paper:** `.specs/papers/CORE-Phases-as-Governance-Boundaries.md`
 **Status:** Accepted
 **Commits:** pending
 

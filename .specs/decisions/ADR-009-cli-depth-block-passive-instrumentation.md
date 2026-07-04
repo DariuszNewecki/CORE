@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-24
+**Governing paper:** `.specs/papers/CORE-V2-Command-Pattern-Reference.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

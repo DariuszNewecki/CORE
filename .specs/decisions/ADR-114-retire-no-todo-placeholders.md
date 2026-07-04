@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — governor-ratified 2026-06-18
 **Date:** 2026-06-18
+**Governing paper:** `.specs/papers/CORE-Rule-Authoring-Discipline.md`
 **Retires:** the rule `purity.no_todo_placeholders` and its `fix.placeholders` auto-remediation routing.
 **Grounding:** the Final Invariant ("never produce work it cannot defend"); the CORE honesty thesis (intent and findings are labelled by what can actually be defended).
 **Prompted by:** the GRC catalog incident (2026-06-18) — the rule's remediation silently rewrote a correct sentence into a wrong one, which exposed that the rule had no recorded rationale and could not survive the conviction test.

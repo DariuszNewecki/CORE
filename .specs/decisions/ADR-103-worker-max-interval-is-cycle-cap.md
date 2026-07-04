@@ -10,6 +10,7 @@ status: accepted
 # ADR-103 — Worker `schedule.max_interval` is a cycle cap, not a sleep cap
 
 **Date:** 2026-06-09
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-09 — drafted under explicit "you may write it" authorization at the close of a recon on `db_sync_worker`'s live BLOCK. Recon confirmed that the runtime sleep math at `src/cli/commands/daemon.py:174` and `src/will/workers/worker_shop_manager.py:138` is already cycle-cap arithmetic — `sleep(max(interval - elapsed, 0))` makes the next cycle start at `max(elapsed, interval)`. The "split semantics" #604 surfaced exists in *documentation*, not in mechanism. This ADR pins the contract the runtime already enforces.)

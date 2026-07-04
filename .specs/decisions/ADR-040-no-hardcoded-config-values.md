@@ -10,6 +10,7 @@ status: accepted
 # ADR-040 — No Hardcoded Values in src/
 
 **Date:** 2026-05-12
+**Governing paper:** `.specs/papers/CORE-Rule-Storage-Minimalism.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 

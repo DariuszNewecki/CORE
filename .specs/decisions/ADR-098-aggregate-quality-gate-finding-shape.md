@@ -11,6 +11,7 @@ status: accepted
 # ADR-098 — Aggregate quality-gate finding shape: per-file emission with iceberg-tail rendering
 
 **Date:** 2026-06-09
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-09, after #603 triage surfaced that three quality.* rules collapse 764 mypy errors and 3 dependency vulnerabilities into 1 INFO finding each. Recon found the collapse is a single line — `quality.py:48` discards everything after the first stdout line. The fix is local; the ADR question is the shape — what the audit *should* render so the governor's drain-by-leverage triage doesn't keep mis-ranking icebergs as singletons. The governor instructed inclusion of the adjacent declared-advisory-but-emitted-BLOCK drift surfaced during recon.)

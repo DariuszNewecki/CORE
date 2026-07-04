@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-25
+**Governing paper:** `.specs/papers/CORE-Rule-Canonical-Form.md`
 **Authors:** Darek (Dariusz Newecki)
 **Related:** Issue #121 (silent under-enforcement), Issue #117 (same engine class, AuditorContext surface; retargets to migration)
 **Reconnaissance:** Session 2026-04-25 — empirical 14-case behavior matrix, 8-call-site inventory, `.intent/` pattern audit

@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-05
+**Governing paper:** `.specs/papers/CORE-Proposal.md`
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #191
 **Resolves:** ADR-021 D5 (the punted validation)

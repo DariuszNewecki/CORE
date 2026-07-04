@@ -9,6 +9,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-04-15
+**Governing paper:** `.specs/papers/CORE-Specification-as-Source.md`
 **Authors:** Darek (Dariusz Newecki)
 
 ## Context

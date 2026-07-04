@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-05-13
+**Governing paper:** `.specs/papers/CORE-Gate.md`
 **Amended:** 2026-05-13 — D4 corrected by recon. The semaphore at the
 engine layer is redundant: `LLMClient` already gates concurrency by
 provider. D4 replaced with a retry-loop fix in `LLMClient`. D6 updated to

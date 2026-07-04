@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted
 **Date:** 2026-06-15
+**Governing paper:** `.specs/papers/CORE-Remediation.md`
 **Authors:** Darek (Dariusz Newecki)
 **Relates to:** ADR-035 (One Finding, One Proposal), ADR-029 (non-automatable
 rule mapping), ADR-038 (circuit breaker → DELEGATE), ADR-045 (revival /
