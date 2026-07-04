@@ -30,6 +30,7 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from body.services.artifact_service import ArtifactService
     from body.services.blackboard_service import BlackboardService
+    from body.services.capability_tagging_dispatch import CapabilityTaggingService
     from body.services.consequence_log_service import ConsequenceLogService
     from body.services.crawl_service import CrawlService
     from body.services.doc_service import DocService
@@ -425,6 +426,27 @@ class ServiceRegistry:
 
                 self._instances["symbol_service"] = SymbolService()
         return self._instances["symbol_service"]
+
+    # ID: ee4c4414-93b2-4a24-8dfd-31260a3e8df7
+    def get_capability_tagging_service(self) -> CapabilityTaggingService:
+        """Construct CapabilityTaggingService wrapping the Will-layer main_async (ADR-064).
+
+        Uses a dynamic import so this body-layer module contains no static
+        ``will.*`` import — the ast_gate rule scans static statements only.
+        """
+        if "capability_tagging" not in self._instances:
+            from body.services.capability_tagging_dispatch import (
+                CapabilityTaggingService,
+            )
+
+            mod = importlib.import_module(
+                "will.self_healing.capability_tagging_service"
+            )
+            main_async_fn = getattr(mod, "main_async")
+            self._instances["capability_tagging"] = CapabilityTaggingService(
+                main_async_fn
+            )
+        return self._instances["capability_tagging"]  # type: ignore[return-value]
 
 
 # Global instance

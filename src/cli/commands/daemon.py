@@ -702,6 +702,13 @@ async def _run_daemon_locked(only: str | None = None) -> None:
     except Exception as e:
         logger.warning("CORE daemon: AuditorContext unavailable: %s", e)
 
+    try:
+        ctx.capability_tagging_service = (
+            service_registry.get_capability_tagging_service()
+        )
+    except Exception as e:
+        logger.warning("CORE daemon: CapabilityTaggingService unavailable: %s", e)
+
     # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
     try:
         swept = ctx.git_service.sweep_orphan_worktrees()

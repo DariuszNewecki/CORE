@@ -18,6 +18,7 @@ from shared.config import settings
 
 if TYPE_CHECKING:
     from body.infrastructure.storage.file_handler import FileHandler
+    from body.services.capability_tagging_dispatch import CapabilityTaggingService
     from body.services.file_service import FileService
     from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.clients.qdrant_client import QdrantService
@@ -71,6 +72,8 @@ class CoreContext:
     # ADR-128: typed Optional rather than Any | None so attribute access is
     # checked by mypy; callers guard with `if ctx.x is not None` before use.
     cognitive_service: CognitiveService | None = None
+    # ADR-064: Body-layer facade wired at the composition root (no will.* import needed).
+    capability_tagging_service: CapabilityTaggingService | None = None
     auditor_context: AuditorContext | None = None
     planner_config: PlannerConfig | None = None
     qdrant_service: QdrantService | None = None

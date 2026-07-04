@@ -83,6 +83,10 @@ async def core_lifespan(app: FastAPI):
             core_context.cognitive_service = cognitive
             core_context.auditor_context = auditor
             core_context.qdrant_service = qdrant
+            # ADR-064: wire the Body-layer dispatch facade (no direct will.* import here).
+            core_context.capability_tagging_service = (
+                service_registry.get_capability_tagging_service()
+            )
 
             # 4. DATABASE & CONFIG INITIALIZATION
             async with service_registry.session() as session:

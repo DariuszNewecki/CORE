@@ -672,10 +672,9 @@ async def action_fix_capability_tagging(
 ) -> ActionResult:
     """Tag untagged capabilities via the will-layer naming agent.
 
-    Wraps will.self_healing.capability_tagging_service.main_async. The
-    body→will lazy import matches the precedent in
-    proposal_lifecycle_actions.py — capability_tagging's CapabilityTaggerAgent
-    legitimately depends on will/orchestration, so it stays in will/.
+    Delegates to ``core_context.capability_tagging_service`` — a Body-layer
+    facade wired at the composition root (ADR-064 closure).  No will.* import
+    exists in this file; the cross-layer dependency is injected, not imported.
     """
     start = time.time()
     if core_context.cognitive_service is None:
@@ -689,11 +688,21 @@ async def action_fix_capability_tagging(
             },
             duration_sec=0.0,
         )
+    if core_context.capability_tagging_service is None:
+        return ActionResult(
+            action_id="fix.capability_tagging",
+            ok=False,
+            data={
+                "error": "capability_tagging_service not initialized — composition root must wire it",
+                "write": write,
+                "limit": limit,
+            },
+            duration_sec=0.0,
+        )
     from shared.infrastructure.database.session_manager import get_session
-    from will.self_healing.capability_tagging_service import main_async as tag
 
     try:
-        await tag(
+        await core_context.capability_tagging_service.run(
             session_factory=get_session,
             cognitive_service=core_context.cognitive_service,
             knowledge_service=core_context.knowledge_service,
