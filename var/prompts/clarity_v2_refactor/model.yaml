@@ -4,7 +4,9 @@ role: LocalCoder
 description: Generates code refactoring suggestions to reduce complexity by a specified percentage
 input:
   required:
-    - improvement_ratio
+    - original_code
+    - strategy
+    - instruction
 output:
   format: raw_text
 adr_anchor: "ADR-134:D8"

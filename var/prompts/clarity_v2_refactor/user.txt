@@ -1,3 +1,7 @@
-Analyze the current code and provide refactoring recommendations to reduce complexity by {improvement_ratio}%.
+Strategy: {strategy}
+Instruction: {instruction}
 
-Provide specific techniques and patterns that would achieve this reduction, with concrete examples of how to apply them.
+Source code to refactor:
+{original_code}
+
+Provide specific refactoring recommendations to achieve the complexity reduction target. Show before/after code examples where helpful.
