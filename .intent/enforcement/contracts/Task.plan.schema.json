@@ -1,0 +1,39 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.task_plan.schema.json",
+    "title": "Task.plan — planning step array element shape",
+    "description": "JSON Schema for a single element in the Task.plan JSONB array (src/shared/infrastructure/database/models/operations.py). Task.plan holds the ordered sequence of planning steps produced by the INTERPRET phase for a given task. The structure is implicit in the current codebase — no writer in src/ has been identified that populates this column with a stable schema. This contract documents the minimal observable shape and is intended for future enforcement once the plan authoring path is stabilized. Authority: ADR-056 Wave 2 (persistence boundary). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": [],
+    "additionalProperties": true,
+    "properties": {
+        "step_number": {
+            "type": "integer",
+            "description": "Ordinal position of this step in the plan sequence, 1-based."
+        },
+        "description": {
+            "type": "string",
+            "description": "Human-readable description of what this step accomplishes."
+        },
+        "action": {
+            "type": "string",
+            "description": "Action identifier or operation to perform in this step."
+        },
+        "target": {
+            "type": "string",
+            "description": "Target file, symbol, or resource this step operates on. Optional."
+        },
+        "rationale": {
+            "type": "string",
+            "description": "Why this step is included in the plan."
+        },
+        "requires_approval": {
+            "type": "boolean",
+            "description": "Whether this step requires human confirmation before execution. Default false."
+        },
+        "estimated_complexity": {
+            "type": "integer",
+            "description": "Estimated implementation complexity score for this step."
+        }
+    }
+}

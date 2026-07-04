@@ -130,14 +130,14 @@ findings from the audit loop.
 | `FlowDefinition.json` | `src/body/flows/registry.py:77` | flow boundary | ✅ Schema landed. Existence in `.intent/flows/` is constitutional standing. |
 | `FlowStep.json` | `src/body/flows/registry.py:37` | flow boundary | ✅ Schema landed. Governs `consumes` whitelist (ADR-033). |
 | `WorkerDeclaration.json` | `src/shared/workers/base.py:226` | worker boundary | ✅ Schema + dataclass + governance rule + enforcement mapping landed in Wave 1 Session 3 (commit `607a2c24`). |
-| `ActionRiskConfig.schema.json` | `.intent/enforcement/config/action_risk.yaml` | atomic-action boundary | ❌ Missing entry raises ConstitutionalError; shape ungoverned. Not yet authored. |
+| `ActionRiskConfig.schema.json` | `.intent/enforcement/config/action_risk.yaml` | atomic-action boundary | ✅ Schema landed (ADR-056 Wave 2). Two entry forms: flat string (legacy) and dict with impact_level + artifact_types (ADR-120 D1). Closed vocabulary: safe \| moderate \| dangerous. Uses .schema.json suffix (skipped by intent_validator). |
 | `RemediationResult.json` | `src/body/self_healing/remediation_models.py:131` | phase boundary | ✅ Schema landed. Full audit→fix→validate report. |
 | `FixResult.json` | `src/body/self_healing/remediation_models.py:79` | phase boundary | ✅ Schema landed. Per-fix outcome. |
 | `AutoFixablePattern.json` | `src/shared/models/remediation.py:23` | phase boundary | ✅ Schema landed. Maps check_id→action_handler at runtime. |
 | `PatternViolation.json` | `src/shared/models/pattern_graph.py:14` | phase boundary | ✅ Schema landed. Pattern checker output. |
 | `ValidationResult.json` | `src/shared/models/validation_result.py:13` | phase boundary | ✅ Schema landed. Canonical validation result; divergence risk with ConstitutionalValidationResult tracked. |
-| `DecisionTrace.entries.schema.json` | `src/shared/infrastructure/database/models/decision_traces.py:29` | persistence boundary | ❌ `decisions` JSONB array. Not yet authored. |
-| `Task.plan.schema.json` | `src/shared/infrastructure/database/models/operations.py:94` | persistence boundary | ❌ `plan` JSONB; structure implicit. Not yet authored. |
+| `DecisionTrace.entries.schema.json` | `src/shared/infrastructure/database/models/decision_traces.py:29` | persistence boundary | ✅ Schema landed (ADR-056 Wave 2). Governs Decision dataclass fields: timestamp, agent, decision_type, context, rationale, chosen_action, alternatives_considered, confidence. |
+| `Task.plan.schema.json` | `src/shared/infrastructure/database/models/operations.py:94` | persistence boundary | ✅ Schema landed (ADR-056 Wave 2). Structure implicit in current codebase (no stable writer found); documents minimal observable shape with open additionalProperties pending plan-authoring path stabilization. |
 | `Action.payload.schema.json` | `src/shared/infrastructure/database/models/operations.py:132` | persistence boundary | ❌ `payload` + `result` JSONB open-ended. Not yet authored. |
 
 ---

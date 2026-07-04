@@ -1,0 +1,42 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.action_risk_config.schema.json",
+    "title": "ActionRiskConfig — action impact classification file",
+    "description": "JSON Schema for .intent/enforcement/config/action_risk.yaml. Governs the structure of the action-id-to-impact-level mapping consumed by src/shared/infrastructure/intent/action_risk.py and overlaid onto ActionDefinition at ActionExecutor init. Authority: ADR-008 (impact classification), ADR-120 D1 (dict format with artifact_types). Two entry forms are supported: the flat string form (legacy, still valid) and the dict form (ADR-120 D1, adds artifact_type constraints). Closed vocabulary: safe | moderate | dangerous. A missing action_id entry raises ConstitutionalError at ActionExecutor startup. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py (which validates .json contracts only).",
+    "type": "object",
+    "required": ["actions"],
+    "additionalProperties": false,
+    "properties": {
+        "actions": {
+            "type": "object",
+            "description": "Map from action_id (registered AtomicAction identifier) to impact classification. Every action registered via @register_action MUST have an entry here; a missing entry raises ConstitutionalError at ActionExecutor startup (src/body/atomic/registry.py).",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "enum": ["safe", "moderate", "dangerous"],
+                        "description": "Flat string form (unconstrained action). Legacy format, still valid per ADR-120 D1. safe=auto-execute; moderate=human approval required; dangerous=blocked unless explicitly authorized."
+                    },
+                    {
+                        "type": "object",
+                        "required": ["impact_level"],
+                        "additionalProperties": false,
+                        "description": "Dict form introduced by ADR-120 D1. Supports optional artifact_types constraint.",
+                        "properties": {
+                            "impact_level": {
+                                "type": "string",
+                                "enum": ["safe", "moderate", "dangerous"],
+                                "description": "Impact classification. safe=auto-execute; moderate=human approval required; dangerous=blocked unless explicitly authorized."
+                            },
+                            "artifact_types": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "F-41 artifact_type IDs this action is constrained to. Action is only dispatched for artifacts whose type appears in this list. Empty or absent means unconstrained — action may be dispatched for any artifact type."
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
