@@ -25,11 +25,13 @@ If `paper_ref` is missing, invalid, or points to a non-existent file, the operat
 
 ## Conflict Resolution
 
+This section governs contradictions between `.specs/papers/` doctrine documents only. It does not apply to `.intent/rules/` conflicts, which are governed by `CORE-Rule-Conflict-Semantics.md`.
+
 When two papers contradict each other, the following precedence rules apply in order:
 
-1. **Authority level wins.** A paper at constitution authority overrides a paper at policy authority. The authority level is declared in the paper's front matter.
+1. **Doctrine tier wins.** A paper at `doctrine_tier: constitution` overrides a paper at `doctrine_tier: foundational`, which overrides `doctrine_tier: informational`. The tier is declared in the paper's YAML frontmatter (per ADR-105 D3).
 
-2. **Specificity wins.** When two papers at the same authority level contradict, the more specific paper overrides the more general one. A paper scoped to a single component overrides a paper scoped to a layer; a paper scoped to a layer overrides a paper scoped to the system.
+2. **Specificity wins.** When two papers at the same doctrine tier contradict, the more specific paper overrides the more general one. A paper scoped to a single component overrides a paper scoped to a layer; a paper scoped to a layer overrides a paper scoped to the system.
 
 3. **Human decision.** When neither rule above resolves the contradiction, it is escalated to the architect. The resolution is recorded as an amendment to one of the papers, with a `supersedes` note naming the overridden claim. Silence does not resolve a contradiction.
 
