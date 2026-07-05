@@ -72,15 +72,11 @@ class CognitiveRole(Base):
     # supporting primary + fallback. Query via
     # MindStateService.get_role_resource_assignments().
     required_capabilities: Mapped[list[str]] = mapped_column(JSONB, server_default="[]")
-    max_concurrent_tasks: Mapped[int] = mapped_column(Integer, server_default="1")
     specialization: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    # ADR-052 Phase 1: per-role override of system_config.operating_mode.
-    # NULL means inherit the system-wide default.
-    operating_mode: Mapped[str | None] = mapped_column(Text)
 
     @property
     # ID: 5210b0f9-7c47-48ed-bbd3-699c4957d19c

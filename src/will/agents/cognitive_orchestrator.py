@@ -66,9 +66,8 @@ class CognitiveOrchestrator:
         self._loaded = False
         self._mind_state_service = mind_state_service
         self._provider_factory = provider_factory
-        # ADR-052 principle #6 (#333): system-default operating_mode.
-        # Overridden by system_config row at initialize() time; falls
-        # back to 'local_only' when the row is missing.
+        # ADR-052 principle #6 (#333) / ADR-090 D5: system-level operating_mode
+        # loaded from system_config at initialize(); 'local_only' fallback.
         self._system_operating_mode: str = "local_only"
 
     # ID: 18a2986d-296b-4388-b2b1-8796d85b5ee2
@@ -85,9 +84,8 @@ class CognitiveOrchestrator:
         self._assignments = (
             await self._mind_state_service.get_role_resource_assignments()
         )
-        # ADR-052 principle #6 (#333): system-default operating_mode used
-        # when a role has no per-role override (cognitive_roles.operating_mode
-        # IS NULL).
+        # ADR-052 principle #6 (#333) / ADR-090 D5: system-level operating_mode
+        # only; per-role override removed (operating_mode is Resource-layer).
         system_config = await self._mind_state_service.get_system_config()
         if system_config is None:
             logger.warning(

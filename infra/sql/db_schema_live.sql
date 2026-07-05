@@ -1007,12 +1007,10 @@ CREATE TABLE core.cognitive_roles (
     role text NOT NULL,
     description text,
     required_capabilities jsonb DEFAULT '[]'::jsonb,
-    max_concurrent_tasks integer DEFAULT 1,
     specialization jsonb,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    operating_mode text,
-    CONSTRAINT cognitive_roles_operating_mode_check CHECK (((operating_mode IS NULL) OR (operating_mode = ANY (ARRAY['local_only'::text, 'remote_only'::text, 'hybrid'::text])))),
+    CONSTRAINT cognitive_roles_role_check CHECK ((role = ANY (ARRAY['Architect'::text, 'CapabilityTagger'::text, 'CodeReviewer'::text, 'Coder'::text, 'ConstitutionalCoherenceAnalyst'::text, 'DocstringWriter'::text, 'LocalCoder'::text, 'LocalReasoner'::text, 'Planner'::text, 'RemoteCoder'::text, 'Vectorizer'::text]))),
     CONSTRAINT cognitive_roles_required_capabilities_check CHECK ((jsonb_typeof(required_capabilities) = 'array'::text))
 );
 
@@ -2835,8 +2833,6 @@ CREATE VIEW core.v_agent_workload AS
     count(t.id) FILTER (WHERE (t.status = 'executing'::text)) AS active_tasks,
     count(t.id) FILTER (WHERE (t.status = 'pending'::text)) AS queued_tasks,
     count(t.id) FILTER (WHERE (t.status = 'blocked'::text)) AS blocked_tasks,
-    cr.max_concurrent_tasks,
-    (cr.max_concurrent_tasks - count(t.id) FILTER (WHERE (t.status = 'executing'::text))) AS available_slots,
     ( SELECT rra.resource
            FROM core.role_resource_assignments rra
           WHERE ((rra.role = cr.role) AND (rra.is_active = true))
@@ -2844,7 +2840,7 @@ CREATE VIEW core.v_agent_workload AS
          LIMIT 1) AS assigned_resource
    FROM (core.cognitive_roles cr
      LEFT JOIN core.tasks t ON (((t.assigned_role = cr.role) AND (t.status = ANY (ARRAY['pending'::text, 'executing'::text, 'blocked'::text])))))
-  GROUP BY cr.role, cr.is_active, cr.max_concurrent_tasks
+  GROUP BY cr.role, cr.is_active
   ORDER BY cr.role;
 
 
@@ -5981,7 +5977,7 @@ ALTER TABLE ONLY core.symbol_vector_links
 --
 
 ALTER TABLE ONLY core.tasks
-    ADD CONSTRAINT tasks_assigned_role_fkey FOREIGN KEY (assigned_role) REFERENCES core.cognitive_roles(role);
+    ADD CONSTRAINT tasks_assigned_role_fkey FOREIGN KEY (assigned_role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --

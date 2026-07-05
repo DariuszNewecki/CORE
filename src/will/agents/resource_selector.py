@@ -47,25 +47,24 @@ class ResourceSelector:
         role. When ``assignments`` is ``None`` or empty, the selector
         falls back to qualified-by-capability scoring.
 
-        ADR-052 principle #6 (#333): resources are filtered by locality
-        against the effective operating mode — ``role.operating_mode``
-        if set, otherwise ``system_operating_mode`` — before any
-        assignment lookup or capability check.
+        ADR-052 principle #6 (#333) / ADR-090: resources are filtered by
+        locality against ``system_operating_mode`` before any assignment
+        lookup or capability check. Per-role operating_mode override removed
+        (ADR-090 D5: operating_mode is Resource-layer, not Role-layer).
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
             logger.error("Role '%s' not found in Mind", role_name)
             return None
 
-        effective_mode = role.operating_mode or system_operating_mode
         resources = ResourceSelector._filter_by_locality(
-            resources, effective_mode, role_name
+            resources, system_operating_mode, role_name
         )
         if not resources:
             logger.error(
                 "No resources match locality for role '%s' under operating_mode='%s'",
                 role_name,
-                effective_mode,
+                system_operating_mode,
             )
             return None
 
@@ -113,10 +112,10 @@ class ResourceSelector:
         table) replaces the dropped ``cognitive_roles.assigned_resource``
         column as the source of the override.
 
-        ADR-052 principle #6 (#333): resources are filtered by locality
-        against the effective operating mode — ``role.operating_mode``
-        if set, otherwise ``system_operating_mode`` — before assignment
-        lookup or capability scoring.
+        ADR-052 principle #6 (#333) / ADR-090: resources are filtered by
+        locality against ``system_operating_mode`` before assignment lookup
+        or capability scoring. Per-role operating_mode override removed
+        (ADR-090 D5: operating_mode is Resource-layer, not Role-layer).
 
         ``high_reasoning=True``: caller requests the most capable resource.
         Sorts by DESCENDING cost_rating (highest cost = most capable first)
@@ -129,9 +128,8 @@ class ResourceSelector:
             logger.error("Role '%s' not found in Mind", role_name)
             return []
 
-        effective_mode = role.operating_mode or system_operating_mode
         resources = ResourceSelector._filter_by_locality(
-            resources, effective_mode, role_name
+            resources, system_operating_mode, role_name
         )
 
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]

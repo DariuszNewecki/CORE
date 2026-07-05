@@ -20,7 +20,6 @@ def _role(name: str, caps: list[str] | None = None) -> CognitiveRole:
     r = CognitiveRole()
     r.role = name
     r.required_capabilities = json.dumps(caps or [])
-    r.operating_mode = None
     return r
 
 
