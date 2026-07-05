@@ -5,10 +5,11 @@ Per ADR-073 D5 tiered cosine policy. Refuses if governance_claims is not
 seeded (per D4 governor-CLI bootstrap posture).
 
 Mechanism:
-  1. For each claim in the corpus, embed and kNN-search governance_claims.
-  2. Tier each hit: high-confidence (≥0.78), ambiguous (0.74-0.78), drop (<0.74).
-  3. Forward both tiers to the LLM judge (ambiguous tier gets a different prompt).
-  4. Dedupe pairs across the bi-directional iteration.
+  1. Batch-embed all sampled claims in one round-trip (#478).
+  2. For each (claim, vector), kNN-search governance_claims.
+  3. Tier each hit: high-confidence (≥0.78), ambiguous (0.74-0.78), drop (<0.74).
+  4. Forward both tiers to the LLM judge (ambiguous tier gets a different prompt).
+  5. Dedupe pairs across the bi-directional iteration.
 
 Cosine thresholds are tunable per D5 telemetry feedback; defaults live here.
 """
@@ -85,13 +86,18 @@ class SameConcernCheck:
         seen: set[frozenset[tuple[str, str]]] = set()
         candidates: list[CoherenceCandidate] = []
 
-        for claim in claims:
-            try:
-                vector = await embedder.get_embedding(claim.text)
-            except Exception as exc:
-                logger.warning("SAMECONCERN: embed failed for query claim: %s", exc)
-                continue
+        # Batch-embed all query claims in a single round-trip (#478).
+        try:
+            vectors = await embedder.get_embeddings_batch([c.text for c in claims])
+        except Exception as exc:
+            logger.warning(
+                "SAMECONCERN: batch embed failed for %d claims: %s — skipping run",
+                len(claims),
+                exc,
+            )
+            return []
 
+        for claim, vector in zip(claims, vectors):
             hits = await self._claims_service.search(
                 query_vector=vector,
                 limit=_KNN_LIMIT,

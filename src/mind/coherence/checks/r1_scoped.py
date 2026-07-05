@@ -116,56 +116,68 @@ class R1ScopedCheck:
         seen: set[frozenset[tuple[str, str]]] = set()
         candidates: list[CoherenceCandidate] = []
 
-        for source_path, partner_path in pairs:
-            source_claims = claims_by_path.get(source_path, [])
-            if not source_claims:
-                continue
-            for claim in source_claims:
-                try:
-                    vector = await embedder.get_embedding(claim.text)
-                except Exception as exc:
-                    logger.warning("R1_SCOPED: embed failed: %s", exc)
-                    continue
-                hits = await self._claims_service.search(
-                    query_vector=vector,
-                    limit=_KNN_LIMIT,
-                    score_threshold=_AMBIGUOUS_COSINE,
-                    source_path_in=[partner_path],
-                )
-                for hit in hits:
-                    if (
-                        hit.source_path == claim.source_path
-                        and hit.content_sha == claim.content_sha
-                    ):
-                        continue
-                    tier = (
-                        "high_confidence"
-                        if hit.cosine >= _HIGH_CONFIDENCE_COSINE
-                        else "ambiguous"
-                    )
-                    pair_key: frozenset[tuple[str, str]] = frozenset(
-                        {
-                            (claim.source_path, claim.content_sha),
-                            (hit.source_path, hit.content_sha),
-                        }
-                    )
-                    if pair_key in seen:
-                        continue
-                    seen.add(pair_key)
+        # Collect (claim, partner_path) tuples; batch-embed all in one round-trip (#478).
+        claim_partner_pairs: list[tuple[Any, str]] = [
+            (claim, partner_path)
+            for source_path, partner_path in pairs
+            for claim in claims_by_path.get(source_path, [])
+        ]
+        if not claim_partner_pairs:
+            return []
 
-                    verdict = await judge_contradiction_pair(
-                        cognitive_service=self._cognitive_service,
-                        text_a=claim.text,
-                        source_a=claim.source_path,
-                        text_b=hit.text,
-                        source_b=hit.source_path,
-                        tier=tier,
-                        relation=self.relation,
-                        category_a=claim.category,
-                        category_b=hit.category,
-                    )
-                    if verdict is not None:
-                        candidates.append(verdict)
+        try:
+            vectors = await embedder.get_embeddings_batch(
+                [c.text for c, _ in claim_partner_pairs]
+            )
+        except Exception as exc:
+            logger.warning(
+                "R1_SCOPED: batch embed failed for %d claims: %s — skipping run",
+                len(claim_partner_pairs),
+                exc,
+            )
+            return []
+
+        for (claim, partner_path), vector in zip(claim_partner_pairs, vectors):
+            hits = await self._claims_service.search(
+                query_vector=vector,
+                limit=_KNN_LIMIT,
+                score_threshold=_AMBIGUOUS_COSINE,
+                source_path_in=[partner_path],
+            )
+            for hit in hits:
+                if (
+                    hit.source_path == claim.source_path
+                    and hit.content_sha == claim.content_sha
+                ):
+                    continue
+                tier = (
+                    "high_confidence"
+                    if hit.cosine >= _HIGH_CONFIDENCE_COSINE
+                    else "ambiguous"
+                )
+                pair_key: frozenset[tuple[str, str]] = frozenset(
+                    {
+                        (claim.source_path, claim.content_sha),
+                        (hit.source_path, hit.content_sha),
+                    }
+                )
+                if pair_key in seen:
+                    continue
+                seen.add(pair_key)
+
+                verdict = await judge_contradiction_pair(
+                    cognitive_service=self._cognitive_service,
+                    text_a=claim.text,
+                    source_a=claim.source_path,
+                    text_b=hit.text,
+                    source_b=hit.source_path,
+                    tier=tier,
+                    relation=self.relation,
+                    category_a=claim.category,
+                    category_b=hit.category,
+                )
+                if verdict is not None:
+                    candidates.append(verdict)
         return candidates
 
     # ID: 7939908b-6686-4b35-b3e6-a74f6ae1fbaf
