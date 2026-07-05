@@ -49,7 +49,9 @@ def _mock_session() -> MagicMock:
     session.__aenter__ = AsyncMock(return_value=session)
     session.__aexit__ = AsyncMock(return_value=False)
     session.begin.return_value = cm
-    session.execute = AsyncMock(return_value=MagicMock(first=MagicMock(return_value=None)))
+    session.execute = AsyncMock(
+        return_value=MagicMock(first=MagicMock(return_value=None))
+    )
     return session
 
 
@@ -89,6 +91,7 @@ def test_post_observation_rejects_open_status() -> None:
     pub = _publisher()
     with pytest.raises(ValueError, match="terminal status"):
         import asyncio
+
         asyncio.get_event_loop().run_until_complete(
             pub.post_observation("subj", {}, status="open")
         )
@@ -98,7 +101,9 @@ def test_post_observation_rejects_open_status() -> None:
 async def test_post_observation_accepts_abandoned() -> None:
     pub = _publisher()
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         result = await pub.post_observation("subj", {}, status="abandoned")
     assert isinstance(result, uuid.UUID)
 
@@ -108,10 +113,10 @@ async def test_post_observation_indeterminate_raises_on_duplicate() -> None:
     pub = _publisher()
     # Simulate existing indeterminate row
     mock_session = _mock_session()
-    mock_session.execute.return_value = MagicMock(
-        first=MagicMock(return_value=("1",))
-    )
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    mock_session.execute.return_value = MagicMock(first=MagicMock(return_value=("1",)))
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         with pytest.raises(ValueError, match="duplicate indeterminate"):
             await pub.post_observation("subj", {}, status="indeterminate")
 
@@ -123,7 +128,9 @@ async def test_post_observation_indeterminate_raises_on_duplicate() -> None:
 async def test_post_artifact_finding_raises_on_undeclared_type() -> None:
     pub = _publisher(artifact_type="source_file")
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         with pytest.raises(ValueError, match="artifact_type"):
             await pub.post_artifact_finding("other_type", "ns", "key", {})
 
@@ -132,7 +139,9 @@ async def test_post_artifact_finding_raises_on_undeclared_type() -> None:
 async def test_post_artifact_finding_raises_on_wrong_namespace() -> None:
     pub = _publisher(artifact_type="source_file", rule_namespace="test.runner")
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         with pytest.raises(ValueError, match="sub_namespace"):
             await pub.post_artifact_finding("source_file", "other.ns", "key", {})
 
@@ -141,7 +150,9 @@ async def test_post_artifact_finding_raises_on_wrong_namespace() -> None:
 async def test_post_artifact_finding_allows_dotted_extension() -> None:
     pub = _publisher(artifact_type="source_file", rule_namespace="test.runner")
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         result = await pub.post_artifact_finding(
             "source_file", "test.runner.missing", "src/foo.py", {}
         )
@@ -155,7 +166,9 @@ async def test_post_artifact_finding_allows_dotted_extension() -> None:
 async def test_post_finding_returns_uuid() -> None:
     pub = _publisher()
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         result = await pub.post_finding("subj", {}, resolution_mechanism="human")
     assert isinstance(result, uuid.UUID)
 
@@ -164,7 +177,9 @@ async def test_post_finding_returns_uuid() -> None:
 async def test_post_report_returns_uuid() -> None:
     pub = _publisher()
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         result = await pub.post_report("sync.done", {"count": 5})
     assert isinstance(result, uuid.UUID)
 
@@ -173,6 +188,8 @@ async def test_post_report_returns_uuid() -> None:
 async def test_post_heartbeat_returns_uuid() -> None:
     pub = _publisher()
     mock_session = _mock_session()
-    with patch("shared.workers.blackboard_publisher.get_session", return_value=mock_session):
+    with patch(
+        "shared.workers.blackboard_publisher.get_session", return_value=mock_session
+    ):
         result = await pub.post_heartbeat()
     assert isinstance(result, uuid.UUID)

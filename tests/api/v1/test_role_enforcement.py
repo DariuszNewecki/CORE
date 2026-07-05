@@ -27,7 +27,12 @@ from api.v1.refactor_routes import router as refactor_router
 from api.v1.sync_routes import router as sync_router
 
 
-_VIEWER = {"sub": "uid-v", "email": "viewer@example.com", "role": "viewer", "org_id": "o"}
+_VIEWER = {
+    "sub": "uid-v",
+    "email": "viewer@example.com",
+    "role": "viewer",
+    "org_id": "o",
+}
 
 
 def _app_with_role(role: str) -> FastAPI:
@@ -44,6 +49,7 @@ def _app_with_role(role: str) -> FastAPI:
     app.include_router(sync_router)
     app.dependency_overrides[get_current_user] = lambda: user
     from api.v1.auth_routes import get_auth_service
+
     app.dependency_overrides[get_auth_service] = lambda: None
     return app
 
@@ -81,7 +87,9 @@ def _app_with_role(role: str) -> FastAPI:
         ("GET", "/sync/runs/00000000-0000-0000-0000-000000000001", None),
     ],
 )
-def test_mutation_endpoint_rejects_non_admin(method: str, path: str, body: dict | None) -> None:
+def test_mutation_endpoint_rejects_non_admin(
+    method: str, path: str, body: dict | None
+) -> None:
     """Non-platform_admin role receives 403 on every governor-gated endpoint."""
     client = TestClient(_app_with_role("viewer"), raise_server_exceptions=False)
     response = client.request(method, path, json=body or {})
@@ -161,6 +169,5 @@ def test_require_governor_is_canonical_platform_admin_gate() -> None:
 
     assert not violations, (
         "Hardcoded 'platform_admin' string outside dependencies.py — "
-        "use require_governor instead (ADR-132 D2):\n"
-        + "\n".join(violations)
+        "use require_governor instead (ADR-132 D2):\n" + "\n".join(violations)
     )

@@ -81,9 +81,7 @@ def test_extract_symbol_code_missing_file_returns_none(tmp_path):
 
 # ── Write-only action: receives generated_code, writes it ───────────────────
 
-_GOOD_CODE = (
-    "from __future__ import annotations\n\n\ndef test_do_work():\n    assert do_work(2) == 4\n"
-)
+_GOOD_CODE = "from __future__ import annotations\n\n\ndef test_do_work():\n    assert do_work(2) == 4\n"
 
 
 @pytest.fixture

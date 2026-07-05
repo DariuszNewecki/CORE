@@ -96,7 +96,14 @@ def test_existing_entries_preserved_and_new_appended(tmp_path: Path) -> None:
     artifact_path = tmp_path / "var" / "reports" / "convergence.jsonl"
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     existing_entries = [
-        json.dumps({"observed_at": f"t{i}", "open_findings": i, "governor_inbox": 0, "flow_24h": {}})
+        json.dumps(
+            {
+                "observed_at": f"t{i}",
+                "open_findings": i,
+                "governor_inbox": 0,
+                "flow_24h": {},
+            }
+        )
         for i in range(5)
     ]
     artifact_path.write_text("\n".join(existing_entries), encoding="utf-8")
@@ -116,7 +123,14 @@ def test_rolling_window_trims_to_max(tmp_path: Path) -> None:
     # Fill to exactly one more than the window so trimming fires
     overflow = _CONVERGENCE_ROLLING_WINDOW + 5
     existing_entries = [
-        json.dumps({"observed_at": f"t{i}", "open_findings": i, "governor_inbox": 0, "flow_24h": {}})
+        json.dumps(
+            {
+                "observed_at": f"t{i}",
+                "open_findings": i,
+                "governor_inbox": 0,
+                "flow_24h": {},
+            }
+        )
         for i in range(overflow)
     ]
     artifact_path.write_text("\n".join(existing_entries), encoding="utf-8")

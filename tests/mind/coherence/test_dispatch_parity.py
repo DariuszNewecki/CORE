@@ -35,9 +35,7 @@ def _write_rules(rules_dir: Path, rule_ids: list[str]) -> None:
 def _write_mapping(mappings_dir: Path, entries: dict[str, str]) -> None:
     """entries: {rule_id: engine_name}"""
     mappings_dir.mkdir(parents=True, exist_ok=True)
-    data = {
-        "mappings": {rid: {"engine": engine} for rid, engine in entries.items()}
-    }
+    data = {"mappings": {rid: {"engine": engine} for rid, engine in entries.items()}}
     (mappings_dir / "test_mappings.yaml").write_text(yaml.dump(data), encoding="utf-8")
 
 
@@ -65,7 +63,9 @@ def _make_check(tmp_path: Path) -> DispatchParityCheck:
 async def test_unmapped_rule_produces_candidate(tmp_path: Path) -> None:
     _write_rules(tmp_path / ".intent" / "rules", ["my.rule.id"])
     _write_mapping(tmp_path / ".intent" / "enforcement" / "mappings", {})
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", [])
 
     check = _make_check(tmp_path)
@@ -82,7 +82,9 @@ async def test_mapped_rule_does_not_appear_in_unmapped(tmp_path: Path) -> None:
         tmp_path / ".intent" / "enforcement" / "mappings",
         {"my.rule.id": "ast_gate"},
     )
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", ["ast_gate"])
 
     check = _make_check(tmp_path)
@@ -103,7 +105,9 @@ async def test_unknown_engine_in_mapping_produces_candidate(tmp_path: Path) -> N
         tmp_path / ".intent" / "enforcement" / "mappings",
         {"rule.x": "ghost_engine"},
     )
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", [])
 
     check = _make_check(tmp_path)
@@ -121,7 +125,9 @@ async def test_file_backed_engine_is_not_unknown(tmp_path: Path) -> None:
         tmp_path / ".intent" / "enforcement" / "mappings",
         {"rule.x": "ast_gate"},
     )
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", ["ast_gate"])
 
     check = _make_check(tmp_path)
@@ -157,7 +163,9 @@ async def test_passive_gate_builtin_is_not_unknown(tmp_path: Path) -> None:
         tmp_path / ".intent" / "enforcement" / "mappings",
         {"rule.x": "passive_gate"},
     )
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", [])
 
     check = _make_check(tmp_path)
@@ -178,7 +186,9 @@ async def test_clean_intent_tree_returns_no_candidates(tmp_path: Path) -> None:
         tmp_path / ".intent" / "enforcement" / "mappings",
         {"rule.a": "ast_gate", "rule.b": "passive_gate"},
     )
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", ["ast_gate"])
 
     check = _make_check(tmp_path)
@@ -190,7 +200,9 @@ async def test_clean_intent_tree_returns_no_candidates(tmp_path: Path) -> None:
 async def test_empty_rules_directory_returns_no_candidates(tmp_path: Path) -> None:
     (tmp_path / ".intent" / "rules").mkdir(parents=True, exist_ok=True)
     _write_mapping(tmp_path / ".intent" / "enforcement" / "mappings", {})
-    _write_taxonomy(tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", [])
+    _write_taxonomy(
+        tmp_path / ".intent" / "taxonomies" / "substrate_enforcement.yaml", []
+    )
     _write_engines(tmp_path / "src" / "mind" / "logic" / "engines", [])
 
     check = _make_check(tmp_path)

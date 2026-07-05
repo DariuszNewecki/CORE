@@ -47,12 +47,17 @@ def test_load_generation_budget_returns_generation_budget():
     with patch(
         "shared.infrastructure.intent.generation_budget.get_intent_repository"
     ) as mock_repo:
-        mock_repo.return_value.load_text.return_value = yaml.dump({
-            "budgets": {
-                "test_generation": {"max_iterations": 7, "wall_clock_cap_secs": 300},
-                "default": {"max_iterations": 2, "wall_clock_cap_secs": 120},
+        mock_repo.return_value.load_text.return_value = yaml.dump(
+            {
+                "budgets": {
+                    "test_generation": {
+                        "max_iterations": 7,
+                        "wall_clock_cap_secs": 300,
+                    },
+                    "default": {"max_iterations": 2, "wall_clock_cap_secs": 120},
+                }
             }
-        })
+        )
         result = load_generation_budget()
 
     assert isinstance(result, GenerationBudget)

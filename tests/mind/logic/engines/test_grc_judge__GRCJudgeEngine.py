@@ -60,11 +60,18 @@ async def test_requirement_satisfied(path_resolver, tmp_doc):
     engine, invoke_mock = _engine(
         path_resolver,
         return_value=json.dumps(
-            {"violation": False, "reasoning": "MFA required for remote access", "finding": None}
+            {
+                "violation": False,
+                "reasoning": "MFA required for remote access",
+                "finding": None,
+            }
         ),
     )
     tmp_doc.write_text("Remote access requires MFA.", encoding="utf-8")
-    params = {"instruction": "Requires MFA for remote access?", "rationale": "NIST 3.5.3"}
+    params = {
+        "instruction": "Requires MFA for remote access?",
+        "rationale": "NIST 3.5.3",
+    }
 
     result = await engine.verify(tmp_doc, params)
 
@@ -88,7 +95,10 @@ async def test_compliance_gap_with_finding(path_resolver, tmp_doc):
         ),
     )
     tmp_doc.write_text("Remote access is permitted.", encoding="utf-8")
-    params = {"instruction": "Requires MFA for remote access?", "rationale": "NIST 3.5.3"}
+    params = {
+        "instruction": "Requires MFA for remote access?",
+        "rationale": "NIST 3.5.3",
+    }
 
     result = await engine.verify(tmp_doc, params)
 

@@ -30,8 +30,13 @@ class _StubWorker(Worker):
 
 _VALID_DECLARATION: dict = {
     "kind": "worker",
-    "metadata": {"id": "workers.stub_worker", "title": "Stub Worker", "version": "1.0.0",
-                 "authority": "policy", "status": "active"},
+    "metadata": {
+        "id": "workers.stub_worker",
+        "title": "Stub Worker",
+        "version": "1.0.0",
+        "authority": "policy",
+        "status": "active",
+    },
     "identity": {"uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "class": "sensing"},
     "mandate": {
         "responsibility": "Test stub.",
@@ -46,6 +51,7 @@ _VALID_DECLARATION: dict = {
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
+
 
 # ID: e667fa06-416c-4e39-b10c-5b4833bb7d08
 def test_load_declaration_uses_intent_repository() -> None:
@@ -107,7 +113,9 @@ def test_load_declaration_uses_explicit_repo_root_not_global_singleton() -> None
     explicit_root = Path("/fake/repo/root")
 
     with (
-        patch("shared.workers.base.IntentRepository", return_value=mock_repo) as mock_cls,
+        patch(
+            "shared.workers.base.IntentRepository", return_value=mock_repo
+        ) as mock_cls,
         patch("shared.workers.base.get_intent_repository") as mock_global,
         patch("shared.workers.base.validate_worker_declaration"),
     ):
@@ -116,9 +124,7 @@ def test_load_declaration_uses_explicit_repo_root_not_global_singleton() -> None
         worker._repo_root = explicit_root
         result = worker._load_declaration()
 
-    mock_cls.assert_called_once_with(
-        root=explicit_root / ".intent", strict=True
-    )
+    mock_cls.assert_called_once_with(root=explicit_root / ".intent", strict=True)
     mock_global.assert_not_called()
     mock_repo.load_worker.assert_called_once_with("workers/stub_worker")
     assert result == _VALID_DECLARATION

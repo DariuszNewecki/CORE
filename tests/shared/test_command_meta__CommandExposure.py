@@ -24,7 +24,10 @@ def test_command_exposure_values() -> None:
     """Enum must have exactly two members with the expected string values."""
     assert CommandExposure.USER_FACING.value == "user-facing"
     assert CommandExposure.GOVERNOR_ONLY.value == "governor-only"
-    assert set(CommandExposure) == {CommandExposure.USER_FACING, CommandExposure.GOVERNOR_ONLY}
+    assert set(CommandExposure) == {
+        CommandExposure.USER_FACING,
+        CommandExposure.GOVERNOR_ONLY,
+    }
 
 
 # ── CommandMeta field enforcement ─────────────────────────────────────────────

@@ -224,7 +224,10 @@ def test_post_execution_sha_is_always_branch_reachable(
         proposal_id="reach-nonempty",
         proposal_goal="fix.format",
         action_results={
-            "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": ["target.py"]}}
+            "fix.format:0": {
+                "ok": True,
+                "data": {"_sandbox_target_paths": ["target.py"]},
+            }
         },
     )
     post_sha = git_service.get_current_commit()
@@ -239,10 +242,12 @@ def test_post_execution_sha_is_always_branch_reachable(
         git_service=git_service,
         proposal_id="reach-empty",
         proposal_goal="fix.format",
-        action_results={"fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}},
+        action_results={
+            "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}
+        },
     )
     post_sha_2 = git_service.get_current_commit()
     assert post_sha_2 == pre, "empty production must emit no commit (ADR-101 D2)"
-    assert _run(["git", "branch", "--contains", post_sha_2], repo_with_target).strip(), (
-        "the no-commit path still records a branch-reachable HEAD — no orphan"
-    )
+    assert _run(
+        ["git", "branch", "--contains", post_sha_2], repo_with_target
+    ).strip(), "the no-commit path still records a branch-reachable HEAD — no orphan"

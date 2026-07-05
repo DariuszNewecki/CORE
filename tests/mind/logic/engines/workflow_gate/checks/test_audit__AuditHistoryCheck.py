@@ -11,7 +11,6 @@
   suite with a real Audit Ledger session.
 """
 
-
 from mind.logic.engines.workflow_gate.checks.audit import AuditHistoryCheck
 
 

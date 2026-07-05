@@ -100,7 +100,10 @@ async def test_run_loop_reports_silence_when_run_posts_nothing() -> None:
     with (
         patch.object(worker, "_register", new_callable=AsyncMock),
         patch.object(worker, "_before_loop", new_callable=AsyncMock),
-        patch("shared.workers.scheduled_worker.asyncio.sleep", side_effect=_one_cycle_sleep),
+        patch(
+            "shared.workers.scheduled_worker.asyncio.sleep",
+            side_effect=_one_cycle_sleep,
+        ),
         pytest.raises(asyncio.CancelledError),
     ):
         await worker.run_loop()
@@ -119,7 +122,10 @@ async def test_run_loop_no_silence_error_when_run_posts() -> None:
     with (
         patch.object(worker, "_register", new_callable=AsyncMock),
         patch.object(worker, "_before_loop", new_callable=AsyncMock),
-        patch("shared.workers.scheduled_worker.asyncio.sleep", side_effect=_one_cycle_sleep),
+        patch(
+            "shared.workers.scheduled_worker.asyncio.sleep",
+            side_effect=_one_cycle_sleep,
+        ),
         pytest.raises(asyncio.CancelledError),
     ):
         await worker.run_loop()
@@ -151,7 +157,10 @@ async def test_run_loop_resets_cycle_post_count_each_cycle() -> None:
     with (
         patch.object(worker, "_register", new_callable=AsyncMock),
         patch.object(worker, "_before_loop", new_callable=AsyncMock),
-        patch("shared.workers.scheduled_worker.asyncio.sleep", side_effect=_two_cycle_sleep),
+        patch(
+            "shared.workers.scheduled_worker.asyncio.sleep",
+            side_effect=_two_cycle_sleep,
+        ),
         pytest.raises(asyncio.CancelledError),
     ):
         await worker.run_loop()

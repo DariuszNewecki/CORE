@@ -19,10 +19,7 @@ from body.evaluators.test_gap_evaluator import (
 
 def test_extract_public_symbols_returns_top_level_functions(tmp_path):
     src = tmp_path / "foo.py"
-    src.write_text(
-        "def public_fn(a, b): pass\n"
-        "def _private(x): pass\n"
-    )
+    src.write_text("def public_fn(a, b): pass\ndef _private(x): pass\n")
     result = _extract_public_symbols(src)
     assert len(result) == 1
     assert result[0].name == "public_fn"
@@ -40,11 +37,7 @@ def test_extract_public_symbols_returns_top_level_classes(tmp_path):
 
 def test_extract_public_symbols_excludes_nested_functions(tmp_path):
     src = tmp_path / "nested.py"
-    src.write_text(
-        "def outer():\n"
-        "    def inner(): pass\n"
-        "    return inner\n"
-    )
+    src.write_text("def outer():\n    def inner(): pass\n    return inner\n")
     result = _extract_public_symbols(src)
     assert len(result) == 1
     assert result[0].name == "outer"
@@ -152,9 +145,7 @@ def test_extract_tested_names_class_based_methods(tmp_path):
 def test_extract_tested_names_mixed_flat_and_class(tmp_path):
     test_file = tmp_path / "test_mixed.py"
     test_file.write_text(
-        "def test_top_level(): pass\n"
-        "class TestWorker:\n"
-        "    def test_run(self): pass\n"
+        "def test_top_level(): pass\nclass TestWorker:\n    def test_run(self): pass\n"
     )
     names = _extract_tested_names(test_file)
     assert "top_level" in names
@@ -199,9 +190,7 @@ async def test_evaluate_partial_coverage(repo_root, evaluator):
     src.write_text("def alpha(): pass\ndef beta(): pass\n")
     test_dir = repo_root / "tests" / "mypkg" / "service"
     test_dir.mkdir(parents=True, exist_ok=True)
-    (test_dir / "test_generated.py").write_text(
-        "def test_alpha(): assert True\n"
-    )
+    (test_dir / "test_generated.py").write_text("def test_alpha(): assert True\n")
 
     with patch(
         "body.evaluators.test_gap_evaluator.source_to_test_path",
@@ -221,9 +210,7 @@ async def test_evaluate_no_gaps_when_all_covered(repo_root, evaluator):
     src.write_text("def alpha(): pass\n")
     test_dir = repo_root / "tests" / "mypkg" / "service"
     test_dir.mkdir(parents=True, exist_ok=True)
-    (test_dir / "test_generated.py").write_text(
-        "def test_alpha(): assert True\n"
-    )
+    (test_dir / "test_generated.py").write_text("def test_alpha(): assert True\n")
 
     with patch(
         "body.evaluators.test_gap_evaluator.source_to_test_path",

@@ -292,7 +292,9 @@ async def test_db_session_set_during_call_and_cleared_after():
 
     with (
         patch("body.services.service_registry.service_registry", mock_reg),
-        patch("mind.governance.filtered_audit.run_filtered_audit", side_effect=_capture),
+        patch(
+            "mind.governance.filtered_audit.run_filtered_audit", side_effect=_capture
+        ),
     ):
         await normalize_audit_findings(ctx, "ns", [])
 

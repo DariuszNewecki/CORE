@@ -90,7 +90,9 @@ class _JudgedEngine(BaseEngine):
     evidence_class = EvidenceClass.JUDGED
 
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
-        return EngineResult(False, "x", ["policy may not cover remote MFA"], self.engine_id)
+        return EngineResult(
+            False, "x", ["policy may not cover remote MFA"], self.engine_id
+        )
 
 
 class _CrashEngine(BaseEngine):
@@ -114,7 +116,9 @@ def _patch_engine(monkeypatch: pytest.MonkeyPatch, engine: BaseEngine) -> None:
 # --------------------------------------------------------------------------
 
 
-async def test_proven_verdict_is_labelled_proven(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_proven_verdict_is_labelled_proven(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _patch_engine(monkeypatch, _ProvenEngine())
     rule = ExecutableRule(
         rule_id="grc.security_policy_exists",
@@ -123,12 +127,16 @@ async def test_proven_verdict_is_labelled_proven(monkeypatch: pytest.MonkeyPatch
         enforcement="blocking",
         scope=["**/*.md"],
     )
-    findings = await execute_rule(rule, _FakeContext([Path("/repo/security-policy.md")]))
+    findings = await execute_rule(
+        rule, _FakeContext([Path("/repo/security-policy.md")])
+    )
     assert len(findings) == 1
     assert findings[0].evidence_class is EvidenceClass.PROVEN
 
 
-async def test_judged_verdict_is_labelled_judged(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_judged_verdict_is_labelled_judged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _patch_engine(monkeypatch, _JudgedEngine())
     rule = ExecutableRule(
         rule_id="grc.requires_mfa_remote",
@@ -154,7 +162,9 @@ async def test_crash_degrades_to_attested_never_proven(
         enforcement="blocking",
         scope=["**/*.md"],
     )
-    findings = await execute_rule(rule, _FakeContext([Path("/repo/security-policy.md")]))
+    findings = await execute_rule(
+        rule, _FakeContext([Path("/repo/security-policy.md")])
+    )
     assert len(findings) == 1
     assert findings[0].check_id.endswith("enforcement_failure")
     assert findings[0].evidence_class is EvidenceClass.ATTESTED
@@ -196,14 +206,18 @@ async def test_grc_trio_produces_all_three_labels(
 
     _patch_engine(monkeypatch, _ProvenEngine())
     proven = await execute_rule(
-        ExecutableRule("grc.policy_exists", "fake_proven", {}, "blocking", scope=["**/*.md"]),
+        ExecutableRule(
+            "grc.policy_exists", "fake_proven", {}, "blocking", scope=["**/*.md"]
+        ),
         _FakeContext([Path("/repo/policy.md")]),
     )
     labels.update(f.evidence_class for f in proven)
 
     _patch_engine(monkeypatch, _JudgedEngine())
     judged = await execute_rule(
-        ExecutableRule("grc.mfa_remote", "fake_judged", {}, "reporting", scope=["**/*.md"]),
+        ExecutableRule(
+            "grc.mfa_remote", "fake_judged", {}, "reporting", scope=["**/*.md"]
+        ),
         _FakeContext([Path("/repo/policy.md")]),
     )
     labels.update(f.evidence_class for f in judged)

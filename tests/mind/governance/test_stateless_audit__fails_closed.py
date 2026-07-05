@@ -24,7 +24,9 @@ from mind.governance.stateless_audit import run_stateless_audit
 
 
 def _rule(rule_id: str, engine: str) -> ExecutableRule:
-    return ExecutableRule(rule_id=rule_id, engine=engine, params={}, enforcement="error")
+    return ExecutableRule(
+        rule_id=rule_id, engine=engine, params={}, enforcement="error"
+    )
 
 
 async def test_declared_but_zero_mapped_fails_closed(tmp_path: Path) -> None:

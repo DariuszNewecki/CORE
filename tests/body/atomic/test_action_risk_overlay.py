@@ -19,6 +19,7 @@ from shared.action_types import ActionResult
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 # ID: d2a9f0b6-e9e2-4b5b-b394-0938bf019e77
 async def _stub_executor(**_kwargs: object) -> ActionResult:
     return ActionResult(action_id="stub", ok=True, data={}, duration_sec=0.0)
@@ -41,6 +42,7 @@ def _make_registry(*action_ids: str) -> ActionRegistry:
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 # ID: a7b12440-5b69-40f7-8167-7e52c6b501ee
 def test_apply_risk_config_flat_string_format() -> None:

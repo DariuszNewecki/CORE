@@ -54,9 +54,13 @@ async def test_gap_analysis_produces_labelled_trio() -> None:
 async def test_clean_corpus_reports_proven_satisfied(tmp_path: Path) -> None:
     """A finalized policy (no placeholder text) yields no proven gap."""
     doc = tmp_path / "policy.md"
-    doc.write_text("# Policy\n\nAll controls are documented and finalized.\n", encoding="utf-8")
+    doc.write_text(
+        "# Policy\n\nAll controls are documented and finalized.\n", encoding="utf-8"
+    )
     results = await GRCGapAnalysisService().run(tmp_path, catalog=load_demo_catalog())
-    proven = next(r for r in results if r.requirement_id == "grc.demo.policy_is_finalized")
+    proven = next(
+        r for r in results if r.requirement_id == "grc.demo.policy_is_finalized"
+    )
     assert proven.status is RequirementStatus.SATISFIED
     assert not proven.evidence
 
@@ -145,7 +149,9 @@ async def test_nist_catalog_runs_against_corpus() -> None:
     statuses = {r.status for r in results}
     classes = {r.evidence_class for r in results}
     # the planted TBD trips the deterministic doc-quality gate
-    proven = next(r for r in results if r.requirement_id == "nist_800_171.doc_finalized")
+    proven = next(
+        r for r in results if r.requirement_id == "nist_800_171.doc_finalized"
+    )
     assert proven.evidence_class is EvidenceClass.PROVEN
     assert proven.status is RequirementStatus.DEFICIENT
     # all three honesty lanes are represented
@@ -164,9 +170,7 @@ def _make_catalog(root: Path, tier: str, framework: str) -> Path:
     """Plant a minimal valid catalog.yaml under <root>/<tier>/<framework>/."""
     path = root / tier / framework / "catalog.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        "catalog:\n  id: x\nrequirements: []\n", encoding="utf-8"
-    )
+    path.write_text("catalog:\n  id: x\nrequirements: []\n", encoding="utf-8")
     return path
 
 

@@ -54,10 +54,14 @@ async def test_test_generation_invokes_test_gen_model() -> None:
     module_path/goal/target_coverage, never _code_gen_model.invoke."""
     cg = _make_generator()
     cg.cognitive_service.aget_client_for_role = AsyncMock(return_value=MagicMock())
-    cg._test_gen_model.invoke = AsyncMock(return_value="def test_x():\n    assert True\n")
+    cg._test_gen_model.invoke = AsyncMock(
+        return_value="def test_x():\n    assert True\n"
+    )
     cg._code_gen_model.invoke = AsyncMock(return_value="# must not be reached")
 
-    await cg.generate_code(_task("test_generation"), "test goal", "ctx", "test_file", "")
+    await cg.generate_code(
+        _task("test_generation"), "test goal", "ctx", "test_file", ""
+    )
 
     cg._test_gen_model.invoke.assert_awaited_once()
     ctx = cg._test_gen_model.invoke.call_args.kwargs.get("context", {})
@@ -76,11 +80,15 @@ async def test_non_test_task_invokes_code_gen_model() -> None:
     cg._code_gen_model.invoke = AsyncMock(return_value="def foo(): pass\n")
     cg._test_gen_model.invoke = AsyncMock(return_value="# must not be reached")
 
-    await cg.generate_code(_task("code_generation"), "code goal", "ctx", "service_component", "")
+    await cg.generate_code(
+        _task("code_generation"), "code goal", "ctx", "service_component", ""
+    )
 
     cg._code_gen_model.invoke.assert_awaited_once()
     ctx = cg._code_gen_model.invoke.call_args.kwargs.get("context", {})
-    assert "task_step" in ctx, "task_step must be passed to code_generation_task_step_prompt"
+    assert "task_step" in ctx, (
+        "task_step must be passed to code_generation_task_step_prompt"
+    )
     cg._test_gen_model.invoke.assert_not_awaited()
 
 
@@ -92,7 +100,9 @@ async def test_test_gen_model_receives_source_content_in_goal() -> None:
     cg = _make_generator()
     cg.prompt_pipeline.process.return_value = "SOURCE: def my_func(): pass"
     cg.cognitive_service.aget_client_for_role = AsyncMock(return_value=MagicMock())
-    cg._test_gen_model.invoke = AsyncMock(return_value="def test_x():\n    assert True\n")
+    cg._test_gen_model.invoke = AsyncMock(
+        return_value="def test_x():\n    assert True\n"
+    )
 
     await cg.generate_code(_task("test_generation"), "goal", "ctx", "test_file", "")
 

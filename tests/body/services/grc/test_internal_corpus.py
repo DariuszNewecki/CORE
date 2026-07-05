@@ -27,7 +27,9 @@ from body.services.grc.internal_corpus import (
 # ---------------------------------------------------------------------------
 
 
-def _write_inventory(tmp_path: Path, extra_frameworks: list[dict] | None = None) -> Path:
+def _write_inventory(
+    tmp_path: Path, extra_frameworks: list[dict] | None = None
+) -> Path:
     """Write a minimal inventory.yaml with nist_800_171 (ungated) and iso_27001 (gated)."""
     frameworks = [
         {

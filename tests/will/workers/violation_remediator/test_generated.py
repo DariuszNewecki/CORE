@@ -175,11 +175,14 @@ class TestViolationRemediatorWorker:
         worker.post_report = AsyncMock()
         worker._is_file_committed = MagicMock(return_value=False)
 
-        with patch(
-            "will.workers.violation_remediator.load_vocabulary_projection"
-        ) as mock_load, patch(
-            "will.workers.violation_remediator.load_circuit_breaker_config"
-        ) as mock_cb:
+        with (
+            patch(
+                "will.workers.violation_remediator.load_vocabulary_projection"
+            ) as mock_load,
+            patch(
+                "will.workers.violation_remediator.load_circuit_breaker_config"
+            ) as mock_cb,
+        ):
             mock_load.return_value = MagicMock()
             mock_cb.return_value = MagicMock(threshold_n=5)
             await worker.run()
@@ -217,11 +220,14 @@ class TestViolationRemediatorWorker:
         worker.post_report = AsyncMock()
         worker._is_file_committed = MagicMock(return_value=True)
 
-        with patch(
-            "will.workers.violation_remediator.load_vocabulary_projection"
-        ) as mock_load, patch(
-            "will.workers.violation_remediator.load_circuit_breaker_config"
-        ) as mock_cb:
+        with (
+            patch(
+                "will.workers.violation_remediator.load_vocabulary_projection"
+            ) as mock_load,
+            patch(
+                "will.workers.violation_remediator.load_circuit_breaker_config"
+            ) as mock_cb,
+        ):
             mock_load.return_value = MagicMock()
             mock_cb.return_value = MagicMock(threshold_n=5)
             await worker.run()
@@ -260,11 +266,14 @@ class TestViolationRemediatorWorker:
         worker.post_report = AsyncMock()
         worker._is_file_committed = MagicMock(return_value=False)
 
-        with patch(
-            "will.workers.violation_remediator.load_vocabulary_projection"
-        ) as mock_load, patch(
-            "will.workers.violation_remediator.load_circuit_breaker_config"
-        ) as mock_cb:
+        with (
+            patch(
+                "will.workers.violation_remediator.load_vocabulary_projection"
+            ) as mock_load,
+            patch(
+                "will.workers.violation_remediator.load_circuit_breaker_config"
+            ) as mock_cb,
+        ):
             mock_load.return_value = MagicMock()
             mock_cb.return_value = MagicMock(threshold_n=5)
             await worker.run()

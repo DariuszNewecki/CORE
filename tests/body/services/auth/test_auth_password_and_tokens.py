@@ -3,6 +3,7 @@
 
 No DB required — pure in-process functions only.
 """
+
 from __future__ import annotations
 
 import time
@@ -74,7 +75,9 @@ def test_access_token_wrong_secret_raises() -> None:
 
 
 def test_access_token_expired_raises() -> None:
-    token = create_access_token("u1", "a@b.com", "visitor", None, _SECRET, expire_minutes=0)
+    token = create_access_token(
+        "u1", "a@b.com", "visitor", None, _SECRET, expire_minutes=0
+    )
     time.sleep(1)
     with pytest.raises(jwt.ExpiredSignatureError):
         decode_access_token(token, _SECRET)

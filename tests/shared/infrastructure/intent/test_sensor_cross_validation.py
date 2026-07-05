@@ -25,6 +25,7 @@ from shared.infrastructure.intent.intent_repository import (
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 # ID: d2a9f0b6-e9e2-4b5b-b394-0938bf019e77
 def _make_type_ref(type_id: str, supported_sensors: list[str]) -> ArtifactTypeRef:
     return ArtifactTypeRef(
@@ -72,6 +73,7 @@ def _repo_with_validation(
 
 # ── Happy-path ────────────────────────────────────────────────────────────────
 
+
 # ID: e76e3d0e-b0c6-4b6a-bb9e-20a2bc8d5134
 def test_valid_symmetric_declarations_pass() -> None:
     """Fully symmetric declarations produce no error."""
@@ -98,6 +100,7 @@ def test_non_sensing_worker_is_ignored() -> None:
 
 # ── P1: sensor listed in type but declaration absent ──────────────────────────
 
+
 # ID: 1cc5aa00-4cde-41aa-b9b6-62e50de5ea2f
 def test_p1_missing_sensor_declaration_raises() -> None:
     """P1: sensor in supported_sensors but no worker declaration → GovernanceError."""
@@ -111,6 +114,7 @@ def test_p1_missing_sensor_declaration_raises() -> None:
 
 
 # ── P2: sensor declaration doesn't claim the listing type ────────────────────
+
 
 # ID: 90ae779d-8d60-4831-9d06-ebd7aa752d6e
 def test_p2_sensor_does_not_claim_type_raises() -> None:
@@ -128,6 +132,7 @@ def test_p2_sensor_does_not_claim_type_raises() -> None:
 
 # ── P3: sensor claims unregistered artifact_type ─────────────────────────────
 
+
 # ID: 8c403ddd-8879-4081-8a82-35a9a7d70744
 def test_p3_sensor_claims_unregistered_type_raises() -> None:
     """P3: sensing worker claims a type not in the F-41 index → GovernanceError."""
@@ -141,6 +146,7 @@ def test_p3_sensor_claims_unregistered_type_raises() -> None:
 
 
 # ── P4: sensing worker not in the type's supported_sensors ───────────────────
+
 
 # ID: d2a9f0b6-e9e2-4b5b-b394-0938b19e77
 def test_p4_sensor_not_listed_in_type_raises() -> None:
@@ -157,6 +163,7 @@ def test_p4_sensor_not_listed_in_type_raises() -> None:
 
 
 # ── Lenient mode: logs instead of raises ─────────────────────────────────────
+
 
 # ID: 771bb41d-7cad-4b7d-86e8-c03e54080845
 def test_lenient_mode_logs_instead_of_raising(caplog: pytest.LogCaptureFixture) -> None:

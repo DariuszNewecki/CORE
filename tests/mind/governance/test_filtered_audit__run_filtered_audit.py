@@ -18,7 +18,9 @@ from mind.governance.filtered_audit import run_filtered_audit
 from shared.models.audit_models import AuditFinding, AuditSeverity
 
 
-def _make_rule(rule_id: str = "test.rule.stub", policy_id: str = "test_policy") -> MagicMock:
+def _make_rule(
+    rule_id: str = "test.rule.stub", policy_id: str = "test_policy"
+) -> MagicMock:
     rule = MagicMock()
     rule.rule_id = rule_id
     rule.policy_id = policy_id
@@ -60,7 +62,8 @@ async def test_failed_rule_emits_finding() -> None:
     assert rule.rule_id not in executed_ids
 
     failure_findings = [
-        f for f in findings
+        f
+        for f in findings
         if f["check_id"] == "governance.audit_engine.rule_evaluation_failed"
     ]
     assert len(failure_findings) == 1
@@ -131,7 +134,8 @@ async def test_no_findings_when_all_rules_succeed() -> None:
 
     assert stats["failed_rules"] == 0
     failure_findings = [
-        f for f in findings
+        f
+        for f in findings
         if f["check_id"] == "governance.audit_engine.rule_evaluation_failed"
     ]
     assert failure_findings == []

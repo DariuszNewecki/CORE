@@ -91,7 +91,9 @@ async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
 
 
 # ID: ebb30994-7d26-43e0-b46a-c4414e4e499a
-async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path) -> None:
+async def test_run_gap_analysis_relative_corpus_root_uses_context(
+    tmp_path: Path,
+) -> None:
     """Relative corpus_root is resolved against core_context.file_handler.repo_path."""
     corpus_dir = tmp_path / "docs"
     corpus_dir.mkdir()
@@ -132,7 +134,10 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(tmp_path: Path
 # ID: bd3266f2-9c4a-4ed0-a131-bdef15a529a1
 async def test_run_gap_analysis_relative_corpus_root_no_context_raises() -> None:
     """Relative corpus_root without core_context raises ValueError before any I/O."""
-    with authorize_execution("document.run.gap_analysis"), pytest.raises(ValueError, match="core_context"):
+    with (
+        authorize_execution("document.run.gap_analysis"),
+        pytest.raises(ValueError, match="core_context"),
+    ):
         await action_run_gap_analysis(
             corpus_root="relative/path",
             write=False,

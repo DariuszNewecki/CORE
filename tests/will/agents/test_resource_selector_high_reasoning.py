@@ -68,9 +68,15 @@ def test_high_reasoning_highest_cost_first() -> None:
 def test_normal_path_assignment_at_position_zero() -> None:
     assignments = [_assignment("Coder", "mid_model")]
     result = ResourceSelector.select_resources_for_role(
-        "Coder", [ROLE], ALL, assignments=assignments, system_operating_mode="local_only"
+        "Coder",
+        [ROLE],
+        ALL,
+        assignments=assignments,
+        system_operating_mode="local_only",
     )
-    assert result[0].name == "mid_model", "assigned resource must be first on normal path"
+    assert result[0].name == "mid_model", (
+        "assigned resource must be first on normal path"
+    )
 
 
 def test_high_reasoning_skips_assignment_override() -> None:
@@ -100,7 +106,10 @@ def test_high_reasoning_single_resource_returns_it() -> None:
 
 def test_high_reasoning_unknown_role_returns_empty() -> None:
     result = ResourceSelector.select_resources_for_role(
-        "NonExistentRole", [ROLE], ALL, system_operating_mode="local_only",
+        "NonExistentRole",
+        [ROLE],
+        ALL,
+        system_operating_mode="local_only",
         high_reasoning=True,
     )
     assert result == []
@@ -117,5 +126,7 @@ def test_high_reasoning_respects_locality_filter() -> None:
         high_reasoning=True,
     )
     names = [r.name for r in result]
-    assert "remote_expert" not in names, "locality filter must apply even with high_reasoning"
+    assert "remote_expert" not in names, (
+        "locality filter must apply even with high_reasoning"
+    )
     assert "local_cheap" in names

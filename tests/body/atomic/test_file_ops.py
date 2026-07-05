@@ -99,7 +99,9 @@ async def test_action_edit_file_write_true_calls_file_handler() -> None:
         result = await action_edit_file(
             file_path="src/foo.txt", code="content", core_context=ctx, write=True
         )
-    ctx.file_handler.write_runtime_text.assert_called_once_with("src/foo.txt", "content")
+    ctx.file_handler.write_runtime_text.assert_called_once_with(
+        "src/foo.txt", "content"
+    )
     assert result.ok
     assert result.action_id == "file.edit"
     assert result.data["written"] is True

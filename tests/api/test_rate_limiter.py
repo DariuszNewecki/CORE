@@ -1,5 +1,6 @@
 # tests/api/test_rate_limiter.py
 """Tests for api.rate_limiter — both backends and fail-open behaviour."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
@@ -89,8 +90,9 @@ class TestRedisBackend:
         from api.rate_limiter import check_rate
 
         mock_client = self._make_mock_redis(eval_return=1)
-        with patch("api.rate_limiter.settings") as mock_settings, patch(
-            "api.rate_limiter._get_redis", return_value=mock_client
+        with (
+            patch("api.rate_limiter.settings") as mock_settings,
+            patch("api.rate_limiter._get_redis", return_value=mock_client),
         ):
             mock_settings.REDIS_RATE_LIMIT_URL = "redis://localhost:6379"
             await check_rate("127.0.0.1", "login")
@@ -156,8 +158,9 @@ class TestInitialisation:
 
         from api.rate_limiter import _get_redis
 
-        with patch("api.rate_limiter.settings") as mock_settings, patch.object(
-            aioredis, "from_url", side_effect=RuntimeError("bad url")
+        with (
+            patch("api.rate_limiter.settings") as mock_settings,
+            patch.object(aioredis, "from_url", side_effect=RuntimeError("bad url")),
         ):
             mock_settings.REDIS_RATE_LIMIT_URL = "redis://bad-host:9999"
             client = _get_redis()

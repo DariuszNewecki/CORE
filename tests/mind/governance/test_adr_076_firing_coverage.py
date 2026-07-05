@@ -532,6 +532,7 @@ def test_active_per_file_rule_scopes_derives_from_policies_and_loader(
         }
     }
     from mind.governance.enforcement_loader import EnforcementMappingLoader
+
     ctx.enforcement_loader = EnforcementMappingLoader(repo / ".intent")
 
     union = ctx._active_per_file_rule_scopes()

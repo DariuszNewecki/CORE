@@ -72,13 +72,17 @@ async def test_stage_skips_existing_intent_check(tmp_path: Path) -> None:
     stage_dir = _stage_dir_for(core_root, target)
 
     # Should NOT raise — stage_dir bypasses the existence check.
-    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    await initialize_repository(
+        context=context, path=target, dry_run=False, stage_dir=stage_dir
+    )
 
     # Staged files landed in work/staged/target-repo/.intent/, not in target/.intent/.
     staged_intent = stage_dir / ".intent"
     assert staged_intent.is_dir()
     staged_files = list(staged_intent.rglob("*"))
-    assert any(f.is_file() for f in staged_files), "Expected staged files under work/staged/"
+    assert any(f.is_file() for f in staged_files), (
+        "Expected staged files under work/staged/"
+    )
 
 
 async def test_stage_writes_to_stage_not_target(tmp_path: Path) -> None:
@@ -93,7 +97,9 @@ async def test_stage_writes_to_stage_not_target(tmp_path: Path) -> None:
     context = _make_context(core_root)
     stage_dir = _stage_dir_for(core_root, target)
 
-    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    await initialize_repository(
+        context=context, path=target, dry_run=False, stage_dir=stage_dir
+    )
 
     # Real target has no .intent/.
     assert not (target / ".intent").exists()
@@ -113,7 +119,9 @@ async def test_stage_without_write_is_dry_run(tmp_path: Path) -> None:
     context = _make_context(core_root)
     stage_dir = _stage_dir_for(core_root, target)
 
-    await initialize_repository(context=context, path=target, dry_run=True, stage_dir=stage_dir)
+    await initialize_repository(
+        context=context, path=target, dry_run=True, stage_dir=stage_dir
+    )
 
     # Dry run: no files written anywhere.
     assert not stage_dir.is_dir()
@@ -204,7 +212,9 @@ async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
     stage_dir = _stage_dir_for(core_root, target)
 
     # Stage.
-    await initialize_repository(context=context, path=target, dry_run=False, stage_dir=stage_dir)
+    await initialize_repository(
+        context=context, path=target, dry_run=False, stage_dir=stage_dir
+    )
 
     assert (stage_dir / ".intent").is_dir(), "Stage should have .intent/ after staging"
     assert not (target / ".intent").exists(), "Target should be untouched after staging"

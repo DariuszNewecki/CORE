@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 02:23:54
 """
 
-
 from mind.logic.engines.regex_gate import RegexGateEngine
 
 

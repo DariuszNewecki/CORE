@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 03:26:00
 """
 
-
 from body.evaluators.failure_evaluator import FailureEvaluator
 
 

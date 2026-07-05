@@ -86,7 +86,9 @@ def test_quality_gate_result_payload_round_trips_components():
         "ruff": {"ok": True, "exit_code": 0, "is_warning": False},
         "radon": {"ok": False, "exit_code": 1, "is_warning": True},
     }
-    payload = QualityGateResult(check="gates", ok=True, components=components).as_payload()
+    payload = QualityGateResult(
+        check="gates", ok=True, components=components
+    ).as_payload()
 
     assert payload == {"check": "gates", "ok": True, "components": components}
 
@@ -113,7 +115,9 @@ async def test_run_and_persist_fix_writes_atomic_fix_run_result_shape():
 
     with (
         patch("will.governance.fix_runner.ActionExecutor", return_value=executor),
-        patch("will.governance.fix_runner._update_fix_run_status", side_effect=fake_update),
+        patch(
+            "will.governance.fix_runner._update_fix_run_status", side_effect=fake_update
+        ),
     ):
         await run_and_persist_fix(
             MagicMock(),

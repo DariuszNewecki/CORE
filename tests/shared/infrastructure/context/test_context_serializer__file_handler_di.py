@@ -24,7 +24,9 @@ def test_to_yaml_skips_write_when_file_handler_is_none(
 
     ContextSerializer.to_yaml(packet, output, file_handler=None)
 
-    assert not Path(output).exists(), "No file should be written when file_handler is None"
+    assert not Path(output).exists(), (
+        "No file should be written when file_handler is None"
+    )
 
 
 # ID: 8ffd88ca-60b7-498a-b0da-00cdc9057dc4

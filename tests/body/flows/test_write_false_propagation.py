@@ -62,7 +62,9 @@ async def test_write_true_reaches_action(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 # ID: c5e8f1b4-a027-4d62-0b18-9f4c2e7a3d96
-async def test_write_false_with_extra_caller_params(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_write_false_with_extra_caller_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """write=False propagates correctly when additional caller params are present."""
     received = await _run_step(
         monkeypatch,

@@ -79,7 +79,9 @@ async def test_jwt_guard_allows_strong_secret_without_flag() -> None:
         patch("body.infrastructure.lifespan.settings") as s,
         patch("body.infrastructure.lifespan.create_core_context") as mock_create,
     ):
-        s.JWT_SECRET_KEY = "secure-random-64-char-secret-abc123xyz-absolutely-not-the-default"
+        s.JWT_SECRET_KEY = (
+            "secure-random-64-char-secret-abc123xyz-absolutely-not-the-default"
+        )
         s.ALLOW_INSECURE_DEV_SECRET = False
         ctx = MagicMock()
         ctx._is_test_mode = False

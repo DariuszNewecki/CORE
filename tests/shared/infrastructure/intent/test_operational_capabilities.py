@@ -181,7 +181,9 @@ def test_missing_taxonomy_file_raises(intent_tree: Callable[..., Path]) -> None:
         "shared.infrastructure.intent.operational_capabilities.resolve_floor_path",
         return_value=None,
     ):
-        with pytest.raises(OperationalCapabilityTaxonomyError, match="taxonomy missing"):
+        with pytest.raises(
+            OperationalCapabilityTaxonomyError, match="taxonomy missing"
+        ):
             load_operational_capabilities(repo_root=root)
 
 

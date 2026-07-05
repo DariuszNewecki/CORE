@@ -114,22 +114,26 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
-        ))
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_awaited_once_with(
-        ["entry-id-1"], _CAP_N
-    )
+    patches[
+        "will.workers.test_remediator.worker._abandon_capped_findings"
+    ].assert_awaited_once_with(["entry-id-1"], _CAP_N)
     worker.post_observation.assert_awaited_once()  # type: ignore[attr-defined]
     call_payload = worker.post_observation.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert call_payload["reason"] == "remediation_cap_exhausted_via_inheritance"
     assert call_payload["source_file"] == _SOURCE_FILE
-    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_not_awaited()
+    patches[
+        "will.workers.test_remediator.worker._create_symbol_proposal"
+    ].assert_not_awaited()
 
 
 async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
@@ -146,16 +150,22 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
-        ))
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_awaited_once()
+    patches[
+        "will.workers.test_remediator.worker._create_symbol_proposal"
+    ].assert_not_awaited()
+    patches[
+        "will.workers.test_remediator.worker._abandon_capped_findings"
+    ].assert_awaited_once()
 
 
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
@@ -172,17 +182,25 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
-        ))
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_awaited_once()
-    patches["will.workers.test_remediator.worker._defer_to_proposal"].assert_awaited_once()
+    patches[
+        "will.workers.test_remediator.worker._abandon_capped_findings"
+    ].assert_not_awaited()
+    patches[
+        "will.workers.test_remediator.worker._create_symbol_proposal"
+    ].assert_awaited_once()
+    patches[
+        "will.workers.test_remediator.worker._defer_to_proposal"
+    ].assert_awaited_once()
 
 
 async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
@@ -199,17 +217,25 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
-        ))
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches["will.workers.test_remediator.worker._abandon_capped_findings"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._inherit_attempt_count"].assert_not_awaited()
-    patches["will.workers.test_remediator.worker._create_symbol_proposal"].assert_awaited_once()
+    patches[
+        "will.workers.test_remediator.worker._abandon_capped_findings"
+    ].assert_not_awaited()
+    patches[
+        "will.workers.test_remediator.worker._inherit_attempt_count"
+    ].assert_not_awaited()
+    patches[
+        "will.workers.test_remediator.worker._create_symbol_proposal"
+    ].assert_awaited_once()
 
 
 async def test_report_includes_proposals_skipped_cap() -> None:
@@ -224,10 +250,12 @@ async def test_report_includes_proposals_skipped_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
-        ))
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]

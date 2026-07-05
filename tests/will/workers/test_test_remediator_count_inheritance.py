@@ -153,10 +153,7 @@ async def test_query_max_count_returns_highest_abandoned_count(
         assert result == 3, f"expected max abandoned count 3, got {result}"
     finally:
         await db_session.execute(
-            text(
-                "DELETE FROM core.blackboard_entries "
-                "WHERE id IN (:a, :b, :c)"
-            ),
+            text("DELETE FROM core.blackboard_entries WHERE id IN (:a, :b, :c)"),
             {"a": id_abandoned_2, "b": id_abandoned_3, "c": id_open_0},
         )
         await db_session.commit()
@@ -187,9 +184,9 @@ async def test_inherit_attempt_count_sets_payload_field(
     await _ensure_worker_registry_row(db_session, worker_uuid)
 
     source_file = "src/body/services/count_inherit_fixture_b.py"
-    id_claimed_low = uuid.uuid4()   # count=1, should be raised to 3
+    id_claimed_low = uuid.uuid4()  # count=1, should be raised to 3
     id_claimed_high = uuid.uuid4()  # count=5, should stay 5 (GREATEST)
-    id_abandoned = uuid.uuid4()     # should NOT be touched (status filter)
+    id_abandoned = uuid.uuid4()  # should NOT be touched (status filter)
 
     await _insert_entry(
         db_session,
@@ -255,10 +252,7 @@ async def test_inherit_attempt_count_sets_payload_field(
         )
     finally:
         await db_session.execute(
-            text(
-                "DELETE FROM core.blackboard_entries "
-                "WHERE id IN (:a, :b, :c)"
-            ),
+            text("DELETE FROM core.blackboard_entries WHERE id IN (:a, :b, :c)"),
             {"a": id_claimed_low, "b": id_claimed_high, "c": id_abandoned},
         )
         await db_session.commit()

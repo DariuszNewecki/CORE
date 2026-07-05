@@ -18,7 +18,9 @@ def test_enum_string_values_are_lowercase_canonical() -> None:
     # Stored/serialized form is the lowercase value (mirrors EvidenceClass).
     assert str(Applicability.IN_SCOPE) == "in_scope"
     assert str(Applicability.OUT_OF_SCOPE) == "out_of_scope"
-    assert str(RequirementStatus.COVERED_UNAUTHORITATIVELY) == "covered_unauthoritatively"
+    assert (
+        str(RequirementStatus.COVERED_UNAUTHORITATIVELY) == "covered_unauthoritatively"
+    )
     assert str(RequirementStatus.NOT_COVERED) == "not_covered"
     # str-Enum: usable directly as its string value.
     assert RequirementStatus.SATISFIED == "satisfied"
@@ -98,6 +100,9 @@ def test_evidence_item_authority_optional() -> None:
     assert item.authority is None
     assert item.cite == ""
     located = EvidenceItem(
-        document="policy.md", relevance=0.8, authority=0.95, cite="MFA required for VPN."
+        document="policy.md",
+        relevance=0.8,
+        authority=0.95,
+        cite="MFA required for VPN.",
     )
     assert located.authority == 0.95

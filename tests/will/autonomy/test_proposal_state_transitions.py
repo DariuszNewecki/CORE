@@ -52,7 +52,9 @@ async def _delete(db_session: AsyncSession, proposal_id: str) -> None:
     await db_session.commit()
 
 
-async def _fetch(db_session: AsyncSession, proposal_id: str) -> AutonomousProposal | None:
+async def _fetch(
+    db_session: AsyncSession, proposal_id: str
+) -> AutonomousProposal | None:
     result = await db_session.execute(
         select(AutonomousProposal).where(AutonomousProposal.proposal_id == proposal_id)
     )
@@ -266,9 +268,7 @@ async def test_reject_from_completed_raises(db_session: AsyncSession) -> None:
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
-            await ProposalStateManager(db_session).reject(
-                proposal_id, reason="stale"
-            )
+            await ProposalStateManager(db_session).reject(proposal_id, reason="stale")
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "completed"
@@ -283,9 +283,7 @@ async def test_reject_from_failed_raises(db_session: AsyncSession) -> None:
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
-            await ProposalStateManager(db_session).reject(
-                proposal_id, reason="stale"
-            )
+            await ProposalStateManager(db_session).reject(proposal_id, reason="stale")
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "failed"

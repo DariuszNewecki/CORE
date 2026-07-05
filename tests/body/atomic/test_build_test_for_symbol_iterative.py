@@ -28,7 +28,9 @@ def _bad_response() -> str:
     return "```python\nfrom __future__ import annotations\n\ndef test_do_work():\n    pass\n```"
 
 
-def _make_violation(rule_name: str = "code.tests.no_placeholder_test_body") -> MagicMock:
+def _make_violation(
+    rule_name: str = "code.tests.no_placeholder_test_body",
+) -> MagicMock:
     v = MagicMock()
     v.rule_name = rule_name
     v.message = "No assertion"
@@ -74,9 +76,11 @@ async def test_iterative_succeeds_on_second_attempt(
     with (
         patch(
             "will.agents.prompt_model_iterative_agent.PromptModel.load",
-            side_effect=lambda name: repair_model
-            if name == "context_aware_test_gen_repair"
-            else initial_model,
+            side_effect=lambda name: (
+                repair_model
+                if name == "context_aware_test_gen_repair"
+                else initial_model
+            ),
         ),
         patch(
             "will.agents.prompt_model_iterative_agent.get_intent_guard",
@@ -93,8 +97,12 @@ async def test_iterative_succeeds_on_second_attempt(
         result = await agent.generate(
             prompt_name="context_aware_test_gen",
             repair_prompt_name="context_aware_test_gen_repair",
-            context={"file_path": "src/x.py", "symbol_name": "do_work",
-                     "symbol_code": "def do_work(x): ...", "module_path": "x"},
+            context={
+                "file_path": "src/x.py",
+                "symbol_name": "do_work",
+                "symbol_code": "def do_work(x): ...",
+                "module_path": "x",
+            },
             target_path="tests/x/test_generated.py",
             cognitive_service=mock_cognitive_service,
             repo_root=tmp_path,
@@ -143,8 +151,12 @@ async def test_iterative_raises_after_cap_exhausted(
             await agent.generate(
                 prompt_name="context_aware_test_gen",
                 repair_prompt_name="context_aware_test_gen_repair",
-                context={"file_path": "src/x.py", "symbol_name": "do_work",
-                         "symbol_code": "def do_work(x): ...", "module_path": "x"},
+                context={
+                    "file_path": "src/x.py",
+                    "symbol_name": "do_work",
+                    "symbol_code": "def do_work(x): ...",
+                    "module_path": "x",
+                },
                 target_path="tests/x/test_generated.py",
                 cognitive_service=mock_cognitive_service,
                 repo_root=tmp_path,
@@ -192,8 +204,12 @@ async def test_single_attempt_passes_on_first_try(
         result = await agent.generate(
             prompt_name="context_aware_test_gen",
             repair_prompt_name="context_aware_test_gen_repair",
-            context={"file_path": "src/x.py", "symbol_name": "do_work",
-                     "symbol_code": "def do_work(x): ...", "module_path": "x"},
+            context={
+                "file_path": "src/x.py",
+                "symbol_name": "do_work",
+                "symbol_code": "def do_work(x): ...",
+                "module_path": "x",
+            },
             target_path="tests/x/test_generated.py",
             cognitive_service=mock_cognitive_service,
             repo_root=tmp_path,

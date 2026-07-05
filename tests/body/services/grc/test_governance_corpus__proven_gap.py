@@ -27,7 +27,9 @@ _CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "governance_corpus"
 async def test_proven_gap_on_unfinalized_document() -> None:
     """The deterministic finalized-document lane proves a gap on the corpus,
     with the honest PROVEN evidence class — no LLM involved."""
-    results = await GRCGapAnalysisService().run(_CORPUS, catalog=load_catalog("nist_800_171"))
+    results = await GRCGapAnalysisService().run(
+        _CORPUS, catalog=load_catalog("nist_800_171")
+    )
     by_id = {r.requirement_id: r for r in results}
 
     finalized = by_id["nist_800_171.doc_finalized"]
@@ -41,7 +43,9 @@ async def test_proven_gap_on_unfinalized_document() -> None:
 async def test_judged_lane_degrades_honestly_without_llm() -> None:
     """With no LLM wired, the judged (grc_judge) lanes report pending_ai —
     never silently 'met', never a fabricated verdict (ADR-113 honesty)."""
-    results = await GRCGapAnalysisService().run(_CORPUS, catalog=load_catalog("nist_800_171"))
+    results = await GRCGapAnalysisService().run(
+        _CORPUS, catalog=load_catalog("nist_800_171")
+    )
     judged = [r for r in results if r.evidence_class is EvidenceClass.JUDGED]
 
     assert judged, "the NIST catalog must carry at least one judged requirement"

@@ -128,7 +128,7 @@ async def test_start_spawns_and_cancels_lease_cleanly(
     without hitting the DB (the test is about lease spawn/cancel, not blackboard
     writes). _blackboard is also mocked to keep the test fully in-memory.
     """
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import MagicMock
 
     worker = _LeaseMinimalWorker()
     worker._worker_uuid = uuid.uuid4()

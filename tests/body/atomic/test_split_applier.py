@@ -37,9 +37,7 @@ def _make_split_entry(
 ) -> dict:
     """Build a code_generation-phase split_result dict."""
     split_result = MagicMock()
-    split_result.files = [
-        (repo_root / rel, content) for rel, content in new_files
-    ]
+    split_result.files = [(repo_root / rel, content) for rel, content in new_files]
     split_result.original_path = MagicMock()
     split_result.original_path.__str__ = lambda s: str(repo_root / original_rel)
     split_result.original_path.exists.return_value = exists

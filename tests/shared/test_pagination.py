@@ -70,7 +70,9 @@ class TestDecodeCursor:
         import json
 
         # Valid base64 JSON but missing "k"
-        payload = base64.urlsafe_b64encode(json.dumps({"t": "2026-01-01"}).encode()).decode()
+        payload = base64.urlsafe_b64encode(
+            json.dumps({"t": "2026-01-01"}).encode()
+        ).decode()
         with pytest.raises(ValueError, match="Invalid pagination cursor"):
             decode_cursor(payload)
 

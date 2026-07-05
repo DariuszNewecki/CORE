@@ -49,6 +49,7 @@ async def test_accepted_on_first_attempt():
         "will.agents.iterative_coder_agent.load_generation_budget"
     ) as mock_budget:
         from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(5, 600)
         result = await iterative.generate_until_accepted(
             task=task, goal="generate test", acceptance=cond
@@ -68,7 +69,9 @@ async def test_retries_on_rejection_and_accepts_second():
     cond = MagicMock()
     cond.evaluate = AsyncMock(
         side_effect=[
-            AcceptanceResult(accepted=False, violation_summary="no assert", violations=["no assert"]),
+            AcceptanceResult(
+                accepted=False, violation_summary="no assert", violations=["no assert"]
+            ),
             AcceptanceResult(accepted=True, violation_summary="", violations=[]),
         ]
     )
@@ -78,6 +81,7 @@ async def test_retries_on_rejection_and_accepts_second():
         "will.agents.iterative_coder_agent.load_generation_budget"
     ) as mock_budget:
         from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(5, 600)
         result = await iterative.generate_until_accepted(
             task=_make_task(), goal="generate test", acceptance=cond
@@ -101,6 +105,7 @@ async def test_cap_exhausted_returns_not_accepted():
         "will.agents.iterative_coder_agent.load_generation_budget"
     ) as mock_budget:
         from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(3, 600)
         result = await iterative.generate_until_accepted(
             task=_make_task(), goal="generate test", acceptance=cond
@@ -121,6 +126,7 @@ async def test_caller_cap_clamped_to_governed():
         "will.agents.iterative_coder_agent.load_generation_budget"
     ) as mock_budget:
         from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(2, 600)
         result = await iterative.generate_until_accepted(
             task=_make_task(),

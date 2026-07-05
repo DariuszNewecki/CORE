@@ -96,9 +96,7 @@ async def test_abandon_findings_uses_increment_method() -> None:
 
     with patch(
         "body.services.service_registry.service_registry",
-        new=MagicMock(
-            get_blackboard_service=AsyncMock(return_value=mock_svc)
-        ),
+        new=MagicMock(get_blackboard_service=AsyncMock(return_value=mock_svc)),
     ):
         await worker._abandon_findings([_FINDING])  # type: ignore[attr-defined]
 
@@ -127,15 +125,15 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(
-                blackboard=MagicMock(remediation_cap_n=_CAP_N),
-                workers=MagicMock(
-                    violation_executor=MagicMock(claim_limit=50)
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(
+                    blackboard=MagicMock(remediation_cap_n=_CAP_N),
+                    workers=MagicMock(violation_executor=MagicMock(claim_limit=50)),
                 ),
-            ),
-        ))
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
@@ -160,15 +158,15 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(
-                blackboard=MagicMock(remediation_cap_n=_CAP_N),
-                workers=MagicMock(
-                    violation_executor=MagicMock(claim_limit=50)
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(
+                    blackboard=MagicMock(remediation_cap_n=_CAP_N),
+                    workers=MagicMock(violation_executor=MagicMock(claim_limit=50)),
                 ),
-            ),
-        ))
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
@@ -201,15 +199,15 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(
-                blackboard=MagicMock(remediation_cap_n=_CAP_N),
-                workers=MagicMock(
-                    violation_executor=MagicMock(claim_limit=50)
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(
+                    blackboard=MagicMock(remediation_cap_n=_CAP_N),
+                    workers=MagicMock(violation_executor=MagicMock(claim_limit=50)),
                 ),
-            ),
-        ))
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
@@ -239,15 +237,15 @@ async def test_report_includes_capped_counter() -> None:
     )
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch(
-            "shared.infrastructure.intent.operational_config.load_operational_config",
-            return_value=MagicMock(
-                blackboard=MagicMock(remediation_cap_n=_CAP_N),
-                workers=MagicMock(
-                    violation_executor=MagicMock(claim_limit=50)
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(
+                    blackboard=MagicMock(remediation_cap_n=_CAP_N),
+                    workers=MagicMock(violation_executor=MagicMock(claim_limit=50)),
                 ),
-            ),
-        ))
+            )
+        )
         for target, mock in patches.items():
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]

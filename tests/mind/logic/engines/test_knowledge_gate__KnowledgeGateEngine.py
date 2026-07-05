@@ -114,4 +114,6 @@ def test_orphan_check_resolves_dotdot_relative_imports(tmp_path):
         "relative-import-reachable file falsely flagged orphan — "
         "ImportFrom.level not honored"
     )
-    assert "src/orphan.py" in flagged, "a genuinely unreachable file must still be flagged"
+    assert "src/orphan.py" in flagged, (
+        "a genuinely unreachable file must still be flagged"
+    )

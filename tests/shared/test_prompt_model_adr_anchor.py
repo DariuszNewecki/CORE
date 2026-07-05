@@ -15,9 +15,7 @@ import yaml
 from shared.ai.prompt_model import PromptModel, PromptModelManifest
 
 
-def _write_minimal_model_yaml(
-    tmp_path: Path, extra_fields: dict | None = None
-) -> Path:
+def _write_minimal_model_yaml(tmp_path: Path, extra_fields: dict | None = None) -> Path:
     """Write a valid minimal model.yaml for testing."""
     content: dict = {
         "id": "test_prompt",

@@ -26,7 +26,10 @@ def _make_sensor(repo_root: Path, git_commit: str = "abc123") -> Any:
 
     decl: dict[str, Any] = {
         "kind": "worker",
-        "metadata": {"id": "workers.prompt_drift_sensor", "title": "Prompt Drift Sensor"},
+        "metadata": {
+            "id": "workers.prompt_drift_sensor",
+            "title": "Prompt Drift Sensor",
+        },
         "identity": {"uuid": str(uuid.uuid4()), "class": "sensing"},
         "mandate": {
             "phase": "audit",
@@ -43,7 +46,10 @@ def _make_sensor(repo_root: Path, git_commit: str = "abc123") -> Any:
 
     with (
         patch.object(PromptDriftSensor, "_load_declaration", return_value=decl),
-        patch("shared.workers.blackboard_publisher.BlackboardPublisher.__init__", return_value=None),
+        patch(
+            "shared.workers.blackboard_publisher.BlackboardPublisher.__init__",
+            return_value=None,
+        ),
     ):
         sensor = PromptDriftSensor.__new__(PromptDriftSensor)
         sensor._declaration = decl
@@ -88,6 +94,7 @@ def _write_prompt(
 # _compute_hashes
 # ---------------------------------------------------------------------------
 
+
 def test_compute_hashes_stable(tmp_path: Path) -> None:
     """_compute_hashes returns the same combined digest on repeated calls."""
     sensor, _, prompts_root = _make_sensor(tmp_path)
@@ -129,7 +136,9 @@ def test_compute_hashes_returns_none_for_missing_dir(tmp_path: Path) -> None:
 def test_compute_hashes_tracks_per_file(tmp_path: Path) -> None:
     """_compute_hashes records individual file hashes for system.txt and user.txt."""
     sensor, _, prompts_root = _make_sensor(tmp_path)
-    _write_prompt(prompts_root, "test_prompt", "system content", user_txt="user content")
+    _write_prompt(
+        prompts_root, "test_prompt", "system content", user_txt="user content"
+    )
 
     _, per_file = sensor._compute_hashes("test_prompt")
 
@@ -177,6 +186,7 @@ def test_compute_hashes_changes_on_model_yaml_change(tmp_path: Path) -> None:
 # _diff_file_hashes
 # ---------------------------------------------------------------------------
 
+
 def test_diff_file_hashes_detects_changed_file() -> None:
     from will.workers.prompt_drift_sensor import _diff_file_hashes
 
@@ -212,6 +222,7 @@ def test_diff_file_hashes_empty_on_no_change() -> None:
 # run() — first cycle
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
     """On the first cycle (no baseline), run() posts a report and no findings."""
@@ -222,7 +233,9 @@ async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
-        patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=None),
+        patch.object(
+            sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=None
+        ),
     ):
         await sensor.run()
 
@@ -241,6 +254,7 @@ async def test_run_first_cycle_no_findings(tmp_path: Path) -> None:
 # run() — drift detected, payload fields
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_run_detects_drift(tmp_path: Path) -> None:
     """run() posts a drift finding when current hash differs from baseline."""
@@ -252,7 +266,12 @@ async def test_run_detects_drift(tmp_path: Path) -> None:
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
-        patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
+        patch.object(
+            sensor,
+            "_fetch_baseline",
+            new_callable=AsyncMock,
+            return_value=prior_baseline,
+        ),
     ):
         await sensor.run()
 
@@ -275,7 +294,12 @@ async def test_run_drift_payload_includes_adr_anchor(tmp_path: Path) -> None:
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
-        patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
+        patch.object(
+            sensor,
+            "_fetch_baseline",
+            new_callable=AsyncMock,
+            return_value=prior_baseline,
+        ),
     ):
         await sensor.run()
 
@@ -294,7 +318,12 @@ async def test_run_drift_payload_includes_git_commit(tmp_path: Path) -> None:
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
-        patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
+        patch.object(
+            sensor,
+            "_fetch_baseline",
+            new_callable=AsyncMock,
+            return_value=prior_baseline,
+        ),
     ):
         await sensor.run()
 
@@ -317,7 +346,12 @@ async def test_run_drift_payload_includes_changed_files(tmp_path: Path) -> None:
 
     with (
         patch.object(sensor, "_load_governed_prompts", return_value=governed),
-        patch.object(sensor, "_fetch_baseline", new_callable=AsyncMock, return_value=prior_baseline),
+        patch.object(
+            sensor,
+            "_fetch_baseline",
+            new_callable=AsyncMock,
+            return_value=prior_baseline,
+        ),
     ):
         await sensor.run()
 

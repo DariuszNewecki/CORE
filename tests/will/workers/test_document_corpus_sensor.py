@@ -203,4 +203,7 @@ async def test_document_corpus_sensor_posts_gap_findings(tmp_path: Path) -> None
     assert "document_corpus::requirement::req.001" in subjects
     assert "document_corpus::requirement::req.002" in subjects
     assert all(fc["artifact_type"] == "document_corpus" for fc in finding_calls)
-    assert all(fc["payload"]["status"] == RequirementStatus.NOT_COVERED.value for fc in finding_calls)
+    assert all(
+        fc["payload"]["status"] == RequirementStatus.NOT_COVERED.value
+        for fc in finding_calls
+    )

@@ -70,8 +70,12 @@ async def test_ast_gate_fires_on_print_statement(
     Rule params loaded from the live enforcement mapping so this test breaks
     if someone changes the rule without updating the engine dispatch.
     """
-    params = _load_rule_params("architecture/channels.yaml", "architecture.channels.logic_logger_only")
-    tmp_py.write_text('from __future__ import annotations\n\nprint("hello")\n', encoding="utf-8")
+    params = _load_rule_params(
+        "architecture/channels.yaml", "architecture.channels.logic_logger_only"
+    )
+    tmp_py.write_text(
+        'from __future__ import annotations\n\nprint("hello")\n', encoding="utf-8"
+    )
 
     engine = ASTGateEngine(path_resolver=path_resolver)
     result = await engine.verify(tmp_py, params)
@@ -92,7 +96,9 @@ async def test_ast_gate_fires_on_asyncio_run(
     The forbidden_calls list in the mapping must include 'asyncio.run';
     if it drifts or the engine dispatch breaks, this test catches it.
     """
-    params = _load_rule_params("architecture/async_logic.yaml", "async.no_manual_loop_run")
+    params = _load_rule_params(
+        "architecture/async_logic.yaml", "async.no_manual_loop_run"
+    )
     tmp_py.write_text(
         "from __future__ import annotations\nimport asyncio\n\nasyncio.run(main())\n",
         encoding="utf-8",

@@ -65,13 +65,18 @@ async def test_runs_only_approved_autonomous_clusters(
 ) -> None:
     """Only cleared autonomous clusters (pending + requires_approval=False) dispatch."""
     approved = _child(
-        "pending", requires_approval=False, workflow_type="refactor_modularity", int_id=1
+        "pending",
+        requires_approval=False,
+        workflow_type="refactor_modularity",
+        int_id=1,
     )
     children = [
         approved,
         _child("pending", requires_approval=True, int_id=2),  # awaiting — skip
         _child("blocked", int_id=3),  # rejected — skip
-        _child("pending", requires_approval=False, role="Human", int_id=4),  # escalation
+        _child(
+            "pending", requires_approval=False, role="Human", int_id=4
+        ),  # escalation
     ]
     mock_repo, mock_dfg = _wire(monkeypatch, children)
 

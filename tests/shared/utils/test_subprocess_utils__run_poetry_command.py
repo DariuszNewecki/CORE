@@ -35,7 +35,9 @@ def _completed(returncode: int, stdout: str = "", stderr: str = "") -> SimpleNam
 def test_exit_zero_returns_result() -> None:
     """The success path returns a populated SubprocessResult."""
     with (
-        patch("shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"),
+        patch(
+            "shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"
+        ),
         patch(
             "shared.utils.subprocess_utils.subprocess.run",
             return_value=_completed(0, stdout="ok"),
@@ -51,7 +53,9 @@ def test_findings_exit_does_not_raise_when_allowed() -> None:
     """#660 core fix: ruff exit 1 (would reformat / lint findings) is NOT a
     failure when the caller declares it allowed."""
     with (
-        patch("shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"),
+        patch(
+            "shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"
+        ),
         patch(
             "shared.utils.subprocess_utils.subprocess.run",
             return_value=_completed(1, stdout="Would reformat: x.py"),
@@ -67,7 +71,9 @@ def test_findings_exit_still_raises_under_default_allowed() -> None:
     """With the default ``allowed_returncodes=(0,)`` a non-zero exit raises —
     the negative control that pins the allow-list to the caller's declaration."""
     with (
-        patch("shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"),
+        patch(
+            "shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"
+        ),
         patch(
             "shared.utils.subprocess_utils.subprocess.run",
             return_value=_completed(1, stderr="boom"),
@@ -82,7 +88,9 @@ def test_real_error_raises_and_carries_stderr() -> None:
     stderr is threaded into the message so the failure is diagnosable from the
     persisted record, not only the daemon log (#660 secondary defect)."""
     with (
-        patch("shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"),
+        patch(
+            "shared.utils.subprocess_utils.shutil.which", return_value="/usr/bin/poetry"
+        ),
         patch(
             "shared.utils.subprocess_utils.subprocess.run",
             return_value=_completed(2, stderr="ruff: invalid rule selector 'ZZZ'"),

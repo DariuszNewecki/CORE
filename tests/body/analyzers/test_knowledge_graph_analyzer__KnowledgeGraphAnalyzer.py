@@ -6,7 +6,6 @@
 - Generated: 2026-01-11 02:44:10
 """
 
-
 from body.analyzers.knowledge_graph_analyzer import KnowledgeGraphAnalyzer
 
 

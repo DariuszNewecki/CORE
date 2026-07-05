@@ -93,9 +93,7 @@ async def test_stops_after_first_failing_action(executor: ProposalExecutor) -> N
             "will.autonomy.proposal_executor.load_vocabulary_projection",
             return_value={"vocab": "ok"},
         ),
-        patch(
-            "will.autonomy.proposal_executor.service_registry"
-        ) as mock_registry,
+        patch("will.autonomy.proposal_executor.service_registry") as mock_registry,
         patch(
             "will.autonomy.proposal_executor.capture_git_sha",
             return_value="abc123",
@@ -141,9 +139,7 @@ async def test_stops_on_exception_from_action(executor: ProposalExecutor) -> Non
             "will.autonomy.proposal_executor.load_vocabulary_projection",
             return_value={"vocab": "ok"},
         ),
-        patch(
-            "will.autonomy.proposal_executor.service_registry"
-        ) as mock_registry,
+        patch("will.autonomy.proposal_executor.service_registry") as mock_registry,
         patch(
             "will.autonomy.proposal_executor.capture_git_sha",
             return_value="abc123",
@@ -186,9 +182,7 @@ async def test_all_actions_run_when_all_succeed(executor: ProposalExecutor) -> N
             "will.autonomy.proposal_executor.load_vocabulary_projection",
             return_value={"vocab": "ok"},
         ),
-        patch(
-            "will.autonomy.proposal_executor.service_registry"
-        ) as mock_registry,
+        patch("will.autonomy.proposal_executor.service_registry") as mock_registry,
         patch(
             "will.autonomy.proposal_executor.capture_git_sha",
             return_value="abc123",

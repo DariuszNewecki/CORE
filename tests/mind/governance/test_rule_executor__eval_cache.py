@@ -54,7 +54,9 @@ class _CountingEngine(BaseEngine):
     engine_id = "fake_counting"
     evidence_class = EvidenceClass.PROVEN
 
-    def __init__(self, violations: list[str] | None = None, *, crash: bool = False) -> None:
+    def __init__(
+        self, violations: list[str] | None = None, *, crash: bool = False
+    ) -> None:
         self.call_count = 0
         self._violations = violations or []
         self._crash = crash
@@ -253,7 +255,9 @@ async def test_transient_llm_failure_not_cached(
     await execute_rule(rule, ctx)
     await execute_rule(rule, ctx)
 
-    assert transient_engine.call_count == 2, "transient failure must force re-evaluation"
+    assert transient_engine.call_count == 2, (
+        "transient failure must force re-evaluation"
+    )
 
 
 async def test_enforcement_failure_not_cached(
@@ -272,7 +276,9 @@ async def test_enforcement_failure_not_cached(
     await execute_rule(rule, ctx)
     await execute_rule(rule, ctx)
 
-    assert crash_engine.call_count == 2, "ENFORCEMENT_FAILURE must not be served from cache"
+    assert crash_engine.call_count == 2, (
+        "ENFORCEMENT_FAILURE must not be served from cache"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -282,9 +282,7 @@ async def test_embedding_access_rule_catches_direct_import(path_resolver, tmp_py
     assert not result.ok, "build_embedder_from_env direct import must be blocked"
 
     # Clean: _chunk_text is a pure utility, not a resource-access bypass
-    tmp_py_file.write_text(
-        "from shared.utils.embedding_utils import _chunk_text\n"
-    )
+    tmp_py_file.write_text("from shared.utils.embedding_utils import _chunk_text\n")
     result = await engine.verify(
         tmp_py_file,
         {"check_type": "runtime_import_boundary", "forbidden": _FORBIDDEN},

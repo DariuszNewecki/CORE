@@ -147,7 +147,9 @@ async def test_bootstrap_skips_already_applied() -> None:
     ):
         await bootstrap_migrations()
 
-    assert applied_calls == [], "bootstrap must not re-record already-applied migrations"
+    assert applied_calls == [], (
+        "bootstrap must not re-record already-applied migrations"
+    )
 
 
 # ---------------------------------------------------------------------------
