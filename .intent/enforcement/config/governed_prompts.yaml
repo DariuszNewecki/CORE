@@ -2,7 +2,7 @@
 # Prompts whose behavioural contract is defined by an ADR clause.
 # Changes to any listed prompt's content require governor review (ADR-134 D5).
 # Each entry must have adr_anchor in its model.yaml (ADR-134 D1/D2).
-# PromptDriftSensor (ADR-134 D6) posts prompt.drift_detected findings on content change.
+# PromptDriftSensor (ADR-134 D6) posts prompt::drift::<name> findings on content change.
 
 governed_prompts:
   - name: code_generation_task_step_prompt

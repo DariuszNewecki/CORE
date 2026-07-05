@@ -190,6 +190,24 @@ class IntentRepository(RootedRepository):
             except GovernanceError as exc:
                 logger.warning("iter_documents: skipping %s: %s", path, exc)
 
+    # ID: 9cb968d7-d78f-4161-8c87-6d606e7bc66a
+    def iter_flow_documents(self) -> Iterator[tuple[Path, dict[str, Any]]]:
+        """Yield (absolute_path, parsed_dict) for every flow declaration in .intent/flows/.
+
+        Callers (e.g. FlowRegistry) MUST use this method rather than directly
+        globbing .intent/flows/ — routes all .intent/ access through the shared
+        infrastructure boundary per architecture.namespace.no_direct_protected_access.
+        Parse failures are logged and skipped; a single bad file does not abort the walk.
+        """
+        flows_dir = self.resolve_rel("flows")
+        if not flows_dir.exists():
+            return
+        for path in sorted(self._iter_policy_files(flows_dir)):
+            try:
+                yield path, self.load_document(path)
+            except GovernanceError as exc:
+                logger.warning("iter_flow_documents: skipping %s: %s", path, exc)
+
     # ID: a2b3c4d5-e6f7-8901-abcd-ef1234567890
     def load_text(self, rel: str | Path) -> str:
         """

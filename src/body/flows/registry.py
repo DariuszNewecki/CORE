@@ -16,8 +16,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-import yaml
-
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
@@ -125,9 +123,9 @@ class FlowRegistry:
         self._loaded: bool = False
 
     # ID: b09a007b-1a44-426f-a028-fcb2d524a0c0
-    def load(self, flows_dir: Path) -> None:
+    def load(self) -> None:
         """
-        Load all Flow declarations from .intent/flows/*.yaml.
+        Load all Flow declarations from .intent/flows/ via IntentRepository.
 
         Called once at startup. Subsequent calls are no-ops.
         Skips files with status != 'active'. Logs warnings for
@@ -136,37 +134,15 @@ class FlowRegistry:
         if self._loaded:
             return
 
-        if not flows_dir.exists():
-            logger.warning(
-                "FlowRegistry: .intent/flows/ directory not found at %s — "
-                "no Flows will be available.",
-                flows_dir,
-            )
-            self._loaded = True
-            return
-
-        for yaml_path in sorted(flows_dir.glob("*.yaml")):
-            self._load_file(yaml_path)
+        for yaml_path, data in get_intent_repository().iter_flow_documents():
+            self._load_entry(yaml_path, data)
 
         self._loaded = True
-        logger.info(
-            "FlowRegistry: loaded %d flow(s) from %s",
-            len(self._flows),
-            flows_dir,
-        )
+        logger.info("FlowRegistry: loaded %d flow(s)", len(self._flows))
 
     # ID: a5974a87-eb95-4bef-bab1-e516b2b8faf5
-    def _load_file(self, yaml_path: Path) -> None:
-        """Parse and register a single flow declaration file."""
-        try:
-            data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            logger.warning(
-                "FlowRegistry: failed to parse %s: %s — skipped",
-                yaml_path.name,
-                exc,
-            )
-            return
+    def _load_entry(self, yaml_path: Path, data: dict) -> None:
+        """Register a single flow declaration from a pre-parsed dict."""
 
         status = data.get("metadata", {}).get("status", "active")
         if status != "active":
@@ -270,11 +246,11 @@ class FlowRegistry:
         self._ensure_loaded()
         return list(self._flows.values())
 
-    # ID: 2d422ecb-e161-4250-b2a3-5b09999d0f7a
+    # ID: 2d422ecb-e161-4250-b2a3-5b09959d0f7a
     def _ensure_loaded(self) -> None:
-        """Lazy-load from .intent/flows/ if not yet loaded."""
+        """Lazy-load from .intent/flows/ via IntentRepository if not yet loaded."""
         if not self._loaded:
-            self.load(get_intent_repository().root / "flows")
+            self.load()
 
 
 # Global singleton — mirrors action_registry pattern

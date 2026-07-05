@@ -228,6 +228,32 @@ The `proposal_service.py` layer (the `ProposalService.mark_executing` wrapper) d
 - Policy and category vocabulary: reads of `src/body/atomic/registry.py` (ActionCategory enum), `.intent/rules/will/autonomy.json`, `src/body/atomic/` directory listing
 - Caller surface: grep across `context_core.txt` for `ProposalExecutor`, `mark_executing`, `executor.execute`, `executor.execute_batch`
 
+---
+
+## Note — D6: `API_CLAIMER_UUID` sentinel and `POST /proposals/{id}/execute` as sanctioned governor-direct path (2026-07-05)
+
+D4 formalised `CLI_CLAIMER_UUID` (`00000000-0000-0000-0000-000000000001`) as the sentinel for CLI-issued proposal claims. The same pattern has a second instance: the HTTP API execute surface.
+
+**D6 — `POST /proposals/{id}/execute` is a sanctioned governor-direct execution path, parallel to `ProposalConsumerWorker`.**
+
+`src/api/v1/proposals_routes.py` exposes `POST /proposals/{proposal_id}/execute`, gated by `require_governor`. It delegates to `ProposalExecutor.execute` with a stable HTTP sentinel:
+
+```python
+API_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000002")
+```
+
+This path is intentional and permanent for two reasons:
+
+1. **Governor escape hatch.** `ProposalConsumerWorker` is a polling loop; the execute endpoint gives the governor a synchronous, targeted invocation without waiting for the next worker cycle.
+2. **Queryable attribution.** HTTP-claimed proposals are distinguishable via `SELECT … WHERE claimed_by = '00000000-0000-0000-0000-000000000002'`.
+
+Governance is not degraded:
+- The `require_governor` dependency gates every call; unauthenticated or non-governor callers cannot reach it.
+- The `write` flag is forwarded from the request payload through `ProposalExecutor.execute` — the mutation gate is caller-supplied, not bypassed.
+- `API_CLAIMER_UUID` is distinct from `CLI_CLAIMER_UUID`; the two execution surfaces are independently queryable.
+
+This path is not an open governance gap. It is the HTTP-surface analogue of D4's CLI claimer pattern, with equivalent governance properties.
+
 **Follow-up issues (filed against Band D — Engine Integrity):**
 - Author dedicated `.intent/rules/will/proposal_lifecycle.json` policy document; migrate `claim.proposal` policy reference from `rules/will/autonomy` to the new document.
 - `src/body/atomic/remediate_cognitive_role.py` orphan: investigate whether intentional dormancy or oversight in `__init__.py`; resolve.

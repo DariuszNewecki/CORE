@@ -16,7 +16,7 @@ mandate:
   responsibility: >
     Hash the content of every governed AI prompt (listed in
     .intent/enforcement/config/governed_prompts.yaml) each cycle, compare
-    against the persisted baseline, and post a prompt.drift_detected finding
+    against the persisted baseline, and post a prompt::drift::<name> finding
     for any prompt whose system.txt or user.txt changed. Posts a baseline
     report each cycle so restart does not cause false-drift alerts.
     Governed by ADR-134 D6.

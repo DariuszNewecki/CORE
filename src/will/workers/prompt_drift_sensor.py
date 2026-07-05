@@ -8,7 +8,7 @@ PromptDriftSensor — detects content changes in governed AI prompts.
 
 Hashes system.txt (and user.txt when present) for every prompt listed in
 governed_prompts.yaml, compares against a persisted baseline, and posts a
-prompt.drift_detected finding for any prompt whose content changed since the
+prompt::drift::<name> finding for any prompt whose content changed since the
 last cycle. The baseline is stored as a blackboard report so the sensor
 survives daemon restarts without false-drift alerts.
 """
@@ -59,7 +59,7 @@ class PromptDriftSensor(ScheduledWorker):
         2. Load governed prompt list from .intent/
         3. Hash current content of each governed prompt (combined + per-file)
         4. Recover stored baseline from blackboard
-        5. Post prompt.drift_detected findings for changed prompts
+        5. Post prompt::drift::<name> findings for changed prompts
         6. Persist new baseline as a blackboard report
         """
         await self.post_heartbeat()
