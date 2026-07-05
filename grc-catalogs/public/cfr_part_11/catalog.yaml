@@ -49,7 +49,7 @@ requirements:
   # --- judged: section substance (AI reading; verdict labelled 'judged') ---
   - id: cfr_part_11.11_10_closed_system_controls
     control: "§ 11.10"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -67,7 +67,7 @@ requirements:
 
   - id: cfr_part_11.11_10_audit_trail
     control: "§ 11.10(e)"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -85,7 +85,7 @@ requirements:
 
   - id: cfr_part_11.11_50_signature_manifestations
     control: "§ 11.50"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -103,7 +103,7 @@ requirements:
 
   - id: cfr_part_11.11_70_signature_record_linking
     control: "§ 11.70"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -120,7 +120,7 @@ requirements:
 
   - id: cfr_part_11.11_200_signature_components
     control: "§ 11.200"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -137,7 +137,7 @@ requirements:
 
   - id: cfr_part_11.11_300_password_controls
     control: "§ 11.300"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-

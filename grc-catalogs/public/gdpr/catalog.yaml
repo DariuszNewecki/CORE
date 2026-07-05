@@ -64,7 +64,7 @@ requirements:
   # --- judged: article substance (AI reading; verdict labelled 'judged') ---
   - id: gdpr.5_processing_principles
     control: "Art. 5"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -81,7 +81,7 @@ requirements:
 
   - id: gdpr.6_lawful_basis
     control: "Art. 6"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -98,7 +98,7 @@ requirements:
 
   - id: gdpr.13_transparency_at_collection
     control: "Art. 13"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -115,7 +115,7 @@ requirements:
 
   - id: gdpr.32_security_of_processing
     control: "Art. 32"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -132,7 +132,7 @@ requirements:
 
   - id: gdpr.33_breach_notification_72h
     control: "Art. 33"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-

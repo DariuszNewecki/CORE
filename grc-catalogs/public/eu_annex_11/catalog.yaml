@@ -56,7 +56,7 @@ requirements:
   # --- judged: provision substance (AI reading; labelled 'judged') --------
   - id: eu_annex_11.4_validation
     control: "Annex 11 §4"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -73,7 +73,7 @@ requirements:
 
   - id: eu_annex_11.5_data
     control: "Annex 11 §5"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -90,7 +90,7 @@ requirements:
 
   - id: eu_annex_11.7_data_storage
     control: "Annex 11 §7"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -107,7 +107,7 @@ requirements:
 
   - id: eu_annex_11.9_audit_trails
     control: "Annex 11 §9"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -124,7 +124,7 @@ requirements:
 
   - id: eu_annex_11.12_security
     control: "Annex 11 §12"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
@@ -142,7 +142,7 @@ requirements:
 
   - id: eu_annex_11.14_electronic_signature
     control: "Annex 11 §14"
-    engine: llm_gate
+    engine: grc_judge
     enforcement: reporting
     scope: ["**/*.md", "**/*.txt"]
     statement: >-
