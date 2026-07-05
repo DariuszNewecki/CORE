@@ -11,11 +11,9 @@ status: accepted
 **Governing paper:** `.specs/papers/CORE-Governance-Topology.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
-**Band:** E — Outward-Facing
 **Closes:** #479 (governance-application data model, unblocked by ADR-075 + namespace manifest)
 **Grounding papers:** `papers/CORE-Governance-Topology.md` §2–§3; `papers/CORE-Governance-Topology.md` §8
 **Related:** ADR-075 (framework/project namespace split), ADR-068 (principal role taxonomy), ADR-130 (constitutional artifact staging), ADR-053 (API domain model)
-**Downstream consumers:** Band E Track 1 (Operating Models), Track 3 (User Management)
 
 ---
 
@@ -204,10 +202,9 @@ A BYOR deployment running against a shared CORE instance:
 - Reads and writes its own project artifacts (project_id = its project UUID).
 - Cannot stage or apply framework artifacts (D6: governor-only).
 
-One DB instance, namespace-isolated by column. Multi-project governance (Band E
-Track 1's "Multi-project" operating model) is supported by extension: each
-governed repo has its own project UUID; framework artifacts are shared without
-duplication.
+One DB instance, namespace-isolated by column. Multi-project governance is
+supported by extension: each governed repo has its own project UUID; framework
+artifacts are shared without duplication.
 
 ### D8 — Pre-flight validation exposed as a governed API endpoint
 
@@ -272,6 +269,3 @@ This ADR closes #479 when:
 - Issue #479 — Governance application data model (this ADR's target issue).
 - Issue #457 — Constitutional layer reorganization; ADR-075 close-condition 3
   filed this issue.
-- `.specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md`
-  Track 1 (Operating Models) and Track 3 (User Management) — downstream
-  consumers of this data model.

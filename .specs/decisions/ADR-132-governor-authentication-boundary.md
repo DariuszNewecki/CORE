@@ -11,7 +11,6 @@ status: accepted
 **Governing paper:** `.specs/papers/CORE-Constitutional-Foundations.md`
 **Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
-**Band:** E — Outward-Facing
 **Closes:** #670 (authentication mechanism distinguishing governor from user-facing callers,
 ADR-110 D2 deferred)
 **Grounding papers:** ADR-068 (principal role taxonomy, three-layer model, Single-Governor
@@ -210,8 +209,8 @@ semantics. The correction is recorded at #633.
   convention.
 - **SoD constraint (ADR-068 D3) remains deferred.** The Single-Governor Local
   topology structurally cannot satisfy "governor ≠ auditor for the same action" —
-  there is one principal. The constraint exists on record; enforcement is a Track 3
-  multi-operator deliverable.
+  there is one principal. The constraint exists on record; enforcement requires a
+  multi-operator deployment.
 
 ---
 

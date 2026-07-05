@@ -336,7 +336,7 @@ classifications:
       Could plausibly be project::core (URS for CORE-the-product) or
       framework (framework's user-facing requirements). Defaulted to
       framework on directory placement. Governor decide.
-  - path: .specs/northstar/core_northstar.md
+  - path: .specs/essays/core_northstar.md
     governance_namespace: framework
 
   # .specs/ root — project::core contributor documents
@@ -446,8 +446,6 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Rule-Evaluation-Semantics.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Rule-Storage-Minimalism.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-ShopManager.md
     governance_namespace: framework
     notes: >
@@ -486,8 +484,6 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/contracts/** — published framework contracts (OEM API etc.).
   # ---------------------------------------------------------------------
-  - path: .specs/contracts/oem_api_v1.openapi.json
-    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .specs/core-ng/** — CORE-NG exploratory specs (framework redesign).
@@ -1154,16 +1150,20 @@ classifications:
       doctrine would require an ADR.
 
   # ---------------------------------------------------------------------
-  # .specs/northstar/** — mission, open-source posture, company identity.
+  # .specs/decisions/** — newly added milestone records (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/northstar/CORE-Company.md
+  - path: .specs/decisions/CORE-A3-plan.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/requirements/** — newly added planning inputs (continued).
+  # ---------------------------------------------------------------------
+  - path: .specs/planning/CORE-band-E-planning-input-2026-05-16.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/papers/** — newly added OSS architectural papers (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/papers/CORE-Products.md
-    governance_namespace: project::core
   - path: .specs/papers/CORE-Repo-Split-Plan.md
     governance_namespace: project::core
   - path: .specs/papers/commercial-project-isolation.md
@@ -1182,77 +1182,9 @@ classifications:
   - path: .specs/planning/SESSION-PROTOCOL.md
     governance_namespace: project::core
     notes: Governor confirm — same gray-zone reasoning as above.
-  - path: .specs/planning/data-contracts-inventory.md
-    governance_namespace: project::core
   - path: .specs/planning/CORE-Feature-Dependency-Graph.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Operational-Completeness.md
-    governance_namespace: project::core
-
-  # ---------------------------------------------------------------------
-  # .specs/planning/archive/** — retired planning notes, recon, handoffs,
-  # state snapshots. Kept for historical reference; not driving current
-  # work. All project::core (planning is deployment-specific).
-  # ---------------------------------------------------------------------
-  - path: .specs/planning/archive/ADR-081-implementation-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/BAND-B-consequence-chain-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CCC-backlog-cleanup-2026-05-31.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-A3-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-API-capability-map-2026-05-16.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-GitHub-Project-Management.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/worktree-sandbox-implementation-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-daemon-reactivation-recon.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/counterfactual.json
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/modularity_diagnostic.py
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/needs_split_findings.json
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/per_file.json
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-25-consequence-chain-mapping.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/2026-04-27-test-environment-recon.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/CORE-state-2026-04-18.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/Prior Art and the End-to-End Gap.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/nested_scope_audit_2026-04-19.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/reconnaissance_2026-04-20.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/tracing_mandatory_diagnostic_2026-04-20.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-19.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-20.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-20-evening.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-21.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-24.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff-2026-04-25.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/handoff_2026-04-23_evening.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/session_handoff_2026-04-21_evening.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/state/handoffs/session_handoff_2026-04-22_evening.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1268,6 +1200,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/requirements/URS-mechanism-coherence.md
     governance_namespace: project::core
+  - path: .specs/planning/data-contracts-inventory.md
+    governance_namespace: project::core
   - path: .specs/requirements/URS-requirement-fulfillment-verification.md
     governance_namespace: project::core
 
@@ -1276,6 +1210,10 @@ classifications:
   # project::core: verification is deployment-specific.
   # ---------------------------------------------------------------------
   - path: .specs/verification/F-40-sidecar-walk.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-Maturity-Audit-Actions.md
+    governance_namespace: project::core
+  - path: .specs/verification/CORE-Scout-External-Validation-click.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1286,8 +1224,6 @@ classifications:
   # .specs/papers/** — project::core subset.
   # Papers naming specific CORE workers / components / market posture.
   # ---------------------------------------------------------------------
-  - path: .specs/papers/CORE-AutonomousProposalWorker.md
-    governance_namespace: project::core
   - path: .specs/papers/CORE-Blackboard-State-Machine.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-Deployment-Readiness.md
@@ -1297,8 +1233,6 @@ classifications:
   - path: .specs/papers/CORE-CoherenceSensor.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-CommitReachabilityAuditor.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-Competitive-Landscape.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-ConsumerWorker.md
     governance_namespace: project::core
@@ -1314,15 +1248,11 @@ classifications:
     governance_namespace: project::core
   - path: .specs/papers/CORE-ObserverWorker.md
     governance_namespace: project::core
-  - path: .specs/papers/CORE-OptimizerWorker.md
-    governance_namespace: project::core
   - path: .specs/papers/CORE-Product-Tiers.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-RemediatorWorker.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-Roadmap.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-SelfHealingAgent.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-V2-Command-Pattern-Reference.md
     governance_namespace: project::core
@@ -1442,8 +1372,6 @@ classifications:
   - path: .specs/decisions/ADR-092-f43-exit-criterion-contract-readiness.md
     governance_namespace: project::core
     notes: F-43 exit criterion is feature-specific to this deployment.
-  - path: .specs/decisions/README.md
-    governance_namespace: project::core
 
   # ADR-098 through ADR-130 — added in the ADR-075 D7 backfill (2026-06-28)
   - path: .specs/decisions/ADR-098-aggregate-quality-gate-finding-shape.md
@@ -1598,9 +1526,9 @@ classifications:
     governance_namespace: framework
 
   # .specs/papers/ — new governance papers
-  - path: .specs/papers/CORE-Disposition-Governance-Seed.md
+  - path: .specs/essays/CORE-Disposition-Governance-Seed.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Disposition-Governance.md
+  - path: .specs/essays/CORE-Disposition-Governance.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Instrument-Attestation.md
     governance_namespace: framework
@@ -1608,17 +1536,5 @@ classifications:
     governance_namespace: framework
 
   # .specs/planning/ — project::core (planning and roadmap documents)
-  - path: .specs/planning/CORE-Maturity-Audit-Actions.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Scout-External-Validation-click.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Scout-v2-Workplan.md
-    governance_namespace: project::core
   - path: .specs/planning/CORE-Semver-Policy.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/ADR-105-stage2b-completion-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-OptimizerWorker-Scope-Reconciliation.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-Scout-v2-Workplan.md
     governance_namespace: project::core
