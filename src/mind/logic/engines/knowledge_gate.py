@@ -44,6 +44,9 @@ class KnowledgeGateEngine(BaseEngine):
     engine_id = "knowledge_gate"
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic verdict
     _always_context_level: ClassVar[bool] = True  # every check_type is context-level
+    requires_knowledge_graph: ClassVar[bool] = (
+        True  # ADR-141 D2: must not subprocess-validate
+    )
 
     # Constitutional whitelist of tables this engine may query.
     # Table names in SQL cannot be parameterized — they must be validated

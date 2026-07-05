@@ -154,6 +154,12 @@ class BaseEngine(ABC):
     # _always_context_level = False and override is_context_level_for directly.
     _always_context_level: ClassVar[bool] = False
 
+    # ADR-141 D2: True when this engine's verdict depends on the DB knowledge
+    # graph (built by DbSyncWorker). Graph-dependent engines cannot be
+    # subprocess-validated in the assisted lane — the worktree patch cannot
+    # update the pre-patch DB graph, so a subprocess verdict would be stale.
+    requires_knowledge_graph: ClassVar[bool] = False
+
     @abstractmethod
     # ID: db4c48d2-4ccc-4182-bb37-29973471b8bb
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

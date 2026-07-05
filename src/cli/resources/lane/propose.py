@@ -83,12 +83,14 @@ async def propose(
     data = result.get("data") or {}
 
     if not result.get("ok"):
-        # A diff that patches an audit engine is self-referential to the
-        # validator (#661) — surface that distinctly, not as "the fix is wrong".
-        if data.get("self_referential_engines"):
+        # A diff that patches a graph-dependent audit engine (knowledge_gate)
+        # cannot be subprocess-validated — surface distinctly from a plain fix
+        # failure (ADR-141 D1). Accept both the new key and the legacy key
+        # during the one-cycle migration window (ADR-141 D6).
+        if data.get("must_refuse_engines") or data.get("self_referential_engines"):
             console.print(
-                "[yellow]This finding's fix modifies an audit engine — the "
-                "assisted lane cannot validate it.[/yellow]"
+                "[yellow]This finding's fix modifies a graph-dependent audit "
+                "engine — the assisted lane cannot validate it.[/yellow]"
             )
             console.print(f"  [dim]{data.get('error', '')}[/dim]")
             raise typer.Exit(code=1)

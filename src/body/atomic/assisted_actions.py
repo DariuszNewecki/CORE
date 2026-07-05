@@ -1,6 +1,6 @@
 # src/body/atomic/assisted_actions.py
 
-"""Atomic actions for the Assisted Remediation Lane (ADR-109).
+"""Atomic actions for the Assisted Remediation Lane (ADR-109, ADR-141).
 
 This module hosts ``assisted.validate_diff`` — the safety gate (issue #654)
 that decides whether an externally-produced (agent-authored) multi-file diff
@@ -14,22 +14,31 @@ happens later, on governor approval, through the existing proposal-execution
 path (ADR-101 D2). The verdict is the auto-firing oracle ADR-109 §Mechanism 4
 requires: it fires regardless of what the authoring agent claims.
 
+ADR-141 extends the lane to handle graph-independent engine-touching diffs via
+subprocess audit: a fresh subprocess prepends the worktree's src to sys.path
+and runs the offending rule under a stateless AuditorContext. Graph-dependent
+engine touches (knowledge_gate.py) continue to refuse — the DB graph is stale
+relative to the worktree patch.
+
 Constitutional note (governance.dangerous_execution_primitives): subprocess calls
-for ``git apply`` and ``ruff`` are concentrated in ``ToolRunner``
-(``body.atomic.tool_runner``) — the designated Body validation sanctuary,
-mirroring the pytest subprocess in ``shared.infrastructure.validation.test_runner``.
+for ``git apply``, ``ruff``, and the stateless audit runner are concentrated in
+``ToolRunner`` (``body.atomic.tool_runner``) — the designated Body validation
+sanctuary, mirroring the pytest subprocess in
+``shared.infrastructure.validation.test_runner``.
 Calls run only against the throwaway worktree, never the main tree.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import time
+import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from body.atomic.registry import ActionCategory, register_action
-from body.atomic.tool_runner import ToolRunner
+from body.atomic.tool_runner import AUDIT_SUBPROCESS_BOOTSTRAP, ToolRunner
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
@@ -72,18 +81,43 @@ def _rule_cleared(
     return not (guarded & flagged)
 
 
-def _touches_audit_engine(
-    touched_py: list[str], engine_files: frozenset[str]
-) -> list[str]:
-    """Return the touched files that are themselves audit-engine modules.
+# ID: b54c7365-2961-4ac0-9736-e7c42bb522cc
+class _EngineTouchResult(NamedTuple):
+    """Partition of engine-touching files by subprocess-serviceability.
 
-    A non-empty result means the diff is self-referential to the validator:
-    the lane runs the IN-PROCESS auditor, so patching an engine in the worktree
-    cannot change the logic that validates the patch (#661). Such a finding is
-    a direct governed commit, not lane work.
+    ADR-141 D2: graph-independent engine touches are routed to subprocess
+    audit; graph-dependent touches (knowledge_gate) must refuse.
+    """
+
+    serviceable: list[str]  # engine files the subprocess audit can validate
+    must_refuse: list[str]  # graph-dependent engine files that require refusal
+
+
+def _touches_audit_engine(
+    touched_py: list[str],
+    engine_files: frozenset[str],
+    graph_dependent_files: frozenset[str],
+) -> _EngineTouchResult:
+    """Partition touched engine files by subprocess-serviceability.
+
+    Returns an ``_EngineTouchResult`` with:
+    - ``serviceable``: engine files that are graph-independent → subprocess audit.
+    - ``must_refuse``: graph-dependent engine files (knowledge_gate) → refusal.
+
+    ADR-141 D2::
+
+        serviceable = engine_source_files ∩ touched_py - graph_dependent_files
+        must_refuse  = graph_dependent_engine_files ∩ touched_py
     """
     engine_norm = {_norm_path(p) for p in engine_files}
-    return sorted(p for p in touched_py if _norm_path(p) in engine_norm)
+    graph_norm = {_norm_path(p) for p in graph_dependent_files}
+    touched_engines = [p for p in touched_py if _norm_path(p) in engine_norm]
+    return _EngineTouchResult(
+        serviceable=sorted(
+            p for p in touched_engines if _norm_path(p) not in graph_norm
+        ),
+        must_refuse=sorted(p for p in touched_engines if _norm_path(p) in graph_norm),
+    )
 
 
 @register_action(
@@ -115,7 +149,7 @@ async def action_assisted_validate_diff(
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
-    """Assisted Remediation Lane safety gate (ADR-109 #654).
+    """Assisted Remediation Lane safety gate (ADR-109 #654, ADR-141).
 
     Args:
         patch: a unified diff (the agent's candidate change) to validate.
@@ -128,12 +162,19 @@ async def action_assisted_validate_diff(
             is unchanged): the gate confirms the rule no longer flags the
             subject, which a touched-files-only check could not.
         core_context: injected by ActionExecutor; supplies ``git_service``
-            for worktree creation.
+            for worktree creation and ``file_handler`` for var/tmp writes.
 
     Returns an ``ActionResult`` whose ``data['validation_results']`` is a
     ``{check: bool}`` map and whose ``ok`` is the AND of every check. A
     failing verdict means the diff is not approvable. ``data['production_set']``
     lists the touched repo-relative paths (the eventual commit set, ADR-101 D2).
+
+    Engine-touching diffs (ADR-141):
+    - Graph-dependent engine touch (knowledge_gate.py): ``not_graph_engine=False``,
+      immediate refusal.
+    - Graph-independent engine touch (all other 15): ``not_graph_engine=True``,
+      ``subprocess_audit`` replaces the in-process ``audit_rule_cleared`` check.
+    - No engine touch: normal in-process ``audit_rule_cleared`` check.
     """
     started = time.perf_counter()
     aid = "assisted.validate_diff"
@@ -163,6 +204,7 @@ async def action_assisted_validate_diff(
     wt_path = Path(worktree.repo_path)
     checks: dict[str, bool] = {}
     touched: list[str] = []
+    subprocess_error: str | None = None
     try:
         # 1. Patch must apply cleanly in the hermetic worktree.
         applied = ToolRunner.run_git(
@@ -191,35 +233,36 @@ async def action_assisted_validate_diff(
         ]
         touched_py = [p for p in touched if p.endswith(".py")]
 
-        # 1b. A fix that patches an audit engine is self-referential: the lane
-        #     validates with the in-process auditor, so the worktree patch does
-        #     not change the engine logic that runs the validation (#661). Such
-        #     a finding is a direct governed commit, not lane work — refuse with
-        #     guidance rather than the misleading "rule still fires" a vacuous
-        #     in-process audit would produce. Engine module set is derived from
-        #     EngineRegistry (no hardcoded engines-dir literal).
+        # 1b. Engine-touch routing (ADR-141 D1/D2/D6).
+        #     Derive the engine-file sets from the registry (no hardcoded path
+        #     literals; discovery tracks what is actually registered).
         from mind.logic.engines.registry import EngineRegistry
 
-        self_referential = _touches_audit_engine(
-            touched_py, EngineRegistry.engine_source_files()
+        engine_touch = _touches_audit_engine(
+            touched_py,
+            EngineRegistry.engine_source_files(),
+            EngineRegistry.graph_dependent_engine_files(),
         )
-        checks["not_audit_engine"] = not self_referential
-        if self_referential:
+
+        # Graph-dependent engine touch → refuse (ADR-109 D6 / ADR-141 D1).
+        # Updated message names the distinction so callers understand why the
+        # subprocess path is unavailable for this engine family.
+        if engine_touch.must_refuse:
+            checks["not_graph_engine"] = False
             return ActionResult(
                 action_id=aid,
                 ok=False,
                 data={
                     "validation_results": checks,
                     "production_set": touched,
-                    "self_referential_engines": self_referential,
+                    "must_refuse_engines": engine_touch.must_refuse,
                     "error": (
-                        "Diff modifies audit engine module(s): "
-                        + ", ".join(self_referential)
-                        + ". The assisted lane validates with the in-process "
-                        "auditor, so it cannot confirm a fix to the auditor "
-                        "itself — the worktree patch does not change the "
-                        "validating engine. Disposition this finding as a "
-                        "direct governed commit and resolve it (see #661)."
+                        "Diff modifies graph-dependent audit engine module(s): "
+                        + ", ".join(engine_touch.must_refuse)
+                        + ". These engines require a live DB knowledge graph that "
+                        "is stale relative to the worktree patch; subprocess audit "
+                        "cannot produce a reliable verdict. Disposition as a direct "
+                        "governed commit (ADR-141 D1)."
                     ),
                 },
                 impact=ActionImpact.WRITE_DATA,
@@ -231,34 +274,67 @@ async def action_assisted_validate_diff(
             ToolRunner.run_ruff(wt_path, touched_py) if touched_py else True
         )
 
-        # 3. The offending rule must no longer flag the finding's subject or
-        #    any touched file. Body invokes the Mind auditor against the
-        #    worktree path — the established canary pattern
-        #    (crate_processing_service, constitutional_evaluator). Deferred
-        #    import keeps module load clean.
-        #
-        #    Run the rule at FULL scope (files=None): run_filtered_audit skips
-        #    context-level rules under a file filter (the knowledge_gate family
-        #    — orphan / duplication — which is the lane's core caseload), so a
-        #    file-scoped check would pass them vacuously. _rule_cleared then
-        #    confirms none of the guarded files (subject + touched) is still
-        #    flagged. Full-scope is one rule, once, on a governor-initiated
-        #    worktree validation — not the hot write-time gate.
-        guarded = bool((subject_files or []) or touched_py)
-        if guarded:
-            from mind.governance.audit_context import AuditorContext
-            from mind.governance.filtered_audit import run_filtered_audit
+        # 3a. Graph-independent engine touch → subprocess audit (ADR-141 D3/D4).
+        #     Write bootstrap + input JSON to var/tmp via file_handler, spawn a
+        #     subprocess that prepends the worktree's src to sys.path and runs
+        #     run_filtered_audit with stateless=True AuditorContext.
+        if engine_touch.serviceable:
+            checks["not_graph_engine"] = True
+            run_id = uuid.uuid4().hex[:8]
+            input_rel = f"var/tmp/core-subaudit-input-{run_id}.json"
+            bootstrap_rel = f"var/tmp/core-subaudit-runner-{run_id}.py"
+            file_handler = core_context.file_handler
+            file_handler.write_runtime_text(
+                input_rel,
+                json.dumps(
+                    {
+                        "worktree_path": str(wt_path),
+                        "rule_id": finding_rule,
+                        "subject_files": subject_files or [],
+                    }
+                ),
+            )
+            file_handler.write_runtime_text(bootstrap_rel, AUDIT_SUBPROCESS_BOOTSTRAP)
+            bootstrap_abs = file_handler.repo_path / bootstrap_rel
+            input_abs = file_handler.repo_path / input_rel
+            try:
+                sub_result = ToolRunner.run_audit_rule_subprocess(
+                    bootstrap_abs, input_abs
+                )
+            finally:
+                bootstrap_abs.unlink(missing_ok=True)
+                input_abs.unlink(missing_ok=True)
 
-            actx = AuditorContext(wt_path)
-            await actx.load_knowledge_graph()
-            findings, _, _ = await run_filtered_audit(
-                actx, rule_ids=[finding_rule], files=None
-            )
-            checks["audit_rule_cleared"] = _rule_cleared(
-                findings, subject_files, touched_py
-            )
+            if sub_result.get("ok"):
+                sub_findings = sub_result.get("findings") or []
+                checks["subprocess_audit"] = _rule_cleared(
+                    sub_findings, subject_files, touched_py
+                )
+            else:
+                checks["subprocess_audit"] = False
+                subprocess_error = sub_result.get("error")
+
         else:
-            checks["audit_rule_cleared"] = True
+            # 3b. No engine touch → in-process audit (original ADR-109 path).
+            #     Run at FULL scope (files=None): run_filtered_audit skips
+            #     context-level rules under a file filter, so a file-scoped check
+            #     would pass knowledge_gate rules vacuously. _rule_cleared then
+            #     confirms none of the guarded files is still flagged.
+            guarded = bool((subject_files or []) or touched_py)
+            if guarded:
+                from mind.governance.audit_context import AuditorContext
+                from mind.governance.filtered_audit import run_filtered_audit
+
+                actx = AuditorContext(wt_path)
+                await actx.load_knowledge_graph()
+                findings, _, _ = await run_filtered_audit(
+                    actx, rule_ids=[finding_rule], files=None
+                )
+                checks["audit_rule_cleared"] = _rule_cleared(
+                    findings, subject_files, touched_py
+                )
+            else:
+                checks["audit_rule_cleared"] = True
 
         # 4. Mapped tests for the touched sources must pass (when they exist).
         from shared.infrastructure.intent.test_coverage_paths import (
@@ -276,20 +352,23 @@ async def action_assisted_validate_diff(
         checks["tests"] = tests_pass
 
         verdict = all(checks.values())
+        result_data: dict[str, Any] = {
+            "validation_results": checks,
+            "production_set": touched,
+            "finding_rule": finding_rule,
+            "tests_run": existing_tests,
+            # Bind this verdict to the exact bytes validated. `lane propose`
+            # re-checks this hash against the patch it submits, so an agent
+            # who edits the diff after validating cannot ride a stale PASS
+            # into the approval queue (ADR-109 mechanism §4).
+            "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
+        }
+        if subprocess_error is not None:
+            result_data["subprocess_error"] = subprocess_error
         return ActionResult(
             action_id=aid,
             ok=verdict,
-            data={
-                "validation_results": checks,
-                "production_set": touched,
-                "finding_rule": finding_rule,
-                "tests_run": existing_tests,
-                # Bind this verdict to the exact bytes validated. `lane propose`
-                # re-checks this hash against the patch it submits, so an agent
-                # who edits the diff after validating cannot ride a stale PASS
-                # into the approval queue (ADR-109 mechanism §4).
-                "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
-            },
+            data=result_data,
             impact=ActionImpact.WRITE_DATA,
             duration_sec=time.perf_counter() - started,
         )
@@ -300,8 +379,8 @@ async def action_assisted_validate_diff(
 @register_action(
     action_id="assisted.apply_diff",
     description=(
-        "Apply a validated, governor-approved agent diff to the working tree "
-        "(assisted-lane execution half; runs only post-approval)"
+        "Apply a validated, governor-approved agent-authored diff to the main "
+        "working tree (the final write step after lane proposal approval)"
     ),
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
@@ -311,31 +390,33 @@ async def action_assisted_validate_diff(
 @atomic_action(
     action_id="assisted.apply_diff",
     intent=(
-        "Apply a validated, governor-approved diff; the touched paths commit as "
-        "the production set (ADR-101 D2)"
+        "Apply a pre-validated diff to the main tree; only runs after governor "
+        "approval of the matching lane proposal"
     ),
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: a4b16ca5-e96e-4781-8466-089cae9150e9
+# ID: 6e2c4f8a-1b3d-4a9c-8f7e-5d2b0a1c6e4f
 async def action_assisted_apply_diff(
     *,
     patch: str | None = None,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
-    """Apply a candidate diff to the tree (ADR-109 / #652 execution half).
+    """Apply a validated diff to the main working tree.
 
-    Runs only after the diff cleared ``assisted.validate_diff`` and the governor
-    approved the proposal. ActionExecutor sandboxes this WRITE_CODE action
-    (ADR-071): ``core_context.git_service.repo_path`` is the hermetic worktree,
-    so we ``git apply`` the patch there; SandboxLifecycle.propagate_changes then
-    copies the touched files back to the main tree through FileHandler and the
-    production set is committed (ADR-101 D2). The touched paths are declared in
-    ``files_produced`` so they reach the commit set.
+    This is the write step that runs ONLY after the governor has approved the
+    lane proposal. The validation gate (``assisted.validate_diff``) runs
+    earlier and is decoupled from this action. This action NEVER validates —
+    it assumes the governor's approval is the authorization.
+
+    Args:
+        patch: a unified diff to apply to the main working tree.
+        core_context: injected by ActionExecutor; supplies ``git_service``.
     """
     started = time.perf_counter()
     aid = "assisted.apply_diff"
+
     if not patch:
         return ActionResult(
             action_id=aid,
@@ -355,25 +436,20 @@ async def action_assisted_apply_diff(
             duration_sec=time.perf_counter() - started,
         )
 
-    repo = Path(core_context.git_service.repo_path)
-    applied = ToolRunner.run_git(repo, "apply", "--whitespace=nowarn", stdin=patch)
-    if applied.returncode != 0:
-        return ActionResult(
-            action_id=aid,
-            ok=False,
-            data={"error": f"git apply failed: {applied.stderr.strip()[:400]}"},
-            impact=ActionImpact.WRITE_CODE,
-            duration_sec=time.perf_counter() - started,
-        )
-    touched = [
-        p
-        for p in ToolRunner.run_git(repo, "diff", "--name-only").stdout.splitlines()
-        if p
-    ]
+    result = ToolRunner.run_git(
+        Path(core_context.git_service.repo_path),
+        "apply",
+        "--whitespace=nowarn",
+        stdin=patch,
+    )
+    ok = result.returncode == 0
     return ActionResult(
         action_id=aid,
-        ok=True,
-        data={"files_produced": touched},
+        ok=ok,
+        data={
+            "applied": ok,
+            "error": result.stderr.strip()[:400] if not ok else None,
+        },
         impact=ActionImpact.WRITE_CODE,
         duration_sec=time.perf_counter() - started,
     )

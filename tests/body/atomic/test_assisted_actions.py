@@ -1,5 +1,5 @@
 # tests/body/atomic/test_assisted_actions.py
-"""Guard tests for the assisted.validate_diff safety gate (ADR-109 #654).
+"""Guard tests for the assisted.validate_diff safety gate (ADR-109 #654, ADR-141).
 
 The action is @atomic_action-governed, so a direct call raises
 GovernanceBypassError by design; full behavioral validation (apply the diff in a
@@ -8,6 +8,10 @@ integration concern exercised through ActionExecutor. These unit tests cover the
 guards via the underlying function (``.__wrapped__``): the gate must REFUSE
 (ok=False) on missing inputs — never silently pass, since a missing patch or rule
 reading as success would defeat the gate.
+
+ADR-141 D2 adds ``_EngineTouchResult`` — a named tuple partitioning engine-touching
+files into ``serviceable`` (subprocess audit) and ``must_refuse`` (graph-dependent,
+always refuse). The ``_touches_audit_engine`` tests are updated accordingly.
 """
 
 from __future__ import annotations
@@ -15,6 +19,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from body.atomic.assisted_actions import (
+    _EngineTouchResult,
     _rule_cleared,
     _touches_audit_engine,
     action_assisted_apply_diff,
@@ -109,8 +114,12 @@ def test_rule_cleared_normalizes_dot_slash_prefix() -> None:
 
 
 def test_rule_cleared_true_when_nothing_guarded() -> None:
-    assert _rule_cleared([{"file_path": "x.py"}], subject_files=[], touched_py=[]) is True
+    assert (
+        _rule_cleared([{"file_path": "x.py"}], subject_files=[], touched_py=[]) is True
+    )
 
+
+# --- _touches_audit_engine tests (ADR-141 D2: named-tuple return) ---
 
 _ENGINES = frozenset(
     {
@@ -118,25 +127,68 @@ _ENGINES = frozenset(
         "src/mind/logic/engines/ast_gate.py",
     }
 )
+_GRAPH_ENGINES = frozenset({"src/mind/logic/engines/knowledge_gate.py"})
 
 
-def test_touches_audit_engine_flags_engine_fix() -> None:
-    # A diff patching the orphan detector is self-referential to the validator.
-    assert _touches_audit_engine(
-        ["src/mind/logic/engines/knowledge_gate.py"], _ENGINES
-    ) == ["src/mind/logic/engines/knowledge_gate.py"]
+def test_touches_audit_engine_returns_named_tuple() -> None:
+    result = _touches_audit_engine([], _ENGINES, _GRAPH_ENGINES)
+    assert isinstance(result, _EngineTouchResult)
+    assert isinstance(result.serviceable, list)
+    assert isinstance(result.must_refuse, list)
+
+
+def test_touches_audit_engine_graph_dependent_goes_to_must_refuse() -> None:
+    # knowledge_gate is graph-dependent → must_refuse, not serviceable.
+    result = _touches_audit_engine(
+        ["src/mind/logic/engines/knowledge_gate.py"], _ENGINES, _GRAPH_ENGINES
+    )
+    assert result.must_refuse == ["src/mind/logic/engines/knowledge_gate.py"]
+    assert result.serviceable == []
+
+
+def test_touches_audit_engine_graph_independent_goes_to_serviceable() -> None:
+    # ast_gate is graph-independent → serviceable, not must_refuse.
+    result = _touches_audit_engine(
+        ["src/mind/logic/engines/ast_gate.py"], _ENGINES, _GRAPH_ENGINES
+    )
+    assert result.serviceable == ["src/mind/logic/engines/ast_gate.py"]
+    assert result.must_refuse == []
 
 
 def test_touches_audit_engine_clears_non_engine_fix() -> None:
-    assert (
-        _touches_audit_engine(["src/cli/resources/lane/next.py"], _ENGINES) == []
+    # A fix to a non-engine file: both lists are empty.
+    result = _touches_audit_engine(
+        ["src/cli/resources/lane/next.py"], _ENGINES, _GRAPH_ENGINES
     )
+    assert result.serviceable == []
+    assert result.must_refuse == []
 
 
 def test_touches_audit_engine_normalizes_dot_slash() -> None:
-    assert _touches_audit_engine(
-        ["./src/mind/logic/engines/ast_gate.py"], _ENGINES
-    ) == ["./src/mind/logic/engines/ast_gate.py"]
+    # Leading "./" in the touched path must match the normalized engine set.
+    result = _touches_audit_engine(
+        ["./src/mind/logic/engines/ast_gate.py"], _ENGINES, _GRAPH_ENGINES
+    )
+    assert result.serviceable == ["./src/mind/logic/engines/ast_gate.py"]
+    assert result.must_refuse == []
+
+
+def test_touches_audit_engine_mixed_touch_partitions_correctly() -> None:
+    # Diff touching both a graph-dependent and a graph-independent engine
+    # splits correctly across the two lists.
+    result = _touches_audit_engine(
+        [
+            "src/mind/logic/engines/knowledge_gate.py",
+            "src/mind/logic/engines/ast_gate.py",
+        ],
+        _ENGINES,
+        _GRAPH_ENGINES,
+    )
+    assert result.must_refuse == ["src/mind/logic/engines/knowledge_gate.py"]
+    assert result.serviceable == ["src/mind/logic/engines/ast_gate.py"]
+
+
+# --- action_assisted_apply_diff guards ---
 
 
 async def test_apply_diff_refuses_without_patch() -> None:

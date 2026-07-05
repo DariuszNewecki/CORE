@@ -103,6 +103,34 @@ def test_engine_source_files_lists_registered_engine_modules():
         assert path.endswith(".py")
 
 
+def test_graph_dependent_engine_files_returns_knowledge_gate_only():
+    """graph_dependent_engine_files() returns only engines with requires_knowledge_graph=True.
+
+    ADR-141 D2: the knowledge_gate engine is the only one that requires the DB
+    knowledge graph; all other engines are graph-independent and can be
+    subprocess-validated in the assisted lane.
+    """
+    files = EngineRegistry.graph_dependent_engine_files()
+    assert files, "at least knowledge_gate must appear as graph-dependent"
+    assert "src/mind/logic/engines/knowledge_gate.py" in files
+    # All other engines (ast_gate, glob_gate, …) must NOT appear.
+    assert "src/mind/logic/engines/ast_gate.py" not in files
+    assert "src/mind/logic/engines/glob_gate.py" not in files
+    # Every entry is a repo-relative .py path under the engines package.
+    for path in files:
+        assert path.startswith("src/mind/logic/engines/")
+        assert path.endswith(".py")
+
+
+def test_graph_dependent_files_is_strict_subset_of_engine_source_files():
+    """graph_dependent_engine_files() is a strict subset of engine_source_files()."""
+    all_files = EngineRegistry.engine_source_files()
+    graph_files = EngineRegistry.graph_dependent_engine_files()
+    assert graph_files < all_files, (
+        "graph_dependent must be a strict subset of all engine source files"
+    )
+
+
 def test_initialize_clears_engine_class_cache_and_rediscovers():
     """initialize() MUST clear ``_engine_classes`` AND reset ``_discovered``
     so engine modules added between calls become visible.

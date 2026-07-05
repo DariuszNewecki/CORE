@@ -152,6 +152,25 @@ class EngineRegistry:
         )
 
     @classmethod
+    # ID: 3d00f0ce-5b6f-428a-97d6-f4b3dc2e3a37
+    def graph_dependent_engine_files(cls) -> frozenset[str]:
+        """Repo-relative POSIX source paths of engines that require the knowledge graph.
+
+        Graph-dependent engines (``requires_knowledge_graph = True``) cannot be
+        subprocess-validated in the assisted lane: the DB knowledge graph is
+        stale relative to a worktree patch. ADR-141 D2.
+
+        The canonical answer to "which engine files must refuse the subprocess
+        audit path." Derived from registered classes, not a hardcoded path list.
+        """
+        cls._discover_engines()
+        return frozenset(
+            "src/" + klass.__module__.replace(".", "/") + ".py"
+            for klass in cls._engine_classes.values()
+            if getattr(klass, "requires_knowledge_graph", False)
+        )
+
+    @classmethod
     # ID: 69a7916b-b8f4-4509-bb2c-897eec528adf
     def get(cls, engine_id: str) -> Any:
         if cls._path_resolver is None:
