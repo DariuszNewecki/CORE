@@ -152,16 +152,27 @@ daemon:
   set_debug: true
 
 # ---------------------------------------------------------------------------
-# Worker classification (ADR-081 D7)
+# Worker classification (ADR-081 D7 / ADR-082)
 # ---------------------------------------------------------------------------
 # Gates for the runtime.worker_process_classification audit rule. The rule
 # consumes loop_hold.sample blackboard data from Step 3a-telemetry and
-# compares each worker's observed max loop-hold against these thresholds.
+# compares each worker's observed loop-hold over a time-bucketed window
+# against these thresholds. ADR-082 replaced the rolling-N cycle_window
+# with time windows — correct for event-driven sparse sampling.
 # Advisory only — findings propose declaration edits, never block.
 worker_classification:
   loop_hold_escalation_sec: 5.0
   loop_hold_deescalation_sec: 1.0
-  cycle_window: 5
+  # ADR-082 D1: worst sample in the last N hours (escalation window).
+  loop_hold_escalation_hours: 24
+  # ADR-082 D2: 7 days of sustained cleanliness required to propose demotion.
+  loop_hold_deescalation_hours: 168
+  # ADR-082 D1: noise floor — skip if fewer than this many samples in the
+  # escalation window. Replaces cycle_window=5.
+  min_samples_for_escalation: 3
+  # ADR-082 D2: heartbeat activity proof required before de-escalation.
+  # The worker must show this many heartbeats in the de-escalation window.
+  min_active_heartbeats_for_deescalation: 10
 
 # ---------------------------------------------------------------------------
 # Proposals

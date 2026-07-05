@@ -3,26 +3,32 @@
 """
 Runtime telemetry engine — consumes blackboard data, not source files.
 
-Dispatches one check_type today:
+Dispatches two check_types today:
 
-- worker_process_classification (ADR-081 D7): aggregates loop_hold.sample
-  blackboard entries (posted by Step 3a-telemetry) per worker stem,
-  compares against .intent/workers/*.yaml's requires_dedicated_process
-  declaration, and fires advisory findings:
+- worker_process_classification (ADR-081 D7 / ADR-082): aggregates
+  loop_hold.sample blackboard entries (posted by Step 3a-telemetry) per
+  worker stem over a time-bucketed window, compares against
+  .intent/workers/*.yaml's requires_dedicated_process declaration, and
+  fires advisory findings:
 
-  * escalation_required — a shares_process worker observed to monopolize
-    the loop (max loop-hold > loop_hold_escalation_sec across the
-    cycle_window). Proposes flipping the YAML to requires_dedicated_process:
-    true.
+  * escalation_required — a shares_process worker whose max loop-hold
+    in the last loop_hold_escalation_hours (24h) exceeds
+    loop_hold_escalation_sec (5s), with at least min_samples_for_escalation
+    (3) samples in the window.
   * deescalation_candidate — a requires_dedicated_process: true worker
-    that observably stays quiet (max loop-hold < loop_hold_deescalation_sec
-    across the cycle_window). Proposes governor review of whether the
-    dedication is still warranted.
+    with ≥ min_active_heartbeats_for_deescalation (10) heartbeats in the
+    last loop_hold_deescalation_hours (168h/7d) AND max loop-hold below
+    loop_hold_deescalation_sec (1s) in that same window. Silence (no
+    loop_hold.sample rows) counts as max=0 — correct for an event-driven
+    instrument that posts only when the threshold is tripped.
 
-Skip-silently semantics on insufficient data: workers with fewer than
-cycle_window samples post no finding either way. Right after a daemon
-restart the rule reports clean until evidence accumulates; matches D7's
-"5+ steady-state cycle window" requirement.
+  ADR-082 replaced the rolling-N cycle_window with time-bucketed windows
+  because loop_hold.sample is event-driven (sparse for episodic
+  perpetrators). Rolling-5 missed workers whose recent-5 samples were
+  quiet but whose 24h peak exceeded the gate.
+
+- worker_max_interval_within_observed (#516): compares the configured
+  mandate.schedule.max_interval against the observed p95 heartbeat gap.
 
 LAYER: mind.logic.engines — read-only verification. DB access via the
 sanctioned async session. No file writes.
@@ -65,13 +71,14 @@ _MAX_INTERVAL_LOOKBACK_HOURS = 24
 
 # ID: 9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
 class RuntimeGateEngine(BaseEngine):
-    """Runtime telemetry data engine (ADR-081 D7).
+    """Runtime telemetry data engine (ADR-081 D7 / ADR-082).
 
     Consumes blackboard data (not source files) to evaluate governance
     invariants that depend on observed runtime behaviour rather than
-    static code structure. The first such check is the
-    worker_process_classification drift detector — it fires on workers
-    whose measured loop-hold contradicts their declared runtime profile.
+    static code structure. The worker_process_classification drift
+    detector fires on workers whose measured loop-hold contradicts their
+    declared runtime profile; ADR-082 replaced the rolling-N window with
+    a time-bucketed window correct for event-driven sparse sampling.
     """
 
     engine_id = _ENGINE_ID
@@ -123,16 +130,25 @@ class RuntimeGateEngine(BaseEngine):
 async def _check_worker_process_classification(
     context: AuditorContext,
 ) -> list[AuditFinding]:
-    """ADR-081 D7 — drift detector implementation.
+    """ADR-081 D7 / ADR-082 — drift detector implementation.
 
     For each active worker:
     1. Read its identity.uuid + implementation.requires_dedicated_process
        from .intent/workers/<stem>.yaml.
-    2. Pull recent loop_hold.sample entries from the blackboard for that
-       UUID.
-    3. Skip if fewer than cycle_window samples (insufficient data).
-    4. Compute max duration over the window.
-    5. Fire escalation_required / deescalation_candidate per the gates.
+
+    For shares_process workers (escalation check):
+    2. Pull loop_hold.sample entries from the last loop_hold_escalation_hours
+       (24h default) — full time-bucketed window (ADR-082 D1).
+    3. Skip if fewer than min_samples_for_escalation (3 default) in window.
+    4. Fire escalation_required if max exceeds loop_hold_escalation_sec.
+
+    For requires_dedicated_process workers (de-escalation check):
+    2. Count worker.heartbeat entries in last loop_hold_deescalation_hours
+       (168h). Skip if below min_active_heartbeats_for_deescalation (10) —
+       silence is not evidence of cleanliness.
+    3. Pull loop_hold.sample entries from the 168h window. No samples = max
+       treated as 0 (event-driven: silence means threshold was never tripped).
+    4. Fire deescalation_candidate if max is below loop_hold_deescalation_sec.
     """
     from shared.infrastructure.intent.operational_config import (
         load_operational_config,
@@ -141,7 +157,10 @@ async def _check_worker_process_classification(
     cfg = load_operational_config().worker_classification
     escalation_sec = cfg.loop_hold_escalation_sec
     deescalation_sec = cfg.loop_hold_deescalation_sec
-    cycle_window = cfg.cycle_window
+    escalation_hours = cfg.loop_hold_escalation_hours
+    deescalation_hours = cfg.loop_hold_deescalation_hours
+    min_samples = cfg.min_samples_for_escalation
+    min_heartbeats = cfg.min_active_heartbeats_for_deescalation
 
     # Build stem → declaration state map from .intent/workers/. Paused or
     # absent workers are skipped: nothing to evaluate for them.
@@ -180,97 +199,162 @@ async def _check_worker_process_classification(
 
     findings: list[AuditFinding] = []
     for stem, state in workers_state.items():
-        r = await session.execute(
-            text(
-                """
-                SELECT payload->>'duration_sec' AS duration_sec
-                FROM core.blackboard_entries
-                WHERE subject = :subject
-                  AND worker_uuid = cast(:worker_uuid as uuid)
-                ORDER BY created_at DESC
-                LIMIT :sample_cap
-                """
-            ),
-            {
-                "subject": f"loop_hold.sample::{stem}",
-                "worker_uuid": state["uuid"],
-                # Over-pull a little — some samples may have malformed
-                # payloads we discard below; the cycle_window decision
-                # is made on the parsed values.
-                "sample_cap": cycle_window * 4,
-            },
-        )
-        durations: list[float] = []
-        for row in r:
-            try:
-                durations.append(float(row.duration_sec))
-            except (TypeError, ValueError):
+        if not state["is_dedicated"]:
+            # --- Escalation: time-bucketed 24h window (ADR-082 D1) ---
+            r = await session.execute(
+                text(
+                    """
+                    SELECT payload->>'duration_sec' AS duration_sec
+                    FROM core.blackboard_entries
+                    WHERE subject = :subject
+                      AND worker_uuid = cast(:worker_uuid as uuid)
+                      AND created_at > now() - make_interval(hours => :hours)
+                    ORDER BY created_at DESC
+                    LIMIT 2000
+                    """
+                ),
+                {
+                    "subject": f"loop_hold.sample::{stem}",
+                    "worker_uuid": state["uuid"],
+                    "hours": escalation_hours,
+                },
+            )
+            durations: list[float] = []
+            for row in r:
+                try:
+                    durations.append(float(row.duration_sec))
+                except (TypeError, ValueError):
+                    continue
+
+            # Skip-silently: fewer than min_samples in the window.
+            # Noise floor replacing the old cycle_window floor.
+            if len(durations) < min_samples:
                 continue
 
-        # Skip-silently: not enough samples for D7's 5+ cycle window.
-        # The rule reports clean for workers without sufficient evidence.
-        if len(durations) < cycle_window:
-            continue
+            max_dur = max(durations)
+            p50_dur = statistics.median(durations)
 
-        window = durations[:cycle_window]
-        max_dur = max(window)
-        p50_dur = statistics.median(window)
+            if max_dur > escalation_sec:
+                findings.append(
+                    AuditFinding(
+                        # Per ADR-098 D4 / #606: parent rule
+                        # runtime.worker_process_classification is advisory,
+                        # which rule_executor maps to INFO at dispatch.
+                        check_id=_RULE_ID,
+                        severity=AuditSeverity.INFO,
+                        message=(
+                            f"escalation_required: worker '{stem}' declares "
+                            f"requires_dedicated_process: false, but observed "
+                            f"max loop-hold {max_dur:.2f}s over the last "
+                            f"{escalation_hours}h ({len(durations)} samples; "
+                            f"p50 {p50_dur:.2f}s; gate {escalation_sec:.1f}s). "
+                            f"Per ADR-081 D7, flip "
+                            f"implementation.requires_dedicated_process "
+                            f"to true in .intent/workers/{stem}.yaml and "
+                            f"enable core-daemon-worker@{stem}.service."
+                        ),
+                        file_path=f".intent/workers/{stem}.yaml",
+                        context={
+                            "verdict": "escalation_required",
+                            "stem": stem,
+                            "max_loop_hold_sec": max_dur,
+                            "p50_loop_hold_sec": p50_dur,
+                            "sample_count": len(durations),
+                            "escalation_hours": escalation_hours,
+                            "escalation_threshold_sec": escalation_sec,
+                        },
+                    )
+                )
+        else:
+            # --- De-escalation: 168h window + heartbeat activity proof (ADR-082 D2) ---
 
-        if not state["is_dedicated"] and max_dur > escalation_sec:
-            findings.append(
-                AuditFinding(
-                    # Per ADR-098 D4 / #606: parent rule
-                    # runtime.worker_process_classification is advisory,
-                    # which rule_executor maps to INFO at dispatch.
-                    check_id=_RULE_ID,
-                    severity=AuditSeverity.INFO,
-                    message=(
-                        f"escalation_required: worker '{stem}' declares "
-                        f"requires_dedicated_process: false, but observed "
-                        f"max loop-hold {max_dur:.2f}s over the last "
-                        f"{cycle_window} samples (p50 {p50_dur:.2f}s; "
-                        f"gate {escalation_sec:.1f}s). Per ADR-081 D7, "
-                        f"flip implementation.requires_dedicated_process "
-                        f"to true in .intent/workers/{stem}.yaml and "
-                        f"enable core-daemon-worker@{stem}.service."
-                    ),
-                    file_path=f".intent/workers/{stem}.yaml",
-                    context={
-                        "verdict": "escalation_required",
-                        "stem": stem,
-                        "max_loop_hold_sec": max_dur,
-                        "p50_loop_hold_sec": p50_dur,
-                        "cycle_window": cycle_window,
-                        "escalation_threshold_sec": escalation_sec,
-                    },
-                )
+            # Step 1: verify the worker has been active in the window.
+            hb_r = await session.execute(
+                text(
+                    """
+                    SELECT count(*) AS hb_count
+                    FROM core.blackboard_entries
+                    WHERE subject = 'worker.heartbeat'
+                      AND worker_uuid = cast(:worker_uuid as uuid)
+                      AND created_at > now() - make_interval(hours => :hours)
+                    """
+                ),
+                {
+                    "worker_uuid": state["uuid"],
+                    "hours": deescalation_hours,
+                },
             )
-        elif state["is_dedicated"] and max_dur < deescalation_sec:
-            findings.append(
-                AuditFinding(
-                    check_id=_RULE_ID,
-                    severity=AuditSeverity.INFO,
-                    message=(
-                        f"deescalation_candidate: worker '{stem}' "
-                        f"declares requires_dedicated_process: true, but "
-                        f"observed max loop-hold {max_dur:.2f}s over the "
-                        f"last {cycle_window} samples (p50 {p50_dur:.2f}s; "
-                        f"gate {deescalation_sec:.1f}s). Per ADR-081 D7, "
-                        f"governor MAY review whether the dedication is "
-                        f"still warranted; demoting could re-expose peers "
-                        f"to contention this dedication was answering."
-                    ),
-                    file_path=f".intent/workers/{stem}.yaml",
-                    context={
-                        "verdict": "deescalation_candidate",
-                        "stem": stem,
-                        "max_loop_hold_sec": max_dur,
-                        "p50_loop_hold_sec": p50_dur,
-                        "cycle_window": cycle_window,
-                        "deescalation_threshold_sec": deescalation_sec,
-                    },
-                )
+            hb_row = hb_r.first()
+            hb_count = (
+                int(hb_row.hb_count) if hb_row and hb_row.hb_count is not None else 0
             )
+            if hb_count < min_heartbeats:
+                # Worker has not been running; silence is not evidence of
+                # cleanliness. Defer verdict to a cycle with more evidence.
+                continue
+
+            # Step 2: check max loop-hold over the de-escalation window.
+            r = await session.execute(
+                text(
+                    """
+                    SELECT payload->>'duration_sec' AS duration_sec
+                    FROM core.blackboard_entries
+                    WHERE subject = :subject
+                      AND worker_uuid = cast(:worker_uuid as uuid)
+                      AND created_at > now() - make_interval(hours => :hours)
+                    ORDER BY created_at DESC
+                    LIMIT 2000
+                    """
+                ),
+                {
+                    "subject": f"loop_hold.sample::{stem}",
+                    "worker_uuid": state["uuid"],
+                    "hours": deescalation_hours,
+                },
+            )
+            durations = []
+            for row in r:
+                try:
+                    durations.append(float(row.duration_sec))
+                except (TypeError, ValueError):
+                    continue
+
+            # No samples in the window = max is 0 (never tripped in 168h).
+            # Silence from an event-driven instrument is affirmative evidence
+            # of cleanliness — the threshold was never reached (ADR-082 D2).
+            max_dur = max(durations) if durations else 0.0
+            p50_dur = statistics.median(durations) if durations else 0.0
+
+            if max_dur < deescalation_sec:
+                findings.append(
+                    AuditFinding(
+                        check_id=_RULE_ID,
+                        severity=AuditSeverity.INFO,
+                        message=(
+                            f"deescalation_candidate: worker '{stem}' "
+                            f"declares requires_dedicated_process: true, but "
+                            f"observed max loop-hold {max_dur:.2f}s over the "
+                            f"last {deescalation_hours}h ({len(durations)} "
+                            f"samples; p50 {p50_dur:.2f}s; gate "
+                            f"{deescalation_sec:.1f}s; {hb_count} heartbeats "
+                            f"in window). Per ADR-081 D7, governor MAY review "
+                            f"whether the dedication is still warranted; "
+                            f"demoting could re-expose peers to contention "
+                            f"this dedication was answering."
+                        ),
+                        file_path=f".intent/workers/{stem}.yaml",
+                        context={
+                            "verdict": "deescalation_candidate",
+                            "stem": stem,
+                            "max_loop_hold_sec": max_dur,
+                            "p50_loop_hold_sec": p50_dur,
+                            "sample_count": len(durations),
+                            "deescalation_hours": deescalation_hours,
+                            "deescalation_threshold_sec": deescalation_sec,
+                            "active_heartbeats": hb_count,
+                        },
+                    )
+                )
 
     return findings
 

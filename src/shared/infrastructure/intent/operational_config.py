@@ -206,9 +206,10 @@ class BlackboardConfig:
     # #568: count-based retention for slow-callback telemetry. Time-based
     # TTL over-prunes well-behaved workers (rare emitters lose their entire
     # window) while leaving hot emitters with hundreds of rows. Keep the
-    # last N samples per subject instead. The default of 100 sits well
-    # above WorkerClassificationConfig.cycle_window (5) and the consumer
-    # sample_cap (cycle_window * 4 = 20), with investigation headroom.
+    # last N samples per subject instead. The default of 100 matches the
+    # typical 24h sample volume for active workers (ADR-082 evidence:
+    # ~100 samples/24h); the ADR-082 query safety cap (2000) is rarely
+    # reached in practice.
     telemetry_keep_last_per_worker: int = 100
 
 
@@ -232,18 +233,26 @@ class DaemonConfig:
 @dataclass(frozen=True)
 # ID: 7e8f9a0b-1c2d-3e4f-5a6b-7c8d9e0f1a2b
 class WorkerClassificationConfig:
-    """ADR-081 D7 — gates for the runtime.worker_process_classification rule.
+    """ADR-081 D7 / ADR-082 — gates for the runtime.worker_process_classification rule.
 
     The rule consumes loop_hold.sample blackboard entries (Step 3a-telemetry)
     and fires advisory findings when observed loop-hold contradicts the
-    declared requires_dedicated_process state on a worker. The three gates
-    here are the thresholds D7 specifies; values are tunable via
-    .intent/enforcement/config/operational_config.yaml without code change.
+    declared requires_dedicated_process state on a worker.
+
+    ADR-082 replaces the rolling-N cycle_window with time-bucketed windows:
+    escalation looks at the worst hold in the last loop_hold_escalation_hours
+    (24h default); de-escalation requires loop_hold_deescalation_hours (168h)
+    of sustained cleanliness plus heartbeat activity proof. Correct for
+    event-driven sparse sampling — loop_hold.sample rows post only when
+    slow_callback_duration is tripped.
     """
 
     loop_hold_escalation_sec: float = 5.0
     loop_hold_deescalation_sec: float = 1.0
-    cycle_window: int = 5
+    loop_hold_escalation_hours: int = 24
+    loop_hold_deescalation_hours: int = 168
+    min_samples_for_escalation: int = 3
+    min_active_heartbeats_for_deescalation: int = 10
 
 
 @dataclass(frozen=True)
