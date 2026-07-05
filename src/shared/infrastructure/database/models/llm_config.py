@@ -98,6 +98,9 @@ class SystemConfig(Base):
     request_timeout_seconds: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="300"
     )
+    log_retention_months: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="24"
+    )
     embed_model_revision: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

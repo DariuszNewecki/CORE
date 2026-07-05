@@ -7,7 +7,7 @@ Organized by Mind-Body-Will architecture.
 
 from __future__ import annotations
 
-from .autonomous_proposals import AutonomousProposal
+from .autonomous_proposals import AutonomousProposal, ProposalConsequence
 from .decision_traces import DecisionTrace
 from .governance import AuditRun, ConstitutionalViolation
 from .knowledge import Base, Capability, Domain, Symbol, SymbolCapabilityLink
@@ -60,6 +60,8 @@ __all__ = [
     "Migration",
     "ModelPerformanceResult",
     "Northstar",
+    # Autonomous Proposals
+    "ProposalConsequence",
     "RetrievalFeedback",
     "RoleResourceAssignment",
     "RuntimeService",

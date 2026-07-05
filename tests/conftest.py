@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.database import session_manager
@@ -28,6 +29,40 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 async def _dispose_db_engines_after_each_test() -> AsyncGenerator[None, None]:
     yield
     await dispose_all_engines_for_current_loop_only()
+
+
+# ADR-016 D3 — TRUNCATE CASCADE between tests for isolation.
+#
+# Worker-session writes commit outside the test's transaction, so transactional
+# rollback cannot undo them. TRUNCATE at the table level works regardless of
+# session ownership. Only fires when the DB is reachable — same guard as
+# _skip_db_tests_when_unreachable.
+@pytest_asyncio.fixture(autouse=True)
+async def _truncate_core_tables_between_tests() -> AsyncGenerator[None, None]:
+    yield
+    reachable, _ = _db_reachability()
+    if not reachable:
+        return
+    try:
+        async with get_session() as session:
+            # Tables that accumulate during test runs. Config/registry tables
+            # (system_config, llm_resources, cognitive_roles) are excluded —
+            # tests read them and cleaning them would break subsequent tests.
+            # CASCADE propagates to FK-dependent tables (e.g. proposal_consequences
+            # from autonomous_proposals).
+            await session.execute(
+                text(
+                    "TRUNCATE TABLE "
+                    "core.blackboard_entries, "
+                    "core.autonomous_proposals, "
+                    "core.audit_runs, "
+                    "core.decision_traces "
+                    "CASCADE"
+                )
+            )
+            await session.commit()
+    except Exception:
+        pass
 
 
 # --- Skip DB-backed tests when the database is unreachable ----------------------
@@ -59,7 +94,10 @@ def _db_reachability() -> tuple[bool, str]:
         with socket.create_connection((host, port), timeout=3.0):
             return True, ""
     except OSError as exc:
-        return False, f"database host {host}:{port} is unreachable ({exc.__class__.__name__})"
+        return (
+            False,
+            f"database host {host}:{port} is unreachable ({exc.__class__.__name__})",
+        )
 
 
 @pytest.fixture(autouse=True)

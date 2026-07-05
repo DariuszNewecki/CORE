@@ -8,10 +8,21 @@ Stores registry-based action plans for autonomous execution.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from .knowledge import Base
 
@@ -25,7 +36,28 @@ class AutonomousProposal(Base):
     """
 
     __tablename__ = "autonomous_proposals"
-    __table_args__ = ({"schema": "core"},)
+    __table_args__ = (
+        # ADR-015 D2: approval_authority must be set once approved/executing/completed.
+        # Historical NULL carve-out for proposals created before the constraint landed.
+        CheckConstraint(
+            "(status <> ALL (ARRAY['approved', 'executing', 'completed']))"
+            " OR (approval_authority IS NOT NULL)"
+            " OR (created_at < '2026-04-27 00:00:00+00')",
+            name="approval_authority_required_when_approved",
+        ),
+        CheckConstraint(
+            "(approval_authority IS NULL)"
+            " OR (approval_authority = ANY (ARRAY["
+            "'risk_classification.safe_auto_approval', 'principal.governor']))",
+            name="autonomous_proposals_approval_authority_value_check",
+        ),
+        CheckConstraint(
+            "status = ANY (ARRAY["
+            "'draft', 'pending', 'approved', 'executing', 'completed', 'failed', 'rejected'])",
+            name="autonomous_proposals_status_check",
+        ),
+        {"schema": "core"},
+    )
 
     # Primary key (UUID)
     id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -79,4 +111,44 @@ class AutonomousProposal(Base):
     version = Column(Integer, nullable=False, server_default="0")
     updated_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# ID: f402eb28-e75d-416e-8e1a-074a625ca9c6
+class ProposalConsequence(Base):
+    """Consequence log: records what each executed proposal actually changed.
+
+    Closes the causal chain: Finding → Proposal → Approval → Execution → File Changes.
+    One row per proposal, keyed by proposal_id (FK to autonomous_proposals.proposal_id).
+
+    Added as ADR-016 D1 prerequisite: the table existed in production but had no
+    SQLAlchemy model, making it invisible to Base.metadata.create_all.
+    """
+
+    __tablename__ = "proposal_consequences"
+    __table_args__ = ({"schema": "core"},)
+
+    proposal_id: Mapped[str] = mapped_column(
+        Text,
+        ForeignKey("core.autonomous_proposals.proposal_id"),
+        primary_key=True,
+    )
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    pre_execution_sha: Mapped[str | None] = mapped_column(Text)
+    post_execution_sha: Mapped[str | None] = mapped_column(Text)
+    files_changed: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default="[]"
+    )
+    findings_resolved: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default="[]"
+    )
+    authorized_by_rules: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default="[]"
+    )
+    declared_production: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default="[]"
     )
