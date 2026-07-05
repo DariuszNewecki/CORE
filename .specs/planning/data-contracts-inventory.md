@@ -1,7 +1,7 @@
 # Data Contracts Inventory
 
 **Path:** `.specs/planning/data-contracts-inventory.md`
-**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07; counts + #367 reconciled 2026-06-17 — no Wave 2/3 progress in the interim, see Status section)
+**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07; counts + #367 reconciled 2026-06-17; Wave 1 BlackboardEntry payloads + universal results + Wave 2 Action.payload authored 2026-07-05 — e7627d4a)
 **Status:** Planning artifact — not constitutional
 **Authority:** ADR-056
 
@@ -33,10 +33,13 @@ D4 (Proposal state-conditional contract with `allOf`/`if`/`then` per
 is **closed** — #367 CLOSED. Full ADR-056 implementation (Wave 2/3)
 remains tracked at #366 (OPEN).
 
-**Staleness note (2026-06-07):** no Wave 2 or Wave 3 progress between
-2026-05-24 and 2026-06-07. Full ADR-056 implementation
-(D5→D6→Wave 1→Wave 2→Wave 3) is tracked at #366. The Wave 1/2/3 tables
-below reflect the same status as 2026-05-24.
+**Status as of 2026-07-05 (commit e7627d4a):** Wave 1 BlackboardEntry payload
+sub-schemas (worker_heartbeat, worker_error, run_complete nucleus,
+sync_db_complete, repo_crawl_complete) and universal result schemas
+(ComponentResult, FlowResult, StepResult) authored — Wave 1 schema coverage
+now complete. Wave 2 Action.payload.schema.json authored — Wave 2 schema
+coverage now complete. Wave 3 (API DTOs + run-table JSONB + agent/learning
+ORM + workflow models) remains open. Total contracts: 56 files.
 
 **Status convention in the tables below:** ✅ in the **Notes** column
 means a contract file exists at `.intent/enforcement/contracts/<name>.json`.
