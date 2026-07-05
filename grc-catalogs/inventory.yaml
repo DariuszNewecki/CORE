@@ -3,9 +3,9 @@
 # The GRC framework registry (ADR-116 D7). One public manifest declaring every
 # framework CORE catalogs: its tier, the approved retrieval sources
 # (whitelist-as-data — this governs every fetch), IP status, and authoring
-# status. `tier` (public/licensed = the commercial/access axis) is ORTHOGONAL
-# to `ip_status` (the source's copyright): GDPR is a licensed product built over
-# a public, reusable EU-law source.
+# status. `tier` (public/licensed = the IP/access axis) is ORTHOGONAL
+# to `ip_status` (the source's copyright): GDPR is a public-tier catalog built over
+# an official-eu-law-reusable source.
 #
 # A `published` entry MUST have a matching catalog.yaml + provenance.yaml whose
 # source agrees with the `sources` listed here (auditable; drift is a finding).
@@ -47,7 +47,7 @@ frameworks:
       - "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02016R0679-20160504"
       - "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
     revision: "consolidated 2016-05-04"
-    status: authored        # catalog+provenance written (licensed/gdpr/); publish gated on live source verification (EUR-Lex unreachable at authoring; provenance.source_verified=false)
+    status: authored        # catalog+provenance written (public/gdpr/); publish gated on live source verification (EUR-Lex unreachable at authoring; provenance.source_verified=false)
     version: null
 
   - id: cfr_part_11
@@ -105,14 +105,14 @@ frameworks:
 
   - id: nis2
     title: "Directive (EU) 2022/2555 — NIS2 (high common level of cybersecurity across the Union)"
-    tier: licensed
+    tier: public
     ip_status: official-eu-law-reusable   # Decision 2011/833/EU — same posture as gdpr
     fetch: full-text
     sources:
       - "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555"
       - "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
     revision: "OJ L 333, 27.12.2022"
-    note: "Directive (transposed via national law), not a regulation — catalog tracks the Union-level text. EUR-Lex is WebFetch-hostile (cf. gdpr): expect authoring to stall at source_verified=false pending human-paste verification. tier mirrors gdpr precedent (EU-law-reusable source, licensed product)."
+    note: "Directive (transposed via national law), not a regulation — catalog tracks the Union-level text. EUR-Lex is WebFetch-hostile (cf. gdpr): expect authoring to stall at source_verified=false pending human-paste verification. tier: public per ADR-116 updated tier boundary — EU law is freely accessible, its catalog is public."
     status: planned         # sources PROPOSED, not yet governor-approved → no fetch authorized
     version: null
 

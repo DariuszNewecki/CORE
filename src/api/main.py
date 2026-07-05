@@ -79,10 +79,9 @@ def _resolve_runtime_version() -> str:
 
 _OEM_API_DESCRIPTION = (
     """
-The CORE OEM API surface — the stable, versioned interface that commercial
-sidecars (F-20 convergence dashboard, F-34 web dashboard, F-45 hosted
-findings dashboard) and third-party OEM integrators consume to embed
-CORE's constitutional governance layer.
+The CORE API surface — the stable, versioned interface that external
+integrations and downstream distributions consume to embed CORE's
+constitutional governance layer.
 
 **Stability policy:** see [ADR-087]("""
     + _ADR_087_URL
@@ -109,9 +108,9 @@ def create_app(lifespan=None) -> FastAPI:
     the authoritative source of the F-40 contract while the daemon
     still exposes the operator surface a CORE deployment needs.
 
-    ``lifespan`` is optional: OSS deployments get ``core_lifespan``; commercial
-    builds (core-platform) pass a composed lifespan that wraps ``core_lifespan``
-    and adds UAC startup — the extension seam for open-core composition.
+    ``lifespan`` is optional: OSS deployments get ``core_lifespan``; downstream
+    distributions pass a composed lifespan that wraps ``core_lifespan``
+    and adds custom startup — the extension seam for open-core composition.
     """
     effective_lifespan = lifespan if lifespan is not None else core_lifespan
     app = FastAPI(
@@ -161,7 +160,7 @@ def create_app(lifespan=None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
     )
     # OSS mode: /v1/ routes are open — trusted localhost, no auth gate.
-    # core-platform mounts role checks on top when running in Console mode.
+    # Downstream distributions mount role checks on top in authenticated mode.
     v1 = APIRouter(prefix="/v1")
     v1.include_router(knowledge_routes.router, tags=["Knowledge"])
     v1.include_router(development_routes.router, tags=["Development"])

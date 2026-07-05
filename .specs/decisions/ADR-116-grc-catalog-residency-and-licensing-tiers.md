@@ -7,12 +7,12 @@ status: accepted
 
 <!-- path: .specs/decisions/ADR-116-grc-catalog-residency-and-licensing-tiers.md -->
 
-# ADR-116 — The GRC catalog is licensed law-as-data: CORE consumes a tiered corpus, it does not contain the moat
+# ADR-116 — The GRC catalog is law-as-data: CORE consumes a tiered corpus, IP-separated by tier
 
 **Status:** Accepted — governor-ratified 2026-06-19
 **Date:** 2026-06-19
 **Governing paper:** `.specs/papers/CORE-Disposition-Governance.md`
-**Grounding paper:** `CORE-BYOR.md` — §9 grounding item 3 ("the document/records Repository type + **regulation→Intent representation** — the GRC second domain") — primary; §3 (the Repository as the single parametrization seam; F-41/F-42/F-43) — the seam this binds; §7 (the honesty guardrail) and §6 (GRC monetizes Reach at low autonomy) — why the corpus is the commercial center of gravity.
+**Grounding paper:** `CORE-BYOR.md` — §9 grounding item 3 ("the document/records Repository type + **regulation→Intent representation** — the GRC second domain") — primary; §3 (the Repository as the single parametrization seam; F-41/F-42/F-43) — the seam this binds; §7 (the honesty guardrail).
 **Operationalizes:** the GRC gap-analysis service (Scenario 4 — the revenue priority). Supplies the **Intent** side of GRC gap-analysis; the customer brings the **Artifact** (their document corpus), CORE/us supply the licensed law.
 **Relates:** ADR-113 (per-finding evidence class — what each catalog *check* declares) — distinct surface; this ADR governs where the catalog *lives*, ADR-113 governs how its findings are *labelled*. ADR-108/ADR-111 (external adoption, the `examples/starter-intent/` precedent for shipped reference data).
 **Advances:** backlog T5b (`.specs/planning/CORE-BYOR-Program-Backlog.md`) — partially. The catalog (regulation→Intent) is decided here; the document/records **sensor type** (F-42 binding that reads a customer's records library) remains a sibling slice.
@@ -21,11 +21,11 @@ status: accepted
 
 ## Context
 
-The governor has decided the GRC requirements catalog is **the proprietary,
-maintained, licensed corpus** — the commercial moat and a standing obligation —
-not open reference data. CORE's value is *trust made mechanical* (honest
-per-finding provenance, ADR-113), and the catalog is the curated asset that trust
-is sold around.
+The GRC requirements catalog is **law-as-data** — a maintained, IP-stratified
+corpus. Freely-accessible regulations (NIST, EU law, US CFR) belong in the public
+tier; copyrighted or paywalled standards belong in the licensed tier. CORE's value
+is *trust made mechanical* (honest per-finding provenance, ADR-113), and the
+catalog is the curated, IP-protected asset that trust is built around.
 
 #678 shipped the first catalog (`nist_800_171_min.yaml`) under
 `src/body/services/grc/catalogs/`, with `load_catalog()` reading
@@ -41,11 +41,7 @@ demo, and it is wrong on two counts:
 
 2. **Exposure.** `DariuszNewecki/CORE` is a **public** repository. A licensed
    corpus committed in-tree enters public git history permanently — wheel exclusion
-   does nothing about *source* visibility. The moat cannot be born in public git.
-
-The data-residency model already recorded for GRC (on-prem for regulated buyers
-whose data cannot leave; concierge otherwise) means the licensed bytes reach a
-customer as an **entitlement**, not a git checkout.
+   does nothing about *source* visibility. Licensed content cannot be born in public git.
 
 ## Decision
 
@@ -135,10 +131,9 @@ reviewed registry. `tier` (the commercial/access axis) is **orthogonal** to
 `official-eu-law-reusable` source, so it may be fetched full-text while its
 authored catalog stays in the licensed tier. A `published` entry MUST have a
 matching `catalog.yaml` + `provenance.yaml` whose source agrees with the
-manifest; an audit checks this and drift is a finding. Listing licensed-tier
-frameworks in the public manifest is intentional — coverage is not the moat (the
-authored requirement content is), so the registry doubles as a public
-product-coverage view.
+manifest; an audit checks this and drift is a finding. Listing licensed-tier frameworks in the public manifest is intentional — the
+registry doubles as a public coverage view; the authored requirement content
+remains IP-protected in the licensed tier.
 
 ### D8 — Licensed-tier wiring resolved: tier boundary = repo boundary (appended 2026-06-19)
 Closing the D2/D3 open choices, the licensed tier is wired so the access-control
@@ -207,8 +202,8 @@ from this ratification.
 
 ## Consequences
 
-- The moat never enters public git; its existence and contents are gated by
-  entitlement, satisfying the regulated-buyer residency constraint by construction.
+- Licensed IP never enters public git; IP protection is enforced by the tier
+  boundary itself.
 - `src/` returns to being pure implementation; the catalog joins the family of
   governed data corpora.
 - A new top-level `grc-catalogs/` root is authorized by this ADR (it is outside the
