@@ -99,7 +99,7 @@ They are subject to change without notice and not part of this contract.
 
 
 # ID: 2751f337-a513-4f6d-8f35-b9d7055faac0
-def create_app() -> FastAPI:
+def create_app(lifespan=None) -> FastAPI:
     """Compose the FastAPI app for the daemon + OEM API surface.
 
     The app serves both the public OEM API (routes annotated public per
@@ -108,12 +108,17 @@ def create_app() -> FastAPI:
     the published OpenAPI spec). The split lets `/v1/openapi.json` be
     the authoritative source of the F-40 contract while the daemon
     still exposes the operator surface a CORE deployment needs.
+
+    ``lifespan`` is optional: OSS deployments get ``core_lifespan``; commercial
+    builds (core-platform) pass a composed lifespan that wraps ``core_lifespan``
+    and adds UAC startup — the extension seam for open-core composition.
     """
+    effective_lifespan = lifespan if lifespan is not None else core_lifespan
     app = FastAPI(
         title="CORE OEM API",
         version=_resolve_runtime_version(),
         description=_OEM_API_DESCRIPTION,
-        lifespan=core_lifespan,
+        lifespan=effective_lifespan,
         # ADR-087 D2 + D7: fastapi 0.132 introduced default-strict Content-Type
         # checking on JSON requests. That is a request-shape tightening per D2
         # ("narrower accepted shape — breaking"). The grandfathered v1 baseline
