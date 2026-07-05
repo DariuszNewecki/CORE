@@ -26,7 +26,6 @@ from typing import Any
 import httpx
 
 from api.cli.audit_client import AuditClient
-from api.cli.auth_client import AuthClient
 from api.cli.census_client import CensusClient
 from api.cli.coverage_client import CoverageClient
 from api.cli.daemon_client import DaemonClient
@@ -39,7 +38,6 @@ from api.cli.proposals_client import ProposalsClient
 from api.cli.quality_client import QualityClient
 from api.cli.refactor_client import RefactorClient
 from api.cli.sync_client import SyncClient
-from shared.infrastructure.cli_session import load_session
 
 
 _DEFAULT_BASE_URL = "http://127.0.0.1:8000"
@@ -52,19 +50,15 @@ _POLL_TERMINAL_STATES = frozenset({"completed", "failed"})
 class CoreApiClient:
     """Async HTTP client targeting the loopback-bound CORE API.
 
-    Attaches the governor session cookie (core_access JWT) from
-    ~/.config/core/session.json on every request. Run
-    `core-admin auth login` to obtain a session (ADR-132).
-
-    Internally a facade over namespace sub-clients (see module
-    docstring). Existing flat methods are preserved as delegating
-    shims for backwards-compatible call sites.
+    OSS CORE runs in trusted-localhost mode — no authentication required.
+    Internally a facade over namespace sub-clients (see module docstring).
+    Existing flat methods are preserved as delegating shims for
+    backwards-compatible call sites.
     """
 
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or _DEFAULT_BASE_URL
         self.timeout = _DEFAULT_TIMEOUT_SECONDS
-        self.auth = AuthClient(self)
         self.audits = AuditClient(self)
         self.fix = FixClient(self)
         self.quality = QualityClient(self)
@@ -82,15 +76,8 @@ class CoreApiClient:
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:
         url = f"{self.base_url}{path}"
-        session = load_session()
-        if session and "cookies" not in kwargs:
-            kwargs["cookies"] = {"core_access": session["access_token"]}
-        elif session and isinstance(kwargs.get("cookies"), dict):
-            kwargs["cookies"].setdefault("core_access", session["access_token"])
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.request(method, url, **kwargs)
-            if response.status_code == 401:
-                raise RuntimeError("Not authenticated. Run: core-admin auth login")
             if response.status_code >= 400:
                 try:
                     detail = response.json().get("detail", response.text)

@@ -156,27 +156,6 @@ class Settings(BaseSettings):
     CORE_MASTER_KEY: str | None = Field(None, validation_alias="CORE_MASTER_KEY")
     LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
 
-    # UAC — auth token secrets and email delivery (ADR-124)
-    JWT_SECRET_KEY: str = Field(
-        "change-me-in-production", validation_alias="JWT_SECRET_KEY"
-    )
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
-        15, validation_alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
-    )
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
-        30, validation_alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS"
-    )
-    # Must be explicitly set True in dev/test to permit the default JWT secret.
-    # Affirmative opt-in so a misconfigured staging env cannot accidentally bypass
-    # the startup guard via an env-name string match (#711).
-    ALLOW_INSECURE_DEV_SECRET: bool = Field(
-        False, validation_alias="ALLOW_INSECURE_DEV_SECRET"
-    )
-    RESEND_API_KEY: str | None = Field(None, validation_alias="RESEND_API_KEY")
-    APP_BASE_URL: str = Field("http://localhost:8000", validation_alias="APP_BASE_URL")
-    MAIL_FROM: str = Field(
-        "CORE <noreply@core-governance.com>", validation_alias="MAIL_FROM"
-    )
     # T6b: allowed CORS origins. Defaults to the Vite dev server; override in
     # production via CORS_ORIGINS='["https://app.example.com"]' (JSON array).
     CORS_ORIGINS: list[str] = Field(

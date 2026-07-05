@@ -59,8 +59,8 @@ router = APIRouter(prefix="/proposals")
 class ApproveRequest(BaseModel):
     """Body for POST /proposals/{id}/approve.
 
-    `approved_by` is derived server-side from the JWT sub/email claim and
-    is not accepted from the request body.
+    `approved_by` is derived server-side from the request context and is
+    not accepted from the request body.
     """
 
     approval_authority: str
@@ -258,7 +258,7 @@ async def approve_proposal(
     `approval_authority` is non-omittable per URS NFR.5 and validated
     against the proposal_approval_authority closed set inside
     ProposalStateManager.approve. `approved_by` is derived from the
-    authenticated JWT (sub) — caller-supplied identity claims are ignored.
+    request context (trusted-localhost in OSS mode).
     """
     approved_by = user.get("email") or user.get("sub", "unknown")
     service = ProposalService(session)
