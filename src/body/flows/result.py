@@ -41,7 +41,7 @@ class StepResult:
     """Wall-clock duration of this step."""
 
     kind: str = "action"
-    """'action' or 'flow' — mirrors StepKind for serialization."""
+    """'action', 'flow', or 'cognitive' — mirrors StepKind for serialization."""
 
 
 @dataclass
