@@ -338,7 +338,7 @@
       "term": "NorthStar",
       "definition": "The reason CORE exists: use AI to write code in a controlled way. Law outranks intelligence. Defensibility outranks productivity.",
       "not": "NorthStar is not a strategy document or a feature roadmap. It is a governing law: the reference against which all CORE design decisions are evaluated. When a design decision conflicts with NorthStar, the decision changes, not the star.",
-      "authoritative_paper": ".specs/northstar/core_northstar.md",
+      "authoritative_paper": ".specs/northstar/CORE - What It Does.md",
       "aliases": [],
       "see_also": [
         "Constitution | Authority"
@@ -358,7 +358,7 @@
       "term": "OptimizerWorker",
       "definition": "An acting Worker. Observes repeated ViolationExecutor patterns and proposes AtomicAction codification for graduation to the constitutional path. Not yet designed.",
       "not": "OptimizerWorker is not a performance optimizer. Its job is governance progression: graduating ViolationExecutor patterns into constitutional AtomicActions, shrinking the fallback path toward zero. It does not optimize code — it optimizes the remediation pipeline.",
-      "authoritative_paper": ".specs/papers/CORE-OptimizerWorker.md",
+      "authoritative_paper": ".specs/decisions/ADR-034-optimizer-worker-formal-deferral.md",
       "aliases": [],
       "see_also": [
         "ViolationExecutor | AtomicAction | RemediationMap"

@@ -38,3 +38,4 @@ implementation:
   module: will.workers.llm_partition_archiver
   class: LlmPartitionArchiverWorker
   requires_core_context: true
+  requires_dedicated_process: true

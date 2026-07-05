@@ -40,3 +40,4 @@ implementation:
   module: will.workers.proposal_consumer_worker
   class: ProposalConsumerWorker
   requires_core_context: true
+  requires_dedicated_process: true
