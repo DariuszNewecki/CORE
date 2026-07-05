@@ -23,14 +23,12 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.dependencies import get_current_user
 from api.errors import register_exception_handlers
 from api.v1 import (
     audit_routes,
-    auth_routes,
     census_routes,
     coverage_routes,
     daemon_routes,
@@ -157,12 +155,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
     )
-    app.include_router(auth_routes.router)
-
-    # T6c — all /v1/ routes require a valid session (Option 1 gate).
-    # To migrate to per-route role checks (Option 2): remove the
-    # dependency here and add Depends(require_role(...)) per sub-router.
-    v1 = APIRouter(prefix="/v1", dependencies=[Depends(get_current_user)])
+    # OSS mode: /v1/ routes are open — trusted localhost, no auth gate.
+    # core-platform mounts role checks on top when running in Console mode.
+    v1 = APIRouter(prefix="/v1")
     v1.include_router(knowledge_routes.router, tags=["Knowledge"])
     v1.include_router(development_routes.router, tags=["Development"])
     v1.include_router(proposals_routes.router, tags=["Proposals"])

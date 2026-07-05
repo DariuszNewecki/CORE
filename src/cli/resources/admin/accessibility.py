@@ -32,7 +32,6 @@ console = Console()
 
 _API_ROUTE_MODULES: list[str] = [
     "api.v1.audit_routes",
-    "api.v1.auth_routes",
     "api.v1.census_routes",
     "api.v1.coverage_routes",
     "api.v1.daemon_routes",

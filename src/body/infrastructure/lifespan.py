@@ -15,7 +15,6 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from body.infrastructure.bootstrap import create_core_context
-from body.services.auth.deny_list import deny_list
 from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
@@ -36,19 +35,6 @@ async def core_lifespan(app: FastAPI):
     Constitutional ignition and shutdown sequence for the CORE system.
     """
     logger.info("🚀 Starting CORE system...")
-
-    # 0. SECURITY PRE-FLIGHT: reject default JWT secret unless the
-    # ALLOW_INSECURE_DEV_SECRET flag is explicitly set (#711).
-    # Env-name strings are not trusted — a staging env copied from a dev
-    # config can have CORE_ENV=DEVELOPMENT while serving real traffic.
-    if (
-        settings.JWT_SECRET_KEY == "change-me-in-production"
-        and not settings.ALLOW_INSECURE_DEV_SECRET
-    ):
-        raise RuntimeError(
-            "JWT_SECRET_KEY is set to the insecure default. "
-            "Set a strong secret via the JWT_SECRET_KEY environment variable."
-        )
 
     # 1. CONSTITUTIONAL BOOTSTRAP
     core_context = create_core_context(service_registry)
@@ -94,7 +80,6 @@ async def core_lifespan(app: FastAPI):
                 log_level_from_db = await config.get("LOG_LEVEL", "INFO")
                 reconfigure_log_level(log_level_from_db)
                 await cognitive.initialize(session)
-                await deny_list.initialize(session)
 
             # 5. LOAD KNOWLEDGE GRAPH
             await auditor.load_knowledge_graph()
