@@ -1,0 +1,41 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.llm_partition_maintainer
+  title: LLM Exchange Log Partition Maintainer
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-052 requires that the next month's partition of core.llm_exchange_log exist
+    before the month begins. Without automation, a missing partition makes the
+    append-only LLM audit log unwritable for the affected month — an unrecoverable
+    GxP gap under EU Annex 11. This worker creates partitions ADVANCE_MONTHS=3 ahead,
+    posting a finding on any creation failure so the operator is alerted before the
+    gap becomes a live outage. Closes #329.
+
+identity:
+  uuid: "92b16690-85c1-4b87-928e-cc7c3c553cc7"
+  class: governance
+
+mandate:
+  responsibility: >
+    Create upcoming monthly partitions for core.llm_exchange_log via the
+    log.maintain_partitions atomic action (write=True). Post a report on success;
+    post a finding on failure. Always post a heartbeat.
+  phase: execution
+  permitted_tools:
+    - log.maintain_partitions
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 21600
+
+implementation:
+  module: will.workers.llm_partition_maintainer
+  class: LlmPartitionMaintainerWorker
+  requires_core_context: true

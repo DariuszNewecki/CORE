@@ -21,6 +21,7 @@ from body.atomic import (
     document,
     file_ops,
     fix_actions,
+    log_actions,
     metadata_ops,
     modularity_fix,
     proposal_lifecycle_actions,
@@ -53,6 +54,7 @@ from body.atomic.fix_actions import (
 from body.atomic.fix_actions import (
     action_format_code as action_fix_format,
 )
+from body.atomic.log_actions import action_maintain_log_partitions
 from body.atomic.metadata_ops import action_tag_metadata
 from body.atomic.modularity_fix import action_fix_modularity
 from body.atomic.registry import action_registry, register_action
@@ -78,6 +80,7 @@ __all__ = [
     "action_fix_ids",
     "action_fix_logging",
     "action_fix_modularity",
+    "action_maintain_log_partitions",
     "action_read_file",
     "action_refactor_apply_split",
     "action_registry",
