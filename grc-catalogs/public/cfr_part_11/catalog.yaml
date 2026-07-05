@@ -1,0 +1,202 @@
+# grc-catalogs/public/cfr_part_11/catalog.yaml
+#
+# A maintained, regulation-derived GRC requirements catalog (minimal subset).
+# Public tier (ADR-116): 21 CFR Part 11 is committed in the public CORE repo. The
+# source (U.S. Code of Federal Regulations) is a U.S. Government work and publicly
+# accessible. Full IP/derivation provenance is in the sibling provenance.yaml.
+# Requirement statements below are CORE-authored paraphrases of each section's
+# *intent*, bound to checkable engines and citing section identifiers; the
+# regulation's full text is NOT reproduced.
+#
+# HONESTY (CORE-BYOR §5 parameter 2): the lanes are split deliberately —
+#   proven   = deterministic document-quality gates (the completeness skeleton)
+#   judged   = control *substance*, an AI reading of the evidence (opinion, labelled)
+#   attested = irreducibly human controls (a reviewer must sign)
+# CORE reports only what it can defend; it never sells a judged opinion as proven.
+
+catalog:
+  id: cfr_part_11
+  title: "21 CFR Part 11 — Electronic Records; Electronic Signatures (minimal subset)"
+  source: "U.S. Code of Federal Regulations, Title 21, Part 11 — Electronic Records; Electronic Signatures"
+  source_authority: "U.S. Food and Drug Administration (FDA)"
+  source_revision: "2024 annual edition (revised as of April 1, 2024)"
+  license: "U.S. Government work — public domain; section identifiers cited, regulatory text not reproduced"
+  catalog_version: "0.1.0"
+  maintained_by: "CORE GRC"
+  note: >
+    Illustrative subset for the gap-analysis service. Keeping this catalog
+    current against the authoritative CFR text is a standing maintenance
+    obligation — a stale catalog yields a confidently-wrong report.
+
+requirements:
+  # --- proven: deterministic document-quality gates -----------------------
+  - id: cfr_part_11.doc_finalized
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: blocking
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Compliance documents MUST be finalized — no placeholder, TODO, TBD,
+      DRAFT, or FIXME text remaining.
+    params:
+      forbidden_patterns:
+        - '\bTBD\b'
+        - '\bTODO\b'
+        - '\bDRAFT\b'
+        - '\bFIXME\b'
+        - '<placeholder>'
+
+  # --- judged: section substance (AI reading; verdict labelled 'judged') ---
+  - id: cfr_part_11.11_10_closed_system_controls
+    control: "§ 11.10"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Closed systems holding electronic records employ controls that ensure
+      authenticity, integrity, and confidentiality — including validation,
+      access limits, and operational system checks (21 CFR § 11.10).
+    params:
+      instruction: >-
+        Does this document establish controls for closed systems that ensure
+        the authenticity, integrity, and (where appropriate) confidentiality of
+        electronic records — such as system validation, limited system access,
+        and operational/authority checks? Report a violation if these controls
+        are absent.
+      rationale: "21 CFR § 11.10 — Controls for closed systems."
+
+  - id: cfr_part_11.11_10_audit_trail
+    control: "§ 11.10(e)"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Secure, computer-generated, time-stamped audit trails record operator
+      entries and actions that create, modify, or delete electronic records,
+      without obscuring previously recorded information (21 CFR § 11.10(e)).
+    params:
+      instruction: >-
+        Does this document require secure, computer-generated, time-stamped
+        audit trails that independently record the date and time of operator
+        actions creating, modifying, or deleting records, while preserving
+        previously recorded information? Report a violation if audit trails are
+        not addressed.
+      rationale: "21 CFR § 11.10(e) — Audit trails for closed systems."
+
+  - id: cfr_part_11.11_50_signature_manifestations
+    control: "§ 11.50"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Signed electronic records display the signer's printed name, the date and
+      time of signing, and the meaning of the signature (e.g. review, approval)
+      (21 CFR § 11.50).
+    params:
+      instruction: >-
+        Does this document require that signed electronic records show the
+        printed name of the signer, the date and time the signature was
+        executed, and the meaning associated with the signature (such as review
+        or approval)? Report a violation if signature manifestations are not
+        addressed.
+      rationale: "21 CFR § 11.50 — Signature manifestations."
+
+  - id: cfr_part_11.11_70_signature_record_linking
+    control: "§ 11.70"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Electronic and handwritten signatures executed to electronic records are
+      linked to their respective records so they cannot be excised, copied, or
+      transferred to falsify another record (21 CFR § 11.70).
+    params:
+      instruction: >-
+        Does this document require that signatures be linked to their electronic
+        records such that a signature cannot be cut, copied, or otherwise
+        transferred to falsify a different record? Report a violation if
+        signature/record linking is not addressed.
+      rationale: "21 CFR § 11.70 — Signature/record linking."
+
+  - id: cfr_part_11.11_200_signature_components
+    control: "§ 11.200"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Non-biometric electronic signatures use at least two distinct
+      identification components (e.g. an ID code and a password), and signatures
+      are used only by their genuine owners (21 CFR § 11.200).
+    params:
+      instruction: >-
+        Does this document require that non-biometric electronic signatures
+        employ at least two distinct identification components and be used only
+        by their genuine owners (not transferable to others)? Report a violation
+        if electronic-signature component controls are absent.
+      rationale: "21 CFR § 11.200 — Electronic signature components and controls."
+
+  - id: cfr_part_11.11_300_password_controls
+    control: "§ 11.300"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Identification codes and passwords are controlled — kept unique, checked
+      and revised periodically, with loss management and detection of
+      unauthorized use (21 CFR § 11.300).
+    params:
+      instruction: >-
+        Does this document establish controls over identification codes and
+        passwords — ensuring uniqueness, periodic revision, deauthorization of
+        lost or compromised credentials, and detection of unauthorized use?
+        Report a violation if identification-code/password controls are absent.
+      rationale: "21 CFR § 11.300 — Controls for identification codes/passwords."
+
+  # --- attested: irreducibly human controls -------------------------------
+  - id: cfr_part_11.11_10a_validation
+    control: "§ 11.10(a)"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Systems are validated to ensure accuracy, reliability, consistent intended
+      performance, and the ability to discern invalid or altered records
+      (21 CFR § 11.10(a)).
+    params:
+      prompt: >-
+        Confirm that the system holding electronic records has been validated
+        for accuracy, reliability, and consistent intended performance, with
+        documented evidence.
+      reference: "21 CFR § 11.10(a) — Validation of systems."
+
+  - id: cfr_part_11.11_10i_training
+    control: "§ 11.10(i)"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Persons who develop, maintain, or use electronic-record/signature systems
+      have the education, training, and experience to perform their assigned
+      tasks (21 CFR § 11.10(i)).
+    params:
+      prompt: >-
+        Confirm that personnel who develop, maintain, or use the system are
+        qualified by education, training, and experience for their assigned
+        tasks, with training records retained.
+      reference: "21 CFR § 11.10(i) — Personnel qualifications and training."
+
+  - id: cfr_part_11.11_100_signer_certification
+    control: "§ 11.100(c)"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      The organization has certified to the FDA that electronic signatures used
+      on or after August 20, 1997 are the legally binding equivalent of
+      handwritten signatures (21 CFR § 11.100(c)).
+    params:
+      prompt: >-
+        Confirm that the organization has submitted the certification to the FDA
+        that its electronic signatures are intended to be the legally binding
+        equivalent of handwritten signatures.
+      reference: "21 CFR § 11.100(c) — Certification to the FDA."

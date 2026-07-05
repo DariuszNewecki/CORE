@@ -1,0 +1,43 @@
+# grc-catalogs/licensed/eu_annex_11/provenance.yaml
+#
+# Per-catalog provenance + IP audit trail (ADR-116 D5). Machine-readable so the
+# tier-vs-IP distinction and the "text not reproduced" discipline are a checkable
+# property of every catalog, not tribal knowledge. A gap report cites the
+# framework + catalog_version it ran against.
+
+framework: "EudraLex Vol. 4 Annex 11 — Computerised Systems"
+tier: public
+catalog: catalog.yaml
+
+source:
+  publisher: "European Commission (EudraLex — GMP guidelines, Volume 4)"
+  document: "EudraLex Volume 4, Good Manufacturing Practice, Annex 11: Computerised Systems"
+  revision: "revision 1 (effective 30 June 2011)"
+  url: "https://health.ec.europa.eu/medicinal-products/eudralex/eudralex-volume-4_en"
+  url_verified: "https://health.ec.europa.eu/document/download/8d305550-dd22-4dad-8463-2ddb4a1345f1_en?filename=annex11_01-2011_en.pdf"
+
+ip_status: official-eu-reusable
+text_reproduced: false
+ip_notes: >-
+  Annex 11 is an official EU GMP guideline published by the European Commission
+  and freely reusable. Requirement statements in catalog.yaml are CORE-authored
+  paraphrases of each provision's intent, bound to checkable verification engines
+  and citing provision numbers/titles. The guideline's full provision text is NOT
+  reproduced, and this catalog is not a substitute for the authoritative EudraLex
+  text.
+
+derivation: >-
+  CORE-authored paraphrase of provision intent per cited provision number/title,
+  bound to a verification engine (regex_gate / llm_gate / attestation_gate).
+  Provisions 1–17 of the operative 2011 revision.
+
+# Verification state (ADR-116 lifecycle). The EudraLex landing page (url) served
+# the European Commission's own direct download link to the Annex 11 PDF
+# (url_verified); that authoritative PDF was read and all 17 numbered provisions
+# (Principle; 1 Risk Management … 17 Archiving; revision 1, effective 30 June
+# 2011) were confirmed. Unlike EUR-Lex, the EC health site served the document.
+source_verified: true
+verified_against: "European Commission EudraLex Annex 11 PDF (annex11_01-2011_en.pdf), provisions 1–17"
+
+catalog_version: "0.1.0"
+maintained_by: "CORE GRC"

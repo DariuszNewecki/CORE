@@ -1,0 +1,192 @@
+# grc-catalogs/public/gdpr/catalog.yaml
+#
+# A maintained, regulation-derived GRC requirements catalog (minimal subset).
+# Public tier (ADR-116): GDPR is committed in the public CORE repo. The tier
+# axis (commercial/access) is ORTHOGONAL to the IP axis — GDPR's source is an
+# official EU-law text that is freely reusable (Decision 2011/833/EU). Full
+# IP/derivation provenance is in the sibling provenance.yaml.
+# Requirement statements below are CORE-authored paraphrases of each article's *intent*, bound to checkable
+# engines and citing article identifiers; the Regulation's full text is NOT
+# reproduced.
+#
+# HONESTY (CORE-BYOR §5 parameter 2): the lanes are split deliberately —
+#   proven   = deterministic document-quality gates (the completeness skeleton)
+#   judged   = control *substance*, an AI reading of the evidence (opinion, labelled)
+#   attested = irreducibly human controls (a reviewer must sign)
+# CORE reports only what it can defend; it never sells a judged opinion as proven.
+
+catalog:
+  id: gdpr
+  title: "Regulation (EU) 2016/679 (GDPR) — minimal subset"
+  source: "Regulation (EU) 2016/679 of the European Parliament and of the Council (General Data Protection Regulation)"
+  source_authority: "European Parliament and Council of the European Union"
+  source_revision: "consolidated text 2016-05-04 (CELEX 02016R0679-20160504)"
+  license: "Official EU-law text, freely reusable (Decision 2011/833/EU); article identifiers cited, article text not reproduced"
+  catalog_version: "0.1.0"
+  maintained_by: "CORE GRC"
+  note: >
+    Illustrative subset for the gap-analysis service. Keeping this catalog
+    current against the authoritative Official Journal text is a standing
+    maintenance obligation — a stale catalog yields a confidently-wrong report.
+
+requirements:
+  # --- proven: deterministic document-quality gates -----------------------
+  - id: gdpr.doc_finalized
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: blocking
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Compliance documents MUST be finalized — no placeholder, TODO, TBD,
+      DRAFT, or FIXME text remaining.
+    params:
+      forbidden_patterns:
+        - '\bTBD\b'
+        - '\bTODO\b'
+        - '\bDRAFT\b'
+        - '\bFIXME\b'
+        - '<placeholder>'
+
+  - id: gdpr.no_repealed_directive
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Documents MUST cite the operative regulation — no reference to the
+      repealed Directive 95/46/EC as the governing data-protection law
+      (repealed by GDPR Article 94).
+    params:
+      forbidden_patterns:
+        - '\b95/46/EC\b'
+        - 'Directive\s+95/46'
+
+  # --- judged: article substance (AI reading; verdict labelled 'judged') ---
+  - id: gdpr.5_processing_principles
+    control: "Art. 5"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Personal data is processed lawfully, fairly and transparently, collected
+      for specified purposes, and limited to what is necessary (data
+      minimisation) (GDPR Article 5).
+    params:
+      instruction: >-
+        Does this document establish that personal data is processed lawfully,
+        fairly and transparently, for specified and legitimate purposes, and
+        limited to what is necessary for those purposes? Report a violation if
+        the document is silent on or contradicts these principles.
+      rationale: "GDPR Art. 5 — Principles relating to processing of personal data."
+
+  - id: gdpr.6_lawful_basis
+    control: "Art. 6"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Each processing activity rests on at least one identified lawful basis
+      (e.g. consent, contract, legal obligation, legitimate interests)
+      (GDPR Article 6).
+    params:
+      instruction: >-
+        Does this document identify a lawful basis for processing (such as
+        consent, performance of a contract, legal obligation, vital interests,
+        public task, or legitimate interests)? Report a violation if processing
+        is described without any stated lawful basis.
+      rationale: "GDPR Art. 6 — Lawfulness of processing."
+
+  - id: gdpr.13_transparency_at_collection
+    control: "Art. 13"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Where personal data is collected from the data subject, the controller's
+      identity, the purposes of processing, and the data subject's rights are
+      disclosed at the time of collection (GDPR Article 13).
+    params:
+      instruction: >-
+        Does this document provide data subjects, at the point of collection,
+        with the controller's identity and contact details, the purposes and
+        legal basis of processing, and information about their rights? Report a
+        violation if such transparency information is absent.
+      rationale: "GDPR Art. 13 — Information to be provided where personal data are collected from the data subject."
+
+  - id: gdpr.32_security_of_processing
+    control: "Art. 32"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Appropriate technical and organisational measures protect personal data,
+      proportionate to the risk (e.g. encryption, confidentiality, integrity,
+      availability, resilience) (GDPR Article 32).
+    params:
+      instruction: >-
+        Does this document describe appropriate technical and organisational
+        security measures (such as encryption, access control, confidentiality,
+        integrity, availability, or resilience) proportionate to the risk of the
+        processing? Report a violation if security measures are not addressed.
+      rationale: "GDPR Art. 32 — Security of processing."
+
+  - id: gdpr.33_breach_notification_72h
+    control: "Art. 33"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Personal data breaches are notified to the supervisory authority without
+      undue delay and, where feasible, within 72 hours of becoming aware
+      (GDPR Article 33).
+    params:
+      instruction: >-
+        Does this document define a personal-data-breach notification process
+        that reports to the supervisory authority without undue delay and, where
+        feasible, within 72 hours of awareness? Report a violation if breach
+        notification to the authority is not addressed.
+      rationale: "GDPR Art. 33 — Notification of a personal data breach to the supervisory authority."
+
+  # --- attested: irreducibly human controls -------------------------------
+  - id: gdpr.30_records_of_processing
+    control: "Art. 30"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      A record of processing activities is maintained, describing purposes,
+      categories of data subjects and data, and recipients (GDPR Article 30).
+    params:
+      prompt: >-
+        Confirm that a current record of processing activities (ROPA) is
+        maintained and accurately reflects the organisation's processing.
+      reference: "GDPR Art. 30 — Records of processing activities."
+
+  - id: gdpr.35_dpia_high_risk
+    control: "Art. 35"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      A data protection impact assessment is carried out for processing likely
+      to result in a high risk to the rights and freedoms of individuals
+      (GDPR Article 35).
+    params:
+      prompt: >-
+        Confirm that, for high-risk processing, a data protection impact
+        assessment (DPIA) has been conducted and its mitigations adopted.
+      reference: "GDPR Art. 35 — Data protection impact assessment."
+
+  - id: gdpr.37_dpo_designated
+    control: "Art. 37"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      A data protection officer is designated where required by the nature,
+      scope, or purposes of processing (GDPR Article 37).
+    params:
+      prompt: >-
+        Confirm that a data protection officer has been designated where
+        required, with the necessary independence and reporting line.
+      reference: "GDPR Art. 37 — Designation of the data protection officer."

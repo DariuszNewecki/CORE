@@ -40,7 +40,7 @@ frameworks:
 
   - id: gdpr
     title: "Regulation (EU) 2016/679 — GDPR"
-    tier: licensed
+    tier: public
     ip_status: official-eu-law-reusable   # Decision 2011/833/EU
     fetch: full-text
     sources:
@@ -52,7 +52,7 @@ frameworks:
 
   - id: cfr_part_11
     title: "21 CFR Part 11 — Electronic Records; Electronic Signatures"
-    tier: licensed
+    tier: public
     ip_status: public-domain   # U.S. Government work (Code of Federal Regulations)
     fetch: full-text
     sources:
@@ -79,7 +79,7 @@ frameworks:
 
   - id: eu_annex_11
     title: "EudraLex Vol. 4 Annex 11 — Computerised Systems"
-    tier: licensed
+    tier: public
     ip_status: official-eu-reusable   # EU GMP guideline (European Commission); freely available & reusable
     fetch: full-text
     sources:

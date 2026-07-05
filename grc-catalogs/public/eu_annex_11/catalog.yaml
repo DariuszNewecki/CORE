@@ -1,0 +1,207 @@
+# grc-catalogs/public/eu_annex_11/catalog.yaml
+#
+# A maintained, regulation-derived GRC requirements catalog (minimal subset).
+# Public tier (ADR-116). EudraLex Vol. 4 Annex 11 (Computerised Systems) is an
+# EU GMP guideline published by the European Commission — official and freely
+# reusable (like GDPR; the tier axis is ORTHOGONAL to the IP axis). Full
+# IP/derivation provenance is in the sibling provenance.yaml. Requirement
+# statements below are CORE-authored paraphrases of each provision's *intent*,
+# bound to checkable engines and citing provision numbers/titles; the guideline's
+# full text is NOT reproduced.
+#
+# This is the EU computerised-systems companion to the 21 CFR Part 11 catalog
+# (the US e-records rule) — the two are the standard GxP pair.
+#
+# HONESTY (CORE-BYOR §5 parameter 2): the lanes are split deliberately —
+#   proven   = deterministic document-quality gates (the completeness skeleton)
+#   judged   = control *substance*, an AI reading of the evidence (opinion, labelled)
+#   attested = irreducibly human controls (a reviewer must sign)
+# CORE reports only what it can defend; it never sells a judged opinion as proven.
+
+catalog:
+  id: eu_annex_11
+  title: "EudraLex Vol. 4 Annex 11 — Computerised Systems (minimal subset)"
+  source: "EudraLex — The Rules Governing Medicinal Products in the European Union, Volume 4, Good Manufacturing Practice, Annex 11: Computerised Systems"
+  source_authority: "European Commission (EudraLex GMP guidelines)"
+  source_revision: "revision 1 (effective 30 June 2011)"
+  license: "Official EU guidance, freely reusable; provision numbers/titles cited, provision text not reproduced"
+  catalog_version: "0.1.0"
+  maintained_by: "CORE GRC"
+  note: >
+    Illustrative subset for the gap-analysis service. Identifiers reference the
+    numbered Annex 11 provisions (1–17). Keeping this catalog current against the
+    authoritative EudraLex text is a standing maintenance obligation — a stale
+    catalog yields a confidently-wrong report. A revised Annex 11 was issued for
+    consultation in 2025; this catalog targets the operative 2011 revision and
+    will need a refresh when the revision takes effect.
+
+requirements:
+  # --- proven: deterministic document-quality gates -----------------------
+  - id: eu_annex_11.doc_finalized
+    control: "doc-quality"
+    engine: regex_gate
+    enforcement: blocking
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Compliance documents MUST be finalized — no placeholder, TODO, TBD,
+      DRAFT, or FIXME text remaining.
+    params:
+      forbidden_patterns:
+        - '\bTBD\b'
+        - '\bTODO\b'
+        - '\bDRAFT\b'
+        - '\bFIXME\b'
+        - '<placeholder>'
+
+  # --- judged: provision substance (AI reading; labelled 'judged') --------
+  - id: eu_annex_11.4_validation
+    control: "Annex 11 §4"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      The computerised system is validated across the relevant life-cycle steps,
+      with user requirements specified and traceable, and testing evidence
+      demonstrated (EudraLex Annex 11, provision 4, Validation).
+    params:
+      instruction: >-
+        Does this document establish that the computerised system is validated
+        across its life cycle — including specified, traceable user requirements
+        and documented test methods/evidence? Report a violation if system
+        validation is not addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 4 — Validation."
+
+  - id: eu_annex_11.5_data
+    control: "Annex 11 §5"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Systems exchanging data electronically include built-in checks for correct
+      and secure entry and processing of data (EudraLex Annex 11, provision 5,
+      Data).
+    params:
+      instruction: >-
+        Does this document require built-in checks for the correct and secure
+        electronic entry and processing of data where systems exchange data?
+        Report a violation if data-integrity checks on entry/exchange are not
+        addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 5 — Data."
+
+  - id: eu_annex_11.7_data_storage
+    control: "Annex 11 §7"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Data is secured against damage by physical and electronic means, backed up
+      regularly, and restorability is verified (EudraLex Annex 11, provision 7,
+      Data Storage).
+    params:
+      instruction: >-
+        Does this document require that data be secured against damage, backed up
+        regularly, checked for accessibility/readability/accuracy, and that
+        restore capability be verified? Report a violation if data storage and
+        backup are not addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 7 — Data Storage."
+
+  - id: eu_annex_11.9_audit_trails
+    control: "Annex 11 §9"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      A system-generated audit trail records GMP-relevant changes and deletions
+      with documented reasons, and is regularly reviewed (EudraLex Annex 11,
+      provision 9, Audit Trails).
+    params:
+      instruction: >-
+        Does this document require a system-generated audit trail of GMP-relevant
+        changes and deletions — with documented reasons — that is available,
+        intelligible, and regularly reviewed? Report a violation if audit trails
+        are not addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 9 — Audit Trails."
+
+  - id: eu_annex_11.12_security
+    control: "Annex 11 §12"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Physical and/or logical controls restrict system access to authorised
+      persons, changes to access authorisations are recorded, and operator
+      identity with date/time is captured (EudraLex Annex 11, provision 12,
+      Security).
+    params:
+      instruction: >-
+        Does this document require physical and/or logical access controls
+        restricting the system to authorised persons, recording of access-rights
+        changes, and capture of operator identity with date/time for data
+        actions? Report a violation if these security controls are not addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 12 — Security."
+
+  - id: eu_annex_11.14_electronic_signature
+    control: "Annex 11 §14"
+    engine: llm_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Electronic signatures have the same impact as handwritten signatures, are
+      permanently linked to their record, and include the date and time applied
+      (EudraLex Annex 11, provision 14, Electronic Signature).
+    params:
+      instruction: >-
+        Does this document require that electronic signatures carry the same
+        weight as handwritten signatures, be permanently linked to their records,
+        and include the date and time of signing? Report a violation if
+        electronic-signature requirements are not addressed.
+      rationale: "EudraLex Vol. 4 Annex 11, provision 14 — Electronic Signature."
+
+  # --- attested: irreducibly human controls -------------------------------
+  - id: eu_annex_11.1_risk_management
+    control: "Annex 11 §1"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Risk management is applied throughout the system life cycle, with the
+      extent of validation and data-integrity controls based on a justified,
+      documented risk assessment (EudraLex Annex 11, provision 1, Risk
+      Management).
+    params:
+      prompt: >-
+        Confirm that a justified, documented risk assessment drives the extent of
+        validation and data-integrity controls across the system life cycle,
+        considering patient safety, data integrity, and product quality.
+      reference: "EudraLex Vol. 4 Annex 11, provision 1 — Risk Management."
+
+  - id: eu_annex_11.11_periodic_evaluation
+    control: "Annex 11 §11"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      Computerised systems are periodically evaluated to confirm they remain in a
+      valid, GMP-compliant state (EudraLex Annex 11, provision 11, Periodic
+      evaluation).
+    params:
+      prompt: >-
+        Confirm that the system has been periodically evaluated — covering
+        functionality, deviations, incidents, upgrade history, performance,
+        security, and validation status — to confirm it remains in a valid state.
+      reference: "EudraLex Vol. 4 Annex 11, provision 11 — Periodic evaluation."
+
+  - id: eu_annex_11.16_business_continuity
+    control: "Annex 11 §16"
+    engine: attestation_gate
+    enforcement: reporting
+    scope: ["**/*.md", "**/*.txt"]
+    statement: >-
+      For systems supporting critical processes, business-continuity provisions
+      ensure continuity in the event of a breakdown, and are documented and
+      tested (EudraLex Annex 11, provision 16, Business Continuity).
+    params:
+      prompt: >-
+        Confirm that business-continuity arrangements for critical computerised
+        systems exist, are risk-appropriate, and have been documented and tested.
+      reference: "EudraLex Vol. 4 Annex 11, provision 16 — Business Continuity."

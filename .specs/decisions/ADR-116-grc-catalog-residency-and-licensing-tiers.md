@@ -63,10 +63,21 @@ access-control boundary:
 ```
 grc-catalogs/
   public/                          # committed in CORE (public repo)
-    <framework>/ catalog.yaml + provenance.yaml      # public-domain only (e.g. NIST SP 800-171)
+    <framework>/ catalog.yaml + provenance.yaml      # freely-accessible regulations: public-domain
+                                                     # (NIST 800-171) and official-*-reusable law
+                                                     # (GDPR, CFR Part 11, EU Annex 11, NIS2, CyFun)
   licensed/                        # the proprietary moat — NEVER committed to this public repo
-    <framework>/ catalog.yaml + provenance.yaml      # GDPR-derived, ISO, GAMP 5, …
+    <framework>/ catalog.yaml + provenance.yaml      # ISO 27001, GAMP 5 (copyrighted/paywalled standards)
 ```
+
+**Tier boundary (updated 2026-07-05, Phase 2 repo split):** the `public/` tier is not limited to
+public-domain sources. It includes any framework whose source is *publicly accessible* — publicly-
+accessible regulations (EU law, US CFR, EU GMP guidelines) ship in the public CORE repo. The `licensed/`
+tier is reserved for *proprietary, copyrighted, or paywalled* standards (ISO, ISPE/GAMP) that cannot
+be shipped without a commercial arrangement. The CORE-authored catalog content around a public source
+is itself public; the catalog content around a paywalled source is commercial. This resolves the
+apparent tension between the tier axis (commercial/access) and the OSS principle: freely-accessible
+law is not a commercial moat, so its catalog is not withheld from OSS users.
 
 The resolver enumerates `grc-catalogs/<tier>/<framework>/catalog.yaml` and is
 tier-agnostic: `load_catalog(name)` does not know or care which tier a catalog
