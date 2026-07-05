@@ -210,12 +210,19 @@ class Settings(BaseSettings):
         if is_testing:
             os.environ["CORE_ENV"] = "TEST"
 
-        # Skip .env under pytest: load_dotenv(override=True) would otherwise
-        # overwrite the CORE_ENV=TEST signal set above and route the
-        # environment-specific load below back to .env (the dev file),
+        # Skip .env/.creds under pytest: load_dotenv(override=True) would
+        # otherwise overwrite the CORE_ENV=TEST signal set above and route
+        # the environment-specific load below back to .env (the dev file),
         # leaving the suite pointed at the production DB. See #592.
+        #
+        # Load order (non-test): .env first (config), then .creds (secrets).
+        # .creds overrides .env so that secrets (CORE_MASTER_KEY, LLM API keys)
+        # can be managed separately with chmod 600 without touching .env.
         if not is_testing:
             load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
+            creds_path = REPO_ROOT / ".creds"
+            if creds_path.exists():
+                load_dotenv(dotenv_path=creds_path, override=True)
 
         super().__init__(**values)
 

@@ -12,7 +12,7 @@
 #       DATABASE_URL: postgresql+asyncpg://core_db:test@localhost:5433/core_test
 #
 # Schema source: infra/sql/db_schema_live.sql (canonical per CLAUDE.md).
-# The init script strips CORE's \restrict / \unrestrict ACL markers before loading.
+# \restrict / \unrestrict markers removed from the dump file (#521 item 3).
 
 services:
   postgres-test:
