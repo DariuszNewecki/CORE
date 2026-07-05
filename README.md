@@ -246,6 +246,37 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 ---
 
+## Production Readiness
+
+CORE does not claim a status it has not earned. The table below shows the current state
+against the thirteen gates defined in
+[URS-production-readiness](.specs/requirements/URS-production-readiness.md).
+The definition is versioned; this table is updated as gates close.
+
+**Assessed position: 8.5 / 10 — advanced internal alpha, approaching pilot-ready.**
+All thirteen gates must hold for a production-ready claim. None are yet fully met.
+
+| Gate | Status | Primary gap |
+|------|--------|-------------|
+| G1 — Fresh-install proof | ⚠️ partial | CI-automated install absent; manual cold-room only |
+| G2 — Constitutional enforcement regression-tested | ⚠️ partial | Per-rule known-violating fixtures not universal; 7 rules unmapped |
+| G3 — Layer integrity blocking | ⚠️ partial | Several boundary rules at reporting severity, not blocking |
+| G4 — Autonomous loop soak | ❌ not demonstrated | No 72h soak run; two loop bugs fixed 2026-07-05 |
+| G5 — Proposal lifecycle safety | ⚠️ partial | `claim.proposal` path unaudited; `approval_authority` unverified |
+| G6 — Risk model correct and tested | ⚠️ mostly met | Cognitive-step bug fixed; else-branch exists for future kinds |
+| G7 — Circuit breakers at correct granularity | ⚠️ mostly met | Symbol + file granularity correct; flow/worker level unaudited |
+| G8 — Integration tests for mutation chain | ❌ not started | No end-to-end test across cognitive delegate → write → evidence |
+| G9 — Negative-path tests (blockers actually block) | ❌ not started | No systematic per-rule known-violating fixture in CI |
+| G10 — Operator observability | ⚠️ partial | Infrastructure exists; non-author operator trial not run |
+| G11 — Upgrade and migration safety | ❌ not started | Schema-as-dump; no delta migration path; most critical structural gap |
+| G12 — Security posture audited | ⚠️ partial | Rate limiting under-wired; `SECURITY.md` absent; #671 open |
+| G13 — Operator documentation | ⚠️ partial | Install self-documented; no operator runbook |
+
+The full gate definitions, acceptance criteria, and rationale are in
+[`.specs/requirements/URS-production-readiness.md`](.specs/requirements/URS-production-readiness.md).
+
+---
+
 ## Requirements
 
 | Dependency  | Version      |
