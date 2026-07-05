@@ -74,6 +74,7 @@ class LlmPartitionArchiverWorker(Worker):
                         "GxP retention compliance may be at risk (ADR-052)"
                     ),
                 },
+                resolution_mechanism="human",
             )
             return
 
@@ -89,6 +90,7 @@ class LlmPartitionArchiverWorker(Worker):
                         f"({len(errors)} error(s)) — verify DB connectivity (ADR-052)"
                     ),
                 },
+                resolution_mechanism="human",
             )
             logger.error("LlmPartitionArchiverWorker: archival errors: %s", errors)
             return

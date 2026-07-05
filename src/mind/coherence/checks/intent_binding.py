@@ -60,28 +60,34 @@ class IntentBindingCheck:
     # ID: 7af45724-d415-4695-925a-9b0cb2b8063a
     def _collect_bindings(self) -> list[tuple[Path, str, str]]:
         """Yield (doc_path, field_name, dotted_value) for all intent bindings."""
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
+
+        repo = get_intent_repository()
+        intent_yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
+        universe: set[Path] = set()
+        for glob in intent_yaml_globs:
+            universe.update(self._repo_root.glob(glob))
+
         results: list[tuple[Path, str, str]] = []
 
         phases_dir = self._repo_root / ".intent" / "phases"
-        if phases_dir.is_dir():
-            for path in sorted(phases_dir.glob("*.yaml")):
-                try:
-                    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                except Exception:
-                    continue
-                val = data.get("implementation")
-                if isinstance(val, str) and val.strip():
-                    results.append((path, "implementation", val.strip()))
+        for path in sorted(p for p in universe if p.is_relative_to(phases_dir)):
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                continue
+            val = data.get("implementation")
+            if isinstance(val, str) and val.strip():
+                results.append((path, "implementation", val.strip()))
 
         mappings_dir = self._repo_root / ".intent" / "enforcement" / "mappings"
-        if mappings_dir.is_dir():
-            for path in sorted(mappings_dir.rglob("*.yaml")):
-                try:
-                    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                except Exception:
-                    continue
-                for val in _extract_enforced_by(data):
-                    results.append((path, "enforced_by", val))
+        for path in sorted(p for p in universe if p.is_relative_to(mappings_dir)):
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                continue
+            for val in _extract_enforced_by(data):
+                results.append((path, "enforced_by", val))
 
         return results
 

@@ -12,6 +12,7 @@ import re
 from collections import defaultdict
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -66,9 +67,9 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
         table.add_row(
             severity_styles.get(finding.severity, str(finding.severity)),
             _evidence_label(finding.evidence_class),
-            finding.check_id,
-            finding.message,
-            location,
+            escape(finding.check_id),
+            escape(finding.message),
+            escape(location),
         )
     console.print(table)
 
@@ -107,8 +108,8 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
         table.add_row(
             severity_styles.get(severity, str(severity)),
             _evidence_label(finding_list[0].evidence_class),
-            check_id,
-            representative_message,
+            escape(check_id),
+            escape(representative_message),
             str(len(finding_list)),
         )
     console.print(table)
@@ -319,8 +320,8 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
         file_path = str(finding.file_path)
         task = _infer_task_type(finding.check_id)
         icon = severity_icon.get(finding.severity, "")
-        console.print(f"\n  {icon} [magenta]{finding.check_id}[/magenta]")
-        console.print(f"  [dim]{finding.message[:100]}[/dim]")
+        console.print(f"\n  {icon} [magenta]{escape(finding.check_id)}[/magenta]")
+        console.print(f"  [dim]{escape(finding.message[:100])}[/dim]")
         if symbol:
             console.print(
                 f"\n  [green]core-admin context build \\\n      --file {file_path} \\\n      --symbol {symbol} \\\n      --task {task} \\\n      --output var/context_for_claude.md[/green]"

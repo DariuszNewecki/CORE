@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -43,9 +44,9 @@ def render_details(console: Console, groups: list[SeverityGroup]) -> None:
         inner_table.add_column("Message", min_width=40, overflow="fold")
         for finding in group.findings:
             inner_table.add_row(
-                getattr(finding, "check_id", "-"),
-                _file_cell(finding),
-                truncate(getattr(finding, "message", ""), 80),
+                escape(getattr(finding, "check_id", "-") or "-"),
+                escape(_file_cell(finding)),
+                escape(truncate(getattr(finding, "message", ""), 80)),
             )
         title = f"{group.severity.name} ({count} findings)"
         style = get_severity_style(group.severity)

@@ -645,7 +645,7 @@ def _check_passive_gate_symbol_attestation(
                 findings.append(
                     AuditFinding(
                         check_id=_RULE_ID_PASSIVE_GATE_ATTESTATION,
-                        severity=AuditSeverity.CRITICAL,
+                        severity=AuditSeverity.BLOCK,
                         message=(
                             f"passive_gate rule '{rule_id}' in {rel_yaml} declares "
                             f"enforced_by='{enforced_by}' but no matching Python "

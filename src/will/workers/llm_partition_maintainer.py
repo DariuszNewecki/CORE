@@ -72,6 +72,7 @@ class LlmPartitionMaintainerWorker(Worker):
                         "future months may become unwritable (ADR-052)"
                     ),
                 },
+                resolution_mechanism="human",
             )
             return
 
@@ -87,6 +88,7 @@ class LlmPartitionMaintainerWorker(Worker):
                         f"({len(errors)} error(s)) — check DB connectivity (ADR-052)"
                     ),
                 },
+                resolution_mechanism="human",
             )
             logger.error(
                 "LlmPartitionMaintainerWorker: partition creation errors: %s", errors

@@ -187,8 +187,10 @@ def core_command(
             except typer.Exit:
                 raise
             except Exception as e:
+                from rich.markup import escape as _escape
+
                 console.print(
-                    f"\n[bold red]❌ Command failed:[/bold red]\n   {type(e).__name__}: {e}"
+                    f"\n[bold red]❌ Command failed:[/bold red]\n   {_escape(f'{type(e).__name__}: {e}')}"
                 )
                 logger.error(traceback.format_exc())
                 raise typer.Exit(1)
