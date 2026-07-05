@@ -157,6 +157,7 @@ mappings:
   architecture.api.response_must_use_declared_schema:
     engine: passive_gate
     params:
+      attestation_class: "D"
       note: >
         Passive gate — no AST check authored yet. The rule is enforcement:
         reporting. Violations are surfaced manually via code review.

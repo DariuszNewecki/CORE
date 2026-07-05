@@ -15,6 +15,7 @@ mappings:
   code.tests.no_magicmock_on_await:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_magicmock_on_await
@@ -32,6 +33,7 @@ mappings:
   code.tests.no_placeholder_test_body:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_placeholder_test_body
@@ -48,6 +50,7 @@ mappings:
   code.tests.no_global_module_mutation:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_global_module_mutation
@@ -63,6 +66,7 @@ mappings:
   code.tests.no_imported_symbol_redeclared:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared
@@ -78,6 +82,7 @@ mappings:
   code.tests.no_unresolved_free_names:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_unresolved_free_names

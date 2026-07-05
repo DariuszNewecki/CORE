@@ -24,7 +24,8 @@ mappings:
   # duplicate the worker's runtime check.
   governance.commit_authorship_integrity:
     engine: passive_gate
-    params: {}
+    params:
+      attestation_class: "C"
     scope:
       applies_to:
         - "src/**/*.py"

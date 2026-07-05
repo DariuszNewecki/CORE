@@ -3,7 +3,7 @@
 """
 Contracts gate — cross-cutting coherence checks on data contracts.
 
-Dispatches three check_types today:
+Dispatches four check_types today:
 
 - layer_scope_coherence (#612, ADR-102): for every data_contract under
   .intent/enforcement/contracts/, check whether each governed_class's
@@ -29,6 +29,14 @@ Dispatches three check_types today:
   findings against 2 files, ratio 8) is what triggered ADR-102; this
   rule catches that shape even when only one contract is involved.
 
+- passive_gate_symbol_attestation (ADR-142): every Class A passive_gate
+  mapping entry carries an enforced_by param that names the Python
+  symbol responsible for enforcement. This check resolves each
+  enforced_by dotted path to a source file under src/ and confirms the
+  named symbol is defined there. Stale claims (symbol deleted, renamed,
+  or moved) are blocking violations. Pure AST/filesystem — no DB access,
+  no imports, no runtime execution.
+
 The canonical case (Finding.json firing N>0 against AuditFinding while
 AuditFinding.json fires 0) is what triggered ADR-102; the three rules
 together catch the bind-error pattern from static, asymmetric, and
@@ -42,6 +50,7 @@ Mind layer does not open sessions itself.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -67,6 +76,7 @@ _ENGINE_ID = "contracts_gate"
 _RULE_ID_LAYER_SCOPE_COHERENCE = "data.contracts.layer_scope_coherence"
 _RULE_ID_ASYMMETRIC_FINDINGS = "data.contracts.asymmetric_contract_findings"
 _RULE_ID_RULE_BINDING_ICEBERG = "data.contracts.rule_binding_iceberg"
+_RULE_ID_PASSIVE_GATE_ATTESTATION = "governance.passive_gate.enforced_by_must_resolve"
 
 # Default lookback window for the DB-backed checks. 24h gives the daemon
 # multiple audit cycles to populate counts without letting a single
@@ -135,6 +145,7 @@ class ContractsGateEngine(BaseEngine):
             "layer_scope_coherence",
             "asymmetric_contract_findings",
             "rule_binding_iceberg",
+            "passive_gate_symbol_attestation",
         }
     )
 
@@ -162,6 +173,8 @@ class ContractsGateEngine(BaseEngine):
             return await _check_asymmetric_contract_findings(context, params)
         if check_type == "rule_binding_iceberg":
             return await _check_rule_binding_iceberg(context, params)
+        if check_type == "passive_gate_symbol_attestation":
+            return _check_passive_gate_symbol_attestation(context, params)
         return [
             AuditFinding(
                 check_id=f"{self.engine_id}.{check_type or 'missing'}.error",
@@ -562,3 +575,162 @@ async def _check_rule_binding_iceberg(
             )
         )
     return findings
+
+
+# ID: f1fa9edf-8dc6-4a6b-8553-369810216e44
+def _check_passive_gate_symbol_attestation(
+    context: AuditorContext, params: dict[str, Any]
+) -> list[AuditFinding]:
+    """Verify every Class A passive_gate enforced_by path resolves to a live symbol.
+
+    Walks all .intent/enforcement/mappings/**/*.yaml. For each entry with
+    engine: passive_gate and attestation_class: 'A', extracts the enforced_by
+    dotted path, resolves it to a source file under src/, and confirms the
+    named class or function exists via AST. Stale claims are blocking violations
+    (ADR-142 D2).
+
+    Resolution algorithm:
+    - Strip trailing documentation suffixes (e.g. ' enum').
+    - Split on '.'; progressively lengthen the file-path prefix until a .py file
+      (or package __init__.py) matches under src/.
+    - The first remaining element after the matched prefix is the symbol name;
+      subsequent elements (method names) are not verified — class/function
+      existence is sufficient.
+    - Emit a CRITICAL finding for any enforced_by that fails to resolve.
+    """
+    findings: list[AuditFinding] = []
+    repo_root: Path = context.paths.repo_root
+    mappings_root_param = params.get("mappings_root", ".intent/enforcement/mappings")
+    src_root_param = params.get("src_root", "src")
+    mappings_root = repo_root / mappings_root_param
+    src_root = repo_root / src_root_param
+
+    if not mappings_root.is_dir():
+        logger.warning(
+            "contracts_gate.passive_gate_symbol_attestation: mappings root missing: %s",
+            mappings_root,
+        )
+        return findings
+
+    for yaml_file in sorted(mappings_root.rglob("*.yaml")):
+        try:
+            content = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as e:
+            logger.warning(
+                "contracts_gate: skipping malformed %s: %s", yaml_file.name, e
+            )
+            continue
+
+        if not isinstance(content, dict):
+            continue
+        mappings_block = content.get("mappings") or {}
+        for rule_id, mapping in mappings_block.items():
+            if not isinstance(mapping, dict):
+                continue
+            if mapping.get("engine") != "passive_gate":
+                continue
+            entry_params = mapping.get("params") or {}
+            if entry_params.get("attestation_class") != "A":
+                continue
+            enforced_by = (entry_params.get("enforced_by") or "").strip()
+            if not enforced_by:
+                continue
+
+            # Strip trailing documentation suffixes like " enum"
+            enforced_by_clean = enforced_by.split(" ")[0]
+
+            resolved = _resolve_enforced_by_symbol(enforced_by_clean, src_root)
+            if resolved is None:
+                rel_yaml = str(yaml_file.relative_to(repo_root))
+                findings.append(
+                    AuditFinding(
+                        check_id=_RULE_ID_PASSIVE_GATE_ATTESTATION,
+                        severity=AuditSeverity.CRITICAL,
+                        message=(
+                            f"passive_gate rule '{rule_id}' in {rel_yaml} declares "
+                            f"enforced_by='{enforced_by}' but no matching Python "
+                            f"symbol was found under src/. The governance claim is "
+                            f"silently false — audit returns ok=True on an "
+                            f"enforcement that no longer exists. Resolve by: "
+                            f"(1) updating enforced_by to the symbol's current "
+                            f"dotted path, or (2) reclassifying this rule to the "
+                            f"correct attestation_class if enforcement moved to a "
+                            f"different mechanism."
+                        ),
+                        file_path=rel_yaml,
+                        context={
+                            "rule_id": rule_id,
+                            "enforced_by": enforced_by,
+                            "mappings_file": rel_yaml,
+                        },
+                    )
+                )
+            else:
+                logger.debug(
+                    "contracts_gate: %s enforced_by '%s' resolved to %s",
+                    rule_id,
+                    enforced_by,
+                    resolved,
+                )
+
+    return findings
+
+
+# ID: 3828ee62-edbe-452a-bf0b-33d75edeb6b6
+def _resolve_enforced_by_symbol(dotted_path: str, src_root: Path) -> str | None:
+    """Resolve a dotted Python path to a (file_path, symbol_name) pair.
+
+    Returns a short description string on success, None on failure. The
+    caller treats None as a stale claim.
+
+    Strategy: split the dotted path into parts; try progressively longer
+    prefixes as the filesystem path under src_root until a .py file matches.
+    The first unmatched part is the symbol name. Confirms the symbol exists
+    in the file's AST (class or function definition at module level or nested
+    one level deep — sufficient for the enforcement patterns in use).
+    """
+    parts = dotted_path.split(".")
+    if len(parts) < 2:
+        return None
+
+    for boundary in range(1, len(parts)):
+        candidate_path = src_root / Path(*parts[:boundary]).with_suffix(".py")
+        init_path = src_root / Path(*parts[:boundary]) / "__init__.py"
+        symbol_idx = boundary
+
+        matched: Path | None = None
+        if candidate_path.is_file():
+            matched = candidate_path
+        elif init_path.is_file():
+            matched = init_path
+
+        if matched is None:
+            continue
+        if symbol_idx >= len(parts):
+            return None
+
+        symbol_name = parts[symbol_idx]
+        if _symbol_defined_in_file(symbol_name, matched):
+            return f"{matched}::{symbol_name}"
+
+    return None
+
+
+# ID: bc5675d9-d36d-4438-bc06-935940e16846
+def _symbol_defined_in_file(symbol_name: str, file_path: Path) -> bool:
+    """Return True if symbol_name is defined as a class or function in file_path.
+
+    Checks module-level and one level of nesting (methods inside classes).
+    Uses AST parse — no imports, no runtime execution.
+    """
+    try:
+        source = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(file_path))
+    except (SyntaxError, UnicodeDecodeError, OSError):
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name == symbol_name:
+                return True
+    return False

@@ -1,0 +1,24 @@
+# .intent/enforcement/mappings/governance/passive_gate_attestation.yaml
+# Enforcement mapping for ADR-142 — Passive Gate Enforced-By Symbol Attestation.
+#
+# WHAT THIS ENFORCES:
+#   rules/governance/passive_gate_attestation.json
+#   Rule: governance.passive_gate.enforced_by_must_resolve (blocking)
+#
+# THE LAW: Every Class A passive_gate mapping's enforced_by param MUST resolve
+# to an existing Python symbol in src/.
+#
+# IMPLEMENTATION: contracts_gate check_type passive_gate_symbol_attestation.
+# Context-level (one pass per audit, reads all mapping YAML files). Pure
+# AST/filesystem — no DB access, no imports, no runtime execution.
+
+mappings:
+  governance.passive_gate.enforced_by_must_resolve:
+    engine: contracts_gate
+    params:
+      check_type: passive_gate_symbol_attestation
+      mappings_root: ".intent/enforcement/mappings"
+      src_root: "src"
+    scope:
+      applies_to:
+        - ".intent/enforcement/mappings/**/*.yaml"

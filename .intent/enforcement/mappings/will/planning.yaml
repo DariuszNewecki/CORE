@@ -22,6 +22,7 @@
     planning.no_code_generation:
       engine: passive_gate
       params:
+        attestation_class: "A"
         enforced_by: "will.agents.base_planner.parse_and_validate_plan"
         enforcement_note: >
           Runtime check raises PlanExecutionError if ExecutionTask.params.code is
@@ -36,6 +37,7 @@
     planning.conceptual_only:
       engine: passive_gate
       params:
+        attestation_class: "A"
         enforced_by: "will.agents.base_planner.parse_and_validate_plan"
         enforcement_note: >
           Runtime check scans ExecutionTask.params dict for code patterns. Step

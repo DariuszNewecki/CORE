@@ -8,7 +8,8 @@ mappings:
   # intent in the rule rationale.
   logic.di.no_global_session:
     engine: passive_gate
-    params: {}
+    params:
+      attestation_class: "D"
     scope:
       applies_to:
         - "src/**/*.py"

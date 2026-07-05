@@ -13,7 +13,7 @@ mappings:
   cli.command.metadata_required:
     engine: runtime_metric
     params:
-      enforced_by: "features.maintenance.command_sync_service._sync_commands_to_db"
+      enforced_by: "body.maintenance.command_sync_service._sync_commands_to_db"
       metric: "Commands with @command_meta"
       tracking: "Logged during 'core-admin fix db-registry'"
       phase: "migration"

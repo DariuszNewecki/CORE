@@ -46,6 +46,7 @@ mappings:
     autonomy.conservation.min_preservation_ratio:
       engine: passive_gate
       params:
+        attestation_class: "A"
         enforced_by: "body.validators.logic_conservation_validator.LogicConservationValidator"
         enforcement_note: >
           Runtime check — LogicConservationValidator (body) measures the
@@ -66,6 +67,7 @@ mappings:
     autonomy.remediation.min_confidence_floor:
       engine: passive_gate
       params:
+        attestation_class: "A"
         enforced_by: "body.autonomy.audit_analyzer.AuditAnalyzer"
         enforcement_note: >
           Runtime check — AuditAnalyzer filters remediation map entries below

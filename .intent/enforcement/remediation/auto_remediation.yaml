@@ -646,6 +646,17 @@ mappings:
       dedup/refactor action could ship later. Routed to governor inbox.
     status: DELEGATE
 
+  governance.passive_gate.enforced_by_must_resolve:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A Class A passive_gate mapping's enforced_by param does not resolve
+      to an existing Python symbol in src/. Fix: update enforced_by to the
+      symbol's current dotted path, or reclassify the mapping to the correct
+      attestation_class if enforcement moved to a different mechanism (B/C/D).
+      Non-automatable; requires governor review of the stale claim. ADR-142.
+    status: DELEGATE
+
   governance.remediation.all_rules_mapped:
     action: fix.modularity
     confidence: 0.40

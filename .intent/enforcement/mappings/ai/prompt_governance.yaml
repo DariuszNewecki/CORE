@@ -87,7 +87,8 @@ mappings:
   # delivery when the check is implemented.
   ai.prompt.constitutional_grounding_section:
     engine: passive_gate
-    params: {}
+    params:
+      attestation_class: "D"
     scope:
       applies_to:
         - "var/prompts/**/system.txt"
@@ -100,7 +101,8 @@ mappings:
   # duplicate the sensor-driven detection.
   ai.prompt.governed_change_requires_review:
     engine: passive_gate
-    params: {}
+    params:
+      attestation_class: "C"
     scope:
       applies_to:
         - "var/prompts/**/system.txt"

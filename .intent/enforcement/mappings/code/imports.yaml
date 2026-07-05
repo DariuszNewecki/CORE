@@ -39,6 +39,7 @@ mappings:
   code.imports.generated_must_resolve:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Declarative rule. Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern
@@ -54,6 +55,7 @@ mappings:
   code.imports.generated_no_relative:
     engine: passive_gate
     params:
+      attestation_class: "B"
       note: >
         Declarative rule. Enforced at write-time by
         src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern.

@@ -24,6 +24,7 @@ mappings:
   coherence.violation_executor.blast_bound:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "will.workers.violation_executor.ViolationExecutorWorker"
       enforcement_note: >
         Writer-as-sensor per ADR-070 D8. ViolationExecutorWorker
@@ -43,6 +44,7 @@ mappings:
   coherence.repo_artifacts.drift:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "body.services.crawl_service.orchestrator.CrawlOrchestrator"
       enforcement_note: >
         Writer-as-sensor per ADR-070 D4/D8. CrawlOrchestrator applies

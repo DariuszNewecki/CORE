@@ -10,6 +10,7 @@ mappings:
   proposal_lifecycle.transitions.valid_sequence:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager"
       enforcement_note: >
         Runtime check — ProposalStateManager validates each status transition
@@ -26,6 +27,7 @@ mappings:
   proposal_lifecycle.approval.authority_required:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager.approve"
       enforcement_note: >
         Dual enforcement: DB CHECK constraint rejects out-of-set values at
@@ -41,6 +43,7 @@ mappings:
   proposal_lifecycle.claim.authority_required:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "body.atomic.proposal_lifecycle_actions.action_claim_proposal"
       enforcement_note: >
         Runtime check — action_claim_proposal validates claimed_by is non-null
@@ -57,6 +60,7 @@ mappings:
   proposal_lifecycle.claim.idempotency_guard:
     engine: passive_gate
     params:
+      attestation_class: "A"
       enforced_by: "body.atomic.proposal_lifecycle_actions.action_claim_proposal"
       enforcement_note: >
         Dual enforcement: partial unique index on core.autonomous_proposals
