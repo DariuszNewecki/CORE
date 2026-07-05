@@ -1,0 +1,67 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.action_command_item",
+        "title": "ActionCommandItem — metadata for one registered atomic action",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Element of FixCommandListResponse.commands (GET /v1/fix/commands). Surfaces registered AtomicAction metadata from the ActionRegistry, filtered to the API-visible whitelist. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class ActionCommandItem.",
+    "governed_classes": [
+        "ActionCommandItem"
+    ],
+    "required": [
+        "action_id",
+        "description",
+        "category",
+        "policies",
+        "impact_level",
+        "requires_db",
+        "requires_vectors",
+        "remediates"
+    ],
+    "properties": {
+        "action_id": {
+            "type": "string",
+            "description": "Registered action identifier (e.g. 'fix.imports', 'sync.db'). Matches ActionDefinition.action_id."
+        },
+        "description": {
+            "type": ["string", "null"],
+            "description": "Human-readable description of what the action does. May be null if the action has no description metadata."
+        },
+        "category": {
+            "type": ["string", "null"],
+            "enum": ["FIX", "SYNC", "CHECK", "BUILD", "STATE", null],
+            "description": "Action category from the closed vocab (action_category enum). Null if uncategorized."
+        },
+        "policies": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Policy IDs this action is governed by. Empty list if no policies declared.",
+            "default": []
+        },
+        "impact_level": {
+            "type": ["string", "null"],
+            "enum": ["safe", "moderate", "dangerous", null],
+            "description": "Risk impact level from action_risk.yaml. Null if not declared."
+        },
+        "requires_db": {
+            "type": "boolean",
+            "description": "Whether this action requires a live database connection.",
+            "default": false
+        },
+        "requires_vectors": {
+            "type": "boolean",
+            "description": "Whether this action requires the vector store.",
+            "default": false
+        },
+        "remediates": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Rule IDs this action can remediate. Empty list if not a remediation action.",
+            "default": []
+        }
+    }
+}

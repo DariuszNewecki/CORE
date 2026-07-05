@@ -1,0 +1,31 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_bundle",
+        "title": "LaneBundle — context bundle attached to a delegated finding",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "ADR-109 (#653) context bundle enriching a delegated Assisted Remediation finding. Attached to LaneFindingWithBundle. The bundle surfaces rule metadata and optional remediation guidance to allow the operator to act without querying the intent repository separately. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneBundle.",
+    "governed_classes": [
+        "LaneBundle"
+    ],
+    "required": [
+        "rule",
+        "remediation"
+    ],
+    "properties": {
+        "rule": {
+            "type": "object",
+            "description": "LaneBundleRule (contracts.lane_bundle_rule) — rule metadata for the finding's source rule.",
+            "$ref": "LaneBundleRule.json"
+        },
+        "remediation": {
+            "type": ["object", "null"],
+            "description": "Optional remediation guidance extracted from the rule's auto_fix_pattern or intent declaration. Shape is rule-specific; null when no remediation guidance is available.",
+            "additionalProperties": true
+        }
+    }
+}

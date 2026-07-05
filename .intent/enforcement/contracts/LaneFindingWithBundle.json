@@ -1,0 +1,48 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_finding_with_bundle",
+        "title": "LaneFindingWithBundle — delegated finding with ADR-109 context bundle",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "LaneFindingItem extended with an ADR-109 (#653) context bundle. Returned by GET /v1/lane/{finding_id} (detail endpoint). Inherits all LaneFindingItem fields and adds the bundle enrichment for operator action without separate intent queries. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneFindingWithBundle.",
+    "governed_classes": [
+        "LaneFindingWithBundle"
+    ],
+    "required": [
+        "id",
+        "subject",
+        "payload",
+        "created_at",
+        "bundle"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the blackboard_entries row (inherited from LaneFindingItem)."
+        },
+        "subject": {
+            "type": "string",
+            "description": "Blackboard subject string (inherited from LaneFindingItem)."
+        },
+        "payload": {
+            "type": "object",
+            "description": "Raw blackboard entry payload — AuditFinding shape (inherited from LaneFindingItem).",
+            "additionalProperties": true
+        },
+        "created_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC creation timestamp (inherited from LaneFindingItem)."
+        },
+        "bundle": {
+            "type": "object",
+            "description": "LaneBundle (contracts.lane_bundle) — rule metadata and remediation guidance enrichment.",
+            "$ref": "LaneBundle.json"
+        }
+    }
+}

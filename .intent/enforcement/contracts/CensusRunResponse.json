@@ -1,0 +1,70 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.census_run_response",
+        "title": "CensusRunResponse — GET /v1/census/runs/{run_id} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response shape for GET /v1/census/runs/{run_id}. Intentionally omits requested_by (internal username) per #727. The result field carries a CensusRunResult (contracts.census_run_result) — the RepoCensus.model_dump() artifact. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusRunResponse.",
+    "governed_classes": [
+        "CensusRunResponse"
+    ],
+    "required": [
+        "run_id",
+        "snapshot",
+        "baseline_name",
+        "status",
+        "requested_at",
+        "started_at",
+        "finished_at",
+        "result",
+        "error"
+    ],
+    "properties": {
+        "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the census run."
+        },
+        "snapshot": {
+            "type": "boolean",
+            "description": "Whether this run was requested with snapshot=true (persists the census to disk history)."
+        },
+        "baseline_name": {
+            "type": ["string", "null"],
+            "description": "Named baseline this run was compared against, if any. Null for snapshot-only runs."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "executing", "completed", "failed"],
+            "description": "Run lifecycle state."
+        },
+        "requested_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the run was requested."
+        },
+        "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution began."
+        },
+        "finished_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution completed."
+        },
+        "result": {
+            "type": ["object", "null"],
+            "description": "CensusRunResult JSONB payload (contracts.census_run_result) — the RepoCensus.model_dump() artifact plus optional snapshot_file key. Null while pending|executing.",
+            "additionalProperties": true
+        },
+        "error": {
+            "type": ["string", "null"],
+            "description": "Error message if status=failed. Null on success."
+        }
+    }
+}

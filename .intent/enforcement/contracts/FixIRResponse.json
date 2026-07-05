@@ -1,0 +1,24 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.fix_ir_response",
+        "title": "FixIRResponse — POST /v1/fix/ir synchronous response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Synchronous response body for POST /v1/fix/ir (inline IR scaffold generation). Unlike other fix endpoints this is a synchronous 200 response returning the scaffold path immediately; no run record is created. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class FixIRResponse.",
+    "governed_classes": [
+        "FixIRResponse"
+    ],
+    "required": [
+        "path"
+    ],
+    "properties": {
+        "path": {
+            "type": "string",
+            "description": "Repo-relative path to the written IR scaffold file."
+        }
+    }
+}

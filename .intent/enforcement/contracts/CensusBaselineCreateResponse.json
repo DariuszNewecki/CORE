@@ -1,0 +1,25 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.census_baseline_create_response",
+        "title": "CensusBaselineCreateResponse — POST /v1/census/baselines/{name} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for POST /v1/census/baselines/{name} — creates a named baseline from the most recent completed census snapshot. The baseline field is the newly registered CensusBaselineItem. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusBaselineCreateResponse.",
+    "governed_classes": [
+        "CensusBaselineCreateResponse"
+    ],
+    "required": [
+        "baseline"
+    ],
+    "properties": {
+        "baseline": {
+            "type": "object",
+            "description": "The newly created CensusBaselineItem (contracts.census_baseline_item).",
+            "$ref": "CensusBaselineItem.json"
+        }
+    }
+}

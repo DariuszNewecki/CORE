@@ -1,0 +1,63 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.coverage_run_result.schema.json",
+    "title": "CoverageRunResult — outcome persisted to core.coverage_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.coverage_runs (src/will/governance/coverage_runner.py). Three distinct run kinds write to this column, producing different shapes; all share a loose-superset schema with additionalProperties:true. Kind is NOT stored on the result dict itself — use core.coverage_runs.target_file (NULL = report run) and core.coverage_runs.batch_priority (non-NULL = batch run) as discriminators. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+        "ok": {
+            "type": "boolean",
+            "description": "report kind: True if pytest exited 0 and the report was generated successfully. Absent on generate/batch kinds (they use 'success' instead)."
+        },
+        "format": {
+            "type": "string",
+            "enum": ["text", "html"],
+            "description": "report kind: The output format requested. Forwarded from the route parameter."
+        },
+        "show_missing": {
+            "type": "boolean",
+            "description": "report kind: Whether line-level missing-coverage details were included."
+        },
+        "summary": {
+            "type": "string",
+            "description": "report kind: Captured pytest summary line. Also used as the error message if ok=false."
+        },
+        "success": {
+            "type": "boolean",
+            "description": "generate/batch kinds: True if at least one test was generated without error. Absent on report kind (uses 'ok' instead)."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["completed", "no_candidates", "no_matches"],
+            "description": "batch kind: Terminal state from BatchRemediationService. 'no_candidates' = no files below threshold; 'no_matches' = no files passed complexity filter; 'completed' = at least one file processed."
+        },
+        "processed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "batch kind: Number of files the batch loop actually attempted."
+        },
+        "results": {
+            "type": "array",
+            "description": "batch kind: Per-file results from BatchRemediationService.process_batch(). Each item has 'file', 'original_coverage', plus per-file action output.",
+            "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "description": "Repo-relative path of the source file processed."
+                    },
+                    "original_coverage": {
+                        "type": "number",
+                        "description": "Coverage percentage at time of selection."
+                    }
+                }
+            }
+        },
+        "error": {
+            "type": ["string", "null"],
+            "description": "generate kind: Error message if the single-file remediation failed. Absent on success."
+        }
+    }
+}

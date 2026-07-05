@@ -1,0 +1,42 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.proposal_action_item",
+        "title": "ProposalActionItem — single action entry in a ProposalResponse",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Element of ProposalResponse.actions. Represents one action step in an autonomous proposal — either an AtomicAction step (action_id set) or a Flow step (flow_id set). Exactly one of action_id/flow_id should be non-null per ADR-026 intent. Crosses the API boundary as part of ProposalResponse (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class ProposalActionItem.",
+    "governed_classes": [
+        "ProposalActionItem"
+    ],
+    "required": [
+        "action_id",
+        "flow_id",
+        "parameters",
+        "order"
+    ],
+    "properties": {
+        "action_id": {
+            "type": ["string", "null"],
+            "description": "AtomicAction identifier if this step invokes an action. Mutually exclusive with flow_id."
+        },
+        "flow_id": {
+            "type": ["string", "null"],
+            "description": "Flow identifier if this step invokes a Flow. Mutually exclusive with action_id."
+        },
+        "parameters": {
+            "type": "object",
+            "description": "Keyword arguments forwarded to the action or flow executor.",
+            "additionalProperties": true,
+            "default": {}
+        },
+        "order": {
+            "type": "integer",
+            "description": "Execution order index (0-based). Steps are sorted ascending by order before execution.",
+            "default": 0
+        }
+    }
+}

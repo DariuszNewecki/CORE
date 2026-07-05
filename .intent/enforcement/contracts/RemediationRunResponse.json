@@ -1,0 +1,81 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.remediation_run_response",
+        "title": "RemediationRunResponse — GET /v1/audit/remediations/{run_id} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response shape for GET /v1/audit/remediations/{run_id}. The result field carries an AuditRemediationRunResult (contracts.audit_remediation_run_result) — the flattened RemediationResult summary persisted after a remediation run. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class RemediationRunResponse.",
+    "governed_classes": [
+        "RemediationRunResponse"
+    ],
+    "required": [
+        "run_id",
+        "audit_run_id",
+        "mode",
+        "write",
+        "status",
+        "requested_by",
+        "requested_at",
+        "started_at",
+        "finished_at",
+        "result",
+        "error"
+    ],
+    "properties": {
+        "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the audit remediation run."
+        },
+        "audit_run_id": {
+            "type": ["string", "null"],
+            "format": "uuid",
+            "description": "UUID of the audit run that produced the findings this remediation consumed. Null if triggered without a specific source audit run."
+        },
+        "mode": {
+            "type": "string",
+            "description": "Remediation mode (e.g. 'auto', 'supervised'). Implementation-specific value from the run row."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "Whether fixes were applied (true) or dry-run only (false). ADR-014."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "executing", "completed", "failed"],
+            "description": "Run lifecycle state."
+        },
+        "requested_by": {
+            "type": ["string", "null"],
+            "description": "Username or agent identifier that triggered this run."
+        },
+        "requested_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the run was requested."
+        },
+        "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution began."
+        },
+        "finished_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution completed."
+        },
+        "result": {
+            "type": ["object", "null"],
+            "description": "AuditRemediationRunResult JSONB payload (contracts.audit_remediation_run_result). Present when status=completed|failed.",
+            "additionalProperties": true
+        },
+        "error": {
+            "type": ["string", "null"],
+            "description": "Error message if status=failed."
+        }
+    }
+}

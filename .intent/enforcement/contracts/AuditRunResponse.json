@@ -1,0 +1,70 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.audit_run_response",
+        "title": "AuditRunResponse — GET /v1/audit/runs/{run_id} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response shape for GET /v1/audit/runs/{run_id} (ADR-054 amendment). The audit_runs table stores findings in a dedicated JSONB column rather than a result column (contrast with fix_runs, coverage_runs, etc. which use a result JSONB). Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class AuditRunResponse.",
+    "governed_classes": [
+        "AuditRunResponse"
+    ],
+    "required": [
+        "run_id",
+        "verdict",
+        "finding_count",
+        "blocking_count",
+        "started_at",
+        "finished_at",
+        "status",
+        "findings"
+    ],
+    "properties": {
+        "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the audit run."
+        },
+        "verdict": {
+            "type": ["string", "null"],
+            "enum": ["pass", "fail", "pending", null],
+            "description": "Constitutional audit verdict. 'pass' if all blocking checks passed; 'fail' if any blocking finding exists; 'pending' while the run is executing; null before verdict is computed."
+        },
+        "finding_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of audit findings (all severities)."
+        },
+        "blocking_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of blocking findings (severity=block). Determines verdict=fail when > 0."
+        },
+        "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the audit run began. Null if not yet started."
+        },
+        "finished_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the audit run completed. Null if still running."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "executing", "completed", "failed"],
+            "description": "Run lifecycle state."
+        },
+        "findings": {
+            "type": "array",
+            "description": "AuditFinding objects for this run. Each element conforms to AuditFinding.json. Empty list while status=pending|executing.",
+            "items": {
+                "type": "object",
+                "additionalProperties": true
+            }
+        }
+    }
+}

@@ -1,0 +1,86 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.fix_run_response",
+        "title": "FixRunResponse — GET /v1/fix/runs/{run_id} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response shape for GET /v1/fix/runs/{run_id} (ADR-055 D2). The result field carries a FixRunResult (contracts.fix_run_result) whose shape is discriminated by kind. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class FixRunResponse.",
+    "governed_classes": [
+        "FixRunResponse"
+    ],
+    "required": [
+        "run_id",
+        "kind",
+        "fix_id",
+        "target_files",
+        "write",
+        "status",
+        "requested_by",
+        "requested_at",
+        "started_at",
+        "finished_at",
+        "result",
+        "error"
+    ],
+    "properties": {
+        "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the fix run."
+        },
+        "kind": {
+            "type": ["string", "null"],
+            "description": "Fix run kind discriminator. Values: atomic, flow, modularity, quality_check. Matches FixRunResult.kind."
+        },
+        "fix_id": {
+            "type": ["string", "null"],
+            "description": "The fix action_id that was executed (e.g. 'fix.imports'). Null for flow-kind runs."
+        },
+        "target_files": {
+            "type": ["array", "null"],
+            "items": {"type": "string"},
+            "description": "Files the fix was restricted to. Null means action default scope was applied."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "Whether the fix was applied (true) or dry-run only (false). ADR-014."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "executing", "completed", "failed"],
+            "description": "Run lifecycle state."
+        },
+        "requested_by": {
+            "type": ["string", "null"],
+            "description": "Username or agent identifier that triggered this run. Null for anonymous / daemon-initiated runs."
+        },
+        "requested_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the run was requested."
+        },
+        "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution began."
+        },
+        "finished_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when execution completed."
+        },
+        "result": {
+            "type": ["object", "null"],
+            "description": "FixRunResult JSONB payload (contracts.fix_run_result). Present when status=completed|failed; null while pending|executing.",
+            "additionalProperties": true
+        },
+        "error": {
+            "type": ["string", "null"],
+            "description": "Error message if status=failed. Null on success."
+        }
+    }
+}

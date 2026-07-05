@@ -1,7 +1,7 @@
 # Data Contracts Inventory
 
 **Path:** `.specs/planning/data-contracts-inventory.md`
-**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07; counts + #367 reconciled 2026-06-17; Wave 1 BlackboardEntry payloads + universal results + Wave 2 Action.payload authored 2026-07-05 — e7627d4a)
+**Date:** 2026-05-17 (status overlay refreshed 2026-05-24; staleness verified 2026-06-07; counts + #367 reconciled 2026-06-17; Wave 1 BlackboardEntry payloads + universal results + Wave 2 Action.payload authored 2026-07-05 — e7627d4a; Wave 3 *Run.result schemas + 21 API DTOs authored 2026-07-05)
 **Status:** Planning artifact — not constitutional
 **Authority:** ADR-056
 
@@ -33,13 +33,23 @@ D4 (Proposal state-conditional contract with `allOf`/`if`/`then` per
 is **closed** — #367 CLOSED. Full ADR-056 implementation (Wave 2/3)
 remains tracked at #366 (OPEN).
 
-**Status as of 2026-07-05 (commit e7627d4a):** Wave 1 BlackboardEntry payload
+**Status as of 2026-07-05 (commit e7627d4a + Wave 3 pass):** Wave 1 BlackboardEntry payload
 sub-schemas (worker_heartbeat, worker_error, run_complete nucleus,
 sync_db_complete, repo_crawl_complete) and universal result schemas
 (ComponentResult, FlowResult, StepResult) authored — Wave 1 schema coverage
 now complete. Wave 2 Action.payload.schema.json authored — Wave 2 schema
-coverage now complete. Wave 3 (API DTOs + run-table JSONB + agent/learning
-ORM + workflow models) remains open. Total contracts: 56 files.
+coverage now complete. Wave 3 *Run.result JSONB schemas authored
+(CoverageRunResult, RefactorRunResult, AuditRemediationRunResult,
+CensusRunResult, SyncRunResult — note: audit_runs has no result column, it
+stores findings directly) and all 21 API DTO schemas from src/api/v1/schemas.py
+authored (AsyncDispatchResponse, AuditRunResponse, FixRunResponse, FixIRResponse,
+ActionCommandItem, FixCommandListResponse, RemediationRunResponse,
+ProposalActionItem, ProposalResponse, LaneBundleRule, LaneBundle,
+LaneFindingItem, LaneFindingWithBundle, LaneFindingListResponse,
+LaneClaimResponse, LaneProposeResponse, CensusRunResponse, CensusBaselineItem,
+CensusBaselineCreateResponse, CensusBaselineListResponse, CensusDiffResponse).
+Total contracts: 82 files. Wave 3 schema coverage substantially complete;
+remaining gap is agent/learning ORM sub-shapes (AgentDecision.json already ✅).
 
 **Status convention in the tables below:** ✅ in the **Notes** column
 means a contract file exists at `.intent/enforcement/contracts/<name>.json`.
@@ -151,15 +161,37 @@ findings from the audit loop.
 
 | Contract | Source | Boundary | Notes |
 |---|---|---|---|
-| `api/AuditRequest.schema.json` | `src/api/v1/` | API boundary | ❌ One schema per route family; not yet authored. |
-| `api/FixRequest.schema.json` | `src/api/v1/` | API boundary | ❌ Not yet authored. |
-| `api/ProposalRequest.schema.json` | `src/api/v1/` | API boundary | ❌ Not yet authored. |
-| *(remaining 21 API request/response shapes)* | `src/api/v1/` | API boundary | ❌ Not yet authored. |
+| `AsyncDispatchResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ Standard 202 response for all async-dispatch endpoints. |
+| `AuditRunResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/audit/runs/{id} response. |
+| `FixRunResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/fix/runs/{id} response. |
+| `FixIRResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ POST /v1/fix/ir synchronous scaffold response. |
+| `ActionCommandItem.json` | `src/api/v1/schemas.py` | API boundary | ✅ Element of FixCommandListResponse. |
+| `FixCommandListResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/fix/commands response. |
+| `RemediationRunResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/audit/remediations/{id} response. |
+| `ProposalActionItem.json` | `src/api/v1/schemas.py` | API boundary | ✅ Single action entry in ProposalResponse. |
+| `ProposalResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/proposals/{id} response. |
+| `LaneBundleRule.json` | `src/api/v1/schemas.py` | API boundary | ✅ Rule metadata nested in LaneBundle. |
+| `LaneBundle.json` | `src/api/v1/schemas.py` | API boundary | ✅ ADR-109 context bundle for LaneFindingWithBundle. |
+| `LaneFindingItem.json` | `src/api/v1/schemas.py` | API boundary | ✅ Delegated finding element. |
+| `LaneFindingWithBundle.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/lane/{id} detail response. |
+| `LaneFindingListResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/lane list response. |
+| `LaneClaimResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ POST /v1/lane/{id}/claim response. |
+| `LaneProposeResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ POST /v1/lane/{id}/propose response. |
+| `CensusRunResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/census/runs/{id} response. |
+| `CensusBaselineItem.json` | `src/api/v1/schemas.py` | API boundary | ✅ Named census baseline record element. |
+| `CensusBaselineCreateResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ POST /v1/census/baselines/{name} response. |
+| `CensusBaselineListResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/census/baselines response. |
+| `CensusDiffResponse.json` | `src/api/v1/schemas.py` | API boundary | ✅ GET /v1/census/diff response. |
 | `WorkflowResult.json` | `src/shared/models/workflow_models.py:48` | flow boundary | ✅ Schema landed. |
 | `PhaseWorkflowResult.json` | `src/shared/models/workflow_models.py:110` | flow boundary | ✅ Schema landed. |
 | `DetailedPlan.json` | `src/shared/models/workflow_models.py:207` | phase boundary | ✅ Schema landed. A3 blueprint handoff. |
 | `DetailedPlanStep.json` | `src/shared/models/workflow_models.py:145` | phase boundary | ✅ Schema landed. |
-| `AuditRunResult.schema.json` | `src/shared/infrastructure/database/models/governance.py` | persistence boundary | ❌ One per *Run.result JSONB column (×7). Not yet authored. |
+| `CoverageRunResult.schema.json` | `src/will/governance/coverage_runner.py` | persistence boundary | ✅ Three-path shape (report/generate/batch); open superset schema. |
+| `RefactorRunResult.schema.json` | `src/will/governance/refactor_runner.py` | persistence boundary | ✅ Fixed shape: success, message, proposal_ids, proposal_count. |
+| `AuditRemediationRunResult.schema.json` | `src/will/governance/audit_remediation_runner.py` | persistence boundary | ✅ Flattened RemediationResult scalar fields. |
+| `CensusRunResult.schema.json` | `src/will/governance/census_runner.py` | persistence boundary | ✅ RepoCensus.model_dump() + optional snapshot_file. |
+| `SyncRunResult.schema.json` | `src/will/governance/sync_runner.py` | persistence boundary | ✅ Two shapes: dev_sync (WorkflowResult) vs action-based (ActionResult summary). |
+| *(AuditRunResult — N/A)* | `src/will/governance/audit_runner.py` | persistence boundary | audit_runs has no result JSONB column; verdict/findings stored as individual columns. No schema needed. |
 | `AgentDecision.json` | `src/shared/infrastructure/database/models/learning.py:30` | persistence boundary | ✅ Schema landed. `options_considered` JSONB sub-shape remains a documented gap (no writer in `src/` per ADR-056 Wave 1 Session 3 note). |
 | `VectorizableItem.json` | `src/shared/models/vector_models.py:18` | vector store boundary | ✅ Schema landed. |
 | `RepoCensus.json` | `src/body/services/cim/models.py:181` | phase boundary | ✅ Schema landed. Already self-versioning. |

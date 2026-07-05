@@ -1,0 +1,64 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.sync_run_result.schema.json",
+    "title": "SyncRunResult — outcome persisted to core.sync_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.sync_runs (src/will/governance/sync_runner.py). Two distinct shapes depending on sync_type: (A) dev_sync — DevSyncWorkflow.model_dump() producing a WorkflowResult shape; (B) all other sync_types — an ActionResult summary dict built inline. The sync_type discriminator is stored on the run row, not in the result dict. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py.",
+    "oneOf": [
+        {
+            "description": "Shape A — dev_sync: WorkflowResult.model_dump() (src/shared/models/workflow_models.py:48). Produced when sync_type='dev_sync'.",
+            "type": "object",
+            "required": ["workflow_id", "phases"],
+            "additionalProperties": true,
+            "properties": {
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Registered workflow identifier. Set on DevSyncWorkflow construction."
+                },
+                "phases": {
+                    "type": "array",
+                    "description": "list[WorkflowPhase] — ordered phase results. Each phase has: phase_name (str), ok (bool), duration (float), actions (list[ActionResult]).",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {
+                            "phase_name": {"type": "string"},
+                            "ok": {"type": "boolean"},
+                            "duration": {"type": "number", "minimum": 0},
+                            "actions": {
+                                "type": "array",
+                                "items": {"type": "object"}
+                            }
+                        }
+                    },
+                    "default": []
+                }
+            }
+        },
+        {
+            "description": "Shape B — action-based sync types (db, code_vectors, intent, etc.): inline ActionResult summary dict. Produced for all sync_types except 'dev_sync'.",
+            "type": "object",
+            "required": ["ok", "action_id"],
+            "additionalProperties": true,
+            "properties": {
+                "ok": {
+                    "type": "boolean",
+                    "description": "Whether the underlying AtomicAction reported success."
+                },
+                "data": {
+                    "type": "object",
+                    "description": "ActionResult.data — the action's structured output dict. Shape is action_id-specific.",
+                    "additionalProperties": true
+                },
+                "duration_sec": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "ActionResult.duration_sec — wall-clock duration of the action in seconds."
+                },
+                "action_id": {
+                    "type": "string",
+                    "description": "The AtomicAction id that was executed (e.g. 'sync.db', 'sync.vectors_code', 'sync.intent')."
+                }
+            }
+        }
+    ]
+}

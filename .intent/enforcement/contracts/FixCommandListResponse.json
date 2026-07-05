@@ -1,0 +1,33 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.fix_command_list_response",
+        "title": "FixCommandListResponse — GET /v1/fix/commands response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for GET /v1/fix/commands. Lists all API-visible registered atomic actions with their metadata from the ActionRegistry. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class FixCommandListResponse.",
+    "governed_classes": [
+        "FixCommandListResponse"
+    ],
+    "required": [
+        "count",
+        "commands"
+    ],
+    "properties": {
+        "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of commands in the response. Equals len(commands)."
+        },
+        "commands": {
+            "type": "array",
+            "description": "List of ActionCommandItem entries (contracts.action_command_item), one per API-visible registered action.",
+            "items": {
+                "$ref": "ActionCommandItem.json"
+            }
+        }
+    }
+}

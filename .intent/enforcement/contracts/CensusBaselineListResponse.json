@@ -1,0 +1,31 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.census_baseline_list_response",
+        "title": "CensusBaselineListResponse — GET /v1/census/baselines response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for GET /v1/census/baselines — lists all named census baselines registered in the CensusHistory baseline registry. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusBaselineListResponse.",
+    "governed_classes": [
+        "CensusBaselineListResponse"
+    ],
+    "required": [
+        "count",
+        "baselines"
+    ],
+    "properties": {
+        "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of registered baselines. Equals len(baselines)."
+        },
+        "baselines": {
+            "type": "array",
+            "description": "List of CensusBaselineItem entries (contracts.census_baseline_item), ordered by creation time ascending.",
+            "items": {"$ref": "CensusBaselineItem.json"}
+        }
+    }
+}

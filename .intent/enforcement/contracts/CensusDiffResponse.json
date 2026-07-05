@@ -1,0 +1,40 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.census_diff_response",
+        "title": "CensusDiffResponse — GET /v1/census/diff response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for GET /v1/census/diff — compares the current census snapshot against a named baseline. available=false when no current snapshot or no baseline exists; diff carries the CensusDiff model_dump when available. The CensusDiff shape captures delta metrics between the two censuses (CensusDelta per field, HotspotChange list). Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusDiffResponse.",
+    "governed_classes": [
+        "CensusDiffResponse"
+    ],
+    "required": [
+        "available",
+        "error",
+        "baseline",
+        "diff"
+    ],
+    "properties": {
+        "available": {
+            "type": "boolean",
+            "description": "True when a valid comparison could be computed. False when either the current snapshot or the requested baseline does not exist."
+        },
+        "error": {
+            "type": ["string", "null"],
+            "description": "Human-readable explanation of why available=false. Null when available=true."
+        },
+        "baseline": {
+            "type": ["string", "null"],
+            "description": "Name of the baseline used for comparison. Null when available=false."
+        },
+        "diff": {
+            "type": ["object", "null"],
+            "description": "CensusDiff.model_dump() — a dict of CensusDelta objects (old_value, new_value, delta, percent_change) keyed by metric name, plus a hotspot_changes list (HotspotChange: path, old_count, new_count, delta, status). Null when available=false.",
+            "additionalProperties": true
+        }
+    }
+}

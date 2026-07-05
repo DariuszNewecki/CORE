@@ -1,0 +1,31 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_finding_list_response",
+        "title": "LaneFindingListResponse — GET /v1/lane response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for GET /v1/lane — paginated list of delegated Assisted Remediation findings. Elements are LaneFindingItem (without bundle enrichment; use GET /v1/lane/{id} for bundle). Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneFindingListResponse.",
+    "governed_classes": [
+        "LaneFindingListResponse"
+    ],
+    "required": [
+        "count",
+        "findings"
+    ],
+    "properties": {
+        "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of delegated findings matching the query (may exceed len(findings) if pagination is applied)."
+        },
+        "findings": {
+            "type": "array",
+            "description": "Page of LaneFindingItem entries (contracts.lane_finding_item). Ordered by created_at ascending.",
+            "items": {"$ref": "LaneFindingItem.json"}
+        }
+    }
+}

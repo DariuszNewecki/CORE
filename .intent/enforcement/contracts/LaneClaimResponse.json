@@ -1,0 +1,35 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_claim_response",
+        "title": "LaneClaimResponse — POST /v1/lane/{finding_id}/claim response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body for POST /v1/lane/{finding_id}/claim — the operator claims responsibility for remediating a delegated finding. The finding's blackboard status transitions to 'claimed' and claimed_by is set. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneClaimResponse.",
+    "governed_classes": [
+        "LaneClaimResponse"
+    ],
+    "required": [
+        "finding_id",
+        "claimed_by",
+        "status"
+    ],
+    "properties": {
+        "finding_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the claimed blackboard entry."
+        },
+        "claimed_by": {
+            "type": "string",
+            "description": "Username or agent identifier that claimed the finding."
+        },
+        "status": {
+            "type": "string",
+            "description": "New status of the blackboard entry after claim. Expected value: 'claimed'."
+        }
+    }
+}

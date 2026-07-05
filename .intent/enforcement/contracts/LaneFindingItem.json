@@ -1,0 +1,42 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_finding_item",
+        "title": "LaneFindingItem — delegated finding from the Assisted Remediation Lane",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A single blackboard entry delegated to the Assisted Remediation Lane. Returned in LaneFindingListResponse.findings and as the base class for LaneFindingWithBundle. The id is the blackboard_entry UUID; payload carries the raw AuditFinding payload. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneFindingItem.",
+    "governed_classes": [
+        "LaneFindingItem"
+    ],
+    "required": [
+        "id",
+        "subject",
+        "payload",
+        "created_at"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the blackboard_entries row for this delegated finding."
+        },
+        "subject": {
+            "type": "string",
+            "description": "Blackboard subject string — typically an audit violation subject (e.g. 'audit.violation::rule_id')."
+        },
+        "payload": {
+            "type": "object",
+            "description": "The raw blackboard entry payload. Shape conforms to AuditFinding.json (finding fields: rule_id, severity, subject, evidence).",
+            "additionalProperties": true
+        },
+        "created_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the blackboard entry was created."
+        }
+    }
+}

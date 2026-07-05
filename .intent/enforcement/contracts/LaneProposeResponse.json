@@ -1,0 +1,41 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_propose_response",
+        "title": "LaneProposeResponse — POST /v1/lane/{finding_id}/propose response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body (201 Created) for POST /v1/lane/{finding_id}/propose — submits a remediation proposal for a delegated finding. The proposal is created in the autonomous_proposals table and the finding's status transitions. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneProposeResponse.",
+    "governed_classes": [
+        "LaneProposeResponse"
+    ],
+    "required": [
+        "proposal_id",
+        "status",
+        "approval_required",
+        "scope_files"
+    ],
+    "properties": {
+        "proposal_id": {
+            "type": "string",
+            "description": "The created proposal identifier. Use GET /v1/proposals/{proposal_id} to track execution."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["draft", "pending", "approved"],
+            "description": "Initial status of the created proposal. 'draft' requires further validation; 'pending' awaits approval; 'approved' is immediately executable."
+        },
+        "approval_required": {
+            "type": "boolean",
+            "description": "Whether human approval is required before the proposal will execute. Derived from risk tier."
+        },
+        "scope_files": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Repo-relative file paths included in the proposal's scope. Callers can use this to review what will be modified before approving."
+        }
+    }
+}

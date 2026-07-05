@@ -1,0 +1,40 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.census_baseline_item",
+        "title": "CensusBaselineItem — a single named census baseline record",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Represents one entry from the CensusHistory baseline registry. Used as an element in CensusBaselineListResponse.baselines and as the payload in CensusBaselineCreateResponse.baseline. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusBaselineItem.",
+    "governed_classes": [
+        "CensusBaselineItem"
+    ],
+    "required": [
+        "name",
+        "snapshot_file",
+        "git_commit",
+        "created_at"
+    ],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Unique baseline name (user-supplied, e.g. 'pre-release-2.8.0')."
+        },
+        "snapshot_file": {
+            "type": "string",
+            "description": "Repo-relative path to the census snapshot JSON file this baseline points to."
+        },
+        "git_commit": {
+            "type": ["string", "null"],
+            "description": "Git commit SHA recorded at baseline creation time. Null if not captured."
+        },
+        "created_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the baseline was registered."
+        }
+    }
+}

@@ -1,0 +1,119 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.proposal_response",
+        "title": "ProposalResponse — GET /v1/proposals/{id} response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response shape for GET /v1/proposals/{id} and GET /v1/proposals. Exposes the Proposal.to_dict() surface over the API. Status field is governed by the proposal_status enum. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class ProposalResponse.",
+    "governed_classes": [
+        "ProposalResponse"
+    ],
+    "required": [
+        "proposal_id",
+        "goal",
+        "actions",
+        "scope",
+        "risk",
+        "status",
+        "created_at",
+        "created_by",
+        "validation_checks",
+        "validation_results",
+        "execution_started_at",
+        "execution_completed_at",
+        "execution_results",
+        "constitutional_constraints",
+        "approval_required",
+        "approved_by",
+        "approved_at",
+        "approval_authority",
+        "failure_reason"
+    ],
+    "properties": {
+        "proposal_id": {
+            "type": "string",
+            "description": "Unique proposal identifier (text, not UUID — matches autonomous_proposals.proposal_id)."
+        },
+        "goal": {
+            "type": "string",
+            "description": "Natural language description of what the proposal intends to accomplish."
+        },
+        "actions": {
+            "type": "array",
+            "description": "Ordered list of ProposalActionItem entries (contracts.proposal_action_item).",
+            "items": {"$ref": "ProposalActionItem.json"}
+        },
+        "scope": {
+            "type": "object",
+            "description": "ProposalScope JSONB — files and other resource constraints. Conforms to ProposalScope.json.",
+            "additionalProperties": true
+        },
+        "risk": {
+            "type": ["object", "null"],
+            "description": "RiskAssessment JSONB (contracts.risk_assessment). Null before constitutional validation.",
+            "additionalProperties": true
+        },
+        "status": {
+            "type": "string",
+            "enum": ["draft", "pending", "approved", "executing", "completed", "failed", "rejected"],
+            "description": "Proposal lifecycle state. Governed by proposal_status enum."
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the proposal was created."
+        },
+        "created_by": {
+            "type": ["string", "null"],
+            "description": "Username or agent identifier that created the proposal. 'autonomous' for daemon-originated proposals."
+        },
+        "validation_checks": {
+            "description": "Constitutional validation check results. Null before validation runs. Shape is implementation-specific."
+        },
+        "validation_results": {
+            "description": "Detailed validation results after constitutional checks. Null before validation."
+        },
+        "execution_started_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when proposal execution began."
+        },
+        "execution_completed_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when proposal execution completed."
+        },
+        "execution_results": {
+            "description": "Per-action execution results. Null before execution. Shape is action-type-specific."
+        },
+        "constitutional_constraints": {
+            "description": "Constitutional constraints applied to this proposal. Null before validation."
+        },
+        "approval_required": {
+            "type": "boolean",
+            "description": "Whether human approval is required before execution. True for CRITICAL or ELEVATED risk proposals.",
+            "default": false
+        },
+        "approved_by": {
+            "type": ["string", "null"],
+            "description": "Username that granted approval. Null until approved."
+        },
+        "approved_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when approval was granted."
+        },
+        "approval_authority": {
+            "type": ["string", "null"],
+            "description": "The governance authority level that approved this proposal (e.g. 'governor', 'autonomous')."
+        },
+        "failure_reason": {
+            "type": ["string", "null"],
+            "description": "Human-readable failure explanation when status=failed|rejected. Null on success."
+        }
+    }
+}

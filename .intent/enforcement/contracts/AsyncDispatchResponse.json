@@ -1,0 +1,35 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.async_dispatch_response",
+        "title": "AsyncDispatchResponse — standard 202 response for all async-dispatch endpoints",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Standard 202 Accepted response body returned by every async-dispatch POST endpoint (POST /v1/audit/run, POST /v1/fix/run/{fix_id}, POST /v1/census/run, POST /v1/sync/run, etc.). Callers use href to poll for the completed run record. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class AsyncDispatchResponse.",
+    "governed_classes": [
+        "AsyncDispatchResponse"
+    ],
+    "required": [
+        "run_id",
+        "status",
+        "href"
+    ],
+    "properties": {
+        "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the newly created run row. Use this to poll the GET endpoint."
+        },
+        "status": {
+            "type": "string",
+            "description": "Initial status of the dispatched run. Always 'pending' at dispatch time."
+        },
+        "href": {
+            "type": "string",
+            "description": "Relative URL of the GET endpoint for this run (e.g. /v1/audit/runs/{run_id}). Callers poll this until status is 'completed' or 'failed'."
+        }
+    }
+}

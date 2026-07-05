@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.refactor_run_result.schema.json",
+    "title": "RefactorRunResult — outcome persisted to core.refactor_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.refactor_runs (src/will/governance/refactor_runner.py). Constructed inline after Flow/proposal execution completes. Required fields are always written on success; on failure the row status is 'failed' and result may be null. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py (no governed_classes Python counterpart).",
+    "type": "object",
+    "required": ["success", "message", "proposal_ids", "proposal_count"],
+    "additionalProperties": true,
+    "properties": {
+        "success": {
+            "type": "boolean",
+            "description": "True if the refactor run concluded without unhandled error. Does not guarantee every proposal succeeded — check proposal outcomes individually."
+        },
+        "message": {
+            "type": "string",
+            "description": "Human-readable summary of the refactor outcome. 'Refactoring completed' on success; descriptive error string on failure."
+        },
+        "proposal_ids": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "format": "uuid"
+            },
+            "description": "UUIDs of all autonomous_proposals created or correlated during this run. Empty list if no proposals were created or if proposal correlation failed.",
+            "default": []
+        },
+        "proposal_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "len(proposal_ids). Redundant convenience field so consumers avoid parsing the array for a count."
+        }
+    }
+}

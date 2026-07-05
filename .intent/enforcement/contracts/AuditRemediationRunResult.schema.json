@@ -1,0 +1,72 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.audit_remediation_run_result.schema.json",
+    "title": "AuditRemediationRunResult — outcome persisted to core.audit_remediation_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.audit_remediation_runs (src/will/governance/audit_remediation_runner.py). Flattened from RemediationResult (src/body/self_healing/remediation_models.py:131) — the dataclass fields are extracted individually and written as a plain dict. The full RemediationResult dataclass (with matched_patterns, unmatched_findings, fix_details arrays) is NOT stored; only the scalar summary fields and path references are persisted. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": [
+        "total_findings",
+        "fixes_attempted",
+        "fixes_succeeded",
+        "improvement_delta",
+        "validation_passed",
+        "findings_before",
+        "findings_after",
+        "duration_sec",
+        "audit_input_path",
+        "remediation_output_path"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "total_findings": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total audit violations present at the start of this remediation run."
+        },
+        "fixes_attempted": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of individual fix attempts made during the run."
+        },
+        "fixes_succeeded": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of fix attempts that applied without error."
+        },
+        "improvement_delta": {
+            "type": "integer",
+            "description": "findings_before minus findings_after. Positive means fewer violations; negative means regressions were introduced."
+        },
+        "validation_passed": {
+            "type": "boolean",
+            "description": "True if the post-remediation audit shows net improvement (improvement_delta > 0)."
+        },
+        "findings_before": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Audit violation count measured before fixes were applied."
+        },
+        "findings_after": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Audit violation count measured after fixes were applied. Present only when validation was run."
+        },
+        "duration_sec": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Wall-clock duration of the full remediation run in seconds."
+        },
+        "audit_input_path": {
+            "type": "string",
+            "description": "Repo-relative path to the audit findings file consumed as input."
+        },
+        "remediation_output_path": {
+            "type": "string",
+            "description": "Repo-relative path where the RemediationResult JSON evidence file was written."
+        },
+        "validation_audit_path": {
+            "type": ["string", "null"],
+            "description": "Repo-relative path where the post-remediation validation audit was saved. Null if validation was skipped."
+        }
+    }
+}

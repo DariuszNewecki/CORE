@@ -1,0 +1,35 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.lane_bundle_rule",
+        "title": "LaneBundleRule — rule metadata within a lane finding bundle",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Rule metadata attached to the context bundle in a delegated Assisted Remediation finding (ADR-109 #653). Nested inside LaneBundle. Crosses the API boundary as part of LaneFindingWithBundle (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneBundleRule.",
+    "governed_classes": [
+        "LaneBundleRule"
+    ],
+    "required": [
+        "id",
+        "rationale",
+        "in_registry"
+    ],
+    "properties": {
+        "id": {
+            "type": ["string", "null"],
+            "description": "The rule_id from .intent/rules/ that produced this finding. Null if not resolvable."
+        },
+        "rationale": {
+            "type": ["string", "null"],
+            "description": "The rule's rationale text from its intent declaration. Null if not found in registry."
+        },
+        "in_registry": {
+            "type": "boolean",
+            "description": "Whether the rule_id was found in the live IntentRepository rule registry.",
+            "default": false
+        }
+    }
+}
