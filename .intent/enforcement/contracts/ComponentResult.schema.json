@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.component_result.schema.json",
+    "title": "ComponentResult — universal component output shape",
+    "description": "JSON Schema for the ComponentResult dataclass (src/shared/component_primitive.py:68). The universal result type returned by all Body components (Analyzers, Evaluators, Strategists) crossing a phase boundary. Constitutional requirement (Article IV): all components MUST return evaluable results with explicit success status. ComponentResult is the single source of truth for component outputs. Authority: ADR-056 Wave 1 (phase-boundary contract); src/shared/component_primitive.py. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["component_id", "ok", "data", "phase"],
+    "additionalProperties": true,
+    "properties": {
+        "component_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique identifier for the component that produced this result. Conventionally the fully-qualified class name or a registered component ID."
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "Binary success indicator. True = component achieved its goal. False = component failed or produced a refusal."
+        },
+        "data": {
+            "type": "object",
+            "description": "Component-specific output data. Shape is defined by the producing component; callers must not assume a fixed structure beyond the top-level dict requirement."
+        },
+        "phase": {
+            "type": "string",
+            "description": "Constitutional phase this component operates in. Governed vocabulary: component_phase enum in .intent/META/enums.json (ADR-056 D5). Values: INTERPRET, PARSE, LOAD, AUDIT, RUNTIME, EXECUTION."
+        },
+        "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "default": 1.0,
+            "description": "Confidence in result (0.0–1.0). Used by workflow orchestrators for routing decisions. Defaults to 1.0 for deterministic components."
+        },
+        "next_suggested": {
+            "type": ["string", "null"],
+            "description": "Optional suggestion for the next component to run. A hint, not a requirement — orchestrators may ignore it. Null when no suggestion is relevant."
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Additional context that may be useful for subsequent components. Examples: error details, pattern history, accumulated state. Empty dict when not needed.",
+            "additionalProperties": true
+        },
+        "duration_sec": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.0,
+            "description": "Execution time in seconds. 0.0 default is acceptable for components that do not measure elapsed time."
+        }
+    }
+}

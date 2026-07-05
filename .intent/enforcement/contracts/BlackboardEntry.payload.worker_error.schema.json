@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.blackboard_entry.payload.worker_error.schema.json",
+    "title": "BlackboardEntry.payload — worker.error shape",
+    "description": "JSON Schema for the payload JSONB column when entry_type='finding' and subject='worker.error'. Posted by the Worker base class exception handler (src/shared/workers/base.py) when a worker's run() raises an unhandled exception. Status is always 'abandoned'. Authority: ADR-056 Wave 1; ADR-011 (blackboard write boundary). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["error", "worker"],
+    "additionalProperties": true,
+    "properties": {
+        "error": {
+            "type": "string",
+            "description": "str(exception) — the string representation of the exception that caused the worker to fail. May be empty if the exception has no message."
+        },
+        "worker": {
+            "type": "string",
+            "description": "Declaration name of the worker that failed. Matches Worker.declaration_name and the .intent/workers/<name>.yaml filename stem."
+        }
+    }
+}

@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.step_result.schema.json",
+    "title": "StepResult — single Flow step output",
+    "description": "JSON Schema for the StepResult dataclass (src/body/flows/result.py:19). Wraps the result of a single step within a Flow — either an AtomicAction step (ref_id = action_id) or a nested Flow step (ref_id = flow_id). Produced by FlowExecutor and aggregated into FlowResult.steps. Authority: ADR-056 Wave 1 (flow-boundary contract); CORE-Flow.md §6. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["ref_id", "required", "ok", "data"],
+    "additionalProperties": true,
+    "properties": {
+        "ref_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The action_id (for AtomicAction steps) or flow_id (for nested Flow steps) that produced this result."
+        },
+        "required": {
+            "type": "boolean",
+            "description": "Whether failure of this step halts the parent Flow. Required steps gate subsequent steps; optional steps are best-effort."
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "True if the step succeeded. For required steps, ok=False halts the Flow and sets FlowResult.ok=False."
+        },
+        "data": {
+            "type": "object",
+            "description": "The result data from the step — ActionResult.data for AtomicAction steps, or a summary dict for nested Flow steps.",
+            "additionalProperties": true
+        },
+        "duration_sec": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.0,
+            "description": "Wall-clock duration of this step in seconds."
+        },
+        "kind": {
+            "type": "string",
+            "enum": ["action", "flow"],
+            "default": "action",
+            "description": "Discriminates AtomicAction steps ('action') from nested Flow steps ('flow'). Mirrors StepKind enum for serialization."
+        }
+    }
+}

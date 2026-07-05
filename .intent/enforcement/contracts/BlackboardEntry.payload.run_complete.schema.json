@@ -1,0 +1,32 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.blackboard_entry.payload.run_complete.schema.json",
+    "title": "BlackboardEntry.payload — *.run.complete nucleus shape",
+    "description": "JSON Schema nucleus for the payload JSONB column when subject matches the *.run.complete family. Workers post a report under '<worker_name>.run.complete' at the end of a successful run cycle. The nucleus defines no required fields because specific shapes differ by worker (see worker-specific extensions in the blackboard subject enum). All *.run.complete payloads use additionalProperties:true to allow worker-specific fields. Authority: ADR-056 Wave 1; ADR-011. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": [],
+    "additionalProperties": true,
+    "properties": {
+        "duration_sec": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Optional wall-clock duration of the run in seconds. Not required by the nucleus because some workers omit it; recommended for new workers."
+        },
+        "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional ISO 8601 UTC timestamp marking the end of the run. Provided by some workers (e.g. RepoCrawlerWorker) alongside the cycle stats."
+        }
+    },
+    "examples": [
+        {
+            "comment": "audit_ingest_worker.run.complete shape (violations_found + posted)",
+            "violations_found": 3,
+            "posted": 2
+        },
+        {
+            "comment": "generic worker shape with duration",
+            "duration_sec": 1.23
+        }
+    ]
+}

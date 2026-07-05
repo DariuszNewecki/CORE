@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.flow_result.schema.json",
+    "title": "FlowResult — structured result of a Flow execution",
+    "description": "JSON Schema for the FlowResult dataclass (src/body/flows/result.py:49). The structured result contract every Flow execution returns. Constitutional requirement (CORE-Flow.md §6): FlowExecutor always returns a FlowResult — no exceptions. Fields mirror ActionResult where they overlap (ok, duration_sec, data) so callers can reason uniformly about both. Authority: ADR-056 Wave 1 (flow-boundary contract); CORE-Flow.md §6. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["flow_id", "ok"],
+    "additionalProperties": true,
+    "properties": {
+        "flow_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The registered flow_id that produced this result. Must match a declaration in .intent/flows/<id>.yaml via FlowRegistry."
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "True if all required steps succeeded. False if any required step returned ok=False or raised. Optional steps never affect this field."
+        },
+        "steps": {
+            "type": "array",
+            "items": {
+                "$ref": "core.intent.step_result.schema.json"
+            },
+            "description": "Ordered list of StepResults, one per declared step in the Flow. May be empty for flows with zero steps (edge case).",
+            "default": []
+        },
+        "duration_sec": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.0,
+            "description": "Total wall-clock duration of the entire Flow execution in seconds."
+        }
+    }
+}

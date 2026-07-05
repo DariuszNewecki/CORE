@@ -1,0 +1,39 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.action_payload.schema.json",
+    "title": "Action.payload / Action.result — core.actions row JSONB columns",
+    "description": "JSON Schema for the payload and result JSONB columns on the core.actions table (src/shared/infrastructure/database/models/operations.py:142-143). Both columns carry open-ended action-type-specific data. payload holds the action's input context (written by the task planner / StrategicAuditor) and result holds the ActionResult.data dict after execution. No stable single-writer path has been identified — multiple code paths write to payload / result across different action_types. Schema uses additionalProperties:true and no required fields for both columns, documenting the observable minimum. Authority: ADR-056 Wave 2 (persistence boundary contract). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "oneOf": [
+        {
+            "description": "payload column — action input context. Shape is action_type-specific.",
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "properties": {
+                "action_type": {
+                    "type": "string",
+                    "description": "Optional: action type discriminator when stored in payload. Not always present."
+                },
+                "target": {
+                    "type": "string",
+                    "description": "Optional: path or identifier of the artifact being acted upon."
+                }
+            }
+        },
+        {
+            "description": "result column — ActionResult.data dict after execution. Keys vary by action_type.",
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "properties": {
+                "ok": {
+                    "type": "boolean",
+                    "description": "Whether the action succeeded. Mirrors ActionResult.ok."
+                },
+                "duration_sec": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Execution duration in seconds. Mirrors ActionResult.duration_sec."
+                }
+            }
+        }
+    ]
+}

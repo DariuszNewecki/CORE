@@ -1,0 +1,56 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.blackboard_entry.payload.repo_crawl_complete.schema.json",
+    "title": "BlackboardEntry.payload — repo.crawl.complete shape",
+    "description": "JSON Schema for the payload JSONB column when entry_type='report' and subject='repo.crawl.complete'. Posted by RepoCrawlerWorker (src/will/workers/repo_crawler.py) via post_report() on a successful crawl cycle. The payload is the stats dict produced by CrawlOrchestrator.run_crawl() (src/body/services/crawl_service/orchestrator.py) plus a completed_at timestamp. Authority: ADR-056 Wave 1; ADR-011; RepoCrawlerWorker is the sole emitter. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["files_scanned", "completed_at"],
+    "additionalProperties": true,
+    "properties": {
+        "files_scanned": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of repository files visited during the crawl pass."
+        },
+        "files_changed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of files whose content changed relative to the prior crawl state."
+        },
+        "symbols_linked": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of symbol→symbol edges created or refreshed in the knowledge graph."
+        },
+        "edges_created": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of new graph edges created in this crawl cycle."
+        },
+        "chunks_upserted": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of file-chunk vectors upserted into the Qdrant collection."
+        },
+        "verdicts_purged": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of stale verdicts purged from the knowledge store during this cycle."
+        },
+        "orphans_reaped": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of orphan DB rows deleted. Zero when the coherence guard tripped (see coherence_guard field)."
+        },
+        "coherence_guard": {
+            "type": "object",
+            "description": "Present when the orphan-reap coherence guard fired. Records the guard state rather than performing the DELETE. Mutually exclusive with orphans_reaped > 0.",
+            "additionalProperties": true
+        },
+        "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp marking the end of the crawl cycle, as produced by datetime.now(UTC).isoformat()."
+        }
+    }
+}

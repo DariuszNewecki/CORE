@@ -1,0 +1,20 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.blackboard_entry.payload.worker_heartbeat.schema.json",
+    "title": "BlackboardEntry.payload — worker.heartbeat shape",
+    "description": "JSON Schema for the payload JSONB column when entry_type='heartbeat' and subject='worker.heartbeat'. Posted by Worker.post_heartbeat() (delegates to BlackboardPublisher.post_heartbeat) with status='resolved'. Proves the worker is alive and constitutionally compliant. Authority: ADR-056 Wave 1; ADR-011 (blackboard write boundary); src/shared/workers/blackboard_publisher.py:173. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "type": "object",
+    "required": ["worker", "ts"],
+    "additionalProperties": true,
+    "properties": {
+        "worker": {
+            "type": "string",
+            "description": "Declaration name of the worker posting the heartbeat. Matches the Worker.declaration_name attribute and the .intent/workers/<name>.yaml filename stem."
+        },
+        "ts": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp of the heartbeat post, as produced by datetime.now(UTC).isoformat(). Used by liveness monitoring to detect stale workers (ADR-104 D8)."
+        }
+    }
+}
