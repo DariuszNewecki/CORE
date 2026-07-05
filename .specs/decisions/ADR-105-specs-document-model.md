@@ -124,6 +124,28 @@ This is the one sub-decision not separately pre-selected by the governor; it is 
 - Whether to **generalize** `GLOBAL-DOCUMENT-META-SCHEMA.json` to span both trees or author a **sibling** `.specs/`-global schema. Recommendation: a sibling, to keep the operational/documentary boundary clean at the schema layer too — but the choice is deferred to implementation.
 - Requirements/planning **status subsets** beyond ADR and paper (defined when those classes are migrated).
 
+### D9 — `adr_status` tracks governor-approval only; CCC-verification is a separate axis
+
+`adr_status: accepted` answers one question: **has the governor ratified this decision?**
+It does not encode coherence-verification, implementation completeness, or CCC state.
+
+The CCC's coherence checks (ROW2_GROUNDING, ROW3_CITATION, etc.) run independently and
+may emit findings against `accepted` ADRs. This is normal and expected: a finding against
+an accepted ADR records implementation coherence debt, not a challenge to the acceptance
+itself. An ADR remains `accepted` regardless of open CCC findings; findings are resolved
+through the triage process, not by reverting the acceptance status.
+
+Operationally the two axes are tracked separately and do not drive each other:
+
+| Axis | Tracked by | Lifecycle |
+|------|-----------|-----------|
+| Governor-approval | `adr_status` header field | proposed → accepted → superseded / retired |
+| Coherence-verification | CCC engine (database) | candidates → reviewed → dismissed / confirmed |
+
+This is the two-axis split raised in **#616**. The answer is: `adr_status` is the
+governance-decision axis and is intentionally narrow. CCC state is the coherence axis and
+is intentionally independent. Neither replaces the other.
+
 ---
 
 ## Ratifications (governor — 2026-06-13)
@@ -133,7 +155,8 @@ This is the one sub-decision not separately pre-selected by the governor; it is 
 3. **D4–D6 (per-class artifact types, enums + relation fields, two-hook validation)** — ratified.
 4. **D7 (header representation)** — confirmed as **YAML frontmatter**; the prose-convention fallback was not selected.
 5. **D8 (deferred scope)** — accepted as the boundary of this change-set: requirements/planning status subsets and the GLOBAL-schema generalize-vs-sibling choice land later.
-6. **Consequences** — implement as one change-set and close #627, #616, #473, #469 against this ADR; do not file new issues. `.intent/META/enums.json` (constitutional core) is surfaced for the named heightened-confirmation gate before writing.
+6. **D9 (governor-approval vs CCC-verification split)** — closes #616. `adr_status` is the governance-decision axis only; CCC findings against accepted ADRs are normal implementation-coherence debt, not acceptance-validity challenges. The two axes are tracked separately and do not drive each other.
+7. **Consequences** — implement as one change-set and close #627, #616, #473, #469 against this ADR; do not file new issues. `.intent/META/enums.json` (constitutional core) is surfaced for the named heightened-confirmation gate before writing.
 
 ---
 
