@@ -113,6 +113,7 @@ class ASTGateEngine(BaseEngine):
             "future_annotations",
             "type_annotations",
             "router_exposure_enforcement",
+            "route_module_must_declare_exposure",
         }
     )
 
@@ -340,6 +341,11 @@ class ASTGateEngine(BaseEngine):
         # --- API Authentication Boundary (ADR-132 D7) ---
         elif check_type == "router_exposure_enforcement":
             violations.extend(ApiAuthChecks.check_router_exposure_enforcement(tree))
+
+        elif check_type == "route_module_must_declare_exposure":
+            violations.extend(
+                ApiAuthChecks.check_route_module_must_declare_exposure(tree)
+            )
 
         # --- Logging & Channel Discipline ---
         elif check_type == "logger_not_presentation":

@@ -153,6 +153,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "ROUTER_EXPOSURE is the machine-readable declaration of who may call a route. If the enforcement dependency does not match the declaration, the declaration is lying \u2014 a governed route can be called without the required authority, or an unintended restriction blocks legitimate callers. This rule ensures ROUTER_EXPOSURE is never decorative. Introduced by ADR-132 D7."
+        },
+        {
+            "id": "architecture.api.route_module_must_declare_exposure",
+            "statement": "Every *_routes.py module in src/api/v1/ MUST declare a ROUTER_EXPOSURE module-level assignment with a value from the closed set {'governor-only', 'user-facing'}.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Completeness companion to router_exposure_must_match_dependencies. The consistency rule (ADR-132 D7) only fires when ROUTER_EXPOSURE is present; a new route file that silently omits the declaration escapes classification entirely. This rule closes that gap: any *_routes.py file without ROUTER_EXPOSURE is undeclared and therefore ungoverned."
         }
     ]
 }

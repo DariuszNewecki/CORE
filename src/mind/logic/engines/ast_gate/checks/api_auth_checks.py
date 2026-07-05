@@ -62,6 +62,22 @@ class ApiAuthChecks:
 
         return findings
 
+    @staticmethod
+    # ID: 849f8d07-2a31-4b93-a6d6-7835b109158f
+    def check_route_module_must_declare_exposure(tree: ast.AST) -> list[str]:
+        """Verify every *_routes.py module declares ROUTER_EXPOSURE (ADR-132 completeness).
+
+        Fires when ROUTER_EXPOSURE is absent entirely. The consistency rule
+        (check_router_exposure_enforcement) handles the case where it IS present
+        but inconsistent with the router dependencies.
+        """
+        if _find_router_exposure(tree) is None:
+            return [
+                "Route module missing ROUTER_EXPOSURE declaration. "
+                "Add: ROUTER_EXPOSURE = 'governor-only'  or  ROUTER_EXPOSURE = 'user-facing'"
+            ]
+        return []
+
 
 # ID: a906415b-311a-42d5-8df8-8a8db0b856fe
 def _find_router_exposure(tree: ast.AST) -> str | None:

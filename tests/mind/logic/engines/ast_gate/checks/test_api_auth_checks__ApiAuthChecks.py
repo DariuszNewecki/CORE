@@ -1,4 +1,4 @@
-"""Tests for ApiAuthChecks.check_router_exposure_enforcement (ADR-132 D7)."""
+"""Tests for ApiAuthChecks — router_exposure_enforcement and route_module_must_declare_exposure (ADR-132 D7)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ def _parse(src: str) -> ast.AST:
 
 
 # ── happy paths — single router ───────────────────────────────────────────────
+
 
 def test_governor_only_with_dependency_passes() -> None:
     tree = _parse("""
@@ -83,6 +84,7 @@ def test_user_facing_multiple_routers_none_gated_passes() -> None:
 
 # ── violations — single router ────────────────────────────────────────────────
 
+
 def test_governor_only_missing_dependency_is_violation() -> None:
     tree = _parse("""
         ROUTER_EXPOSURE = "governor-only"
@@ -130,6 +132,7 @@ def test_unknown_exposure_value_is_violation() -> None:
 
 # ── violations — multiple routers (the previously blind case) ─────────────────
 
+
 def test_governor_only_secondary_router_missing_gate_is_violation() -> None:
     """Secondary router without require_governor in a governor-only file is a violation.
 
@@ -159,3 +162,40 @@ def test_governor_only_both_routers_missing_gate_reports_both() -> None:
     names_in_findings = " ".join(violations)
     assert "'ops_router'" in names_in_findings
     assert "'router'" in names_in_findings
+
+
+# ── route_module_must_declare_exposure ────────────────────────────────────────
+
+
+def test_exposure_declared_passes() -> None:
+    """Any file with ROUTER_EXPOSURE present passes the completeness check."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "governor-only"
+        router = APIRouter(prefix="/ops", dependencies=[require_governor])
+    """)
+    assert ApiAuthChecks.check_route_module_must_declare_exposure(tree) == []
+
+
+def test_user_facing_exposure_declared_passes() -> None:
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/data")
+    """)
+    assert ApiAuthChecks.check_route_module_must_declare_exposure(tree) == []
+
+
+def test_missing_exposure_is_violation() -> None:
+    """A route module with no ROUTER_EXPOSURE declaration fires the rule."""
+    tree = _parse("""
+        router = APIRouter(prefix="/ungoverned")
+    """)
+    violations = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
+    assert len(violations) == 1
+    assert "ROUTER_EXPOSURE" in violations[0]
+
+
+def test_empty_module_is_violation() -> None:
+    """An entirely empty route module has no ROUTER_EXPOSURE."""
+    tree = _parse("")
+    violations = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
+    assert len(violations) == 1

@@ -7,6 +7,14 @@
 # dependencies.py (defines require_governor itself), and __init__.py files.
 
 mappings:
+  architecture.api.route_module_must_declare_exposure:
+    engine: ast_gate
+    params:
+      check_type: route_module_must_declare_exposure
+    scope:
+      applies_to:
+        - "src/api/v1/**/*_routes.py"
+
   architecture.api.router_exposure_must_match_dependencies:
     engine: ast_gate
     params:
