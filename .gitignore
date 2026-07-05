@@ -128,3 +128,8 @@ project_context.txt
 .archive/
 core.zip
 node_modules/
+
+# -----------------------------------------------------------------------------
+# Web frontend — belongs in core-platform (ADR-125); generated from OpenAPI spec
+# -----------------------------------------------------------------------------
+web/
