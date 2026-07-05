@@ -339,6 +339,15 @@ mappings:
       applies_to:
         - "src/api/v1/fix_routes.py"
 
+  data.contracts.run_ir_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: RunIRRequest
+    scope:
+      applies_to:
+        - "src/api/v1/fix_routes.py"
+
   data.contracts.fix_run_result_conforms:
     engine: ast_gate
     params:

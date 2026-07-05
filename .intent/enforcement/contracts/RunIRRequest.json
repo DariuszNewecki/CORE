@@ -1,0 +1,25 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.run_ir_request",
+        "title": "RunIRRequest — body of POST /fix/ir",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body for the IR scaffold bootstrap endpoint POST /v1/fix/ir (src/api/v1/fix_routes.py, class RunIRRequest). Crosses the API boundary (ADR-056 D7 criterion 6), so it is constitutionally required to carry a governing schema. The endpoint is synchronous and produces no core.fix_runs row — it writes a YAML scaffold via FileHandler and returns the relative path. `kind` is required and MUST be from the closed vocabulary. Authority: ADR-056 D7 (#667).",
+    "governed_classes": [
+        "RunIRRequest"
+    ],
+    "required": [
+        "kind"
+    ],
+    "properties": {
+        "kind": {
+            "type": "string",
+            "enum": ["triage", "log"],
+            "description": "Closed vocabulary selecting the IR scaffold template to bootstrap. 'triage' produces a triage IR file; 'log' produces a log IR file."
+        }
+    }
+}

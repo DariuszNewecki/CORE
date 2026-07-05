@@ -242,6 +242,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.run_ir_request_conforms",
+            "statement": "The Pydantic class `RunIRRequest` MUST declare fields that conform to `.intent/enforcement/contracts/RunIRRequest.json`. RunIRRequest is the POST /v1/fix/ir request body crossing the API boundary. The endpoint is synchronous, produces no fix_runs row, and `kind` is required. Authority: ADR-056 D7 (#667).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.fix_run_result_conforms",
             "statement": "The Pydantic class `FixRunResult` MUST declare fields that conform to `.intent/enforcement/contracts/FixRunResult.json`. FixRunResult is the run-level aggregate persisted to core.fix_runs.result; distinct from FixResult, the per-fix outcome. Authority: ADR-056 D7 (#454).",
             "authority": "policy",
