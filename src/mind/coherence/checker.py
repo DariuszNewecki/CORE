@@ -46,7 +46,7 @@ __all__ = ["CoherenceChecker"]
 
 # ID: 73a23100-c107-4205-9313-0318dca1143b
 class CoherenceChecker:
-    """Orchestrator for the seven ADR-073 D3 check classes.
+    """Orchestrator for the ADR-073 D3 check classes.
 
     Produces candidates only — no verdicts, no enforcement actions, no
     constitutional amendments. All human triage runs through
@@ -68,7 +68,7 @@ class CoherenceChecker:
 
     # ID: 2e4a95a7-fdac-427a-94eb-ed20ce2930c9
     async def run(self, full: bool = False, sample_rules: int | None = None) -> str:
-        """Execute one CCC pass over the seven D3 check classes. Returns the new run_id.
+        """Execute one CCC pass over all registered check classes. Returns the new run_id.
 
         ``sample_rules`` is accepted for back-compat with the ADR-067-era CLI but
         is no longer meaningful — rule-scoped relations (R2, R3) were retired
@@ -121,6 +121,8 @@ class CoherenceChecker:
 
         from .checks.base import CheckSkipped
         from .checks.dispatch_parity import DispatchParityCheck
+        from .checks.intent_binding import IntentBindingCheck
+        from .checks.path_ref import PathRefCheck
         from .checks.r1_scoped import R1ScopedCheck
         from .checks.row2_grounding import Row2GroundingCheck
         from .checks.row3_citation import Row3CitationCheck
@@ -143,6 +145,8 @@ class CoherenceChecker:
             Row4NamingCheck(self._repo_root),
             VocabularyCheck(self._repo_root),
             SpecGapCheck(self._repo_root, register),
+            PathRefCheck(self._repo_root),
+            IntentBindingCheck(self._repo_root),
         ]
 
         status: dict[str, dict] = {}
