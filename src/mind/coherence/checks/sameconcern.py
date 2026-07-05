@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 from shared.logger import getLogger
 
 from ..llm_judge import judge_contradiction_pair
-from .base import CoherenceCandidate
+from .base import CheckSkipped, CoherenceCandidate
 
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class SameConcernCheck:
                 "SAMECONCERN: governance_claims collection not seeded; "
                 "skipping (run `core-admin coherence seed bootstrap` per D4)"
             )
-            return []
+            raise CheckSkipped("seed_gap")
 
         harvester = GovernanceClaimHarvester(self._repo_root, self._register)
         claims = list(harvester.harvest())

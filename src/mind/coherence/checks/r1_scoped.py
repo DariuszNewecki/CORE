@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from shared.logger import getLogger
 
 from ..llm_judge import judge_contradiction_pair
-from .base import CoherenceCandidate
+from .base import CheckSkipped, CoherenceCandidate
 
 
 if TYPE_CHECKING:
@@ -105,7 +105,7 @@ class R1ScopedCheck:
 
         if not await self._claims_service.is_seeded():
             logger.info("R1_SCOPED: governance_claims not seeded; skipping (D4)")
-            return []
+            raise CheckSkipped("seed_gap")
 
         harvester = GovernanceClaimHarvester(self._repo_root, self._register)
         claims_by_path: dict[str, list] = {}

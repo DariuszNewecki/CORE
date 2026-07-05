@@ -18,6 +18,19 @@ class CoherenceCandidate:
     rationale: str
 
 
+# ID: e518aa0c-3135-4154-913f-a1aa8f95212e
+class CheckSkipped(Exception):
+    """Raised by a check class that cannot run due to a known precondition gap.
+
+    Distinct from a generic exception: the orchestrator records
+    ``status="skipped"`` (not ``status="error"``) so governors can
+    distinguish a deliberate skip from an unexpected failure.
+
+    ``str(exc)`` is used as the ``reason`` in the check manifest, so
+    keep the message short and machine-readable (e.g. ``"seed_gap"``).
+    """
+
+
 # ID: 5641414f-99ba-42d9-bf53-d0e41d4d4291
 class CheckClass(Protocol):
     """Common shape for every check class in the ADR-073 D3 taxonomy.

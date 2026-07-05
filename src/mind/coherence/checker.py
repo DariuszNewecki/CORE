@@ -119,6 +119,7 @@ class CoherenceChecker:
         from shared.governance.coherence_harvester import NormativeMarkerRegister
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
+        from .checks.base import CheckSkipped
         from .checks.dispatch_parity import DispatchParityCheck
         from .checks.r1_scoped import R1ScopedCheck
         from .checks.row2_grounding import Row2GroundingCheck
@@ -143,6 +144,9 @@ class CoherenceChecker:
             VocabularyCheck(self._repo_root),
             SpecGapCheck(self._repo_root, register),
         ]
+
+        status: dict[str, dict] = {}
+
         if self._claims_service is not None:
             checks.append(
                 SameConcernCheck(
@@ -160,11 +164,30 @@ class CoherenceChecker:
                     self._cognitive_service,
                 )
             )
+        else:
+            # Record explicit skipped entries so governors see the gap in the
+            # run manifest rather than a silent absence (#624).
+            for relation in ("SAMECONCERN", "R1_SCOPED"):
+                status[relation] = {
+                    "status": "skipped",
+                    "reason": "claims_service_not_injected",
+                    "emitted": 0,
+                }
 
-        status: dict[str, dict] = {}
         for check in checks:
             try:
                 candidates = await check.run()
+            except CheckSkipped as exc:
+                # Known precondition gap (e.g. seed_gap). Record as skipped,
+                # not as an error, so the manifest distinguishes deliberate
+                # skips from unexpected failures (#624).
+                logger.info("CCC: %s skipped (%s)", check.relation, exc)
+                status[check.relation] = {
+                    "status": "skipped",
+                    "reason": str(exc),
+                    "emitted": 0,
+                }
+                continue
             except Exception as exc:
                 logger.warning(
                     "CCC: check %s failed: %s", check.relation, exc, exc_info=True
