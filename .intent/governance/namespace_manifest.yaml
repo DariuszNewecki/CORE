@@ -274,6 +274,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/taxonomy.yaml
     governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/passive_gate_attestation.yaml
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/enforcement/mappings/runtime/** — framework subset.
@@ -766,6 +768,12 @@ classifications:
     governance_namespace: project::core
   - path: .intent/workers/worker_shop_manager.yaml
     governance_namespace: project::core
+  - path: .intent/workers/llm_partition_archiver.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/llm_partition_maintainer.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/quality_ingest_worker.yaml
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .intent/rules/architecture/** — CORE's specific api/body/will/shared
@@ -909,6 +917,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/config/rule_targets.yaml
     governance_namespace: project::core
+  - path: .intent/enforcement/config/audit_ingest.yaml
+    governance_namespace: project::core
   - path: .intent/enforcement/config/task_type_phases.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/test_coverage.yaml
@@ -1003,6 +1013,76 @@ classifications:
   - path: .intent/enforcement/contracts/WorkerDeclaration.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/WorkflowResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/Action.payload.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ActionCommandItem.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AsyncDispatchResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AuditRemediationRunResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AuditRunResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.payload.repo_crawl_complete.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.payload.run_complete.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.payload.sync_db_complete.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.payload.worker_error.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.payload.worker_heartbeat.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusBaselineCreateResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusBaselineItem.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusBaselineListResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusDiffResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusRunResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CensusRunResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ComponentResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CoverageRunResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FixCommandListResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FixIRResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FixRunResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FlowResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneBundle.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneBundleRule.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneClaimResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneFindingItem.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneFindingListResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneFindingWithBundle.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/LaneProposeResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposalActionItem.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposalResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RefactorRunResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RemediationRunResponse.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/StepResult.schema.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/SyncRunResult.schema.json
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1481,6 +1561,8 @@ classifications:
   - path: .intent/rules/governance/action_taxonomy.json
     governance_namespace: framework
   - path: .intent/rules/governance/commit_authorship_integrity.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/passive_gate_attestation.json
     governance_namespace: framework
   - path: .intent/workers/commit_authorship_audit_worker.yaml
     governance_namespace: framework
