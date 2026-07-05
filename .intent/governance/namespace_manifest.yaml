@@ -4,7 +4,7 @@
 # Status:    active
 # Governs:   ADR-075 D4, D5, D6, D8
 # Vocabulary: .intent/taxonomies/governance_namespaces.yaml
-# Completeness rule: governance.namespace.classification_complete (D7)
+# Completeness rule: governance.namespace.classification_complete (D7 — blocking as of #505)
 #
 # Classifies every file under .intent/ and .specs/ into the
 # `governance_namespace` vocabulary declared by the taxonomy register.
@@ -681,8 +681,6 @@ classifications:
   # .intent/flows/** — CORE's specific flow orchestrations
   # (reference CORE-specific workers).
   # ---------------------------------------------------------------------
-  - path: .intent/flows/flow.build_tests.yaml
-    governance_namespace: project::core
   - path: .intent/flows/flow.dev_sync.yaml
     governance_namespace: project::core
   - path: .intent/flows/flow.fix_code.yaml
@@ -905,8 +903,6 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/config/circuit_breaker.yaml
     governance_namespace: project::core
-  - path: .intent/enforcement/config/crawl_scopes.yaml
-    governance_namespace: project::core
   - path: .intent/enforcement/config/governance_paths.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/normative_markers.yaml
@@ -930,6 +926,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/ActionResult.json
     governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ActionRiskConfig.schema.json
+    governance_namespace: project::core
   - path: .intent/enforcement/contracts/AgentDecision.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/AuditFinding.json
@@ -952,6 +950,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/DetailedPlanStep.json
     governance_namespace: project::core
+  - path: .intent/enforcement/contracts/DecisionTrace.entries.schema.json
+    governance_namespace: project::core
   - path: .intent/enforcement/contracts/DriftReport.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/EmbeddingPayload.json
@@ -959,8 +959,6 @@ classifications:
   - path: .intent/enforcement/contracts/ExecutionTask.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/FeatureIssue.json
-    governance_namespace: project::core
-  - path: .intent/enforcement/contracts/Finding.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/FixResult.json
     governance_namespace: project::core
@@ -993,6 +991,10 @@ classifications:
   - path: .intent/enforcement/contracts/RepoCensus.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/RiskAssessment.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RunIRRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/Task.plan.schema.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/TaskStructure.json
     governance_namespace: project::core
@@ -1174,23 +1176,11 @@ classifications:
     governance_namespace: project::core
   - path: .specs/commercial/CORE-Products.md
     governance_namespace: project::core
-  - path: .specs/commercial/Dev.to/when-one-enum-is-secretly-two.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/planning/** — CORE's own roadmaps and planning notes.
   # ---------------------------------------------------------------------
-  - path: .specs/planning/BAND-B-consequence-chain-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-A3-plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-API-capability-map-2026-05-16.md
-    governance_namespace: project::core
   - path: .specs/planning/CORE-BYOR-Program-Backlog.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-GitHub-Project-Management.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-band-E-planning-input-2026-05-16.md
     governance_namespace: project::core
   - path: .specs/planning/INTERACTION-CONTRACT.md
     governance_namespace: project::core
@@ -1201,8 +1191,6 @@ classifications:
     governance_namespace: project::core
     notes: Governor confirm — same gray-zone reasoning as above.
   - path: .specs/planning/data-contracts-inventory.md
-    governance_namespace: project::core
-  - path: .specs/planning/worktree-sandbox-implementation-plan.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Feature-Dependency-Graph.md
     governance_namespace: project::core
@@ -1301,50 +1289,6 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/state/** — CORE recon, diagnostics, handoffs, snapshots.
   # ---------------------------------------------------------------------
-  - path: .specs/state/2026-04-20-daemon-reactivation-recon.md
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/counterfactual.json
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/modularity_diagnostic.py
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/needs_split_findings.json
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/per_file.json
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.md
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-25-consequence-chain-mapping.md
-    governance_namespace: project::core
-  - path: .specs/state/2026-04-27-test-environment-recon.md
-    governance_namespace: project::core
-  - path: .specs/state/CORE-state-2026-04-18.md
-    governance_namespace: project::core
-  - path: .specs/state/Prior Art and the End-to-End Gap.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-19.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-20-evening.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-20.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-21.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-24.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff-2026-04-25.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/handoff_2026-04-23_evening.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/session_handoff_2026-04-21_evening.md
-    governance_namespace: project::core
-  - path: .specs/state/handoffs/session_handoff_2026-04-22_evening.md
-    governance_namespace: project::core
-  - path: .specs/state/nested_scope_audit_2026-04-19.md
-    governance_namespace: project::core
-  - path: .specs/state/reconnaissance_2026-04-20.md
-    governance_namespace: project::core
-  - path: .specs/state/tracing_mandatory_diagnostic_2026-04-20.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/papers/** — project::core subset.
@@ -1596,6 +1540,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-139-mypy-type-safety-remediation.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-140-cognitive-write-separation-flow-pattern.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-141-assisted-lane-subprocess-audit.md
+    governance_namespace: project::core
 
   # .intent/ — framework entries added in ADR-075 D7 backfill (2026-06-28)
   - path: .intent/artifact_types/document_corpus.yaml
@@ -1741,8 +1689,6 @@ classifications:
   - path: .specs/commercial/socials/Dev.to/2026.06.01.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/Dev.to/2026.06.13.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/when-one-enum-is-secretly-two.md
     governance_namespace: project::core
   - path: .specs/commercial/socials/Dev.to/2026.06.29.md
     governance_namespace: project::core

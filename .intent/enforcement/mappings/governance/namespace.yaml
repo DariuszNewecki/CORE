@@ -12,9 +12,9 @@
 # function. applies_to references the manifest itself so the check
 # fires once per audit cycle, not once per .intent/.specs/ file.
 #
-# Enforcement is reporting (non-blocking) per ADR-075 D7. Escalation to
-# blocking is a later governor decision once the manifest is complete
-# and stable.
+# Enforcement escalated to blocking (#505 — 2026-07-05) once the manifest
+# reached 0 unclassified files. Any new .intent/ or .specs/ file added
+# without a manifest entry now stops a commit.
 #
 # Remediation routing for this rule lives in
 # .intent/enforcement/remediation/auto_remediation.yaml. Unclassified
