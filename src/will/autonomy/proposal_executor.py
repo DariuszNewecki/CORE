@@ -20,6 +20,7 @@ from uuid import UUID
 from body.atomic.executor import ActionExecutor
 from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from body.flows.executor import FlowExecutor
+from body.flows.registry import StepKind, flow_registry
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.exceptions import GovernanceInstrumentError
@@ -28,6 +29,7 @@ from shared.infrastructure.intent.vocabulary_projection import (
     load_vocabulary_projection,
 )
 from shared.logger import getLogger
+from shared.protocols.cognitive_flow_delegate import CognitiveFlowDelegate
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
     capture_git_sha,
@@ -224,7 +226,13 @@ class ProposalExecutor:
                             )
                         )
                         try:
-                            flow_executor = FlowExecutor(scoped_context)
+                            cognitive_delegate = self._build_cognitive_delegate(
+                                ref_id, scoped_context
+                            )
+                            flow_executor = FlowExecutor(
+                                scoped_context,
+                                cognitive_delegate=cognitive_delegate,
+                            )
                             result = await flow_executor.execute(
                                 flow_id=ref_id,
                                 write=write,
@@ -439,3 +447,37 @@ class ProposalExecutor:
                 "failure_reason": failure_reason,
                 "duration_sec": total_duration,
             }
+
+    def _build_cognitive_delegate(
+        self,
+        flow_id: str,
+        scoped_context: Any,
+    ) -> CognitiveFlowDelegate | None:
+        """
+        Return the appropriate CognitiveFlowDelegate for this flow, or None.
+
+        Routes by cognitive_capability declared in the flow manifest (ADR-140 D9).
+        generation_mode governs strategy inside the delegate, not which delegate
+        to construct.
+        """
+        from will.agents.test_gen_cognitive_delegate import TestGenCognitiveDelegate
+
+        flow_def = flow_registry.get(flow_id)
+        if not flow_def:
+            return None
+
+        has_cognitive = any(s.kind == StepKind.COGNITIVE for s in flow_def.steps)
+        if not has_cognitive:
+            return None
+
+        cap = flow_def.cognitive_capability
+        if cap == "test_generation":
+            return TestGenCognitiveDelegate(scoped_context)
+
+        logger.error(
+            "ProposalExecutor: no delegate registered for cognitive_capability=%r "
+            "in flow %r — cognitive steps will fail at runtime",
+            cap,
+            flow_id,
+        )
+        return None

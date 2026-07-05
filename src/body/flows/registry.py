@@ -25,10 +25,15 @@ logger = getLogger(__name__)
 
 # ID: 25e5756f-76ef-4c18-be17-5a98814d8e32
 class StepKind(str, Enum):
-    """Whether a step references an AtomicAction or another Flow."""
+    """Whether a step references an AtomicAction, another Flow, or a cognitive operation."""
 
     ACTION = "action"
     FLOW = "flow"
+    COGNITIVE = "cognitive"
+    """
+    Will-tier generation step. Body dispatches to an injected CognitiveFlowDelegate;
+    it never executes cognition itself. ADR-140 D2.
+    """
 
 
 @dataclass(frozen=True)
@@ -37,15 +42,16 @@ class FlowStep:
     """
     A single step in a Flow's declared sequence.
 
-    Each step references either an action_id (AtomicAction) or a
-    flow_id (nested Flow). Steps are executed in declaration order.
+    Each step references either an action_id (AtomicAction), a flow_id (nested
+    Flow), or a cognitive operation identifier (Will-tier delegate). Steps are
+    executed in declaration order.
     """
 
     ref_id: str
-    """action_id or flow_id this step resolves to."""
+    """action_id, flow_id, or cognitive operation identifier this step resolves to."""
 
     kind: StepKind
-    """Whether ref_id is an action or a flow."""
+    """Whether ref_id is an action, a flow, or a cognitive step."""
 
     required: bool = True
     """
@@ -71,6 +77,16 @@ class FlowStep:
     caller; everything else is dropped. An empty tuple drops everything
     explicitly. Static ``params`` always pass through regardless of
     this field.
+    """
+
+    produces: tuple[str, ...] | None = None
+    """
+    Output keys this step places into accumulated params for downstream steps.
+
+    Only meaningful for COGNITIVE steps — Body write steps consume, not produce.
+    None = no output threading (backward-compatible default for ACTION/FLOW steps).
+    FlowExecutor validates that all declared keys are present in the step's output
+    and fails loudly if any are missing (ADR-140 D4).
     """
 
 
@@ -99,9 +115,16 @@ class FlowDefinition:
 
     generation_mode: str = "single_shot"
     """
-    Generation execution strategy declared for this flow (ADR-135 D5).
-    'single_shot' (default) or 'iterative'. Metadata only at the FlowDefinition
-    level — actions that support iterative mode receive the value via step params.
+    Generation strategy declared for this flow (ADR-135 D5).
+    'single_shot' (default) or 'iterative'. Read by the CognitiveFlowDelegate
+    to select strategy; does NOT govern which delegate is constructed.
+    """
+
+    cognitive_capability: str | None = None
+    """
+    Capability identifier for CognitiveFlowDelegate selection (ADR-140 D9).
+    ProposalExecutor maps this to a concrete delegate class.
+    None = no cognitive steps in this flow.
     """
 
     source_path: Path | None = None
@@ -158,6 +181,7 @@ class FlowRegistry:
         description = flow_block.get("description", "").strip()
         policies = flow_block.get("policies", [])
         generation_mode = str(data.get("generation_mode", "single_shot"))
+        cognitive_capability = data.get("cognitive_capability") or None
         raw_steps = flow_block.get("steps", [])
 
         if not flow_id:
@@ -175,6 +199,8 @@ class FlowRegistry:
             params = raw.get("params", {}) or {}
             raw_consumes = raw.get("consumes")
             consumes = tuple(raw_consumes) if raw_consumes is not None else None
+            raw_produces = raw.get("produces")
+            produces = tuple(raw_produces) if raw_produces is not None else None
 
             if not ref_id:
                 logger.warning(
@@ -200,6 +226,7 @@ class FlowRegistry:
                     required=required,
                     params=params,
                     consumes=consumes,
+                    produces=produces,
                 )
             )
 
@@ -224,6 +251,7 @@ class FlowRegistry:
             steps=steps,
             policies=policies,
             generation_mode=generation_mode,
+            cognitive_capability=cognitive_capability,
             source_path=yaml_path,
         )
         self._flows[flow_id] = definition

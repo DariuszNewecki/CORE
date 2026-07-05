@@ -1,54 +1,34 @@
 # tests/body/atomic/test_build_test_for_symbol_iterative.py
 """
-Tests for build.test_for_symbol iterative mode (ADR-135 D1/D3).
+Tests for PromptModelIterativeAgent — Will-tier iterative generation (ADR-140 D5).
 
-Verifies that with generation_mode='iterative' the action retries on
-IntentGuard violations and succeeds when a later attempt passes validation.
+The iterative loop previously lived in body/atomic/build_test_for_symbol_action.py
+(ADR-135 D1/D3). It was extracted to PromptModelIterativeAgent by ADR-140. These
+tests verify the loop contract: retry on violation, succeed on repair, fail after cap.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from shared.governance_token import authorize_execution
+from will.agents.prompt_model_iterative_agent import (
+    GenerationFailedError,
+    PromptModelIterativeAgent,
+)
 
 
-@pytest.fixture
-def mock_core_context(tmp_path):
-    ctx = MagicMock()
-    ctx.git_service.repo_path = tmp_path
-    ctx.cognitive_service = None
-    ctx.file_handler = MagicMock()
-    ctx.file_handler.write = MagicMock()
-    mock_registry = AsyncMock()
-    mock_cog = AsyncMock()
-    mock_client = AsyncMock()
-    mock_cog.aget_client_for_role = AsyncMock(return_value=mock_client)
-    mock_registry.get_cognitive_service = AsyncMock(return_value=mock_cog)
-    ctx.registry = mock_registry
-    return ctx
-
-
-@pytest.fixture
-def source_setup(tmp_path):
-    src_dir = tmp_path / "src" / "mypkg"
-    src_dir.mkdir(parents=True)
-    src_file = src_dir / "service.py"
-    src_file.write_text("def do_work(x):\n    return x * 2\n")
-    return "src/mypkg/service.py"
-
-
-def _good_response():
+def _good_response() -> str:
     return "```python\nfrom __future__ import annotations\n\ndef test_do_work():\n    assert do_work(2) == 4\n```"
 
 
-def _bad_response():
+def _bad_response() -> str:
     return "```python\nfrom __future__ import annotations\n\ndef test_do_work():\n    pass\n```"
 
 
-def _make_violation(rule_name="code.tests.no_placeholder_test_body"):
+def _make_violation(rule_name: str = "code.tests.no_placeholder_test_body") -> MagicMock:
     v = MagicMock()
     v.rule_name = rule_name
     v.message = "No assertion"
@@ -56,18 +36,27 @@ def _make_violation(rule_name="code.tests.no_placeholder_test_body"):
     return v
 
 
+@pytest.fixture
+def agent() -> PromptModelIterativeAgent:
+    return PromptModelIterativeAgent()
+
+
+@pytest.fixture
+def mock_cognitive_service() -> MagicMock:
+    svc = AsyncMock()
+    svc.aget_client_for_role = AsyncMock(return_value=AsyncMock())
+    return svc
+
+
 @pytest.mark.asyncio
-async def test_iterative_succeeds_on_second_attempt(mock_core_context, source_setup):
-    """First attempt fails IntentGuard; second attempt passes."""
-    from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
-
-    fail_validation = MagicMock()
-    fail_validation.is_valid = False
-    fail_validation.violations = [_make_violation()]
-
-    pass_validation = MagicMock()
-    pass_validation.is_valid = True
-    pass_validation.violations = []
+async def test_iterative_succeeds_on_second_attempt(
+    agent: PromptModelIterativeAgent,
+    mock_cognitive_service: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """First attempt fails IntentGuard; second attempt (repair) passes."""
+    fail_validation = MagicMock(is_valid=False, violations=[_make_violation()])
+    pass_validation = MagicMock(is_valid=True, violations=[])
 
     initial_model = MagicMock()
     initial_model.manifest.role = "Coder"
@@ -84,51 +73,47 @@ async def test_iterative_succeeds_on_second_attempt(mock_core_context, source_se
 
     with (
         patch(
-            "body.atomic.build_test_for_symbol_action.PromptModel.load",
-            side_effect=lambda name: repair_model if name == "context_aware_test_gen_repair" else initial_model,
+            "will.agents.prompt_model_iterative_agent.PromptModel.load",
+            side_effect=lambda name: repair_model
+            if name == "context_aware_test_gen_repair"
+            else initial_model,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.get_intent_guard",
+            "will.agents.prompt_model_iterative_agent.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.source_to_test_path",
-            return_value="tests/mypkg/service/test_generated.py",
-        ),
-        patch(
-            "body.atomic.build_test_for_symbol_action.load_generation_budget",
+            "will.agents.prompt_model_iterative_agent.load_generation_budget",
         ) as mock_budget,
-        authorize_execution("build.test_for_symbol"),
     ):
-        from shared.infrastructure.intent.generation_budget import (
-            TaskBudget,
-        )
+        from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(5, 600)
 
-        result = await action_build_test_for_symbol(
-            source_file=source_setup,
-            symbol_name="do_work",
-            symbol_kind="function",
-            signature="def do_work(x)",
-            core_context=mock_core_context,
-            write=False,
-            generation_mode="iterative",
+        result = await agent.generate(
+            prompt_name="context_aware_test_gen",
+            repair_prompt_name="context_aware_test_gen_repair",
+            context={"file_path": "src/x.py", "symbol_name": "do_work",
+                     "symbol_code": "def do_work(x): ...", "module_path": "x"},
+            target_path="tests/x/test_generated.py",
+            cognitive_service=mock_cognitive_service,
+            repo_root=tmp_path,
+            step_ref="generate.test_snippet",
         )
 
-    assert result.ok, result.data
-    assert result.data["attempts"] == 2
-    assert result.data["generation_mode"] == "iterative"
+    assert "def test_do_work" in result
     repair_model.invoke.assert_called_once()
+    assert intent_guard.validate_generated_code.call_count == 2
 
 
 @pytest.mark.asyncio
-async def test_iterative_fails_after_cap_exhausted(mock_core_context, source_setup):
-    """All attempts fail IntentGuard — returns not ok."""
-    from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
-
-    fail_validation = MagicMock()
-    fail_validation.is_valid = False
-    fail_validation.violations = [_make_violation()]
+async def test_iterative_raises_after_cap_exhausted(
+    agent: PromptModelIterativeAgent,
+    mock_cognitive_service: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """All attempts fail IntentGuard — raises GenerationFailedError."""
+    fail_validation = MagicMock(is_valid=False, violations=[_make_violation()])
 
     model = MagicMock()
     model.manifest.role = "Coder"
@@ -139,81 +124,81 @@ async def test_iterative_fails_after_cap_exhausted(mock_core_context, source_set
 
     with (
         patch(
-            "body.atomic.build_test_for_symbol_action.PromptModel.load",
+            "will.agents.prompt_model_iterative_agent.PromptModel.load",
             return_value=model,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.get_intent_guard",
+            "will.agents.prompt_model_iterative_agent.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.source_to_test_path",
-            return_value="tests/mypkg/service/test_generated.py",
-        ),
-        patch(
-            "body.atomic.build_test_for_symbol_action.load_generation_budget",
+            "will.agents.prompt_model_iterative_agent.load_generation_budget",
         ) as mock_budget,
-        authorize_execution("build.test_for_symbol"),
     ):
         from shared.infrastructure.intent.generation_budget import TaskBudget
+
         mock_budget.return_value.for_task_type.return_value = TaskBudget(3, 600)
 
-        result = await action_build_test_for_symbol(
-            source_file=source_setup,
-            symbol_name="do_work",
-            symbol_kind="function",
-            signature="def do_work(x)",
-            core_context=mock_core_context,
-            write=False,
-            generation_mode="iterative",
-        )
+        with pytest.raises(GenerationFailedError) as exc_info:
+            await agent.generate(
+                prompt_name="context_aware_test_gen",
+                repair_prompt_name="context_aware_test_gen_repair",
+                context={"file_path": "src/x.py", "symbol_name": "do_work",
+                         "symbol_code": "def do_work(x): ...", "module_path": "x"},
+                target_path="tests/x/test_generated.py",
+                cognitive_service=mock_cognitive_service,
+                repo_root=tmp_path,
+                step_ref="generate.test_snippet",
+            )
 
-    assert not result.ok
-    assert result.data["error"] == "intent_guard_violations"
-    assert result.data["attempts"] == 3
+    assert exc_info.value.attempts == 3
+    assert exc_info.value.reason == "intent_guard_violations"
     assert intent_guard.validate_generated_code.call_count == 3
 
 
 @pytest.mark.asyncio
-async def test_single_shot_does_not_retry_on_violation(mock_core_context, source_setup):
-    """single_shot mode returns immediately on first violation (no retry)."""
-    from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
-
-    fail_validation = MagicMock()
-    fail_validation.is_valid = False
-    fail_validation.violations = [_make_violation()]
+async def test_single_attempt_passes_on_first_try(
+    agent: PromptModelIterativeAgent,
+    mock_cognitive_service: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Cap=1 — passes on first attempt, no repair model loaded."""
+    pass_validation = MagicMock(is_valid=True, violations=[])
 
     model = MagicMock()
     model.manifest.role = "Coder"
-    model.invoke = AsyncMock(return_value=_bad_response())
+    model.invoke = AsyncMock(return_value=_good_response())
 
     intent_guard = MagicMock()
-    intent_guard.validate_generated_code = MagicMock(return_value=fail_validation)
+    intent_guard.validate_generated_code = MagicMock(return_value=pass_validation)
 
     with (
         patch(
-            "body.atomic.build_test_for_symbol_action.PromptModel.load",
+            "will.agents.prompt_model_iterative_agent.PromptModel.load",
             return_value=model,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.get_intent_guard",
+            "will.agents.prompt_model_iterative_agent.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(
-            "body.atomic.build_test_for_symbol_action.source_to_test_path",
-            return_value="tests/mypkg/service/test_generated.py",
-        ),
-        authorize_execution("build.test_for_symbol"),
+            "will.agents.prompt_model_iterative_agent.load_generation_budget",
+        ) as mock_budget,
     ):
-        result = await action_build_test_for_symbol(
-            source_file=source_setup,
-            symbol_name="do_work",
-            symbol_kind="function",
-            signature="def do_work(x)",
-            core_context=mock_core_context,
-            write=False,
-            generation_mode="single_shot",
+        from shared.infrastructure.intent.generation_budget import TaskBudget
+
+        mock_budget.return_value.for_task_type.return_value = TaskBudget(1, 600)
+
+        result = await agent.generate(
+            prompt_name="context_aware_test_gen",
+            repair_prompt_name="context_aware_test_gen_repair",
+            context={"file_path": "src/x.py", "symbol_name": "do_work",
+                     "symbol_code": "def do_work(x): ...", "module_path": "x"},
+            target_path="tests/x/test_generated.py",
+            cognitive_service=mock_cognitive_service,
+            repo_root=tmp_path,
+            step_ref="generate.test_snippet",
         )
 
-    assert not result.ok
+    assert "def test_do_work" in result
     assert intent_guard.validate_generated_code.call_count == 1

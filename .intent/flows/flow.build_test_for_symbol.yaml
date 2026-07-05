@@ -2,11 +2,12 @@ $schema: "META/flow.schema.json"
 kind: flow
 
 generation_mode: iterative
+cognitive_capability: test_generation
 
 metadata:
   id: flows.build_test_for_symbol
   title: Build Test For Symbol Flow
-  version: "2.0.0"
+  version: "3.0.0"
   authority: policy
   status: active
   rationale: >
@@ -16,12 +17,21 @@ metadata:
     Replaces file-level flow.build_tests as the primary autonomous test generation
     path; flow.build_tests is retained for explicit full-file regeneration.
 
-    v2.0.0 (ADR-135 D5/D6): declares generation_mode: iterative. The
-    build.test_for_symbol action loops with IntentGuard feedback up to the cap
-    declared in .intent/enforcement/config/generation_budget.yaml.
+    v2.0.0 (ADR-135 D5/D6): declared generation_mode: iterative.
+
+    v3.0.0 (ADR-140): Cognitive-Write Separation applied. The iterative LLM
+    generation loop moves to the Will-tier TestGenCognitiveDelegate (injected by
+    ProposalExecutor). The build.test_for_symbol action is narrowed to a write-only
+    operation that receives generated_code from the preceding cognitive step via
+    FlowExecutor's accumulated_params threading. The remediates annotation moves
+    here from the action to reflect that the flow — not the bare action — closes
+    test.runner.missing and test.runner.failure findings.
 
 flow:
   flow_id: flow.build_test_for_symbol
+  remediates:
+    - test.runner.missing
+    - test.runner.failure
   description: >
     Generate one pytest test function for a single named source symbol via
     context_aware_test_gen (iterative mode), auto-heal imports/headers/format,
@@ -30,12 +40,16 @@ flow:
     - rules/code/purity
 
   steps:
+    - ref_id: generate.test_snippet
+      kind: cognitive
+      required: true
+      consumes: [source_file, symbol_name, symbol_kind, signature]
+      produces: [generated_code]
+
     - ref_id: build.test_for_symbol
       kind: action
       required: true
-      params:
-        generation_mode: iterative
-      consumes: [source_file, symbol_name, symbol_kind, signature, write]
+      consumes: [source_file, symbol_name, symbol_kind, generated_code, write]
 
     - ref_id: fix.imports
       kind: action

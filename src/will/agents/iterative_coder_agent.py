@@ -7,11 +7,13 @@ up to the governed iteration cap declared in generation_budget.yaml. The accepta
 predicate is injectable (AcceptanceCondition) so callers can compose IntentGuard,
 pytest, and audit checks independently of the generation loop itself.
 
-Architecture note on flow.build_test_for_symbol (ADR-135 D2 implementation note):
-  build.test_for_symbol uses PromptModel.invoke() directly rather than CoderAgent,
-  so its iterative loop is implemented inside the action (Body tier) reading the same
-  generation_budget.yaml. IterativeCoderAgent is the primitive for CoderAgent-based
-  flows; it is not wired to flow.build_test_for_symbol.
+Architecture note on flow.build_test_for_symbol (ADR-140 D5 closure):
+  The iterative loop for flow.build_test_for_symbol was previously in Body tier as
+  acknowledged debt (ADR-135 D2). It has been extracted to PromptModelIterativeAgent
+  (will/agents/prompt_model_iterative_agent.py), which handles PromptModel.invoke()
+  paths. IterativeCoderAgent (this class) remains the primitive for CoderAgent-based
+  flows that route through CoderAgent.generate_or_repair. The two coexist; neither
+  deprecates the other.
 
 Layer: Will. No subprocess. No direct database access. Delegates I/O to Body.
 """
