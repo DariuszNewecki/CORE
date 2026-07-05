@@ -50,6 +50,7 @@ actions:
   file.edit: moderate
   file.read: safe
   file.tag_metadata: safe
+  log.archive_partitions: moderate
   log.maintain_partitions: safe
   logging.reconfigure: safe
   manage.define_symbols: moderate

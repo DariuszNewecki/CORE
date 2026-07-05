@@ -2724,6 +2724,7 @@ CREATE TABLE core.system_config (
     operating_mode text DEFAULT 'local_only'::text NOT NULL,
     llm_enabled boolean DEFAULT true NOT NULL,
     request_timeout_seconds integer DEFAULT 300 NOT NULL,
+    log_retention_months integer DEFAULT 24 NOT NULL,
     embed_model_revision text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT system_config_operating_mode_check CHECK ((operating_mode = ANY (ARRAY['local_only'::text, 'remote_only'::text, 'hybrid'::text])))

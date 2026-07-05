@@ -54,7 +54,10 @@ from body.atomic.fix_actions import (
 from body.atomic.fix_actions import (
     action_format_code as action_fix_format,
 )
-from body.atomic.log_actions import action_maintain_log_partitions
+from body.atomic.log_actions import (
+    action_archive_log_partitions,
+    action_maintain_log_partitions,
+)
 from body.atomic.metadata_ops import action_tag_metadata
 from body.atomic.modularity_fix import action_fix_modularity
 from body.atomic.registry import action_registry, register_action
@@ -67,6 +70,7 @@ from body.atomic.sync_actions import (
 
 
 __all__ = [
+    "action_archive_log_partitions",
     "action_assisted_apply_diff",
     "action_assisted_validate_diff",
     "action_build_test_for_symbol",

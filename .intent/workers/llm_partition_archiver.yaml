@@ -1,0 +1,40 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.llm_partition_archiver
+  title: LLM Exchange Log Partition Archiver
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-052 GxP retention: EU Annex 11 requires that electronic records be preserved
+    for the product lifetime plus one year. Old partitions of core.llm_exchange_log
+    must be moved to core_archive schema (never dropped) once they exceed the configured
+    retention window (default 24 months). This worker runs the archival on a daily
+    cadence, delegating the actual DDL to log.archive_partitions. Closes #330.
+
+identity:
+  uuid: "9d52e5d7-4abb-4313-9ec1-5ba0bbd872ae"
+  class: governance
+
+mandate:
+  responsibility: >
+    Read log_retention_months from system_config, then call log.archive_partitions
+    (write=True) to detach and move old partitions to core_archive schema.
+    Post a report on success; post a finding on failure. Always post a heartbeat.
+  phase: execution
+  permitted_tools:
+    - log.archive_partitions
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 86400
+
+implementation:
+  module: will.workers.llm_partition_archiver
+  class: LlmPartitionArchiverWorker
+  requires_core_context: true
