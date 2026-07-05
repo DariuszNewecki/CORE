@@ -76,8 +76,9 @@ WHAT TO READ FIRST (in this order)
 1. CLAUDE.md                        — the development contract; defines rules,
                                       patterns, and what Claude Code is allowed
                                       to do
-2. .specs/decisions/                — the 10 most recent ADRs (ADR-133 through
-                                      ADR-142)
+2. .specs/decisions/                — the full ADR index; read all titles first,
+                                      then deep-read the most recent ~10 and any
+                                      that are directly relevant to the focus area
 3. .intent/rules/architecture/      — the constitutional ruleset (JSON)
 4. .intent/enforcement/remediation/
    auto_remediation.yaml            — autonomous dispatch routing; maps rule
@@ -141,9 +142,10 @@ STANDING QUESTIONS — answer all of these
 
 ## 3. ADR alignment
 
-3a. Look at the 10 most recent ADRs (ADR-133 through ADR-142). For each,
-    is the implementation decision visible and faithful in src/? Name any
-    where the code and the ADR have drifted.
+3a. Read the full ADR index in .specs/decisions/. Deep-read the most recent
+    ~10 and any that are directly relevant to the focus area. For each ADR
+    you read: is the implementation decision visible and faithful in src/?
+    Name any where the code and the ADR have drifted.
 
 3b. Are there patterns in src/ that look like they need an ADR anchor but
     don't have one — decisions made in code that should have been made in
