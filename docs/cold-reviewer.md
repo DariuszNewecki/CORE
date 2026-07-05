@@ -84,10 +84,33 @@ The example above pins to `@main` because the audit-engine version bundled in ta
 
 ---
 
+## Plain `docker run` (no CI required)
+
+If you'd rather observe the audit in your local terminal without setting up a GitHub workflow, pull the published image and mount your repository at `/workspace`:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace" \
+  ghcr.io/dariusznewecki/core-audit-gate:latest
+```
+
+Output defaults to plain text. Override `CORE_SEVERITY` or `CORE_FORMAT` as env vars:
+
+```bash
+docker run --rm \
+  -e CORE_SEVERITY=high \
+  -e CORE_FORMAT=json \
+  -v "$PWD:/workspace" \
+  ghcr.io/dariusznewecki/core-audit-gate:latest
+```
+
+The image is the same binary as the GitHub Action; the only difference is the output format default (`text` vs `github-annotations`) and the workspace mount point (`/workspace` vs `/github/workspace`). Exit codes are identical.
+
+---
+
 ## Known limits
 
 - `intent-path` other than `.intent/` is rejected; file an issue if you need a non-default path.
-- The image is rebuilt on every action invocation (~30s) because no pre-built image is published to a registry. A `docker run` cold path is tracked separately.
 - `github-annotations` output renders cleanly only inside GitHub's UI. If you run the action's logic outside CI, override `format` to `text` or `json`.
 
 ---

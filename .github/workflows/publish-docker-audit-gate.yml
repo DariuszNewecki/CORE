@@ -1,0 +1,93 @@
+# .github/workflows/publish-docker-audit-gate.yml
+#
+# F-10.3 / #578 — Publish the `core-audit-gate` image to GHCR.
+#
+# Builds from `Dockerfile` (repo root) and pushes to
+# ghcr.io/dariusznewecki/core-audit-gate on each semver tag and on
+# manual dispatch. The image pins `core-runtime` via the ARG declared
+# in the Dockerfile; the tag here must match the PyPI release.
+#
+# Once this workflow has published at least one image, update action.yml:
+#   runs.image: 'docker://ghcr.io/dariusznewecki/core-audit-gate:vX.Y.Z'
+# to skip the per-invocation build (~30s saved per CI run).
+#
+# Package visibility: after the first push, set the GHCR package to
+# Public (Packages → core-audit-gate → Settings) so cold reviewers can
+# docker pull without authenticating.
+
+name: Publish core-audit-gate (Docker)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "core-runtime version to pin, e.g. 2.8.0 — must already be on PyPI"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish core-audit-gate to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve version (tag or dispatch input)
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $V"
+
+      - name: Wait for core-runtime==${{ steps.ver.outputs.version }} on PyPI
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          for i in $(seq 1 30); do
+            if curl -fsS "https://pypi.org/pypi/core-runtime/${V}/json" >/dev/null 2>&1; then
+              echo "core-runtime==${V} is on PyPI — proceeding."
+              exit 0
+            fi
+            echo "[$i/30] core-runtime==${V} not on PyPI yet; waiting 20s..."
+            sleep 20
+          done
+          echo "::error::core-runtime==${V} never appeared on PyPI — refusing to build core-audit-gate."
+          exit 1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push core-audit-gate
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          build-args: |
+            CORE_RUNTIME_VERSION=${{ steps.ver.outputs.version }}
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/dariusznewecki/core-audit-gate:${{ steps.ver.outputs.version }}
+            ghcr.io/dariusznewecki/core-audit-gate:latest
+
+      - name: Summary
+        run: |
+          echo "### Published \`ghcr.io/dariusznewecki/core-audit-gate:${{ steps.ver.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "+ \`:latest\` — cold reviewers can now \`docker run --rm -v \"\$PWD:/workspace\" ghcr.io/dariusznewecki/core-audit-gate:${{ steps.ver.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
