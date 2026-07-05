@@ -48,12 +48,6 @@ Thumbs.db
 ITAM
 
 # -----------------------------------------------------------------------------
-# Confidential commercial documents — strategic content, not for public repo
-# -----------------------------------------------------------------------------
-.specs/commercial/*
-!.specs/commercial/.gitkeep
-
-# -----------------------------------------------------------------------------
 # GRC licensed catalog tier (ADR-116) — the proprietary moat. Populated by the
 # private core-grc-catalogs repo (clone/mount), never committed to this public
 # repo. Gitignored so neither a manual add nor the autonomous daemon can scoop

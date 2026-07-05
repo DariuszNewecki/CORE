@@ -1154,27 +1154,19 @@ classifications:
       doctrine would require an ADR.
 
   # ---------------------------------------------------------------------
-  # .specs/commercial/** — CORE org material.
+  # .specs/northstar/** — mission, open-source posture, company identity.
   # ---------------------------------------------------------------------
-  - path: .specs/commercial/.gitkeep
+  - path: .specs/northstar/CORE-Company.md
     governance_namespace: project::core
-  - path: .specs/commercial/CORE-TechRep-Onboarding.md
+
+  # ---------------------------------------------------------------------
+  # .specs/papers/** — newly added OSS architectural papers (continued).
+  # ---------------------------------------------------------------------
+  - path: .specs/papers/CORE-Products.md
     governance_namespace: project::core
-  - path: .specs/commercial/CORE-Business-Model.md
+  - path: .specs/papers/CORE-Repo-Split-Plan.md
     governance_namespace: project::core
-  - path: .specs/commercial/CORE-Company.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-Competitive.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-Customer-Personas.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-Demo-Narrative.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-GTM.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-Market-ICP.md
-    governance_namespace: project::core
-  - path: .specs/commercial/CORE-Products.md
+  - path: .specs/papers/commercial-project-isolation.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1614,162 +1606,6 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Specification-as-Source.md
     governance_namespace: framework
-
-  # .specs/commercial/ — project::core (commercial strategy and content)
-  - path: .specs/commercial/CORE-Product-Tiers.md
-    governance_namespace: project::core
-  - path: .specs/commercial/cadence.md
-    governance_namespace: project::core
-  - path: .specs/commercial/papers/commercial-project-isolation.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/_overview.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/demo-plan.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/gaps-and-build.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/product-position.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/recon-2026.06.23.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/PROJ-26.001/requirements.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/_overview.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/demo-plan.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/gaps-and-build.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/product-position.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/recon-YYYY-MM-DD.md
-    governance_namespace: project::core
-  - path: .specs/commercial/projects/_template/requirements.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2025.11.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.02.16.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.02.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.03.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.10.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.16.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.23.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.29.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.03.30.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.04.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.07.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.14.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.18.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.04.25.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.05.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.05.09.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.05.13.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.05.19.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.06.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.06.13.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.06.29.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/Dev.to/2026.07.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2025.08.15.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2025.10.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2025.11.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.01.08.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.02.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.04.24.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.05.02.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.05.12.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.06.02.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/2026.06.14.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/GitHub/_repo.md
-    governance_namespace: project::core
-
-  # .specs/commercial/socials/LinkedIn/ — project::core
-  - path: .specs/commercial/socials/LinkedIn/2026.04.15.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/LinkedIn/_profile.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/HN/2025.11.24.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/HN/2026.01.08.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/HN/2026.02.28.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/HN/2026.06.29.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/HN/2026.07.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2025.08.07.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2025.11.19.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2025.11.29.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.01.08.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.04.04.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.04.07.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.04.10.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.04.16.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.04.18.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.05.01.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.05.09.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.05.13.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.02.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.13.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.14.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.16.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.23.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.06.29.md
-    governance_namespace: project::core
-  - path: .specs/commercial/socials/X.com/2026.07.01.md
-    governance_namespace: project::core
 
   # .specs/planning/ — project::core (planning and roadmap documents)
   - path: .specs/planning/CORE-Maturity-Audit-Actions.md
