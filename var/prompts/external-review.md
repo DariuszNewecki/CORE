@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-139),
+  .specs/      — human-authored reasoning: ADRs (through ADR-142),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -76,8 +76,8 @@ WHAT TO READ FIRST (in this order)
 1. CLAUDE.md                        — the development contract; defines rules,
                                       patterns, and what Claude Code is allowed
                                       to do
-2. .specs/decisions/                — the 10 most recent ADRs (ADR-130 through
-                                      ADR-139)
+2. .specs/decisions/                — the 10 most recent ADRs (ADR-133 through
+                                      ADR-142)
 3. .intent/rules/architecture/      — the constitutional ruleset (JSON)
 4. .intent/enforcement/remediation/
    auto_remediation.yaml            — autonomous dispatch routing; maps rule
@@ -141,7 +141,7 @@ STANDING QUESTIONS — answer all of these
 
 ## 3. ADR alignment
 
-3a. Look at the 10 most recent ADRs (ADR-130 through ADR-139). For each,
+3a. Look at the 10 most recent ADRs (ADR-133 through ADR-142). For each,
     is the implementation decision visible and faithful in src/? Name any
     where the code and the ADR have drifted.
 
