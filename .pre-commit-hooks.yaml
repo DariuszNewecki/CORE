@@ -1,0 +1,32 @@
+# .pre-commit-hooks.yaml — CORE pre-commit hook distribution (#532 / F-10.5)
+#
+# Declares the `core-audit` hook so external repositories can add CORE's
+# constitutional audit to their local pre-commit pipeline.
+#
+# Usage in a consumer repo's .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/DariuszNewecki/CORE
+#       rev: v2.8.0          # pin to a released tag
+#       hooks:
+#         - id: core-audit
+#
+# The hook runs `core-admin code audit --offline` against every commit
+# before it reaches the remote. It requires a `.intent/` directory at the
+# root of the consumer repo; scaffold one first with
+# `core-admin project onboard <path> --write`.
+#
+# Requires: core-runtime installed in the pre-commit Python environment
+# (pre-commit installs it automatically from pyproject.toml / setup.cfg).
+
+- id: core-audit
+  name: CORE constitutional audit
+  description: >
+    Audit the repository against the constitutional rules declared in its
+    .intent/ directory. Blocks commits when blocking findings exist.
+  entry: core-admin code audit --offline
+  language: python
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+  additional_dependencies: []
