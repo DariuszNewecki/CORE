@@ -374,14 +374,17 @@ async def _query_recent_symbol_failures(
                     WHERE status = 'failed'
                       AND failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
                       AND scope->'files' @> cast(:source_file_json as jsonb)
+                      AND constitutional_constraints->>'symbol_name' = :symbol_name
                       AND updated_at > now() - make_interval(hours => :hours)
                     """
                 ).bindparams(
                     bindparam("source_file_json", type_=String),
+                    bindparam("symbol_name", type_=String),
                     bindparam("hours", type_=Integer),
                 ),
                 {
                     "source_file_json": f'["{source_file}"]',
+                    "symbol_name": symbol_name,
                     "hours": lookback_hours,
                 },
             )

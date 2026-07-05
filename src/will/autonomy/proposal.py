@@ -214,6 +214,10 @@ def _compute_flow_risk(
             impact = _resolve_impact(step.ref_id, risk_mapping)
         elif step.kind == StepKind.FLOW:
             impact = _compute_flow_risk(step.ref_id, risk_mapping, visited)
+        elif step.kind == StepKind.COGNITIVE:
+            # Cognitive steps are read/think only; write risk is carried by
+            # the downstream ACTION step that consumes the produces output.
+            impact = "safe"
         else:
             impact = "moderate"
         max_level = max(max_level, risk_levels.get(impact, 1))
