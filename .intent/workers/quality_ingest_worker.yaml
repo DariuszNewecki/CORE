@@ -1,0 +1,45 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.quality_ingest_worker
+  title: Quality Ingest Worker
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Closes ADR-098 D5 sensor gap (#605): wires quality.* audit findings
+    (quality.security_audit, quality.test_integrity) into the blackboard so
+    they are visible for governor review and eventual autonomous remediation.
+    Applies the D5 fanout cap (quality_ingest_cap from audit_ingest.yaml,
+    default 25 per rule) to prevent blast-radius issues from high-count
+    rules. quality.type_safety is intentionally excluded until the governor
+    decides to accept the ~289-file fanout.
+
+identity:
+  uuid: "b39a7ea4-0484-4308-9901-f3da560eef76"
+  class: acting
+
+mandate:
+  responsibility: >
+    Run the constitutional auditor, extract findings for quality.* rules
+    listed in .intent/enforcement/config/audit_ingest.yaml, apply the D5
+    per-rule cap, deduplicate against existing blackboard subjects, and post
+    each new finding to the blackboard for downstream visibility.
+  phase: audit
+  permitted_tools: []
+  scope:
+    paths: []
+    domains:
+      - audit
+      - compliance
+      - quality
+  approval_required: false
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.quality_ingest_worker
+  class: QualityIngestWorker
+  requires_core_context: true
+  requires_dedicated_process: true

@@ -1,0 +1,19 @@
+# .intent/enforcement/config/audit_ingest.yaml
+# Audit-ingest pipeline configuration — ADR-098 D5 constraint substrate.
+# Loader: src/shared/infrastructure/intent/audit_ingest_config.py
+# Consumer: src/will/workers/quality_ingest_worker.py
+
+version: "1.0.0"
+
+# Maximum findings posted per (rule, audit run) by QualityIngestWorker.
+# When cap fires, the top-N findings ordered by context.issue_count descending
+# are posted; the remainder remain in the audit-run output for governor review.
+quality_ingest_cap: 25
+
+# Quality rules enabled for blackboard posting.
+# Only advisory-enforcement rules are enabled initially; the high-blast-radius
+# quality.type_safety (blocking, ~289 files) is intentionally excluded until
+# the governor decides to accept the fanout.
+enabled_rules:
+  - quality.security_audit
+  - quality.test_integrity
