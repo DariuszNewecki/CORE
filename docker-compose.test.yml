@@ -1,0 +1,36 @@
+# docker-compose.test.yml — hermetic Postgres 16 for CI-runnable integration tests.
+#
+# Usage (local):
+#   docker compose -f docker-compose.test.yml up -d
+#   DATABASE_URL=postgresql+asyncpg://core_db:test@localhost:5433/core_test \
+#     pytest -m integration
+#
+# Usage (GitHub Actions):
+#   - run: docker compose -f docker-compose.test.yml up -d --wait
+#   - run: pytest -m integration
+#     env:
+#       DATABASE_URL: postgresql+asyncpg://core_db:test@localhost:5433/core_test
+#
+# Schema source: infra/sql/db_schema_live.sql (canonical per CLAUDE.md).
+# The init script strips CORE's \restrict / \unrestrict ACL markers before loading.
+
+services:
+  postgres-test:
+    image: postgres:16
+    container_name: core_postgres_test
+    environment:
+      POSTGRES_USER: core_db
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: core_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./infra/sql/db_schema_live.sql:/schema/db_schema_live.sql:ro
+      - ./infra/scripts/init-test-db.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U core_db -d core_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
