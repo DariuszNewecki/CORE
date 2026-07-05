@@ -7,9 +7,9 @@
     "version": "1.0.0",
     "authority": "meta",
     "status": "active",
-    "source_hash": "24d4878bb9f1c123fadc7d292287869f2601b40ea847f5b6f1b6dbe4e936a025",
-    "generated_at": "2026-05-05T19:24:27Z",
-    "generator_version": "core-admin@2.3.0"
+    "source_hash": "6bbb85fa1abf360aaa573b4408efeab600a761d8b4a6a5a1c7eb5bc4f12f13e6",
+    "generated_at": "2026-07-05T14:47:26Z",
+    "generator_version": "core-admin@2.8.0"
   },
   "terms": [
     {
@@ -118,7 +118,7 @@
       "not": "A Component is not a Worker. Components are short-lived, phase-scoped, and invoked by orchestrators — not by the daemon. A Component does not claim Blackboard entries.",
       "authoritative_paper": ".specs/papers/CORE-Adaptive-Workflow-Pattern.md",
       "aliases": [
-        "Handler | Processor"
+        "Processor"
       ],
       "see_also": [
         "Worker | Phase"
@@ -469,9 +469,7 @@
       "definition": "An atomic normative statement that evaluates to holds or violates.",
       "not": "Rule is not synonymous with Constitution or Policy. Constitution and Policy are authority levels that a Rule may carry. A Rule at constitution authority is a constitutional rule — but 'Rule' and 'Constitution' are not interchangeable terms.",
       "authoritative_paper": ".intent/constitution/CORE-CONSTITUTION.md",
-      "aliases": [
-        "Check | Constraint | Policy"
-      ],
+      "aliases": [],
       "see_also": [
         "Authority | Constitution | Policy"
       ]
@@ -552,7 +550,7 @@
       "not": "A Worker is not a Component. Workers are long-lived, daemon-resident, and claim work from the Blackboard. A Worker may contain or invoke Components, but is not itself phase-bound.",
       "authoritative_paper": ".specs/papers/CORE-Workers-and-Governance-Model.md",
       "aliases": [
-        "Agent | Service | Processor"
+        "Processor"
       ],
       "see_also": [
         "Component | Sensing Worker | Acting Worker"
