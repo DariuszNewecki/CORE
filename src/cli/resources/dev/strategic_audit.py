@@ -111,7 +111,7 @@ async def strategic_audit_cmd(
                 console.print(f"     [dim]{e.proposed_fix[:120]}[/dim]")
         if write:
             console.print(
-                f"\n[green]✅ Campaign persisted.[/green] [dim]ID: {campaign.campaign_id}[/dim]"
+                f"\n[green]✅ Campaign persisted.[/green] [dim]Task ID: {campaign.parent_task_id}[/dim]"
             )
             if campaign.autonomous_task_count:
                 console.print(

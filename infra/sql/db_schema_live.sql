@@ -1010,7 +1010,7 @@ CREATE TABLE core.cognitive_roles (
     specialization jsonb,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT cognitive_roles_role_check CHECK ((role = ANY (ARRAY['Architect'::text, 'CapabilityTagger'::text, 'CodeReviewer'::text, 'Coder'::text, 'ConstitutionalCoherenceAnalyst'::text, 'DocstringWriter'::text, 'LocalCoder'::text, 'LocalReasoner'::text, 'Planner'::text, 'RemoteCoder'::text, 'Vectorizer'::text]))),
+    CONSTRAINT cognitive_roles_role_check CHECK ((role = ANY (ARRAY['Architect'::text, 'AutonomousDeveloper'::text, 'CapabilityTagger'::text, 'CodeReviewer'::text, 'Coder'::text, 'ConstitutionalCoherenceAnalyst'::text, 'DocstringWriter'::text, 'Human'::text, 'LocalCoder'::text, 'LocalReasoner'::text, 'Planner'::text, 'RemoteCoder'::text, 'StrategicAuditor'::text, 'Vectorizer'::text]))),
     CONSTRAINT cognitive_roles_required_capabilities_check CHECK ((jsonb_typeof(required_capabilities) = 'array'::text))
 );
 
