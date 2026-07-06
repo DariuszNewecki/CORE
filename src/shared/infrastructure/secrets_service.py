@@ -185,7 +185,7 @@ class SecretsService:
         List all secret keys (not values!) in the database.
 
         Returns:
-            List of dicts with 'key', 'description', 'last_updated'
+            List of dicts with 'key', 'last_rotated_at', 'created_at'
         """
         query = text(
             "SELECT key, last_rotated_at, created_at FROM core.secret_store ORDER BY key"

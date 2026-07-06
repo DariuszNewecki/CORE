@@ -159,17 +159,17 @@ async def _list_secrets_internal() -> ActionResult:
                 )
             table = Table(title="Encrypted Secrets")
             table.add_column("Key", style="cyan", no_wrap=True)
-            table.add_column("Description", style="white")
-            table.add_column("Last Updated", style="dim")
+            table.add_column("Last Rotated", style="dim")
+            table.add_column("Created", style="dim")
             for secret in secrets_list:
                 table.add_row(
                     secret["key"],
-                    secret.get("description") or "",
-                    (
-                        str(secret.get("last_updated"))
-                        if secret.get("last_updated")
-                        else "none"
-                    ),
+                    str(secret.get("last_rotated_at"))
+                    if secret.get("last_rotated_at")
+                    else "never",
+                    str(secret.get("created_at"))
+                    if secret.get("created_at")
+                    else "unknown",
                 )
             console.print(table)
             display_info(f"Total: {len(secrets_list)} secrets")
