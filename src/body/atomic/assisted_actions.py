@@ -284,7 +284,7 @@ async def action_assisted_validate_diff(
             file_handler = core_context.file_handler
             run_id = uuid.uuid4().hex[:8]
             _tmp_rel = str(
-                PathResolver(str(file_handler.repo_path)).tmp_dir.relative_to(
+                PathResolver(file_handler.repo_path).tmp_dir.relative_to(
                     file_handler.repo_path
                 )
             )
