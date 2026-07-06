@@ -99,14 +99,18 @@ class CodeGenerationPhase:
         # 2. Split-Brain Resolution - Localize ContextService to the Workspace:
         global_ctx_svc = self.context.context_service
 
-        # Fork the senses
+        # Fork the senses. Prefer the CoreContext's resolved services (set by
+        # develop_from_goal warm-up) over the global service's private fields,
+        # which may still be None before _ensure_brain_services() fires.
         localized_context_service = ContextService(
-            qdrant_client=global_ctx_svc._qdrant_client,
-            cognitive_service=global_ctx_svc._cognitive_service,
+            qdrant_client=global_ctx_svc._qdrant_client or self.context.qdrant_service,
+            cognitive_service=global_ctx_svc._cognitive_service
+            or self.context.cognitive_service,
             config=global_ctx_svc.config,
             project_root=str(self.context.git_service.repo_path),
             session_factory=self.context.registry.session,
             workspace=workspace,
+            brain_services_provider=global_ctx_svc._brain_services_provider,
         )
 
         logger.info(

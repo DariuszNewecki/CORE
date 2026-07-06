@@ -32,7 +32,7 @@ Return a JSON object with exactly this structure:
       "affected_files": ["src/path/to/file.py"],
       "finding_ids": ["rule_id_1", "rule_id_2"],
       "proposed_fix": "Concrete, actionable description of what needs to change.",
-      "workflow_type": "refactor_modularity | coverage_remediation | full_feature_development",
+      "workflow_type": "refactor_modularity | coverage_remediation",
       "requires_constitution_change": false,
       "confidence": 0.85,
       "estimated_impact": "low | medium | high"

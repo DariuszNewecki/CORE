@@ -70,6 +70,20 @@ async def develop_from_goal(
             "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
         )
 
+    # Warm up brain services on the CoreContext so downstream phases can access them.
+    # When called from campaign execute the context hasn't gone through the
+    # strategic-audit CLI bootstrap that normally calls get_cognitive_service().
+    if context.cognitive_service is None:
+        try:
+            context.cognitive_service = await context.registry.get_cognitive_service()
+        except Exception as exc:
+            logger.warning("Could not resolve cognitive_service from registry: %s", exc)
+    if context.qdrant_service is None:
+        try:
+            context.qdrant_service = await context.registry.get_qdrant_service()
+        except Exception as exc:
+            logger.warning("Could not resolve qdrant_service from registry: %s", exc)
+
     try:
         # Initialize orchestrator with PathResolver (FIXED)
         phase_registry = PhaseRegistry(context, path_resolver)
@@ -116,12 +130,8 @@ def infer_workflow_type(goal: str) -> str:
     if any(word in goal_lower for word in ["test", "coverage", "generate tests"]):
         return "coverage_remediation"
 
-    # Feature development signals
-    if any(word in goal_lower for word in ["implement", "add feature", "create"]):
-        return "full_feature_development"
-
-    # Default to full feature development
-    logger.warning(
-        "Could not infer workflow type, defaulting to full_feature_development"
-    )
-    return "full_feature_development"
+    # Default: code changes that aren't test generation use refactor_modularity.
+    # full_feature_development is not a registered workflow — it would route
+    # through generate_changes just as refactor_modularity does.
+    logger.warning("Could not infer workflow type, defaulting to refactor_modularity")
+    return "refactor_modularity"
