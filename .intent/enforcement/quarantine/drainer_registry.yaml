@@ -63,3 +63,16 @@ namespaces:
       Pytest infrastructure failure for a given test_file keeps that
       file's subjects in current_subjects so they release-not-resolve
       (no evidence-free drain).
+
+  - prefix: "python::"
+    drainer_worker: "TestRunnerSensor"
+    drain_method: "adjudicate_awaiting_reaudit_findings"
+    cycle_source: "TestRunnerSensor._drain_quarantined"
+    description: >
+      Drains python-artifact findings placed into awaiting_reaudit. Covers
+      both sub-namespaces: python::test.runner.missing:: (source files still
+      lacking generated tests) and python::test.runner.failure:: (generated
+      tests that failed pytest). TestRunnerSensor._drain_quarantined calls
+      adjudicate_awaiting_reaudit_findings separately for each sub-prefix
+      within a single run cycle. Released if the condition still holds;
+      resolved otherwise (including deleted-source case).
