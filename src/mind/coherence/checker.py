@@ -120,6 +120,7 @@ class CoherenceChecker:
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         from .checks.base import CheckSkipped
+        from .checks.cross_ns_direction import CrossNsDirectionCheck
         from .checks.dispatch_parity import DispatchParityCheck
         from .checks.intent_binding import IntentBindingCheck
         from .checks.path_ref import PathRefCheck
@@ -147,6 +148,7 @@ class CoherenceChecker:
             SpecGapCheck(self._repo_root, register),
             PathRefCheck(self._repo_root),
             IntentBindingCheck(self._repo_root),
+            CrossNsDirectionCheck(self._repo_root),
         ]
 
         status: dict[str, dict] = {}

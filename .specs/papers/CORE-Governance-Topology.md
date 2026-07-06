@@ -148,6 +148,13 @@ The core of this paper. The grid below declares which directional links between 
 | 9 | Rule → Northstar | **forbidden (strict)** | Rules cite paper/ADR that operationalizes UR; direct `UR-NN` citation in rule rationale or metadata is governance-skip. No exceptions |
 | 10 | Rule → Rule (cross-reference) | **editorial** | Rule rationale cites adjacent rule |
 
+*Cross-namespace extensions (ADR-144 D2/D3 — rows 11–14 declared below in §3.4):*
+
+| 11 | `framework` constrains `project::*` | **constitutional** | Framework invariants bind all deployments; no per-artifact citation required |
+| 12 | `project::*` extends `framework` | **editorial** | Project artifact builds on framework; citation in References block expected |
+| 13 | `project::*` specializes `framework` | **editorial** | Project artifact narrows a framework default; citation expected |
+| 14 | `framework` references `project::*` | **forbidden (strict)** | A framework artifact MUST NOT embed a path reference to a project artifact; framework must be project-agnostic for BYOR separability. Enforced by CCC check CROSS_NS_DIRECTION |
+
 ### §3.1 — The two governing principles plus one exception
 
 **Downward links are constitutional** (Northstar → Paper → Rule): required to be linked because higher tiers are normative and must be operationalized to carry weight. Higher-tier without lower-tier link is aspirational governance.
@@ -169,6 +176,32 @@ The cost of strict row 4 is editorial discipline at ADR acceptance time. The ben
 The strict reading on row 9 — rules may not directly cite URs, ever — prevents the architectural-reasoning layer from being bypassed. A rule that claims "Authority: UR-07" without an intermediate paper claims that the rule IS the operationalization of UR-07. If no paper exists to make that claim auditable, the rule is unfalsifiable: there is no architectural artifact to compare against.
 
 The cost of strict row 9 is that any UR-load-bearing rule requires an operationalizing paper. The benefit is that the constitutional chain (UR → Paper → Rule) is always intact and inspectable.
+
+### §3.4 — Cross-namespace relations (ADR-144)
+
+Rows 1–10 govern **same-namespace** directional links. Once the framework / project namespace split (ADR-075; §8) is in effect, three additional relation types emerge between artifacts in different namespaces.
+
+**Relation vocabulary:**
+
+| Code | Direction | Meaning |
+|------|-----------|---------|
+| `extends` | `project::* → framework` | Project artifact adds project-specific constraint on top of a framework artifact, without contradiction |
+| `specializes` | `project::* → framework` | Project artifact narrows a framework default for its specific context — a subset binding |
+| `constrains` | `framework → project::*` | Framework artifact establishes an invariant that all project artifacts must conform to |
+
+**Directional principles:**
+
+- **Framework constrains project (row 11): constitutional.** Framework invariants are the governance floor for every deployment. A project cannot opt out of a framework constraint; the `constrains` relation is implicit in the namespace hierarchy.
+
+- **Project cites framework (rows 12, 13): editorial.** A project artifact that extends or specializes a framework artifact should cite the framework artifact in its References block — but this is documentation hygiene, not a constitutional requirement.
+
+- **Framework references project (row 14): forbidden (strict).** This is the separability invariant. A framework artifact must not embed a path reference to a specific project artifact. CORE ships the framework layer to every BYOR deployment unchanged; any framework artifact that names a project-specific artifact (`project::core` or any `project::<name>`) encodes a dependency on a context that may not exist in the target deployment. Enforced structurally by CCC check CROSS_NS_DIRECTION, which scans framework-classified `.specs/` artifacts for text references to project-classified paths.
+
+**Why row 14 is strict:**
+
+The BYOR separability concern (documented in `CORE-BYOR.md`) is load-bearing. The governance framework's value proposition is that it can be adopted by any repository without modification. A framework ADR or paper that says "see `.specs/decisions/ADR-143-…md`" or "see `.intent/workers/db_sync_worker.yaml`" is embedding a CORE-specific reference in a universally-shipped artifact. Unlike same-namespace forbidden links (row 9), this violation is structurally detectable: the manifest classifies every path, and a grep over framework artifact text against the project-path set produces unambiguous findings.
+
+**Scope note (v1 of CROSS_NS_DIRECTION):** The structural check covers explicit path-string references (`.specs/…` or `.intent/…` embedded in text). ADR-ID-only references (e.g. plain `ADR-143`) are not checked in v1 — their directional significance requires semantic context. Escalation is a follow-on decision.
 
 ---
 
@@ -359,6 +392,7 @@ For ADRs that genuinely have no grounding paper (some early-phase decisions pred
 - ADR-051 — File-handler shared-excludes closure; the precedent for §6.3's closure-ADR pattern
 - ADR-071 D2.2 — Worktree sandbox; the precedent for §6.3's sandbox-execution pattern
 - Issue #457 — Framework/project namespace split (orthogonal axis; §8 references this)
+- ADR-144 — Cross-namespace relation taxonomy; D2/D3 author rows 11–14 and §3.4 of this paper
 - `.specs/papers/CORE-Mind-Body-Will-Separation.md` — precedent for paper §s with normative claims
 - `.specs/papers/CORE-Constitutional-Foundations.md` — establishes the constitution-tier authority that §2.2 derives from
 - 2026-05-26 CCC backlog review session — empirical surfacing of the definition gap; closed run `db48491b` (133 candidates triaged, ~98% dismissal rate, 3 ADR fixes shipped)
