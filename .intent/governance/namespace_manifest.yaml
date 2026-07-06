@@ -122,6 +122,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/workflows/definitions/coverage_remediation.yaml
     governance_namespace: framework
+  - path: .intent/workflows/definitions/code_modification.yaml
+    governance_namespace: framework
   - path: .intent/workflows/definitions/refactor_modularity.yaml
     governance_namespace: framework
   - path: .intent/workflows/stages/audit.canary_validation.yaml
@@ -1620,6 +1622,11 @@ classifications:
     governance_namespace: framework
   - path: .specs/essays/CORE-Disposition-Governance.md
     governance_namespace: framework
+  - path: .specs/essays/CORE-USER-REQUIREMENTS-founder-vision.md
+    governance_namespace: framework
+    notes: >
+      Companion founder-vision statement to .specs/northstar/CORE-USER-REQUIREMENTS.md
+      (also framework). Describes what CORE must deliver as a framework capability.
   - path: .specs/papers/CORE-Instrument-Attestation.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Specification-as-Source.md

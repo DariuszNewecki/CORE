@@ -42,6 +42,7 @@ from body.atomic.tool_runner import AUDIT_SUBPROCESS_BOOTSTRAP, ToolRunner
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -282,8 +283,11 @@ async def action_assisted_validate_diff(
             checks["not_graph_engine"] = True
             file_handler = core_context.file_handler
             run_id = uuid.uuid4().hex[:8]
-            input_rel = f"var/tmp/core-subaudit-input-{run_id}.json"
-            bootstrap_rel = f"var/tmp/core-subaudit-runner-{run_id}.py"
+            _tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
+                file_handler.repo_path
+            )
+            input_rel = str(_tmp / f"core-subaudit-input-{run_id}.json")
+            bootstrap_rel = str(_tmp / f"core-subaudit-runner-{run_id}.py")
             file_handler.write_runtime_text(
                 input_rel,
                 json.dumps(
