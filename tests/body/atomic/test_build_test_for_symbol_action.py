@@ -168,11 +168,12 @@ async def test_action_write_true_calls_file_handler(mock_core_context, source_se
         )
 
     assert result.ok
-    assert result.data["files_produced"] == ["tests/mypkg/service/test_generated.py"]
+    files_produced = result.data["files_produced"]
+    assert "tests/mypkg/service/test_generated.py" in files_produced
+    # Every write call must be declared in files_produced (test file + __init__.py files).
     calls = mock_core_context.file_handler.write.call_args_list
-    assert calls[0][0][0] == "tests/mypkg/service/test_generated.py"
-    init_paths = [c[0][0] for c in calls[1:]]
-    assert all(p.endswith("__init__.py") for p in init_paths)
+    written_paths = {c[0][0] for c in calls}
+    assert set(files_produced) == written_paths
 
 
 @pytest.mark.asyncio

@@ -148,8 +148,18 @@ class GitService:
 
     # ID: 715fe14e-e905-4032-9721-35bc67639ed7
     def status_porcelain(self) -> str:
-        """Returns the porcelain status output."""
-        return self._run_command(["status", "--porcelain"])
+        """Return the porcelain status output with all untracked files listed
+        individually (--untracked-files=all).
+
+        The default git behaviour groups every file inside a brand-new directory
+        under one ``?? dir/`` entry. That directory-level token never matches a
+        file-level path in ``propagate_changes``'s ``only_paths`` allowlist,
+        causing the intersection to be empty and nothing to propagate. Using
+        ``--untracked-files=all`` forces file-level entries (e.g.
+        ``?? tests/new_pkg/test_generated.py``) for all untracked content,
+        including files in directories that are themselves new.
+        """
+        return self._run_command(["status", "--porcelain", "--untracked-files=all"])
 
     # ID: db520983-cdb8-4b99-a1d9-60467128b6dc
     def add_all(self) -> None:

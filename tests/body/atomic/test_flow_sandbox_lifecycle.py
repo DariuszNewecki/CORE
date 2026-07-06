@@ -236,6 +236,46 @@ def test_propagate_only_paths_discards_incidental_churn(repo: Path) -> None:
             scoped_git.cleanup()
 
 
+# ID: 66d9aa64-a62e-4264-a813-b2efb89ec837
+def test_propagate_new_directory_file_level_paths(repo: Path) -> None:
+    """Regression test for #756: files in a brand-new directory are grouped
+    as ``?? dir/`` by ``git status --porcelain`` (default untracked mode).
+    Using ``--untracked-files=all`` forces file-level entries, so the
+    ``only_paths`` intersection in ``propagate_changes`` correctly matches
+    and copies the declared files to the main tree.
+
+    Shape: sandbox writes test_generated.py + __init__.py into a new
+    subdirectory that has never been committed; both are in only_paths;
+    both must reach main.
+    """
+    sandbox, ctx = _make_sandbox(repo)
+    sha = ctx.git_service.get_current_commit()
+    _scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
+        "flow.build_test_for_symbol", write=True, pre_execution_sha=sha
+    )
+    try:
+        wt = Path(scoped_git.repo_path)
+        # Simulate build.test_for_symbol writing into a brand-new tests/ subdir.
+        new_dir = wt / "tests" / "new_pkg"
+        new_dir.mkdir(parents=True)
+        (new_dir / "__init__.py").write_text("")
+        (new_dir / "test_generated.py").write_text("def test_x(): assert True\n")
+
+        declared = {
+            "tests/new_pkg/__init__.py",
+            "tests/new_pkg/test_generated.py",
+        }
+        propagated = sandbox.propagate_changes(scoped_git, only_paths=declared)
+
+        assert "tests/new_pkg/test_generated.py" in propagated
+        assert "tests/new_pkg/__init__.py" in propagated
+        assert (repo / "tests" / "new_pkg" / "test_generated.py").exists()
+        assert (repo / "tests" / "new_pkg" / "__init__.py").exists()
+    finally:
+        if scoped_git is not None:
+            scoped_git.cleanup()
+
+
 # ID: 1a7e3c95-4d68-4f02-b9a1-6c5e2d8f4b37
 def test_declared_production_unions_files_produced() -> None:
     """ADR-107 D1: the flow production set is the union of steps' files_produced."""

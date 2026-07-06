@@ -149,6 +149,7 @@ async def action_build_test_for_symbol(
         )
 
     # 4. Write if requested.
+    created_files: list[str] = []
     if write:
         test_path = repo_root / test_file
         if test_path.exists():
@@ -161,9 +162,13 @@ async def action_build_test_for_symbol(
 
         try:
             core_context.file_handler.write(test_file, full_content)
+            created_files.append(test_file)
             # Ensure every ancestor directory has an __init__.py so pytest-cov +
             # importlib mode gives each file a fully-qualified module path
             # (avoids pycache name collisions across different test dirs).
+            # Track each new __init__.py in created_files so propagate_changes
+            # includes them in the declared production set — without them, the
+            # test directory exists in main but is not importable by pytest.
             tests_root = repo_root / "tests"
             ancestor = test_path.parent
             while True:
@@ -171,6 +176,7 @@ async def action_build_test_for_symbol(
                 if not init_path.exists():
                     rel_init = str(init_path.relative_to(repo_root))
                     core_context.file_handler.write(rel_init, "")
+                    created_files.append(rel_init)
                 if ancestor == tests_root or ancestor == repo_root:
                     break
                 ancestor = ancestor.parent
@@ -191,7 +197,7 @@ async def action_build_test_for_symbol(
             "symbol_kind": symbol_kind,
             "test_file": test_file,
             "write": write,
-            "files_produced": [test_file] if write else [],
+            "files_produced": created_files,
         },
         duration_sec=time.time() - start,
     )
