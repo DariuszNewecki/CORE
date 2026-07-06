@@ -81,3 +81,24 @@ include_files:
   - "src/will/workers/repo_embedding/repo_embedder_workers.py"
   - "src/will/workers/repo_crawler.py"
   - "src/will/workers/db_sync_worker.py"
+
+  # ── api/v1 route modules (2026-07-06: scope widened to cover API layer) ────
+  # Ordered low→high complexity so the sensor exercises the success path first.
+  # Each maps to tests/api/v1/<module>/test_generated.py (sensor suffix).
+  # Hand-written tests/api/v1/test_<module>.py files are separate; no collision.
+  - "src/api/v1/lint_routes.py"
+  - "src/api/v1/integration_routes.py"
+  - "src/api/v1/knowledge_routes.py"
+  - "src/api/v1/integrity_routes.py"
+  - "src/api/v1/lane_routes.py"
+  - "src/api/v1/daemon_routes.py"
+  - "src/api/v1/census_routes.py"
+  - "src/api/v1/coverage_routes.py"
+  - "src/api/v1/quality_routes.py"
+  - "src/api/v1/sync_routes.py"
+  - "src/api/v1/inspect_routes.py"
+  - "src/api/v1/development_routes.py"
+  - "src/api/v1/audit_routes.py"
+  - "src/api/v1/refactor_routes.py"
+  - "src/api/v1/fix_routes.py"
+  - "src/api/v1/proposals_routes.py"
