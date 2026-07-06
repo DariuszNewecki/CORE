@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-142),
+  .specs/      — human-authored reasoning: ADRs (through ADR-144),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -44,7 +44,7 @@ The code layers (src/) are:
 
 These layer boundaries are enforced by constitutional rules in .intent/.
 Violations are blocking (stop a commit) or reporting (surface findings).
-The runtime enforces 35 blocking + 27 reporting + 9 advisory rules.
+The runtime enforces 37 blocking + 28 reporting + 8 advisory rules = 73.
 
 Key architectural patterns to know before reading the code:
   • Atomic actions  — mutations wrapped in @atomic_action + @register_action,
@@ -69,6 +69,52 @@ Key architectural patterns to know before reading the code:
                         prompts must declare an adr_anchor in model.yaml and
                         appear in .intent/enforcement/config/governed_prompts.yaml;
                         content changes surface as prompt.drift_detected findings
+
+────────────────────────────────────────────────────────────────────────────
+DESIGN INTENT — SECURITY AND ACCESS POSTURE
+────────────────────────────────────────────────────────────────────────────
+Read this before forming security findings. Several patterns that look like
+gaps are load-bearing design decisions.
+
+CORE is a local operator runtime, not a multi-tenant service. The operator
+deploys it on their own infrastructure and IS the governor. The threat model
+is AI-generated output that needs governance — not external users attacking a
+shared service. OS-level access to the machine IS the authentication boundary
+for the CLI.
+
+Two orthogonal axes define the security posture:
+
+  1. Exposure (who may invoke)
+     CLI = full governor surface, ambient operator trust. CLI-only command
+     groups (secrets, database, constitution, intent, vectors, mind, workers,
+     admin) are intentionally withheld from the API — not an omission.
+
+     API = governed subset of CLI. ADR-132 enforces role-based authentication:
+     governor-only routes require a platform_admin JWT; user-facing routes
+     require org_admin. The API/CLI split is a trust-tier boundary, not a
+     transport detail.
+
+  2. Write-safety (how mutations are made safe)
+     Independent of trust tier. Governor trust does not imply correct AI
+     output. Every AI-delegated mutation runs through the proposal lifecycle,
+     worktree sandbox, and commit-set attribution rails regardless of entry
+     surface. Safety binds to the operation, not the caller.
+
+"Full functionality in open source" is intentional. The governance runtime is
+the value proposition — there is no capability gating by license tier. The
+operator runs CORE on their infrastructure at whatever cost they choose.
+
+What IS worth raising:
+  • API routes that should be governor-only but are not (check ROUTER_EXPOSURE
+    and Depends(require_governor) per ADR-132 D3/D7)
+  • Mutation paths that bypass the proposal/sandbox rails
+  • Data leakage from governor-only state into user-facing responses
+
+What is NOT a finding:
+  • "The CLI has no authentication" — correct; it is the operator surface
+  • "Full functionality is available in an open-source package" — correct by
+    design; the operator IS the governor
+  • "The runtime makes no licensing checks" — intentional
 
 ────────────────────────────────────────────────────────────────────────────
 WHAT TO READ FIRST (in this order)
