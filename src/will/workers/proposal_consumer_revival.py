@@ -7,7 +7,7 @@ the executor raised before completing), the findings that were deferred
 under it must be revived back to 'open' status so the next remediation
 cycle can re-claim them. This module owns that contract.
 
-Two operations:
+Three operations:
 
 - revive_and_report: call BlackboardService.revive_findings_for_failed_proposal
   (UPDATE-only — clears claimed_by/claimed_at/resolved_at, flips status to
@@ -20,6 +20,11 @@ Two operations:
   ProposalStateManager, transition the proposal row to 'failed'. Used by
   the worker's outer-exception branch where ProposalExecutor never reached
   its own mark_failed because it raised before completion.
+- release_executing_proposals: called in a finally block at the end of
+  run() to release any proposals still in EXECUTING status owned by this
+  worker (covers graceful-shutdown paths: SIGTERM → CancelledError,
+  unhandled BaseException above the per-proposal try/except). Hard kills
+  (SIGKILL) are not covered here; a periodic reaper is required for those.
 
 Fail-soft throughout: revival or post errors are logged but never
 propagated; the worker's run-loop accounting decisions (failed += 1) must
@@ -31,6 +36,8 @@ database imports.
 """
 
 from __future__ import annotations
+
+import uuid
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -181,3 +188,64 @@ async def mark_proposal_failed(proposal_id: str, reason: str) -> None:
             proposal_id,
             mark_err,
         )
+
+
+# ID: fd8678bd-94fd-439e-8bd3-d1f1ede79850
+async def release_executing_proposals(
+    worker: Worker,
+    worker_uuid: uuid.UUID,
+) -> int:
+    """
+    Release any proposals stuck in EXECUTING status claimed by this worker.
+
+    Called in a finally block in run() to handle graceful-shutdown paths:
+    SIGTERM arrives as CancelledError in asyncio — the per-proposal
+    try/except catches only Exception, so CancelledError (and any other
+    BaseException) skips mark_proposal_failed for the in-flight proposal.
+    This function finds and repairs that gap.
+
+    For each stuck proposal, applies the same failure+revival path as the
+    ordinary exception branch: mark_failed transitions the row out of
+    EXECUTING, revive_and_report unparks deferred findings. Fully fail-soft.
+
+    Returns the count of proposals released (0 on normal exit).
+    """
+    from sqlalchemy import select
+
+    from body.services.service_registry import service_registry
+    from shared.infrastructure.database.models.autonomous_proposals import (
+        AutonomousProposal,
+    )
+    from will.autonomy.proposal import ProposalStatus
+
+    released = 0
+    try:
+        async with service_registry.session() as session:
+            stmt = (
+                select(AutonomousProposal.proposal_id)
+                .where(AutonomousProposal.status == ProposalStatus.EXECUTING.value)
+                .where(AutonomousProposal.claimed_by == worker_uuid)
+            )
+            result = await session.execute(stmt)
+            stuck_ids = [str(row[0]) for row in result.fetchall()]
+    except Exception as query_err:
+        logger.error(
+            "ProposalConsumerWorker: could not query stuck proposals for worker %s: %s",
+            worker_uuid,
+            query_err,
+        )
+        return 0
+
+    reason = "worker terminated during execution (finally-block release)"
+    for proposal_id in stuck_ids:
+        logger.warning(
+            "ProposalConsumerWorker: releasing stuck proposal '%s' "
+            "(was EXECUTING, claimed_by=%s)",
+            proposal_id,
+            worker_uuid,
+        )
+        await mark_proposal_failed(proposal_id, reason)
+        await revive_and_report(worker, proposal_id, reason)
+        released += 1
+
+    return released
