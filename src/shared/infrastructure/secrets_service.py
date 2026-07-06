@@ -90,27 +90,21 @@ class SecretsService:
         audit_context: str | None = None,
     ) -> None:
         """
-        Store an encrypted secret in the database.
+        Store an encrypted secret in the database (ADR-052 Phase 4: secret_store).
 
         Args:
             db: Database session
             key: Secret identifier (e.g., "anthropic.api_key")
             value: Plaintext secret value
-            description: Optional human-readable description
+            description: Accepted for back-compat; secret_store has no description column
             audit_context: Optional context for audit log
         """
         encrypted_value = self.encrypt(value)
         query = text(
-            "\n            INSERT INTO core.runtime_settings (key, value, description, is_secret, last_updated)\n            VALUES (:key, :value, :description, true, NOW())\n            ON CONFLICT (key)\n            DO UPDATE SET\n                value = EXCLUDED.value,\n                description = EXCLUDED.description,\n                last_updated = NOW()\n        "
+            "INSERT INTO core.secret_store (key, value) VALUES (:key, :value) "
+            "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, last_rotated_at = NOW()"
         )
-        await db.execute(
-            query,
-            {
-                "key": key,
-                "value": encrypted_value,
-                "description": description or f"Encrypted secret: {key}",
-            },
-        )
+        await db.execute(query, {"key": key, "value": encrypted_value})
         await db.commit()
         logger.info("Secret '%s' stored successfully (encrypted)", key)
 
@@ -146,9 +140,7 @@ class SecretsService:
             SecretNotFoundError: If secret not found
             ValueError: If decryption fails
         """
-        query = text(
-            "\n            SELECT value FROM core.runtime_settings\n            WHERE key = :key AND is_secret = true\n        "
-        )
+        query = text("SELECT value FROM core.secret_store WHERE key = :key")
         result = await db.execute(query, {"key": key})
         row = result.fetchone()
         if not row:
@@ -156,7 +148,17 @@ class SecretsService:
         await self._audit_secret_access(
             db, key, cognitive_role=audit_context, resource_name=resource_name
         )
-        return self.decrypt(row[0])
+        # Handle mixed state: most values are Fernet-encrypted; a small number were
+        # inserted as plaintext directly into secret_store during Phase 2 migration.
+        try:
+            return self.decrypt(row[0])
+        except ValueError:
+            logger.warning(
+                "Secret '%s' is stored as plaintext in secret_store; "
+                "re-encrypt on next rotation",
+                key,
+            )
+            return row[0]
 
     # ID: 91ab22d7-7020-45ec-9258-0c46a37ff9d0
     async def delete_secret(self, db: AsyncSession, key: str) -> None:
@@ -170,9 +172,7 @@ class SecretsService:
         Raises:
             SecretNotFoundError: If secret not found
         """
-        query = text(
-            "\n            DELETE FROM core.runtime_settings\n            WHERE key = :key AND is_secret = true\n        "
-        )
+        query = text("DELETE FROM core.secret_store WHERE key = :key")
         result = await db.execute(query, {"key": key})
         await db.commit()
         if getattr(result, "rowcount", 0) == 0:
@@ -188,11 +188,11 @@ class SecretsService:
             List of dicts with 'key', 'description', 'last_updated'
         """
         query = text(
-            "\n            SELECT key, description, last_updated\n            FROM core.runtime_settings\n            WHERE is_secret = true\n            ORDER BY key\n        "
+            "SELECT key, last_rotated_at, created_at FROM core.secret_store ORDER BY key"
         )
         result = await db.execute(query)
         return [
-            {"key": row[0], "description": row[1], "last_updated": row[2]}
+            {"key": row[0], "last_rotated_at": row[1], "created_at": row[2]}
             for row in result.fetchall()
         ]
 

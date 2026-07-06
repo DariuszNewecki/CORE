@@ -89,41 +89,15 @@ class ConfigService:
         Loads all non-secret config into memory for performance.
         Secrets are fetched on-demand for security.
 
-        ADR-052 Phase 3: data-driven cutover. When every row in
-        ``core.config_migration_log`` has a non-null ``migrated_at``,
-        ``is_migration_complete()`` returns True and the cache is
-        loaded from the typed tables (``llm_resources`` +
-        ``system_config``). Until then, it falls back to
-        ``runtime_settings`` — the legacy path that existed before
-        ADR-052. No feature flag, no manual switch.
+        ADR-052 Phase 4: migration complete — always loads from typed tables.
+        The runtime_settings fallback path is retired; the table is dropped.
         """
-        if await cls._migration_complete(db):
-            cache = await cls._load_from_typed_tables(db)
-            logger.info(
-                "Loaded %s configuration values from typed tables (ADR-052)",
-                len(cache),
-            )
-        else:
-            query = text(
-                "SELECT key, value FROM core.runtime_settings WHERE is_secret = false"
-            )
-            result = await db.execute(query)
-            cache = {row[0]: row[1] for row in result.fetchall()}
-            logger.info(
-                "Loaded %s configuration values from runtime_settings", len(cache)
-            )
-        return cls(db, cache)
-
-    @staticmethod
-    async def _migration_complete(db: AsyncSession) -> bool:
-        """Return True when no config_migration_log rows are still in transit."""
-        result = await db.execute(
-            text(
-                "SELECT COUNT(*) FROM core.config_migration_log "
-                "WHERE migrated_at IS NULL"
-            )
+        cache = await cls._load_from_typed_tables(db)
+        logger.info(
+            "Loaded %s configuration values from typed tables (ADR-052)",
+            len(cache),
         )
-        return result.scalar() == 0
+        return cls(db, cache)
 
     @staticmethod
     async def _load_from_typed_tables(db: AsyncSession) -> dict[str, Any]:
@@ -258,55 +232,17 @@ class ConfigService:
             return default
         return str(value).lower() in ("true", "1", "yes", "on")
 
-    # ID: 30b588cd-40f9-4684-a235-ffd139c90bfa
-    async def set(self, key: str, value: str, description: str | None = None) -> None:
-        """
-        Set a non-secret configuration value.
-        """
-        if self.db is None:
-            raise RuntimeError(
-                "ConfigService error: Database session has been detached."
-            )
-
-        stmt = text(
-            "\n            INSERT INTO core.runtime_settings (key, value, description, is_secret, last_updated)\n            VALUES (:key, :value, :description, false, NOW())\n            ON CONFLICT (key)\n            DO UPDATE SET\n                value = EXCLUDED.value,\n                description = COALESCE(EXCLUDED.description, core.runtime_settings.description),\n                last_updated = NOW()\n            "
-        )
-        await self.db.execute(
-            stmt, {"key": key, "value": value, "description": description}
-        )
-        await self.db.commit()
-        self._cache[key] = value
-        logger.info("Config '{key}' set to '%s'", value)
-
-    # ID: 8a3c1f4d-2b75-4e7c-9c8a-1f5d3e7b9a02
-    async def is_migration_complete(self) -> bool:
-        """Return True when every config_migration_log row has migrated_at set.
-
-        Drives the cutover defined in ADR-052 Phase 3: when this
-        method returns True, future ``ConfigService.create()`` calls
-        load from the typed tables instead of ``runtime_settings``.
-        The daemon picks up the switch on its next start.
-        """
-        if self.db is None:
-            raise RuntimeError(
-                "ConfigService error: Database session has been detached."
-            )
-        return await self._migration_complete(self.db)
-
     # ID: c14f55cb-7f20-41ad-acfb-6830b6ed5387
     async def reload(self) -> None:
-        """Reload non-secret config cache from database."""
+        """Reload non-secret config cache from typed tables (ADR-052 Phase 4)."""
         if self.db is None:
             raise RuntimeError(
                 "ConfigService error: Database session has been detached."
             )
-
-        stmt = text(
-            "\n            SELECT key, value\n            FROM core.runtime_settings\n            WHERE is_secret = false\n            "
+        self._cache = await self._load_from_typed_tables(self.db)
+        logger.info(
+            "Reloaded %s configuration values from typed tables", len(self._cache)
         )
-        result = await self.db.execute(stmt)
-        self._cache = {row[0]: row[1] for row in result.fetchall()}
-        logger.info("Reloaded %s configuration values", len(self._cache))
 
 
 # ID: f39ed211-86d5-490b-aa4e-389de41b083f

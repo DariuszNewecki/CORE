@@ -108,17 +108,3 @@ class Northstar(Base):
     updated_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-
-
-# ID: b96ce43c-edf8-4f70-bc20-1541e9ee281a
-class RuntimeSetting(Base):
-    __tablename__ = "runtime_settings"
-    __table_args__ = ({"schema": "core"},)
-
-    key: Mapped[str] = mapped_column(Text, primary_key=True)
-    value: Mapped[str | None] = mapped_column(Text)
-    description: Mapped[str | None] = mapped_column(Text)
-    is_secret: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    last_updated: Mapped[Any] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )

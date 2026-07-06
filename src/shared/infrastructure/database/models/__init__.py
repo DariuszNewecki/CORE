@@ -28,7 +28,6 @@ from .system import (
     Migration,
     Northstar,
     RuntimeService,
-    RuntimeSetting,
 )
 from .vectors import RetrievalFeedback, SemanticCache, SymbolVectorLink, VectorSyncLog
 from .workers import BlackboardEntry, WorkerRegistry
@@ -65,7 +64,6 @@ __all__ = [
     "RetrievalFeedback",
     "RoleResourceAssignment",
     "RuntimeService",
-    "RuntimeSetting",
     "SecretStore",
     "SemanticCache",
     # Knowledge Layer (Mind)
