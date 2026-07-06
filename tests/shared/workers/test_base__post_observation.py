@@ -157,6 +157,95 @@ async def test_post_observation_writes_with_terminal_status(
         await _delete_entry(db_session, entry_id, worker._worker_uuid)
 
 
+# ID: 6f139c4b-a67d-42b4-941e-c90fb2343c3f
+async def test_indeterminate_dedup_blocks_duplicate_post(
+    db_session: AsyncSession,
+) -> None:
+    """Known-violating fixture: a second post_observation(status='indeterminate')
+    for the same subject raises ValueError. Fails loudly if the guard in
+    BlackboardPublisher.post_observation is removed or bypassed.
+    """
+    worker = _ObservationMinimalWorker()
+    worker._worker_uuid = uuid.uuid4()
+    worker._blackboard._worker_uuid = worker._worker_uuid
+    await _ensure_worker_registered(db_session, worker._worker_uuid)
+
+    subject = f"test.indeterminate.dedup.violating::{uuid.uuid4()}"
+    entry_id = await worker.post_observation(
+        subject=subject, payload={"cycle": 1}, status="indeterminate"
+    )
+    try:
+        with pytest.raises(ValueError, match="duplicate indeterminate"):
+            await worker.post_observation(
+                subject=subject, payload={"cycle": 2}, status="indeterminate"
+            )
+    finally:
+        await _delete_entry(db_session, entry_id, worker._worker_uuid)
+
+
+# ID: b7c7f2b6-f0e0-4549-a056-51ce6e47ff07
+async def test_indeterminate_dedup_permits_repost_after_governor_resolve(
+    db_session: AsyncSession,
+) -> None:
+    """Known-compliant fixture: post indeterminate → governor resolves →
+    re-post succeeds with exactly 2 rows. Mirrors the canonical detection
+    lifecycle: detect → governor closes → re-detect is valid.
+    """
+    from sqlalchemy import text as sa_text
+
+    worker = _ObservationMinimalWorker()
+    worker._worker_uuid = uuid.uuid4()
+    worker._blackboard._worker_uuid = worker._worker_uuid
+    await _ensure_worker_registered(db_session, worker._worker_uuid)
+
+    subject = f"test.indeterminate.dedup.compliant::{uuid.uuid4()}"
+    entry_id_1 = await worker.post_observation(
+        subject=subject, payload={"cycle": 1}, status="indeterminate"
+    )
+
+    # Simulate governor resolving the finding (mirrors: core-admin blackboard resolve)
+    await db_session.execute(
+        sa_text(
+            "UPDATE core.blackboard_entries "
+            "SET status = 'resolved', resolved_at = now() "
+            "WHERE id = :id"
+        ),
+        {"id": entry_id_1},
+    )
+    await db_session.commit()
+
+    # Re-detection: prior indeterminate is resolved; dedup guard passes
+    entry_id_2 = await worker.post_observation(
+        subject=subject, payload={"cycle": 2}, status="indeterminate"
+    )
+    try:
+        db_session.expire_all()
+        result = await db_session.execute(
+            sa_text(
+                "SELECT COUNT(*) FROM core.blackboard_entries WHERE subject = :subject"
+            ),
+            {"subject": subject},
+        )
+        count = result.scalar()
+        assert count == 2, f"Expected 2 rows for {subject!r}, got {count}"
+    finally:
+        await db_session.execute(
+            sa_text(
+                "DELETE FROM core.blackboard_entries WHERE subject = :subject"
+            ),
+            {"subject": subject},
+        )
+        await db_session.execute(
+            sa_text(
+                "DELETE FROM core.worker_registry "
+                "WHERE worker_uuid = :worker_uuid "
+                "  AND worker_name = 'test.post_observation.synthetic'"
+            ),
+            {"worker_uuid": worker._worker_uuid},
+        )
+        await db_session.commit()
+
+
 def test_terminal_statuses_match_enums_taxonomy() -> None:
     """The terminal-status set MUST match .intent/META/enums.json
     blackboard_entry_status terminal subset. Drift here defeats the
