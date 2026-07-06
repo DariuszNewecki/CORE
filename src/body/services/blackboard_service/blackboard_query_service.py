@@ -138,12 +138,17 @@ class BlackboardQueryService:
 
     # ID: ebe20054-2553-4403-8f78-f498c9bf2f63
     async def fetch_resolved_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
-        """Return subjects of resolved finding entries whose subject matches *prefix*.
+        """Return subjects of governor-resolved finding entries whose subject matches *prefix*.
+
+        Only returns findings where resolution_mechanism = 'human' — i.e. the
+        governor explicitly closed them. Machine-resolved findings
+        (resolution_mechanism = 'self_resolve') are excluded so that an
+        incorrect auto-remediation does not permanently suppress re-detection.
 
         Used by sensors where re-emergence after governor resolution is not
         meaningful — e.g. CommitReachabilityAuditor, where an orphaned commit
-        can never become reachable again. Callers combine this with
-        fetch_active_finding_subjects_by_prefix and
+        can never become reachable again once a governor has acknowledged it.
+        Callers combine this with fetch_active_finding_subjects_by_prefix and
         fetch_abandoned_finding_subjects_by_prefix to build a complete skip set.
         """
         from body.services.service_registry import ServiceRegistry
@@ -156,6 +161,7 @@ class BlackboardQueryService:
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
                       AND status = 'resolved'
+                      AND resolution_mechanism = 'human'
                     """
                 ),
                 {"prefix": prefix},
