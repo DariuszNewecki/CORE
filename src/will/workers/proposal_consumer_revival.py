@@ -67,7 +67,7 @@ async def revive_and_report(
     ``remediation_cap_n`` rail (ADR-104 D9 / #637): a finding that has now
     failed remediation that many times is abandoned (terminal Type-B) by the
     service instead of revived, and this worker posts the terminal
-    ``blackboard.remediation_cap_reached::<entry_id>`` observation (D4 — not
+    ``blackboard.remediation_cap_reached::<finding_subject>`` observation (D4 — not
     a silent instrument) per ``worker_only_inserts``. The governor-reject
     path (proposal_service.reject) does NOT pass the cap — a human decision
     is not a remediation failure and must not count toward auto-abandon.
@@ -105,12 +105,19 @@ async def revive_and_report(
     # observation per abandoned finding so the cap event is named and folds
     # into the F-19 `stuck` bucket. Posted here (not in the service) per
     # architecture.blackboard.worker_only_inserts.
-    for entry_id in revival.get("abandoned_finding_ids", []):
+    #
+    # Subject uses the original finding's subject (stable per violation class),
+    # not entry_id (UUID), so the same violation does not generate a new F-19
+    # subject each time it cycles through the cap.
+    abandoned_ids = revival.get("abandoned_finding_ids", [])
+    abandoned_subjects = revival.get("abandoned_subjects", [])
+    for entry_id, finding_subject in zip(abandoned_ids, abandoned_subjects):
         try:
             await worker.post_observation(
-                subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                subject=f"blackboard.remediation_cap_reached::{finding_subject}",
                 payload={
                     "entry_id": entry_id,
+                    "finding_subject": finding_subject,
                     "proposal_id": revival["proposal_id"],
                     "failure_reason": revival["failure_reason"],
                     "reason": "remediation_cap_reached",
@@ -119,9 +126,10 @@ async def revive_and_report(
                 status="abandoned",
             )
             logger.warning(
-                "ProposalConsumerWorker: finding %s abandoned at remediation "
+                "ProposalConsumerWorker: finding %s (%s) abandoned at remediation "
                 "cap (n=%d) for proposal %s",
                 entry_id,
+                finding_subject,
                 cap_n,
                 proposal_id,
             )
