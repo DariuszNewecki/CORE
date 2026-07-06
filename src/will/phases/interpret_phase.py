@@ -193,24 +193,26 @@ class InterpretPhase:
         if any(re.search(pattern, goal_lower) for pattern in test_patterns):
             return "coverage_remediation"
 
-        # Feature development signals
-        feature_patterns = [
+        # Code modification signals (implement, create, build, fix, etc.)
+        code_patterns = [
             r"\bimplement\b",
             r"\badd\s+feature\b",
             r"\bcreate\b",
             r"\bbuild\b",
             r"\bdevelop\b",
             r"\bnew\s+feature\b",
+            r"\bfix\b",
+            r"\brepair\b",
         ]
 
-        if any(re.search(pattern, goal_lower) for pattern in feature_patterns):
-            return "full_feature_development"
+        if any(re.search(pattern, goal_lower) for pattern in code_patterns):
+            return "code_modification"
 
-        # Default: full feature development
+        # Default: code_modification (general targeted change)
         logger.warning(
-            "⚠️  Could not confidently infer workflow type, defaulting to full_feature_development"
+            "⚠️  Could not confidently infer workflow type, defaulting to code_modification"
         )
-        return "full_feature_development"
+        return "code_modification"
 
     def _extract_target_info(self, goal: str) -> dict:
         """
@@ -259,7 +261,7 @@ class InterpretPhase:
         confidence_keywords = {
             "refactor_modularity": ["refactor", "modularity", "split"],
             "coverage_remediation": ["test", "coverage"],
-            "full_feature_development": ["implement", "feature", "create"],
+            "code_modification": ["implement", "feature", "create", "fix", "repair"],
         }
 
         keywords = confidence_keywords.get(workflow_type, [])

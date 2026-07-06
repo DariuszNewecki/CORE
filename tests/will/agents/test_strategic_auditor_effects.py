@@ -6,6 +6,11 @@ autonomous ones, not escalations), dispatches each to develop_from_goal with a
 signature autospec enforces (regression guard for the #115 session= bug), and
 moves each executed cluster's Task to completed/failed.
 
+Also covers (new, this session):
+  - workflow alias normalization: full_feature_development → code_modification
+  - affected_files disk filter: hallucinated paths stripped before goal augmentation
+  - goal augmentation: real file anchors appended when real_files is non-empty
+
 The tests mock the repository and develop_from_goal; no DB, LLM, or orchestrator
 path is exercised.
 """
@@ -13,7 +18,8 @@ path is exercised.
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, create_autospec
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
 
@@ -129,3 +135,117 @@ async def test_failed_cluster_marked_failed(
 
     mock_repo.update_status.assert_awaited_once_with(approved.id, "failed")
     assert results == [(str(approved.id), False, "boom")]
+
+
+# ID: 7137eec0-6924-4b57-b1d1-9330e94d5eb6
+async def test_workflow_alias_full_feature_development(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """full_feature_development in cluster context is aliased to code_modification."""
+    approved = _child(
+        "pending",
+        requires_approval=False,
+        workflow_type="full_feature_development",
+        intent="do a thing",
+        int_id=10,
+    )
+    _, mock_dfg = _wire(monkeypatch, [approved])
+
+    ctx = MagicMock(name="CoreContext")
+    ctx.git_service.repo_path = "/opt/dev/CORE"
+
+    await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+
+    _, kwargs = mock_dfg.await_args
+    assert kwargs["workflow_type"] == "code_modification"
+
+
+# ID: f5630fdd-a07f-4ae6-9508-0b3c25063210
+async def test_affected_files_hallucinated_paths_stripped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Paths in affected_files that don't exist on disk are excluded from the goal."""
+    task = MagicMock(name="Task[pending]")
+    task.id = uuid.UUID(int=11)
+    task.status = "pending"
+    task.requires_approval = False
+    task.assigned_role = "AutonomousDeveloper"
+    task.intent = "fix something"
+    task.context = {
+        "workflow_type": "code_modification",
+        "affected_files": ["src/body/services/unknown.py", "src/real/module.py"],
+    }
+
+    _, mock_dfg = _wire(monkeypatch, [task])
+
+    ctx = MagicMock(name="CoreContext")
+    ctx.git_service.repo_path = "/repo"
+
+    def _exists_only_real(path: Path) -> bool:
+        return path.name == "module.py"
+
+    with patch.object(Path, "exists", _exists_only_real):
+        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+
+    _, kwargs = mock_dfg.await_args
+    assert "src/body/services/unknown.py" not in kwargs["goal"]
+    assert "src/real/module.py" in kwargs["goal"]
+
+
+# ID: e23df1a2-1054-442b-b827-c3bb61499500
+async def test_no_real_files_goal_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When all affected_files are invented, the goal is passed as-is (no augmentation)."""
+    task = MagicMock(name="Task[pending]")
+    task.id = uuid.UUID(int=12)
+    task.status = "pending"
+    task.requires_approval = False
+    task.assigned_role = "AutonomousDeveloper"
+    task.intent = "original goal text"
+    task.context = {
+        "workflow_type": "code_modification",
+        "affected_files": ["src/made/up.py"],
+    }
+
+    _, mock_dfg = _wire(monkeypatch, [task])
+
+    ctx = MagicMock(name="CoreContext")
+    ctx.git_service.repo_path = "/repo"
+
+    with patch.object(Path, "exists", return_value=False):
+        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+
+    _, kwargs = mock_dfg.await_args
+    assert kwargs["goal"] == "original goal text"
+
+
+# ID: 9df032f8-7ffe-4fc9-8cd3-16cab78284ae
+async def test_real_files_appended_to_goal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Real affected_files are appended to the goal as target anchors."""
+    task = MagicMock(name="Task[pending]")
+    task.id = uuid.UUID(int=13)
+    task.status = "pending"
+    task.requires_approval = False
+    task.assigned_role = "AutonomousDeveloper"
+    task.intent = "fix the code"
+    task.context = {
+        "workflow_type": "code_modification",
+        "affected_files": ["src/will/agents/strategic_auditor/effects.py"],
+    }
+
+    _, mock_dfg = _wire(monkeypatch, [task])
+
+    ctx = MagicMock(name="CoreContext")
+    ctx.git_service.repo_path = "/repo"
+
+    with patch.object(Path, "exists", return_value=True):
+        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+
+    _, kwargs = mock_dfg.await_args
+    goal = kwargs["goal"]
+    assert goal.startswith("fix the code")
+    assert "Target files (from audit findings):" in goal
+    assert "src/will/agents/strategic_auditor/effects.py" in goal
