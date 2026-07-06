@@ -34,8 +34,8 @@ Changes that violate constitutional intent will be rejected, even if they pass C
 ## Contribution Rules
 
 ### 1. Read Before You Write
-Before opening a PR, contributors are expected to:
-- Read `.specs/northstar/CORE-What-It-Does.md` to understand what CORE is for
+Before contributing, you are expected to:
+- Read `.specs/northstar/CORE - What It Does.md` to understand what CORE is for
 - Review relevant files in `.specs/papers/` for architectural context
 - Review relevant files in `.intent/` to understand which rules apply
 - Run a constitutional audit locally and confirm it passes:
@@ -45,15 +45,15 @@ core-admin code audit
 ```
 
 If a change impacts governance, architecture, or enforcement logic,
-this **must be explicitly stated** in the PR description.
+this **must be explicitly stated** in the commit message and anchored to an ADR.
 
 ---
 
-### 2. Pull Requests Only
-All changes must go through a Pull Request.
-Direct pushes to `main` are not allowed.
+### 2. Direct Commits to Main
+Changes are committed directly to `main` — CORE does not use pull requests.
+Every commit must be traceable to an ADR or a declared governance intent.
 
-Keep PRs:
+Commits must be:
 - small
 - focused
 - traceable to intent

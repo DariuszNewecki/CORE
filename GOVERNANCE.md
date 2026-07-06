@@ -109,7 +109,7 @@ All architectural decisions that affect governance are recorded as ADRs in
 and the consequences. Implementation follows the ADR — the ADR is not written
 to document what was implemented.
 
-As of the current release, 64 ADRs are active.
+As of the current release, 144 ADRs are on record.
 
 ---
 

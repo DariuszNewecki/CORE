@@ -269,7 +269,7 @@ All thirteen gates must hold for a production-ready claim. None are yet fully me
 | G9 — Negative-path tests (blockers actually block) | ❌ not started | No systematic per-rule known-violating fixture in CI |
 | G10 — Operator observability | ⚠️ partial | Infrastructure exists; non-author operator trial not run |
 | G11 — Upgrade and migration safety | ❌ not started | Schema-as-dump; no delta migration path; most critical structural gap |
-| G12 — Security posture audited | ⚠️ partial | Rate limiting under-wired; `SECURITY.md` absent; #671 open |
+| G12 — Security posture audited | ⚠️ partial | Rate limiting under-wired; `SECURITY.md` present; #671 closed |
 | G13 — Operator documentation | ⚠️ partial | Install self-documented; no operator runbook |
 
 The full gate definitions, acceptance criteria, and rationale are in

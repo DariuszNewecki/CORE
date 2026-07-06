@@ -34,10 +34,13 @@ no long-term-support releases yet.
 
 The following areas are in scope for vulnerability reports:
 
+> **Note:** JWT authentication, role enforcement, and SaaS delivery infrastructure were
+> extracted to `core-platform` (a separate repo). CORE's API is unauthenticated at the
+> runtime layer — authentication is an operator/platform responsibility. The surfaces
+> below are the in-scope security boundaries within the CORE runtime itself.
+
 | Surface | Why it matters |
 |---|---|
-| JWT authentication and role validation (`require_governor` / `require_role`) | A bypass gives an unauthenticated caller governor-level access to proposal approval and execution. |
-| Governor-only API endpoints (`/proposals`, `/approve`, `/execute`) | Unauthorized execution of write proposals. |
 | `ActionExecutor` governance token (`GovernanceBypassError`) | The mechanism that prevents `@atomic_action` functions from being called directly. A bypass lets code mutate the repo without governance recording. |
 | `.intent/` immutability at runtime | Constitutional files must not be writable by any code path. |
 | Autonomous proposal approval gate | A flaw that auto-approves `dangerous`-risk proposals without governor confirmation. |

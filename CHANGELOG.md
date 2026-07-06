@@ -6,6 +6,49 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
+## [Unreleased]
+
+### 🎯 OSS Runtime — Commercial Track Dissolved
+
+Post-2.8.0 work completing the open-source extraction. CORE is now a pure,
+auth-free governance runtime; authentication, multi-tenancy, and SaaS delivery
+infrastructure live in `core-platform` (a separate repo).
+
+#### OSS extraction
+
+- **UAC extraction (ADR-124/132 successor) — `8a97e54e`.** JWT auth stack, 5-role
+  model, `get_current_user`, `body.services.auth.*`, and `will.governance.auth_runner`
+  moved to `core-platform`. CORE API is now unauthenticated at the runtime layer;
+  auth is an operator/platform concern.
+- **web/ dropped — `a349e8af` (ADR-125 successor).** SPA frontend belongs in
+  `core-platform`, not the governance runtime.
+- **Commercial track dissolved — `45ec53f9`.** All commercial-track references
+  scrubbed from `.specs/` and `.intent/`; ADR-131/132 redacted. CORE is clean OSS.
+
+#### Governance maturity (shipped post-2.8.0)
+
+- **ADR-135 — Dual-mode generation.** `single_shot` and `iterative` code-generation
+  modes; `IterativeCoderAgent` primitive live. `flow.build_test_for_symbol` v2.0.0.
+- **ADR-139 — Type-safety at zero.** 435 → 0 mypy errors; `quality.type_safety`
+  promoted to blocking.
+- **ADR-140 — Cognitive-Write Separation.** Cognitive delegation and file mutation
+  decoupled; governed write path enforced structurally.
+- **ADR-142 — passive_gate attestation.** 7 previously unmapped passive-gate rules
+  given declared attestation records.
+- **ADR-090 — Cognitive roles structural enforcement.** Role taxonomy enforced at
+  the AST level; stale role literals no longer pass audit.
+
+#### Engineering health
+
+- Smoke test suite: 93 pre-existing failures unmasked and cleared; 2987 passing.
+- `governance.namespace.classification_complete`: 45 unregistered `.intent/` files
+  backfilled into `namespace_manifest.yaml`.
+- Vocabulary projection: stale `authoritative_paper` paths (`NorthStar`,
+  `OptimizerWorker`) corrected in `CORE-Vocabulary.md` and `vocabulary.json`;
+  `source_hash` resynced.
+
+---
+
 ## [2.8.0] — 2026-06-30
 
 ### 🎯 Governed Delivery
@@ -465,6 +508,10 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/DariuszNewecki/CORE/compare/v2.7.0...v2.8.0
+[2.7.0]: https://github.com/DariuszNewecki/CORE/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/DariuszNewecki/CORE/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/DariuszNewecki/CORE/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/DariuszNewecki/CORE/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/DariuszNewecki/CORE/compare/v2.2.2...v2.3.0
