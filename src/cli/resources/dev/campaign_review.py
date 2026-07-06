@@ -3,11 +3,15 @@
 """
 Per-cluster review surface for StrategicAuditor campaigns.
 
-`core-admin dev campaign list|accept|reject|execute` lets the governor review
-the autonomous clusters a strategic-audit produced and accept them one at a
-time. Only accepted clusters execute (ADR-110 D4 — self-extension is a
+`core-admin dev campaign list|accept|reject|execute|stats` lets the governor
+review the autonomous clusters a strategic-audit produced and accept them one
+at a time. Only accepted clusters execute (ADR-110 D4 — self-extension is a
 Governor-role capability; the governor's per-cluster acceptance is the gate,
 replacing the old blanket --execute).
+
+`dev campaign stats` provides divergence telemetry: accept/reject/pending rates
+across one campaign or rolling across all campaigns. High reject rates indicate
+the StrategicAuditor is poorly calibrated for this codebase.
 
 LAYER: cli — operator surface driving Will. Runs in-process today; migrating
 this to a governor-tier API endpoint is deferred (#670/#671) per ADR-110 D6.
@@ -251,3 +255,165 @@ async def execute_campaign(
     for task_id, success, message in results:
         mark = "[green]OK[/green]" if success else "[red]FAIL[/red]"
         console.print(f"  {mark} {task_id} — {message}")
+
+
+def _tally(clusters: list) -> dict[str, int]:
+    """Count clusters by review state. Escalations are not autonomous picks."""
+    counts: dict[str, int] = {
+        "approved": 0,
+        "rejected": 0,
+        "pending": 0,
+        "escalation": 0,
+    }
+    for c in clusters:
+        counts[_review_state(c)] = counts.get(_review_state(c), 0) + 1
+    # Normalise keys — _review_state may return 'awaiting review' or execution statuses
+    normalised: dict[str, int] = {
+        "approved": 0,
+        "rejected": 0,
+        "pending": 0,
+        "escalation": 0,
+    }
+    for state, n in counts.items():
+        if state == "escalation":
+            normalised["escalation"] += n
+        elif state == "rejected":
+            normalised["rejected"] += n
+        elif state in ("approved", "executing", "completed", "failed"):
+            normalised["approved"] += n
+        else:
+            normalised["pending"] += n
+    return normalised
+
+
+def _pct(n: int, total: int) -> str:
+    return f"{round(100 * n / total)}%" if total else "—"
+
+
+@campaign_app.command("stats")
+@command_meta(
+    canonical_name="dev.campaign.stats",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.WILL,
+    exposure=CommandExposure.USER_FACING,
+    summary="Divergence telemetry: governor accept/reject rates over campaign clusters.",
+)
+@core_command(dangerous=False, requires_context=False)
+# ID: d42d846b-0ac9-4a01-9e7d-e1a548455a54
+async def campaign_stats(
+    campaign_id: str = typer.Argument(
+        "",
+        help="Campaign parent Task id (omit for rolling stats across all campaigns).",
+    ),
+) -> None:
+    """Show accept/reject/pending rates measuring AI-vs-governor divergence.
+
+    Without an argument: table of all campaigns with rolling totals.
+    With a campaign id: breakdown for that specific campaign.
+
+    High reject rates signal the StrategicAuditor is poorly calibrated for
+    this codebase; low rates confirm its cluster selections align with governor
+    judgment. Per #673 / ADR-110 D4.
+    """
+    async with get_session() as session:
+        repo = TaskRepository(session)
+
+        if campaign_id:
+            # ── per-campaign mode ────────────────────────────────────────────
+            parent = _parse_uuid(campaign_id, "campaign_id")
+            clusters = await repo.list_children(parent)
+            if not clusters:
+                console.print(
+                    f"[yellow]No clusters found for campaign {campaign_id}.[/yellow]"
+                )
+                return
+            t = _tally(clusters)
+            auto_total = t["approved"] + t["rejected"] + t["pending"]
+            table = Table(title=f"Campaign {campaign_id} — cluster review breakdown")
+            table.add_column("review state")
+            table.add_column("count", justify="right")
+            table.add_column("rate", justify="right")
+            for state, label in (
+                ("approved", "[green]approved[/green]"),
+                ("rejected", "[red]rejected[/red]"),
+                ("pending", "[yellow]awaiting review[/yellow]"),
+                ("escalation", "escalation"),
+            ):
+                table.add_row(
+                    label,
+                    str(t[state]),
+                    _pct(t[state], auto_total or t["escalation"] or 1),
+                )
+            console.print(table)
+            divergence = _pct(t["rejected"], t["approved"] + t["rejected"])
+            console.print(
+                f"\n[dim]Autonomous clusters: {auto_total} | "
+                f"Divergence rate (reject / decided): {divergence}[/dim]"
+            )
+        else:
+            # ── rolling mode ─────────────────────────────────────────────────
+            campaigns = await repo.list_campaigns()
+            if not campaigns:
+                console.print(
+                    "[yellow]No campaigns found. Run:[/yellow] "
+                    "[dim]core-admin dev strategic-audit --write[/dim]"
+                )
+                return
+            parent_ids = [c.id for c in campaigns]
+            all_clusters = await repo.list_children_for_campaigns(parent_ids)
+
+            # Index clusters by parent
+            from collections import defaultdict
+
+            clusters_by_parent: dict = defaultdict(list)
+            for cl in all_clusters:
+                clusters_by_parent[cl.parent_task_id].append(cl)
+
+            table = Table(title="StrategicAuditor Campaign Telemetry (newest first)")
+            table.add_column("campaign", style="cyan")
+            table.add_column("created", no_wrap=True)
+            table.add_column("auto", justify="right")
+            table.add_column("[green]ok[/green]", justify="right")
+            table.add_column("[red]rej[/red]", justify="right")
+            table.add_column("[yellow]pend[/yellow]", justify="right")
+            table.add_column("esc", justify="right")
+
+            roll: dict[str, int] = {
+                "approved": 0,
+                "rejected": 0,
+                "pending": 0,
+                "escalation": 0,
+            }
+            for camp in campaigns:
+                child_list = clusters_by_parent.get(camp.id, [])
+                t = _tally(child_list)
+                for k in roll:
+                    roll[k] += t[k]
+                auto = t["approved"] + t["rejected"] + t["pending"]
+                created = (
+                    camp.created_at.strftime("%Y-%m-%d") if camp.created_at else "—"
+                )
+                cid = str(camp.id)[:8]
+                table.add_row(
+                    cid,
+                    created,
+                    str(auto),
+                    str(t["approved"]),
+                    str(t["rejected"]),
+                    str(t["pending"]),
+                    str(t["escalation"]),
+                )
+
+            console.print(table)
+
+            roll_auto = roll["approved"] + roll["rejected"] + roll["pending"]
+            roll_total = roll_auto + roll["escalation"]
+            divergence = _pct(roll["rejected"], roll["approved"] + roll["rejected"])
+            console.print(
+                f"\n[dim]Rolling ({len(campaigns)} campaign(s), {roll_total} cluster(s)): "
+                f"accept={_pct(roll['approved'], roll_auto)}  "
+                f"reject={_pct(roll['rejected'], roll_auto)}  "
+                f"pending={_pct(roll['pending'], roll_auto)}  "
+                f"esc={roll['escalation']}  "
+                f"divergence={divergence}[/dim]"
+            )

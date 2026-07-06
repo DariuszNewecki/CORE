@@ -75,3 +75,27 @@ class TaskRepository:
             select(Task).where(Task.parent_task_id == parent_task_id).order_by(Task.id)
         )
         return list(result.scalars().all())
+
+    # ID: 5de78bd5-b3a7-4327-9164-195d711193fc
+    async def list_campaigns(self, limit: int = 30) -> list[Task]:
+        """Return StrategicAuditor campaign parent tasks, newest first."""
+        result = await self.session.execute(
+            select(Task)
+            .where(Task.assigned_role == "StrategicAuditor")
+            .where(Task.parent_task_id.is_(None))
+            .order_by(Task.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    # ID: 3dcb78ba-3c2e-456a-9836-3925e9c6ce52
+    async def list_children_for_campaigns(self, parent_ids: list[UUID]) -> list[Task]:
+        """Return all cluster tasks for a batch of campaign parent IDs."""
+        if not parent_ids:
+            return []
+        result = await self.session.execute(
+            select(Task)
+            .where(Task.parent_task_id.in_(parent_ids))
+            .order_by(Task.parent_task_id, Task.id)
+        )
+        return list(result.scalars().all())
