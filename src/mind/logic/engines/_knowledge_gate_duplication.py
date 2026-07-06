@@ -86,13 +86,120 @@ def _check_ast_duplication(
     return findings
 
 
+# ID: 0eae3c74-53d3-43fc-a5b2-6778a496c9be
+def _sym_from_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
+    """Build a minimal symbol-dict from a Qdrant chunk payload for the finding factory."""
+    fp = chunk.get("file_path", "")
+    section = chunk.get("section") or "?"
+    module = fp.removesuffix(".py").replace("/", ".") if fp else ""
+    return {
+        "qualname": section,
+        "name": section,
+        "module": module,
+        "file_path": fp,
+    }
+
+
+# ID: d278ba16-66a2-44f8-8066-554f40a4eb31
 async def _check_semantic_duplication(
     context: AuditorContext, params: dict[str, Any]
 ) -> list[AuditFinding]:
+    """Find semantically similar (but syntactically distinct) function/class chunks
+    across different source files using pre-stored Qdrant vectors.
+
+    Makes no AI calls — all embeddings come from the 'core-code' Qdrant collection
+    written by RepoEmbedderWorker. Similarity is computed via numpy matrix multiply
+    (one BLAS call), not per-pair Qdrant queries.
+    """
     findings: list[AuditFinding] = []
     qdrant = getattr(context, "qdrant_service", None)
     if not context.symbols_map or not qdrant:
         return findings
+
+    threshold: float = float(params.get("threshold", 0.85))
+    exclude_patterns: list[str] = params.get("_scope_excludes", []) or []
+    _MAX_FINDINGS = 50
+    _MAX_CHUNKS = 2000  # guard against very large repos
+
+    def _chunk_excluded(fp: str) -> bool:
+        if not fp:
+            return True
+        if "test" in fp:
+            return True
+        return any(fnmatch.fnmatch(fp, pat) for pat in exclude_patterns)
+
+    # Guard: verify collection is available before scrolling
+    try:
+        available = await qdrant.list_collections()
+    except Exception:
+        return findings
+    collection = qdrant.collection_name
+    if collection not in available:
+        return findings
+
+    # Single scroll — one Qdrant round-trip with vectors and payloads
+    try:
+        all_points = await qdrant.scroll_all_points(
+            with_payload=True, with_vectors=True, collection_name=collection
+        )
+    except Exception:
+        return findings
+
+    if not all_points:
+        return findings
+
+    # Extract function/class chunks from non-test Python source files
+    chunks: list[dict[str, Any]] = []
+    for point in all_points:
+        payload = point.payload or {}
+        if payload.get("artifact_type") != "python":
+            continue
+        if payload.get("chunk_type") not in ("function", "class"):
+            continue
+        fp = payload.get("file_path", "")
+        if _chunk_excluded(fp):
+            continue
+        vec = getattr(point, "vector", None)
+        if not vec or not isinstance(vec, (list, tuple)):
+            continue
+        chunks.append(
+            {"file_path": fp, "section": payload.get("section", ""), "vector": vec}
+        )
+        if len(chunks) >= _MAX_CHUNKS:
+            break
+
+    if len(chunks) < 2:
+        return findings
+
+    # Pairwise cosine similarity via numpy (single BLAS matrix multiply)
+    import numpy as np  # lazy import; numpy is a declared project dependency
+
+    mat = np.array([c["vector"] for c in chunks], dtype=np.float32)
+    norms = np.linalg.norm(mat, axis=1, keepdims=True)
+    norms[norms == 0.0] = 1.0
+    unit = mat / norms
+    sim = (unit @ unit.T).astype(float)  # (n, n) symmetric similarity matrix
+
+    n = len(chunks)
+    for i in range(n):
+        if len(findings) >= _MAX_FINDINGS:
+            break
+        for j in range(i + 1, n):
+            if sim[i, j] < threshold:
+                continue
+            if chunks[i]["file_path"] == chunks[j]["file_path"]:
+                continue
+            findings.append(
+                _create_duplication_finding(
+                    _sym_from_chunk(chunks[i]),
+                    _sym_from_chunk(chunks[j]),
+                    float(sim[i, j]),
+                    "semantic",
+                )
+            )
+            if len(findings) >= _MAX_FINDINGS:
+                break
+
     return findings
 
 
