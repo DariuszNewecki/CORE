@@ -1284,6 +1284,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/requirements/URS-requirement-fulfillment-verification.md
     governance_namespace: project::core
+  - path: .specs/requirements/URS-production-readiness.md
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/verification/** — F-feature verification documents.
@@ -1429,6 +1431,8 @@ classifications:
   - path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md
     governance_namespace: project::core
     # notes: gray — generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
+  - path: .specs/decisions/ADR-082-d7-detection-window-sparse-loop-hold.md
+    governance_namespace: project::core
   - path: .specs/decisions/ADR-083-commercial-add-on-stamping-f44-f47.md
     governance_namespace: project::core
     notes: >
@@ -1543,6 +1547,10 @@ classifications:
   - path: .specs/decisions/ADR-140-cognitive-write-separation-flow-pattern.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-141-assisted-lane-subprocess-audit.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-090-cognitive-roles-db-structural-enforcement.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-142-passive-gate-enforced-by-symbol-attestation.md
     governance_namespace: project::core
 
   # .intent/ — framework entries added in ADR-075 D7 backfill (2026-06-28)
