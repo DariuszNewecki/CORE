@@ -55,9 +55,13 @@ class CommitReachabilityAuditor(Worker):
         from body.services.service_registry import service_registry
 
         blackboard_service = await service_registry.get_blackboard_service()
+        _prefix = "governance.edge5.orphan_sha::%"
+        # Orphaned commits can never become reachable again, so a governor
+        # resolution is a permanent skip — include resolved subjects in the
+        # dedup set alongside active ones.
         existing = await blackboard_service.fetch_active_finding_subjects_by_prefix(
-            "governance.edge5.orphan_sha::%"
-        )
+            _prefix
+        ) | await blackboard_service.fetch_resolved_finding_subjects_by_prefix(_prefix)
 
         consequence_svc = (
             await self._core_context.registry.get_consequence_log_service()

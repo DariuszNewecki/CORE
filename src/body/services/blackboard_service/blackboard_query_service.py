@@ -136,6 +136,31 @@ class BlackboardQueryService:
             )
             return {row[0] for row in result.fetchall()}
 
+    # ID: ebe20054-2553-4403-8f78-f498c9bf2f63
+    async def fetch_resolved_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
+        """Return subjects of resolved finding entries whose subject matches *prefix*.
+
+        Used by sensors where re-emergence after governor resolution is not
+        meaningful — e.g. CommitReachabilityAuditor, where an orphaned commit
+        can never become reachable again. Callers combine this with the result
+        of fetch_active_finding_subjects_by_prefix to build a complete skip set.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE :prefix
+                      AND status = 'resolved'
+                    """
+                ),
+                {"prefix": prefix},
+            )
+            return {row[0] for row in result.fetchall()}
+
     # ID: d98fae16-259d-4993-9e10-4b18c7ea7a70
     async def fetch_open_finding_subjects_by_worker(
         self, worker_uuid: str, prefix: str
