@@ -152,10 +152,14 @@ async def execute_approved_clusters(
     )
 
     results: list[tuple[str, bool, str]] = []
+    _WORKFLOW_ALIASES: dict[str, str] = {
+        "full_feature_development": "refactor_modularity"
+    }
     for child in approved:
         workflow_type = (child.context or {}).get(
-            "workflow_type", "full_feature_development"
+            "workflow_type", "refactor_modularity"
         )
+        workflow_type = _WORKFLOW_ALIASES.get(workflow_type, workflow_type)
         success, message = await develop_from_goal(
             context=ctx,
             goal=child.intent,
