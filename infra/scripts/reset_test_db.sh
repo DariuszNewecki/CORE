@@ -19,6 +19,7 @@ DB_PASS="core"
 LIVE_DB="core"
 TEST_DB="core_test"
 TEST_ROLE="core_test_db"
+SCHEMA_OUT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/schema.sql"
 
 echo "Resetting ${TEST_DB} schema from ${LIVE_DB}..."
 
@@ -28,11 +29,15 @@ export PGPASSWORD="${DB_PASS}"
 dropdb -h "${DB_HOST}" -U "${DB_USER}" --if-exists "${TEST_DB}"
 createdb -h "${DB_HOST}" -U "${DB_USER}" "${TEST_DB}"
 
-# Restore schema only — no data.
-# Skipping data avoids copying large tables (e.g. ~470k blackboard_entries)
-# and keeps reset time under a few seconds.
-pg_dump -h "${DB_HOST}" -U "${DB_USER}" --schema-only "${LIVE_DB}" \
-    | psql -h "${DB_HOST}" -U "${DB_USER}" -d "${TEST_DB}" -q
+# Dump portable schema (no OWNER TO / GRANT lines) to schema.sql at repo root,
+# then load it into the test DB. --no-owner + --no-acl makes the file
+# installable by any role on a fresh Postgres instance (#521 items 1-3).
+pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
+    --schema-only --no-owner --no-acl \
+    "${LIVE_DB}" \
+    | sed '/^\\restrict/d; /^\\unrestrict/d' \
+    > "${SCHEMA_OUT}"
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${TEST_DB}" -q < "${SCHEMA_OUT}"
 
 # Grant core_test_db access. pg_dump --schema-only copies GRANT ... TO core but
 # not to core_test_db, so the test user would otherwise have no schema access.

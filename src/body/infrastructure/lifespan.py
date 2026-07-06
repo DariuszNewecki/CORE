@@ -65,6 +65,10 @@ async def core_lifespan(app: FastAPI):
             cognitive = await service_registry.get_cognitive_service()
             auditor = await service_registry.get_auditor_context()
             qdrant = await service_registry.get_qdrant_service()
+            # Idempotent: creates the vector collection on a fresh install,
+            # no-ops when it already exists. Replaces the retired one-shot
+            # infra/scripts/create_qdrant_collection.py (#521 item 4).
+            await qdrant.ensure_collection()
 
             core_context.cognitive_service = cognitive
             core_context.auditor_context = auditor

@@ -11,8 +11,8 @@
 #     env:
 #       DATABASE_URL: postgresql+asyncpg://core_db:test@localhost:5433/core_test
 #
-# Schema source: infra/sql/db_schema_live.sql (canonical per CLAUDE.md).
-# \restrict / \unrestrict markers removed from the dump file (#521 item 3).
+# Schema source: schema.sql at repo root (canonical per #521).
+# Portable: no OWNER TO / GRANT lines (dumped with --no-owner --no-acl).
 
 services:
   postgres-test:
@@ -25,7 +25,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./infra/sql/db_schema_live.sql:/schema/db_schema_live.sql:ro
+      - ./schema.sql:/schema/schema.sql:ro
       - ./infra/scripts/init-test-db.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
     tmpfs:
       - /var/lib/postgresql/data

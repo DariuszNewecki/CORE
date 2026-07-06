@@ -110,10 +110,8 @@ jobs:
             .env.test
 
       # ADR-115 D1: seed the ephemeral DB from the canonical schema-as-truth.
-      # Roles (core_db, core) and extensions (the dump uses GIN/GIST over text
-      # and an exclusion constraint) are prerequisites the dump assumes exist;
-      # the pg_dump 17 \restrict/\unrestrict wrappers are stripped. Recipe proven
-      # against postgres:17 locally: 0 errors, full schema.
+      # schema.sql is portable (--no-owner --no-acl); roles and extensions are
+      # still prerequisite because the CHECK constraints and index types need them.
       - name: Seed database from canonical schema
         env:
           PGPASSWORD: core_test_db
@@ -124,8 +122,8 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" \
             -c "CREATE EXTENSION IF NOT EXISTS btree_gin;" \
             -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
-          sed '/^\\restrict/d; /^\\unrestrict/d' infra/sql/db_schema_live.sql \
-            | psql -h localhost -U core_test_db -d core_test -v ON_ERROR_STOP=1
+          psql -h localhost -U core_test_db -d core_test -v ON_ERROR_STOP=1 \
+            < schema.sql
 
       - name: Vocabulary freshness check
         run: poetry run core-admin intent sync vocabulary --check
