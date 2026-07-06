@@ -46,7 +46,7 @@ _VALID_WORKFLOW_TYPES = frozenset(
     {
         "refactor_modularity",
         "coverage_remediation",
-        "full_feature_development",
+        "code_modification",
     }
 )
 
@@ -57,10 +57,10 @@ def _resolve_workflow_type(value: str) -> str:
         return value.strip()
     logger.warning(
         "Unknown or missing workflow_type '%s' from LLM — "
-        "defaulting to full_feature_development",
+        "defaulting to code_modification",
         value,
     )
-    return "full_feature_development"
+    return "code_modification"
 
 
 # ID: b1f24560-023b-4482-819a-169708c7130f
@@ -79,8 +79,10 @@ async def synthesize_campaign(
 
     findings_by_rule: dict[str, list[str]] = {}
     for f in findings:
-        rid = f.get("rule_id", "unknown")
-        ffile = f.get("file", "unknown")
+        # as_dict() uses "check_id"/"file_path"; the fallback branch in
+        # context_gatherer uses "rule_id"/"file" — accept both.
+        rid = f.get("rule_id") or f.get("check_id") or "unknown"
+        ffile = f.get("file_path") or f.get("file") or "unknown"
         findings_by_rule.setdefault(rid, []).append(ffile)
 
     lines = []
