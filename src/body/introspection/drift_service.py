@@ -1,48 +1,76 @@
 # src/body/introspection/drift_service.py
-
 """
-Drift Service - Detects divergence between the Mind (Intent) and Body (Code).
+Symbols-drift service — ADR-143 D3b.
 
-CONSTITUTIONAL FIX (V2.3):
-- Uses IntentRepository as the SSOT for declared capabilities.
-- Removed dependency on legacy 'from_manifest.py' crawler.
+Compares the source-side symbol inventory (# ID: anchors extracted by
+IdAnchorScanner) against the runtime symbol graph (core.symbols rows) to
+produce a staleness report with three categories:
+
+  unregistered  — in source, not in graph (DbSyncWorker hasn't picked it up yet)
+  phantom       — in graph, not in source (symbol deleted; graph entry persists)
+  anchor_missing — public def/class in source with no # ID: anchor (governance deficit)
+
+Both sets are matched on symbol_path ("{rel_path}::{bare_name}"), which is
+the canonical link between source and core.symbols.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from body.introspection.drift_detector import detect_capability_drift
-from shared.infrastructure.intent.intent_repository import get_intent_repository
-from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-from shared.models import CapabilityMeta, DriftReport
+from sqlalchemy import text
+
+from body.introspection.id_anchor_scanner import scan
+from shared.infrastructure.database.session_manager import get_session
+from shared.logger import getLogger
 
 
-# DORMANT pending ADR-143 D3 (#503) — replace body with IdAnchorScanner vs core.symbols staleness check.
+logger = getLogger(__name__)
+
+_SAMPLE_CAP = 50
+
+
 # ID: 51f59218-c7f5-41ae-b2c9-87d4459e14d2
-async def run_drift_analysis_async(root: Path) -> DriftReport:
-    """
-    Performs drift analysis by comparing manifest rules (Mind)
-    against implemented symbols (Body).
-    """
-    # 1. Get Declared Capabilities from the Mind (IntentRepository)
-    repo = get_intent_repository()
-    # PathResolver handles mapping 'project_manifest' to the actual file
-    manifest_data = repo.load_policy("project_manifest")
-    declared_keys = manifest_data.get("capabilities", [])
+async def run_drift_analysis_async(root: Path) -> dict:
+    """Return a symbols-drift snapshot for /v1/status/drift?scope=symbols.
 
-    manifest_caps = {
-        k: CapabilityMeta(key=k) for k in declared_keys if isinstance(k, str)
+    Opens its own DB session so callers need no session plumbing.
+    The filesystem walk covers src/ only (~100 files, < 200 ms).
+    """
+    # 1. Source-side: all # ID: anchored public symbols + those missing anchors.
+    scan_result = scan(root)
+    source_paths = frozenset(s.symbol_path for s in scan_result.anchored)
+
+    # 2. Graph-side: all non-deprecated symbols whose file lives under src/.
+    graph_paths: frozenset[str] = frozenset()
+    try:
+        async with get_session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT symbol_path
+                    FROM core.symbols
+                    WHERE file_path LIKE 'src/%.py'
+                      AND definition_status != 'deprecated'
+                    """
+                )
+            )
+            graph_paths = frozenset(row[0] for row in result if row[0])
+    except Exception as exc:
+        logger.warning("drift_service: DB query failed — graph-side empty: %s", exc)
+
+    # 3. Symmetric diff.
+    unregistered = sorted(source_paths - graph_paths)
+    phantom = sorted(graph_paths - source_paths)
+    anchor_missing = sorted(scan_result.anchor_missing)
+
+    return {
+        "available": True,
+        "unregistered_count": len(unregistered),
+        "phantom_count": len(phantom),
+        "anchor_missing_count": len(anchor_missing),
+        "unregistered": unregistered[:_SAMPLE_CAP],
+        "phantom": phantom[:_SAMPLE_CAP],
+        "anchor_missing": anchor_missing[:_SAMPLE_CAP],
+        "sample_cap": _SAMPLE_CAP,
     }
-
-    # 2. Get Implemented Capabilities from the Body (KnowledgeService)
-    knowledge_service = KnowledgeService(root)
-    graph = await knowledge_service.get_graph()
-
-    code_caps: dict[str, CapabilityMeta] = {}
-    for data in graph.get("symbols", {}).values():
-        key = data.get("key")
-        if key and key != "unassigned":
-            code_caps[key] = CapabilityMeta(key=key, domain=data.get("domain"))
-
-    return detect_capability_drift(manifest_caps, code_caps)
