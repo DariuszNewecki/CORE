@@ -18,7 +18,7 @@ from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.models import CapabilityMeta, DriftReport
 
 
-# DORMANT pending #503 — symbols-drift contract redesign (ADR-057 D5 first-scope semantics).
+# DORMANT pending ADR-143 D3 (#503) — replace body with IdAnchorScanner vs core.symbols staleness check.
 # ID: 51f59218-c7f5-41ae-b2c9-87d4459e14d2
 async def run_drift_analysis_async(root: Path) -> DriftReport:
     """

@@ -122,10 +122,7 @@ async def get_drift_status(context: CoreContext, *, scope: str = "all") -> dict:
     if scope in ("symbols", "all"):
         summary["symbols"] = {
             "available": False,
-            "error": (
-                "symbols-drift contract not designed — no code-side "
-                "capability vocabulary SSOT (see #503)"
-            ),
+            "error": ("symbols-drift not yet wired — see ADR-143 D3 (#503)"),
         }
 
     if scope in ("vectors", "all"):
