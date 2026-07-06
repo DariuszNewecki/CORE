@@ -246,4 +246,5 @@ This ADR is closed when:
 - `var/prompts/context_aware_test_gen/` — per-symbol prompt (authorised for D3/D6).
 - `src/will/workers/test_remediator/` — worker to be updated per D4.
 - `.intent/enforcement/config/action_risk.yaml` — risk registry (D5).
+- `.intent/enforcement/mappings/code/tests.yaml` — enforcement mapping for the `code.tests.*` quality rules introduced by this ADR (D5).
 - Issue #563 — F-19 convergence metric; reducing failure rate contributes to this goal.

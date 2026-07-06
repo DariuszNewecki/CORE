@@ -304,6 +304,8 @@ A single full audit cycle after D1 changes land satisfies criterion 4.
   pending closure).
 - `src/mind/logic/engines/ast_gate/checks/import_boundary.py:233–261` —
   `_matches_pattern`: prefix-only matching, no wildcard support.
+- `.intent/ARCHITECT.md` — bootstrap meta-contract binding the architect (Claude planning) role; companion to CLAUDE.md. Development-contract artifact in `.intent/` governing the session posture boundary this ADR's dev-vs-runtime framing established.
+- `.intent/daily_loop.md` — session cadence contract for the architect role; companion to `.intent/ARCHITECT.md`.
 - `src/shared/infrastructure/storage/file_handler.py:17–18` — body +
   mind imports from shared (excluded, closure ADR required).
 - `src/shared/infrastructure/context/service.py:79` — inline body

@@ -214,6 +214,7 @@ The change-set lands in three sealable steps. Each step's audit posture is obser
 - `core-admin daemon status` shows N+1 service rows (core-daemon + core-api + per-heavy-worker units) and flags any orphan dedicated-worker daemons via the stray-process scan.
 - Post-Step-2 measurement window (≥ 30 min single-daemon steady state on the lightweight `core-daemon`): every `shares_process` worker's observed p50 cycle gap is within 1.05× its declared `max_interval`. #519's graceful-shutdown elapsed on the lightweight daemon drops to sub-second across 5+ restarts.
 - `runtime.worker_process_classification` audit rule fires `escalation_required` for any future drift; the rule is reachable via `core-admin code audit --rule runtime.worker_process_classification`.
+- `.intent/enforcement/mappings/runtime/worker_process_classification.yaml` — enforcement mapping companion to `.intent/rules/runtime/worker_process_classification.json` (D7).
 - `core-admin code audit` PASS after each step ships; no rule silently disabled (`Dispatch` baseline preserved per [[feedback_honesty_gated_audit]]).
 
 ---

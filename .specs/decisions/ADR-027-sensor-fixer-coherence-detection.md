@@ -106,4 +106,5 @@ Rationale for Blackboard finding over log/alert: consistent with the governance 
 - New `.intent/cim/thresholds.yaml` key: `coherence.lookback_seconds` (default: 7200).
 - New Blackboard subject namespace: `coherence.incoherence::`.
 - `auto_remediation.yaml`: no entry for `coherence.incoherence` (DELEGATE by design).
+- `.intent/flows/flow.audit_remediate_validate.yaml` — governed flow operationalizing the audit→remediate→validate loop that this ADR's coherence-detection mechanism is designed to keep honest.
 - Closes the sensor-fixer coherence gap identified as a Known Blocker in CORE-A3-plan.md Phase 3+.

@@ -150,7 +150,7 @@ To keep the ADR scoped:
 The ADR is satisfied when:
 
 1. `META/worker.schema.json`'s description for `mandate.schedule.max_interval` references ADR-103 and reads as cycle cap.
-2. `.intent/rules/runtime/worker_max_interval.json`'s rationale carries a one-sentence ADR-103 reference.
+2. `.intent/rules/runtime/worker_max_interval.json`'s rationale carries a one-sentence ADR-103 reference. The companion enforcement mapping at `.intent/enforcement/mappings/runtime/worker_max_interval.yaml` is its audit dispatch surface.
 3. The two runtime sleep sites and the liveness threshold site each carry a one-line ADR-103 cross-reference comment.
 4. #604 is closed with a pointer to this ADR.
 

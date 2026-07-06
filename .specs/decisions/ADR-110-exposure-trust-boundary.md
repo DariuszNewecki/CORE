@@ -192,6 +192,7 @@ ADR-050 + D6 migration backlog, surfaced honestly rather than implied complete.
   design ADR, not specified here.
 - **#671** — the generated command-accessibility artifact and its `exposure` backfill (D5).
 - **#672** — #115's write-safety rails (D3/D4) on the StrategicAuditor/`dev refactor`/API-dev-route path.
+- `.intent/enforcement/config/deployment_mode.yaml` — D5 accessibility overview reads `deployment_mode` to determine the current solo/multi-user posture; declared here as the governance artifact binding the trust-tier distinction D2 establishes.
 
 ---
 

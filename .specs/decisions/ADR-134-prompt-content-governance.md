@@ -298,9 +298,7 @@ This ADR is closed when:
 4. The blocking rule `ai.prompt.governed_prompt_must_have_anchor` fires on any listed
    prompt missing the field (verified by a test that temporarily removes the field from a
    fixture `model.yaml`).
-5. `PromptDriftSensor` posts `prompt.drift_detected` when a governed prompt's content
-   changes between cycles (verified by mutating a fixture prompt file mid-test and
-   confirming the finding appears on the blackboard).
+5. `PromptDriftSensor` (declared at `.intent/workers/prompt_drift_sensor.yaml`) posts `prompt.drift_detected` when a governed prompt's content changes between cycles (verified by mutating a fixture prompt file mid-test and confirming the finding appears on the blackboard).
 6. Every prompt listed in `governed_prompts.yaml` has a `# CONSTITUTIONAL` section in
    `system.txt`; `ai.prompt.constitutional_grounding_section` reports zero violations.
 7. `external-review.md` is not flagged by any D2/D3/D5/D6 check.

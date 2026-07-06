@@ -231,6 +231,12 @@ The `auto_remediation.yaml` self-entry (shown above under "Mechanism") is a
 
 ---
 
+## References
+
+- `.intent/enforcement/mappings/governance/rule_references.yaml` — maps `governance.intent_vocabulary.no_hardcoded_rule_ids`, which enforces that rule ID strings are routed through `get_rule_registry()` rather than hardcoded; a registry-integrity rule within this ADR's invariant scope.
+
+---
+
 ## Appendix: four-rule post-mortem summary
 
 All four rules that produced abandoned-finding loops during the 2026-05-21 audit

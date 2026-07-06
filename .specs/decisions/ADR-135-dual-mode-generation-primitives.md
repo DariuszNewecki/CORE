@@ -322,6 +322,7 @@ A follow-on issue will track the removal once no callers remain.
 5. `FlowExecutor` routing on `generation_mode`
 6. `flow.build_test_for_symbol.yaml` updated to declare `generation_mode: iterative`
 7. `EnhancedTestGenerator` deprecation notice in docstring + CHANGELOG entry
+8. `.intent/workflows/definitions/code_modification.yaml` — governed flow declaration for the `code_modification` workflow type; the first non-test flow to use `single_shot` mode as declared by D5's mode table.
 
 Each step is an independent, reviewable change. Steps 1–4 introduce no behavioural change
 to the live pipeline; step 5 is the activation gate.
