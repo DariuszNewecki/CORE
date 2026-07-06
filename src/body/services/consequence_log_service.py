@@ -212,39 +212,15 @@ class ConsequenceLogService:
             for row in rows
         ]
 
-    # ID: e6c7d8f9-0a1b-4c3d-9e4f-5a6b7c8d9e0f
-    async def get_all_shas(self) -> list[tuple[str, str]]:
-        """
-        Return all (proposal_id, post_execution_sha) pairs from
-        core.proposal_consequences where post_execution_sha is not null.
-
-        Used by CommitReachabilityAuditor (ADR-019 D1) to verify commit
-        reachability without querying git history from a Will worker directly.
-        """
-        from body.services.service_registry import ServiceRegistry
-
-        async with ServiceRegistry.session() as session:
-            result = await session.execute(
-                text(
-                    "SELECT proposal_id, post_execution_sha "
-                    "FROM core.proposal_consequences "
-                    "WHERE post_execution_sha IS NOT NULL"
-                )
-            )
-            return [
-                (row.proposal_id, row.post_execution_sha) for row in result.fetchall()
-            ]
-
     # ID: 8e67aa3b-5ac7-4fc3-8874-6c7876e2531e
-    async def get_all_shas_with_status(self) -> list[tuple[str, str, str]]:
+    async def get_all_shas_with_status(self) -> list[tuple[str, str, str | None]]:
         """
         Return all (proposal_id, post_execution_sha, proposal_status) triples
         by joining core.proposal_consequences with core.autonomous_proposals.
 
-        Rows with no matching proposal default to status 'unknown'.
-        Used by CommitReachabilityAuditor to distinguish expected orphans
-        (completed proposals whose commits were superseded) from genuinely
-        suspicious ones (failed or partial executions).
+        proposal_status is None when no matching proposal row exists.
+        Used by CommitReachabilityAuditor (ADR-019 D1) to include proposal_status
+        in orphan-commit findings so the governor has full context.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -252,7 +228,7 @@ class ConsequenceLogService:
             result = await session.execute(
                 text(
                     "SELECT pc.proposal_id, pc.post_execution_sha, "
-                    "COALESCE(ap.status, 'unknown') AS proposal_status "
+                    "ap.status AS proposal_status "
                     "FROM core.proposal_consequences pc "
                     "LEFT JOIN core.autonomous_proposals ap "
                     "  ON ap.proposal_id = pc.proposal_id "

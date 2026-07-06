@@ -20,6 +20,7 @@ subprocess in Will per governance.dangerous_execution_primitives).
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -56,12 +57,15 @@ class CommitReachabilityAuditor(Worker):
 
         blackboard_service = await service_registry.get_blackboard_service()
         _prefix = "governance.edge5.orphan_sha::%"
-        # Orphaned commits can never become reachable again, so a governor
-        # resolution is a permanent skip — include resolved subjects in the
-        # dedup set alongside active ones.
-        existing = await blackboard_service.fetch_active_finding_subjects_by_prefix(
-            _prefix
-        ) | await blackboard_service.fetch_resolved_finding_subjects_by_prefix(_prefix)
+        # Orphaned commits can never become reachable again, so governor
+        # resolutions and worker abandons are both permanent skips — include
+        # resolved and abandoned subjects in the dedup set alongside active ones.
+        _active, _resolved, _abandoned = await asyncio.gather(
+            blackboard_service.fetch_active_finding_subjects_by_prefix(_prefix),
+            blackboard_service.fetch_resolved_finding_subjects_by_prefix(_prefix),
+            blackboard_service.fetch_abandoned_finding_subjects_by_prefix(_prefix),
+        )
+        existing = _active | _resolved | _abandoned
 
         consequence_svc = (
             await self._core_context.registry.get_consequence_log_service()
@@ -73,7 +77,6 @@ class CommitReachabilityAuditor(Worker):
         checked = 0
         orphans = 0
         suppressed = 0
-        auto_closed = 0
 
         for proposal_id, sha, proposal_status in triples:
             checked += 1
@@ -81,30 +84,17 @@ class CommitReachabilityAuditor(Worker):
             if is_reachable:
                 continue
 
-            orphans += 1
             subject = f"governance.edge5.orphan_sha::{proposal_id}"
 
             if subject in existing:
                 suppressed += 1
                 logger.debug(
-                    "CommitReachabilityAuditor: %s already open/resolved, skipping.",
+                    "CommitReachabilityAuditor: %s already active/resolved/abandoned, skipping.",
                     subject,
                 )
                 continue
 
-            # Completed proposals whose commits fell off the branch are
-            # expected — the commit was superseded by subsequent work.
-            # No governor action needed; skip silently.
-            if proposal_status == "completed":
-                auto_closed += 1
-                logger.debug(
-                    "CommitReachabilityAuditor: orphan SHA %s for completed "
-                    "proposal %s — expected, skipping.",
-                    sha,
-                    proposal_id,
-                )
-                continue
-
+            orphans += 1
             logger.warning(
                 "CommitReachabilityAuditor: orphan SHA %s for proposal %s (status=%s)",
                 sha,
@@ -132,14 +122,12 @@ class CommitReachabilityAuditor(Worker):
             payload={
                 "checked": checked,
                 "orphans_detected": orphans,
-                "auto_closed": auto_closed,
+                "suppressed": suppressed,
             },
         )
         logger.info(
-            "CommitReachabilityAuditor: checked=%d orphans=%d "
-            "suppressed=%d auto_closed=%d",
+            "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d",
             checked,
             orphans,
             suppressed,
-            auto_closed,
         )

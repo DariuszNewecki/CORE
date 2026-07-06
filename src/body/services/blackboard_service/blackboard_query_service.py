@@ -142,8 +142,9 @@ class BlackboardQueryService:
 
         Used by sensors where re-emergence after governor resolution is not
         meaningful — e.g. CommitReachabilityAuditor, where an orphaned commit
-        can never become reachable again. Callers combine this with the result
-        of fetch_active_finding_subjects_by_prefix to build a complete skip set.
+        can never become reachable again. Callers combine this with
+        fetch_active_finding_subjects_by_prefix and
+        fetch_abandoned_finding_subjects_by_prefix to build a complete skip set.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -155,6 +156,33 @@ class BlackboardQueryService:
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
                       AND status = 'resolved'
+                    """
+                ),
+                {"prefix": prefix},
+            )
+            return {row[0] for row in result.fetchall()}
+
+    # ID: c5648712-37cd-4d3e-bcb8-45a40111c741
+    async def fetch_abandoned_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
+        """Return subjects of abandoned finding entries whose subject matches *prefix*.
+
+        Used by sensors where a worker abandoning a finding should not cause
+        re-detection on the next cycle — e.g. CommitReachabilityAuditor, where
+        an orphaned commit is permanently unreachable regardless of whether a
+        prior remediation attempt was abandoned. Callers combine this with
+        fetch_active_finding_subjects_by_prefix and
+        fetch_resolved_finding_subjects_by_prefix to build a complete skip set.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE :prefix
+                      AND status = 'abandoned'
                     """
                 ),
                 {"prefix": prefix},
