@@ -1397,6 +1397,15 @@ mappings:
 
   # -- Architecture: API, artifact discovery, blackboard, boundary (13 rules) --
 
+  architecture.api.route_module_must_declare_exposure:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A *_routes.py module is missing a ROUTER_EXPOSURE module-level
+      declaration. Adding it requires a governor decision on whether the
+      route is 'governor-only' or 'user-facing' — non-automatable.
+    status: DELEGATE
+
   architecture.api.router_exposure_must_match_dependencies:
     action: fix.modularity
     confidence: 0.40
