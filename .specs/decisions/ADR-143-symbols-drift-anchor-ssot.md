@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-143
 title: "ADR-143 — Symbols-Drift: Governed-Anchor SSOT and Existing-Pipeline Consumption"
-status: accepted
+status: closed
 ---
 
 <!-- path: .specs/decisions/ADR-143-symbols-drift-anchor-ssot.md -->
@@ -18,7 +18,7 @@ status: accepted
 **Grounding:** ADR-057 D5 (`/v1/status/drift` three-scope contract); ADR-078 D6
 (`operational_capabilities.yaml` chokepoint grammar); #500 (phantom `project_manifest`
 retired); #503 (symbols-drift SSOT undefined)
-**Closes:** #503 D1
+**Closes:** #503
 
 ---
 
@@ -157,4 +157,4 @@ D3 implementation is tracked in #503 and requires no further ADR.
 |-------|-------------|--------|
 | **D1** | ADR text + retire phantom `project_manifest` reference | Done |
 | **D2** | No parallel scanner — decision recorded | Done |
-| **D3** | Wire symbols branch to blackboard findings + DbSyncWorker heartbeat | Pending #503 |
+| **D3** | Wire symbols branch to blackboard findings + DbSyncWorker heartbeat | Done |

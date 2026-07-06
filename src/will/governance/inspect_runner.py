@@ -120,10 +120,12 @@ async def get_drift_status(context: CoreContext, *, scope: str = "all") -> dict:
     summary: dict[str, Any] = {"scope": scope}
 
     if scope in ("symbols", "all"):
-        summary["symbols"] = {
-            "available": False,
-            "error": "symbols-drift not yet wired — see ADR-143 D3 (#503)",
-        }
+        try:
+            from body.introspection.drift_service import run_drift_analysis_async
+
+            summary["symbols"] = await run_drift_analysis_async()
+        except Exception as exc:
+            summary["symbols"] = {"available": False, "error": str(exc)}
 
     if scope in ("vectors", "all"):
         try:
