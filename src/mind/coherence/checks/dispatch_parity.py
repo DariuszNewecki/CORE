@@ -94,7 +94,22 @@ class DispatchParityCheck:
         return candidates
 
     def _load_rule_ids(self) -> set[str]:
-        return self._intent_repo.known_rule_ids()
+        """Return rule IDs that require a dispatch mapping.
+
+        Excludes advisory-enforcement rules: these intentionally have no
+        automated dispatch (e.g. retired rules kept as historical markers
+        whose statement explicitly says 'mapping entry removed').
+        """
+        all_ids = self._intent_repo.known_rule_ids()
+        dispatchable: set[str] = set()
+        for rule_id in all_ids:
+            try:
+                ref = self._intent_repo.get_rule(rule_id)
+                if ref.content.get("enforcement") != "advisory":
+                    dispatchable.add(rule_id)
+            except Exception:
+                dispatchable.add(rule_id)  # fail-open: include if unreadable
+        return dispatchable
 
     def _load_mappings(self) -> tuple[set[str], dict[str, str]]:
         mapping_keys: set[str] = set()
@@ -128,9 +143,21 @@ class DispatchParityCheck:
         return set()
 
     def _derive_file_backed_engines(self) -> set[str]:
+        """Return names of all file-backed engines in the engines directory.
+
+        Covers both flat .py modules (e.g. ast_gate.py) and subpackages
+        (e.g. cli_gate/, workflow_gate/ — directories with an __init__.py).
+        The original implementation only matched .py files, which silently
+        missed the package-style engines and produced false UNKNOWN_ENGINE
+        findings for cli_gate and workflow_gate.
+        """
         engines_dir = self._repo_root / "src" / "mind" / "logic" / "engines"
         names: set[str] = set()
         for path in engines_dir.iterdir():
-            if path.suffix == ".py" and not path.name.startswith("_"):
+            if path.name.startswith("_"):
+                continue
+            if path.suffix == ".py":
                 names.add(path.stem)
+            elif path.is_dir() and (path / "__init__.py").exists():
+                names.add(path.name)
         return names
