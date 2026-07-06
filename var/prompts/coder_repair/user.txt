@@ -8,7 +8,7 @@ Task: {task_step}
 
 PREVIOUS CODE
 {previous_code}
-
+{module_source_context_block}
 INSTRUCTION
 Analyze the error above. Fix the logic to resolve this error.
 Return ONLY the corrected Python code in ```python fences.

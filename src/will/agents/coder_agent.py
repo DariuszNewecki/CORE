@@ -101,11 +101,14 @@ class CoderAgent:
         goal: str,
         pain_signal: str | None = None,
         previous_code: str | None = None,
+        module_source_context: str | None = None,
     ) -> str:
         """Reflex entry point with v2.5 error handling."""
         try:
             if pain_signal:
-                return await self._repair_code(task, goal, pain_signal, previous_code)
+                return await self._repair_code(
+                    task, goal, pain_signal, previous_code, module_source_context
+                )
 
             return await self._generate_initial(task, goal)
         finally:
@@ -140,6 +143,7 @@ class CoderAgent:
         goal: str,
         pain_signal: str,
         previous_code: str | None,
+        module_source_context: str | None = None,
     ) -> str:
         """Reflexive repair with v2.4 drift detection and v2.5 refusal logging."""
         logger.warning("Reflex: Sensory pain detected. Initiating repair.")
@@ -147,12 +151,23 @@ class CoderAgent:
         model = PromptModel.load("coder_repair")
 
         client = await self.cognitive_service.aget_client_for_role(model.manifest.role)
+        src_block = (
+            (
+                f"\nTARGET MODULE SOURCE\n"
+                f"The following is the actual public API of the module(s) named in the error.\n"
+                f"Use ONLY the names shown here — do not invent identifiers.\n"
+                f"{module_source_context}\n"
+            )
+            if module_source_context
+            else ""
+        )
         response = await model.invoke(
             context={
                 "goal": goal,
                 "task_step": task.step,
                 "pain_signal": pain_signal,
                 "previous_code": previous_code or "# Missing previous code",
+                "module_source_context_block": src_block,
             },
             client=client,
             user_id="reflex_repair",

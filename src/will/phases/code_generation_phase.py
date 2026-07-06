@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import time
 from dataclasses import asdict
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.modularity_splitter import ModularitySplitter, SplitResult
@@ -191,6 +193,47 @@ class CodeGenerationPhase:
             duration_sec=time.perf_counter() - start_time,
         )
 
+    @staticmethod
+    # ID: 3a7c91d2-f4e5-4b8a-bc6d-7d0e1f2a3b4c
+    def _extract_module_sources(pain_signal: str, repo_root: Path) -> str | None:
+        """Read source for modules named in ImportError / TypeError tracebacks.
+
+        Handles two patterns:
+        - ``ImportError: cannot import name 'X' from 'pkg.module'``
+        - ``File "/abs/path/to/src/module.py", line N``
+        Returns a formatted string ready for prompt injection, or None.
+        """
+        sources: dict[str, str] = {}
+
+        # Pattern 1: ImportError module path
+        for m in re.finditer(
+            r"from ['\"]([a-z_][a-z0-9_.]+)['\"]", pain_signal, re.IGNORECASE
+        ):
+            module_dotpath = m.group(1)
+            rel = "src/" + module_dotpath.replace(".", "/") + ".py"
+            candidate = repo_root / rel
+            if candidate.is_file() and rel not in sources:
+                sources[rel] = candidate.read_text(encoding="utf-8")
+
+        # Pattern 2: traceback File lines inside src/
+        for m in re.finditer(r'File "([^"]+/src/[^"]+\.py)"', pain_signal):
+            abs_path = Path(m.group(1))
+            if abs_path.is_file():
+                try:
+                    rel = str(abs_path.relative_to(repo_root))
+                except ValueError:
+                    rel = abs_path.name
+                if rel not in sources:
+                    sources[rel] = abs_path.read_text(encoding="utf-8")
+
+        if not sources:
+            return None
+
+        parts = []
+        for path, content in sources.items():
+            parts.append(f"# Source: {path}\n```python\n{content}\n```")
+        return "\n\n".join(parts)
+
     async def _process_tasks(
         self,
         plan: list,
@@ -245,6 +288,10 @@ class CodeGenerationPhase:
                 pain_signal = sensation.get("error", "Unknown error")
                 logger.warning("Pain detected: %s", pain_signal)
 
+                module_source_context = self._extract_module_sources(
+                    pain_signal, workspace.repo_root
+                )
+
                 current_code = code
 
                 for attempt in range(int(str(metadata["max_repair_attempts"]))):
@@ -254,7 +301,11 @@ class CodeGenerationPhase:
                         metadata["max_repair_attempts"],
                     )
                     repaired_code = await coder.generate_or_repair(
-                        task, goal, pain_signal=pain_signal, previous_code=current_code
+                        task,
+                        goal,
+                        pain_signal=pain_signal,
+                        previous_code=current_code,
+                        module_source_context=module_source_context,
                     )
 
                     # Re-sense
