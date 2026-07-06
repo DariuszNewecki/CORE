@@ -1554,6 +1554,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-142-passive-gate-enforced-by-symbol-attestation.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-143-symbols-drift-anchor-ssot.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-144-cross-namespace-relation-taxonomy.md
+    governance_namespace: framework
 
   # .intent/ — framework entries added in ADR-075 D7 backfill (2026-06-28)
   - path: .intent/artifact_types/document_corpus.yaml
