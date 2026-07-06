@@ -8,10 +8,9 @@ Enforces the constitutional boundary: runtime generates and transforms
 candidate artifacts but does not evaluate rules or commit changes.
 
 Routing:
-  refactor_modularity      → CodeGenerationPhase
-  coverage_remediation     → CodeGenerationPhase (TestGenerationPhase is
-                             a stub; actual remediation uses batch service)
-  full_feature_development → CodeGenerationPhase + TestGenerationPhase
+  refactor_modularity → CodeGenerationPhase (_execute_deterministic_split)
+  code_modification   → CodeGenerationPhase (CoderAgent, general edits)
+  coverage_remediation → CodeGenerationPhase (CoderAgent, test generation)
 """
 
 from __future__ import annotations
@@ -33,8 +32,8 @@ logger = getLogger(__name__)
 
 _WORKFLOW_ROUTING: dict[str, list[str]] = {
     "refactor_modularity": ["code_generation"],
+    "code_modification": ["code_generation"],
     "coverage_remediation": ["code_generation"],
-    "full_feature_development": ["code_generation", "test_generation"],
 }
 
 

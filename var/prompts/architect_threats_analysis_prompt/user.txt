@@ -29,10 +29,10 @@ Return a JSON object with exactly this structure:
     {{
       "cluster_id": "short-slug",
       "root_cause": "Single sentence: why do all these findings exist?",
-      "affected_files": ["src/path/to/file.py"],
+      "affected_files": ["src/body/services/some_real_file.py"],
       "finding_ids": ["rule_id_1", "rule_id_2"],
       "proposed_fix": "Concrete, actionable description of what needs to change.",
-      "workflow_type": "refactor_modularity | coverage_remediation",
+      "workflow_type": "code_modification | coverage_remediation | refactor_modularity",
       "requires_constitution_change": false,
       "confidence": 0.85,
       "estimated_impact": "low | medium | high"
@@ -42,7 +42,11 @@ Return a JSON object with exactly this structure:
 
 Rules:
 - requires_constitution_change: true means the fix needs a .intent/ amendment — flag it, do not attempt it autonomously.
-- workflow_type must be one of the three allowed values exactly.
+- workflow_type must be exactly one of the three allowed values:
+    code_modification   = targeted fix or improvement to existing production code (bugs, annotations, refactors that do NOT split files). Use this for the majority of clusters.
+    coverage_remediation = add or repair test files only; must NOT touch production code.
+    refactor_modularity  = split one specific large source file into smaller submodules. Requires exactly one concrete source file in affected_files.
+- affected_files MUST contain exact file paths that appear in the audit findings above — never invent directory names or module paths. Use paths like "src/body/workers/re_embedder_worker.py", not "src/vectorizer/". If no specific file is identifiable from findings, omit the cluster or set requires_constitution_change: true.
 - confidence is your honest estimate that the proposed_fix will resolve the root_cause (0.0–1.0).
 - Clusters with requires_constitution_change: true still need workflow_type set — use the type that would apply if the amendment were already in place.
 - Return only the JSON object. No markdown fences, no explanation text.

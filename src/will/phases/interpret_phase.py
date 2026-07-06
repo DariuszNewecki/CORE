@@ -41,8 +41,8 @@ logger = getLogger(__name__)
 _VALID_WORKFLOW_TYPES = frozenset(
     {
         "refactor_modularity",
+        "code_modification",
         "coverage_remediation",
-        "full_feature_development",
     }
 )
 

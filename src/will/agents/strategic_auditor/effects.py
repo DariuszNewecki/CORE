@@ -32,6 +32,7 @@ construction here.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from shared.infrastructure.repositories.task_repository import TaskRepository
@@ -151,18 +152,30 @@ async def execute_approved_clusters(
         parent_task_id,
     )
 
+    repo_root = Path(ctx.git_service.repo_path)
+
     results: list[tuple[str, bool, str]] = []
     _WORKFLOW_ALIASES: dict[str, str] = {
-        "full_feature_development": "refactor_modularity"
+        "full_feature_development": "code_modification",
     }
     for child in approved:
-        workflow_type = (child.context or {}).get(
-            "workflow_type", "refactor_modularity"
-        )
+        ctx_data = child.context or {}
+        workflow_type = ctx_data.get("workflow_type", "code_modification")
         workflow_type = _WORKFLOW_ALIASES.get(workflow_type, workflow_type)
+
+        # Anchor the planner to real files: filter affected_files to paths that
+        # exist on disk, stripping LLM-invented directories or module paths.
+        raw_files = ctx_data.get("affected_files") or []
+        real_files = [f for f in raw_files if (repo_root / f).exists()]
+        goal = child.intent
+        if real_files:
+            goal = f"{goal}\n\nTarget files (from audit findings):\n" + "\n".join(
+                f"  - {f}" for f in real_files
+            )
+
         success, message = await develop_from_goal(
             context=ctx,
-            goal=child.intent,
+            goal=goal,
             workflow_type=workflow_type,
             write=True,
         )

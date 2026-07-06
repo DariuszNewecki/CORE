@@ -1,0 +1,48 @@
+$schema: "META/workflow_definition.schema.json"
+kind: workflow_definition
+
+workflow_id: code_modification
+version: "1.0"
+status: experimental
+
+description: >
+  Targeted code modification: bug fixes, refactors that don't involve
+  splitting files, annotations, and net-new features scoped to specific
+  known files. Uses CoderAgent for LLM-driven code generation against
+  an anchored file list. Distinct from refactor_modularity (which splits
+  one large file into submodules) and coverage_remediation (tests only).
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_actions
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.generate_changes
+    order: 4
+
+  - stage_id: audit.canary_validation
+    order: 5
+
+  - stage_id: audit.style_check
+    order: 6
+
+  - stage_id: audit.validate_changes
+    order: 7
+
+  - stage_id: execution.commit_changes
+    order: 8
+
+invariants:
+  must_hold:
+    - Changes are scoped to the files identified in the cluster's affected_files.
+    - Repository mutation occurs only in the Execution phase.
+    - All changes pass constitutional audit before commit.
+  must_not:
+    - Workflow must not bypass audit validation before execution.
+    - Workflow must not split source files into submodules — use refactor_modularity for that.
+    - Workflow must not generate test files — use coverage_remediation for that.
