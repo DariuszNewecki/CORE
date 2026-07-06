@@ -1052,6 +1052,15 @@ mappings:
       under ADR-056 D7 (#454). Fixer to be built.
     status: PENDING
 
+  data.contracts.run_ir_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Schema conformance for RunIRRequest (POST /v1/fix/ir request body)
+      under ADR-056 D7 (#667). Synchronous endpoint; produces no fix_runs
+      row; kind is required. Fixer to be built.
+    status: PENDING
+
   data.contracts.quality_gate_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
