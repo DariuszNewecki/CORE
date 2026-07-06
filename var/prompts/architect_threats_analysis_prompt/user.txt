@@ -23,10 +23,10 @@ ACTIVE POLICIES:
 
 Return a JSON object with exactly this structure:
 
-{
+{{
   "system_summary": "One paragraph: current state of CORE, top concerns, overall trajectory.",
   "clusters": [
-    {
+    {{
       "cluster_id": "short-slug",
       "root_cause": "Single sentence: why do all these findings exist?",
       "affected_files": ["src/path/to/file.py"],
@@ -36,9 +36,9 @@ Return a JSON object with exactly this structure:
       "requires_constitution_change": false,
       "confidence": 0.85,
       "estimated_impact": "low | medium | high"
-    }
+    }}
   ]
-}
+}}
 
 Rules:
 - requires_constitution_change: true means the fix needs a .intent/ amendment — flag it, do not attempt it autonomously.
