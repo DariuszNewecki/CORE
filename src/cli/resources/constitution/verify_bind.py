@@ -1,6 +1,6 @@
 # src/cli/resources/constitution/verify_bind.py
 """
-`core-admin constitution verify-adr-bind` — pre-flight ADR bind verification.
+`core-admin constitution verify` — pre-flight ADR bind verification.
 
 Checks an ADR's supersession inheritance chain before the ADR is accepted by the
 governor (#615). When an ADR declares "Supersedes: ADR-N", it claims to inherit
@@ -35,7 +35,7 @@ from . import app
 console = Console()
 
 
-@app.command("verify-adr-bind")
+@app.command("verify")
 @core_command(dangerous=False, requires_context=False)
 # ID: 8f3c2a1d-7b4e-4f6a-9c8d-e2b5f1a3c7d0
 def verify_adr_bind(
