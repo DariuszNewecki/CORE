@@ -161,15 +161,19 @@ class TestRemediatorWorker(Worker):
             if inherited >= cap_n:
                 abandoned_ids = await _abandon_capped_findings(entry_ids, inherited)
                 proposals_skipped_cap += 1
-                for entry_id in abandoned_ids:
+                # Stable subject (source_file path, not finding UUID) — prevents one
+                # unique cap_reached subject per sensor cycle from flooding F-19's
+                # created_24h/stuck_24h counts. The first appearance sets first_seen;
+                # subsequent posts to the same subject leave first_seen unchanged.
+                if abandoned_ids:
                     await self.post_observation(
-                        subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                        subject=f"blackboard.remediation_cap_reached::{source_file}",
                         payload={
-                            "entry_id": entry_id,
                             "source_file": source_file,
                             "reason": "remediation_cap_exhausted_via_inheritance",
                             "remediation_cap_n": cap_n,
                             "inherited_count": inherited,
+                            "abandoned_entry_ids": abandoned_ids,
                         },
                         status="abandoned",
                     )
@@ -195,14 +199,14 @@ class TestRemediatorWorker(Worker):
                     error,
                 )
                 abandoned_ids = await _abandon_capped_findings(entry_ids, inherited)
-                for entry_id in abandoned_ids:
+                if abandoned_ids:
                     await self.post_observation(
-                        subject=f"blackboard.remediation_cap_reached::{entry_id}",
+                        subject=f"blackboard.remediation_cap_reached::{source_file}",
                         payload={
-                            "entry_id": entry_id,
                             "source_file": source_file,
                             "reason": "gap_evaluation_failed",
                             "error": error,
+                            "abandoned_entry_ids": abandoned_ids,
                         },
                         status="abandoned",
                     )

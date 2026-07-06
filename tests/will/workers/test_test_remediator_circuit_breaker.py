@@ -3,8 +3,13 @@ Unit tests for TestRemediatorWorker ADR-104 D9 circuit breaker.
 
 When the inherited remediation_attempt_count for a source_file equals or
 exceeds cap_n, the worker MUST abandon findings immediately (no proposal
-created, post_observation called for each) and continue to the next
-source_file.
+created, post_observation called ONCE with a stable per-source-file subject)
+and continue to the next source_file.
+
+Stable subject contract: the cap_reached observation uses
+`blackboard.remediation_cap_reached::<source_file>` (not per-finding UUID)
+so F-19's `created_24h` counter does not accumulate a new distinct subject
+each sensor cycle for permanently-capped files.
 
 When inherited < cap_n the normal proposal-creation path runs.
 
@@ -128,9 +133,17 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
         "will.workers.test_remediator.worker._abandon_capped_findings"
     ].assert_awaited_once_with(["entry-id-1"], _CAP_N)
     worker.post_observation.assert_awaited_once()  # type: ignore[attr-defined]
-    call_payload = worker.post_observation.await_args.kwargs["payload"]  # type: ignore[attr-defined]
+    call_kwargs = worker.post_observation.await_args.kwargs  # type: ignore[attr-defined]
+    # Stable subject per source_file — NOT per finding UUID — so F-19 does not
+    # accumulate a new distinct subject each sensor cycle for capped files.
+    assert (
+        call_kwargs["subject"]
+        == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
+    )
+    call_payload = call_kwargs["payload"]
     assert call_payload["reason"] == "remediation_cap_exhausted_via_inheritance"
     assert call_payload["source_file"] == _SOURCE_FILE
+    assert "abandoned_entry_ids" in call_payload
     patches[
         "will.workers.test_remediator.worker._create_symbol_proposal"
     ].assert_not_awaited()
@@ -236,6 +249,54 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
     patches[
         "will.workers.test_remediator.worker._create_symbol_proposal"
     ].assert_awaited_once()
+
+
+async def test_circuit_breaker_multiple_findings_posts_once() -> None:
+    """
+    When multiple findings are abandoned for the same capped source_file,
+    post_observation is called ONCE (not once per finding) with the stable
+    per-source-file subject. This prevents UUID-per-finding subjects from
+    polluting F-19's created_24h counter each sensor cycle.
+    """
+    two_findings = [
+        {"id": "entry-id-1", "payload": {"source_file": _SOURCE_FILE}},
+        {"id": "entry-id-2", "payload": {"source_file": _SOURCE_FILE}},
+    ]
+    worker = _make_worker()
+    patches = _patch_operations(
+        **{
+            "will.workers.test_remediator.worker._load_open_findings": AsyncMock(
+                return_value=two_findings
+            ),
+            "will.workers.test_remediator.worker._query_source_file_attempt_count": AsyncMock(
+                return_value=_CAP_N
+            ),
+            "will.workers.test_remediator.worker._abandon_capped_findings": AsyncMock(
+                return_value=["entry-id-1", "entry-id-2"]
+            ),
+        }
+    )
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
+        for target, mock in patches.items():
+            stack.enter_context(patch(target, mock))
+        await worker.run()  # type: ignore[attr-defined]
+
+    # ONE observation regardless of how many findings were abandoned.
+    worker.post_observation.assert_awaited_once()  # type: ignore[attr-defined]
+    call_kwargs = worker.post_observation.await_args.kwargs  # type: ignore[attr-defined]
+    assert (
+        call_kwargs["subject"]
+        == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
+    )
+    payload = call_kwargs["payload"]
+    assert set(payload["abandoned_entry_ids"]) == {"entry-id-1", "entry-id-2"}
 
 
 async def test_report_includes_proposals_skipped_cap() -> None:
