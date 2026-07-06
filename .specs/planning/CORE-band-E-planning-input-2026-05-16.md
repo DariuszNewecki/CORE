@@ -428,3 +428,11 @@ editorial judgment call). The remaining open work in this track —
 authoring a regex_gate for the Category A style constraint, and the
 mechanical remediation pass across older identity-forming papers —
 is no longer blocked on the taxonomy decision.
+
+**Status (2026-07-06):** First document remediated. `CORE-USER-REQUIREMENTS.md`
+relocated from `.specs/northstar/` to `.specs/essays/CORE-USER-REQUIREMENTS-founder-vision.md`
+(founder's vision classification; editorial note added; §2 framing updated to
+system-centric language; northstar original replaced with redirect stub). This
+is the first Tier B relocation under the Track 10 taxonomy. The `regex_gate`
+enforcement rule and the broader remediation pass across remaining older papers
+remain open.
