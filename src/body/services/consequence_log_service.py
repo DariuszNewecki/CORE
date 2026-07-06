@@ -234,3 +234,32 @@ class ConsequenceLogService:
             return [
                 (row.proposal_id, row.post_execution_sha) for row in result.fetchall()
             ]
+
+    # ID: 8e67aa3b-5ac7-4fc3-8874-6c7876e2531e
+    async def get_all_shas_with_status(self) -> list[tuple[str, str, str]]:
+        """
+        Return all (proposal_id, post_execution_sha, proposal_status) triples
+        by joining core.proposal_consequences with core.autonomous_proposals.
+
+        Rows with no matching proposal default to status 'unknown'.
+        Used by CommitReachabilityAuditor to distinguish expected orphans
+        (completed proposals whose commits were superseded) from genuinely
+        suspicious ones (failed or partial executions).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT pc.proposal_id, pc.post_execution_sha, "
+                    "COALESCE(ap.status, 'unknown') AS proposal_status "
+                    "FROM core.proposal_consequences pc "
+                    "LEFT JOIN core.autonomous_proposals ap "
+                    "  ON ap.proposal_id = pc.proposal_id "
+                    "WHERE pc.post_execution_sha IS NOT NULL"
+                )
+            )
+            return [
+                (row.proposal_id, row.post_execution_sha, row.proposal_status)
+                for row in result.fetchall()
+            ]

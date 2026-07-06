@@ -66,15 +66,16 @@ class CommitReachabilityAuditor(Worker):
         consequence_svc = (
             await self._core_context.registry.get_consequence_log_service()
         )
-        pairs = await consequence_svc.get_all_shas()
+        triples = await consequence_svc.get_all_shas_with_status()
 
         git_service = self._core_context.git_service
 
         checked = 0
         orphans = 0
         suppressed = 0
+        auto_closed = 0
 
-        for proposal_id, sha in pairs:
+        for proposal_id, sha, proposal_status in triples:
             checked += 1
             is_reachable = await git_service.is_commit_on_branch(sha)
             if is_reachable:
@@ -82,18 +83,33 @@ class CommitReachabilityAuditor(Worker):
 
             orphans += 1
             subject = f"governance.edge5.orphan_sha::{proposal_id}"
+
             if subject in existing:
                 suppressed += 1
                 logger.debug(
-                    "CommitReachabilityAuditor: %s already open, skipping.",
+                    "CommitReachabilityAuditor: %s already open/resolved, skipping.",
                     subject,
                 )
                 continue
 
+            # Completed proposals whose commits fell off the branch are
+            # expected — the commit was superseded by subsequent work.
+            # No governor action needed; skip silently.
+            if proposal_status == "completed":
+                auto_closed += 1
+                logger.debug(
+                    "CommitReachabilityAuditor: orphan SHA %s for completed "
+                    "proposal %s — expected, skipping.",
+                    sha,
+                    proposal_id,
+                )
+                continue
+
             logger.warning(
-                "CommitReachabilityAuditor: orphan SHA %s for proposal %s",
+                "CommitReachabilityAuditor: orphan SHA %s for proposal %s (status=%s)",
                 sha,
                 proposal_id,
+                proposal_status,
             )
             # #658: capture the dangling commit's metadata now, before
             # git gc prunes it — so the finding is self-describing and the
@@ -104,6 +120,7 @@ class CommitReachabilityAuditor(Worker):
                 payload={
                     "proposal_id": proposal_id,
                     "orphan_sha": sha,
+                    "proposal_status": proposal_status,
                     "detected_at": datetime.now(UTC).isoformat(),
                     **meta,
                 },
@@ -115,11 +132,14 @@ class CommitReachabilityAuditor(Worker):
             payload={
                 "checked": checked,
                 "orphans_detected": orphans,
+                "auto_closed": auto_closed,
             },
         )
         logger.info(
-            "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d",
+            "CommitReachabilityAuditor: checked=%d orphans=%d "
+            "suppressed=%d auto_closed=%d",
             checked,
             orphans,
             suppressed,
+            auto_closed,
         )
