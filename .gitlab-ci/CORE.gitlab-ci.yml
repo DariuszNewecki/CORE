@@ -1,0 +1,78 @@
+# .gitlab-ci/CORE.gitlab-ci.yml — CORE Constitutional Audit GitLab CI step
+#
+# F-10.P2: GitLab equivalent of the GitHub Action (action.yml / F-10.3).
+# Findings surface inline in the MR diff via GitLab's Code Quality tab.
+# The same Docker image used by the GitHub Action is reused here.
+#
+# Usage — include in your .gitlab-ci.yml:
+#
+#   include:
+#     - project: 'your-org/core'
+#       file: '.gitlab-ci/CORE.gitlab-ci.yml'
+#
+# Or copy the snippet below directly and set CORE_IMAGE to match your
+# published image (from F-10.3 / the Dockerfile at the repo root).
+#
+# Variables:
+#   CORE_IMAGE    — Docker image to use (default: python:3.12-slim with
+#                   core-runtime installed at job start; override to a
+#                   pre-built image for faster pipelines)
+#   CORE_SEVERITY — Minimum severity level to report (default: block).
+#                   One of: block, high, medium, low, info.
+#   CORE_INTENT   — Path to the .intent/ directory (default: .intent/).
+#
+# Exit codes:
+#   0   — no findings at or above CORE_SEVERITY
+#   1   — one or more findings at or above CORE_SEVERITY (merge-block)
+#   2   — .intent/ unreachable or governance collapse (operator action)
+#   64  — internal audit engine error (operator action)
+#
+# Per ADR-085 D5: exit code 1 = developer action; exit code 2/64 = operator
+# action. Configure your branch protection / merge check accordingly.
+
+core-constitutional-audit:
+  # Override CORE_IMAGE in your .gitlab-ci.yml variables block to use a
+  # pre-built image instead of installing core-runtime at job start.
+  image: ${CORE_IMAGE:-python:3.12-slim}
+
+  stage: test
+
+  variables:
+    CORE_SEVERITY: "block"
+    CORE_INTENT: ".intent/"
+    # Pinned to match the Dockerfile default (F-10.3). Bump with releases.
+    CORE_RUNTIME_VERSION: "2.7.0"
+
+  before_script:
+    # Skip pip install when using a pre-built image that already has core-runtime.
+    - |
+      if ! command -v core-admin > /dev/null 2>&1; then
+        pip install --quiet "core-runtime==${CORE_RUNTIME_VERSION}"
+      fi
+
+  script:
+    - >
+      core-admin code audit
+      --offline
+      --format=codeclimate
+      --severity="${CORE_SEVERITY}"
+      > codeclimate.json
+
+  artifacts:
+    # CodeClimate JSON is consumed by GitLab's Code Quality tab in the MR.
+    # It surfaces findings inline in the diff and tracks new vs. resolved.
+    reports:
+      codequality: codeclimate.json
+    # Upload even on failure so the MR tab shows the blocking findings.
+    when: always
+    # 30-day retention matches the GitHub Action's annotation persistence.
+    expire_in: 30 days
+
+  # The constitutional gate blocks merge on exit code 1 (blocking findings).
+  # Set allow_failure: true in consuming projects that want advisory-only mode.
+  allow_failure: false
+
+  # Only run on MRs and the default branch; skip tags and feature experiments.
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

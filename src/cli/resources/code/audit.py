@@ -33,7 +33,8 @@ from cli.commands.check.formatters import (
 )
 from cli.logic.audit_renderer import AuditStats, render_overview, to_audit_finding
 from cli.utils import core_command
-from cli.utils.annotation_formatter import format_payload
+from cli.utils.annotation_formatter import format_payload as format_github_payload
+from cli.utils.codeclimate_formatter import format_payload as format_codeclimate_payload
 from cli.utils.exit_codes import (
     EXIT_CONFIG_ERROR,
     EXIT_FINDINGS,
@@ -121,7 +122,9 @@ async def audit_command(
             "payload verbatim on stdout (schema documented in #535). "
             "`github-annotations` emits GitHub Actions workflow-command "
             "lines so findings surface inline in PR diff view "
-            "(#529 / F-10.2). Non-text formats require --offline; the "
+            "(#529 / F-10.2). `codeclimate` emits CodeClimate JSON for "
+            "GitLab MR quality reports via `artifacts: reports: codequality:` "
+            "(F-10.P2). Non-text formats require --offline; the "
             "daemon-driven path has a different result shape."
         ),
     ),
@@ -133,14 +136,14 @@ async def audit_command(
     """
     min_severity = parse_min_severity(severity)
 
-    if output_format not in {"text", "json", "github-annotations"}:
+    if output_format not in {"text", "json", "github-annotations", "codeclimate"}:
         console.print(
             f"[bold red]--format must be one of "
-            f"text|json|github-annotations[/bold red] (got {output_format!r})"
+            f"text|json|github-annotations|codeclimate[/bold red] (got {output_format!r})"
         )
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
-    if output_format != "text" and not offline:
+    if output_format not in {"text"} and not offline:
         console.print(
             f"[bold red]--format={output_format} currently requires "
             f"--offline[/bold red] (daemon-driven path has a different "
@@ -265,7 +268,7 @@ async def _run_offline_audit(
     target: when set, audits the given directory instead of the cwd-derived
     repo (#688). Must be a path containing a .intent/ tree.
     """
-    structured = output_format in {"json", "github-annotations"}
+    structured = output_format in {"json", "github-annotations", "codeclimate"}
 
     try:
         if target is not None:
@@ -306,6 +309,20 @@ async def _run_offline_audit(
         elif output_format == "github-annotations":
             safe = str(msg).replace("%", "%25").replace("\n", "%0A")
             sys.stdout.write(f"::error title=CORE audit governance error::{safe}\n")
+        elif output_format == "codeclimate":
+            # Emit a synthetic CodeClimate issue so the MR quality tab shows the error.
+            error_issue = [
+                {
+                    "type": "issue",
+                    "check_name": "core.audit.governance_error",
+                    "description": f"[blocking] CORE audit governance error: {msg}",
+                    "categories": ["Bug Risk"],
+                    "location": {"path": ".", "lines": {"begin": 1}},
+                    "severity": "blocker",
+                    "fingerprint": "core-audit-governance-error",
+                }
+            ]
+            sys.stdout.write(json.dumps(error_issue, indent=2) + "\n")
         else:
             console.print(f"[bold red]Governance error:[/bold red] {msg}")
         raise typer.Exit(EXIT_CONFIG_ERROR)
@@ -317,7 +334,9 @@ async def _run_offline_audit(
     if output_format == "json":
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
     elif output_format == "github-annotations":
-        sys.stdout.write(format_payload(result))
+        sys.stdout.write(format_github_payload(result))
+    elif output_format == "codeclimate":
+        sys.stdout.write(format_codeclimate_payload(result))
     else:
         _render_text_summary(result, min_severity)
 
@@ -342,6 +361,19 @@ def _emit_error(output_format: str, kind: str, exc: Exception) -> None:
     elif output_format == "github-annotations":
         msg = f"{kind}: {exc!s}".replace("%", "%25").replace("\n", "%0A")
         sys.stdout.write(f"::error title=CORE audit {kind}::{msg}\n")
+    elif output_format == "codeclimate":
+        error_issue = [
+            {
+                "type": "issue",
+                "check_name": f"core.audit.{kind.replace(' ', '_')}",
+                "description": f"[blocking] CORE audit {kind}: {exc!s}",
+                "categories": ["Bug Risk"],
+                "location": {"path": ".", "lines": {"begin": 1}},
+                "severity": "blocker",
+                "fingerprint": f"core-audit-{kind.replace(' ', '-')}",
+            }
+        ]
+        sys.stdout.write(json.dumps(error_issue, indent=2) + "\n")
     else:
         console.print(f"[bold red]{kind.capitalize()}:[/bold red] {exc}")
 
