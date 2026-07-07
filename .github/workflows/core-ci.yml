@@ -35,6 +35,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Install pyyaml
+        run: pip install pyyaml --quiet
       - name: Check for untracked open ADR phases
         run: python scripts/check_adr_phases.py --specs-dir .specs/decisions
 
