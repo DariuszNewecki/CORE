@@ -67,6 +67,7 @@ mandate:
       - planning
       - charter
       - northstar
+      - architecture_bridge
     domains:
       - knowledge
       - governance

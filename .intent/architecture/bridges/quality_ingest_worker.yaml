@@ -1,0 +1,31 @@
+kind: architecture_bridge
+id: quality-ingest-worker
+title: "QualityIngestWorker: Quality Check Findings → Blackboard"
+
+description: >
+  QualityIngestWorker (Will) bridges quality-gate findings (mypy, pip-audit)
+  from the DB into the blackboard governance loop. Mirrors the audit_ingest_worker
+  pattern for the quality gate namespace.
+
+bridge_class: "QualityIngestWorker"
+bridge_layer: "will"
+
+source:
+  layer: "database"
+  context: >
+    Quality gate output (mypy type errors, pip-audit vulnerability findings)
+    persisted by the audit CLI path or daemon.
+  consuming_types:
+    - "QualityFinding"
+
+sink:
+  target: "core.blackboard_entries"
+  layer: "database"
+  via: "Worker.post_finding()"
+
+attribution:
+  mechanism: "worker_uuid"
+  field: "worker_uuid"
+
+authority_adrs:
+  - "ADR-039"

@@ -1,0 +1,40 @@
+kind: architecture_bridge
+id: audit-ingest-worker
+title: "AuditIngestWorker: Audit Findings → Blackboard"
+
+description: >
+  Mind evaluates source code via ConstitutionalAuditor and writes results to
+  core.audit_runs + core.audit_findings (DB). AuditIngestWorker (Will) reads those
+  findings and posts each unprocessed violation as a blackboard entry via
+  Worker.post_finding(), using the bridge worker's own worker_uuid as attribution.
+  This is the canonical example of a Will worker bridging Mind evaluation output
+  into the blackboard governance loop.
+
+bridge_class: "AuditIngestWorker"
+bridge_layer: "will"
+
+source:
+  layer: "database"
+  context: >
+    core.audit_runs and core.audit_findings rows produced by ConstitutionalAuditor
+    (Mind layer) via the CLI audit command or the daemon audit path.
+  consuming_types:
+    - "AuditFinding"
+    - "audit_run"
+
+sink:
+  target: "core.blackboard_entries"
+  layer: "database"
+  via: "Worker.post_finding()"
+
+attribution:
+  mechanism: "worker_uuid"
+  field: "worker_uuid"
+  note: >
+    The bridge worker's own worker_uuid is stamped on every blackboard entry it
+    posts, not the uuid of the audit sensor that produced the finding.
+    This was the load-bearing architectural fact resolved during ADR-099 revision.
+
+authority_adrs:
+  - "ADR-099"
+  - "ADR-102"

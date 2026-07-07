@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architecture Bridge Declaration",
+  "description": "A bridge point where information crosses a CORE layer boundary. Declared constitutionally to make inter-layer data flow queryable without grepping the source tree.",
+  "type": "object",
+  "required": ["kind", "id", "bridge_class", "bridge_layer", "source", "sink", "attribution"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "architecture_bridge"
+    },
+    "id": {
+      "type": "string",
+      "description": "Stable kebab-case identifier for this bridge point."
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "description": "What crosses this bridge and why it matters architecturally."
+    },
+    "bridge_class": {
+      "type": "string",
+      "description": "The Python class or module that performs the layer crossing."
+    },
+    "bridge_layer": {
+      "type": "string",
+      "description": "The CORE layer where the bridge class lives (will, body, api, cli, shared)."
+    },
+    "source": {
+      "type": "object",
+      "required": ["layer", "context"],
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "type": "string",
+          "description": "Origin layer (mind, body, will, api, shared, database)."
+        },
+        "context": {
+          "type": "string",
+          "description": "Human-readable description of where the data comes from."
+        },
+        "consuming_types": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Named types or table rows the bridge reads from its source."
+        }
+      }
+    },
+    "sink": {
+      "type": "object",
+      "required": ["target"],
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "Primary persistence target (e.g. core.blackboard_entries)."
+        },
+        "layer": {
+          "type": "string",
+          "description": "Sink layer (database, body, will, etc.)."
+        },
+        "via": {
+          "type": "string",
+          "description": "The API or method used to write (e.g. Worker.post_finding)."
+        }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "required": ["mechanism"],
+      "additionalProperties": false,
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "description": "How ownership of the sink record is attributed (e.g. worker_uuid, proposal_id)."
+        },
+        "field": {
+          "type": "string",
+          "description": "The database column or payload key that carries attribution."
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "authority_adrs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "ADR IDs whose decisions govern this bridge's design."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+id: architecture_bridge
+
+discovery:
+  - ".intent/architecture/bridges/**/*.yaml"
+
+schema_ref: ".specs/META/architecture_bridge.schema.json"
+
+vector_collection: core-specs
+crawler_indexed: true
+supported_sensors:
+  - repo_crawler
+supported_actions: []

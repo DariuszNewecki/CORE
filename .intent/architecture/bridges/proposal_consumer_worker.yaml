@@ -1,0 +1,40 @@
+kind: architecture_bridge
+id: proposal-consumer-worker
+title: "ProposalConsumerWorker: Approved Proposals → Execution"
+
+description: >
+  ProposalConsumerWorker (Will) bridges approved proposals from
+  core.autonomous_proposals into execution via ActionExecutor. It is the only
+  worker that executes proposals; no other path from proposal-approved to
+  action-executed exists. On completion it updates proposal status and posts
+  result to the blackboard.
+
+bridge_class: "ProposalConsumerWorker"
+bridge_layer: "will"
+
+source:
+  layer: "database"
+  context: >
+    core.autonomous_proposals rows in status=approved, created by
+    RemediatorWorkers or the governor CLI.
+  consuming_types:
+    - "Proposal"
+    - "autonomous_proposal"
+
+sink:
+  target: "core.blackboard_entries"
+  layer: "database"
+  via: "Worker.post_finding() + ActionExecutor.execute()"
+
+attribution:
+  mechanism: "proposal_id"
+  field: "payload.proposal_id"
+  note: >
+    Execution results are posted with proposal_id in the payload. The proposal
+    itself carries the originating worker_uuid from the RemediatorWorker that
+    created it.
+
+authority_adrs:
+  - "ADR-010"
+  - "ADR-015"
+  - "ADR-038"

@@ -9,6 +9,7 @@ from . import (
     actions,
     audit,
     audit_duplicates,
+    bridges,
     check_imports,
     check_ui,
     clarity,
