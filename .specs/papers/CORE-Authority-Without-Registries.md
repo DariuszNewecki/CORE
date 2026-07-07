@@ -197,6 +197,8 @@ high-authority claim does not block evaluation (authority is resolved from decla
 not grounding checks). It is governance debt: an obligation to author the companion paper
 before the rule is considered constitutionally clean.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ### 12.3 The discipline in practice
 
 1. **Write the paper first.** If a new rule belongs at `authority: constitution`, author

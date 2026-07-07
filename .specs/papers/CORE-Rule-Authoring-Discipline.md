@@ -82,6 +82,8 @@ Tooling MUST NOT:
 
 If a Rule is difficult to write, that difficulty is intentional.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## Rule Atomicity
@@ -99,6 +101,8 @@ If a sentence contains:
 * conditional clauses
 
 then it is almost certainly **not atomic** and MUST be split into multiple Rules.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -151,6 +155,8 @@ Rules MUST NOT:
 * assume retroactive enforcement
 * observe outcomes from other phases
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## Authority Selection Discipline
@@ -166,6 +172,8 @@ If there is ambiguity between two authorities, the Rule MUST be escalated upward
 
 Rules MUST NOT rely on delegation, implication, or inheritance of authority.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## Enforcement Selection Discipline
@@ -177,6 +185,8 @@ Enforcement MUST reflect **constitutional consequence**, not preference.
 * **Advisory** is reserved for guidance only
 
 If the author is unsure which enforcement applies, the Rule MUST NOT be Blocking.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -196,6 +206,8 @@ Rules MUST NOT:
 * instruct tooling
 
 The Rule is the law, not its explanation.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -219,6 +231,8 @@ attribution table" — not by reproducing the exact forbidden call or SQL form.
 See ADR-028 for the incident that established this convention and for
 worked examples.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## Splitting Rules (Required)
@@ -233,6 +247,8 @@ then it MUST be split into **multiple independent Rules**.
 
 Cross-rule relationships are **not expressed in law**.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## Zero Backward Compatibility
@@ -246,6 +262,8 @@ Authors MUST NOT:
 * grandfather historical behavior
 
 Continuity is not a constitutional value.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -270,6 +288,8 @@ Invalid Rules represent:
 * authoring error, not evaluation error
 
 Invalid Rules MUST be rejected, not repaired.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

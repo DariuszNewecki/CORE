@@ -129,6 +129,8 @@ A **descriptive** claim explains structure, history, or reasoning without constr
 
 Authors are responsible for marking ambiguous claims as one or the other when intent is not obvious from phrasing.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## §3 — The directional relation graph

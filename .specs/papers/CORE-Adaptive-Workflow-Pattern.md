@@ -439,6 +439,8 @@ Traces are stored for:
 * Constitutional audit trails
 * Debugging autonomous operations
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 9. Post-TERMINATE Finalization
@@ -476,6 +478,8 @@ TERMINATE → Create files in proper directories
 * Constitutional audit MUST occur before EXECUTION phase
 * Failures in finalization do not invalidate generation results
 * Finalization reports success/failure to user
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

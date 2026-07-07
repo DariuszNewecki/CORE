@@ -121,6 +121,8 @@ wins when multiple attempt simultaneously. The row is updated atomically:
 **Guard:** Worker MUST NOT attempt to claim an `awaiting_reaudit` entry.
 Claim queries MUST filter to `status IN ('open', 'claimed')`.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ### 5.2 `claimed → resolved`
 
 **Actor:** The claiming worker, on successful completion.
@@ -140,6 +142,8 @@ re-emitted by its sensor on the next detection cycle.
 to `abandoned`; it MUST NOT leave the row in `claimed`. A claimed
 row with an expired `lease_expires_at` is eligible for re-claim by
 any permitted worker after the ShopManager releases it.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ### 5.4 `claimed → deferred_to_proposal`
 
@@ -171,6 +175,8 @@ the same SET clause. A row entering `indeterminate` with `resolution_mechanism =
 would be invisible to ADR-045's automated re-evaluation path (no sensor
 owns its truth claim) and would re-surface as a fresh finding every
 audit cycle. (ADR-091 D2 Amendment.)
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ### 5.7 `deferred_to_proposal → awaiting_reaudit`
 
@@ -216,6 +222,8 @@ future detection cycle. Unlike `abandoned` (sensor MAY re-emit on
 fresh detection), a `suppressed` subject MUST NOT be re-emitted.
 **Guard:** No automated worker may transition a finding to `suppressed`.
 This is a deliberate governor action.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ### 5.11 `indeterminate → open` (governor action)
 
@@ -265,6 +273,8 @@ deduplication contract.
 
 Direct INSERT from outside the Worker base class is a constitutional
 violation (`architecture.blackboard.worker_only_inserts`).
+
+**Enforced by:** `.intent/rules/architecture/blackboard.json` → `architecture.blackboard.worker_only_inserts` (blocking).
 
 ---
 

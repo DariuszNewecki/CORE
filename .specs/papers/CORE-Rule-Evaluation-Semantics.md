@@ -71,6 +71,8 @@ For a rule to be deterministic:
 
 If a rule requires human judgment, it is not a rule; it is guidance.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 4. Enforcement Strength
@@ -82,10 +84,14 @@ CORE defines enforcement strength as an output handling policy.
 * A violation MUST prevent continuation of the governed action.
 * Blocking rules MUST have an enforcement surface capable of prevention.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ### 4.2 Reporting
 
 * A violation MUST be recorded.
 * Recording MUST be reliable and append-safe.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ### 4.3 Advisory
 
@@ -93,6 +99,8 @@ CORE defines enforcement strength as an output handling policy.
 * Advisory rules MUST NOT be treated as governance coverage.
 
 Enforcement strength does not change rule truth; it changes system response.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -114,6 +122,8 @@ Indeterminate outcomes MUST be handled explicitly:
 * If the rule is **Advisory**, Indeterminate MAY be communicated.
 
 This prevents “unknown” from becoming a bypass.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

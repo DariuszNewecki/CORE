@@ -106,6 +106,8 @@ These five fields form the **complete and closed representation** of a Rule.
 
 The `id` identifies the Rule — nothing more.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ### 2. `statement`
@@ -127,6 +129,8 @@ Invalid examples:
 * References to enforcement mechanisms
 * Procedural logic
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ### 3. `authority`
@@ -136,6 +140,8 @@ Invalid examples:
 * MUST NOT be derived from location, file path, or tooling context
 
 Authority defines **who decides**, not **when** or **how**.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -147,6 +153,8 @@ Authority defines **who decides**, not **when** or **how**.
 
 Phase defines **when evaluation occurs**, not severity or authority.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ### 5. `enforcement`
@@ -156,6 +164,8 @@ Phase defines **when evaluation occurs**, not severity or authority.
 * MUST NOT encode severity, logging level, or remediation strategy
 
 Enforcement defines **the consequence of violation**, nothing else.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -238,6 +248,8 @@ All of the following, if needed, must be **derived**:
 Derivation MUST be one-way.
 
 Derived artifacts MUST NOT influence canonical law.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

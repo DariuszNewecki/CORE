@@ -88,6 +88,8 @@ runtime are an Audit-phase conflict.
 Conflicts discovered in later phases indicate insufficient earlier
 validation but remain governance errors regardless of when detected.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 5. Conflict Handling
@@ -99,6 +101,8 @@ When a rule conflict is detected:
 3. The system **MUST** surface the conflict explicitly.
 
 No automatic resolution is permitted.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

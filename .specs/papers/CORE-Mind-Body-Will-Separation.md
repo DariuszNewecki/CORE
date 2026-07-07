@@ -120,6 +120,8 @@ Components in Body layer:
 
 **Rationale:** Execution without bounds becomes arbitrary power.
 
+**Enforced by:** `.intent/rules/architecture/body.json` → `architecture.body.no_rule_evaluation` (reporting).
+
 ---
 
 ### Rule 3.3: Will Never Implements
@@ -133,6 +135,8 @@ Components in Will layer:
 * MAY access infrastructure only for decision context (not execution)
 
 **Rationale:** Decision-making that implements itself cannot be governed.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -153,6 +157,8 @@ Infrastructure (database, filesystem, network) access is governed by layer.
 * API components MUST NOT import `get_session` directly
 
 **Enforcement:** AST gate on `from shared.infrastructure.database.session_manager import get_session`
+
+**Enforced by:** `.intent/rules/architecture/boundary.json` → `architecture.boundary.database_session_access` (blocking).
 
 ---
 
@@ -177,6 +183,8 @@ Infrastructure (database, filesystem, network) access is governed by layer.
 **Forbidden:**
 * Mind components MUST NOT perform network operations
 * Will components SHOULD delegate network operations to Body
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -376,6 +384,8 @@ All existing code violating this separation MUST be refactored.
 No new code violating this separation MAY be merged.
 
 This is not a suggestion. This is constitutional law.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

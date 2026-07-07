@@ -109,6 +109,8 @@ NOT create a new Proposal and MUST post a `report` entry flagging the
 action as repeatedly failing. Human intervention is required to reset
 the counter by resolving the underlying cause.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 5. ProposalAction
@@ -185,6 +187,8 @@ When a Proposal reaches `failed` status, the ConsumerWorker MUST
 revive all Findings linked to this Proposal via their `proposal_id`
 payload field by resetting their status to `open`. See
 `CORE-Finding.md` section 7a for the full revival contract.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

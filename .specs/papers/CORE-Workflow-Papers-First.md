@@ -23,6 +23,8 @@ MUST cite an approved paper under `.specs/papers/**` as evidence **before** the 
 
 If `paper_ref` is missing, invalid, or points to a non-existent file, the operation is invalid and MUST be blocked.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ## Conflict Resolution
 
 This section governs contradictions between `.specs/papers/` doctrine documents only. It does not apply to `.intent/rules/` conflicts, which are governed by `CORE-Rule-Conflict-Semantics.md`.

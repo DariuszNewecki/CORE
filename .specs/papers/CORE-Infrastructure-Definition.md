@@ -80,6 +80,8 @@ Without explicit definition, "infrastructure" becomes an expanding exemption spa
 
 **Infrastructure is machinery, not mind or will.**
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 3a. External System Wrappers — Bounded Domain Awareness
@@ -144,6 +146,8 @@ structural schema, not to CORE's domain semantics.
 * **Authorization** - Grant or deny access based on rules
 
 **Key Principle:** If it requires judgment, it's not infrastructure.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -253,6 +257,8 @@ Infrastructure components remain subject to:
 3. It evaluates constitutional rules
 4. It interprets operations semantically beyond external system adaptation
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ### 6.3 Infrastructure Registry
 
 **Current Infrastructure Components:**
@@ -310,6 +316,8 @@ All infrastructure components MUST:
 1. Log state transitions with `INFRASTRUCTURE: event_type` prefix
 2. Expose health checks via `health_check()` method
 3. Document authority claims in class docstring
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ### 7.3 Violation Detection
 

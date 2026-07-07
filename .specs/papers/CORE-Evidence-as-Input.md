@@ -84,6 +84,8 @@ Non-reproducible evidence produces an **indeterminate** evaluation outcome.
 
 Reproducibility is a property of governance, not tooling.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 6. Evidence and Indeterminate Outcomes

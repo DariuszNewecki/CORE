@@ -45,6 +45,8 @@ CORE:
 
 This invariant is absolute.
 
+**Enforced by:** `.intent/rules/governance/constitution.json` → `governance.constitution.read_only` (blocking).
+
 ---
 
 ## 3. No Write-Back Authority
@@ -112,6 +114,8 @@ Any tool responsible for creating, editing, or replacing the Constitution:
 
 CORE may consume outputs of such tools only as finalized constitutional documents.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ---
 
 ## 7. REBIRTH Trigger Boundary
@@ -123,6 +127,8 @@ Constitutional replacement (REBIRTH):
 
 CORE may detect the need for replacement.
 It may not perform replacement.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 
@@ -136,6 +142,8 @@ CORE MUST NOT create or rely on:
 * fallback governance logic.
 
 Law exists only where declared.
+
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
 ---
 

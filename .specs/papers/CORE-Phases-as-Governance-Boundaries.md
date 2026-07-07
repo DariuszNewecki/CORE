@@ -261,6 +261,8 @@ layer during the same phase, subject to these rules:
 under the same phase constraints as the caller. It is illegal if the call
 causes evaluation under a different phase's authority surface.
 
+**Enforced by:** `.intent/rules/architecture/boundary.json` (blocking boundary rules).
+
 ---
 
 ## 8. Failure Modes Prevented by Phase Discipline

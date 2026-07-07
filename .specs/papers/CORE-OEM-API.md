@@ -41,6 +41,8 @@ F-47 (managed Qdrant) is **dropped** from F-40 dependents during the F-40.1 reco
 
 Effective F-40 consumers: **F-20**, **F-34**, **F-45 (read-side only)**. Three sidecars.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ## 3. Classification matrix
 
 Every route under `src/api/` is classified below. Routes inherit the `/v1/` prefix from their router mount in `src/api/main.py`; `/health` is the lone non-versioned route.

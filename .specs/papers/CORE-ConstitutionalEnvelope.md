@@ -124,6 +124,8 @@ The rationale: new layers and layers under active development may
 legitimately have no rules yet. Blocking writes until a rule exists
 inverts the intended workflow — rules follow code, not the other way around.
 
+**Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
+
 ## 4c. Injection
 
 The `envelope.text` is injected into the LLM system prompt as a
