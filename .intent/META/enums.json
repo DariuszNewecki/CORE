@@ -265,7 +265,7 @@
       ]
     },
     "task_type": {
-      "description": "Canonical task types from the INTERPRET phase (ADR-056 #366). Mirrors src/will/interpreters/request_interpreter.py:34 TaskType enum value strings. TBD / governor review: a parallel ExecutionTask.task_type vocabulary is governed by ADR-003 via .intent/enforcement/config/task_type_phases.yaml. Open question whether the two should consolidate or remain separate (INTERPRET-phase intent vs execution-routing intent).",
+      "description": "Canonical task types from the INTERPRET phase (ADR-056 #366). Mirrors src/will/interpreters/request_interpreter.py:34 TaskType enum value strings. The parallel ExecutionTask.task_type vocabulary governed by ADR-003 (code_generation, code_modification, test_generation, conversational) is intentionally separate: this vocabulary describes governor intent at workflow entry; the ADR-003 vocabulary describes internal execution routing to a governance phase. They operate at different lifecycle points and must not be unified (resolved: issue #433).",
       "type": "string",
       "enum": [
         "query",

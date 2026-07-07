@@ -168,3 +168,49 @@ Those may exist but must not become authority.
 Authority in CORE is a property of law, not infrastructure.
 
 By resolving authority in memory from declared rules and forbidding registries, CORE preserves constitutional primacy, prevents drift, and keeps governance boring, explicit, and correct.
+
+---
+
+## 12. Elevation Discipline for High-Authority Rules
+
+This section closes the governance gap surfaced by issue #625: Constitution Article I §4
+forbids rules from deriving authority by implication or context, and Article V forbids
+implicit authority. Prior doctrine established that authority is declared, not inferred,
+but did not constrain who may declare a rule at `authority: constitution` or what
+evidence makes such a declaration valid.
+
+### 12.1 Any author may declare any authority level
+
+Authority-level declarations are not gated by a registry, a role, or an approval workflow.
+Any author writing a rule under `.intent/rules/` may set `authority: constitution`. The
+declaration is valid if and only if the rule is grounded in a constitutional paper.
+
+### 12.2 Grounding is the elevation mechanism
+
+A rule at `authority: constitution` MUST have a companion paper at `doctrine_tier:
+constitution` in `.specs/papers/` whose doctrine justifies the rule's authority claim.
+The paper is the elevation record — it explains why the rule operates at constitutional
+authority rather than policy or code.
+
+If no grounding paper exists, the rule's authority claim is unverified. An unverified
+high-authority claim does not block evaluation (authority is resolved from declarations,
+not grounding checks). It is governance debt: an obligation to author the companion paper
+before the rule is considered constitutionally clean.
+
+### 12.3 The discipline in practice
+
+1. **Write the paper first.** If a new rule belongs at `authority: constitution`, author
+   the paper that establishes the constitutional principle. That paper becomes the ground
+   truth.
+2. **Declare the rule second.** Set `authority: constitution` and cite the paper's `id`
+   in the rule's `grounding` or `papers` field.
+3. **Never invert the order.** A rule at `authority: constitution` with no grounding paper
+   is an implicit authority claim — exactly the pattern Article I §4 forbids.
+
+### 12.4 No registry is needed
+
+Elevation requires no central approval record, no registry of elevated rules, and no
+workflow checkpoint. The paper-rule pair is self-contained evidence. Grounding checks
+(CCC and ADR-grounding audits) are the detection mechanism for missing papers. This keeps
+authority-level elevation consistent with the broader principle of this paper: authority
+lives with its law, not in infrastructure.

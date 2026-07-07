@@ -35,6 +35,20 @@ When two papers contradict each other, the following precedence rules apply in o
 
 3. **Human decision.** When neither rule above resolves the contradiction, it is escalated to the architect. The resolution is recorded as an amendment to one of the papers, with a `supersedes` note naming the overridden claim. Silence does not resolve a contradiction.
 
+### Why paper conflict semantics differ from rule conflict semantics
+
+`CORE-Rule-Conflict-Semantics.md` treats rule-vs-rule conflicts as governance errors
+requiring no automatic resolution — no implicit precedence, no specificity heuristic.
+Paper-vs-paper conflicts deliberately follow different semantics.
+
+Papers are human-read doctrine. A specificity heuristic gives human readers a
+deterministic reading order that handles common scope overlap without requiring
+governor escalation for every minor contradiction. Rules are machine-enforced law.
+A machine cannot apply interpretive judgment, so an unresolvable rule conflict must
+surface as an error rather than silently suppress one of the competing rules.
+The two surfaces serve different readers and different enforcement mechanisms — their
+conflict semantics are intentionally asymmetric, not inconsistent.
+
 ## Implementation Status
 
 **The `paper_ref` field does not yet exist in the execution pipeline.**
