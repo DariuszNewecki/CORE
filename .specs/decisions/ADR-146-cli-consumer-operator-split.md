@@ -65,10 +65,10 @@ The following `src/cli/commands/` subtrees are consumer surface and move to
 `core-cli`:
 
 - **Full namespaces:** `lane/`, `proposals/`, `secrets/`
-- **Partial — `code/`:** `audit_duplicates`, `bridges`, `check_imports`,
-  `check_ui`, `docstrings`, `fix_atomic`, `format`, `integrity`, `lint`,
-  `logging`, `test`. Excluded (operator): `audit.py`, `clarity.py`,
-  `complexity.py`, `refactor.py`
+- **Partial — `code/`:** `actions`, `audit_duplicates`, `bridges`,
+  `check_imports`, `check_ui`, `docstrings`, `fix_atomic`, `format`,
+  `integrity`, `lint`, `logging`, `test`. Excluded (operator): `audit.py`,
+  `clarity.py`, `complexity.py`, `refactor.py`
 - **Partial — `symbols/`:** `audit`, `fix_ids`, `resolve_duplicates`, `sync`.
   Excluded (operator): `tag.py`
 - **Partial — `vectors/`:** `query`, `rebuild`, `status`, `sync`, `sync_code`.
