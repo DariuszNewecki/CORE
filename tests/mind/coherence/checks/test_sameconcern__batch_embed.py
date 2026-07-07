@@ -61,7 +61,7 @@ async def test_sameconcern_uses_batch_embed_not_serial() -> None:
             "shared.governance.coherence_harvester.GovernanceClaimHarvester"
         ) as mock_harvester_cls,
         patch(
-            "mind.coherence.checks.sameconcern.CognitiveEmbedderAdapter"
+            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
         ) as mock_adapter_cls,
     ):
         mock_harvester_cls.return_value.harvest.return_value = iter(claims)
@@ -95,7 +95,7 @@ async def test_sameconcern_batch_fail_returns_empty() -> None:
 
     with (
         patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
-        patch("mind.coherence.checks.sameconcern.CognitiveEmbedderAdapter") as ma,
+        patch("shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter") as ma,
     ):
         mh.return_value.harvest.return_value = iter(claims)
         mock_adapter = AsyncMock()
@@ -146,7 +146,7 @@ async def test_r1scoped_uses_batch_embed_not_serial() -> None:
             "shared.governance.coherence_harvester.GovernanceClaimHarvester"
         ) as mock_harvester_cls,
         patch(
-            "mind.coherence.checks.r1_scoped.CognitiveEmbedderAdapter"
+            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
         ) as mock_adapter_cls,
     ):
         mock_harvester_cls.return_value.harvest.return_value = iter([claim_a, claim_b])
@@ -187,7 +187,7 @@ async def test_r1scoped_batch_fail_returns_empty() -> None:
             ],
         ),
         patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
-        patch("mind.coherence.checks.r1_scoped.CognitiveEmbedderAdapter") as ma,
+        patch("shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter") as ma,
     ):
         mh.return_value.harvest.return_value = iter([claim_a])
         mock_adapter = AsyncMock()
