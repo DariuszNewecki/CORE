@@ -1,0 +1,49 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.specs.planning.header.schema.json",
+    "title": "CORE planning document header (ADR-105 D5)",
+    "description": "Validates the YAML frontmatter header of a planning document under .specs/planning/ (CORE-*.md pattern — handoffs are governed by handoff.schema.json). Authored per ADR-105 D5 as the minimum-viable schema for the 'planning' document kind. The prose body is unconstrained; this schema governs only the structured header block. No per-class status subset enum exists yet (ADR-105 D8 deferral); this schema uses the full document_status superset.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "kind",
+        "title",
+        "status"
+    ],
+    "properties": {
+        "kind": {
+            "const": "planning"
+        },
+        "id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128
+        },
+        "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+        },
+        "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+        },
+        "status": {
+            "$ref": "../../.intent/META/enums.json#/definitions/document_status"
+        },
+        "supersedes": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Id of planning document this supersedes, or null."
+        },
+        "depends_on": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}

@@ -1,4 +1,10 @@
 <!-- path: .specs/CORE-CHARTER.md -->
+---
+kind: charter
+title: "CORE Charter"
+status: superseded
+superseded_by: "governance topology established by ADR-049/ADR-105"
+---
 
 # CORE Charter
 

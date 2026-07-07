@@ -1,0 +1,27 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: planning
+title: Planning and operational-process document
+description: >
+  Planning documents under .specs/planning/ matching the CORE-*.md naming
+  convention — feature dependency graphs, maturity audits, operational trackers,
+  semver policy, roadmap inputs. Handoff documents (handoff-*.md) are
+  excluded from this type; they are governed by a separate artifact type with
+  their own schema (handoff.schema.json). Modeled subtype of the broader .specs
+  markdown surface (ADR-105 D4): carries a typed YAML frontmatter header validated
+  against .specs/META/planning.header.schema.json. Discovery overlaps spec_markdown
+  by design; benign (content-hash dedup in core-specs collection).
+
+discovery:
+  - ".specs/planning/CORE-*.md"
+
+identity_key: path
+schema_ref: ".specs/META/planning.header.schema.json"
+change_record: text_diff
+vector_collection: core-specs
+crawler_indexed: true
+
+supported_sensors:
+  - repo_crawler
+supported_actions: []

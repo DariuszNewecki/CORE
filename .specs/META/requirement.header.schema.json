@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.specs.requirement.header.schema.json",
+    "title": "CORE requirement document header (ADR-105 D5)",
+    "description": "Validates the YAML frontmatter header of a requirements document under .specs/requirements/. Authored per ADR-105 D5 as the minimum-viable schema for the 'requirement' document kind (URS documents, user-requirement specifications). The prose body is unconstrained; this schema governs only the structured header block. Unlike adr_status/paper_status, no per-class subset enum for requirement status exists yet (ADR-105 D8 deferral); this schema uses the full document_status superset. Status and title are required to enable automated drift detection; the id field mirrors the ADR id convention but is optional pending a formal requirement-id naming decision.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "kind",
+        "title",
+        "status"
+    ],
+    "properties": {
+        "kind": {
+            "const": "requirement"
+        },
+        "id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "description": "Optional stable requirement-set identifier (e.g. 'URS-production-readiness')."
+        },
+        "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+        },
+        "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+        },
+        "status": {
+            "$ref": "../../.intent/META/enums.json#/definitions/document_status"
+        },
+        "supersedes": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Id of requirement document this supersedes, or null."
+        },
+        "depends_on": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}

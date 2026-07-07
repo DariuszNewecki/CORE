@@ -1,0 +1,27 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: northstar
+title: Northstar invariant and system-completion document
+description: >
+  Northstar documents under .specs/northstar/ — the invariant goals and
+  system-completion criteria that guide every governance decision in CORE.
+  These documents define what CORE is, what it achieves at completion, and
+  the non-negotiable principles it operates under. Modeled subtype of the
+  broader .specs markdown surface (ADR-105 D4): carries a typed YAML frontmatter
+  header validated against .specs/META/northstar.header.schema.json. Discovery
+  overlaps spec_markdown by design; benign (content-hash dedup in core-specs
+  collection).
+
+discovery:
+  - ".specs/northstar/*.md"
+
+identity_key: path
+schema_ref: ".specs/META/northstar.header.schema.json"
+change_record: text_diff
+vector_collection: core-specs
+crawler_indexed: true
+
+supported_sensors:
+  - repo_crawler
+supported_actions: []

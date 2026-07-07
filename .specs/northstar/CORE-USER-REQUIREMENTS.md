@@ -1,4 +1,8 @@
 ---
+kind: northstar
+title: "CORE — User Requirements (Founder Vision)"
+status: retired
+---
 
 # CORE — User Requirements
 

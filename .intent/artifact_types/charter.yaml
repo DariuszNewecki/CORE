@@ -1,0 +1,26 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: charter
+title: Constitutional charter document
+description: >
+  The constitutional founding document of the CORE project, located at
+  .specs/CORE-CHARTER.md. The charter defines the project's founding principles,
+  scope, and governance intent. There is typically one charter file; the
+  discovery glob is intentionally narrow. Modeled subtype of the broader .specs
+  markdown surface (ADR-105 D4): carries a typed YAML frontmatter header validated
+  against .specs/META/charter.header.schema.json. Discovery overlaps spec_markdown
+  by design; benign (content-hash dedup in core-specs collection).
+
+discovery:
+  - ".specs/CORE-CHARTER.md"
+
+identity_key: path
+schema_ref: ".specs/META/charter.header.schema.json"
+change_record: text_diff
+vector_collection: core-specs
+crawler_indexed: true
+
+supported_sensors:
+  - repo_crawler
+supported_actions: []

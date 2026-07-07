@@ -1,3 +1,9 @@
+---
+kind: northstar
+title: "CORE — What It Does"
+status: canonical
+---
+
 # CORE — What It Does
 
 **Status:** Active

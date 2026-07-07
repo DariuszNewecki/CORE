@@ -63,6 +63,10 @@ mandate:
       - spec_markdown
       - adr
       - paper
+      - requirement
+      - planning
+      - charter
+      - northstar
     domains:
       - knowledge
       - governance
