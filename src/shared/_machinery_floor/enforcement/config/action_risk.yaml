@@ -53,8 +53,8 @@ actions:
   fix.purge_legacy_tags: dangerous
   fix.settings_access: dangerous
   fix.vulture_heal: dangerous
-  log.archive_partitions: dangerous
-  log.maintain_partitions: moderate
+  log.archive_partitions: moderate
+  log.maintain_partitions: safe
   refactor.apply_split: dangerous
   remediate.cognitive_role: moderate
   sync.db: moderate
