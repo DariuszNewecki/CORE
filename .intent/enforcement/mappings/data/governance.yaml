@@ -92,6 +92,18 @@ mappings:
     scope:
       applies_to: []
 
+  # Issue #619: dataflow-based complement to layer_scope_coherence.
+  # Fires when a governed class (with worker_uuid required) never co-occurs
+  # with a Worker persistence write method in any src/ function scope.
+  # AST-based; no DB access. Catches the AuditFinding case that #612 misses
+  # (multi-layer instantiation but zero persistence reach). See ADR-102.
+  data.contracts.persistence_reach_coherence:
+    engine: contracts_gate
+    params:
+      check_type: persistence_reach_coherence
+    scope:
+      applies_to: []
+
   data.contracts.proposal_conforms:
     engine: ast_gate
     params:

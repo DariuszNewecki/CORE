@@ -53,6 +53,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.persistence_reach_coherence",
+            "statement": "A data contract MUST NOT bind a class with a persistence-attribution field (worker_uuid) if that class never co-occurs with a Worker persistence write method (post_finding, post_report, post_heartbeat) in any src/ function scope. A declared-but-never-exercised attribution requirement signals a contract binding error. Broader than layer_scope_coherence (#612) — catches multi-layer classes that never reach persistence. Authority: ADR-102, issue #619.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.proposal_conforms",
             "statement": "The dataclass `Proposal` MUST declare fields that conform to `.intent/enforcement/contracts/Proposal.json`. Authority: ADR-056 D4.",
             "authority": "policy",

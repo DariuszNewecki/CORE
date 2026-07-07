@@ -3,7 +3,7 @@
 """
 Contracts gate — cross-cutting coherence checks on data contracts.
 
-Dispatches four check_types today:
+Dispatches five check_types today:
 
 - layer_scope_coherence (#612, ADR-102): for every data_contract under
   .intent/enforcement/contracts/, check whether each governed_class's
@@ -36,6 +36,14 @@ Dispatches four check_types today:
   named symbol is defined there. Stale claims (symbol deleted, renamed,
   or moved) are blocking violations. Pure AST/filesystem — no DB access,
   no imports, no runtime execution.
+
+- persistence_reach_coherence (#619): for every contract whose required
+  set contains a persistence-attribution field (worker_uuid), check
+  whether each governed class ever co-occurs with a Worker persistence
+  method (post_finding / post_report / post_heartbeat) in any src/
+  function body. A governed class that never reaches a persistence write
+  site has its contract's attribution requirement declared but never
+  satisfied — the binding is suspect. AST-based; no DB access.
 
 The canonical case (Finding.json firing N>0 against AuditFinding while
 AuditFinding.json fires 0) is what triggered ADR-102; the three rules
@@ -77,6 +85,13 @@ _RULE_ID_LAYER_SCOPE_COHERENCE = "data.contracts.layer_scope_coherence"
 _RULE_ID_ASYMMETRIC_FINDINGS = "data.contracts.asymmetric_contract_findings"
 _RULE_ID_RULE_BINDING_ICEBERG = "data.contracts.rule_binding_iceberg"
 _RULE_ID_PASSIVE_GATE_ATTESTATION = "governance.passive_gate.enforced_by_must_resolve"
+_RULE_ID_PERSISTENCE_REACH = "data.contracts.persistence_reach_coherence"
+
+# Worker persistence write methods whose co-occurrence with a governed
+# class indicates the class reaches a blackboard attribution write site.
+_PERSISTENCE_WRITE_METHODS = frozenset(
+    {"post_finding", "post_report", "post_heartbeat"}
+)
 
 # Default lookback window for the DB-backed checks. 24h gives the daemon
 # multiple audit cycles to populate counts without letting a single
@@ -146,6 +161,7 @@ class ContractsGateEngine(BaseEngine):
             "asymmetric_contract_findings",
             "rule_binding_iceberg",
             "passive_gate_symbol_attestation",
+            "persistence_reach_coherence",
         }
     )
 
@@ -175,6 +191,8 @@ class ContractsGateEngine(BaseEngine):
             return await _check_rule_binding_iceberg(context, params)
         if check_type == "passive_gate_symbol_attestation":
             return _check_passive_gate_symbol_attestation(context, params)
+        if check_type == "persistence_reach_coherence":
+            return _check_persistence_reach_coherence(context)
         return [
             AuditFinding(
                 check_id=f"{self.engine_id}.{check_type or 'missing'}.error",
@@ -575,6 +593,148 @@ async def _check_rule_binding_iceberg(
             )
         )
     return findings
+
+
+# ID: 4e8a2d1f-b3c7-4e9a-b2d5-8f1c0a3e6d94
+def _check_persistence_reach_coherence(context: AuditorContext) -> list[AuditFinding]:
+    """Detect contracts whose governed classes never reach a persistence write site.
+
+    For every contract whose `required` set contains a persistence-attribution
+    field (worker_uuid), walks governed_classes and checks whether each class
+    ever co-occurs with a Worker persistence method (post_finding, post_report,
+    post_heartbeat) in any function body under src/. A class that never appears
+    alongside such a call has its contract's attribution requirement declared but
+    never satisfied — the binding is suspect.
+
+    Complement to layer_scope_coherence (#612): that check fires when a class is
+    exclusively in a forbidding layer. This check fires when the class appears
+    across layers but never reaches an actual persistence write, which the
+    narrower heuristic misses. Issue #619; see ADR-102 for the AuditFinding case.
+
+    Pure AST / filesystem — no DB access, no imports.
+    """
+    findings: list[AuditFinding] = []
+    repo_root: Path = context.paths.repo_root
+    contracts_dir = repo_root / ".intent" / "enforcement" / "contracts"
+    src_root = repo_root / "src"
+
+    if not contracts_dir.is_dir():
+        return findings
+
+    classes_of_interest: set[str] = set()
+    contract_data: dict[Path, dict[str, Any]] = {}
+    for contract_path in sorted(contracts_dir.glob("*.json")):
+        try:
+            data = json.loads(contract_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning(
+                "contracts_gate.persistence_reach: skipping %s: %s",
+                contract_path,
+                exc,
+            )
+            continue
+        required = set(data.get("required") or [])
+        if not (required & _PERSISTENCE_ATTRIBUTION_FIELDS):
+            continue
+        governed = data.get("governed_classes") or []
+        if not governed:
+            continue
+        contract_data[contract_path] = data
+        classes_of_interest.update(governed)
+
+    if not classes_of_interest:
+        return findings
+
+    reached = _find_persistence_reach(classes_of_interest, src_root)
+
+    for contract_path, data in contract_data.items():
+        contract_id = (data.get("metadata") or {}).get("id", contract_path.stem)
+        attribution_fields = sorted(
+            set(data.get("required") or []) & _PERSISTENCE_ATTRIBUTION_FIELDS
+        )
+        for class_name in data.get("governed_classes") or []:
+            if class_name in reached:
+                continue
+            attribution_str = ", ".join(attribution_fields)
+            findings.append(
+                AuditFinding(
+                    check_id=_RULE_ID_PERSISTENCE_REACH,
+                    severity=_DEFAULT_FINDING_SEVERITY,
+                    message=(
+                        f"Contract {contract_path.name} (id: {contract_id}) binds "
+                        f"class '{class_name}' with persistence-attribution field(s) "
+                        f"[{attribution_str}], but '{class_name}' never co-occurs with "
+                        f"a Worker persistence method (post_finding, post_report, "
+                        f"post_heartbeat) in any src/ function scope. The attribution "
+                        f"requirement is declared but never exercised — verify whether "
+                        f"the contract's governed_classes binding is correct or whether "
+                        f"the class should be removed from it. "
+                        f"See ADR-102 and issue #619."
+                    ),
+                    file_path=str(contract_path.relative_to(repo_root)),
+                    context={
+                        "contract_id": contract_id,
+                        "class_name": class_name,
+                        "required_attribution_fields": attribution_fields,
+                    },
+                )
+            )
+    return findings
+
+
+# ID: 7b1e5d2a-f8c4-4b9e-a3f6-0c2d5e8f1a7b
+def _find_persistence_reach(classes: set[str], src_root: Path) -> set[str]:
+    """Return the subset of classes that co-occur with a persistence write method.
+
+    Walks src/ .py files. For each function (def or async def), checks whether
+    both (a) a class name from `classes` appears as a Name or Attribute node AND
+    (b) a call to a persistence write method (post_finding, post_report,
+    post_heartbeat) appears in the same function body. Returns the set of class
+    names that pass this co-occurrence test.
+
+    This is an AST-level approximation, not full dataflow analysis — it detects
+    that the class is USED in a write-capable function scope, not that an instance
+    of the class is literally passed to the method. Sufficient for the first-pass
+    heuristic; full dataflow is deferred per issue #619.
+    """
+    reached: set[str] = set()
+    if not classes or not src_root.is_dir():
+        return reached
+
+    for py_file in src_root.rglob("*.py"):
+        try:
+            source = py_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not any(c in source for c in classes):
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            # Check for persistence write method calls in this function body
+            has_write_call = any(
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute)
+                and n.func.attr in _PERSISTENCE_WRITE_METHODS
+                for n in ast.walk(node)
+            )
+            if not has_write_call:
+                continue
+            # Check which governed classes appear in this function
+            for n in ast.walk(node):
+                if isinstance(n, ast.Name) and n.id in classes:
+                    reached.add(n.id)
+                elif isinstance(n, ast.Attribute) and n.attr in classes:
+                    reached.add(n.attr)
+            if reached >= classes:
+                return reached  # All found — short-circuit
+
+    return reached
 
 
 # ID: f1fa9edf-8dc6-4a6b-8553-369810216e44

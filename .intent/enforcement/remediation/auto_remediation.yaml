@@ -996,6 +996,19 @@ mappings:
       DELEGATE.
     status: DELEGATE
 
+  data.contracts.persistence_reach_coherence:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      Cross-cutting contract-scope rule (#619). Fires when a contract
+      requiring worker_uuid binds a class that never co-occurs with a
+      Worker persistence write method in any src/ function scope. The
+      attribution requirement is declared but never satisfied — either
+      retire the contract binding or verify the class IS reaching
+      post_finding() via a path the AST walk misses. Architectural
+      judgment required. Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
   data.contracts.asymmetric_contract_findings:
     action: fix.modularity
     confidence: 0.40
