@@ -13,7 +13,7 @@ Every autonomous operation in CORE follows the same governed loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n226 rules • 15 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n249 rules • 15 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
