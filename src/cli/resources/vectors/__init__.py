@@ -1,10 +1,9 @@
 # src/cli/resources/vectors/__init__.py
-"""Vector resource hub."""
+"""Vector resource hub — operator commands only (consumer subset in core-cli)."""
 
 from __future__ import annotations
 
-# Register all neurons
-from . import cleanup, query, rebuild, status, sync, sync_code
+from . import cleanup
 from .hub import app
 
 

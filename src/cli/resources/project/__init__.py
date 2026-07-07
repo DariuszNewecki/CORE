@@ -1,5 +1,5 @@
 # src/cli/resources/project/__init__.py
-"""Project lifecycle and onboarding operations."""
+"""Project lifecycle — operator commands only (consumer subset in core-cli)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,11 @@ import typer
 
 app = typer.Typer(
     name="project",
-    help="Operations for project lifecycle: scaffolding, onboarding, and documentation.",
+    help="Operations for project lifecycle: scaffolding.",
     no_args_is_help=True,
 )
 
-# Standard Verbs
-from . import docs, new, onboard, scout
+from . import new
 
 
 __all__ = ["app"]

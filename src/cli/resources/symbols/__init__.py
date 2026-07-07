@@ -1,12 +1,9 @@
 # src/cli/resources/symbols/__init__.py
-"""Symbol registry and Knowledge Graph operations."""
+"""Symbol registry — operator commands only (consumer subset in core-cli)."""
 
 from __future__ import annotations
 
-# 2. Register all symbol neurons
-from . import audit, fix_ids, resolve_duplicates, sync, tag
-
-# 1. Import the stable app from the hub
+from . import tag
 from .hub import app
 
 

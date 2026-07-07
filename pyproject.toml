@@ -99,7 +99,6 @@ Documentation = "https://dariusznewecki.github.io/CORE/"
 
 [project.scripts]
 core-admin = "cli.admin_cli:app"
-core = "cli.cli_user:app"
 
 # Poetry-specific configuration that PEP 621 does not model.
 # Package discovery (src/ layout) and the dev dependency group stay here.
