@@ -230,7 +230,7 @@ async def workers_blackboard_resolve_cmd(
     ),
     by: str = typer.Option("cli_admin", "--by", help="Operator identity."),
     authority: str = typer.Option(
-        "human.cli_operator",
+        "principal.governor",
         "--authority",
         help="Authority under which the resolution is recorded (URS NFR.5).",
     ),

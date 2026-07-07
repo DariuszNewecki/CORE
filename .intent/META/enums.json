@@ -148,6 +148,16 @@
         "principal.governor"
       ]
     },
+    "blackboard_resolution_authority": {
+      "description": "Closed set of authority values stamped into core.blackboard_entries payload under payload.resolution.resolution_authority when a finding is closed. Identifies the agent or role that performed the closure. principal.governor \u2014 a human Governor closed the finding via core-admin blackboard resolve. system.audit \u2014 the audit clean-pass sensor closed the finding on a passing re-evaluation. system.ttl_sweep \u2014 the TTL sweep closed a stale or expired finding. system.rule_registry_sweep \u2014 a retired-rule sweep closed findings whose owning rule was removed from the registry. The legacy value human.cli_operator (pre-#428) and the one-off human.governor are both backfilled to principal.governor; neither appears in the live enum. Authority: ADR-068 D5; issue #428.",
+      "type": "string",
+      "enum": [
+        "principal.governor",
+        "system.audit",
+        "system.ttl_sweep",
+        "system.rule_registry_sweep"
+      ]
+    },
     "dry_run_scope": {
       "description": "Disambiguates the three distinct dry-run modes in CORE. evaluation_only means the rule was checked but no fix was generated. fix_generated means a fix was produced but not applied. finding_suppressed means the finding is tagged for exclusion from remediation pipelines.",
       "type": "string",

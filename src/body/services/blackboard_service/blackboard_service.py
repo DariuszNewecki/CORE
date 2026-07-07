@@ -525,7 +525,7 @@ class BlackboardService:
         entry_id: str,
         reason: str,
         resolved_by: str = "cli_admin",
-        resolution_authority: str = "human.cli_operator",
+        resolution_authority: str = "principal.governor",
     ) -> int:
         """
         Close a single indeterminate finding with an operator-provided reason.
