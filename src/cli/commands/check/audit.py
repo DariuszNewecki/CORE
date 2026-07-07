@@ -7,6 +7,7 @@ Refactored to use the canonical CoreContext provided by the framework.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -42,13 +43,19 @@ def _to_audit_finding(raw: dict) -> AuditFinding:
     )
 
 
-async def _persist_findings_to_db(findings: list[AuditFinding]) -> None:
-    """Persist audit findings to core.audit_findings (DB SSOT)."""
+async def _persist_findings_to_db(
+    findings: list[AuditFinding],
+    *,
+    verdict: str,
+    passed: bool,
+) -> None:
+    """Persist audit findings to core.audit_findings with a run record (ADR-054 Option A)."""
     logger.info("_persist_findings_to_db called with %d findings.", len(findings))
     if not findings:
         logger.warning("No findings to persist — skipping.")
         return
-    rows = [
+    blocking_count = sum(1 for f in findings if f.severity.is_blocking)
+    finding_rows = [
         {
             "check_id": f.check_id,
             "severity": (
@@ -61,18 +68,49 @@ async def _persist_findings_to_db(findings: list[AuditFinding]) -> None:
         }
         for f in findings
     ]
-    logger.info("Persisting %d rows to core.audit_findings.", len(rows))
+    logger.info("Persisting %d rows to core.audit_findings.", len(finding_rows))
     try:
         async with get_session() as session:
-            await session.execute(text("TRUNCATE TABLE core.audit_findings"))
-            await session.execute(
-                text(
-                    "\n                    INSERT INTO core.audit_findings\n                        (check_id, severity, message, file_path, line_number, context)\n                    VALUES\n                        (:check_id, :severity, :message, :file_path,\n                         :line_number, cast(:context as jsonb))\n                    "
-                ),
-                rows,
-            )
-            await session.commit()
-        logger.info("Persisted %d findings to core.audit_findings.", len(rows))
+            async with session.begin():
+                run_result = await session.execute(
+                    text(
+                        """
+                        INSERT INTO core.audit_runs
+                            (source, verdict, finding_count, blocking_count, finished_at)
+                        VALUES
+                            (:source, :verdict, :finding_count, :blocking_count, :finished_at)
+                        RETURNING run_id
+                        """
+                    ),
+                    {
+                        "source": "cli",
+                        "verdict": verdict,
+                        "finding_count": len(findings),
+                        "blocking_count": blocking_count,
+                        "finished_at": datetime.now(UTC),
+                    },
+                )
+                run_id = run_result.scalar_one()
+                rows_with_run = [{**r, "run_id": run_id} for r in finding_rows]
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO core.audit_findings
+                            (run_id, check_id, severity, message, file_path,
+                             line_number, context)
+                        VALUES
+                            (:run_id, :check_id, :severity, :message, :file_path,
+                             :line_number, cast(:context as jsonb))
+                        """
+                    ),
+                    rows_with_run,
+                )
+        logger.info(
+            "Persisted run %s (%d findings, verdict=%s) to DB.",
+            run_id,
+            len(findings),
+            verdict,
+        )
     except Exception as exc:
         logger.error("Failed to persist findings to DB: %s", exc, exc_info=True)
 
@@ -106,12 +144,17 @@ async def audit_cmd(
         _to_audit_finding(f.as_dict() if hasattr(f, "as_dict") else f) for f in findings
     ]
     logger.info("Converted to %d AuditFinding objects.", len(all_findings))
-    await _persist_findings_to_db(all_findings)
+    passed = result["passed"]
+    verdict_str = (
+        result["verdict"].value
+        if hasattr(result["verdict"], "value")
+        else str(result["verdict"])
+    )
+    await _persist_findings_to_db(all_findings, verdict=verdict_str, passed=passed)
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
     errors = [f for f in all_findings if f.severity.is_blocking]
     warnings = [f for f in all_findings if f.severity == AuditSeverity.HIGH]
     infos = [f for f in all_findings if f.severity == AuditSeverity.INFO]
-    passed = result["passed"]
     summary_table = Table.grid(expand=True, padding=(0, 1))
     summary_table.add_row("Total Findings:", str(len(all_findings)))
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")

@@ -176,3 +176,39 @@ historical runs). It is parked as a Band E follow-up; this amendment
 is the interim fix, not the terminal design.
 
 Closes #340.
+
+---
+
+## Amendment 2026-07-07 — relational `audit_findings.run_id` (Option A)
+
+Implements Option A from the 2026-05-17 amendment. Closes #345.
+
+**Schema change:** `core.audit_findings` gains a `run_id uuid NOT NULL
+REFERENCES core.audit_runs(run_id)` column, promoting it from a
+TRUNCATE-and-INSERT scratch table to an append-only historical record.
+Four indexes added: `(run_id)`, `(run_id, severity)`, `(check_id,
+run_id)`, `(file_path, run_id)`.
+
+**Writer change:** `_persist_findings_to_db` in
+`src/cli/commands/check/audit.py` now opens a single transaction that
+(1) INSERTs an `audit_runs` row with `source='cli'`, the actual
+verdict, finding_count, and blocking_count, then (2) INSERTs findings
+with the returned `run_id`. The TRUNCATE is removed; every audit run
+appends to the historical record.
+
+**JSONB column fate:** `core.audit_runs.findings` is retained as the
+fast-path cache for `GET /audit/runs/{id}` (JOIN cost on every GET
+would be wasteful for the 99% read-single-run case). The daemon path
+(`audit_runner.py`) still writes only the JSONB column; dual-write or
+re-targeting is deferred to a future cleanup.
+
+**Cross-run queries now possible** — example: findings by rule across
+runs:
+```sql
+SELECT check_id, COUNT(*) AS occurrences,
+       MIN(r.finished_at) AS first_seen, MAX(r.finished_at) AS last_seen
+FROM core.audit_findings f
+JOIN core.audit_runs r USING (run_id)
+GROUP BY check_id
+ORDER BY occurrences DESC;
+```
