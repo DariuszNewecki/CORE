@@ -1,0 +1,26 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.create_census_run_request",
+        "title": "CreateCensusRunRequest \u2014 body of POST /v1/census/runs",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch an async census run (POST /v1/census/runs, census_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional.",
+    "governed_classes": [
+        "CreateCensusRunRequest"
+    ],
+    "required": [],
+    "properties": {
+        "snapshot": {
+            "type": "boolean",
+            "description": "When true, persist a census snapshot to disk for later baseline comparison."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier recorded on the run row. Defaults to 'api'."
+        }
+    }
+}

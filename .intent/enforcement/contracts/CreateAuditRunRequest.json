@@ -1,0 +1,51 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.create_audit_run_request",
+        "title": "CreateAuditRunRequest \u2014 body of POST /v1/audit/runs",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch an async audit run (POST /v1/audit/runs, audit_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional: an empty body runs the full audit against all rules and files.",
+    "governed_classes": [
+        "CreateAuditRunRequest"
+    ],
+    "required": [],
+    "properties": {
+        "rule_ids": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Optional filter: only evaluate these rule IDs. Empty list means all rules."
+        },
+        "policy_ids": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Optional filter: only evaluate rules governed by these policy IDs."
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Optional filter: restrict audit scope to these file paths."
+        },
+        "force_llm": {
+            "type": "boolean",
+            "description": "Force LLM-gate evaluation even when cache would short-circuit it."
+        },
+        "wait": {
+            "type": "boolean",
+            "description": "If true, block until the run completes and return the full run result."
+        },
+        "source": {
+            "type": "string",
+            "description": "Caller identifier recorded on the run row. Defaults to 'api'."
+        }
+    }
+}

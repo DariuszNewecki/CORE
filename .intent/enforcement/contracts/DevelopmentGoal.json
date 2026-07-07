@@ -1,0 +1,33 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.development_goal",
+        "title": "DevelopmentGoal \u2014 body of POST /v1/development/goals",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to submit a natural-language development goal for autonomous execution (POST /v1/development/goals, development_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'goal' and 'workflow_type' are required.",
+    "governed_classes": [
+        "DevelopmentGoal"
+    ],
+    "required": [
+        "goal",
+        "workflow_type"
+    ],
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "Natural-language description of the development intent to be executed autonomously."
+        },
+        "workflow_type": {
+            "type": "string",
+            "description": "Workflow variant to use for execution (e.g. 'code_generation', 'code_modification')."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), produce dry-run output only. When true, apply changes."
+        }
+    }
+}

@@ -1,0 +1,46 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.create_proposal_request",
+        "title": "CreateProposalRequest \u2014 body of POST /v1/proposals",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to create a new governance proposal (POST /v1/proposals, proposals_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'goal' is required.",
+    "governed_classes": [
+        "CreateProposalRequest"
+    ],
+    "required": [
+        "goal"
+    ],
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "Natural-language description of the change this proposal intends to make."
+        },
+        "actions": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "List of action descriptors (action_id + parameters) to include in the proposal. Empty list is valid (governor-fills later)."
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Scope files to include in the proposal. Empty list means unrestricted scope."
+        },
+        "created_by": {
+            "type": "string",
+            "description": "Caller identity recorded on the proposal row. Defaults to 'cli_operator'."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When true (default), persist the proposal. When false, return a dry-run preview."
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.create_baseline_request",
+        "title": "CreateBaselineRequest \u2014 body of POST /v1/census/baselines/{name}",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to create a named census baseline (POST /v1/census/baselines/{name}, census_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). When snapshot_file is omitted, the most recent snapshot is used.",
+    "governed_classes": [
+        "CreateBaselineRequest"
+    ],
+    "required": [],
+    "properties": {
+        "snapshot_file": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Path to the snapshot file to register as the baseline. When null, the most recent snapshot is used."
+        }
+    }
+}

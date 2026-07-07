@@ -494,3 +494,203 @@ mappings:
     scope:
       applies_to:
         - "src/body/services/cim/models.py"
+
+  # Wave 3 API DTO request shapes — ADR-056 Wave 3
+
+  data.contracts.create_audit_run_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: CreateAuditRunRequest
+    scope:
+      applies_to:
+        - "src/api/v1/audit_routes.py"
+
+  data.contracts.create_remediation_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: CreateRemediationRequest
+    scope:
+      applies_to:
+        - "src/api/v1/audit_routes.py"
+
+  data.contracts.create_census_run_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: CreateCensusRunRequest
+    scope:
+      applies_to:
+        - "src/api/v1/census_routes.py"
+
+  data.contracts.create_baseline_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: CreateBaselineRequest
+    scope:
+      applies_to:
+        - "src/api/v1/census_routes.py"
+
+  data.contracts.generate_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: GenerateRequest
+    scope:
+      applies_to:
+        - "src/api/v1/coverage_routes.py"
+
+  data.contracts.generate_batch_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: GenerateBatchRequest
+    scope:
+      applies_to:
+        - "src/api/v1/coverage_routes.py"
+
+  data.contracts.interactive_tests_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: InteractiveTestsRequest
+    scope:
+      applies_to:
+        - "src/api/v1/coverage_routes.py"
+
+  data.contracts.report_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: ReportRequest
+    scope:
+      applies_to:
+        - "src/api/v1/coverage_routes.py"
+
+  data.contracts.development_goal_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: DevelopmentGoal
+    scope:
+      applies_to:
+        - "src/api/v1/development_routes.py"
+
+  data.contracts.integrate_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: IntegrateRequest
+    scope:
+      applies_to:
+        - "src/api/v1/integration_routes.py"
+
+  data.contracts.integrity_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: IntegrityRequest
+    scope:
+      applies_to:
+        - "src/api/v1/integrity_routes.py"
+
+  data.contracts.propose_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: ProposeRequest
+    scope:
+      applies_to:
+        - "src/api/v1/lane_routes.py"
+
+  data.contracts.approve_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: ApproveRequest
+    scope:
+      applies_to:
+        - "src/api/v1/proposals_routes.py"
+
+  data.contracts.reject_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: RejectRequest
+    scope:
+      applies_to:
+        - "src/api/v1/proposals_routes.py"
+
+  data.contracts.execute_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: ExecuteRequest
+    scope:
+      applies_to:
+        - "src/api/v1/proposals_routes.py"
+
+  data.contracts.create_proposal_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: CreateProposalRequest
+    scope:
+      applies_to:
+        - "src/api/v1/proposals_routes.py"
+
+  data.contracts.quality_target_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: QualityTargetRequest
+    scope:
+      applies_to:
+        - "src/api/v1/quality_routes.py"
+
+  data.contracts.quality_lint_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: QualityLintRequest
+    scope:
+      applies_to:
+        - "src/api/v1/quality_routes.py"
+
+  data.contracts.quality_tests_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: QualityTestsRequest
+    scope:
+      applies_to:
+        - "src/api/v1/quality_routes.py"
+
+  data.contracts.quality_async_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: QualityAsyncRequest
+    scope:
+      applies_to:
+        - "src/api/v1/quality_routes.py"
+
+  data.contracts.run_autonomous_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: RunAutonomousRequest
+    scope:
+      applies_to:
+        - "src/api/v1/refactor_routes.py"
+
+  data.contracts.sync_request_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: SyncRequest
+    scope:
+      applies_to:
+        - "src/api/v1/sync_routes.py"

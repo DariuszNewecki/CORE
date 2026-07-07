@@ -1,0 +1,22 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.quality_async_request",
+        "title": "QualityAsyncRequest \u2014 body of POST /v1/quality/async",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch a quality check run asynchronously (POST /v1/quality/async, quality_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional.",
+    "governed_classes": [
+        "QualityAsyncRequest"
+    ],
+    "required": [],
+    "properties": {
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier recorded on the run row. Defaults to 'api'."
+        }
+    }
+}

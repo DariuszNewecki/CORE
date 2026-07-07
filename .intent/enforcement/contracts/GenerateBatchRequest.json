@@ -1,0 +1,35 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.generate_batch_request",
+        "title": "GenerateBatchRequest \u2014 body of POST /v1/coverage/generate-batch",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch a batch test-generation run (POST /v1/coverage/generate-batch, coverage_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'priority' controls the selection strategy for which files to generate tests for.",
+    "governed_classes": [
+        "GenerateBatchRequest"
+    ],
+    "required": [],
+    "properties": {
+        "priority": {
+            "type": "string",
+            "enum": [
+                "all",
+                "missing",
+                "failing"
+            ],
+            "description": "File selection strategy: 'all' generates for all files without tests; 'missing' targets only files with no test file; 'failing' targets files whose tests are currently failing."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), return proposed content only. When true, write to disk."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        }
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.quality_tests_request",
+        "title": "QualityTestsRequest \u2014 body of POST /v1/quality/tests",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to run the test suite (POST /v1/quality/tests, quality_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). When 'path' is null, the full suite runs.",
+    "governed_classes": [
+        "QualityTestsRequest"
+    ],
+    "required": [],
+    "properties": {
+        "path": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Optional path filter to restrict the test run (e.g. 'tests/body/'). When null, runs the full suite."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        }
+    }
+}

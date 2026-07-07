@@ -1,0 +1,26 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.quality_lint_request",
+        "title": "QualityLintRequest \u2014 body of POST /v1/quality/lint",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to run a lint pass (POST /v1/quality/lint, quality_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). When 'fix' is true, auto-fixable violations are corrected in place.",
+    "governed_classes": [
+        "QualityLintRequest"
+    ],
+    "required": [],
+    "properties": {
+        "fix": {
+            "type": "boolean",
+            "description": "When true, auto-apply fixable lint violations. When false (default), report only."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        }
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.quality_target_request",
+        "title": "QualityTargetRequest \u2014 body of POST /v1/quality/target",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to run quality analysis on a specific set of files (POST /v1/quality/target, quality_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). When target_files is null, analysis runs across all files.",
+    "governed_classes": [
+        "QualityTargetRequest"
+    ],
+    "required": [],
+    "properties": {
+        "target_files": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "string"
+            },
+            "description": "File paths to target. When null, all files in scope are analyzed."
+        }
+    }
+}

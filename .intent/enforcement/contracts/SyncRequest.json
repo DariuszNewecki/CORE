@@ -1,0 +1,37 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.sync_request",
+        "title": "SyncRequest \u2014 body of POST /v1/sync",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to trigger a DB sync run (POST /v1/sync, sync_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional.",
+    "governed_classes": [
+        "SyncRequest"
+    ],
+    "required": [],
+    "properties": {
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), compute sync diff without writing. When true, apply changes to the DB."
+        },
+        "target": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Optional target subsystem or file path to restrict the sync scope. When null, full sync runs."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        },
+        "force": {
+            "type": "boolean",
+            "description": "When true, bypass incremental checks and force a full re-sync."
+        }
+    }
+}

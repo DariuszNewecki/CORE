@@ -40,21 +40,21 @@
         },
         {
             "id": "data.contracts.asymmetric_contract_findings",
-            "statement": "When the same class is governed by multiple schema_conformance rules and at least one rule fires zero findings while another fires N>0 over the lookback window, the high-firing rule's binding is suspect — verify scope before reshaping the class. Authority: ADR-102 (#613).",
+            "statement": "When the same class is governed by multiple schema_conformance rules and at least one rule fires zero findings while another fires N>0 over the lookback window, the high-firing rule's binding is suspect \u2014 verify scope before reshaping the class. Authority: ADR-102 (#613).",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
         },
         {
             "id": "data.contracts.rule_binding_iceberg",
-            "statement": "When a schema_conformance rule produces many findings against few distinct source files over the lookback window (iceberg shape: high finding count concentrated on a small file set), the rule's binding is suspect — investigate the rule's scope before reshaping the affected classes. Authority: ADR-102 (#614).",
+            "statement": "When a schema_conformance rule produces many findings against few distinct source files over the lookback window (iceberg shape: high finding count concentrated on a small file set), the rule's binding is suspect \u2014 investigate the rule's scope before reshaping the affected classes. Authority: ADR-102 (#614).",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
         },
         {
             "id": "data.contracts.persistence_reach_coherence",
-            "statement": "A data contract MUST NOT bind a class with a persistence-attribution field (worker_uuid) if that class never co-occurs with a Worker persistence write method (post_finding, post_report, post_heartbeat) in any src/ function scope. A declared-but-never-exercised attribution requirement signals a contract binding error. Broader than layer_scope_coherence (#612) — catches multi-layer classes that never reach persistence. Authority: ADR-102, issue #619.",
+            "statement": "A data contract MUST NOT bind a class with a persistence-attribution field (worker_uuid) if that class never co-occurs with a Worker persistence write method (post_finding, post_report, post_heartbeat) in any src/ function scope. A declared-but-never-exercised attribution requirement signals a contract binding error. Broader than layer_scope_coherence (#612) \u2014 catches multi-layer classes that never reach persistence. Authority: ADR-102, issue #619.",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
@@ -313,7 +313,7 @@
         },
         {
             "id": "data.contracts.detailed_plan_conforms",
-            "statement": "The dataclass `DetailedPlan` MUST declare fields that conform to `.intent/enforcement/contracts/DetailedPlan.json`. DetailedPlan is the core Engineering phase artifact; get_steps_requiring_code() hardcodes legacy action names — constitutional violation pending fix. Authority: ADR-056 Wave 3 Session 1.",
+            "statement": "The dataclass `DetailedPlan` MUST declare fields that conform to `.intent/enforcement/contracts/DetailedPlan.json`. DetailedPlan is the core Engineering phase artifact; get_steps_requiring_code() hardcodes legacy action names \u2014 constitutional violation pending fix. Authority: ADR-056 Wave 3 Session 1.",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
@@ -334,14 +334,14 @@
         },
         {
             "id": "data.contracts.agent_decision_conforms",
-            "statement": "The ORM class `AgentDecision` MUST declare fields that conform to `.intent/enforcement/contracts/AgentDecision.json`. options_considered JSONB shape is ungoverned — fourth JSONB gap alongside ProposalConsequence, ConstitutionalViolationPayload, WorkerDeclaration. Authority: ADR-056 Wave 3 Session 1.",
+            "statement": "The ORM class `AgentDecision` MUST declare fields that conform to `.intent/enforcement/contracts/AgentDecision.json`. options_considered JSONB shape is ungoverned \u2014 fourth JSONB gap alongside ProposalConsequence, ConstitutionalViolationPayload, WorkerDeclaration. Authority: ADR-056 Wave 3 Session 1.",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
         },
         {
             "id": "data.contracts.policy_evaluation_conforms",
-            "statement": "The Pydantic class `PolicyEvaluation` MUST declare fields that conform to `.intent/enforcement/contracts/PolicyEvaluation.json`. PolicyEvaluation aggregates CheckResult findings; info_count is absent — INFO findings are silently excluded. Authority: ADR-056 Wave 3 Session 1.",
+            "statement": "The Pydantic class `PolicyEvaluation` MUST declare fields that conform to `.intent/enforcement/contracts/PolicyEvaluation.json`. PolicyEvaluation aggregates CheckResult findings; info_count is absent \u2014 INFO findings are silently excluded. Authority: ADR-056 Wave 3 Session 1.",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
@@ -349,6 +349,160 @@
         {
             "id": "data.contracts.repo_census_conforms",
             "statement": "The Pydantic class `RepoCensus` MUST declare fields that conform to `.intent/enforcement/contracts/RepoCensus.json`. RepoCensus is the canonical CIM-0 output format; already self-versioning via RepoCensusMetadata. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.create_audit_run_request_conforms",
+            "statement": "The Pydantic class `CreateAuditRunRequest` MUST declare fields that conform to `.intent/enforcement/contracts/CreateAuditRunRequest.json`. Request body for POST /v1/audit/runs; governs optional rule/policy/file filters and async wait flag. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.create_remediation_request_conforms",
+            "statement": "The Pydantic class `CreateRemediationRequest` MUST declare fields that conform to `.intent/enforcement/contracts/CreateRemediationRequest.json`. Request body for POST /v1/audit/remediations; audit_run_id anchors the remediation to a specific run. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.create_census_run_request_conforms",
+            "statement": "The Pydantic class `CreateCensusRunRequest` MUST declare fields that conform to `.intent/enforcement/contracts/CreateCensusRunRequest.json`. Request body for POST /v1/census/runs; governs snapshot flag. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.create_baseline_request_conforms",
+            "statement": "The Pydantic class `CreateBaselineRequest` MUST declare fields that conform to `.intent/enforcement/contracts/CreateBaselineRequest.json`. Request body for POST /v1/census/baselines/{name}; snapshot_file is optional. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.generate_request_conforms",
+            "statement": "The Pydantic class `GenerateRequest` MUST declare fields that conform to `.intent/enforcement/contracts/GenerateRequest.json`. Request body for POST /v1/coverage/generate; target_file is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.generate_batch_request_conforms",
+            "statement": "The Pydantic class `GenerateBatchRequest` MUST declare fields that conform to `.intent/enforcement/contracts/GenerateBatchRequest.json`. Request body for POST /v1/coverage/generate-batch; priority selects file targeting strategy. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.interactive_tests_request_conforms",
+            "statement": "The Pydantic class `InteractiveTestsRequest` MUST declare fields that conform to `.intent/enforcement/contracts/InteractiveTestsRequest.json`. Request body for POST /v1/coverage/interactive; optional target_file scoping. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.report_request_conforms",
+            "statement": "The Pydantic class `ReportRequest` MUST declare fields that conform to `.intent/enforcement/contracts/ReportRequest.json`. Request body for POST /v1/coverage/report; format enum is text|html. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.development_goal_conforms",
+            "statement": "The Pydantic class `DevelopmentGoal` MUST declare fields that conform to `.intent/enforcement/contracts/DevelopmentGoal.json`. Request body for POST /v1/development/goals; goal and workflow_type are required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.integrate_request_conforms",
+            "statement": "The Pydantic class `IntegrateRequest` MUST declare fields that conform to `.intent/enforcement/contracts/IntegrateRequest.json`. Request body for POST /v1/integration/commit; commit_message is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.integrity_request_conforms",
+            "statement": "The Pydantic class `IntegrityRequest` MUST declare fields that conform to `.intent/enforcement/contracts/IntegrityRequest.json`. Request body for POST /v1/integrity/check; label selects the check set. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.propose_request_conforms",
+            "statement": "The Pydantic class `ProposeRequest` MUST declare fields that conform to `.intent/enforcement/contracts/ProposeRequest.json`. Request body for POST /v1/lane/{finding_id}/propose; patch and validation_run_id are required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.approve_request_conforms",
+            "statement": "The Pydantic class `ApproveRequest` MUST declare fields that conform to `.intent/enforcement/contracts/ApproveRequest.json`. Request body for POST /v1/proposals/{id}/approve; approval_authority is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.reject_request_conforms",
+            "statement": "The Pydantic class `RejectRequest` MUST declare fields that conform to `.intent/enforcement/contracts/RejectRequest.json`. Request body for POST /v1/proposals/{id}/reject; reason is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.execute_request_conforms",
+            "statement": "The Pydantic class `ExecuteRequest` MUST declare fields that conform to `.intent/enforcement/contracts/ExecuteRequest.json`. Request body for POST /v1/proposals/{id}/execute; all fields optional. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.create_proposal_request_conforms",
+            "statement": "The Pydantic class `CreateProposalRequest` MUST declare fields that conform to `.intent/enforcement/contracts/CreateProposalRequest.json`. Request body for POST /v1/proposals; goal is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.quality_target_request_conforms",
+            "statement": "The Pydantic class `QualityTargetRequest` MUST declare fields that conform to `.intent/enforcement/contracts/QualityTargetRequest.json`. Request body for POST /v1/quality/target; target_files is optional list. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.quality_lint_request_conforms",
+            "statement": "The Pydantic class `QualityLintRequest` MUST declare fields that conform to `.intent/enforcement/contracts/QualityLintRequest.json`. Request body for POST /v1/quality/lint; fix flag enables auto-fix mode. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.quality_tests_request_conforms",
+            "statement": "The Pydantic class `QualityTestsRequest` MUST declare fields that conform to `.intent/enforcement/contracts/QualityTestsRequest.json`. Request body for POST /v1/quality/tests; path restricts the test run. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.quality_async_request_conforms",
+            "statement": "The Pydantic class `QualityAsyncRequest` MUST declare fields that conform to `.intent/enforcement/contracts/QualityAsyncRequest.json`. Request body for POST /v1/quality/async; all fields optional. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.run_autonomous_request_conforms",
+            "statement": "The Pydantic class `RunAutonomousRequest` MUST declare fields that conform to `.intent/enforcement/contracts/RunAutonomousRequest.json`. Request body for POST /v1/refactor/autonomous; goal is required. Authority: ADR-056 Wave 3 (API DTOs).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.sync_request_conforms",
+            "statement": "The Pydantic class `SyncRequest` MUST declare fields that conform to `.intent/enforcement/contracts/SyncRequest.json`. Request body for POST /v1/sync; all fields optional. Authority: ADR-056 Wave 3 (API DTOs).",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"

@@ -1,0 +1,25 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.interactive_tests_request",
+        "title": "InteractiveTestsRequest \u2014 body of POST /v1/coverage/interactive",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body for the interactive test exploration endpoint (POST /v1/coverage/interactive, coverage_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional; when target_file is null, the endpoint operates on the full test suite.",
+    "governed_classes": [
+        "InteractiveTestsRequest"
+    ],
+    "required": [],
+    "properties": {
+        "target_file": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Optional repo-relative path to scope the interactive session. When null, operates on the full suite."
+        }
+    }
+}

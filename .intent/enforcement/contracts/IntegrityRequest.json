@@ -1,0 +1,22 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.integrity_request",
+        "title": "IntegrityRequest \u2014 body of POST /v1/integrity/check",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to trigger an integrity check (POST /v1/integrity/check, integrity_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'label' selects which integrity check set to run; defaults to 'default'.",
+    "governed_classes": [
+        "IntegrityRequest"
+    ],
+    "required": [],
+    "properties": {
+        "label": {
+            "type": "string",
+            "description": "Integrity check set label to run. Defaults to 'default'."
+        }
+    }
+}

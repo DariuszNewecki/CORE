@@ -1,0 +1,32 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.run_autonomous_request",
+        "title": "RunAutonomousRequest \u2014 body of POST /v1/refactor/autonomous",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch an autonomous refactoring run (POST /v1/refactor/autonomous, refactor_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'goal' is required.",
+    "governed_classes": [
+        "RunAutonomousRequest"
+    ],
+    "required": [
+        "goal"
+    ],
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "Natural-language description of the refactoring objective."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), dry-run only. When true, write changes to disk."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        }
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.reject_request",
+        "title": "RejectRequest \u2014 body of POST /v1/proposals/{id}/reject",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to reject a proposal (POST /v1/proposals/{id}/reject, proposals_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'reason' is required \u2014 recorded as the proposal's failure_reason.",
+    "governed_classes": [
+        "RejectRequest"
+    ],
+    "required": [
+        "reason"
+    ],
+    "properties": {
+        "reason": {
+            "type": "string",
+            "description": "Human-readable explanation for why the proposal was rejected. Stored as failure_reason on the proposal row."
+        }
+    }
+}

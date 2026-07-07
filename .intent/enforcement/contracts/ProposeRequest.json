@@ -1,0 +1,29 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.propose_request",
+        "title": "ProposeRequest \u2014 body of POST /v1/lane/{finding_id}/propose",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to submit a proposed patch for a delegated finding via the Assisted Lane (POST /v1/lane/{finding_id}/propose, lane_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). Both 'patch' and 'validation_run_id' are required.",
+    "governed_classes": [
+        "ProposeRequest"
+    ],
+    "required": [
+        "patch",
+        "validation_run_id"
+    ],
+    "properties": {
+        "patch": {
+            "type": "string",
+            "description": "Unified diff string representing the proposed fix for the delegated finding."
+        },
+        "validation_run_id": {
+            "type": "string",
+            "description": "ID of the validation run that verified this patch against the applicable rule."
+        }
+    }
+}

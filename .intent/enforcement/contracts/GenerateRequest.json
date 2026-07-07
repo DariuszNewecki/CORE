@@ -1,0 +1,32 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.generate_request",
+        "title": "GenerateRequest \u2014 body of POST /v1/coverage/generate",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch a single-file test-generation run (POST /v1/coverage/generate, coverage_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'target_file' is required \u2014 the generation is always anchored to a specific source file.",
+    "governed_classes": [
+        "GenerateRequest"
+    ],
+    "required": [
+        "target_file"
+    ],
+    "properties": {
+        "target_file": {
+            "type": "string",
+            "description": "Repo-relative path to the source file for which tests will be generated."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), return proposed test content only. When true, write to disk."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier. Defaults to 'api'."
+        }
+    }
+}

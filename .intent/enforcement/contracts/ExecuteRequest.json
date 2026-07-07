@@ -1,0 +1,22 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.execute_request",
+        "title": "ExecuteRequest \u2014 body of POST /v1/proposals/{id}/execute",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to trigger execution of an approved proposal (POST /v1/proposals/{id}/execute, proposals_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). All fields are optional.",
+    "governed_classes": [
+        "ExecuteRequest"
+    ],
+    "required": [],
+    "properties": {
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), execute in dry-run mode. When true, apply changes to disk."
+        }
+    }
+}

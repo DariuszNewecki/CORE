@@ -1,0 +1,41 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.create_remediation_request",
+        "title": "CreateRemediationRequest \u2014 body of POST /v1/audit/remediations",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to dispatch an async remediation run (POST /v1/audit/remediations, audit_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'audit_run_id' is required \u2014 remediations are always anchored to a specific audit run.",
+    "governed_classes": [
+        "CreateRemediationRequest"
+    ],
+    "required": [
+        "audit_run_id"
+    ],
+    "properties": {
+        "audit_run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the completed audit run that produced the findings to remediate."
+        },
+        "mode": {
+            "type": "string",
+            "enum": [
+                "safe",
+                "aggressive"
+            ],
+            "description": "Remediation strategy. 'safe' restricts to low-risk fixes; 'aggressive' allows higher-impact changes."
+        },
+        "write": {
+            "type": "boolean",
+            "description": "When false (default), output diff only. When true, apply changes to disk."
+        },
+        "requested_by": {
+            "type": "string",
+            "description": "Caller identifier recorded on the run row. Defaults to 'api'."
+        }
+    }
+}

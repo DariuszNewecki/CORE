@@ -1,0 +1,24 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.approve_request",
+        "title": "ApproveRequest \u2014 body of POST /v1/proposals/{id}/approve",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to approve a proposal for execution (POST /v1/proposals/{id}/approve, proposals_routes.py). Crosses the API boundary; constitutionally required to carry a governing schema (ADR-056 D7). 'approval_authority' is required \u2014 records who/what granted the approval.",
+    "governed_classes": [
+        "ApproveRequest"
+    ],
+    "required": [
+        "approval_authority"
+    ],
+    "properties": {
+        "approval_authority": {
+            "type": "string",
+            "description": "Identity or role that granted approval (e.g. 'governor', 'ci_gate'). Recorded on the proposal row."
+        }
+    }
+}
