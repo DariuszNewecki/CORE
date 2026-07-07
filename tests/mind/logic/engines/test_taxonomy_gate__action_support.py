@@ -67,7 +67,7 @@ async def test_action_supported_by_declaration_symmetric(tmp_path: Path) -> None
     _write_action_risk(
         tmp_path,
         {
-            "document.run.gap_analysis": {
+            "document.gap_analysis": {
                 "impact_level": "safe",
                 "artifact_types": ["document_corpus"],
             },
@@ -77,7 +77,7 @@ async def test_action_supported_by_declaration_symmetric(tmp_path: Path) -> None
     mock_repo = MagicMock()
     mock_repo.initialize.return_value = None
     mock_repo.list_artifact_types.return_value = [
-        _make_type_ref("document_corpus", ["document.run.gap_analysis"]),
+        _make_type_ref("document_corpus", ["document.gap_analysis"]),
     ]
 
     with patch(
@@ -99,7 +99,7 @@ async def test_action_supported_by_declaration_asymmetric(tmp_path: Path) -> Non
     _write_action_risk(
         tmp_path,
         {
-            "document.run.gap_analysis": {
+            "document.gap_analysis": {
                 "impact_level": "safe",
                 "artifact_types": ["document_corpus"],
             },
@@ -110,7 +110,7 @@ async def test_action_supported_by_declaration_asymmetric(tmp_path: Path) -> Non
     mock_repo = MagicMock()
     mock_repo.initialize.return_value = None
     mock_repo.list_artifact_types.return_value = [
-        _make_type_ref("document_corpus", []),  # missing document.run.gap_analysis
+        _make_type_ref("document_corpus", []),  # missing document.gap_analysis
     ]
 
     with patch(
@@ -125,7 +125,7 @@ async def test_action_supported_by_declaration_asymmetric(tmp_path: Path) -> Non
     f = findings[0]
     assert f.check_id == "governance.taxonomy.action_supported_by_declaration"
     assert "document_corpus" in f.message
-    assert "document.run.gap_analysis" in f.message
+    assert "document.gap_analysis" in f.message
     assert f.context["artifact_type_id"] == "document_corpus"
-    assert f.context["action_id"] == "document.run.gap_analysis"
+    assert f.context["action_id"] == "document.gap_analysis"
     assert f.context["direction"] == "introspected_not_authored"

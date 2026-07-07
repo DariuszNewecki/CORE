@@ -14,13 +14,14 @@ description: >
 
   This file is the LIVE-AUTHORIZATION SURFACE — it enumerates capabilities the
   chokepoint will authorize, not the complete @atomic_action / @register_action
-  registry. The two surfaces diverge by exactly the dormant set (see ADR-078
-  D9): a capability that is structurally non-functional today is absent from
-  this file but may still appear in .intent/enforcement/config/action_risk.yaml
-  and in src/ as a decorator. (The prior example — fix.policy_ids — was
-  retired entirely in #493 on identity-shape grounds: policies have
-  human-readable id as TRUE identity; opaque UUIDs were the wrong shape
-  for a human-readable artefact.)
+  registry. The two surfaces diverge only by the chokepoint primitives excluded
+  in D8 (file.create, file.edit, file.read, file.tag_metadata); all other
+  registered actions have a corresponding capability entry. ADR-078 D9 describes
+  the dormant-set concept for cases where a future capability is risk-classified
+  but not yet live; the current dormant set is empty. (The prior example —
+  fix.policy_ids — was retired entirely in #493 on identity-shape grounds:
+  policies have human-readable id as TRUE identity; opaque UUIDs were the wrong
+  shape for a human-readable artefact.)
 
   Chokepoint primitives (file.create, file.edit, file.read, file.tag_metadata)
   are NOT capabilities and do not appear here per ADR-078 D8. They are the
@@ -51,6 +52,47 @@ capabilities:
         - {path_pattern: ".intent/**", modes: [dev, live]}
       create: []
       modify: []
+      delete: []
+
+  assisted.apply_diff:
+    description: Applies a governor-approved unified diff to the main working tree via git apply; used by the assisted remediation lane.
+    risk: moderate
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: "tests/**", modes: [dev, live]}
+      modify:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: "tests/**", modes: [dev, live]}
+      delete:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: "tests/**", modes: [dev, live]}
+
+  assisted.validate_diff:
+    description: Validates a proposed diff in a subprocess before lane approval; writes bootstrap files to var/tmp/ and removes them on completion.
+    risk: safe
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "var/tmp/**", modes: [dev, live]}
+      modify: []
+      delete:
+        - {path_pattern: "var/tmp/**", modes: [dev, live]}
+
+  build.test_for_symbol:
+    description: Per-symbol test generator (primary autonomous path per ADR-133 D3) — generates pytest test files via CoderAgent; path mapping governed by .intent/enforcement/config/test_coverage.yaml.
+    risk: safe
+    artifact_type: [test]
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/**", modes: [dev, live]}
+        - {path_pattern: ".intent/enforcement/config/test_coverage.yaml", modes: [dev, live]}
+      create:
+        - {path_pattern: "tests/**/test_*.py", modes: [dev, live]}
+        - {path_pattern: "tests/**/__init__.py", modes: [dev, live]}
+      modify:
+        - {path_pattern: "tests/**/test_*.py", modes: [dev, live]}
       delete: []
 
   build.tests:
@@ -130,6 +172,17 @@ capabilities:
       read: []
       create:
         - {path_pattern: "var/crates/**", modes: [dev, live]}
+      modify: []
+      delete: []
+
+  document.gap_analysis:
+    description: GRC gap-analysis runner — evaluates a document corpus against a requirements catalog and writes verdict reports to var/reports/corpus/.
+    risk: safe
+    artifact_type: [document_corpus]
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "var/reports/corpus/**", modes: [dev, live]}
       modify: []
       delete: []
 
@@ -322,6 +375,24 @@ capabilities:
         - {path_pattern: "src/**/*.py", modes: [dev, live]}
       delete: []
 
+  log.archive_partitions:
+    description: DB-only — detaches expired llm_exchange_log monthly partitions and attaches them to the core_archive schema (ADR-052).
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  log.maintain_partitions:
+    description: DB-only — creates upcoming monthly partitions for core.llm_exchange_log (ADR-052); idempotent CREATE TABLE IF NOT EXISTS.
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
   logging.reconfigure:
     description: Runtime logging-config reload; in-process state change, no FS or DB writes.
     risk: safe
@@ -339,6 +410,19 @@ capabilities:
       create: []
       modify: []
       delete: []
+
+  refactor.apply_split:
+    description: Writes pre-computed SplitResult module files to src/ and removes the replaced monolith; used by execution_phase for code-splitting operations.
+    risk: dangerous
+    artifact_type: [python]
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
 
   remediate.cognitive_role:
     description: Returns finding-shape for the calling Worker to post; no direct FS or DB side effects.

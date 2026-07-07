@@ -1,5 +1,5 @@
 # tests/body/atomic/test_document_gap_analysis_action.py
-"""ADR-121 D4 — document.run.gap_analysis atomic action unit test.
+"""ADR-121 D4 — document.gap_analysis atomic action unit test.
 
 Test 4 from the ADR-121 verification matrix:
   action_run_gap_analysis with a mocked DocumentCorpusAnalysisService returns
@@ -67,7 +67,7 @@ async def test_run_gap_analysis_action_summary(tmp_path: Path) -> None:
             "body.atomic.document.gap_analysis_action.load_catalog",
             return_value=[],
         ),
-        authorize_execution("document.run.gap_analysis"),
+        authorize_execution("document.gap_analysis"),
     ):
         result: ActionResult = await action_run_gap_analysis(
             corpus_root=str(corpus_dir),
@@ -118,7 +118,7 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(
             "body.atomic.document.gap_analysis_action.load_catalog",
             return_value=[],
         ),
-        authorize_execution("document.run.gap_analysis"),
+        authorize_execution("document.gap_analysis"),
     ):
         result: ActionResult = await action_run_gap_analysis(
             corpus_root="docs",
@@ -135,7 +135,7 @@ async def test_run_gap_analysis_relative_corpus_root_uses_context(
 async def test_run_gap_analysis_relative_corpus_root_no_context_raises() -> None:
     """Relative corpus_root without core_context raises ValueError before any I/O."""
     with (
-        authorize_execution("document.run.gap_analysis"),
+        authorize_execution("document.gap_analysis"),
         pytest.raises(ValueError, match="core_context"),
     ):
         await action_run_gap_analysis(

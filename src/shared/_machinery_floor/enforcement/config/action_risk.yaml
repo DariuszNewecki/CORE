@@ -32,7 +32,7 @@ actions:
   check.imports: safe
   claim.proposal: safe
   crate.create: safe
-  document.run.gap_analysis: safe
+  document.gap_analysis: safe
   file.create: moderate
   file.edit: moderate
   file.read: safe

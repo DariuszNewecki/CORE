@@ -1,6 +1,6 @@
 # src/body/atomic/document/gap_analysis_action.py
 """
-document.run.gap_analysis — domain-agnostic document corpus gap-analysis action.
+document.gap_analysis — domain-agnostic document corpus gap-analysis action.
 
 First atomic action carrying artifact_types: [document_corpus] (ADR-121 D4).
 Triggers ADR-092-A: action_supported_by_declaration rule ships alongside this
@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 
 
 @register_action(
-    action_id="document.run.gap_analysis",
+    action_id="document.gap_analysis",
     description="Evaluate a document corpus against one or more requirements catalogs",
     category=ActionCategory.CHECK,
     policies=["document.policy.analysis_scope"],
@@ -42,7 +42,7 @@ logger = getLogger(__name__)
     requires_vectors=False,
 )
 @atomic_action(
-    action_id="document.run.gap_analysis",
+    action_id="document.gap_analysis",
     intent="Evaluate a document corpus against requirements catalogs; report coverage gaps",
     impact=ActionImpact.READ_ONLY,
     policies=["document.policy.analysis_scope"],
@@ -91,7 +91,7 @@ async def action_run_gap_analysis(
     if not active:
         elapsed = time.monotonic() - start
         return ActionResult(
-            action_id="document.run.gap_analysis",
+            action_id="document.gap_analysis",
             ok=False,
             data={
                 "corpus_root": str(resolved_corpus),
@@ -123,7 +123,7 @@ async def action_run_gap_analysis(
             verdicts = await service.run(resolved_corpus, rules)
         except Exception as exc:
             logger.error(
-                "document.run.gap_analysis: error running catalog %r: %s",
+                "document.gap_analysis: error running catalog %r: %s",
                 catalog_name,
                 exc,
                 exc_info=True,
@@ -153,7 +153,7 @@ async def action_run_gap_analysis(
 
     elapsed = time.monotonic() - start
     return ActionResult(
-        action_id="document.run.gap_analysis",
+        action_id="document.gap_analysis",
         ok=True,
         data={
             "corpus_root": str(resolved_corpus),
@@ -200,4 +200,4 @@ def _write_report(
         ],
     }
     file_handler.write_runtime_text(rel_path, yaml.dump(payload, allow_unicode=True))
-    logger.info("document.run.gap_analysis: report written to var/%s", rel_path)
+    logger.info("document.gap_analysis: report written to var/%s", rel_path)
