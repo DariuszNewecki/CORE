@@ -53,7 +53,7 @@ def _extract_supersedes_adr_ids(content: str) -> list[str]:
         line_end = content.find("\n", line_start)
         line = content[line_start:line_end] if line_end != -1 else content[line_start:]
         for id_match in _SUPERSEDES_ADR_ID.finditer(line):
-            ids.append(f"ADR-{id_match.group(1)}")
+            ids.append(f"ADR-{int(id_match.group(1))}")
     return ids
 
 

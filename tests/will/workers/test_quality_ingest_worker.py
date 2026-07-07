@@ -94,7 +94,7 @@ async def test_run_short_circuits_when_no_rules_enabled() -> None:
         await worker.run()
     worker.post_finding.assert_not_awaited()
     worker.post_report.assert_awaited_once()
-    _subject, payload = worker.post_report.call_args[0]
+    payload = worker.post_report.call_args[1]["payload"]
     assert payload["posted"] == 0
     assert payload["enabled_rules"] == []
 
@@ -115,7 +115,7 @@ async def test_run_reports_no_findings_when_audit_clean() -> None:
 
     worker.post_finding.assert_not_awaited()
     worker.post_report.assert_awaited_once()
-    _subject, payload = worker.post_report.call_args[0]
+    payload = worker.post_report.call_args[1]["payload"]
     assert payload["posted"] == 0
 
 
@@ -176,7 +176,7 @@ async def test_run_deduplicates_against_existing_subjects() -> None:
         await worker.run()
 
     worker.post_finding.assert_not_awaited()
-    _subject, payload = worker.post_report.call_args[0]
+    payload = worker.post_report.call_args[1]["payload"]
     assert payload["skipped_duplicate"] == 1
     assert payload["posted"] == 0
 
@@ -213,7 +213,8 @@ async def test_run_posts_findings_for_enabled_rules() -> None:
         await worker.run()
 
     worker.post_finding.assert_awaited_once()
-    subject, payload = worker.post_finding.call_args[0]
+    subject = worker.post_finding.call_args[1]["subject"]
+    payload = worker.post_finding.call_args[1]["payload"]
     assert subject == "audit.violation::quality.security_audit::pyproject.toml"
     assert payload["rule"] == "quality.security_audit"
     assert payload["issue_count"] == 2
@@ -259,8 +260,8 @@ async def test_run_respects_cap_per_rule() -> None:
         await worker.run()
 
     assert worker.post_finding.await_count == 1
-    subject, _payload = worker.post_finding.call_args[0]
+    subject = worker.post_finding.call_args[1]["subject"]
     assert subject == "audit.violation::quality.test_integrity::tests/test_a.py"
 
-    _subject, report_payload = worker.post_report.call_args[0]
+    report_payload = worker.post_report.call_args[1]["payload"]
     assert report_payload["skipped_cap"] == 1

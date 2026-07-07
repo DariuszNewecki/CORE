@@ -303,7 +303,7 @@ async def test_run_drift_payload_includes_adr_anchor(tmp_path: Path) -> None:
     ):
         await sensor.run()
 
-    payload = publisher.post_finding.call_args[1]["payload"]
+    payload = publisher.post_finding.call_args[0][1]
     assert payload["adr_anchor"] == ["ADR-134:D6", "ADR-003"]
 
 
@@ -327,7 +327,7 @@ async def test_run_drift_payload_includes_git_commit(tmp_path: Path) -> None:
     ):
         await sensor.run()
 
-    payload = publisher.post_finding.call_args[1]["payload"]
+    payload = publisher.post_finding.call_args[0][1]
     assert payload["git_commit"] == "deadbeef"
 
 
@@ -355,5 +355,5 @@ async def test_run_drift_payload_includes_changed_files(tmp_path: Path) -> None:
     ):
         await sensor.run()
 
-    payload = publisher.post_finding.call_args[1]["payload"]
+    payload = publisher.post_finding.call_args[0][1]
     assert "system.txt" in payload["changed_files"]

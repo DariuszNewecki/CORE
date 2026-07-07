@@ -41,9 +41,12 @@ def _unit_vec(n: int, idx: int) -> list[float]:
 
 
 def _similar_vec(base: list[float], noise: float = 0.01) -> list[float]:
-    """Return a vector very close to base (cosine similarity > 0.99)."""
-    dim = len(base)
-    perturbed = [x + noise if i == 0 else x for i, x in enumerate(base)]
+    """Return a vector very close to base (cosine similarity > 0.99).
+
+    Adds noise to the last dimension (not the first) so that normalization does
+    not cancel the perturbation when base is a unit vector at index 0.
+    """
+    perturbed = [x + noise if i == len(base) - 1 else x for i, x in enumerate(base)]
     mag = math.sqrt(sum(x * x for x in perturbed))
     return [x / mag for x in perturbed]
 

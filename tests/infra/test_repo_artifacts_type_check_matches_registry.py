@@ -56,6 +56,9 @@ def test_repo_artifacts_check_equals_artifact_type_registry() -> None:
     would reject (the #646 outage), and a stale CHECK value with no registry
     backing (e.g. the legacy 'intent' retired in #647).
     """
+    import pytest
+    if not _SCHEMA.exists():
+        pytest.skip("infra/sql/db_schema_live.sql not present in this checkout")
     check = _check_constraint_artifact_types()
     registry = _registry_artifact_type_ids()
 

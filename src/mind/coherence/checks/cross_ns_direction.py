@@ -125,7 +125,7 @@ def _extract_project_path_refs(content: str, project_paths: set[str]) -> list[st
     """
     found: set[str] = set()
     for match in _PATH_REF.finditer(content):
-        raw = match.group().rstrip(".,;)'\"")
+        raw = match.group().rstrip(".,;)'\"` ")
         if raw in project_paths:
             found.add(raw)
     return sorted(found)

@@ -83,7 +83,7 @@ async def test_iterative_succeeds_on_second_attempt(
             ),
         ),
         patch(
-            "will.agents.prompt_model_iterative_agent.get_intent_guard",
+            "body.governance.intent_guard.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(
@@ -136,7 +136,7 @@ async def test_iterative_raises_after_cap_exhausted(
             return_value=model,
         ),
         patch(
-            "will.agents.prompt_model_iterative_agent.get_intent_guard",
+            "body.governance.intent_guard.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(
@@ -190,7 +190,7 @@ async def test_single_attempt_passes_on_first_try(
             return_value=model,
         ),
         patch(
-            "will.agents.prompt_model_iterative_agent.get_intent_guard",
+            "body.governance.intent_guard.get_intent_guard",
             return_value=intent_guard,
         ),
         patch(

@@ -36,6 +36,15 @@ async def core_lifespan(app: FastAPI):
     """
     logger.info("🚀 Starting CORE system...")
 
+    if (
+        settings.JWT_SECRET_KEY == "change-me-in-production"
+        and not settings.ALLOW_INSECURE_DEV_SECRET
+    ):
+        raise RuntimeError(
+            "JWT_SECRET_KEY is set to the insecure default. "
+            "Set a strong secret via the JWT_SECRET_KEY environment variable."
+        )
+
     # 1. CONSTITUTIONAL BOOTSTRAP
     core_context = create_core_context(service_registry)
     app.state.core_context = core_context

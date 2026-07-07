@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-143
 title: "ADR-143 — Symbols-Drift: Governed-Anchor SSOT and Existing-Pipeline Consumption"
-status: closed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-143-symbols-drift-anchor-ssot.md -->

@@ -1,3 +1,11 @@
+---
+kind: paper
+id: CORE-Repo-Split-Plan
+title: CORE Repo Split Plan
+status: draft
+doctrine_tier: informational
+---
+
 # CORE Repo Split Plan
 *Public OSS runtime / private commercial platform separation*
 *Agreed: 5 July 2026*

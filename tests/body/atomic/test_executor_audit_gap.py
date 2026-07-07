@@ -48,6 +48,7 @@ def _executor_with_failing_session() -> ActionExecutor:
     """ActionExecutor whose session factory raises — simulates DB unavailability."""
     executor = ActionExecutor.__new__(ActionExecutor)
     executor.core_context = MagicMock()
+    executor.core_context.session_id = None
     executor.core_context.registry.session = MagicMock(
         side_effect=RuntimeError("DB unavailable")
     )

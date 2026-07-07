@@ -58,7 +58,7 @@ async def test_sameconcern_uses_batch_embed_not_serial() -> None:
 
     with (
         patch(
-            "mind.coherence.checks.sameconcern.GovernanceClaimHarvester"
+            "shared.governance.coherence_harvester.GovernanceClaimHarvester"
         ) as mock_harvester_cls,
         patch(
             "mind.coherence.checks.sameconcern.CognitiveEmbedderAdapter"
@@ -94,7 +94,7 @@ async def test_sameconcern_batch_fail_returns_empty() -> None:
     )
 
     with (
-        patch("mind.coherence.checks.sameconcern.GovernanceClaimHarvester") as mh,
+        patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
         patch("mind.coherence.checks.sameconcern.CognitiveEmbedderAdapter") as ma,
     ):
         mh.return_value.harvest.return_value = iter(claims)
@@ -143,7 +143,7 @@ async def test_r1scoped_uses_batch_embed_not_serial() -> None:
     with (
         patch.object(check, "_declared_pairs", return_value=declared_pairs),
         patch(
-            "mind.coherence.checks.r1_scoped.GovernanceClaimHarvester"
+            "shared.governance.coherence_harvester.GovernanceClaimHarvester"
         ) as mock_harvester_cls,
         patch(
             "mind.coherence.checks.r1_scoped.CognitiveEmbedderAdapter"
@@ -186,7 +186,7 @@ async def test_r1scoped_batch_fail_returns_empty() -> None:
                 (".specs/decisions/ADR-001.md", ".specs/decisions/ADR-002.md")
             ],
         ),
-        patch("mind.coherence.checks.r1_scoped.GovernanceClaimHarvester") as mh,
+        patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
         patch("mind.coherence.checks.r1_scoped.CognitiveEmbedderAdapter") as ma,
     ):
         mh.return_value.harvest.return_value = iter([claim_a])

@@ -44,7 +44,7 @@ def _adr(
     content = "\n".join(
         filter(None, [status_line, paper_line, supersedes_line, "# Body"])
     )
-    path = tmp_path / "decisions" / f"{name}.md"
+    path = tmp_path / ".specs" / "decisions" / f"{name}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return path

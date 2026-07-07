@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-082
 title: "ADR-082 — D7 Detection Window for Sparse Loop-Hold Samples"
-status: draft
+status: proposed
 depends_on: ["ADR-081"]
 ---
 
