@@ -1,4 +1,4 @@
-# tests/body/atomic/test_build_test_for_symbol_iterative.py
+# tests/will/agents/test_build_test_for_symbol_iterative.py
 """
 Tests for PromptModelIterativeAgent — Will-tier iterative generation (ADR-140 D5).
 

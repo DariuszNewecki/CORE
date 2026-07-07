@@ -1,4 +1,4 @@
-# tests/body/cli/commands/test_fix_code_style__fix_headers_internal.py
+# tests/body/self_healing/test_fix_code_style__fix_headers_internal.py
 
 """
 2026-06-07 (#572 Cat B batch 15): ``fix_headers_internal`` is now decorated
