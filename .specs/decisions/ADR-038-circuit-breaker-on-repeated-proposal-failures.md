@@ -14,6 +14,7 @@ status: accepted
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #281
 **Implementation:** `src/will/workers/circuit_breaker.py` · `src/will/workers/violation_remediator_proposal.py` · `.intent/enforcement/config/circuit_breaker.yaml` (commit `bd998c24`)
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Relates:** ADR-010 (finding-proposal contract — §7/§7a revival), ADR-015 (consequence chain attribution), ADR-035 (one finding, one proposal), ADR-031 / #282 (no hardcoded governance values in `src/`)
 
 ---

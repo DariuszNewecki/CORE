@@ -14,6 +14,7 @@ depends_on: ["ADR-109", "ADR-073"]
 **Status:** Accepted (governor decision 2026-07-05 — D1–D7 ratified. Implementation
 lands as one change-set; `not_audit_engine` → `not_graph_engine` rename is a one-cycle
 breaking change accepted at the verdict dict boundary.)
+**Governing paper:** `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #663
 

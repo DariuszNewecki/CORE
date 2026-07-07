@@ -15,6 +15,7 @@ depends_on: ["ADR-068", "ADR-052"]
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #487
 
+**Governing paper:** `.specs/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md`
 **Governing ADRs:**
 - ADR-068 — principal_roles backfill + CHECK pattern (mirror target)
 - ADR-052 — resource assignment (role_resource_assignments supersedes cognitive_roles columns)

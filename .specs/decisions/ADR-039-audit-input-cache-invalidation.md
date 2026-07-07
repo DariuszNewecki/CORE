@@ -13,6 +13,7 @@ status: accepted
 **Date:** 2026-05-12
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** #298
+**Governing paper:** `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`
 **Relates to:** ADR-030 (Daemon stale-code detection posture)
 
 ---

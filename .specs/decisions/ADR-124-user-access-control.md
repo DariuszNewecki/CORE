@@ -11,6 +11,7 @@ status: accepted
 
 **Status:** Accepted — superseded commercial UAC blueprint extracted to downstream distributions (2026-07-05)
 **Date:** 2026-06-10 (original); updated 2026-07-05
+**Governing paper:** `.specs/papers/CORE-Deliberate-Non-Goals.md`
 
 ---
 

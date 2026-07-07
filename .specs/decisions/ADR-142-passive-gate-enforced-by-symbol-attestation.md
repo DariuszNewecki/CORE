@@ -15,6 +15,7 @@ depends_on: ["ADR-138", "ADR-136", "ADR-113"]
 lands as one change-set.)
 **Author:** Darek (Dariusz Newecki)
 
+**Governing paper:** `.specs/papers/CORE-Rule-Authoring-Discipline.md`
 **Governing ADRs:**
 - ADR-138 — defines the passive_gate contract (sensor-driven rules yield to the engine)
 - ADR-136 — substrate-enforcement taxonomy and the rules→dispatch blind spot

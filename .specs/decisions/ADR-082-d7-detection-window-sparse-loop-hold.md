@@ -15,6 +15,7 @@ depends_on: ["ADR-081"]
 **Author:** Darek (Dariusz Newecki)
 **Closes:** #597
 
+**Governing paper:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Governing ADR:**
 - ADR-081 D2(1), D7, D8 Step 3a
 
