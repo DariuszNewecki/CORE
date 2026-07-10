@@ -33,6 +33,7 @@ _RATE_LIMITS: dict[str, tuple[int, int]] = {
     "register": (5, 60),
     "refresh": (60, 3600),
     "password_reset": (3, 3600),
+    "change_password": (5, 3600),
 }
 
 # ---------------------------------------------------------------------------
