@@ -10,6 +10,96 @@ before execution.
 
 ---
 
+## Run log
+
+**Status as of 2026-07-12: paused mid-Phase 2.** Phase 1 fully passed. Phase 2 is
+blocked on a connectivity decision that surfaced a real architectural constraint
+(ADR-054 D3) — not a CLI bug. Resume here.
+
+### Test VM — provisioned and working
+
+- Host: `core-cli@192.168.20.46` (Proxmox container `CT103`), Ubuntu 24.04.3 LTS,
+  Python 3.12.3, matches the "VM tech specs" section above.
+- User `core-cli` created with NOPASSWD sudo (`/etc/sudoers.d/99-core-cli`).
+- SSH access: key-based, public key
+  `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFS+sNftHmmj0nvFtG6uYCCE9Zsf/boJQpbgqRVbj9eg claude-code-core-cli-smoke-test`
+  is in `core-cli`'s `authorized_keys` on the VM. **The matching private key lives
+  in this session's scratchpad directory and does not persist across sessions** —
+  next session, either regenerate a keypair and re-authorize it on the VM (fast,
+  the VM itself is otherwise fully prepped), or the governor can supply a durable
+  key. Don't re-run `adduser`/sudoers/`.ssh` setup — that part is done.
+- `scripts/core-cli-vm-prep.sh` ran clean on this VM (OS update + Python 3.12 +
+  venv). No need to re-run.
+
+### Phase 1 — PASS (run 2026-07-11/12 on the VM above)
+
+- 1.1 `pip install core-cli`: exit 0, no dependency conflicts. Installed
+  `core-cli-1.0.0` + `core-runtime-2.8.0`.
+- 1.2 `core --help`: all 7 command groups present (`lane`, `proposals`, `secrets`,
+  `code`, `symbols`, `vectors`, `project`).
+- 1.3 `pip show core-cli`: `Version: 1.0.0`, `Requires: core-runtime`. Matches
+  expected.
+
+### Phase 2 — BLOCKED on CORE_API_URL target selection
+
+P3 ("CORE instance reachable from VM") failed against the obvious target and
+surfaced a real constraint, not a bug:
+
+- **`192.168.20.22`** (the main CORE dev host, where `core-daemon`/`core-api`
+  actually run) — connection refused. Root cause: `core-api` binds
+  `127.0.0.1:8000` only, per **ADR-054 D3** ("no auth for Phase 1; loopback
+  binding only" — deliberate, since the API has zero authentication.
+  "No external exposure is sanctioned while this decision is in force."
+  Promotion to non-loopback requires bearer-token auth + a dedicated ADR).
+  Rebinding this instance to `0.0.0.0` to satisfy the smoke test would violate
+  that ADR outright — not doing that without an explicit governor decision to
+  amend/except ADR-054.
+  - Proposed (not yet executed) ADR-054-compliant alternative: SSH reverse
+    tunnel — `ssh -R 8000:localhost:8000` from the CORE host into the VM, so
+    the VM's `localhost:8000` forwards over the authenticated SSH link to
+    the loopback-bound `core-api`. Uvicorn's bind address never changes.
+  - Governor redirected to try `.45` instead before deciding on the tunnel.
+
+- **`192.168.20.45`** (Proxmox container `CT102`, root access) — checked and
+  it's a dead end as-is: no `core-api`/`core-daemon` running, no matching
+  systemd units, no Docker, no Postgres/Qdrant, no CORE git checkout (only an
+  unrelated `/opt/myproject/.git`). What exists is a static venv at
+  `/opt/core-proof` (dated 2026-06-29) with `core`/`core-admin` entry points —
+  looks like a leftover "does the install work" check, not a live service.
+  Spec: 2 vCPU / 4GiB RAM / 512MiB swap / 8GiB disk (ZFS), **6.6GB free**.
+
+### Decision in progress — stand up core-daemon + core-api on `.45`
+
+Governor chose this over the SSH tunnel to `.22`. Not started yet — this is a
+full `coldroom-prep.sh`-style build from scratch (Docker install, pull
+Postgres 16 + Qdrant images, clone CORE, configure `.env`, run migrations,
+start services), scoped to a disposable test box rather than touching the
+real dev instance. Two open risks flagged to the governor, neither resolved:
+
+1. **Disk headroom is tight.** 6.6GB free has to cover Docker engine + two
+   container images + a full CORE clone + a Python venv whose deps alone
+   (numpy/scipy/scikit-learn/grpcio, per the Phase 1 install) ran several
+   hundred MB. Real risk of running out mid-install. Option: grow the ZFS
+   volume via Proxmox before starting, if easily available.
+2. **ADR-054 D3 tension, again.** Even on a disposable box, binding an
+   unauthenticated `core-api` to a non-loopback interface is the exact thing
+   D3 says isn't sanctioned. Treating this as acceptable because the instance
+   is disposable/test-only is a judgment call the governor made implicitly by
+   redirecting here — flagging once more for the record, not blocking on it.
+
+### Next steps (resume here)
+
+1. Governor decision: grow `.45`'s disk first, or proceed at 6.6GB free?
+2. If proceeding: install Docker + Compose on `.45`, pull `postgres:16` +
+   `qdrant/qdrant:v1.9.0`, clone CORE, configure `.env`, run migrations, start
+   `core-daemon`/`core-api` bound for LAN reachability.
+3. Re-authorize an SSH key for `core-cli` on the `.46` VM (private key was
+   session-scoped and is gone).
+4. Set `CORE_API_URL` on the VM to point at `.45`, confirm P3 health check,
+   resume Phase 2.1 (`core code actions`).
+
+---
+
 ## Prerequisites (governor completes before handing over)
 
 | # | Item | Expected state |
