@@ -34,6 +34,7 @@ from api.cli.inspect_client import InspectClient
 from api.cli.integration_client import IntegrationClient
 from api.cli.integrity_client import IntegrityClient
 from api.cli.lane_client import LaneClient
+from api.cli.project_client import ProjectClient
 from api.cli.proposals_client import ProposalsClient
 from api.cli.quality_client import QualityClient
 from api.cli.refactor_client import RefactorClient
@@ -78,6 +79,7 @@ class CoreApiClient:
         self.secrets = SecretsClient(self)
         self.symbols = SymbolsClient(self)
         self.vectors = VectorsClient(self)
+        self.project = ProjectClient(self)
 
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:

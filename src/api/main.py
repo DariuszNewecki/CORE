@@ -41,6 +41,7 @@ from api.v1 import (
     knowledge_routes,
     lane_routes,
     lint_routes,
+    project_routes,
     proposals_routes,
     quality_routes,
     refactor_routes,
@@ -174,6 +175,7 @@ def create_app(lifespan=None) -> FastAPI:
     v1.include_router(secrets_routes.router, tags=["Secrets"])
     v1.include_router(symbols_routes.router, tags=["Symbols"])
     v1.include_router(vectors_routes.router, tags=["Vectors"])
+    v1.include_router(project_routes.router, tags=["Project"])
     v1.include_router(audit_routes.router, tags=["Audit"])
     v1.include_router(integration_routes.router, tags=["Integration"])
     v1.include_router(lint_routes.router, tags=["Lint"])
