@@ -1,8 +1,11 @@
 # CORE — External Adoption Gap Closure Plan
 
-**Status:** In progress (2026-07-11)
+**Status:** Items 1–3 DONE; Item 4 DONE (pre-existing, ADR-119) — verified against
+code 2026-07-11 (later same day as initial drafting). Only the VM release smoke test
+remains open. See `CORE-CLI-Release-Smoke-Test.md`.
 **Audience:** Governor — sequencing and scope decisions
-**Companion analysis:** Strategic review verified against working tree 2026-07-11
+**Companion analysis:** Strategic review verified against working tree 2026-07-11;
+re-verified directly against `src/`, `.intent/`, and `/opt/dev/core-cli` same day.
 
 ---
 
@@ -86,6 +89,11 @@ previews the rule and enforcement YAML that would be written. `--write` applies.
 ---
 
 ## Item 3 — ADR-146 Implementation (Consumer CLI Extraction)
+
+**Status: DONE** (verified against `/opt/dev/core-cli` commit history and CORE routes,
+2026-07-11). `core-cli` is at version `1.0.0`. All checklist items below were completed
+same-day after this doc's initial draft — the checkboxes were left unchecked in the
+original version of this doc; corrected here.
 
 **Priority:** High (structural; blocks the clean external distribution story)
 **Effort:** Large (2–3 weeks)
@@ -199,28 +207,45 @@ require their blocking API routes to be added to CORE first.
 
 ### Phase C — Migrate commands one namespace at a time
 
-**Status: IN PROGRESS**
+**Status: DONE**
 
 Sprint 1 (unblocked — routes exist):
-- [ ] Fix `proposals/list.py`, `proposals/manage.py`, `proposals/create.py` D7 violations
-- [ ] Add tests for `lane/*`, `proposals/*` that stub the HTTP client layer
+- [x] Fix `proposals/list.py`, `proposals/manage.py`, `proposals/create.py` D7 violations
+  — `core-cli` commit `b648202`; confirmed no `cli.logic.autonomy` imports remain
+- [x] Add tests for `lane/*`, `proposals/*` that stub the HTTP client layer
+  — `core-cli` commit `8a9477d` (29 tests); `test_lane.py`/`test_proposals.py`/
+  `test_code.py` hold 50 test functions total
 
-Sprint 2 (requires new API routes in CORE):
-- [ ] Add `src/api/v1/secrets_routes.py` to CORE → fix `secrets/manage.py`
-- [ ] Add `src/api/v1/symbols_routes.py` to CORE → fix `symbols/*`
-- [ ] Add `vectors/query`, `vectors/rebuild`, `vectors/status` routes to CORE →
-  fix `vectors/rebuild.py`, `vectors/query.py`
-- [ ] Add `project/onboard`, `project/docs` routes to CORE →
-  fix `project/onboard.py`, `project/docs.py`
+Sprint 2 (required new API routes in CORE — all landed):
+- [x] Added `src/api/v1/secrets_routes.py` to CORE → fixed `secrets/manage.py`
+  — `core-cli` commit `e6d30cf`
+- [x] Added `src/api/v1/symbols_routes.py` to CORE → fixed `symbols/*`
+  — `core-cli` commit `ca648b9`
+- [x] Added vector read routes to CORE (`vectors_routes.py`) →
+  fixed `vectors/rebuild.py`, `vectors/query.py`, `vectors/status.py`
+  — `core-cli` commit `c711e41` (all 5 vectors commands rewritten)
+- [x] Added `project/onboard`, `project/docs` routes to CORE →
+  fixed `project/onboard.py`, `project/docs.py`
+  — `core-cli` commit `b8cad65`
 
-Sprint 3 (Item 4 dependency):
-- [ ] `project/scout.py` — blocked on Item 4 Scout implementation
+Sprint 3:
+- [x] `project/scout.py` migrated — `core-cli` commit `7cac311`. Not actually blocked
+  on Item 4 in practice: the Scout HTTP route (`src/api/v1/scout_routes.py`) already
+  existed from the pre-existing ADR-119 implementation (see Item 4 below), so the
+  dependency noted below never held.
+
+Verified 2026-07-11: every file under `/opt/dev/core-cli/src/core_cli/resources/`
+imports only `api.cli` (HTTP client) and `cli.utils` (shared `core_command`
+decorator) — no `body`/`mind`/`will`/`get_session`/`cli.logic.*` imports remain
+anywhere in the package. `core-cli` is published at version `1.0.0`.
 
 ### Phase D — Remove consumer commands from CORE
 
-Once `core-cli` reaches green for a namespace, the corresponding operator
-stub files in `src/cli/resources/` are removed (or kept as operator-only if
-they serve both populations).
+**Status: DONE.** `src/cli/resources/lane/` and `src/cli/resources/secrets/` (pure
+consumer namespaces) are fully removed from CORE. `code/`, `project/`, `symbols/`,
+`vectors/` are trimmed to operator-only files (`audit.py`, `clarity.py`,
+`complexity.py`, `refactor.py`; `adopt_pack.py`, `new.py`; `tag.py`; `cleanup.py`
+respectively) — confirmed no consumer-command overlap remains.
 
 ### Phase E — CI/CD for `core-cli`
 
@@ -248,6 +273,16 @@ binaries co-install without namespace collision (ADR-146 D5).
 ---
 
 ## Item 4 — Scout Phase B (Rule Induction UX)
+
+**Status: DONE — pre-existing.** This item was already implemented under ADR-119
+before this plan was drafted (external validation run against `pallets/click` is
+dated 2026-06-23, over two weeks earlier). The original text below described it as
+"does not exist" and proposed new file paths; that was incorrect — the
+implementation exists at different paths than proposed (Mind reasoning lives in
+`src/mind/logic/scout_inducer.py`, not `src/body/strategists/`; the route is
+`src/api/v1/scout_routes.py`, split out from `project_routes.py` for modularity).
+See "Actual implementation" below. The original "what to build" section is kept
+for historical record but does not reflect what to do next.
 
 **Priority:** Medium (post-ADR-146 in sequence; enables zero-prep foreign repo)
 **Effort:** Large (2–4 weeks)
@@ -346,16 +381,17 @@ or extend them freely.
 and `RuleCandidate[]` as JSON. The CLI calls this route. This route must
 exist before the Scout command can migrate to `core-cli`.
 
-### Dependencies
+### Dependencies (as originally planned — see actual state below)
 
 - Item 2 (Governance Packs) should land first. Scout's ratification step
   should offer pack adoption ("this repo looks like `core/python-hygiene`
   — ratify that pack?") before enumerating individual rules. The pack
   abstraction shapes Scout's output format. **Done.**
 - Item 3 (ADR-146) Phase A audit must confirm Scout needs an HTTP route
-  before CLI extraction. It does — confirmed.
+  before CLI extraction. It does — confirmed. (In practice this dependency
+  never blocked anything: Scout's route pre-dated Item 3 Phase A entirely.)
 
-### Scope
+### Scope (as originally planned — superseded by actual state below)
 
 - `src/body/analyzers/scout_analyzer.py` — new analyzer
 - `src/body/strategists/scout_strategist.py` — new strategist
@@ -365,12 +401,60 @@ exist before the Scout command can migrate to `core-cli`.
 - `tests/body/analyzers/test_scout_analyzer.py`
 - `tests/body/strategists/test_scout_strategist.py`
 
-### Acceptance criterion
+### Actual implementation (verified against code, 2026-07-11)
+
+Built under ADR-119, landed before this plan was drafted:
+
+- `src/body/analyzers/scout_analyzer.py` — signal extraction (matches plan)
+- `src/mind/logic/scout_inducer.py` — LLM-driven rule candidate generation
+  (Mind layer, not a Body strategist as planned; I/O-free, LLM client injected
+  by caller, degrades to empty candidate list on failure)
+- `src/api/v1/scout_routes.py` — `POST /project/scout`, registered in
+  `src/api/main.py`, split out from `project_routes.py` for modularity
+- `src/cli/logic/scout.py` — operator CLI logic (ADR-119 D2/D3/D5/D7); per-rule
+  ratification, no `--accept-all` (D5); LLM-unavailable fallback to the
+  four-rule starter set (D7)
+- Migrated to `core-cli/src/core_cli/resources/project/scout.py` (commit
+  `7cac311`) — HTTP-only, no `body`/`mind` imports
+- Tests: `tests/body/analyzers/test_scout_analyzer.py`,
+  `tests/mind/logic/test_scout_inducer.py`, `tests/cli/logic/test_scout.py`,
+  `tests/api/v1/test_scout_route.py`
+
+### Known gap — Scout output quality (tracked as #762)
+
+Filed as [#762](https://github.com/DariuszNewecki/CORE/issues/762) —
+"Scout Phase B: rule-candidate quality gap blocks external adoption value."
+
+`.specs/verification/CORE-Scout-External-Validation-click.md` (2026-06-23,
+against `pallets/click`) graded Scout **PARTIAL**: the workflow completes
+end-to-end and 3 of 6 inducted rules fire correctly via offline audit, but:
+
+- Candidate rules are generic (docstrings, bare-except, module-header) —
+  the same set Scout would propose for any medium-sized Python library; it
+  cannot propose rules for repo-specific patterns (decorator conventions,
+  type-alias enforcement, subclassing conventions) because the enforcement
+  catalog lacks the vocabulary and the detect phase samples only 12 files
+  with coarse signal extraction.
+- The `module_header` engine fires with CORE-internal error text ("Expected
+  `# src/<path>`") that is meaningless to an external adopter.
+- No supported external-repo audit path exists today without `cd`-ing into
+  the target repo and a manual fix to machinery-floor `action_risk.yaml`
+  drift.
+- LLM output is non-deterministic — two independent runs on the same repo
+  produced different rule IDs for the same underlying pattern.
+
+This is a real, unaddressed gap in adoption value, not a missing feature.
+It is scoped as its own item (Scout Phase B enhancements, #762) rather than
+folded back into "Item 4 does not exist."
+
+### Acceptance criterion (met, functionally — see quality gap above)
 
 `core scout ./some-foreign-python-repo --write` completes in under 60
 seconds on a 500-file repo, presents at least 4 candidate rules, writes
 valid `.intent/rules/scout_inducted.json`, and `core-admin code audit
---offline` subsequently finds violations against the inducted rules.
+--offline` subsequently finds violations against the inducted rules. Met
+per the click validation run; the open question is candidate *value*, not
+mechanical completion.
 
 ---
 
@@ -389,18 +473,21 @@ explicitly decided against:
 
 ---
 
-## Recommended sequence
+## Recommended sequence (historical — all items below now DONE)
 
 ```
-Items 1 + 2: DONE (this session)
+Items 1 + 2: DONE
   → Item 3 Phase A: DONE — migration table produced
     → Item 3 Phase B: DONE — core-cli scaffold at /opt/dev/core-cli (06b38c0)
-      → Item 3 Phase C Sprint 1: Fix proposals/* D7 violations (unblocked)
-        → Item 3 Phase C Sprint 2: Add missing API routes to CORE, fix remaining violations
-          → Item 4: Scout Phase B (depends on project_routes.py from Sprint 2)
-            → Item 3 Phase C Sprint 3: Migrate project/scout.py
+      → Item 3 Phase C Sprint 1: DONE — proposals/* D7 violations fixed (b648202)
+        → Item 3 Phase C Sprint 2: DONE — API routes added to CORE, violations fixed
+          → Item 4: DONE — pre-existing (ADR-119), not actually gated on Sprint 2
+            → Item 3 Phase C Sprint 3: DONE — project/scout.py migrated (7cac311)
+              → Item 3 Phase D: DONE — consumer stubs removed from CORE
+                → core-cli published at 1.0.0
 ```
 
-Item 3 Phase C Sprint 1 (`proposals/*` fixes) is the next unblocked action.
-Sprint 2 route additions are independent and can be tackled in any order by
-gap cluster. Item 4 is unblocked once `project_routes.py` exists.
+Everything in this plan is closed except the VM release smoke test
+(`CORE-CLI-Release-Smoke-Test.md`, not yet executed — needs governor-provided
+VM + SSH access) and the Scout output-quality gap noted above, now tracked
+as #762.
