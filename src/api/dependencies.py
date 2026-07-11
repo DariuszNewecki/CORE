@@ -24,6 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from body.services.consequence_log_service import ConsequenceLogService
 from shared.infrastructure.database.session_manager import get_db_session, get_session
+from shared.infrastructure.secrets_service import SecretsService
+from shared.infrastructure.secrets_service import (
+    get_secrets_service as _get_secrets_svc,
+)
 
 
 # ID: 5b9f734c-5a1c-4278-9853-b0b841b08510
@@ -54,3 +58,11 @@ require_operator = Depends(_oss_passthrough)
 def get_consequence_log_service() -> ConsequenceLogService:
     """FastAPI dependency that provides a ConsequenceLogService instance."""
     return ConsequenceLogService()
+
+
+# ID: 8d1ba106-fbed-41a1-8fe7-9452d612a29a
+async def get_secrets_service_dep(
+    session: AsyncSession = Depends(get_api_session),
+) -> SecretsService:
+    """FastAPI dependency that provides a SecretsService instance."""
+    return await _get_secrets_svc(session)

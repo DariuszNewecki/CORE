@@ -44,6 +44,7 @@ from api.v1 import (
     proposals_routes,
     quality_routes,
     refactor_routes,
+    secrets_routes,
     sync_routes,
 )
 from body.infrastructure.lifespan import core_lifespan
@@ -168,6 +169,7 @@ def create_app(lifespan=None) -> FastAPI:
     v1.include_router(proposals_routes.router, tags=["Proposals"])
     v1.include_router(findings_routes.router, tags=["Findings"])
     v1.include_router(lane_routes.router, tags=["Lane"])
+    v1.include_router(secrets_routes.router, tags=["Secrets"])
     v1.include_router(audit_routes.router, tags=["Audit"])
     v1.include_router(integration_routes.router, tags=["Integration"])
     v1.include_router(lint_routes.router, tags=["Lint"])
