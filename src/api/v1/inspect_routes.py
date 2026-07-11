@@ -27,6 +27,7 @@ from api.dependencies import get_api_session
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.inspect_runner import (
+    get_analysis_bridges,
     get_analysis_clusters,
     get_analysis_command_tree,
     get_analysis_common_knowledge,
@@ -194,6 +195,24 @@ async def refusals_stats(
 
 
 # ---------- /analysis ----------------------------------------------------
+
+
+@analysis_router.get(
+    "/bridges",
+    summary="Declared architecture bridge points",
+    description=(
+        "Return constitutionally-declared data-flow crossings from "
+        ".intent/architecture/bridges/*.yaml. Optional `consuming` query "
+        "filters to bridges whose consuming_types include that string "
+        "(e.g. AuditFinding, Proposal)."
+    ),
+)
+# ID: 41ca9d41-42e9-4ceb-8bc8-06b1d0423f8d
+async def analysis_bridges(
+    consuming: str | None = Query(default=None),
+) -> dict:
+    """Return declared architecture bridge points."""
+    return get_analysis_bridges(consuming=consuming)
 
 
 @analysis_router.get(

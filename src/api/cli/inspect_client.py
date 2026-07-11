@@ -86,6 +86,14 @@ class InspectClient:
             "GET", "/v1/refusals/stats", params={"days": days}
         )
 
+    # ID: 4ed67c72-ddde-4bd3-b30b-a306f4710652
+    async def analysis_bridges(self, consuming: str | None = None) -> dict:
+        """GET /v1/analysis/bridges — declared architecture bridge points."""
+        params: dict[str, Any] = {}
+        if consuming is not None:
+            params["consuming"] = consuming
+        return await self._facade._request("GET", "/v1/analysis/bridges", params=params)
+
     # ID: 9527b482-c9c3-4504-b2e4-cc2ccfcc1108
     async def analysis_clusters(self, limit: int = 25) -> dict:
         """GET /v1/analysis/clusters — semantic capability clusters."""

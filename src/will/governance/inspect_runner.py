@@ -36,6 +36,7 @@ from shared.logger import getLogger
 
 
 __all__ = [
+    "get_analysis_bridges",
     "get_analysis_clusters",
     "get_analysis_command_tree",
     "get_analysis_common_knowledge",
@@ -377,6 +378,56 @@ def get_analysis_test_targets(context: CoreContext) -> dict:
     except Exception as exc:
         logger.info("inspect_runner: test_target_classifier unavailable: %s", exc)
         return {"available": False, "error": str(exc), "targets": []}
+
+
+# ID: ed356df8-f508-450a-85bc-cdc8b3bc2af7
+def get_analysis_bridges(*, consuming: str | None = None) -> dict:
+    """Return declared architecture bridge points from .intent/architecture/bridges/*.yaml.
+
+    When `consuming` is supplied, filters to bridges whose consuming_types
+    include that string. Returns all fields so consumers can render the
+    full bridge declaration without additional HTTP calls.
+    """
+    try:
+        from shared.infrastructure.intent.architecture_bridges import (
+            bridges_consuming,
+            load_bridges,
+        )
+
+        bridges = bridges_consuming(consuming) if consuming else load_bridges()
+    except Exception as exc:
+        return {
+            "available": False,
+            "error": f"{type(exc).__name__}: {exc}",
+            "bridges": [],
+        }
+
+    def _to_dict(b: Any) -> dict:
+        return {
+            "id": b.id,
+            "title": b.title,
+            "description": b.description,
+            "bridge_class": b.bridge_class,
+            "bridge_layer": b.bridge_layer,
+            "source_layer": b.source_layer,
+            "source_context": b.source_context,
+            "consuming_types": b.consuming_types,
+            "sink_target": b.sink_target,
+            "sink_layer": b.sink_layer,
+            "sink_via": b.sink_via,
+            "attribution_mechanism": b.attribution_mechanism,
+            "attribution_field": b.attribution_field,
+            "attribution_note": b.attribution_note,
+            "authority_adrs": b.authority_adrs,
+        }
+
+    result = sorted(bridges, key=lambda b: b.id)
+    return {
+        "available": True,
+        "count": len(result),
+        "consuming": consuming,
+        "bridges": [_to_dict(b) for b in result],
+    }
 
 
 # ---------- /components ---------------------------------------------------
