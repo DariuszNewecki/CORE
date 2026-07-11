@@ -162,8 +162,8 @@ async def adopt_pack_command(
         return
 
     # --- Apply ---
-    from shared.infrastructure.file_handler import (
-        FileHandler,  # type: ignore[import-untyped]
+    from shared.infrastructure.file_handler import (  # type: ignore[import-untyped]
+        FileHandler,
     )
 
     fh = FileHandler(str(target_dir))

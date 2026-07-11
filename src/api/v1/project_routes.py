@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import typer
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,7 +116,7 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
             dry_run=not body.write,
             stage_dir=stage_dir,
         )
-    except typer.Exit as exc:
+    except SystemExit as exc:
         raise HTTPException(
             status_code=400, detail="Onboard failed — check CORE logs."
         ) from exc
@@ -147,7 +146,7 @@ async def promote_onboard(body: PromoteRequest, request: Request) -> dict:
     target_path = Path(body.path).resolve()
     try:
         await promote_staged(context=core_context, path=target_path)
-    except typer.Exit as exc:
+    except SystemExit as exc:
         raise HTTPException(
             status_code=400, detail="Promote failed — check CORE logs."
         ) from exc
