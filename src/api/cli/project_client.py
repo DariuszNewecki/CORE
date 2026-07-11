@@ -51,3 +51,10 @@ class ProjectClient:
         return await self._facade._request(
             "POST", "/v1/project/onboard/promote", json={"path": path}
         )
+
+    # ID: 0c6ce935-afbf-4294-a918-2b36342df195
+    async def scout(self, path: str, reset: bool = False) -> dict:
+        """POST /v1/project/scout — detect signals and induce candidate governance rules."""
+        return await self._facade._request(
+            "POST", "/v1/project/scout", json={"path": path, "reset": reset}
+        )
