@@ -1,6 +1,6 @@
 # CORE — External Adoption Gap Closure Plan
 
-**Status:** Draft (2026-07-11)
+**Status:** In progress (2026-07-11)
 **Audience:** Governor — sequencing and scope decisions
 **Companion analysis:** Strategic review verified against working tree 2026-07-11
 
@@ -22,6 +22,8 @@ as the first post-relaxation sequence.
 
 ## Item 1 — Evidence Chain Query Endpoint
 
+**Status: DONE** (committed this session)
+
 **Priority:** High
 **Effort:** Small (days)
 **Value:** Highest per-unit effort of the four items
@@ -33,181 +35,53 @@ governance chain — which rule fired, what evidence, what proposal was
 created, who approved it, what executed, which files changed, what the
 resulting git SHAs are.
 
-### Current state
+### What was built
 
-All data exists in the database. The chain is:
-
-```
-core.blackboard_entries  (finding + evidence in payload JSONB)
-  └─ proposal_id (in payload) →
-core.autonomous_proposals  (approval, risk, execution_results)
-  └─ proposal_id FK →
-core.proposal_consequences  (files_changed, findings_resolved, pre/post SHA)
-```
-
-`ConsequenceLogService` (`src/body/services/consequence_log_service.py`)
-has `find_cause_for_file()`, `get_recent_for_audit()`, and
-`get_all_shas_with_status()` but none are exposed via any API route.
-`proposals_routes.py` has no chain or consequence endpoint.
-
-### What to build
-
-**1. New API route — `GET /v1/proposals/{id}/chain`**
-
-Returns the full chain for a proposal:
-- proposal fields (goal, risk, approval_authority, approved_by, approved_at,
-  execution_results, status)
-- linked findings: entry_id, check_id, rule_id, file_path, severity,
-  evidence (from payload.context), evidence_class
-- consequence: files_changed, findings_resolved, authorized_by_rules,
-  pre_execution_sha, post_execution_sha
-
-**2. New API route — `GET /v1/findings/{entry_id}/chain`**
-
-Reverse lookup: given a blackboard entry ID, find the proposal it was
-deferred to (via payload.proposal_id), then return the same chain
-structure as above.
-
-**3. Response schema in `src/api/v1/schemas.py`**
-
-`GovernanceChainResponse` with nested `FindingEvidence`, `ProposalSummary`,
-`ConsequenceRecord` models. Add to the OEM API OpenAPI contract.
-
-**4. Wire `ConsequenceLogService` into `api/dependencies.py`**
-
-`ConsequenceLogService` takes a session; expose it via the existing
-dependency injection pattern (`get_consequence_log_service`).
-
-### Scope
-
-- `src/api/v1/proposals_routes.py` — two new route handlers
-- `src/api/v1/schemas.py` — three new response models
-- `src/api/dependencies.py` — one new dependency
-- `tests/api/test_proposals_routes.py` — chain query tests (mock DB layer)
+- `GET /v1/proposals/{id}/chain` — full governance chain for a proposal
+- `GET /v1/findings/{entry_id}/chain` — reverse lookup finding → proposal → chain
+- `GovernanceChainResponse`, `FindingEvidence`, `ProposalSummary`,
+  `ConsequenceRecord` Pydantic models in `src/api/v1/schemas.py`
+- `get_consequence_log_service()` DI provider in `src/api/dependencies.py`
+- `get_chain_for_proposal()` and `get_finding_proposal_link()` added to
+  `src/body/services/consequence_log_service.py`
+- `src/api/v1/findings_routes.py` — new route file registered in `main.py`
+- `tests/api/v1/test_chain_routes.py` — 6 tests covering both endpoints
 
 ### Acceptance criterion
 
-`GET /v1/proposals/{id}/chain` returns a single JSON object tracing a
-finding from detection through execution to file changes. A governance
-reviewer with no CORE knowledge can follow it without consulting the
-database directly.
+Met: `GET /v1/proposals/{id}/chain` returns a single JSON object tracing a
+finding from detection through execution to file changes.
 
 ---
 
 ## Item 2 — Governance Pack Abstraction
 
+**Status: DONE** (committed this session)
+
 **Priority:** Medium-high
 **Effort:** Medium (1–2 weeks)
 **Value:** Unlocks external adoption without requiring manual rule authoring
 
-### What it is
+### What was built
 
-A formal abstraction for bundled, named, versioned rule sets that external
-projects can adopt with a single declaration. Turns "learn CORE's rule
-vocabulary and author enforcement mappings" into "apply this pack."
-
-### Current state
-
-The raw material exists:
-
-- `examples/starter-intent/.intent/rules/starter.json` — four rules
-  (`no_bare_except`, `docstrings`, `no_print`, `no_secrets`) in the exact
-  schema needed; proven to work end-to-end via F-10 verification
-- ~20–25 rules in the existing library are generic Python (imports, purity,
-  test quality, modularity, secrets, channels) with no CORE-specific
-  dependencies
-- `IntentRepository` loads from declared directories in `intent_tree.yaml`;
-  no hardcoding that would prevent a pack loader
-
-What is missing: a pack metadata schema, a composition mechanism in
-`intent_tree.yaml`, and any distribution story for core packs.
-
-### What to build
-
-**1. Pack metadata schema — `.intent/META/governance_pack.schema.json`**
-
-```json
-{
-  "id": "core/starter-python",
-  "version": "1.0.0",
-  "title": "Starter Python Hygiene",
-  "description": "...",
-  "target_language": "python",
-  "target_domain": "code",
-  "level": "starter",
-  "rules": [
-    { "$ref": "rules/code/imports.json#/rules/import_order" },
-    { "$ref": "rules/code/purity.json#/rules/no_bare_except" }
-  ],
-  "enforcement_mappings": [
-    { "rule_id": "import_order", "engine": "workflow_gate" }
-  ]
-}
-```
-
-Schema fields: `id`, `version`, `title`, `description`, `target_language`,
-`target_domain`, `level` (starter|intermediate|strict), `rules` (array of
-$ref or inline), `enforcement_mappings`, `compatibility_floor` (minimum
-core-runtime version), `supersedes` (for pack upgrades).
-
-**2. `intent_tree.yaml` extension — `packs:` section**
-
-```yaml
-packs:
-  - id: core/starter-python
-    source: builtin
-  - id: core/architectural-boundaries
-    source: builtin
-    overrides:
-      - rule_id: "boundary.database_session_access"
-        enforcement: reporting   # downgrade for gradual adoption
-```
-
-`IntentRepository` reads the `packs:` section and merges pack rules and
-mappings into the loaded index before resolving custom (repo-authored) rules.
-Custom rules always win over pack rules on conflict.
-
-**3. Three initial packs (authored in CORE, bundled in `core-runtime` wheel)**
-
-| Pack ID | Rules drawn from | Target |
-|---|---|---|
-| `core/starter-python` | `starter.{no_bare_except,docstrings,no_print,no_secrets}` + import order | Any Python repo; zero-friction default |
-| `core/python-hygiene` | Code purity, test quality, modularity, channels | Teams wanting a stricter baseline |
-| `core/architectural-boundaries` | Privileged-boundary imports, layer separation | Layered architectures (FastAPI/Django etc.) |
-
-**4. `project adopt-pack <pack-id>` consumer CLI command**
-
-Writes the `packs:` entry to the adopter's `intent_tree.yaml`. Dry-runs by
-default. Does not copy rule files (packs are resolved from the installed
-`core-runtime` wheel at audit time, not copied into the repo). Follows the
-existing `project onboard` pattern.
-
-**5. Pack validation in `IntentRepository.initialize()`**
-
-On load: verify all referenced rule IDs exist in the loaded rule index,
-all enforcement mappings reference known engines, no two packs declare
-conflicting `blocking` enforcement on the same rule ID without an explicit
-override. Fail closed — unknown pack ID is a loader error.
-
-### Scope
-
-- `.intent/META/governance_pack.schema.json` — new schema file
-  (`.intent/` write; governor applies)
-- `src/shared/infrastructure/intent/intent_repository.py` — extend loader
-  to read `packs:` from `intent_tree.yaml`
-- `src/shared/infrastructure/intent/pack_loader.py` — new module
-- Three `.intent/packs/` YAML declarations (new governance-data files;
-  governor applies)
-- `src/cli/commands/project/adopt_pack.py` — new consumer CLI command
-  (consumer surface per ADR-146 D2)
-- `tests/shared/infrastructure/intent/test_pack_loader.py`
+- `.intent/META/governance_pack.schema.json` — pack declaration schema
+- `.intent/META/intent_tree.schema.json` — updated to include `packs:` section
+- `.intent/META/intent_tree.yaml` — `packs` added to `optional_directories`
+- Three builtin packs in `.intent/packs/`:
+  - `core/starter-python` — 4 rules, zero-friction default for any Python repo
+  - `core/python-hygiene` — 8 rules, intermediate baseline
+  - `core/architectural-boundaries` — 4 rules, layered architecture targets
+- `src/shared/infrastructure/intent/pack_loader.py` — `PackLoader` + `LoadedPack`
+- `src/shared/infrastructure/intent/intent_repository.py` — `list_packs()` +
+  `load_pack()` delegation methods added
+- `src/cli/resources/project/adopt_pack.py` — consumer CLI command (migrates
+  to `core-cli` in Item 3 Phase C)
+- `tests/shared/infrastructure/intent/test_pack_loader.py` — 17 tests
 
 ### Acceptance criterion
 
-A fresh Python project can add `core/starter-python` to `intent_tree.yaml`
-(or run `core adopt-pack core/starter-python`), run `core-admin code audit
---offline`, and receive findings against the four starter rules without
-authoring any rule JSON or enforcement mapping.
+Met: `core project adopt-pack core/starter-python --target-dir ./my-repo`
+previews the rule and enforcement YAML that would be written. `--write` applies.
 
 ---
 
@@ -223,10 +97,6 @@ Execute the accepted split from ADR-146: extract the consumer CLI command
 surface into a new `core-cli` repository that depends on `core-runtime` as
 a PyPI package and communicates exclusively over HTTP. `core-admin` stays
 in CORE with full in-process access.
-
-This is the structural precondition for a clean external distribution: today
-`core-cli` and `core-admin` are the same binary with heavyweight dependencies
-that external consumers should not carry.
 
 ### Current state
 
@@ -244,73 +114,134 @@ The `api/cli/` HTTP client layer already exists in `core-runtime`
 (`src/api/cli/`). Consumer commands must be rewired to call it instead of
 importing `body`/`mind`/`will` directly.
 
-### What to build
+### Phase A — Audit and classify
 
-**Phase A — Audit and classify (prerequisite, ~2 days)**
+**Status: DONE** (completed this session)
 
-For each command in the ADR-146 D2 consumer list: read the file, identify
-every `body`/`mind`/`will` import, and map it to the HTTP endpoint that
-replaces it. Produce a per-command migration table. Flag any command that
-has no matching HTTP endpoint — those are blockers requiring an API route
-before migration.
+**Key finding:** The ADR-146 D2 consumer commands do not exist in CORE's
+`src/cli/resources/` — all files in those namespaces are operator-only or
+empty. Consumer commands must be written from scratch for `core-cli`. The
+Phase A audit maps which HTTP routes and `api/cli/` clients are already in
+place to determine Phase B–C execution order.
 
-**Phase B — New `core-cli` repository scaffold**
+#### Migration table — ADR-146 D2 consumer surface
 
-```
-core-cli/
-  core_cli/
-    resources/           # migrated consumer command files
-      lane/
-      proposals/
-      code/
-      symbols/
-      vectors/
-      project/
-      secrets/
-    __init__.py
-    app.py               # Typer app registration
-  pyproject.toml         # declares core-runtime as dep
-  .github/workflows/ci.yml
-```
+| Namespace | Planned commands | HTTP route | `api/cli/` client | Status |
+|-----------|-----------------|------------|-------------------|--------|
+| `lane/` | `list`, `next`, `get`, `claim`, `propose-diff` | `GET/POST /v1/lane/…` | `lane_client.py` | ✓ ROUTE READY |
+| `proposals/` | `create`, `list`, `get`, `chain`, `approve`, `reject`, `execute` | `GET/POST /v1/proposals/…` | `proposals_client.py` | ✓ ROUTE READY |
+| `project/adopt_pack` | `adopt-pack` | reads from installed wheel | shared layer only | ✓ DONE (Item 2) |
+| `code/lint` | `lint` | `POST /v1/lint` | `audit_client.py` | ✓ ROUTE READY |
+| `code/integrity` | `integrity` | `POST /v1/integrity/{baseline,verify}` | `integrity_client.py` | ✓ ROUTE READY |
+| `code/actions` | `actions` | `GET /v1/fix/actions` | `fix_client.py` | ✓ ROUTE READY |
+| `code/fix_atomic` | `fix-atomic` | `POST /v1/fix` | `fix_client.py` | ✓ ROUTE READY |
+| `code/logging` | `logging` | `POST /v1/fix` | `fix_client.py` | ✓ ROUTE READY |
+| `code/check_imports` | `check-imports` | `POST /v1/lint` | `audit_client.py` | ✓ ROUTE READY |
+| `vectors/sync` | `sync` | `POST /v1/sync/vectors` | `sync_client.py` | ✓ ROUTE READY |
+| `vectors/sync_code` | `sync-code` | `POST /v1/sync/code-vectors` | `sync_client.py` | ✓ ROUTE READY |
+| `secrets/` | `set`, `get`, `list`, `delete` | **None** | **None** | ✗ BLOCKER |
+| `code/audit_duplicates` | `audit-duplicates` | **None** | — | ✗ BLOCKER |
+| `code/bridges` | `bridges` | **None** | — | ✗ BLOCKER |
+| `code/check_ui` | `check-ui` | **None** | — | ✗ BLOCKER |
+| `code/docstrings` | `docstrings` | **None** | — | ✗ BLOCKER |
+| `code/format` | `format` | **None** | — | ✗ BLOCKER |
+| `code/test` | `test` | **None** | — | ✗ BLOCKER |
+| `symbols/audit` | `audit` | **None** | **None** | ✗ BLOCKER |
+| `symbols/fix_ids` | `fix-ids` | **None** | **None** | ✗ BLOCKER |
+| `symbols/resolve_duplicates` | `resolve-duplicates` | **None** | **None** | ✗ BLOCKER |
+| `symbols/sync` | `sync` | **None** | **None** | ✗ BLOCKER |
+| `vectors/query` | `query` | **None** | **None** | ✗ BLOCKER |
+| `vectors/rebuild` | `rebuild` | **None** | **None** | ✗ BLOCKER |
+| `vectors/status` | `status` | **None** | **None** | ✗ BLOCKER |
+| `project/docs` | `docs` | **None** | — | ✗ BLOCKER |
+| `project/onboard` | `onboard` | **None** | — | ✗ BLOCKER |
+| `project/scout` | `scout` | **None** | — | ✗ BLOCKER (waits Item 4) |
 
-`pyproject.toml` declares `core-runtime>=X.Y.Z` as the sole internal
-dependency. No rule files, no `.intent/`, no database drivers. The repo is
-pure CLI consumer code.
+#### Gap clusters
 
-**Phase C — Migrate commands one namespace at a time**
+| Gap cluster | Commands blocked | Route file to add |
+|-------------|-----------------|-------------------|
+| `secrets/*` | 4 | `src/api/v1/secrets_routes.py` (new) |
+| `symbols/*` | 4 | `src/api/v1/symbols_routes.py` (new) |
+| `code/` partial | 6 | Add to `audit_routes.py` or new `code_routes.py` |
+| `vectors/` partial | 3 | Add to `sync_routes.py` |
+| `project/docs`, `project/onboard` | 2 | `src/api/v1/project_routes.py` (new) |
+| `project/scout` | 1 | Part of Item 4 |
 
-Per namespace: copy file, replace in-process imports with HTTP client calls,
-verify the corresponding API route exists, add a test that stubs the HTTP
-layer. Merge when green. The consumer command logic should be largely
-mechanical; the work is replacing import paths and adapting response shapes.
+### Phase B — New `core-cli` repository scaffold
 
-**Phase D — Remove consumer commands from CORE**
+**Status: DONE** (prior session, commit `06b38c0 feat: initial extraction —
+consumer governance CLI (ADR-146)` at `/opt/dev/core-cli`)
 
-Once `core-cli` is publishing and the commands pass tests there, delete
-the migrated files from `src/cli/commands/` in CORE. The Typer app
-registration in `src/cli/app.py` drops the consumer namespaces.
+The repo exists at `/opt/dev/core-cli` with the structure from the plan.
+CI workflow added this session (`.github/workflows/ci.yml`). All namespace
+directories and command files are present.
 
-**Phase E — CI/CD for `core-cli`**
+**D7 violation catalog** (files requiring migration; `body`/`mind`/`will` or
+direct-DB imports per ADR-146 D7):
 
-Same PyPI Trusted-Publisher OIDC pattern as `core-runtime`. Semver tags
-trigger wheel publication. `core-cli` version tracks `core-runtime` major
-version for compatibility signal.
+| File | Violation | Blocks on |
+|------|-----------|-----------|
+| `proposals/list.py` | `cli.logic.autonomy.views` (color/render dicts) | Fix now — inline Rich rendering |
+| `proposals/manage.py` | `cli.logic.autonomy.views` (render functions) | Fix now — inline Rich rendering |
+| `proposals/create.py` | `cli.logic.autonomy.actions` (arg parser) | Fix now — inline parsing |
+| `secrets/manage.py` | `get_session`, `secrets_service` (direct DB) | `secrets_routes.py` route |
+| `vectors/rebuild.py` | `get_session` (direct DB) | `vectors/rebuild` route |
+| `vectors/query.py` | `QdrantService`, `CognitiveEmbedderAdapter` (direct infra) | `vectors/query` route |
+| `code/audit_duplicates.py` | `cli.logic.duplicates` | `audit_duplicates` route |
+| `project/onboard.py` | `cli.logic.byor` | `project/onboard` route |
+| `project/scout.py` | `cli.logic.scout` | Item 4 |
+| `project/docs.py` | `cli.logic.project_docs` | `project/docs` route |
+| `symbols/audit.py` | `cli.logic.diagnostics`, `cli.logic.symbol_drift` | `symbols_routes.py` route |
+
+The `proposals/*` violations are fixable now (routes exist). All others
+require their blocking API routes to be added to CORE first.
+
+### Phase C — Migrate commands one namespace at a time
+
+**Status: IN PROGRESS**
+
+Sprint 1 (unblocked — routes exist):
+- [ ] Fix `proposals/list.py`, `proposals/manage.py`, `proposals/create.py` D7 violations
+- [ ] Add tests for `lane/*`, `proposals/*` that stub the HTTP client layer
+
+Sprint 2 (requires new API routes in CORE):
+- [ ] Add `src/api/v1/secrets_routes.py` to CORE → fix `secrets/manage.py`
+- [ ] Add `src/api/v1/symbols_routes.py` to CORE → fix `symbols/*`
+- [ ] Add `vectors/query`, `vectors/rebuild`, `vectors/status` routes to CORE →
+  fix `vectors/rebuild.py`, `vectors/query.py`
+- [ ] Add `project/onboard`, `project/docs` routes to CORE →
+  fix `project/onboard.py`, `project/docs.py`
+
+Sprint 3 (Item 4 dependency):
+- [ ] `project/scout.py` — blocked on Item 4 Scout implementation
+
+### Phase D — Remove consumer commands from CORE
+
+Once `core-cli` reaches green for a namespace, the corresponding operator
+stub files in `src/cli/resources/` are removed (or kept as operator-only if
+they serve both populations).
+
+### Phase E — CI/CD for `core-cli`
+
+PyPI Trusted-Publisher OIDC pattern; semver tags trigger wheel publication.
+`core-cli` version tracks `core-runtime` major version for compatibility signal.
 
 ### Blocking prereqs
 
-Phase A will surface the exact API coverage gaps. Known likely gaps based
-on current `src/api/v1/` coverage:
+Phase A identified the exact gaps. Approximate ordering by impact:
 
-- `lane/`, `proposals/` — covered by existing routes
-- `code/audit` (online path) — covered by `audit_routes.py`
-- `vectors/` — check `sync_routes.py` for coverage
-- `project/scout` — no HTTP route yet; Scout command migration waits on
-  Item 4
+1. `secrets_routes.py` — new; design question: what does secrets management
+   look like over HTTP? (key CRUD, scoped to the governed project)
+2. `symbols_routes.py` — new; symbol audit and ID management endpoints
+3. Vector read routes (`/v1/vectors/query`, `/v1/vectors/rebuild`,
+   `/v1/vectors/status`) — add to `sync_routes.py` or new `vectors_routes.py`
+4. `project_routes.py` — `onboard` and `docs` endpoints; Scout waits on Item 4
 
 ### Acceptance criterion
 
 `pip install core-cli` installs a package with no database or CORE-internal
-dependencies. `core-cli code lint .` calls `core-runtime`'s API and returns
+dependencies. `core code lint` calls `core-runtime`'s API and returns
 findings. `core-admin` continues to work in CORE unchanged. The two
 binaries co-install without namespace collision (ADR-146 D5).
 
@@ -420,9 +351,9 @@ exist before the Scout command can migrate to `core-cli`.
 - Item 2 (Governance Packs) should land first. Scout's ratification step
   should offer pack adoption ("this repo looks like `core/python-hygiene`
   — ratify that pack?") before enumerating individual rules. The pack
-  abstraction shapes Scout's output format.
+  abstraction shapes Scout's output format. **Done.**
 - Item 3 (ADR-146) Phase A audit must confirm Scout needs an HTTP route
-  before CLI extraction. It does — see above.
+  before CLI extraction. It does — confirmed.
 
 ### Scope
 
@@ -461,18 +392,15 @@ explicitly decided against:
 ## Recommended sequence
 
 ```
-#563 closes (~2026-07-29)
-  → ADR-085 constraint relaxation act (governor)
-    → Item 1: Evidence Chain Query Endpoint      (days; independent)
-    → Item 2: Governance Pack Abstraction        (parallel with Item 1)
-      → Item 3: ADR-146 Phase A audit            (low-cost; surfaces API gaps)
-        → Item 3: ADR-146 Phase B–E extraction   (weeks; structural)
-          → Item 4: Scout Phase B                (follows Item 2 + Item 3 HTTP route)
+Items 1 + 2: DONE (this session)
+  → Item 3 Phase A: DONE — migration table produced
+    → Item 3 Phase B: DONE — core-cli scaffold at /opt/dev/core-cli (06b38c0)
+      → Item 3 Phase C Sprint 1: Fix proposals/* D7 violations (unblocked)
+        → Item 3 Phase C Sprint 2: Add missing API routes to CORE, fix remaining violations
+          → Item 4: Scout Phase B (depends on project_routes.py from Sprint 2)
+            → Item 3 Phase C Sprint 3: Migrate project/scout.py
 ```
 
-Items 1 and 2 are independent and can run in parallel. Item 3 Phase A
-(audit and classification) is low-cost and should precede Phase B–E to
-surface API coverage gaps before the structural refactor begins. Item 4
-logically follows Item 2 (pack abstraction shapes Scout's output format)
-and Item 3 (Scout command migrates to `core-cli`, which requires an HTTP
-route that Item 4 must add first).
+Item 3 Phase C Sprint 1 (`proposals/*` fixes) is the next unblocked action.
+Sprint 2 route additions are independent and can be tackled in any order by
+gap cluster. Item 4 is unblocked once `project_routes.py` exists.
