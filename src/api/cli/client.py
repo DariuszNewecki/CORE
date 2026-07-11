@@ -38,6 +38,7 @@ from api.cli.proposals_client import ProposalsClient
 from api.cli.quality_client import QualityClient
 from api.cli.refactor_client import RefactorClient
 from api.cli.secrets_client import SecretsClient
+from api.cli.symbols_client import SymbolsClient
 from api.cli.sync_client import SyncClient
 
 
@@ -74,6 +75,7 @@ class CoreApiClient:
         self.integrity = IntegrityClient(self)
         self.lane = LaneClient(self)
         self.secrets = SecretsClient(self)
+        self.symbols = SymbolsClient(self)
 
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:
