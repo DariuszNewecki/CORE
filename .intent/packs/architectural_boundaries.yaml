@@ -1,0 +1,146 @@
+kind: governance_pack
+id: "core/architectural-boundaries"
+version: "1.0.0"
+title: "Architectural Boundaries (Python Layered)"
+description: >
+  Boundary rules for Python projects with a layered architecture — FastAPI,
+  Django, or any project with a conventional routes/services/models layout.
+  Prevents business logic leaking into HTTP handlers, raw SQL appearing in
+  route files, and ORM sessions being imported in presentation-layer modules.
+  Scope patterns follow common directory naming conventions (**\/routes\/**,
+  **\/views\/**,  **\/services\/**). Projects with non-standard layouts should
+  override the enforcement_mappings.scope.applies_to globs after adoption.
+target_language: "python"
+level: "intermediate"
+compatibility_floor: "2.8.0"
+
+rules:
+  - id: "arch.no_print_in_services"
+    statement: >
+      Service and domain layer modules MUST NOT use print(). Operational output
+      belongs in structured logs. print() in service code bypasses log level
+      controls and routing, making it invisible to log aggregators.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "arch.no_raw_sql_in_routes"
+    statement: >
+      HTTP route/view handlers MUST NOT contain raw SQL statement strings
+      (SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER as statement starters).
+      SQL belongs in repository or DAO classes that can be independently tested
+      and replaced. Route handlers that contain SQL mix HTTP translation with
+      data-access concerns.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      Raw SQL in route handlers is the route-layer equivalent of a God class:
+      it couples HTTP semantics to persistence details. Moving SQL to repository
+      classes enables unit testing without a live database and makes persistence
+      changes independent of HTTP handler changes.
+
+  - id: "arch.no_direct_db_in_routes"
+    statement: >
+      HTTP route/view handlers MUST NOT directly import database driver or ORM
+      session primitives (sqlalchemy, psycopg, psycopg2, sqlite3, pymysql,
+      asyncpg). Database access must be mediated by a repository or service
+      class and injected as a dependency.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      Direct DB imports in route handlers bypass the dependency injection layer
+      and make routes untestable without a live database. The dependency
+      injection pattern (session = Depends(get_session)) is the minimum
+      acceptable boundary; a full repository layer is the preferred pattern.
+
+  - id: "arch.service_docstrings"
+    statement: >
+      Public methods in service and domain layer classes MUST have docstrings
+      that describe their intent and parameters. Service interfaces are the
+      primary contract surface that downstream callers depend on.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+enforcement_mappings:
+  arch.no_print_in_services:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to:
+        - "**/services/**/*.py"
+        - "**/service/**/*.py"
+        - "**/domain/**/*.py"
+        - "**/business/**/*.py"
+        - "**/core/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  arch.no_raw_sql_in_routes:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?i)\\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|DROP TABLE|ALTER TABLE)\\b.{0,200}(FROM|INTO|TABLE|WHERE|SET)"
+    scope:
+      applies_to:
+        - "**/routes/**/*.py"
+        - "**/route/**/*.py"
+        - "**/views/**/*.py"
+        - "**/view/**/*.py"
+        - "**/handlers/**/*.py"
+        - "**/endpoints/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  arch.no_direct_db_in_routes:
+    engine: ast_gate
+    params:
+      check_type: forbidden_imports_and_calls
+      forbidden_imports:
+        - "sqlalchemy"
+        - "sqlalchemy.orm"
+        - "sqlalchemy.ext.asyncio"
+        - "psycopg"
+        - "psycopg2"
+        - "sqlite3"
+        - "pymysql"
+        - "asyncpg"
+        - "aiosqlite"
+    scope:
+      applies_to:
+        - "**/routes/**/*.py"
+        - "**/route/**/*.py"
+        - "**/views/**/*.py"
+        - "**/view/**/*.py"
+        - "**/handlers/**/*.py"
+        - "**/endpoints/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  arch.service_docstrings:
+    engine: ast_gate
+    params:
+      check_type: docstrings_present
+    scope:
+      applies_to:
+        - "**/services/**/*.py"
+        - "**/service/**/*.py"
+        - "**/domain/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"

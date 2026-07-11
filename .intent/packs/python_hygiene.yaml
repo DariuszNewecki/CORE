@@ -1,0 +1,204 @@
+kind: governance_pack
+id: "core/python-hygiene"
+version: "1.0.0"
+title: "Python Hygiene (Intermediate)"
+description: >
+  Stricter baseline for teams that have outgrown the starter pack and want
+  broader code quality enforcement. Covers docstring completeness, logger
+  formatting discipline, hardcoded OS-path detection, and broad exception
+  handling patterns. Includes all starter rules plus four additional checks.
+  All checks remain LLM-free; regex_gate and ast_gate only.
+target_language: "python"
+level: "intermediate"
+compatibility_floor: "2.8.0"
+supersedes: "core/starter-python"
+
+rules:
+  # --- Inherited from starter ---
+  - id: "starter.no_bare_except"
+    statement: >
+      Code MUST NOT swallow exceptions with a bare 'except:' or
+      'except Exception: pass'. Name the exception you expect and handle it.
+    enforcement: "blocking"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "starter.docstrings"
+    statement: >
+      Public functions and classes MUST have a docstring that states their intent.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "starter.no_print"
+    statement: >
+      Importable library code MUST NOT use print(). Use a logger.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "starter.no_secrets"
+    statement: >
+      Source code MUST NOT contain hardcoded credentials assigned directly to
+      a string literal.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  # --- Hygiene additions ---
+  - id: "hygiene.no_broad_except"
+    statement: >
+      Exception handlers MUST NOT silently swallow broad exception classes
+      (Exception, BaseException) without logging or re-raising. Use specific
+      exception types or ensure caught exceptions are at minimum logged.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      Extends starter.no_bare_except (which blocks silent pass) to also surface
+      broad catches that swallow errors into a log message without re-raising.
+      The reporting level lets teams triage before hardening.
+
+  - id: "hygiene.no_logger_fstrings"
+    statement: >
+      Logger calls MUST use printf-style formatting (logger.info('%s', val))
+      rather than f-string interpolation (logger.info(f'{val}')). F-strings
+      evaluate eagerly even when the log level is suppressed, wasting CPU on
+      string construction that is immediately discarded.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      Python's logging module supports deferred interpolation via % formatting;
+      f-strings bypass this and always evaluate. On hot paths (tight loops,
+      high-frequency sensors) this is a measurable performance regression.
+
+  - id: "hygiene.no_hardcoded_env_paths"
+    statement: >
+      Source code MUST NOT contain hardcoded OS-specific home directory paths
+      (/home/, /Users/, /root/, C:\Users\). These paths are machine-specific
+      and break on any other developer's machine or in CI.
+    enforcement: "advisory"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "hygiene.explicit_exception_logging"
+    statement: >
+      Broad exception handlers (except Exception or except BaseException) SHOULD
+      log the exception with exc_info=True so the traceback is preserved for
+      diagnosis.
+    enforcement: "advisory"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      A broad except that logs without exc_info loses the traceback. The advisory
+      level flags this pattern for human review without blocking merges.
+
+enforcement_mappings:
+  # Inherited starter mappings (scope widened to **/*.py for any repo layout)
+  starter.no_bare_except:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except:\\s*pass"
+        - "except Exception:\\s*pass"
+        - "except BaseException:\\s*pass"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "**/venv/**"
+        - "**/.venv/**"
+        - "**/build/**"
+        - "**/dist/**"
+
+  starter.docstrings:
+    engine: ast_gate
+    params:
+      check_type: docstrings_present
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  starter.no_print:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "scripts/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  starter.no_secrets:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?i)\\b(password|passwd|secret_key|api_key|access_token|auth_token)\\s*=\\s*['\"][^'\"\\s]{8,}['\"]"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/test_*.py"
+        - "**/*_test.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  # Hygiene additions
+  hygiene.no_broad_except:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except\\s+(Exception|BaseException)\\s*:"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  hygiene.no_logger_fstrings:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "logger\\.(debug|info|warning|warn|error|critical|exception)\\(f['\"]"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  hygiene.no_hardcoded_env_paths:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "['\"](?:/home/|/Users/|/root/|C:\\\\Users\\\\)"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "docs/**"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  hygiene.explicit_exception_logging:
+    engine: advisory
+    params:
+      note: >
+        Advisory — no engine check. Broad exception handlers should use
+        logger.exception() or pass exc_info=True to preserve tracebacks.
+        Review flagged sites manually during code review.
+    scope:
+      applies_to: ["**/*.py"]

@@ -4,29 +4,74 @@
     "title": "CORE .intent/ Tree Contract (A2)",
     "type": "object",
     "additionalProperties": false,
+    "required": [
+        "required_directories",
+        "optional_directories"
+    ],
     "properties": {
         "required_directories": {
             "type": "array",
-            "items": {
-                "type": "string"
-            },
-            "uniqueItems": true
+            "items": {"type": "string"},
+            "uniqueItems": true,
+            "description": "Directories that MUST exist under .intent/ for the tree to be valid."
         },
         "optional_directories": {
             "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true,
+            "description": "Directories that MAY exist under .intent/. Including a directory here is the constitutional act of making it part of the Mind."
+        },
+        "validated_directories": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true,
+            "description": "Subset of optional_directories that the META validator actively validates against JSON schemas. Directories listed here but without a matching schema are skipped with a warning."
+        },
+        "packs": {
+            "type": "array",
+            "description": "Governance packs to apply from the installed core-runtime. Each entry activates a named pack's rules and enforcement mappings. Custom rules (repo-authored) always override pack rules on rule_id conflict.",
             "items": {
-                "type": "string"
-            },
-            "uniqueItems": true
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 3,
+                        "description": "Pack identifier in 'vendor/name' form, e.g. 'core/starter-python'."
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["builtin", "local"],
+                        "description": "builtin: resolved from installed core-runtime pack registry. local: resolved from .intent/packs/ in this repo. Defaults to builtin."
+                    },
+                    "overrides": {
+                        "type": "array",
+                        "description": "Per-rule enforcement overrides. Adopters may downgrade enforcement (blocking→reporting) but not upgrade beyond the pack's declared level.",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": ["rule_id", "enforcement"],
+                            "properties": {
+                                "rule_id": {
+                                    "type": "string",
+                                    "description": "Rule ID to override."
+                                },
+                                "enforcement": {
+                                    "type": "string",
+                                    "enum": ["blocking", "reporting", "advisory"],
+                                    "description": "Override enforcement level."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         "notes": {
             "type": "string"
         }
     },
-    "required": [
-        "required_directories",
-        "optional_directories"
-    ],
     "default": {
         "required_directories": [
             "META",

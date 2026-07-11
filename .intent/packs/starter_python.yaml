@@ -1,0 +1,121 @@
+kind: governance_pack
+id: "core/starter-python"
+version: "1.0.0"
+title: "Starter Python Hygiene"
+description: >
+  Zero-friction baseline for any Python project. Four proven rules covering
+  the most common beginner mistakes: silent exception swallowing, missing
+  docstrings, debug print() statements, and hardcoded credentials. All checks
+  are LLM-free; require only Python's stdlib AST parser and standard regex.
+  Use this pack for first-time CORE adoption or projects that need a minimal
+  governance floor with no tooling dependencies.
+target_language: "python"
+level: "starter"
+compatibility_floor: "2.8.0"
+
+rules:
+  - id: "starter.no_bare_except"
+    statement: >
+      Code MUST NOT swallow exceptions with a bare 'except:' or
+      'except Exception: pass'. Name the exception you expect and handle it;
+      a silent except hides the bug you most need to see.
+    enforcement: "blocking"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      A bare except that silently passes is unambiguous bad practice in any
+      Python codebase — it hides failures that would otherwise surface
+      immediately. The fix is always the same: name the exception. This is
+      the starter's blocking rule because it is trivially fixable and has
+      zero false positives.
+
+  - id: "starter.docstrings"
+    statement: >
+      Public functions and classes MUST have a docstring that states their
+      intent. A docstring is the contract a future reader — human or tool —
+      relies on.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "starter.no_print"
+    statement: >
+      Importable library code MUST NOT use print(). Use a logger so output
+      is structured, leveled, and routable. print() in shipped code is
+      almost always a debugging leftover.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+
+  - id: "starter.no_secrets"
+    statement: >
+      Source code MUST NOT contain hardcoded credentials — passwords, API keys,
+      or secret tokens assigned directly to a string literal. Hardcoded secrets
+      leak into version control. Move them to environment variables or a
+      secrets manager.
+    enforcement: "reporting"
+    authority: "policy"
+    phase: "runtime"
+    rationale: >
+      Hardcoded credentials are the most common cause of secret leaks in
+      version-controlled repositories. Reporting (not blocking) on first
+      adoption gives operators time to confirm exclusions before promoting
+      to blocking.
+
+enforcement_mappings:
+  starter.no_bare_except:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except:\\s*pass"
+        - "except Exception:\\s*pass"
+        - "except BaseException:\\s*pass"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "**/venv/**"
+        - "**/.venv/**"
+        - "**/build/**"
+        - "**/dist/**"
+        - "**/.eggs/**"
+
+  starter.docstrings:
+    engine: ast_gate
+    params:
+      check_type: docstrings_present
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  starter.no_print:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "scripts/**/*.py"
+        - "**/venv/**"
+        - "**/.venv/**"
+
+  starter.no_secrets:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?i)\\b(password|passwd|secret_key|api_key|access_token|auth_token)\\s*=\\s*['\"][^'\"\\s]{8,}['\"]"
+    scope:
+      applies_to: ["**/*.py"]
+      excludes:
+        - "tests/**/*.py"
+        - "test/**/*.py"
+        - "**/test_*.py"
+        - "**/*_test.py"
+        - "**/venv/**"
+        - "**/.venv/**"

@@ -12,7 +12,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-from . import new
+from . import adopt_pack, new
 
 
 __all__ = ["app"]

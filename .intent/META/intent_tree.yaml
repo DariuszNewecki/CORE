@@ -13,6 +13,7 @@ optional_directories:
   - workers
   - taxonomies
   - artifact_types   # ADR-090 D1 — F-41 artifact type registry
+  - packs            # Governance pack declarations (Item 2 — External Adoption Plan)
 
 validated_directories:
   - META
