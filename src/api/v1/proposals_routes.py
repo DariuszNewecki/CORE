@@ -27,8 +27,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, require_governor
-from api.v1.schemas import ProposalResponse
+from api.dependencies import (
+    get_api_session,
+    get_consequence_log_service,
+    require_governor,
+)
+from api.v1.schemas import GovernanceChainResponse, ProposalResponse
+from body.services.consequence_log_service import ConsequenceLogService
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import (
@@ -206,6 +211,35 @@ async def list_proposals(
         "next_cursor": next_cursor,
         "proposals": [p.to_dict() for p in proposals],
     }
+
+
+@router.get(
+    "/{proposal_id}/chain",
+    response_model=GovernanceChainResponse,
+    summary="Governance chain for a proposal",
+    dependencies=[require_governor],
+    description=(
+        "Return the complete governance chain for a proposal: the proposal "
+        "itself, every linked finding (detected violations), and the execution "
+        "consequence (files changed, git SHAs). `consequence` is null when the "
+        "proposal has not yet been executed. Returns 404 if the proposal does "
+        "not exist."
+    ),
+)
+# ID: d139934f-6d86-4e67-a9b0-41daba44dfa5
+async def get_proposal_chain(
+    proposal_id: str,
+    session: AsyncSession = Depends(get_api_session),
+    svc: ConsequenceLogService = Depends(get_consequence_log_service),
+) -> dict:
+    """Return the full governance chain for a proposal."""
+    chain = await svc.get_chain_for_proposal(proposal_id, session)
+    if chain is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Proposal not found: {proposal_id}",
+        )
+    return chain
 
 
 @router.get(

@@ -22,6 +22,7 @@ from collections.abc import AsyncGenerator
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.services.consequence_log_service import ConsequenceLogService
 from shared.infrastructure.database.session_manager import get_db_session, get_session
 
 
@@ -47,3 +48,9 @@ async def _oss_passthrough() -> dict:
 
 require_governor = Depends(_oss_passthrough)
 require_operator = Depends(_oss_passthrough)
+
+
+# ID: 7854c52e-6493-402f-ba18-08ecdcf1fd2b
+def get_consequence_log_service() -> ConsequenceLogService:
+    """FastAPI dependency that provides a ConsequenceLogService instance."""
+    return ConsequenceLogService()

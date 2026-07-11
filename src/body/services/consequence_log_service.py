@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 
 from sqlalchemy import Integer, String, bindparam, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
@@ -211,6 +212,125 @@ class ConsequenceLogService:
             }
             for row in rows
         ]
+
+    # ID: 01083b24-5d71-460e-a5f7-a09d9930ff69
+    async def get_chain_for_proposal(
+        self, proposal_id: str, session: AsyncSession
+    ) -> dict | None:
+        """
+        Return the full governance chain for a proposal using a caller-supplied session.
+
+        Joins core.autonomous_proposals (LEFT JOIN core.proposal_consequences) and
+        separately fetches linked core.blackboard_entries where
+        payload->>'proposal_id' = proposal_id. Returns None when no proposal row
+        exists. consequence is None when the proposal has not yet been executed.
+        """
+        proposal_row = (
+            await session.execute(
+                text(
+                    "SELECT ap.proposal_id, ap.goal, ap.status, ap.risk, "
+                    "ap.approval_authority, ap.approved_by, ap.approved_at, "
+                    "ap.execution_results, ap.created_by, ap.created_at, "
+                    "ap.failure_reason, "
+                    "pc.pre_execution_sha, pc.post_execution_sha, "
+                    "pc.files_changed, pc.findings_resolved, "
+                    "pc.authorized_by_rules, pc.recorded_at AS consequence_recorded_at "
+                    "FROM core.autonomous_proposals ap "
+                    "LEFT JOIN core.proposal_consequences pc "
+                    "  ON pc.proposal_id = ap.proposal_id "
+                    "WHERE ap.proposal_id = :proposal_id"
+                ),
+                {"proposal_id": proposal_id},
+            )
+        ).first()
+
+        if proposal_row is None:
+            return None
+
+        findings_rows = (
+            await session.execute(
+                text(
+                    "SELECT id::text AS entry_id, subject, payload, "
+                    "status, created_at "
+                    "FROM core.blackboard_entries "
+                    "WHERE entry_type = 'finding' "
+                    "AND payload->>'proposal_id' = :proposal_id "
+                    "ORDER BY created_at"
+                ),
+                {"proposal_id": proposal_id},
+            )
+        ).fetchall()
+
+        has_consequence = proposal_row.consequence_recorded_at is not None
+        return {
+            "proposal": {
+                "proposal_id": proposal_row.proposal_id,
+                "goal": proposal_row.goal,
+                "status": proposal_row.status,
+                "risk": proposal_row.risk,
+                "approval_authority": proposal_row.approval_authority,
+                "approved_by": proposal_row.approved_by,
+                "approved_at": (
+                    proposal_row.approved_at.isoformat()
+                    if proposal_row.approved_at
+                    else None
+                ),
+                "execution_results": proposal_row.execution_results,
+                "created_by": proposal_row.created_by,
+                "created_at": proposal_row.created_at.isoformat(),
+                "failure_reason": proposal_row.failure_reason,
+            },
+            "findings": [
+                {
+                    "entry_id": r.entry_id,
+                    "subject": r.subject,
+                    "status": r.status,
+                    "check_id": (r.payload or {}).get("check_id"),
+                    "rule_id": (r.payload or {}).get("rule_id"),
+                    "file_path": (r.payload or {}).get("file_path"),
+                    "severity": (r.payload or {}).get("severity"),
+                    "evidence": (r.payload or {}).get("context"),
+                    "evidence_class": (r.payload or {}).get("evidence_class"),
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in findings_rows
+            ],
+            "consequence": {
+                "pre_execution_sha": proposal_row.pre_execution_sha,
+                "post_execution_sha": proposal_row.post_execution_sha,
+                "files_changed": proposal_row.files_changed or [],
+                "findings_resolved": proposal_row.findings_resolved or [],
+                "authorized_by_rules": proposal_row.authorized_by_rules or [],
+                "recorded_at": proposal_row.consequence_recorded_at.isoformat(),
+            }
+            if has_consequence
+            else None,
+        }
+
+    # ID: ef53e3b4-6668-49a5-a712-491a6fef4514
+    async def get_finding_proposal_link(
+        self, entry_id: str, session: AsyncSession
+    ) -> str | None:
+        """
+        Read payload->>'proposal_id' from a blackboard entry.
+
+        Returns the linked proposal_id string, or None when the entry does not
+        exist or has no proposal_id in its payload.
+        """
+        row = (
+            await session.execute(
+                text(
+                    "SELECT payload->>'proposal_id' AS proposal_id "
+                    "FROM core.blackboard_entries "
+                    "WHERE id = cast(:entry_id as uuid)"
+                ),
+                {"entry_id": entry_id},
+            )
+        ).first()
+
+        if row is None:
+            return None
+        return row.proposal_id  # may be None if key absent
 
     # ID: 8e67aa3b-5ac7-4fc3-8874-6c7876e2531e
     async def get_all_shas_with_status(self) -> list[tuple[str, str, str | None]]:

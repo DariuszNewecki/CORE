@@ -120,6 +120,67 @@ class RemediationRunResponse(BaseModel):
     error: str | None
 
 
+# ── Governance chain ──────────────────────────────────────────────────────────
+
+
+# ID: f9fa4af8-b42b-4055-8cf0-f27110f7d425
+class FindingEvidence(BaseModel):
+    """A single blackboard finding linked to a proposal."""
+
+    entry_id: str
+    subject: str | None = None
+    status: str | None = None
+    check_id: str | None = None
+    rule_id: str | None = None
+    file_path: str | None = None
+    severity: str | None = None
+    evidence: Any | None = None
+    evidence_class: str | None = None
+    created_at: str | None = None
+
+
+# ID: d72c4f19-5869-4d07-878d-ef678fc19561
+class ProposalSummary(BaseModel):
+    """Proposal fields relevant to the governance chain."""
+
+    proposal_id: str
+    goal: str
+    status: str
+    risk: dict[str, Any] | None = None
+    approval_authority: str | None = None
+    approved_by: str | None = None
+    approved_at: str | None = None
+    execution_results: dict[str, Any] | None = None
+    created_by: str | None = None
+    created_at: str
+    failure_reason: str | None = None
+
+
+# ID: 7164f225-7fda-4582-81fa-d2f65cb5650d
+class ConsequenceRecord(BaseModel):
+    """Execution consequence: what the proposal actually changed."""
+
+    pre_execution_sha: str | None = None
+    post_execution_sha: str | None = None
+    files_changed: list[Any] = []
+    findings_resolved: list[Any] = []
+    authorized_by_rules: list[Any] = []
+    recorded_at: str
+
+
+# ID: 1782750c-371c-441f-8862-c42ff4ced4fe
+class GovernanceChainResponse(BaseModel):
+    """GET /v1/proposals/{id}/chain and /v1/findings/{id}/chain response.
+
+    Traces a finding from detection through approval, execution, and file
+    changes. consequence is None when the proposal has not yet been executed.
+    """
+
+    proposal: ProposalSummary
+    findings: list[FindingEvidence] = []
+    consequence: ConsequenceRecord | None = None
+
+
 # ── Proposals ─────────────────────────────────────────────────────────────────
 
 

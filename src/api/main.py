@@ -33,6 +33,7 @@ from api.v1 import (
     coverage_routes,
     daemon_routes,
     development_routes,
+    findings_routes,
     fix_routes,
     inspect_routes,
     integration_routes,
@@ -165,6 +166,7 @@ def create_app(lifespan=None) -> FastAPI:
     v1.include_router(knowledge_routes.router, tags=["Knowledge"])
     v1.include_router(development_routes.router, tags=["Development"])
     v1.include_router(proposals_routes.router, tags=["Proposals"])
+    v1.include_router(findings_routes.router, tags=["Findings"])
     v1.include_router(lane_routes.router, tags=["Lane"])
     v1.include_router(audit_routes.router, tags=["Audit"])
     v1.include_router(integration_routes.router, tags=["Integration"])
