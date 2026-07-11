@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from api.v1.project_routes import ScoutRequest, scout_project
+from api.v1.scout_routes import ScoutRequest, scout_project
 
 
 def _make_request(repo_path: str = "/opt/dev/CORE") -> MagicMock:

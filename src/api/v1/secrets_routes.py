@@ -24,6 +24,7 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/secrets", tags=["Secrets"])
 
 

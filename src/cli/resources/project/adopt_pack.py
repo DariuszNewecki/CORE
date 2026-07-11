@@ -162,7 +162,9 @@ async def adopt_pack_command(
         return
 
     # --- Apply ---
-    from shared.infrastructure.file_handler import FileHandler
+    from shared.infrastructure.file_handler import (
+        FileHandler,  # type: ignore[import-untyped]
+    )
 
     fh = FileHandler(str(target_dir))
 
@@ -180,8 +182,8 @@ async def adopt_pack_command(
         },
         "rules": effective_rules,
     }
-    rules_out.mkdir(parents=True, exist_ok=True)
     rel_rules = str(rules_file.relative_to(target_dir))
+    fh.ensure_dir(str(rules_out.relative_to(target_dir)))
     fh.write_runtime_text(rel_rules, json.dumps(rule_doc, indent=4) + "\n")
 
     # 2. Enforcement mappings
@@ -193,12 +195,12 @@ async def adopt_pack_command(
 
         entry = {rule_id: mapping}
         mapping_lines.append(_yaml.dump(entry, default_flow_style=False).rstrip())
-    mappings_out.mkdir(parents=True, exist_ok=True)
     rel_mappings = str(mappings_file.relative_to(target_dir))
+    fh.ensure_dir(str(mappings_out.relative_to(target_dir)))
     fh.write_runtime_text(rel_mappings, "\n".join(mapping_lines) + "\n")
 
     # 3. Update intent_tree.yaml packs: section
-    _upsert_pack_in_tree(tree_yaml, pack_id, parsed_overrides)
+    _upsert_pack_in_tree(tree_yaml, pack_id, parsed_overrides, fh, target_dir)
 
     console.print(
         "\n[bold green]Pack applied.[/bold green] "
@@ -207,7 +209,11 @@ async def adopt_pack_command(
 
 
 def _upsert_pack_in_tree(
-    tree_yaml: Path, pack_id: str, overrides: dict[str, str]
+    tree_yaml: Path,
+    pack_id: str,
+    overrides: dict[str, str],
+    fh: object,
+    target_dir: Path,
 ) -> None:
     """Add or update the pack entry in intent_tree.yaml's packs: section."""
     if not tree_yaml.exists():
@@ -233,7 +239,7 @@ def _upsert_pack_in_tree(
     packs.append(new_entry)
     data["packs"] = packs
 
-    tree_yaml.write_text(
-        _yaml.dump(data, default_flow_style=False, allow_unicode=True), "utf-8"
-    )
+    updated = _yaml.dump(data, default_flow_style=False, allow_unicode=True)
+    rel_tree = str(tree_yaml.relative_to(target_dir))
+    fh.write_runtime_text(rel_tree, updated)  # type: ignore[attr-defined]
     console.print(f"  Updated {tree_yaml.name}: packs: {[p['id'] for p in packs]}")

@@ -837,6 +837,12 @@ class IntentRepository(RootedRepository):
                 logger.warning("Skipping unreadable policy %s: %s", policy_id, e)
                 continue
 
+            # Governance packs (kind: governance_pack) are consumed via PackLoader,
+            # not the rule index. They may legitimately share rule IDs across packs
+            # (e.g. python_hygiene supersedes starter_python, includes same IDs).
+            if data.get("kind") == "governance_pack":
+                continue
+
             sections = ["rules", "safety_rules", "agent_rules", "principles"]
             for section in sections:
                 rules = data.get(section, [])
