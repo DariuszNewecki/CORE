@@ -40,6 +40,7 @@ from api.cli.refactor_client import RefactorClient
 from api.cli.secrets_client import SecretsClient
 from api.cli.symbols_client import SymbolsClient
 from api.cli.sync_client import SyncClient
+from api.cli.vectors_client import VectorsClient
 
 
 _DEFAULT_BASE_URL = "http://127.0.0.1:8000"
@@ -76,6 +77,7 @@ class CoreApiClient:
         self.lane = LaneClient(self)
         self.secrets = SecretsClient(self)
         self.symbols = SymbolsClient(self)
+        self.vectors = VectorsClient(self)
 
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:
