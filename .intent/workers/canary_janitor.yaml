@@ -1,0 +1,47 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.canary_janitor
+  title: Canary Sandbox Janitor
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-147. work/canary/sandbox_<crate_id>/ is a per-trial repo snapshot created by
+    CrateProcessingService._run_canary_validation, cleaned up solely by its own
+    try/finally shutil.rmtree — no age-based backstop existed. On 2026-07-11,
+    1,948 orphaned sandbox directories (~14G) were found dating to a
+    2026-06-26 to 2026-06-29 systemd watchdog SIGABRT-restart storm: a hard
+    SIGABRT bypasses Python's finally, so every in-flight sandbox at kill time
+    was orphaned and nothing ever reaped it. Unlike var_tmp_janitor (ADR-117
+    Phase 1, report-only — var/tmp holds arbitrary scratch from many sources),
+    a work/canary/sandbox_* directory is exclusively a transient snapshot with
+    no retention value once stale, so this worker deletes directly rather than
+    only reporting (ADR-147 D5). Deterministic, no LLM, bounded by
+    MAX_REAP_PER_RUN. Deletes via direct shutil.rmtree rather than FileHandler
+    (ADR-147 D4 — work/ has no target_class_boundaries.yaml entry).
+
+identity:
+  uuid: "011b7f42-404e-424c-adf4-8ed5d854b108"
+  class: governance
+
+mandate:
+  responsibility: >
+    Scan work/canary/ and delete sandbox_* directories older than the
+    retention threshold (1 hour), capped at 50 per run, posting a Blackboard
+    report of what was reaped.
+  phase: audit
+  permitted_tools: []
+  scope:
+    domains:
+      - governance
+  approval_required: false
+  schedule:
+    max_interval: 1800
+    glide_off: 180
+
+implementation:
+  module: will.workers.canary_janitor
+  class: CanaryJanitorWorker
+  requires_core_context: false

@@ -1584,6 +1584,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/workers/var_tmp_janitor.yaml
     governance_namespace: framework
+  - path: .intent/workers/canary_janitor.yaml
+    governance_namespace: framework
   - path: .intent/enforcement/config/deployment_mode.yaml
     governance_namespace: framework
   - path: .intent/enforcement/config/generation_budget.yaml

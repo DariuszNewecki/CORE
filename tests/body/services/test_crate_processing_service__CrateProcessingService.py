@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -22,7 +23,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import yaml
 
-from body.services.crate_processing_service import CrateProcessingService
+from body.services.crate_processing_service import Crate, CrateProcessingService
 
 
 @pytest.fixture
@@ -83,6 +84,50 @@ async def test_validate_crate_by_id_valid_manifest_canary_passes(service):
         result, findings = await service.validate_crate_by_id(crate_id)
         assert result
         assert findings == []
+
+
+async def test_run_canary_validation_snapshot_preserves_symlinks(
+    service, monkeypatch, tmp_path
+):
+    """Regression test for the sandbox-ballooning bug (2026-07-11): the repo
+    snapshot step must copy a real symlink (e.g. the repo-root ``ITAM ->
+    /mnt/vector_db/YPTO/ITAM`` link) as a symlink, not dereference it and
+    copy the target directory's full content. That dereferencing turned two
+    ~6M sandboxes into 1.3G each. See
+    src/body/services/crate_processing_service.py:174
+    (``shutil.copytree(..., symlinks=True, ...)``).
+    """
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    real_target = tmp_path / "external_target"
+    real_target.mkdir()
+    (real_target / "big_file.txt").write_text("x" * 1000, encoding="utf-8")
+    (repo_root / "linked_dir").symlink_to(real_target, target_is_directory=True)
+
+    service.repo_root = repo_root
+
+    # The method's `finally` always rmtrees the sandbox; suppress that so the
+    # snapshot survives long enough to inspect.
+    monkeypatch.setattr(shutil, "rmtree", lambda *a, **k: None)
+
+    # Short-circuit everything past the snapshot step (KG build / audit /
+    # canary_executor.enforce) — only section A's copytree needs to run for
+    # real. The resulting exception is caught by the method's own
+    # `except Exception` and turned into a harmless infra.canary_crash finding.
+    monkeypatch.setattr(
+        "body.services.crate_processing_service.KnowledgeGraphBuilder",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("stop after snapshot")),
+    )
+
+    crate = Crate(
+        path=tmp_path / "crate",
+        manifest={"crate_id": "sym_test", "payload_files": []},
+    )
+    await service._run_canary_validation(crate)
+
+    copied_link = repo_root / "work" / "canary" / "sandbox_sym_test" / "linked_dir"
+    assert copied_link.is_symlink(), "sandbox copy of a symlinked dir must remain a symlink"
+    assert copied_link.resolve() == real_target.resolve()
 
 
 async def test_apply_and_finalize_crate_success(service):

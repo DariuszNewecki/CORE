@@ -171,7 +171,7 @@ class CrateProcessingService:
                 try:
                     if item.is_dir():
                         shutil.copytree(
-                            item, dst, symlinks=False, ignore_dangling_symlinks=True
+                            item, dst, symlinks=True, ignore_dangling_symlinks=True
                         )
                     else:
                         shutil.copy2(item, dst)
