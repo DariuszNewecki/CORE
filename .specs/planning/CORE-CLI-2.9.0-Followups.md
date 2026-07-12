@@ -56,14 +56,20 @@ These mutate the CORE **instance's own** repo (no repo argument), so `--write` a
 the dev instance would dirty `/opt/dev/CORE`. Exercise only against a disposable
 instance pointed at a throwaway `REPO_PATH`, or accept + commit the diff knowingly.
 
-### 3. `core-api` systemd `JWT_SECRET_KEY` durability — governor, low priority
-The `core-api.service` unit has **no `EnvironmentFile`**. Startup only gets a real
-`JWT_SECRET_KEY` because the app itself calls `load_dotenv(REPO_ROOT/".env")`. This
-works today, but a systemd start with a different working directory (or a future
-refactor that drops the app-level `load_dotenv`) would fail the security pre-flight
-(`JWT_SECRET_KEY is set to the insecure default`). Consider adding
-`EnvironmentFile=-/opt/dev/CORE/.env` to the unit as belt-and-suspenders. (`.env`
-itself already holds a strong 64-char secret — no secret rotation needed.)
+### 3. ✅ Done — `core-api`/`core-daemon` `JWT_SECRET_KEY` durability
+Root cause was subtler than "different CWD": the app loads `.env` via
+`REPO_ROOT = Path(__file__).resolve().parents[2]` — which resolves to
+`site-packages` if the code ever runs from a wheel copy (the 2026-07-12
+shadow-wheel incident), leaving `.env` unloaded and the JWT security pre-flight
+failing at boot. Fixed with systemd **drop-ins** (not touching the packaged units):
+`~/.config/systemd/user/{core-api,core-daemon}.service.d/env.conf` adding
+`EnvironmentFile=-/opt/dev/CORE/.env`. systemd injects the secret via an **absolute**
+path, independent of where the code lives. `.env` verified systemd-parse-clean;
+mechanism proven with a transient unit (systemd injects the real, non-default
+`JWT_SECRET_KEY`). Applied with **zero live-service disruption** — takes effect on the
+next natural start. Deeper root fix (the `parents[2]` `REPO_ROOT` fragility, which
+also affects `.intent/` discovery under wheel installs) remains a larger, separate
+item — see memory `feedback_parents_n_package_path_antipattern`.
 
 ### 4. ✅ Done — `MEMORY.md` hot/cold tiering
 Diagnosed: the index had no cap on entry *count* (238 durable pointers ≈ 40 KB),
