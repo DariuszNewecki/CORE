@@ -59,7 +59,7 @@
         },
         "status": {
             "type": "string",
-            "enum": ["draft", "pending", "approved", "executing", "completed", "failed", "rejected"],
+            "enum": ["draft", "pending", "approved", "executing", "finalizing", "completed", "failed", "rejected"],
             "description": "Proposal lifecycle state. Governed by proposal_status enum."
         },
         "created_at": {

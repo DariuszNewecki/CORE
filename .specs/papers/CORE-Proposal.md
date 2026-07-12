@@ -72,7 +72,7 @@ The canonical status values are declared in `.intent/META/enums.json`
 under `proposal_status`. No status value outside that declaration is valid.
 
 ```
-draft → approved → executing → completed
+draft → approved → executing → finalizing → completed
                              ↘ failed
 ```
 
@@ -82,10 +82,17 @@ draft → approved → executing → completed
 | `pending` | Yes | Submitted for approval. Awaiting human decision. |
 | `approved` | Yes | Authorized. Ready for execution by ConsumerWorker. |
 | `executing` | Yes | ConsumerWorker has begun execution. |
-| `completed` | No | All actions executed successfully. Terminal. |
+| `finalizing` | Yes | Post-commit. The proposal's changes are committed to git; its consequence chain is being recorded. Not yet defensible, not yet `completed`. A stuck `finalizing` proposal is recovered by rolling forward, never rollback. See ADR-148. |
+| `completed` | No | All actions executed successfully **and the consequence chain is durably recorded** (ADR-148). Terminal. |
 | `failed` | No | One or more actions failed. `failure_reason` is populated. Terminal. |
 
-Active statuses are `draft`, `pending`, `approved`, and `executing`.
+> **Implementation status (ADR-148):** `finalizing` and the strengthened `completed` meaning
+> (reachable only once a durable consequence record exists) are accepted law and declared in
+> `proposal_status`. The executor ordering, the transition graph, the DB CHECK, and the audit
+> that realise them are pending implementation — changing the transition graph ahead of the
+> executor would make the current `executing → completed` path non-compliant, so they land together.
+
+Active statuses are `draft`, `pending`, `approved`, `executing`, and `finalizing`.
 Deduplication checks MUST treat all active statuses as blocking
 re-creation of the same action group. The canonical active subset is
 declared in `.intent/META/enums.json` under `proposal_status_active`.
@@ -196,7 +203,7 @@ payload field by resetting their status to `open`. See
 
 Before creating a Proposal, the acting Worker checks whether an active
 Proposal already exists for the same action group. Active statuses are
-`draft`, `pending`, `approved`, and `executing`.
+`draft`, `pending`, `approved`, `executing`, and `finalizing`.
 
 If an active Proposal exists for the same `action_id`: no new Proposal
 is created. The existing one is left to complete.

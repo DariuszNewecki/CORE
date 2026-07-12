@@ -7,9 +7,9 @@
     "version": "1.0.0",
     "authority": "meta",
     "status": "active",
-    "source_hash": "aa59669a0db6f4c050c14338df09ca367c8ceeb10f55d857bd3da97dbd74fa3a",
-    "generated_at": "2026-07-05T14:47:26Z",
-    "generator_version": "core-admin@2.8.0"
+    "source_hash": "26246465ed3718fab253a684800d8dfbe6a88256fc3c4d01060458c6acd09c6a",
+    "generated_at": "2026-07-12T16:59:17Z",
+    "generator_version": "core-admin@2.9.1"
   },
   "terms": [
     {
@@ -252,6 +252,16 @@
       "aliases": [],
       "see_also": [
         "IntentGuard | Gate | Crate"
+      ]
+    },
+    {
+      "term": "finalizing",
+      "definition": "The proposal lifecycle state entered after a proposal's changes are committed to git and held until its consequence chain is durably recorded; only on that record does the proposal become completed.",
+      "not": "finalizing is not completed and not executing. It is the post-commit, evidence-recording state — the change is already applied but not yet defensible: no durable consequence record, deferred findings not yet resolved. A proposal stuck in finalizing is recovered by rolling forward — re-driving the idempotent evidence steps — never by rollback, which would double-apply the committed change. A proposal must not be reported as completed while any part of its consequence chain remains unrecorded.",
+      "authoritative_paper": ".specs/papers/CORE-Proposal.md",
+      "aliases": [],
+      "see_also": [
+        "Proposal | ProposalExecutor | Crate"
       ]
     },
     {

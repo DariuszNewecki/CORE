@@ -49,7 +49,7 @@
         },
         "status": {
             "type": "string",
-            "description": "Current lifecycle status. Governed vocabulary: proposal_status enum in .intent/META/enums.json. Valid values: draft, pending, approved, executing, completed, failed, rejected."
+            "description": "Current lifecycle status. Governed vocabulary: proposal_status enum in .intent/META/enums.json. Valid values: draft, pending, approved, executing, finalizing, completed, failed, rejected. finalizing is the post-commit, evidence-recording state (ADR-148); its state-conditional field invariant and the strengthened completed invariant are pending implementation."
         },
         "created_at": {
             "type": "string",

@@ -19,6 +19,12 @@ class ProposalStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     EXECUTING = "executing"
+    # ADR-148: post-commit, evidence-recording state. The proposal's changes are
+    # committed to git and its consequence chain is being recorded; it becomes
+    # COMPLETED only once that record is durable. A stuck FINALIZING proposal is
+    # recovered by rolling forward (re-driving the idempotent evidence steps),
+    # never by rollback, which would double-apply the committed change.
+    FINALIZING = "finalizing"
     COMPLETED = "completed"
     FAILED = "failed"
     REJECTED = "rejected"

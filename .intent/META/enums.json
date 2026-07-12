@@ -109,26 +109,28 @@
       ]
     },
     "proposal_status": {
-      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active \u2014 deduplication must treat these as blocking a re-creation of the same action group. completed, failed, and rejected are terminal. rejected is the governor-veto outcome: the proposal completed its review path but was explicitly not approved (distinct from failed, which is execution failure of an approved proposal).",
+      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, executing, and finalizing are active \u2014 deduplication must treat these as blocking a re-creation of the same action group. completed, failed, and rejected are terminal. finalizing is the post-commit state (ADR-148): the proposal's changes are committed to git and its consequence chain is being recorded; it becomes completed only once that record is durable, and a stuck finalizing proposal is recovered by rolling forward (re-driving the idempotent evidence steps), never by rollback. rejected is the governor-veto outcome: the proposal completed its review path but was explicitly not approved (distinct from failed, which is execution failure of an approved proposal).",
       "type": "string",
       "enum": [
         "draft",
         "pending",
         "approved",
         "executing",
+        "finalizing",
         "completed",
         "failed",
         "rejected"
       ]
     },
     "proposal_status_active": {
-      "description": "The subset of proposal_status values that are active. RemediatorWorker MUST check for proposals in these states before creating a new one for the same action group.",
+      "description": "The subset of proposal_status values that are active. RemediatorWorker MUST check for proposals in these states before creating a new one for the same action group. finalizing is active: a proposal whose changes are committed but whose consequence chain is still being recorded must still block re-creation of the same action group (ADR-148).",
       "type": "string",
       "enum": [
         "draft",
         "pending",
         "approved",
-        "executing"
+        "executing",
+        "finalizing"
       ]
     },
     "proposal_risk": {
