@@ -43,6 +43,35 @@ who should run it.
   `2.9.1`. GitHub Release `v2.9.1 — BYOR Write-Flow Fixes` created. `core-cli 1.0.1`
   already pins `core-runtime>=2.9.0`, so it picks this up on the next install/upgrade
   with no core-cli-side change needed.
+- [x] **Full same-host BYOR walkthrough run live on a fresh VM (2026-07-12).**
+  Genuinely fresh Ubuntu 24.04 LXC (no prior CORE install): `pip install
+  core-cli` (1.0.1 + core-runtime 2.9.1) + a from-source `core-api` (Postgres
+  + Qdrant via Docker Compose) on the same host. Full walkthrough passed:
+  onboard → scout (offline 4-rule menu) → audit PASS → violation → audit FAIL
+  (correct 2 BLOCK findings) → fix → audit PASS. VM access procedure written
+  up as `.specs/planning/CORE-CLI-VM-Test-Access-Runbook.md` after burning
+  time on ad-hoc SSH-key guessing first.
+- [x] **F-4 (new, found live) — relative-path resolution bug — fixed
+  2026-07-12.** `onboard`/`promote`/`scout` sent `path` as a plain string
+  over HTTP with no client-side resolution; a relative path (`.`) was
+  resolved by whichever process received it — for `onboard`/`promote` that's
+  the CORE API server, not the CLI. `core project onboard .` silently
+  targeted the *server's* cwd. Confirmed live: onboarding `.` resolved to the
+  CORE API's own repo (correctly refused via the existing-`.intent/` guard);
+  on a clean target it would have silently onboarded the wrong location with
+  no error. Fixed in `core-cli` (`onboard.py`, `scout.py`): `path` now
+  resolves to absolute before being sent. Also fixed a stale hint string
+  (`core-admin project onboard promote` → `core project promote`) and a
+  README gap (`promote` was missing from the commands table). 4 new tests,
+  full 54-test suite passes. `docs/byor-quickstart.md` corrected to always
+  use absolute paths, plus two more bugs found in the same live pass: wrong
+  schema path (`infra/sql/db_schema_live.sql` doesn't exist; real path is
+  `schema.sql`) and `core-admin daemon up` assuming systemd units that a
+  fresh clone doesn't have.
+- [x] **`core-cli 1.0.2` published to PyPI.** Tag `v1.0.2` → CI publish via
+  OIDC (lint + typecheck + test + build + publish, all green). Verified:
+  `pip index versions core-cli` shows `1.0.2`. GitHub Release
+  `v1.0.2 — Path Resolution Fix` created.
 
 ---
 
