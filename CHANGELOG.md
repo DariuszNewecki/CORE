@@ -8,6 +8,48 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+---
+
+## [2.9.1] — 2026-07-12
+
+### 🐛 BYOR write-flow fixes (Phase 5 smoke-test follow-up)
+
+Fixes arising from the `core-cli 1.0.1` release smoke test's Phase 5
+write-flow exercise (`.specs/planning/CORE-CLI-2.9.0-Followups.md`).
+
+- **Clean 4xx instead of a raw 500 on `onboard`/`promote` failures —
+  `f17c7a8f`, `0a0d5701`.** Two distinct bugs, both server-side
+  (`src/cli/logic/byor.py`, `src/api/v1/project_routes.py`): (1)
+  `mkdir`/`shutil.copy2` and the pre-write `target_intent.exists()`
+  overwrite-guard check could both raise a raw `OSError` (e.g. a
+  permission-denied target path) that leaked straight into the HTTP
+  response body as a 500; (2) `typer.Exit` is `click.exceptions.Exit` →
+  `RuntimeError` in the installed Typer (0.16.1), **not** a `SystemExit`
+  subclass, so `except SystemExit` in the API routes had never actually
+  caught it — every known `byor.py` failure mode, not just this one, fell
+  through to the generic 500 branch. Both routes now catch
+  `(SystemExit, typer.Exit)`. Verified live against a restarted `core-api`.
+- **F-1 (topology) closed — `8437c15e`.** `onboard`/`promote`/`scout --write`
+  require the CLI and `core-api` to be co-located (ADR-054 D3: loopback-only,
+  single-operator, no auth); documented in the API docstrings rather than
+  built around, since a content-upload path would mean accepting writes to
+  an arbitrary server-side path from an unauthenticated client.
+- **`CORE_API_URL` now actually wired — `8437c15e`.** `CoreApiClient`
+  (`src/api/cli/client.py`) advertised the env var everywhere but never read
+  it; every call site does `CoreApiClient()` with no args, so it silently
+  always used the hardcoded `127.0.0.1:8000` default. `base_url` now
+  resolves explicit arg → `CORE_API_URL` → loopback default.
+- **`docs/byor-quickstart.md` rewritten — `8437c15e`.** Had been broken for
+  5 days (since the ADR-146 consumer/operator CLI split, `608d8f72`) —
+  `onboard`/`scout` no longer exist under `core-admin`. Corrected to the
+  `core-cli`/`core project` command surface and the real infra requirement
+  (a reachable `core-api`; only `core-admin code audit --offline` is
+  genuinely infra-free).
+
+---
+
+## [2.9.0] — 2026-07-12
+
 ### 🎯 OSS Runtime — Commercial Track Dissolved
 
 Post-2.8.0 work completing the open-source extraction. CORE is now a pure,
