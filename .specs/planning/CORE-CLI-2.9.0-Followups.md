@@ -65,11 +65,14 @@ refactor that drops the app-level `load_dotenv`) would fail the security pre-fli
 `EnvironmentFile=-/opt/dev/CORE/.env` to the unit as belt-and-suspenders. (`.env`
 itself already holds a strong 64-char secret — no secret rotation needed.)
 
-### 4. `MEMORY.md` deeper compaction — housekeeping
-The auto-loaded memory index was trimmed (removed 36 stale `Session state` lines,
-46.8 → 40.1 KB) but is still over the ~17 KB load limit, so it loads truncated.
-Reaching the target needs curating the durable `feedback_*`/`reference_*` entries
-(merge/shorten hooks), which is judgment work best done deliberately.
+### 4. ✅ Done — `MEMORY.md` hot/cold tiering
+Diagnosed: the index had no cap on entry *count* (238 durable pointers ≈ 40 KB),
+so sections H/I/J/K were silently dropped past the ~24 KB auto-load cap. Fixed with
+option-A tiering seeded by a B-pass: split into a **54-entry HOT index** (9.6 KB,
+every-task ambient norms — under the 17 KB target) and **`reference_index.md`**
+(184 subsystem-specific lessons, not auto-loaded; still recalled by each file's
+`description`). Zero entries lost. Memory repo commit `1c3ca0a`. Future lessons that
+need a trigger to be relevant go to the cold tier, keeping the hot index bounded.
 
 ---
 
