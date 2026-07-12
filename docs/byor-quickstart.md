@@ -1,11 +1,23 @@
 # BYOR Quickstart — Govern Your Own Repository
 
-Bring Your Own Rules. This guide takes a completely **fresh machine** — Python
-installed, nothing else — through every step needed to place a repo under
-constitutional enforcement and verify that the audit catches a real violation.
+Bring Your Own Rules. This guide takes a repo through every step needed to
+place it under constitutional enforcement and verify that the audit catches a
+real violation.
 
-No CORE source tree. No Postgres. No Qdrant. No LLM required (it helps, but
-there is a four-rule fallback menu for offline environments).
+**Two different tools are involved**, and they have different infrastructure
+needs:
+
+- `core project onboard`/`promote`/`scout` (Phases A/B below) go through
+  `core-cli`, a pure-HTTP client (ADR-146 D2) — they talk to a running
+  **CORE API** instance over HTTP. There is currently no offline/zero-infra
+  mode for these; the API itself needs Postgres + Qdrant behind it (see
+  [getting-started.md](getting-started.md)).
+- `core-admin code audit --offline` (Steps 6-8 below) needs **no** running
+  services at all — it reads `.intent/` and your source tree directly.
+
+If you already have a CORE instance running somewhere (your own dev install,
+or a shared team instance), skip straight to Step 3 and point `CORE_API_URL`
+at it. If not, Step 2 below is the fastest path to a local one.
 
 ---
 
@@ -17,30 +29,64 @@ there is a four-rule fallback menu for offline environments).
 | pip | Usually ships with Python; check: `pip --version` |
 | git | The project you want to govern must be a git repository |
 | A project with `.py` files | Anything works — a library, a service, even a toy repo |
+| A reachable CORE API | Either one you already run, or the local one you stand up in Step 2 |
 
-That is the entire list.
-
----
-
-## Step 1 — Install the runtime
-
-```bash
-pip install core-runtime
-```
-
-Verify it landed:
-
-```bash
-core-admin --help
-```
-
-You should see the top-level command list. If the shell cannot find `core-admin`,
-your Python scripts directory is not on `PATH`; add it (e.g.
-`~/.local/bin` on Linux, the Scripts folder on Windows) and reload your shell.
+**Co-location note:** `onboard`/`promote` write `.intent/` on the **API
+host's** filesystem, not the machine running `core-cli` — per ADR-054 D3,
+`core-api` is loopback-bound and unauthenticated (single-operator, Phase 1),
+so it can't safely accept writes to an arbitrary path from an untrusted
+remote client. Run `core-cli` on the same host as the CORE API (or the CORE
+API on the same host as your target repo). `scout`'s ratified rule files, by
+contrast, are written locally by `core-cli` itself — only the rule
+*induction* (reading your code, proposing candidates) goes over the API.
+Details: F-1, `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
 
 ---
 
-## Step 2 — Make sure your project is a git repository
+## Step 1 — Install the CLI
+
+```bash
+pip install core-cli
+```
+
+`core-cli` depends on `core-runtime`, so this pulls in both entry points:
+
+```bash
+core --help          # consumer CLI — onboard, scout, audit-via-API, etc.
+core-admin --help    # operator CLI — offline audit, daemon control, etc.
+```
+
+If the shell cannot find either command, your Python scripts directory is not
+on `PATH`; add it (e.g. `~/.local/bin` on Linux, the Scripts folder on
+Windows) and reload your shell.
+
+---
+
+## Step 2 — Make sure a CORE API is reachable
+
+Skip this if you already have a CORE instance running and reachable.
+
+```bash
+git clone https://github.com/DariuszNewecki/CORE.git
+cd CORE
+docker compose up -d                        # Postgres + Qdrant
+docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
+core-admin daemon up                        # starts core-api (+ core-daemon) — see getting-started.md
+```
+
+By default `core-cli` talks to `http://127.0.0.1:8000` (trusted-localhost,
+no auth). If your CORE API is elsewhere, or on a different port, point at it:
+
+```bash
+export CORE_API_URL=http://<core-host>:8000
+```
+
+Full setup detail (LLM configuration, manual install path, verifying the
+connection): [getting-started.md](getting-started.md).
+
+---
+
+## Step 3 — Make sure your project is a git repository
 
 CORE reads the project root from the nearest `.git/` directory above your
 working directory. If your project is not tracked by git yet:
@@ -56,15 +102,15 @@ If it already has a `.git/` directory, no action needed.
 
 ---
 
-## Step 3 — Phase A: deliver the machinery floor
+## Step 4 — Phase A: deliver the machinery floor
 
 The machinery floor is the constitutional infrastructure — META schemas,
-taxonomies, a constitution stub, and enforcement configuration. It is bundled
-inside the `core-runtime` wheel, so no network call happens here.
+taxonomies, a constitution stub, and enforcement configuration. It ships
+bundled inside the `core-runtime` wheel that the CORE API is running.
 
 ```bash
 cd /path/to/myproject
-core-admin project onboard . --write
+core project onboard . --write
 ```
 
 Expected output ends with something like:
@@ -74,31 +120,35 @@ Expected output ends with something like:
 Next: run `core-admin project scout <target>` to induce and ratify rules …
 ```
 
-The command is safe to run on any project. It refuses to overwrite an existing
-`.intent/` (ADR-111 D3), so there is no accidental clobber risk.
+(That hint text is stale in the current release — see the note in Step 5
+below; the real command is `core project scout`.)
+
+The command is safe to run on any project. It refuses to overwrite an
+existing `.intent/` (ADR-111 D3), so there is no accidental clobber risk.
 
 **Preview only (no write)** — omit `--write` to see what would be delivered:
 
 ```bash
-core-admin project onboard .
+core project onboard .
 ```
 
 ---
 
-## Step 4 — Phase B: induce and ratify rules
+## Step 5 — Phase B: induce and ratify rules
 
 Scout samples your source code, proposes governance rules, and requires you
 to ratify each one before writing anything.
 
 ```bash
-core-admin project scout . --write
+core project scout . --write
 ```
 
 ### With an LLM configured
 
-If `CORE_LLM_URL` or equivalent is set and reachable, Scout calls the LLM with
-a structural signal report (line counts, exception patterns, decorator inventory,
-…) and proposes rules fitted to your specific codebase. Ratify them one by one:
+If the CORE API instance has an LLM provider configured and reachable, Scout
+calls it with a structural signal report (line counts, exception patterns,
+decorator inventory, …) and proposes rules fitted to your specific codebase.
+Ratify them one by one:
 
 ```
 Rule 1 / N
@@ -128,9 +178,11 @@ in the proof that shipped the BYOR capability:
 
 You still ratify each one — the fallback is a menu, not an auto-accept.
 
-### What gets written
+### What gets written, and where
 
-After ratification, two files land in your repo:
+Rule induction (reading your code, proposing candidates) happens on the CORE
+API. The ratified result is written **locally**, by `core-cli`, on the
+machine you ran `core project scout` from:
 
 ```
 .intent/rules/scout_inducted.json          ← the ratified rule declarations
@@ -140,12 +192,15 @@ After ratification, two files land in your repo:
 **Preview only** — omit `--write` to see what would be written:
 
 ```bash
-core-admin project scout .
+core project scout .
 ```
 
 ---
 
-## Step 5 — Run the audit
+## Step 6 — Run the audit
+
+This is the one command in this guide that needs no running services —
+it reads `.intent/` and your source tree directly:
 
 ```bash
 core-admin code audit --offline
@@ -165,9 +220,10 @@ operating mode.
 
 ---
 
-## Step 6 — Introduce a violation and verify detection
+## Step 7 — Introduce a violation and verify detection
 
-Create a file with a bare `except:` — the blocking rule you ratified in Step 4:
+Create a file with a bare `except:` — the blocking rule you ratified in
+Step 5:
 
 ```python
 # bad.py
@@ -201,7 +257,7 @@ Two BLOCK findings because the regex matches both `except:` and the
 
 ---
 
-## Step 7 — Fix the violation and re-verify
+## Step 8 — Fix the violation and re-verify
 
 Replace the bare except with a typed handler:
 
@@ -267,10 +323,10 @@ minutes).
 `scout_inducted.json`, add an entry to `.intent/enforcement/mappings/your.yaml`,
 and the next audit will pick it up automatically.
 
-**Run Scout again** — as your codebase grows, re-run `project scout . --write`
-to surface new patterns. Already-ratified rules are not overwritten; Scout
-writes to `scout_inducted.json` (additive unless you edit it).
+**Run Scout again** — as your codebase grows, re-run `core project scout .
+--write` to surface new patterns. Already-ratified rules are not overwritten;
+Scout writes to `scout_inducted.json` (additive unless you edit it).
 
 **Full runtime** — if you want the autonomous daemon (continuous audit →
-remediation → commit loop), see [getting-started.md](getting-started.md) for the
-Postgres + Qdrant setup.
+remediation → commit loop), see [getting-started.md](getting-started.md) for
+the full Postgres + Qdrant setup and `core-admin daemon up`.

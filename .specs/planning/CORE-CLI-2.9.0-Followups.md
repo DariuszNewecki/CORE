@@ -42,12 +42,69 @@ who should run it.
 ## Pending
 
 ### 1. BYOR write-flow findings (F-1/F-2/F-3 from the Phase 5 exercise)
-- **F-1 (topology):** `project onboard/promote/scout` are **API-host-filesystem**
-  operations; the remote-CLI → central-API topology can't write BYOR into a
-  CLI-host-local repo. Decide whether to (a) document co-location as the required
-  BYOR model, or (b) add a content-upload path so a remote CLI can onboard a local repo.
-- **F-2 (error handling):** cross-host `promote` leaks a raw `OSError` as an
-  `API error 500`. Should be a clean 4xx ("target path not accessible on the CORE host").
+- [x] **F-1 (topology) — closed 2026-07-12, option (a).** `project
+  onboard/promote/scout --write` are **API-host-filesystem** operations; `path`
+  resolves and writes on the CORE API host, not the caller's machine. This is
+  not an open design choice — ADR-054 D3 already binds `core-api` to loopback
+  only, single-operator, no auth, and explicitly gates any non-loopback
+  exposure behind a future dedicated ADR with bearer-token auth as a
+  prerequisite. A content-upload path (option b) would mean letting an
+  unauthenticated remote client direct writes into an arbitrary server-side
+  path — exactly what D3 forecloses. So co-location (or an SSH tunnel that
+  makes "remote" loopback again, as this smoke test used) is documented as the
+  required model for Phase 1; a genuine remote-write path is deferred until
+  the D3 auth-promotion ADR lands, at which point `core-cli`'s pure-HTTP
+  consumer design (ADR-146 D2) can carry it without further protocol changes.
+  Documented in the `onboard`/`promote` API docstrings
+  (`src/api/v1/project_routes.py`).
+
+  **Follow-on discovered while documenting this (2026-07-12):**
+  `docs/byor-quickstart.md` had been silently broken for 5 days — commit
+  `608d8f72` (2026-07-07, ADR-146 extraction) removed `onboard`/`scout` from
+  `core-admin`, but the quickstart still told readers to `pip install
+  core-runtime` and run `core-admin project onboard . --write` /
+  `core-admin project scout . --write`. Neither command exists anymore; the
+  replacement is `pip install core-cli` (transitively installs
+  `core-runtime`) then `core project onboard`/`scout`. Rewritten with the
+  correct command surface, the real infra requirement (onboard/scout always
+  need a reachable `core-api`, contra the doc's old "no Postgres, no Qdrant"
+  claim — only `core-admin code audit --offline` is genuinely infra-free),
+  and the write-locality asymmetry (`onboard`/`promote` write server-side;
+  `scout`'s ratified rules write client-side).
+
+  Also fixed in the same pass: `CoreApiClient` (`src/api/cli/client.py`)
+  advertised `CORE_API_URL` as a way to point the CLI at a remote host (in
+  `core-cli`'s README and this doc's own smoke-test prerequisites) but never
+  actually read the env var — every call site does `CoreApiClient()` with no
+  args, so it silently always used the hardcoded `127.0.0.1:8000` default.
+  Today's smoke test only "worked" cross-host because of an SSH reverse
+  tunnel making the remote `localhost:8000` proxy back to loopback, not
+  because `CORE_API_URL` did anything. Fixed: `__init__` now resolves
+  `base_url` → `CORE_API_URL` env var → loopback default, in that order.
+  Tests in `tests/api/cli/test_client.py`.
+
+  **Still open, NOT fixed this pass (flagged, not touched):**
+  `docs/getting-started.md`'s "Govern your own repo (BYOR)" table and callout
+  (and `README.md`'s BYOR mention) have the *identical* staleness —
+  `core-admin project onboard/scout` and the "works from a plain `pip install
+  core-runtime`" claim. Same root cause (commit `608d8f72`), same fix shape,
+  different files. Also found: `core-cli`'s own `onboard.py` prints a stale
+  hint (`core-admin project onboard promote {path}`, should be `core project
+  promote {path}`), and `core-cli`'s `README.md` doesn't document `promote`
+  at all. Both are in the separate `core-cli` repo — out of scope for edits
+  from this repo without separate authorization.
+- [x] **F-2 (error handling) — fixed 2026-07-12.** `initialize_repository` and
+  `promote_staged` (`src/cli/logic/byor.py`) now wrap their `mkdir`/`shutil.copy2`
+  target writes in `try/except OSError`, logging the real cause and raising
+  `typer.Exit(code=1)` — the same idiom every other failure path in the file already
+  uses. `project_routes.py` already mapped `SystemExit` → `HTTPException(400, ...)`,
+  so this closes the leak without touching the API layer: the raw `OSError` (and its
+  absolute path) no longer reaches the HTTP response body as a 500; the operator sees
+  the real reason in CORE logs. Same fix covers `onboard` (`initialize_repository`
+  shares the pattern); `scout` was confirmed unaffected — its API route never writes
+  to disk. Tests added in `tests/cli/logic/test_byor_stage.py`
+  (`test_initialize_repository_raises_typer_exit_on_oserror`,
+  `test_promote_staged_raises_typer_exit_on_oserror`).
 - **F-3 (automation):** `scout` has no batch-accept (Scout D5, by design) — blocks
   automated/CI onboarding of induced rules. Confirm this is the intended posture.
 

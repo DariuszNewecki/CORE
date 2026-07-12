@@ -90,7 +90,13 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
     from examples/starter-intent/.intent/ into <path>/.intent/. Dry-run by default.
     Pass write=true to apply; pass stage=true with write=true to stage for inspection.
 
-    Assumes the CORE API and the caller share the same filesystem.
+    Requires the caller and the CORE API to be co-located on the same host/
+    filesystem: `path` is resolved and written on the API host, not the
+    caller's machine. This is not a convenience assumption but a consequence
+    of ADR-054 D3 (core-api is loopback-bound, single-operator, no auth) —
+    a remote consumer CLI (ADR-146 D2) cannot safely direct writes to an
+    arbitrary server-side path without authentication, which loopback-only
+    Phase 1 does not provide. See F-1, `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
     """
     from cli.logic.byor import _stage_dir_for, initialize_repository
 
@@ -139,6 +145,10 @@ async def promote_onboard(body: PromoteRequest, request: Request) -> dict:
 
     Reads from work/staged/<name>/.intent/ and writes to <path>/.intent/.
     Run POST /project/onboard with write=true and stage=true first.
+
+    Requires the caller and the CORE API to be co-located on the same host/
+    filesystem — same constraint as POST /project/onboard; see that docstring
+    and F-1 in `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
     """
     from cli.logic.byor import promote_staged
 

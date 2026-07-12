@@ -21,6 +21,7 @@ to avoid collision with the existing `audit()` method.
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any
 
 import httpx
@@ -58,10 +59,16 @@ class CoreApiClient:
     Internally a facade over namespace sub-clients (see module docstring).
     Existing flat methods are preserved as delegating shims for
     backwards-compatible call sites.
+
+    Base URL resolution order: explicit `base_url` argument, then the
+    `CORE_API_URL` environment variable, then the loopback default. Every
+    call site in this codebase constructs `CoreApiClient()` with no
+    argument, so `CORE_API_URL` is the only way to point the CLI at a
+    non-default host without an argument-plumbing change.
     """
 
     def __init__(self, base_url: str | None = None) -> None:
-        self.base_url = base_url or _DEFAULT_BASE_URL
+        self.base_url = base_url or os.environ.get("CORE_API_URL") or _DEFAULT_BASE_URL
         self.timeout = _DEFAULT_TIMEOUT_SECONDS
         self.audits = AuditClient(self)
         self.fix = FixClient(self)
