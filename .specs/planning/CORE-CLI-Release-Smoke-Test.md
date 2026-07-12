@@ -12,22 +12,22 @@ before execution.
 
 ## Run log
 
-**Status as of 2026-07-12: paused mid-Phase 2.** Phase 1 fully passed. Phase 2 is
-blocked on a connectivity decision that surfaced a real architectural constraint
-(ADR-054 D3) — not a CLI bug. Resume here.
+**Status as of 2026-07-12: COMPLETE — grade HOLD.** Connectivity was resolved via an
+ADR-054 D3-compliant SSH reverse tunnel (the `core-api` bind address never changed). The
+full test then ran end to end and surfaced a **systemic release defect**: the published
+`core-runtime 2.8.0` wheel is stale relative to what `core-cli 1.0.0` requires. Fix in
+progress — bump `core-runtime` to 2.9.0 and re-publish. See "Outcome" below.
 
 ### Test VM — provisioned and working
 
 - Host: `core-cli@192.168.20.46` (Proxmox container `CT103`), Ubuntu 24.04.3 LTS,
   Python 3.12.3, matches the "VM tech specs" section above.
 - User `core-cli` created with NOPASSWD sudo (`/etc/sudoers.d/99-core-cli`).
-- SSH access: key-based, public key
-  `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFS+sNftHmmj0nvFtG6uYCCE9Zsf/boJQpbgqRVbj9eg claude-code-core-cli-smoke-test`
-  is in `core-cli`'s `authorized_keys` on the VM. **The matching private key lives
-  in this session's scratchpad directory and does not persist across sessions** —
-  next session, either regenerate a keypair and re-authorize it on the VM (fast,
-  the VM itself is otherwise fully prepped), or the governor can supply a durable
-  key. Don't re-run `adduser`/sudoers/`.ssh` setup — that part is done.
+- SSH access: key-based. A **persistent** keypair now lives on the CORE dev host
+  `.22` at `~/.ssh/core_cli_smoke` (public key comment
+  `claude-code-core-cli-smoke-test-persistent`); its public key is authorized for
+  `core-cli` on the VM. This survives across sessions — no need to regenerate.
+  Don't re-run `adduser`/sudoers/`.ssh` setup — that part is done.
 - `scripts/core-cli-vm-prep.sh` ran clean on this VM (OS update + Python 3.12 +
   venv). No need to re-run.
 
@@ -40,63 +40,69 @@ blocked on a connectivity decision that surfaced a real architectural constraint
 - 1.3 `pip show core-cli`: `Version: 1.0.0`, `Requires: core-runtime`. Matches
   expected.
 
-### Phase 2 — BLOCKED on CORE_API_URL target selection
+### Connectivity — resolved via ADR-054 D3-compliant reverse tunnel
 
-P3 ("CORE instance reachable from VM") failed against the obvious target and
-surfaced a real constraint, not a bug:
+The earlier block (bind `127.0.0.1:8000` only, per **ADR-054 D3**) was resolved
+without touching the `core-api` bind address. From the CORE dev host `.22`:
 
-- **`192.168.20.22`** (the main CORE dev host, where `core-daemon`/`core-api`
-  actually run) — connection refused. Root cause: `core-api` binds
-  `127.0.0.1:8000` only, per **ADR-054 D3** ("no auth for Phase 1; loopback
-  binding only" — deliberate, since the API has zero authentication.
-  "No external exposure is sanctioned while this decision is in force."
-  Promotion to non-loopback requires bearer-token auth + a dedicated ADR).
-  Rebinding this instance to `0.0.0.0` to satisfy the smoke test would violate
-  that ADR outright — not doing that without an explicit governor decision to
-  amend/except ADR-054.
-  - Proposed (not yet executed) ADR-054-compliant alternative: SSH reverse
-    tunnel — `ssh -R 8000:localhost:8000` from the CORE host into the VM, so
-    the VM's `localhost:8000` forwards over the authenticated SSH link to
-    the loopback-bound `core-api`. Uvicorn's bind address never changes.
-  - Governor redirected to try `.45` instead before deciding on the tunnel.
+```
+ssh -R 8000:localhost:8000 core-cli@192.168.20.46
+```
 
-- **`192.168.20.45`** (Proxmox container `CT102`, root access) — checked and
-  it's a dead end as-is: no `core-api`/`core-daemon` running, no matching
-  systemd units, no Docker, no Postgres/Qdrant, no CORE git checkout (only an
-  unrelated `/opt/myproject/.git`). What exists is a static venv at
-  `/opt/core-proof` (dated 2026-06-29) with `core`/`core-admin` entry points —
-  looks like a leftover "does the install work" check, not a live service.
-  Spec: 2 vCPU / 4GiB RAM / 512MiB swap / 8GiB disk (ZFS), **6.6GB free**.
+The VM's `localhost:8000` now forwards over the authenticated SSH link to the
+loopback-bound `core-api` on `.22`. Uvicorn's bind address never changed →
+fully ADR-054 D3 compliant. P3 health check through the tunnel returned
+`{"status":"ok"}`. The abandoned "stand up a full stack on `.45`" plan was
+dropped in favour of this (lighter, ADR-clean, uses the live instance).
 
-### Decision in progress — stand up core-daemon + core-api on `.45`
+### Phase 2–6 results (run 2026-07-12 over the tunnel)
 
-Governor chose this over the SSH tunnel to `.22`. Not started yet — this is a
-full `coldroom-prep.sh`-style build from scratch (Docker install, pull
-Postgres 16 + Qdrant images, clone CORE, configure `.env`, run migrations,
-start services), scoped to a disposable test box rather than touching the
-real dev instance. Two open risks flagged to the governor, neither resolved:
+`CORE_API_URL=http://localhost:8000` on the VM. All commands invoked from the
+installed `core-cli 1.0.0` venv.
 
-1. **Disk headroom is tight.** 6.6GB free has to cover Docker engine + two
-   container images + a full CORE clone + a Python venv whose deps alone
-   (numpy/scipy/scikit-learn/grpcio, per the Phase 1 install) ran several
-   hundred MB. Real risk of running out mid-install. Option: grow the ZFS
-   volume via Proxmox before starting, if easily available.
-2. **ADR-054 D3 tension, again.** Even on a disposable box, binding an
-   unauthenticated `core-api` to a non-loopback interface is the exact thing
-   D3 says isn't sanctioned. Treating this as acceptable because the instance
-   is disposable/test-only is a judgment call the governor made implicitly by
-   redirecting here — flagging once more for the record, not blocking on it.
+| Phase | Command | Result |
+|---|---|---|
+| 2.1 | `core code actions` | ✅ full Atomic Actions table |
+| 2.2 / 2.3 | `core code bridges [--consuming]` | ❌ `InspectClient` has no `analysis_bridges` |
+| 3.1 | `core code audit-duplicates` | ✅ scan complete |
+| 3.1 | `core code lint` / `check-imports` / `check-ui` | ✅ work (exit 1 = findings in server repo, no traceback) |
+| 3.1 | `core code logging` | ✅ |
+| 3.1 | `core code integrity` | ⚠️ no such command (doc drift — command does not exist) |
+| 3.2 | `core symbols sync` | ✅ dispatched `sync.db` run |
+| 3.2 | `core symbols audit` | ❌ `CoreApiClient` has no `symbols` |
+| 3.3 | `core vectors status` / `query` | ❌ `CoreApiClient` has no `vectors` |
+| 3.4 | `core proposals list` | ✅ "No proposals found" |
+| 3.5 | `core lane list` | ✅ 13 delegated findings |
+| 4 | `core code format` / `format-imports` / `docstrings` (dry-run) | ✅ |
+| 5.1 | `core project onboard <repo>` (dry-run) | ❌ `CoreApiClient` has no `project` — **BYOR path broken** |
+| 6 | `core secrets list` | ❌ `CoreApiClient` has no `secrets` |
 
-### Next steps (resume here)
+### Outcome — grade HOLD, one root cause
 
-1. Governor decision: grow `.45`'s disk first, or proceed at 6.6GB free?
-2. If proceeding: install Docker + Compose on `.45`, pull `postgres:16` +
-   `qdrant/qdrant:v1.9.0`, clone CORE, configure `.env`, run migrations, start
-   `core-daemon`/`core-api` bound for LAN reachability.
-3. Re-authorize an SSH key for `core-cli` on the `.46` VM (private key was
-   session-scoped and is gone).
-4. Set `CORE_API_URL` on the VM to point at `.45`, confirm P3 health check,
-   resume Phase 2.1 (`core code actions`).
+**`core-cli 1.0.0` was published against an unreleased `core-runtime` API
+surface.** CORE source `src/api/cli/client.py` builds a `CoreApiClient` with 17
+sub-clients (incl. `symbols`, `vectors`, `secrets`, `project`) and an
+`InspectClient` with `analysis_bridges`. The **published `core-runtime 2.8.0`
+wheel on PyPI carries only a handful** (`inspect` [partial], `proposals`,
+`lane`, `sync`) because `pyproject.toml` was never bumped past `2.8.0` after
+this session's `api/cli/` additions. Every CLI command routing through a missing
+sub-client raises `AttributeError`. This is a Phase-2 failure **and** a
+`core-runtime` version mismatch → **HOLD** per the criteria below.
+
+**Fix (not a CLI code change):**
+
+1. Bump `core-runtime` `2.8.0 → 2.9.0` and re-publish to PyPI (tag `v2.9.0`,
+   OIDC Trusted Publisher). Ships the current `CoreApiClient` surface and fixes
+   every ❌ above.
+2. Pin `core-cli`'s dependency to `core-runtime>=2.9.0` so a stale runtime can
+   never again satisfy the install.
+3. Re-run this smoke test against the new runtime (tunnel can stay up).
+4. Fix this doc's command drift: `code integrity` does not exist; Phase 4 used
+   `fix-docstrings`/`fix-imports` but the real commands are
+   `docstrings`/`format-imports`.
+
+Phases 4.2–5.4 `[WRITE]` steps were **not executed** — the grade was already
+settled at HOLD and the write paths route through the same broken sub-clients.
 
 ---
 
