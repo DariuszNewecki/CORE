@@ -41,6 +41,13 @@ contrast, are written locally by `core-cli` itself — only the rule
 *induction* (reading your code, proposing candidates) goes over the API.
 Details: F-1, `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
 
+**Always pass an absolute path** to `onboard`/`promote`/`scout` — never `.`.
+`core-cli` sends `path` as a plain string over HTTP; a relative path is
+resolved by whichever process receives it (the CORE API for `onboard`/
+`promote`), not by your own shell. `.` would silently target the API
+server's own working directory instead of your project. Use `$(pwd)` or a
+full path instead.
+
 ---
 
 ## Step 1 — Install the CLI
@@ -69,10 +76,22 @@ Skip this if you already have a CORE instance running and reachable.
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
+poetry install
+cp .env.example .env
 docker compose up -d                        # Postgres + Qdrant
-docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
-core-admin daemon up                        # starts core-api (+ core-daemon) — see getting-started.md
+docker compose exec -T postgres psql -U postgres -d core < schema.sql
 ```
+
+Start the API server. In a fresh clone with no systemd user units installed
+yet, run this in its own terminal (or background it):
+
+```bash
+poetry run uvicorn src.api.main:create_app --factory --host 127.0.0.1 --port 8000 --env-file .env
+```
+
+(`core-admin daemon up` is the operator shortcut for this once you've
+installed CORE's systemd user units — see getting-started.md — but assumes
+they already exist; it's not the bootstrap path for a brand-new machine.)
 
 By default `core-cli` talks to `http://127.0.0.1:8000` (trusted-localhost,
 no auth). If your CORE API is elsewhere, or on a different port, point at it:
@@ -109,19 +128,15 @@ taxonomies, a constitution stub, and enforcement configuration. It ships
 bundled inside the `core-runtime` wheel that the CORE API is running.
 
 ```bash
-cd /path/to/myproject
-core project onboard . --write
+core project onboard /path/to/myproject --write
 ```
 
-Expected output ends with something like:
+Expected output:
 
 ```
-🎉 Delivered 29/29 machinery-floor files to /path/to/myproject/.intent/
-Next: run `core-admin project scout <target>` to induce and ratify rules …
+Onboarding repository (Phase A — machinery floor): /path/to/myproject
+Onboarding complete (write).
 ```
-
-(That hint text is stale in the current release — see the note in Step 5
-below; the real command is `core project scout`.)
 
 The command is safe to run on any project. It refuses to overwrite an
 existing `.intent/` (ADR-111 D3), so there is no accidental clobber risk.
@@ -129,7 +144,7 @@ existing `.intent/` (ADR-111 D3), so there is no accidental clobber risk.
 **Preview only (no write)** — omit `--write` to see what would be delivered:
 
 ```bash
-core project onboard .
+core project onboard /path/to/myproject
 ```
 
 ---
@@ -140,7 +155,7 @@ Scout samples your source code, proposes governance rules, and requires you
 to ratify each one before writing anything.
 
 ```bash
-core project scout . --write
+core project scout /path/to/myproject --write
 ```
 
 ### With an LLM configured
@@ -192,7 +207,7 @@ machine you ran `core project scout` from:
 **Preview only** — omit `--write` to see what would be written:
 
 ```bash
-core project scout .
+core project scout /path/to/myproject
 ```
 
 ---
@@ -200,10 +215,11 @@ core project scout .
 ## Step 6 — Run the audit
 
 This is the one command in this guide that needs no running services —
-it reads `.intent/` and your source tree directly:
+it reads `.intent/` and your source tree directly. Pass `--target` (only
+valid with `--offline`) since this guide never `cd`s into the project:
 
 ```bash
-core-admin code audit --offline
+core-admin code audit --offline --target /path/to/myproject
 ```
 
 On a project with no violations, you will see:
@@ -223,10 +239,10 @@ operating mode.
 ## Step 7 — Introduce a violation and verify detection
 
 Create a file with a bare `except:` — the blocking rule you ratified in
-Step 5:
+Step 5 — inside `/path/to/myproject`:
 
 ```python
-# bad.py
+# /path/to/myproject/bad.py
 def get_data():
     try:
         return 42
@@ -237,7 +253,7 @@ def get_data():
 Run the audit again:
 
 ```bash
-core-admin code audit --offline
+core-admin code audit --offline --target /path/to/myproject
 ```
 
 Expected output includes:
@@ -262,7 +278,7 @@ Two BLOCK findings because the regex matches both `except:` and the
 Replace the bare except with a typed handler:
 
 ```python
-# bad.py (fixed)
+# /path/to/myproject/bad.py (fixed)
 def get_data():
     try:
         return 42
@@ -273,7 +289,7 @@ def get_data():
 Run the audit again:
 
 ```bash
-core-admin code audit --offline
+core-admin code audit --offline --target /path/to/myproject
 ```
 
 ```
@@ -323,8 +339,8 @@ minutes).
 `scout_inducted.json`, add an entry to `.intent/enforcement/mappings/your.yaml`,
 and the next audit will pick it up automatically.
 
-**Run Scout again** — as your codebase grows, re-run `core project scout .
---write` to surface new patterns. Already-ratified rules are not overwritten;
+**Run Scout again** — as your codebase grows, re-run `core project scout
+/path/to/myproject --write` to surface new patterns. Already-ratified rules are not overwritten;
 Scout writes to `scout_inducted.json` (additive unless you edit it).
 
 **Full runtime** — if you want the autonomous daemon (continuous audit →
