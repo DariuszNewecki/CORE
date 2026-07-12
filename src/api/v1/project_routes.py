@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import typer
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -122,7 +123,11 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
             dry_run=not body.write,
             stage_dir=stage_dir,
         )
-    except SystemExit as exc:
+    except (SystemExit, typer.Exit) as exc:
+        # typer.Exit is click.exceptions.Exit -> RuntimeError -> Exception, NOT
+        # SystemExit (Typer 0.16), despite the name — byor.py's known failure
+        # modes all raise typer.Exit, so catching SystemExit alone here silently
+        # let every one of them fall through to the 500 branch below.
         raise HTTPException(
             status_code=400, detail="Onboard failed — check CORE logs."
         ) from exc
@@ -156,7 +161,7 @@ async def promote_onboard(body: PromoteRequest, request: Request) -> dict:
     target_path = Path(body.path).resolve()
     try:
         await promote_staged(context=core_context, path=target_path)
-    except SystemExit as exc:
+    except (SystemExit, typer.Exit) as exc:
         raise HTTPException(
             status_code=400, detail="Promote failed — check CORE logs."
         ) from exc

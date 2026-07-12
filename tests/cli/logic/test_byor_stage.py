@@ -254,6 +254,31 @@ async def test_initialize_repository_raises_typer_exit_on_oserror(
             await initialize_repository(context=context, path=target, dry_run=False)
 
 
+async def test_initialize_repository_raises_typer_exit_on_existence_check_oserror(
+    tmp_path: Path,
+) -> None:
+    """A PermissionError from the pre-write `.intent/` existence check — not just
+    the write itself — must also surface as typer.Exit. This is the actual
+    failure mode a caller-supplied unreadable parent directory (e.g. /root on a
+    non-root process) hits: Path.exists() re-raises PermissionError rather than
+    swallowing it, and that call happens before any mkdir/copy2 is attempted."""
+    from cli.logic.byor import initialize_repository
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "my-repo"
+    target.mkdir()
+
+    context = _make_context(core_root)
+
+    with patch(
+        "cli.logic.byor.Path.exists",
+        side_effect=PermissionError(13, "Permission denied"),
+    ):
+        with pytest.raises(typer.Exit):
+            await initialize_repository(context=context, path=target, dry_run=False)
+
+
 async def test_promote_staged_raises_typer_exit_on_oserror(tmp_path: Path) -> None:
     """An OSError promoting to the target surfaces as typer.Exit, not a raw traceback."""
     from cli.logic.byor import _stage_dir_for, promote_staged
@@ -276,3 +301,31 @@ async def test_promote_staged_raises_typer_exit_on_oserror(tmp_path: Path) -> No
 
     # Stage dir survives a failed promote — the operator can retry.
     assert stage_dir.exists()
+
+
+async def test_promote_staged_raises_typer_exit_on_existence_check_oserror(
+    tmp_path: Path,
+) -> None:
+    """Same as the initialize_repository case: a PermissionError from the
+    pre-write `target_intent.exists()` overwrite-guard check must surface as
+    typer.Exit too, not just a PermissionError from the write loop itself."""
+    from cli.logic.byor import _stage_dir_for, promote_staged
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "my-repo"
+    target.mkdir()
+
+    stage_dir = _stage_dir_for(core_root, target)
+    stage_intent = stage_dir / ".intent"
+    (stage_intent / "META").mkdir(parents=True)
+    (stage_intent / "META" / "schema.yaml").write_text("kind: test", encoding="utf-8")
+
+    context = _make_context(core_root)
+
+    with patch(
+        "cli.logic.byor.Path.exists",
+        side_effect=PermissionError(13, "Permission denied"),
+    ):
+        with pytest.raises(typer.Exit):
+            await promote_staged(context=context, path=target)

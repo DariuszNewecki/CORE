@@ -97,6 +97,28 @@ async def test_onboard_dry_run():
     mock_init.assert_awaited_once()
 
 
+async def test_onboard_returns_400_on_typer_exit():
+    """typer.Exit is click.exceptions.Exit -> RuntimeError, NOT SystemExit —
+    catching only SystemExit silently lets every known byor.py failure mode
+    (missing/existing .intent/, inaccessible target path) fall through to the
+    generic 500 branch. Regression coverage for that mapping."""
+    import typer
+    from fastapi import HTTPException
+
+    from api.v1.project_routes import OnboardRequest
+
+    body = OnboardRequest(path="/tmp/myrepo", write=True)
+    request = _make_request()
+
+    with patch(
+        "cli.logic.byor.initialize_repository",
+        new=AsyncMock(side_effect=typer.Exit(code=1)),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await onboard_project(body=body, request=request)
+    assert exc_info.value.status_code == 400
+
+
 async def test_onboard_stage_without_write_returns_early():
     from api.v1.project_routes import OnboardRequest
 

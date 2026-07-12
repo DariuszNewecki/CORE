@@ -118,7 +118,16 @@ async def initialize_repository(
     else:
         dest_root = target_root
         target_intent = target_root / ".intent"
-        if target_intent.exists():
+        try:
+            target_intent_exists = target_intent.exists()
+        except OSError as exc:
+            logger.error(
+                "Target path not accessible on the CORE host: %s (%s)",
+                target_intent,
+                exc,
+            )
+            raise typer.Exit(code=1) from exc
+        if target_intent_exists:
             logger.error(
                 "Target already has a constitution at %s. CORE will not overwrite an "
                 "existing .intent/. Remove it first if you intend to re-scaffold.",
@@ -240,7 +249,14 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
 
     # ADR-111 D3 / ADR-123 D2: same overwrite guard as the direct write path.
     target_intent = target_root / ".intent"
-    if target_intent.exists():
+    try:
+        target_intent_exists = target_intent.exists()
+    except OSError as exc:
+        logger.error(
+            "Target path not accessible on the CORE host: %s (%s)", target_intent, exc
+        )
+        raise typer.Exit(code=1) from exc
+    if target_intent_exists:
         logger.error(
             "Target already has a constitution at %s. "
             "CORE will not overwrite an existing .intent/. "

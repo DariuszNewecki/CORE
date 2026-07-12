@@ -105,6 +105,38 @@ who should run it.
   to disk. Tests added in `tests/cli/logic/test_byor_stage.py`
   (`test_initialize_repository_raises_typer_exit_on_oserror`,
   `test_promote_staged_raises_typer_exit_on_oserror`).
+
+  **Correction, found via live re-verification (2026-07-12, same day):** the
+  first pass of this fix did not actually work end-to-end — confirmed by
+  restarting `core-api` and hitting `POST /v1/project/onboard` against a
+  permission-denied path (`/root/...`), which still returned a raw-detail 500.
+  Two bugs, both now fixed:
+  1. The `OSError` was leaking from `target_intent.exists()` (the pre-write
+     overwrite-guard check), not just the `mkdir`/`copy2` write loop —
+     `Path.exists()` re-raises `PermissionError` rather than swallowing it.
+     Both call sites (`initialize_repository`, `promote_staged`) now wrap that
+     check the same way. Regression tests:
+     `test_initialize_repository_raises_typer_exit_on_existence_check_oserror`,
+     `test_promote_staged_raises_typer_exit_on_existence_check_oserror`.
+  2. **Pre-existing bug, older than this fix:** `typer.Exit` is
+     `click.exceptions.Exit` → `RuntimeError` → `Exception` in the installed
+     Typer (0.16.1) — it is **not** a `SystemExit` subclass. `project_routes.py`'s
+     `except SystemExit` branch in `onboard_project`/`promote_onboard` had
+     never actually caught it, so *every* known `byor.py` failure mode (missing
+     stage, existing `.intent/`, not just this OSError case) has always fallen
+     through to the generic `except Exception` → 500 branch. Fixed: both
+     routes now catch `(SystemExit, typer.Exit)`. A pre-existing test
+     (`test_promote_returns_400_on_typer_exit` in
+     `tests/api/v1/test_project_routes.py`) already asserted the correct
+     behavior but had never actually been run (pytest is a governor action) —
+     it would have failed against the old code. Added the missing symmetric
+     `test_onboard_returns_400_on_typer_exit`.
+
+  Verified live against the restarted `core-api`: permission-denied onboard
+  now returns a clean 400; a genuine write still succeeds 200; re-onboarding
+  an already-`.intent/`-having path now returns 400 (previously 500, same
+  root cause). Lesson: authored-but-unexecuted tests are not verified tests —
+  the bug shipped despite a correct-looking test already existing for it.
 - **F-3 (automation):** `scout` has no batch-accept (Scout D5, by design) — blocks
   automated/CI onboarding of induced rules. Confirm this is the intended posture.
 
