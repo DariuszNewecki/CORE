@@ -129,7 +129,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 35 blocking + 27 reporting + 9 advisory = 71.
+the other two surface findings. At digest time: 37 blocking + 28 reporting + 8 advisory = 73.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -156,6 +156,7 @@ digest has drifted — surface it to the governor.
 **Blackboard (`src/**`)**
 - `architecture.blackboard.worker_only_inserts` — INSERT against `core.blackboard_entries` MUST originate from the Worker base class; services and atomic actions route through `self.post_finding()` / `post_report()` / `post_heartbeat()`.
 - `architecture.blackboard.reaudit_requires_reaudit_mechanism` — Every UPDATE to `status='awaiting_reaudit'` MUST co-occur with `resolution_mechanism = 'reaudit'` in the same WHERE clause.
+- `architecture.blackboard.indeterminate_requires_human_mechanism` — Every UPDATE transitioning a row to `status='indeterminate'` MUST co-assign `resolution_mechanism = 'human'`.
 
 **Privileged-boundary imports**
 - `architecture.boundary.database_session_access` (mind|will) — Only infrastructure, Body, and shared services MAY import `get_session` / `AsyncSession` directly; Mind and Will MUST use DI.
@@ -184,6 +185,17 @@ digest has drifted — surface it to the governor.
 - `governance.constitution.read_only` — `.intent/**` MUST be treated as immutable by all system components.
 - `governance.logic_mutation.governed` — Permanent modifications to production logic within `src/` MUST occur only through governed mutation surfaces.
 
+**API (`src/api/v1/**`)**
+- `architecture.api.route_module_must_declare_exposure` — Every `*_routes.py` MUST declare a module-level `ROUTER_EXPOSURE` from the closed set {`governor-only`, `user-facing`}.
+- `architecture.api.router_exposure_must_match_dependencies` — A `governor-only` router MUST carry `require_governor` in its `APIRouter` constructor dependencies; a `user-facing` router MUST NOT carry it at the router level (per-route gates remain allowed).
+
+**Workers (`src/will/workers/** | src/body/workers/**`)**
+- `architecture.workers.no_direct_worker_import` — Workers MUST NOT import one another at runtime; all inter-worker communication routes exclusively through the blackboard.
+
+**Discovery / quality (`src/**`)**
+- `architecture.artifact_discovery_through_registry` — Artifact-class discovery (sensors, validators, crawlers) MUST consult the `artifact_type` registry via `IntentRepository`; hardcoded extension globs are forbidden. (Promoted from advisory.)
+- `quality.type_safety` — Production code MUST be type-safe as verified by MyPy. (Promoted to blocking, ADR-139.)
+
 ### Reporting / advisory rules — surface findings, do not block
 
 Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
@@ -194,9 +206,9 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
 **Will** — `architecture.will.no_direct_database_access` [r]; `no_filesystem_operations` [r — SHOULD delegate to Body]; `must_delegate_to_body` [r — orchestration SHOULD import and delegate to Body services].
 
-**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services].
+**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services]. `architecture.api.response_must_use_declared_schema` [r — routes returning findings/audit/run results MUST declare an explicit `response_model` from `api/v1/schemas.py`].
 
-**Shared / layout** — `architecture.shared.no_strategic_decisions` [r]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point.
+**Shared / layout** — `architecture.shared.no_strategic_decisions` [r]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point; `logic.di.no_global_session` [a — SUPERSEDED by `architecture.boundary.database_session_access`, #512].
 
 **Channels** — `architecture.channels.logic_no_terminal_rendering` [r]; `cli_rendering_allowed` [r — positive permission]; `logger_not_presentation` [r — logger MUST NOT be used as a presentation renderer].
 
@@ -206,7 +218,7 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
 **Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern].
 
-**Workers / discovery / quality** — all `[a]`: `architecture.flows.worker_must_not_hardwire_sequence` (a Worker `run()` MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls extractable into a named Flow); `architecture.artifact_discovery_through_registry` (declared-only; discovery MUST consult the artifact_type registry via `IntentRepository`; hardcoded extension globs forbidden); `governance.intent_meta.required`; `governance.no_governance_bypass` (if a precondition cannot be evaluated, block); `modularity.unix_philosophy`; `quality.type_safety` (MyPy); `quality.security_audit` (pip-audit); `quality.test_integrity` (suite passing, no collection errors).
+**Workers / quality** — all `[a]`: `architecture.flows.worker_must_not_hardwire_sequence` (a Worker `run()` MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls extractable into a named Flow); `governance.intent_meta.required`; `governance.no_governance_bypass` (if a precondition cannot be evaluated, block); `modularity.unix_philosophy`; `quality.security_audit` (pip-audit); `quality.test_integrity` (suite passing, no collection errors). (`architecture.artifact_discovery_through_registry` and `quality.type_safety` promoted to blocking — see above.)
 
 ### Operational corollaries
 
