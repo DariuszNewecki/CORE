@@ -27,23 +27,34 @@ who should run it.
 
 ---
 
+## Done (continued, 2026-07-12)
+
+- [x] **Smoke-test doc command drift fixed.** Removed `core code integrity`
+  (nonexistent); corrected Phase 4 to `docstrings` / `format-imports`; added a Phase 4
+  scope warning (those commands mutate the instance's own repo).
+- [x] **Phase 5 BYOR `[WRITE]` apply steps exercised** (core-cli 1.0.1 + runtime 2.9.0).
+  `onboard --write --stage` and `promote` write a full `.intent/` floor; `scout --write`
+  induces real rules. Details + findings F-1/F-2/F-3 in the smoke-test doc's
+  "Phase 5 write-flow exercise" section.
+
+---
+
 ## Pending
 
-### 1. Fix smoke-test doc command drift — safe, mechanical
-`CORE-CLI-Release-Smoke-Test.md` (Phases 3–4) names commands that don't match the
-shipped CLI:
-- `core code integrity` — **does not exist**; remove it.
-- Phase 4 uses `fix-docstrings` / `fix-imports`; the real commands are
-  `docstrings` / `format-imports`.
+### 1. BYOR write-flow findings (F-1/F-2/F-3 from the Phase 5 exercise)
+- **F-1 (topology):** `project onboard/promote/scout` are **API-host-filesystem**
+  operations; the remote-CLI → central-API topology can't write BYOR into a
+  CLI-host-local repo. Decide whether to (a) document co-location as the required
+  BYOR model, or (b) add a content-upload path so a remote CLI can onboard a local repo.
+- **F-2 (error handling):** cross-host `promote` leaks a raw `OSError` as an
+  `API error 500`. Should be a clean 4xx ("target path not accessible on the CORE host").
+- **F-3 (automation):** `scout` has no batch-accept (Scout D5, by design) — blocks
+  automated/CI onboarding of induced rules. Confirm this is the intended posture.
 
-Already noted in the run-log Outcome; the Phase 3/4 tables above it still show the
-old names. A `.specs/` edit (governed).
-
-### 2. Exercise Phase 4.2–5.4 `[WRITE]`-apply steps — future smoke run
-The smoke test ran every read path and every `[WRITE]` **dry-run**, but the
-`--write` / `--stage` / `promote` apply steps were not executed (grade was already
-settled, and the paths are proven reachable). A follow-up run against a throwaway
-repo can exercise the apply side end-to-end.
+### 2. Phase 4 `code format/format-imports --write` — deliberately un-exercised
+These mutate the CORE **instance's own** repo (no repo argument), so `--write` against
+the dev instance would dirty `/opt/dev/CORE`. Exercise only against a disposable
+instance pointed at a throwaway `REPO_PATH`, or accept + commit the diff knowingly.
 
 ### 3. `core-api` systemd `JWT_SECRET_KEY` durability — governor, low priority
 The `core-api.service` unit has **no `EnvironmentFile`**. Startup only gets a real

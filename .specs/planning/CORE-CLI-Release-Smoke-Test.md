@@ -114,14 +114,49 @@ un-shadows `src/`, regenerates the `core-admin` entry point. `core-api` +
 `core-daemon` restarted clean on current `src/`; `/v1/analysis/bridges` now
 serves HTTP 200 and `core code bridges` renders the table.
 
-**Follow-ups (not blocking SHIP):**
+**Follow-ups:**
 
-1. Pin `core-cli`'s dependency to `core-runtime>=2.9.0` (separate core-cli repo)
-   so a stale runtime can never satisfy the install again.
-2. Fix this doc's command drift: `code integrity` does not exist; Phase 4's real
-   commands are `docstrings` / `format-imports` (not `fix-docstrings`/`fix-imports`).
-3. Phases 4.2–5.4 `[WRITE]`-apply steps were not executed (dry-runs only) — the
-   write paths are proven reachable; a future run can exercise the apply side.
+1. ✅ Done — `core-cli 1.0.1` pins `core-runtime>=2.9.0` (published).
+2. ✅ Done — command drift fixed in this doc (`code integrity` removed; Phase 4 uses
+   `docstrings` / `format-imports`; Phase 4 scope warning added).
+3. See "Phase 5 write-flow exercise" below — BYOR `[WRITE]` apply steps now run.
+
+### Phase 5 write-flow exercise (run 2026-07-12, core-cli 1.0.1 + core-runtime 2.9.0)
+
+The `[WRITE]`-apply steps were exercised. Results and findings:
+
+- **`onboard --write --stage`** → ✅ staged a full standard Phase-A machinery floor
+  (constitution + enforcement + taxonomies + META, 29 files) to
+  `work/staged/<basename>/.intent` **on the API host**. Does not read the source
+  repo — the floor is a fixed template keyed by the repo basename.
+- **`promote`** → ✅ writes `.intent/` into the target repo — **but only when the
+  target path exists on the API host.** Co-located run (repo on the API host):
+  `.intent/` delivered cleanly. Cross-host run (repo on the remote CLI host, path
+  absent on the API host): `API error 500: [Errno 13] Permission denied` — the API
+  operates on its *own* filesystem, so a remote CLI's local repo path is
+  meaningless to it.
+- **`scout --write`** → ✅ induced a real rule from the repo (0% return-annotation
+  coverage → an `ast_gate type_annotations` reporting rule). Ratification is
+  **interactive by design** (`Action [a/r/c]`, no `--accept-all` per Scout D5), so a
+  non-interactive/SSH run reviews nothing and writes nothing.
+
+**Findings (candidates for follow-up, do not block SHIP):**
+
+- **F-1 (topology):** BYOR `project onboard/promote/scout` are **API-host-filesystem
+  operations**. The remote-CLI → central-API topology used for this smoke test does
+  **not** support BYOR writes into a repo that lives only on the CLI host. The real
+  adoption model is co-located (adopter installs CORE and points it at a local
+  repo). The CLI's "pure HTTP client" framing holds for read/analysis commands but
+  not for `project` writes, which assume shared filesystem locality.
+- **F-2 (error handling):** cross-host `promote` leaks a raw `OSError` as
+  `API error 500: [Errno 13] Permission denied: '<path>'`. Should be a clean 4xx
+  ("target path not accessible on the CORE host") instead of a 500.
+- **F-3 (automation):** `scout` cannot be run non-interactively (no batch-accept).
+  Fine for a human operator; blocks CI/automated onboarding of induced rules.
+
+Only Phase 4 `code format/format-imports --write` remain un-exercised — deliberately,
+since they mutate the CORE **instance's own** repo (see the Phase 4 scope warning),
+not a throwaway target.
 
 ---
 
@@ -235,8 +270,11 @@ errors but do not stop the sequence — record and continue.
 | `core code lint` | Lint findings or "clean" |
 | `core code check-imports` | Import violations or "none found" |
 | `core code check-ui` | Rich usage violations or "clean" |
-| `core code integrity` | Integrity report |
 | `core code logging` | Logger compliance report |
+
+> Note: `core code` commands operate on the **CORE instance's own governed repo**
+> (its configured `REPO_PATH`), not a user-supplied path. Against a dev instance
+> that is `/opt/dev/CORE` itself. There is no `core code integrity` command.
 
 ### 3.2 Symbols group
 
@@ -271,6 +309,15 @@ errors but do not stop the sequence — record and continue.
 Each step below requires explicit governor confirmation before execution. Claude Code
 will describe the intended action and wait for "go ahead".
 
+> **Scope warning.** `core code format --write` / `format-imports --write` have **no
+> repo argument** — they mutate the CORE instance's **own** governed repo
+> (`REPO_PATH`), which on a dev instance is `/opt/dev/CORE` itself, not a throwaway
+> test repo. Running `--write` there creates uncommitted changes in the live source
+> tree that the autonomous daemon may scoop into a `fix.*` commit. Only exercise the
+> Phase 4 `--write` steps against an instance whose repo you are willing to mutate,
+> or point a disposable CORE instance at a throwaway `REPO_PATH`. The isolated
+> external-adoption writes are Phase 5 (`core project *`, which DO take a repo path).
+
 ### 4.1 Format dry-run (safe — no actual write)
 
 ```bash
@@ -279,28 +326,28 @@ core code format
 
 **Pass:** Run ID returned, poll completes, `status: completed`. No files changed.
 
-### 4.2 `[WRITE]` Format apply
+### 4.2 `[WRITE]` Format apply (mutates the instance's own repo)
 
 ```bash
 core code format --write
 ```
 
-Governor confirms: "go ahead with format --write on the test repo."
+Governor confirms: "go ahead with format --write on this instance's repo."
 
 **Pass:** Formatted files reported, run status `completed`.
 
-### 4.3 Fix docstrings dry-run
+### 4.3 Docstrings dry-run
 
 ```bash
-core code fix-docstrings
+core code docstrings
 ```
 
 **Pass:** Run kicked off, poll completes with findings count.
 
-### 4.4 `[WRITE]` Fix imports
+### 4.4 `[WRITE]` Fix imports (mutates the instance's own repo)
 
 ```bash
-core code fix-imports --write
+core code format-imports --write
 ```
 
 Governor confirms before execution.
