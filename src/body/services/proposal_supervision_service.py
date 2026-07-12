@@ -127,6 +127,65 @@ class ProposalSupervisionService:
             for row in rows
         ]
 
+    # ID: 93bff99e-f795-451b-a2ed-c1c2133df60e
+    async def fetch_stuck_finalizing(
+        self, sla_sec: int, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return proposals stuck in status='finalizing' beyond the SLA, with the
+        data needed to roll them FORWARD (ADR-148 D4).
+
+        Anchored on execution_completed_at (set when the proposal entered
+        finalizing) — not updated_at. Includes execution_results (to recompute
+        the declared production set), finding_ids and policies (to record the
+        consequence), and whether a consequence record already exists, so the
+        reaper can complete the finalization idempotently without the executor's
+        original SHA context.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=sla_sec)
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        p.proposal_id,
+                        p.execution_completed_at,
+                        EXTRACT(EPOCH FROM (now() - p.execution_completed_at))::int
+                            AS seconds_stuck,
+                        p.execution_results,
+                        p.constitutional_constraints->'finding_ids' AS finding_ids,
+                        p.scope->'policies' AS policies,
+                        (c.proposal_id IS NOT NULL) AS has_consequence
+                    FROM core.autonomous_proposals p
+                    LEFT JOIN core.proposal_consequences c
+                        ON c.proposal_id = p.proposal_id
+                    WHERE p.status = 'finalizing'
+                      AND p.execution_completed_at IS NOT NULL
+                      AND p.execution_completed_at < :cutoff
+                    ORDER BY p.execution_completed_at ASC
+                    LIMIT :limit
+                    """
+                ),
+                {"cutoff": cutoff, "limit": limit},
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": str(row[0]),
+                "execution_completed_at": row[1],
+                "seconds_stuck": int(row[2]),
+                "execution_results": row[3] or {},
+                "finding_ids": row[4] or [],
+                "policies": row[5] or [],
+                "has_consequence": bool(row[6]),
+            }
+            for row in rows
+        ]
+
     # ID: 3f325bf4-3f14-4b15-bcfa-17a64f8c56db
     async def fetch_repeated_failures(
         self,

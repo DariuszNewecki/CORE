@@ -73,6 +73,7 @@ workers:
     # Older executing rows are posted as
     # proposal.stuck_executing::{proposal_id}.
     stuck_executing_sla_sec: 900
+    stuck_finalizing_sla_sec: 300
     # Repeated-failure detection: a (first action_id, source_check_id)
     # pair failing this many times within the lookback window posts
     # proposal.repeated_failure::{action_id}::{rule_id}.

@@ -60,6 +60,7 @@ logger = getLogger(__name__)
 
 _SUBJECT_STUCK_APPROVED = "proposal.stuck_approved"
 _SUBJECT_STUCK_EXECUTING = "proposal.stuck_executing"
+_SUBJECT_STUCK_FINALIZING = "proposal.stuck_finalizing"
 _SUBJECT_REPEATED_FAILURE = "proposal.repeated_failure"
 
 _CFG = load_operational_config().workers.proposal_pipeline_shop
@@ -108,6 +109,10 @@ class ProposalPipelineShopManager(ScheduledWorker):
             sla_sec=_CFG.stuck_executing_sla_sec,
             limit=_CFG.findings_scan_limit,
         )
+        stuck_finalizing = await proposal_svc.fetch_stuck_finalizing(
+            sla_sec=_CFG.stuck_finalizing_sla_sec,
+            limit=_CFG.findings_scan_limit,
+        )
         repeated_failures = await proposal_svc.fetch_repeated_failures(
             threshold=_CFG.repeated_failure_threshold,
             lookback_sec=_CFG.repeated_failure_lookback_sec,
@@ -119,6 +124,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         flagged_subjects: set[str] = set()
         flagged = 0
         terminated_proposals = 0
+        rolled_forward_proposals = 0
 
         for row in stuck_approved:
             subject = f"{_SUBJECT_STUCK_APPROVED}::{row['proposal_id']}"
@@ -175,6 +181,38 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 _CFG.stuck_executing_sla_sec,
             )
 
+        for row in stuck_finalizing:
+            subject = f"{_SUBJECT_STUCK_FINALIZING}::{row['proposal_id']}"
+            flagged_subjects.add(subject)
+
+            # Roll the proposal FORWARD every cycle it appears — re-drive the
+            # idempotent evidence steps and complete it (ADR-148 D4). Unlike
+            # stuck_executing (which retires), a finalizing proposal is already
+            # committed; rolling it back would double-apply the change.
+            if await self._roll_forward_finalizing(row):
+                rolled_forward_proposals += 1
+
+            if subject in existing:
+                continue
+            await self.post_finding(
+                subject=subject,
+                payload={
+                    "proposal_id": row["proposal_id"],
+                    "execution_completed_at": _isoformat(row["execution_completed_at"]),
+                    "seconds_stuck": row["seconds_stuck"],
+                    "sla_seconds": _CFG.stuck_finalizing_sla_sec,
+                },
+                resolution_mechanism="self_resolve",
+            )
+            flagged += 1
+            logger.warning(
+                "ProposalPipelineShopManager: proposal %s stuck finalizing for %ds "
+                "(sla=%ds) — rolling forward",
+                row["proposal_id"],
+                row["seconds_stuck"],
+                _CFG.stuck_finalizing_sla_sec,
+            )
+
         for row in repeated_failures:
             subject = (
                 f"{_SUBJECT_REPEATED_FAILURE}::{row['action_id']}::{row['rule_id']}"
@@ -221,10 +259,12 @@ class ProposalPipelineShopManager(ScheduledWorker):
             payload={
                 "stuck_approved": len(stuck_approved),
                 "stuck_executing": len(stuck_executing),
+                "stuck_finalizing": len(stuck_finalizing),
                 "repeated_failures": len(repeated_failures),
                 "flagged": flagged,
                 "resolved": resolved,
                 "terminated_proposals": terminated_proposals,
+                "rolled_forward_proposals": rolled_forward_proposals,
             },
         )
         logger.info(
@@ -311,6 +351,76 @@ class ProposalPipelineShopManager(ScheduledWorker):
         await revive_and_report(self, proposal_id, reason)
         return True
 
+    async def _roll_forward_finalizing(self, row: dict[str, Any]) -> bool:
+        """
+        Roll a stuck-finalizing proposal FORWARD to completed (ADR-148 D4).
+
+        Re-drives the idempotent finalization steps the executor gates on:
+        1. If no consequence record exists, record a best-effort one from the
+           persisted proposal data (declared_production recomputed from
+           execution_results; the SHAs are unavailable to the reaper and are
+           omitted — the git commit already exists, and this record satisfies
+           the D1 "consequence chain recorded" obligation). If a record already
+           exists (findings/complete failed but consequence succeeded), it is
+           left untouched.
+        2. Resolve the proposal's deferred findings.
+        3. mark_completed (finalizing -> completed), status-guarded.
+
+        Fail-soft: any step failing leaves the proposal finalizing and the
+        finding open; the next cycle retries. Returns True when this call
+        advanced the proposal to completed.
+        """
+        from body.services.service_registry import service_registry
+        from will.autonomy.proposal_execution_pipeline import (
+            compute_production_set,
+            record_consequence,
+            resolve_deferred_findings,
+        )
+        from will.autonomy.proposal_state_manager import (
+            ProposalNotFoundError,
+            ProposalStateManager,
+        )
+
+        proposal_id = row["proposal_id"]
+        try:
+            if not row.get("has_consequence"):
+                declared = compute_production_set(row.get("execution_results") or {})
+                consequence_ok = await record_consequence(
+                    proposal_id=proposal_id,
+                    pre_sha=None,
+                    post_sha=None,
+                    changed_files=[],
+                    finding_ids=list(row.get("finding_ids") or []),
+                    policies=list(row.get("policies") or []),
+                    declared_production=declared,
+                )
+                if not consequence_ok:
+                    return False
+
+            if not await resolve_deferred_findings(proposal_id):
+                return False
+
+            async with service_registry.session() as session:
+                try:
+                    await ProposalStateManager(session).mark_completed(proposal_id)
+                except ProposalNotFoundError:
+                    # Concurrently completed or no longer finalizing — safe no-op.
+                    return False
+
+            logger.warning(
+                "ProposalPipelineShopManager: rolled forward stuck-finalizing "
+                "proposal %s to completed",
+                proposal_id,
+            )
+            return True
+        except Exception as roll_err:
+            logger.error(
+                "ProposalPipelineShopManager: failed to roll forward proposal %s: %s",
+                proposal_id,
+                roll_err,
+            )
+            return False
+
     async def _fetch_existing_findings(self, blackboard_svc: Any) -> dict[str, str]:
         """
         Return mapping of subject → entry_id for open findings matching
@@ -321,6 +431,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         for prefix in (
             _SUBJECT_STUCK_APPROVED,
             _SUBJECT_STUCK_EXECUTING,
+            _SUBJECT_STUCK_FINALIZING,
             _SUBJECT_REPEATED_FAILURE,
         ):
             rows = await blackboard_svc.fetch_open_findings(
