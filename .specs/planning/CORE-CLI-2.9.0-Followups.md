@@ -19,28 +19,17 @@ who should run it.
   editable `src/`; `pip install -e .` restored `src/` as the import source.
   `core-api` + `core-daemon` restarted clean on current code; `/v1/analysis/bridges`
   serves 200.
-- [x] **`core-cli` pinned to `core-runtime>=2.9.0`, bumped to `1.0.1`.** Committed to
-  `core-cli` `main` (`a0baa1c`). **Not yet published** (see below).
+- [x] **`core-cli 1.0.1` published to PyPI, pinned to `core-runtime>=2.9.0`.** Tag
+  `v1.0.1` (`a0baa1c`) → CI publish via OIDC. Verified: PyPI core-cli = `1.0.1`,
+  `requires_dist` includes `core-runtime>=2.9.0`. GitHub Release
+  `v1.0.1 — Runtime Pin` created.
 - [x] **CORE `main` pushed** through `c14a54fc` (run-log doc updated to SHIP).
 
 ---
 
 ## Pending
 
-### 1. Publish `core-cli 1.0.1` — governor trigger
-The pin change is committed to `core-cli` `main` but PyPI still serves `1.0.0`.
-Publishing is tag-gated (CI publishes on `v*` tags via OIDC). To release:
-
-```bash
-cd /opt/dev/core-cli
-git tag v1.0.1
-git push origin v1.0.1        # fires ci.yml publish job → PyPI
-```
-
-Verify after: `pip index versions core-cli` shows `1.0.1`; a fresh install resolves
-`core-runtime>=2.9.0`.
-
-### 2. Fix smoke-test doc command drift — safe, mechanical
+### 1. Fix smoke-test doc command drift — safe, mechanical
 `CORE-CLI-Release-Smoke-Test.md` (Phases 3–4) names commands that don't match the
 shipped CLI:
 - `core code integrity` — **does not exist**; remove it.
@@ -50,13 +39,13 @@ shipped CLI:
 Already noted in the run-log Outcome; the Phase 3/4 tables above it still show the
 old names. A `.specs/` edit (governed).
 
-### 3. Exercise Phase 4.2–5.4 `[WRITE]`-apply steps — future smoke run
+### 2. Exercise Phase 4.2–5.4 `[WRITE]`-apply steps — future smoke run
 The smoke test ran every read path and every `[WRITE]` **dry-run**, but the
 `--write` / `--stage` / `promote` apply steps were not executed (grade was already
 settled, and the paths are proven reachable). A follow-up run against a throwaway
 repo can exercise the apply side end-to-end.
 
-### 4. `core-api` systemd `JWT_SECRET_KEY` durability — governor, low priority
+### 3. `core-api` systemd `JWT_SECRET_KEY` durability — governor, low priority
 The `core-api.service` unit has **no `EnvironmentFile`**. Startup only gets a real
 `JWT_SECRET_KEY` because the app itself calls `load_dotenv(REPO_ROOT/".env")`. This
 works today, but a systemd start with a different working directory (or a future
@@ -65,7 +54,7 @@ refactor that drops the app-level `load_dotenv`) would fail the security pre-fli
 `EnvironmentFile=-/opt/dev/CORE/.env` to the unit as belt-and-suspenders. (`.env`
 itself already holds a strong 64-char secret — no secret rotation needed.)
 
-### 5. `MEMORY.md` deeper compaction — housekeeping
+### 4. `MEMORY.md` deeper compaction — housekeeping
 The auto-loaded memory index was trimmed (removed 36 stale `Session state` lines,
 46.8 → 40.1 KB) but is still over the ~17 KB load limit, so it loads truncated.
 Reaching the target needs curating the durable `feedback_*`/`reference_*` entries
