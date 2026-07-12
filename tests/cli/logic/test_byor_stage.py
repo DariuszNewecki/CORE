@@ -9,7 +9,7 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import typer
@@ -224,3 +224,55 @@ async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
 
     assert (target / ".intent").is_dir(), "Target should have .intent/ after promotion"
     assert not stage_dir.exists(), "Stage dir should be cleaned up after promotion"
+
+
+# ---------------------------------------------------------------------------
+# OSError on target write (F-2 — cross-host target path not accessible)
+# ---------------------------------------------------------------------------
+
+
+async def test_initialize_repository_raises_typer_exit_on_oserror(
+    tmp_path: Path,
+) -> None:
+    """An OSError writing to the target surfaces as typer.Exit, not a raw traceback.
+
+    The API layer maps typer.Exit to a clean 4xx (project_routes.py); an
+    uncaught OSError would instead fall through to a 500 with the raw
+    stdlib message leaked into the response body.
+    """
+    from cli.logic.byor import initialize_repository
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "my-repo"
+    target.mkdir()
+
+    context = _make_context(core_root)
+
+    with patch("cli.logic.byor.shutil.copy2", side_effect=OSError("no such device")):
+        with pytest.raises(typer.Exit):
+            await initialize_repository(context=context, path=target, dry_run=False)
+
+
+async def test_promote_staged_raises_typer_exit_on_oserror(tmp_path: Path) -> None:
+    """An OSError promoting to the target surfaces as typer.Exit, not a raw traceback."""
+    from cli.logic.byor import _stage_dir_for, promote_staged
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "my-repo"
+    target.mkdir()
+
+    stage_dir = _stage_dir_for(core_root, target)
+    stage_intent = stage_dir / ".intent"
+    (stage_intent / "META").mkdir(parents=True)
+    (stage_intent / "META" / "schema.yaml").write_text("kind: test", encoding="utf-8")
+
+    context = _make_context(core_root)
+
+    with patch("cli.logic.byor.shutil.copy2", side_effect=OSError("no such device")):
+        with pytest.raises(typer.Exit):
+            await promote_staged(context=context, path=target)
+
+    # Stage dir survives a failed promote — the operator can retry.
+    assert stage_dir.exists()

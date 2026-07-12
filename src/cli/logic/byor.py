@@ -156,8 +156,14 @@ async def initialize_repository(
         rel = src.relative_to(starter_dir)
         dest = dest_root / ".intent" / rel
         if write:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+            except OSError as exc:
+                logger.error(
+                    "Target path not accessible on the CORE host: %s (%s)", dest, exc
+                )
+                raise typer.Exit(code=1) from exc
             if not dest.is_file():
                 logger.error("   ❌ not delivered: %s", rel)
                 continue
@@ -254,8 +260,14 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     for src in source_files:
         rel = src.relative_to(stage_intent)
         dest = target_intent / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+        except OSError as exc:
+            logger.error(
+                "Target path not accessible on the CORE host: %s (%s)", dest, exc
+            )
+            raise typer.Exit(code=1) from exc
         if not dest.is_file():
             logger.error("   ❌ not delivered: %s", rel)
             continue
