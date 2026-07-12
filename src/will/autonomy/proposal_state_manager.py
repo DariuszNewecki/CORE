@@ -67,13 +67,17 @@ class ProposalStateManager:
     # Execution State Transitions
     # -------------------------
 
-    # ID: 360b7769-23e8-416d-875b-45e8d3c8194c
-    async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:
-        """Mark proposal as successfully completed.
+    # ID: c8cee0ea-3a04-4501-898a-71f1c2949104
+    async def mark_finalizing(self, proposal_id: str, results: dict[str, Any]) -> None:
+        """Transition a committed proposal from executing to finalizing (ADR-148 D2).
 
-        Valid source state: executing only. Raises ProposalNotFoundError
-        when rowcount=0 — indicates either no such proposal or an invalid
-        transition (e.g. re-completing an already-completed row).
+        Valid source state: executing only. Sets execution_completed_at (execution
+        has ended; the production set is committed) and execution_results. The
+        proposal stays finalizing until its consequence chain is durably recorded,
+        at which point mark_completed advances it. A crash in the finalizing window
+        leaves a recoverable finalizing row — never a false completed. The
+        execution_completed_at stamp also anchors the stuck-finalizing reaper
+        (ADR-148 D4).
         """
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
@@ -84,7 +88,7 @@ class ProposalStateManager:
             .where(AutonomousProposal.proposal_id == proposal_id)
             .where(AutonomousProposal.status == ProposalStatus.EXECUTING.value)
             .values(
-                status=ProposalStatus.COMPLETED.value,
+                status=ProposalStatus.FINALIZING.value,
                 execution_completed_at=datetime.now(UTC),
                 execution_results=_sanitize_payload(results),
             )
@@ -93,6 +97,38 @@ class ProposalStateManager:
         if result.rowcount == 0:
             raise ProposalNotFoundError(
                 f"Proposal not found or not in executing state: {proposal_id!r}"
+            )
+        await self._session.commit()
+        logger.info("Marked proposal as finalizing: %s", proposal_id)
+
+    # ID: 360b7769-23e8-416d-875b-45e8d3c8194c
+    async def mark_completed(self, proposal_id: str) -> None:
+        """Mark a finalized proposal as completed (ADR-148 D1).
+
+        Valid source state: finalizing only — a proposal reaches completed only
+        after its changes are committed (finalizing) AND its consequence chain is
+        durably recorded. Stamps consequence_recorded_at, the proof that COMPLETED
+        is a defensibility claim, not merely an execution milestone. Raises
+        ProposalNotFoundError when rowcount=0 (no such proposal, or not in
+        finalizing state — e.g. an attempt to complete straight from executing).
+        """
+        from shared.infrastructure.database.models.autonomous_proposals import (
+            AutonomousProposal,
+        )
+
+        stmt = (
+            update(AutonomousProposal)
+            .where(AutonomousProposal.proposal_id == proposal_id)
+            .where(AutonomousProposal.status == ProposalStatus.FINALIZING.value)
+            .values(
+                status=ProposalStatus.COMPLETED.value,
+                consequence_recorded_at=datetime.now(UTC),
+            )
+        )
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            raise ProposalNotFoundError(
+                f"Proposal not found or not in finalizing state: {proposal_id!r}"
             )
         await self._session.commit()
         logger.info("Marked proposal as completed: %s", proposal_id)

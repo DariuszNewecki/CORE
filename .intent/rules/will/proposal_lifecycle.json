@@ -12,7 +12,7 @@
     "rules": [
         {
             "id": "proposal_lifecycle.transitions.valid_sequence",
-            "statement": "A Proposal MUST only advance through the status transitions declared in .intent/META/enums.json. The permitted transition graph is: draft to pending or approved; pending to approved or rejected; approved to executing or rejected; executing to completed or failed. Any status assignment outside this graph is a lifecycle violation.",
+            "statement": "A Proposal MUST only advance through the status transitions declared in .intent/META/enums.json. The permitted transition graph is: draft to pending or approved; pending to approved or rejected; approved to executing or rejected; executing to finalizing or failed; finalizing to completed. A proposal reaches completed only from finalizing, after its changes are committed and its consequence chain is durably recorded (ADR-148). Any status assignment outside this graph is a lifecycle violation.",
             "authority": "policy",
             "phase": "runtime",
             "enforcement": "blocking"
@@ -33,7 +33,7 @@
         },
         {
             "id": "proposal_lifecycle.claim.idempotency_guard",
-            "statement": "A claim attempt against a Proposal whose status is already executing, completed, or failed MUST be rejected without mutating state. Concurrent claims on the same Proposal MUST resolve to exactly one successful claimer; all subsequent attempts MUST receive a non-success result without side effects.",
+            "statement": "A claim attempt against a Proposal whose status is already executing, finalizing, completed, or failed MUST be rejected without mutating state. Concurrent claims on the same Proposal MUST resolve to exactly one successful claimer; all subsequent attempts MUST receive a non-success result without side effects.",
             "authority": "policy",
             "phase": "execution",
             "enforcement": "blocking"

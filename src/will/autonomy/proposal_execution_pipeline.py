@@ -79,14 +79,16 @@ def capture_git_sha(git_service, phase: str, proposal_id: str) -> str | None:
 
 
 # ID: 4de2ac6b-7733-45eb-81cf-2f2897095459
-async def resolve_deferred_findings(proposal_id: str) -> None:
+async def resolve_deferred_findings(proposal_id: str) -> bool:
     """Flip findings deferred to *proposal_id* from 'deferred_to_proposal'
     to 'resolved' — the success-side mirror of §7a revival.
 
-    Fail-soft: any error is logged and swallowed. The resolution step
-    happens after a proposal has already been marked completed; failure
-    here must not unwind completion. Logs an INFO when one or more
-    findings are flipped; silent when there were none.
+    ADR-148 D1: a finalization obligation. Returns True when resolution
+    succeeded (including the no-op case of zero deferred findings), False
+    when the blackboard service raised. The executor gates completion on a
+    True result: a proposal whose findings could not be adjudicated stays
+    finalizing (recoverable) rather than completing. Logs an INFO when one
+    or more findings are flipped.
     """
     try:
         bb_service = await service_registry.get_blackboard_service()
@@ -96,16 +98,18 @@ async def resolve_deferred_findings(proposal_id: str) -> None:
         if resolution and resolution.get("resolved_count", 0) > 0:
             logger.info(
                 "ProposalExecutor: resolved %d deferred finding(s) "
-                "for completed proposal %s",
+                "for finalizing proposal %s",
                 resolution["resolved_count"],
                 proposal_id,
             )
+        return True
     except Exception as resolve_err:
         logger.warning(
             "Failed to resolve deferred findings for proposal %s: %s",
             proposal_id,
             resolve_err,
         )
+        return False
 
 
 # ID: 4095ae72-e22a-48bd-b8a0-41707a5b2bdf
@@ -117,13 +121,15 @@ async def record_consequence(
     finding_ids: list[str],
     policies: list[str],
     declared_production: list[str] | None = None,
-) -> None:
-    """Record the consequence log entry for a successfully executed proposal.
+) -> bool:
+    """Record the consequence log entry for a finalizing proposal.
 
-    Fail-soft: any exception during the consequence-service call is
-    logged and swallowed. Consequence recording is observational —
-    failure here must not unwind the proposal completion that has
-    already been committed to the proposal-row state.
+    ADR-148 D1: a finalization obligation — the durable proof of what the
+    proposal changed, under what authority, with what evidence. Returns True
+    on a successful upsert, False when the consequence service raised. The
+    executor gates completion on a True result: a proposal whose consequence
+    chain could not be persisted stays finalizing (recoverable) rather than
+    completing with no durable evidence.
 
     *finding_ids* comes from
     ``proposal.constitutional_constraints['finding_ids']`` (the open
@@ -146,12 +152,14 @@ async def record_consequence(
             authorized_by_rules=policies,
             declared_production=declared_production or [],
         )
+        return True
     except Exception as cons_err:
         logger.warning(
             "Failed to record consequence for %s: %s",
             proposal_id,
             cons_err,
         )
+        return False
 
 
 # ID: b38dbf84-ec1c-473d-8f42-d8b613e9a4c8

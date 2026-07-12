@@ -382,14 +382,14 @@ class ProposalExecutor:
                             total_duration,
                         )
                     else:
-                        await state_manager.mark_completed(
+                        # ADR-148 D2: commit succeeded -> FINALIZING. Record the
+                        # evidence, then advance to COMPLETED only once the
+                        # consequence chain is durable. A crash in this window
+                        # leaves a recoverable FINALIZING row, never a false
+                        # COMPLETED.
+                        await state_manager.mark_finalizing(
                             proposal.proposal_id,
                             results=action_results,
-                        )
-                        logger.info(
-                            "Proposal completed successfully: %s (%.2fs)",
-                            proposal.proposal_id,
-                            total_duration,
                         )
 
                         # -- Consequence recording --
@@ -407,7 +407,7 @@ class ProposalExecutor:
                             proposal_id=proposal.proposal_id,
                         )
 
-                        await record_consequence(
+                        consequence_ok = await record_consequence(
                             proposal_id=proposal.proposal_id,
                             pre_sha=pre_execution_sha,
                             post_sha=post_execution_sha,
@@ -418,8 +418,29 @@ class ProposalExecutor:
                             policies=proposal.scope.policies,
                             declared_production=compute_production_set(action_results),
                         )
+                        findings_ok = await resolve_deferred_findings(
+                            proposal.proposal_id
+                        )
 
-                        await resolve_deferred_findings(proposal.proposal_id)
+                        # ADR-148 D1: COMPLETED only once the consequence chain is
+                        # durable and the deferred findings are adjudicated.
+                        if consequence_ok and findings_ok:
+                            await state_manager.mark_completed(proposal.proposal_id)
+                            logger.info(
+                                "Proposal completed successfully: %s (%.2fs)",
+                                proposal.proposal_id,
+                                total_duration,
+                            )
+                        else:
+                            logger.warning(
+                                "Proposal %s left FINALIZING (consequence=%s "
+                                "findings=%s) — evidence not yet durable; the "
+                                "stuck-finalizing reaper will re-drive it "
+                                "(ADR-148 D4).",
+                                proposal.proposal_id,
+                                consequence_ok,
+                                findings_ok,
+                            )
 
                 else:
                     failed_actions = [

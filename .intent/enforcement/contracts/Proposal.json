@@ -126,7 +126,17 @@
             }
         },
         {
-            "description": "COMPLETED: all APPROVED invariants hold; execution_completed_at must be non-null. Terminal status.",
+            "description": "FINALIZING: all EXECUTING invariants hold; execution_completed_at must be non-null (execution ended, changes committed). ADR-148 D2: the proposal is recording its consequence chain and advances to completed only once that record is durable. Enforced by ProposalStateManager.mark_finalizing().",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "finalizing"}}
+            },
+            "then": {
+                "required": ["approval_authority", "approved_by", "approved_at", "execution_started_at", "execution_completed_at"]
+            }
+        },
+        {
+            "description": "COMPLETED: all APPROVED invariants hold; execution_completed_at must be non-null. ADR-148 D1: reached only from finalizing, once the consequence chain is durably recorded (mark_completed stamps consequence_recorded_at). A non-null consequence_recorded_at DB CHECK + dataclass field is a #763 follow-up. Terminal status.",
             "if": {
                 "required": ["status"],
                 "properties": {"status": {"const": "completed"}}

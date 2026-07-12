@@ -62,7 +62,7 @@ async def _fetch(
 
 
 # ---------------------------------------------------------------------------
-# mark_completed — valid source: EXECUTING only
+# mark_completed — valid source: FINALIZING only (ADR-148)
 # ---------------------------------------------------------------------------
 
 
@@ -73,9 +73,7 @@ async def test_mark_completed_from_rejected_raises(db_session: AsyncSession) -> 
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
-            await ProposalStateManager(db_session).mark_completed(
-                proposal_id, results={}
-            )
+            await ProposalStateManager(db_session).mark_completed(proposal_id)
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "rejected"
@@ -90,9 +88,7 @@ async def test_mark_completed_from_approved_raises(db_session: AsyncSession) -> 
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
-            await ProposalStateManager(db_session).mark_completed(
-                proposal_id, results={}
-            )
+            await ProposalStateManager(db_session).mark_completed(proposal_id)
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "approved"
@@ -107,9 +103,7 @@ async def test_mark_completed_from_completed_raises(db_session: AsyncSession) ->
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
-            await ProposalStateManager(db_session).mark_completed(
-                proposal_id, results={}
-            )
+            await ProposalStateManager(db_session).mark_completed(proposal_id)
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "completed"
@@ -287,5 +281,82 @@ async def test_reject_from_failed_raises(db_session: AsyncSession) -> None:
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None and row.status == "failed"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+# ---------------------------------------------------------------------------
+# ADR-148: the FINALIZING barrier — executing -> finalizing -> completed
+# ---------------------------------------------------------------------------
+
+
+async def test_mark_completed_from_executing_raises(db_session: AsyncSession) -> None:
+    """ADR-148: completing straight from executing is rejected — a proposal must
+    pass through finalizing (where its consequence chain is recorded) first. This
+    is the barrier: COMPLETED is unreachable without going through FINALIZING."""
+    proposal_id = f"test-mc-executing-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="executing"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).mark_completed(proposal_id)
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "executing"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_mark_finalizing_executing_to_finalizing(
+    db_session: AsyncSession,
+) -> None:
+    """ADR-148 D2: mark_finalizing advances executing -> finalizing and stamps
+    execution_completed_at (the stuck-finalizing reaper anchor)."""
+    proposal_id = f"test-fin-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="executing"))
+    await db_session.commit()
+    try:
+        await ProposalStateManager(db_session).mark_finalizing(
+            proposal_id, results={"fix.format:0": {"ok": True}}
+        )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "finalizing"
+        assert row.execution_completed_at is not None
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_mark_finalizing_from_approved_raises(db_session: AsyncSession) -> None:
+    """mark_finalizing only advances from executing."""
+    proposal_id = f"test-fin-approved-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="approved"))
+    await db_session.commit()
+    try:
+        with pytest.raises(ProposalNotFoundError):
+            await ProposalStateManager(db_session).mark_finalizing(
+                proposal_id, results={}
+            )
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "approved"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_mark_completed_from_finalizing_stamps_consequence(
+    db_session: AsyncSession,
+) -> None:
+    """ADR-148 D1: completing from finalizing succeeds and stamps
+    consequence_recorded_at — the proof COMPLETED is a defensibility claim."""
+    proposal_id = f"test-mc-finalizing-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="finalizing"))
+    await db_session.commit()
+    try:
+        await ProposalStateManager(db_session).mark_completed(proposal_id)
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None and row.status == "completed"
+        assert row.consequence_recorded_at is not None
     finally:
         await _delete(db_session, proposal_id)
