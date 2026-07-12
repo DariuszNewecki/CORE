@@ -30,7 +30,7 @@
 set -euo pipefail
 
 USER_NAME="${SUDO_USER:-$(id -un)}"
-QDRANT_IMAGE="qdrant/qdrant:v1.9.0"   # must match docker-compose.yml
+QDRANT_IMAGE="qdrant/qdrant:v1.18.0"  # must match docker-compose.yml
 PG_IMAGE="postgres:16"                # must match docker-compose.yml
 
 say() { printf '\n\033[1;36m━━ %s ━━\033[0m\n' "$*"; }
@@ -39,7 +39,12 @@ say() { printf '\n\033[1;36m━━ %s ━━\033[0m\n' "$*"; }
 say "Updating the OS"
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates curl git make
+# python3-pip/python3-venv are NOT guaranteed present on a minimal Ubuntu
+# 24.04 image/LXC template — confirmed missing on a fresh unprivileged LXC
+# 2026-07-12. The Poetry installer below bootstraps its own venv via
+# `python3 -m venv`, which fails without python3-venv.
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+  ca-certificates curl git make python3-pip python3-venv
 
 # ---- 2. Docker (official repo) + rootless-for-user -------------------------
 say "Installing Docker + Compose"

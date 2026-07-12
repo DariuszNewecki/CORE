@@ -104,7 +104,7 @@ template**; future clean tests are a linked-clone away.
 | Full-stack install from zero | VM-1 | `install-core.sh` works end-to-end from public docs (#561/#562); no hidden manual steps |
 | Consumer read path | VM-2 → VM-1 | `core code/symbols/vectors/proposals/lane` against a clean non-dev instance (the Phase 1–3 smoke suite) |
 | Co-located BYOR writes | on VM-1 | `onboard --write --stage` → `promote` → `scout` into a **local** repo (the path F-1 showed needs co-location) |
-| Pinned pair | both | `core-cli 1.0.1` + `core-runtime 2.9.0` resolve and interoperate cleanly |
+| Pinned pair | both | `core-cli 1.0.2` + `core-runtime 2.9.1` resolve and interoperate cleanly |
 | `code --write` (optional) | VM-1 | `format/format-imports --write` against a throwaway `REPO_PATH` (follow-up #2) |
 
 ---
@@ -112,11 +112,25 @@ template**; future clean tests are a linked-clone away.
 ## Rebuild-completeness checklist (watch for doc gaps)
 
 Treat any step the recipes *don't* cover as a documentation defect to fix, not a one-off:
-- [ ] `coldroom-prep.sh` pre-steps (openssh, key auth) are stated but not scripted — confirm they're captured somewhere the operator will see.
-- [ ] LXC Docker-nesting requirement (if using LXC) — is this in the docs or only tribal?
-- [ ] `install-core.sh` runs clean with zero interactive prompts on a truly fresh box.
-- [ ] `.env.example` defaults are sufficient for a non-LLM install (read/analysis works without an LLM key).
-- [ ] LAN-reachability choice for an auth-free instance is documented (bind vs tunnel).
+- [x] `coldroom-prep.sh` pre-steps (openssh, key auth) are stated but not scripted —
+  confirmed still true 2026-07-12; now documented for operators in
+  `CORE-CLI-VM-Test-Access-Runbook.md` (written after burning time on this exact gap).
+- [ ] LXC Docker-nesting requirement (if using LXC) — Docker ran fine on `.48` (an
+  unprivileged LXC) without me requesting any nesting change; unclear whether nesting
+  was already enabled at the Proxmox host level or genuinely wasn't needed. Not
+  conclusively answered.
+- [ ] `install-core.sh` runs clean with zero interactive prompts on a truly fresh box —
+  **not tested**; `.48`'s setup was done piecewise (`poetry install`, `docker compose
+  up`, manual schema apply, manual `uvicorn`), not via `install-core.sh` itself. Also
+  found and fixed two real `coldroom-prep.sh` bugs in the process (stale
+  `QDRANT_IMAGE` pin, missing `python3-pip`/`python3-venv`) — the script `.48` should
+  have used but didn't.
+- [x] `.env.example` defaults are sufficient for a non-LLM install — confirmed 2026-07-12:
+  `DATABASE_URL`/`QDRANT_URL` defaults matched `docker-compose.yml` with zero edits;
+  full BYOR walkthrough (including Scout's offline 4-rule fallback) passed with no LLM
+  configured.
+- [ ] LAN-reachability choice for an auth-free instance is documented (bind vs tunnel) —
+  not exercised; only the same-host (VM-1-equivalent) path was tested, no VM-2.
 
 ---
 
@@ -124,4 +138,14 @@ Treat any step the recipes *don't* cover as a documentation defect to fix, not a
 
 _(Claude appends dated results here as phases run.)_
 
-- _pending governor teardown + VM-1 creation._
+- **2026-07-12.** Phase 0 (teardown) + Phase 1 (VM-1) effectively completed, though not
+  via the documented script path — see the checklist note above. Container `.48`
+  (hostname `core-runtime`, Ubuntu 24.04 LXC) stood up with the full stack (Docker +
+  Postgres 16 + Qdrant v1.18.0 + Poetry + `core-api` from source) and separately
+  `core-cli` installed fresh from PyPI into its own venv on the same host. The
+  "Co-located BYOR writes" test matrix row passed: full onboard → scout → audit
+  PASS/FAIL/PASS walkthrough, all green. VM access procedure written up as
+  `CORE-CLI-VM-Test-Access-Runbook.md`. All services stopped and containers removed
+  afterward (`docker compose down` + kill `uvicorn`) — `.48` is idle, not destroyed.
+  **Not done:** Phase 2 (VM-2 consumer, LAN-separated read-path testing) and the
+  Proxmox-template snapshot step.

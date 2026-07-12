@@ -20,6 +20,12 @@ fixes were applied and verified: (1) `core-runtime` bumped to **2.9.0** and re-p
 to PyPI; (2) a drifted dev `.venv` (a stray 2.8.0 wheel shadowing the editable `src/`)
 was repaired. A full re-run then passed **every** command → **SHIP**. See "Outcome".
 
+**This grade is now superseded** — later the same day, `core-runtime 2.9.1` and
+`core-cli 1.0.2` shipped with further fixes (F-1/F-2 closed, F-4 found+fixed) and a
+full same-host BYOR walkthrough passed on a fresh VM. See the "Update 2026-07-12
+(later same day)" note under "Findings" below, and
+`CORE-CLI-2.9.0-Followups.md` for the canonical current state.
+
 ### Test VM — provisioned and working
 
 - Host: `core-cli@192.168.20.46` (Proxmox container `CT103`), Ubuntu 24.04.3 LTS,
@@ -152,11 +158,31 @@ The `[WRITE]`-apply steps were exercised. Results and findings:
   `API error 500: [Errno 13] Permission denied: '<path>'`. Should be a clean 4xx
   ("target path not accessible on the CORE host") instead of a 500.
 - **F-3 (automation):** `scout` cannot be run non-interactively (no batch-accept).
-  Fine for a human operator; blocks CI/automated onboarding of induced rules.
+  Fine for a human operator; blocks CI/automated onboarding of induced rules. **Still
+  open** as of 2026-07-12.
 
 Only Phase 4 `code format/format-imports --write` remain un-exercised — deliberately,
 since they mutate the CORE **instance's own** repo (see the Phase 4 scope warning),
 not a throwaway target.
+
+**Update 2026-07-12 (later same day) — F-1/F-2 closed, F-4 found and fixed, full
+same-host walkthrough verified.** This doc's findings above are a snapshot from the
+Phase 5 exercise; the live trail since then is tracked in
+`CORE-CLI-2.9.0-Followups.md` (canonical, keep reading there — not duplicated here):
+
+- F-1 closed as documented co-location (not built around) — `core-runtime 2.9.1`.
+- F-2's first fix pass was incomplete; a second bug (`typer.Exit` isn't `SystemExit`
+  in Typer 0.16.1) was found live and fixed — `core-runtime 2.9.1`.
+- F-4 (new): relative paths (`.`) resolve against whichever process receives them,
+  not the caller's shell — found live, fixed in `core-cli 1.0.2`.
+- A full BYOR walkthrough (onboard → scout → audit PASS/FAIL/PASS) ran successfully
+  end-to-end on a genuinely fresh VM with `core-cli 1.0.2` + `core-runtime 2.9.1`,
+  both installed fresh from PyPI, `core-api` running from source on the same host.
+  VM access procedure: `CORE-CLI-VM-Test-Access-Runbook.md`.
+- The test VM referenced throughout this doc (`.46`, CT103) no longer exists — the
+  container slot was rebuilt and repurposed as `.48` (`core-runtime` hostname) for
+  the same-host test above, per `CORE-Cleanroom-Rebuild-Runbook.md`'s decided
+  topology. Do not attempt to reach `.46`.
 
 ---
 
