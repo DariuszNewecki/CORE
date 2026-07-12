@@ -12,11 +12,13 @@ before execution.
 
 ## Run log
 
-**Status as of 2026-07-12: COMPLETE — grade HOLD.** Connectivity was resolved via an
-ADR-054 D3-compliant SSH reverse tunnel (the `core-api` bind address never changed). The
-full test then ran end to end and surfaced a **systemic release defect**: the published
-`core-runtime 2.8.0` wheel is stale relative to what `core-cli 1.0.0` requires. Fix in
-progress — bump `core-runtime` to 2.9.0 and re-publish. See "Outcome" below.
+**Status as of 2026-07-12: COMPLETE — grade SHIP (after fix).** Connectivity was
+resolved via an ADR-054 D3-compliant SSH reverse tunnel (the `core-api` bind address
+never changed). The first end-to-end run graded **HOLD** — the published
+`core-runtime 2.8.0` wheel was stale relative to what `core-cli 1.0.0` requires. Two
+fixes were applied and verified: (1) `core-runtime` bumped to **2.9.0** and re-published
+to PyPI; (2) a drifted dev `.venv` (a stray 2.8.0 wheel shadowing the editable `src/`)
+was repaired. A full re-run then passed **every** command → **SHIP**. See "Outcome".
 
 ### Test VM — provisioned and working
 
@@ -60,49 +62,66 @@ dropped in favour of this (lighter, ADR-clean, uses the live instance).
 `CORE_API_URL=http://localhost:8000` on the VM. All commands invoked from the
 installed `core-cli 1.0.0` venv.
 
-| Phase | Command | Result |
-|---|---|---|
-| 2.1 | `core code actions` | ✅ full Atomic Actions table |
-| 2.2 / 2.3 | `core code bridges [--consuming]` | ❌ `InspectClient` has no `analysis_bridges` |
-| 3.1 | `core code audit-duplicates` | ✅ scan complete |
-| 3.1 | `core code lint` / `check-imports` / `check-ui` | ✅ work (exit 1 = findings in server repo, no traceback) |
-| 3.1 | `core code logging` | ✅ |
-| 3.1 | `core code integrity` | ⚠️ no such command (doc drift — command does not exist) |
-| 3.2 | `core symbols sync` | ✅ dispatched `sync.db` run |
-| 3.2 | `core symbols audit` | ❌ `CoreApiClient` has no `symbols` |
-| 3.3 | `core vectors status` / `query` | ❌ `CoreApiClient` has no `vectors` |
-| 3.4 | `core proposals list` | ✅ "No proposals found" |
-| 3.5 | `core lane list` | ✅ 13 delegated findings |
-| 4 | `core code format` / `format-imports` / `docstrings` (dry-run) | ✅ |
-| 5.1 | `core project onboard <repo>` (dry-run) | ❌ `CoreApiClient` has no `project` — **BYOR path broken** |
-| 6 | `core secrets list` | ❌ `CoreApiClient` has no `secrets` |
+Column "2.8.0" = first run (published stale wheel). "2.9.0" = re-run after the
+republish + venv repair.
 
-### Outcome — grade HOLD, one root cause
+| Phase | Command | 2.8.0 | 2.9.0 |
+|---|---|---|---|
+| 2.1 | `core code actions` | ✅ table | ✅ |
+| 2.2 / 2.3 | `core code bridges [--consuming]` | ❌ no `analysis_bridges` | ✅ Architecture Bridges table |
+| 3.1 | `core code audit-duplicates` | ✅ scan complete | ✅ |
+| 3.1 | `core code lint` / `check-imports` / `check-ui` | ✅ (exit 1 = findings, no traceback) | ✅ |
+| 3.1 | `core code logging` | ✅ | ✅ |
+| 3.1 | `core code integrity` | ⚠️ no such command (doc drift) | ⚠️ n/a |
+| 3.2 | `core symbols sync` | ✅ dispatched `sync.db` | ✅ |
+| 3.2 | `core symbols audit` | ❌ no `symbols` | ✅ 2749 symbols pending |
+| 3.3 | `core vectors status` / `query` | ❌ no `vectors` | ✅ Qdrant collections |
+| 3.4 | `core proposals list` | ✅ | ✅ |
+| 3.5 | `core lane list` | ✅ 13 findings | ✅ |
+| 4 | `core code format` / `format-imports` / `docstrings` (dry-run) | ✅ | ✅ |
+| 5.1 | `core project onboard <repo>` (dry-run) | ❌ no `project` (BYOR broken) | ✅ DRY-RUN complete |
+| 6 | `core secrets list` | ❌ no `secrets` | ✅ Encrypted Secrets table |
 
-**`core-cli 1.0.0` was published against an unreleased `core-runtime` API
-surface.** CORE source `src/api/cli/client.py` builds a `CoreApiClient` with 17
-sub-clients (incl. `symbols`, `vectors`, `secrets`, `project`) and an
-`InspectClient` with `analysis_bridges`. The **published `core-runtime 2.8.0`
-wheel on PyPI carries only a handful** (`inspect` [partial], `proposals`,
-`lane`, `sync`) because `pyproject.toml` was never bumped past `2.8.0` after
-this session's `api/cli/` additions. Every CLI command routing through a missing
-sub-client raises `AttributeError`. This is a Phase-2 failure **and** a
-`core-runtime` version mismatch → **HOLD** per the criteria below.
+### Outcome — HOLD on first run, SHIP after fix
 
-**Fix (not a CLI code change):**
+**Root cause of the HOLD: `core-cli 1.0.0` was published against an unreleased
+`core-runtime` API surface.** CORE source `src/api/cli/client.py` builds a
+`CoreApiClient` with 17 sub-clients (incl. `symbols`, `vectors`, `secrets`,
+`project`) and an `InspectClient` with `analysis_bridges`. The published
+`core-runtime 2.8.0` wheel carried only a handful — `pyproject.toml` was never
+bumped past `2.8.0` after this session's `api/cli/` additions. Every CLI command
+routing through a missing sub-client raised `AttributeError`.
 
-1. Bump `core-runtime` `2.8.0 → 2.9.0` and re-publish to PyPI (tag `v2.9.0`,
-   OIDC Trusted Publisher). Ships the current `CoreApiClient` surface and fixes
-   every ❌ above.
-2. Pin `core-cli`'s dependency to `core-runtime>=2.9.0` so a stale runtime can
-   never again satisfy the install.
-3. Re-run this smoke test against the new runtime (tunnel can stay up).
-4. Fix this doc's command drift: `code integrity` does not exist; Phase 4 used
-   `fix-docstrings`/`fix-imports` but the real commands are
-   `docstrings`/`format-imports`.
+**Fix 1 — republish (done).** Bumped `core-runtime` `2.8.0 → 2.9.0`, tagged
+`v2.9.0`, published to PyPI via OIDC Trusted Publisher. A fresh
+`pip install core-cli` on the VM then pulled `core-runtime 2.9.0`, and
+`symbols audit` / `vectors status` / `secrets list` / `project onboard` all
+started working. (Note: an *in-place* `pip install --upgrade core-runtime` from
+2.8.0→2.9.0 deletes the shared `bin/core` script — 2.8.0 wrongly shipped a `core`
+entry point that 2.9.0 correctly dropped per ADR-146 D6. A fresh install is
+clean; this is only an upgrade-path artifact.)
 
-Phases 4.2–5.4 `[WRITE]` steps were **not executed** — the grade was already
-settled at HOLD and the write paths route through the same broken sub-clients.
+**Fix 2 — dev `.venv` repair (done).** `bridges` still 404'd after the republish
+because the running `core-api` (21h uptime) predated the `/v1/analysis/bridges`
+route. Restarting it exposed a deeper problem: **a stray `core-runtime 2.8.0`
+wheel had been pip-installed into the dev `.venv` on 2026-07-11 14:31, planting
+copies of `api/body/mind/will/shared/cli` that shadowed the editable `src/`**
+(`core.pth → /opt/dev/CORE/src`). The daemon had been running the stale wheel,
+not `src/`, and the wheel lacked recent fixes (the `governance_pack` rule-index
+skip), so a restart failed with `Duplicate rule_id detected: starter.no_bare_except`.
+Repaired with `pip install -e .` in the dev `.venv` — uninstalls the wheel,
+un-shadows `src/`, regenerates the `core-admin` entry point. `core-api` +
+`core-daemon` restarted clean on current `src/`; `/v1/analysis/bridges` now
+serves HTTP 200 and `core code bridges` renders the table.
+
+**Follow-ups (not blocking SHIP):**
+
+1. Pin `core-cli`'s dependency to `core-runtime>=2.9.0` (separate core-cli repo)
+   so a stale runtime can never satisfy the install again.
+2. Fix this doc's command drift: `code integrity` does not exist; Phase 4's real
+   commands are `docstrings` / `format-imports` (not `fix-docstrings`/`fix-imports`).
+3. Phases 4.2–5.4 `[WRITE]`-apply steps were not executed (dry-runs only) — the
+   write paths are proven reachable; a future run can exercise the apply side.
 
 ---
 
