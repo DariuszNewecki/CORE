@@ -56,20 +56,25 @@ These mutate the CORE **instance's own** repo (no repo argument), so `--write` a
 the dev instance would dirty `/opt/dev/CORE`. Exercise only against a disposable
 instance pointed at a throwaway `REPO_PATH`, or accept + commit the diff knowingly.
 
-### 3. ✅ Done — `core-api`/`core-daemon` `JWT_SECRET_KEY` durability
-Root cause was subtler than "different CWD": the app loads `.env` via
-`REPO_ROOT = Path(__file__).resolve().parents[2]` — which resolves to
-`site-packages` if the code ever runs from a wheel copy (the 2026-07-12
-shadow-wheel incident), leaving `.env` unloaded and the JWT security pre-flight
-failing at boot. Fixed with systemd **drop-ins** (not touching the packaged units):
-`~/.config/systemd/user/{core-api,core-daemon}.service.d/env.conf` adding
-`EnvironmentFile=-/opt/dev/CORE/.env`. systemd injects the secret via an **absolute**
-path, independent of where the code lives. `.env` verified systemd-parse-clean;
-mechanism proven with a transient unit (systemd injects the real, non-default
-`JWT_SECRET_KEY`). Applied with **zero live-service disruption** — takes effect on the
-next natural start. Deeper root fix (the `parents[2]` `REPO_ROOT` fragility, which
-also affects `.intent/` discovery under wheel installs) remains a larger, separate
-item — see memory `feedback_parents_n_package_path_antipattern`.
+### 3. ✅ Done (with a correction) — `.env` loading backstop via systemd `EnvironmentFile`
+**Correction:** the JWT boot guard that motivated this item was already removed from
+OSS CORE in `dab0187c` (2026-07-07, UAC/JWT extracted to core-platform). Current `src/`
+has **zero** `JWT_SECRET_KEY` references, and v2.9.0 ships without it — CORE is the
+auth-free loopback runtime (ADR-054 D3). The boot failure seen on 2026-07-12 was the
+**stale 2.8.0 wheel's** guard, not current code. So there is no live JWT pre-flight to
+protect.
+
+The fix applied is still valid on its **real** merit: systemd drop-ins
+`~/.config/systemd/user/{core-api,core-daemon}.service.d/env.conf` add
+`EnvironmentFile=-/opt/dev/CORE/.env`, which backstops **all** `.env` config
+(`DATABASE_URL`, `QDRANT_URL`, LLM settings) against the `parents[2]` `REPO_ROOT`
+fragility — if the app-level `load_dotenv` ever resolves the wrong root (wheel-shadow
+scenario), systemd has already injected the config via an absolute path. `.env` verified
+systemd-parse-clean; injection proven with a transient unit; zero live-service
+disruption. Deeper root fix (the `parents[2]` pattern, which also affects `.intent/`
+discovery under wheel installs) remains separate — see memory
+`feedback_parents_n_package_path_antipattern`. Dev `.env` still carries a now-dead
+`JWT_SECRET_KEY` line (harmless; governor may prune).
 
 ### 4. ✅ Done — `MEMORY.md` hot/cold tiering
 Diagnosed: the index had no cap on entry *count* (238 durable pointers ≈ 40 KB),
