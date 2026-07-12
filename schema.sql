@@ -786,6 +786,7 @@ CREATE TABLE core.autonomous_proposals (
     validation_results jsonb DEFAULT '{}'::jsonb NOT NULL,
     execution_started_at timestamp with time zone,
     execution_completed_at timestamp with time zone,
+    consequence_recorded_at timestamp with time zone,
     execution_results jsonb DEFAULT '{}'::jsonb NOT NULL,
     constitutional_constraints jsonb DEFAULT '{}'::jsonb NOT NULL,
     approval_required boolean DEFAULT false NOT NULL,
@@ -796,9 +797,9 @@ CREATE TABLE core.autonomous_proposals (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     approval_authority text,
     claimed_by uuid,
-    CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
+    CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
     CONSTRAINT autonomous_proposals_approval_authority_value_check CHECK (((approval_authority IS NULL) OR (approval_authority = ANY (ARRAY['risk_classification.safe_auto_approval'::text, 'principal.governor'::text])))),
-    CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
+    CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
 );
 
 

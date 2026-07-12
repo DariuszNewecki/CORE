@@ -40,7 +40,7 @@ class AutonomousProposal(Base):
         # ADR-015 D2: approval_authority must be set once approved/executing/completed.
         # Historical NULL carve-out for proposals created before the constraint landed.
         CheckConstraint(
-            "(status <> ALL (ARRAY['approved', 'executing', 'completed']))"
+            "(status <> ALL (ARRAY['approved', 'executing', 'finalizing', 'completed']))"
             " OR (approval_authority IS NOT NULL)"
             " OR (created_at < '2026-04-27 00:00:00+00')",
             name="approval_authority_required_when_approved",
@@ -53,7 +53,8 @@ class AutonomousProposal(Base):
         ),
         CheckConstraint(
             "status = ANY (ARRAY["
-            "'draft', 'pending', 'approved', 'executing', 'completed', 'failed', 'rejected'])",
+            "'draft', 'pending', 'approved', 'executing', 'finalizing', "
+            "'completed', 'failed', 'rejected'])",
             name="autonomous_proposals_status_check",
         ),
         {"schema": "core"},
@@ -95,6 +96,10 @@ class AutonomousProposal(Base):
     claimed_by = Column(pgUUID(as_uuid=True))
     execution_started_at = Column(DateTime(timezone=True))
     execution_completed_at = Column(DateTime(timezone=True))
+    # ADR-148 D1: set when a finalized proposal's consequence chain is durably
+    # recorded; required (non-null) for status='completed'. The proof that
+    # COMPLETED is a defensibility claim, not merely an execution milestone.
+    consequence_recorded_at = Column(DateTime(timezone=True))
     execution_results = Column(JSONB, nullable=False, server_default="{}")
 
     # Constitutional governance
