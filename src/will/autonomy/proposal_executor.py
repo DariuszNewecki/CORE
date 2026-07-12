@@ -32,6 +32,7 @@ from shared.logger import getLogger
 from shared.protocols.cognitive_flow_delegate import CognitiveFlowDelegate
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
+    CommitOutcome,
     capture_git_sha,
     commit_proposal_changes,
     compute_changed_files,
@@ -335,23 +336,33 @@ class ProposalExecutor:
 
             if write:
                 if all_ok:
-                    # ADR-129 D7: commit before mark_completed so a D1
-                    # refusal routes to mark_failed rather than leaving
-                    # a completed row with no git record.
-                    commit_ok = commit_proposal_changes(
+                    # ADR-129 D7 / ADR-148 D3: commit before mark_completed.
+                    # A refused (contamination) OR failed commit routes to
+                    # mark_failed + rollback — never a completed row with no
+                    # git record. Only a real commit or a legitimately-empty
+                    # production set proceeds toward completion.
+                    commit_outcome = commit_proposal_changes(
                         git_service=self.core_context.git_service,
                         proposal_id=proposal.proposal_id,
                         proposal_goal=proposal.goal,
                         action_results=action_results,
                     )
 
-                    if not commit_ok:
-                        # D1 staging contamination — roll back and fail.
+                    if commit_outcome in (
+                        CommitOutcome.REFUSED_CONTAMINATION,
+                        CommitOutcome.FAILED,
+                    ):
                         all_ok = False
-                        reason = (
-                            "ADR-129 D1: staging contamination detected — "
-                            "commit refused to prevent authorship violation"
-                        )
+                        if commit_outcome == CommitOutcome.REFUSED_CONTAMINATION:
+                            reason = (
+                                "ADR-129 D1: staging contamination detected — "
+                                "commit refused to prevent authorship violation"
+                            )
+                        else:
+                            reason = (
+                                "ADR-148 D3: git commit failed — proposal not "
+                                "completed to avoid a completed row with no git record"
+                            )
                         failure_reason = reason
                         rollback_proposal(
                             git_service=self.core_context.git_service,
@@ -365,8 +376,9 @@ class ProposalExecutor:
                             results=action_results,
                         )
                         logger.error(
-                            "Proposal %s failed: D1 staging contamination (%.2fs)",
+                            "Proposal %s failed: %s (%.2fs)",
                             proposal.proposal_id,
+                            reason,
                             total_duration,
                         )
                     else:

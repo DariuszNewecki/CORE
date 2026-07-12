@@ -15,6 +15,7 @@ no file writes outside what the orchestrated atomic actions perform.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from body.services.service_registry import service_registry
@@ -23,6 +24,23 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+
+# ID: b927283e-ac8e-46d2-a355-682c0fbffbd5
+class CommitOutcome(str, Enum):
+    """Outcome of committing a proposal's production set to git (ADR-148 D3).
+
+    Distinguishes a genuine commit and a legitimately-empty production set
+    (both let execution proceed toward completion) from a refused or a failed
+    commit (both route to mark_failed + rollback). Replaces the prior bool
+    return, which conflated 'commit failed' with success — the ADR-129 D7
+    clause that ADR-148 D3 supersedes.
+    """
+
+    COMMITTED = "committed"
+    NOTHING_TO_COMMIT = "nothing_to_commit"
+    REFUSED_CONTAMINATION = "refused_contamination"
+    FAILED = "failed"
 
 
 # ID: 41e70408-632f-4485-ba5f-23cfb688b53d
@@ -222,7 +240,7 @@ def commit_proposal_changes(
     proposal_id: str,
     proposal_goal: str,
     action_results: dict[str, Any],
-) -> bool:
+) -> CommitOutcome:
     """Commit the proposal's actual production to git.
 
     Per ADR-101 D2, the commit set is derived from the action's actual
@@ -234,21 +252,22 @@ def commit_proposal_changes(
     permission scope (``scope.files``) does NOT participate; it remains
     a permission boundary, not a production postcondition.
 
-    Commits with message ``fix({proposal_id[:16]}): {goal}``. Returns
-    ``True`` on success or when there is nothing to commit (empty
-    production set). Returns ``False`` only when a
-    ``StagingContaminationError`` (ADR-129 D1) blocks the commit;
-    the executor uses this to route to ``mark_failed`` rather than
-    ``mark_completed`` (ADR-129 D7).
+    Commits with message ``fix({proposal_id[:16]}): {goal}`` and returns a
+    :class:`CommitOutcome`:
 
-    Other git errors (e.g. pre-commit hook unrecoverable failure) are
-    still logged as warnings and return ``True`` — execution succeeded
-    and the proposal is completed; only the git record is missing.
-    ``StagingContaminationError`` is different because the commit was
-    intentionally refused, not merely failed.
+    - ``COMMITTED`` — a real commit was created.
+    - ``NOTHING_TO_COMMIT`` — empty production set (or no ``git_service``);
+      no commit emitted and nothing to recover. Both COMMITTED and
+      NOTHING_TO_COMMIT let the executor proceed toward completion.
+    - ``REFUSED_CONTAMINATION`` — a ``StagingContaminationError`` (ADR-129 D1)
+      blocked the commit; the executor routes to ``mark_failed`` + rollback.
+    - ``FAILED`` — the commit was attempted and raised (e.g. an unrecoverable
+      pre-commit hook failure). ADR-148 D3: this now routes to ``mark_failed``
+      + rollback rather than completing with no git record — superseding the
+      ADR-129 D7 clause that returned success on non-contamination errors.
     """
     if git_service is None:
-        return True
+        return CommitOutcome.NOTHING_TO_COMMIT
     try:
         paths_to_commit = compute_production_set(action_results)
         if not paths_to_commit:
@@ -256,27 +275,28 @@ def commit_proposal_changes(
                 "Proposal %s produced no changes — no commit emitted (ADR-101 D2)",
                 proposal_id,
             )
-            return True
+            return CommitOutcome.NOTHING_TO_COMMIT
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
         )
         logger.info("Git commit created for proposal %s", proposal_id)
-        return True
+        return CommitOutcome.COMMITTED
     except StagingContaminationError as d1_err:
         logger.warning(
             "Git commit REFUSED for proposal %s — ADR-129 D1 staging contamination: %s",
             proposal_id,
             d1_err,
         )
-        return False
+        return CommitOutcome.REFUSED_CONTAMINATION
     except Exception as git_err:
-        logger.warning(
-            "Git commit failed for proposal %s — changes applied but not committed: %s",
+        logger.error(
+            "Git commit FAILED for proposal %s — routing to mark_failed + rollback "
+            "(ADR-148 D3: no completed row without a git record): %s",
             proposal_id,
             git_err,
         )
-        return True
+        return CommitOutcome.FAILED
 
 
 # ID: 6f3a8d9c-2b71-4a85-9e1c-7d2f8b4a6e09
