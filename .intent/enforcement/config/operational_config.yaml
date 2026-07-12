@@ -311,6 +311,15 @@ analyzers:
   max_module_lines: 400
 
 # ---------------------------------------------------------------------------
+# Modularity — fix.modularity confidence gate (relocated from governance_paths.yaml)
+# ---------------------------------------------------------------------------
+modularity:
+  # Minimum SplitPlan confidence before fix.modularity splits a file. The LLM
+  # returns a confidence (0.0-1.0); plans below this are rejected with
+  # ok=False / reason="low_confidence" for human review. Range: 0.0-1.0.
+  split_confidence_threshold: 0.75
+
+# ---------------------------------------------------------------------------
 # Refactor recommendations
 # ---------------------------------------------------------------------------
 refactor:

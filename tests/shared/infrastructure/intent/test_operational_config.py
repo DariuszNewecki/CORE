@@ -22,6 +22,7 @@ from shared.infrastructure.intent.operational_config import (
     DaemonConfig,
     EmbeddingConfig,
     LLMConfig,
+    ModularityConfig,
     OperationalConfig,
     WorkerCallSiteRewriterConfig,
     WorkersConfig,
@@ -53,6 +54,15 @@ def test_override_float_field() -> None:
     cfg = _load_from_sec({"provider_request_timeout_sec": 200.5}, EmbeddingConfig)
     assert cfg.provider_request_timeout_sec == 200.5
     assert cfg.chunk_size == 512  # unchanged
+
+
+def test_modularity_split_confidence_default_and_override() -> None:
+    # Default matches the shipped operational_config.yaml value (ADR-148 T2.3 /
+    # ADR-040 relocation from governance_paths.yaml).
+    assert ModularityConfig().split_confidence_threshold == 0.75
+    assert OperationalConfig().modularity.split_confidence_threshold == 0.75
+    cfg = _load_from_sec({"split_confidence_threshold": 0.9}, ModularityConfig)
+    assert cfg.split_confidence_threshold == 0.9
 
 
 def test_override_bool_field() -> None:

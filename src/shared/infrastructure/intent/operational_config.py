@@ -396,6 +396,19 @@ class AnalyzersConfig:
 
 
 @dataclass(frozen=True)
+# ID: ba518c5d-cb6b-4871-a145-5b7e55668a96
+class ModularityConfig:
+    """fix.modularity confidence gate (ADR-040).
+
+    Relocated from governance_paths.yaml so the knob is read through the
+    IntentRepository-backed operational_config projection instead of a raw
+    file read. Default matches the shipped YAML value.
+    """
+
+    split_confidence_threshold: float = 0.75
+
+
+@dataclass(frozen=True)
 # ID: 046dc166-28df-4900-9c59-0dcf5eece8df
 class RefactorConfig:
     responsibilities_threshold: int = 20
@@ -747,6 +760,7 @@ class OperationalConfig:
         default_factory=StrategySelectorConfig
     )
     analyzers: AnalyzersConfig = field(default_factory=AnalyzersConfig)
+    modularity: ModularityConfig = field(default_factory=ModularityConfig)
     refactor: RefactorConfig = field(default_factory=RefactorConfig)
     clarity: ClarityConfig = field(default_factory=ClarityConfig)
     complexity: ComplexityConfig = field(default_factory=ComplexityConfig)

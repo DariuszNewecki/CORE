@@ -40,36 +40,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-_FALLBACK_SPLIT_CONFIDENCE_THRESHOLD: float = 0.70
-
-
-def _load_split_confidence_threshold(repo_root) -> float:
-    """Load split confidence threshold from governance_paths.yaml via PathResolver.
-
-    Falls back to _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD if the file is missing
-    or the key is absent — never raises.
-    """
-    try:
-        import yaml
-
-        from shared.path_resolver import PathResolver
-
-        path_resolver = PathResolver(repo_root)
-        config_path = path_resolver.governance_config_path
-        if not config_path.exists():
-            return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
-        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-        if not isinstance(raw, dict):
-            return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
-        return float(
-            raw.get("modularity", {}).get(
-                "split_confidence_threshold", _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
-            )
-        )
-    except Exception:
-        return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
-
-
 def _find_worst_modularity_violator(repo_root):
     """Find the src/ Python file with the most lines. Excludes __init__.py and tests."""
     skip_dirs = {"tests", "__pycache__", ".venv", "venv", ".git", "work", "var"}
@@ -670,7 +640,9 @@ async def action_fix_modularity(
         )
 
     # 4b. Confidence gate — halt if LLM was insufficiently certain about the seam.
-    confidence_threshold = _load_split_confidence_threshold(repo_root)
+    confidence_threshold = (
+        load_operational_config().modularity.split_confidence_threshold
+    )
     if split_plan.confidence < confidence_threshold:
         logger.warning(
             "fix.modularity: low confidence split plan for %s "
