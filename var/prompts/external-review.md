@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-144),
+  .specs/      — human-authored reasoning: ADRs (through ADR-147),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -89,10 +89,15 @@ Two orthogonal axes define the security posture:
      groups (secrets, database, constitution, intent, vectors, mind, workers,
      admin) are intentionally withheld from the API — not an omission.
 
-     API = governed subset of CLI. ADR-132 enforces role-based authentication:
-     governor-only routes require a platform_admin JWT; user-facing routes
-     require org_admin. The API/CLI split is a trust-tier boundary, not a
-     transport detail.
+     API = governed subset of CLI, ADR-132's shape — but in this OSS repo,
+     `require_governor`/`require_operator` (src/api/dependencies.py) are
+     explicit no-op pass-throughs: "CORE runs in trusted-localhost mode — no
+     authentication. Multi-tenant UAC (users, orgs, API keys) lives in
+     core-platform [a separate, non-public repo]; core-platform mounts real
+     role guards on top when running in Console mode." There is no JWT, no
+     platform_admin/org_admin role check, anywhere in this codebase — that
+     was intentionally extracted (ADR-124/132 successor, commit 8a97e54e,
+     CHANGELOG [2.9.0]). Do not go looking for it; it isn't here by design.
 
   2. Write-safety (how mutations are made safe)
      Independent of trust tier. Governor trust does not imply correct AI
@@ -105,13 +110,18 @@ the value proposition — there is no capability gating by license tier. The
 operator runs CORE on their infrastructure at whatever cost they choose.
 
 What IS worth raising:
-  • API routes that should be governor-only but are not (check ROUTER_EXPOSURE
-    and Depends(require_governor) per ADR-132 D3/D7)
+  • `Depends(require_governor)` present at the wrong routes, or absent where
+    ADR-132's D3/D7 shape says it should be — even though it's a no-op here,
+    its *placement* is the contract core-platform's real guards attach to
   • Mutation paths that bypass the proposal/sandbox rails
   • Data leakage from governor-only state into user-facing responses
+  • Any place a JWT/role check appears to have been re-added locally rather
+    than left to core-platform — that would be a re-coupling regression
 
 What is NOT a finding:
   • "The CLI has no authentication" — correct; it is the operator surface
+  • "`require_governor` doesn't actually check anything" — correct by design;
+    it's a placement-only hook in OSS mode, see above
   • "Full functionality is available in an open-source package" — correct by
     design; the operator IS the governor
   • "The runtime makes no licensing checks" — intentional
@@ -252,16 +262,19 @@ STANDING QUESTIONS — answer all of these
 
 ## 6. Security posture
 
-6a. Are authentication and authorisation being applied consistently across
-    API routes? Look for routes that require governor-level access but do
-    not enforce it.
+6a. Is `Depends(require_governor)` applied consistently across the routes
+    that should carry it (per ROUTER_EXPOSURE and ADR-132's D3/D7 shape)?
+    Remember it is a no-op pass-through in this OSS repo by design — the
+    finding to look for is missing/misplaced *placement*, not "it doesn't
+    enforce anything" (it isn't supposed to here).
 
 6b. Are there any eval / exec / compile / subprocess calls without a
     documented justification comment? (Will MUST NOT use them; Body MAY
     only in designated sanctuary modules.)
 
-6c. How does the governor authentication boundary (ADR-132) look in the
-    implementation? Does the code match the ADR's stated scope?
+6c. Has any JWT/role-check logic crept back into this repo locally, rather
+    than staying extracted to core-platform? (It should not be here at all —
+    see the OSS security posture note above.)
 
 6d. Are there any patterns in the API layer that look like they could leak
     sensitive internal state to under-privileged callers?
@@ -330,9 +343,10 @@ In addition to the standing questions, spend extra depth on:
     there silent-failure modes that would let a violation slip through
     without a finding?"
    or
-   "the API authentication surface (ADR-132) — is the governor boundary
-    complete across all routers in src/api/v1/, including secondary
-    APIRouter instances that are not named 'router'?"
+   "the API's require_governor placement (ADR-132's D3/D7 shape, a no-op
+    hook in this OSS repo) — is it present on every router that should
+    carry it, including secondary APIRouter instances that are not named
+    'router', so core-platform's real guards attach correctly everywhere?"
    or
    "the proposal lifecycle from DRAFT to COMPLETE — is every state
     transition atomic and correctly guarded, and are there execution paths
