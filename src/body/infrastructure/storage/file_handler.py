@@ -309,7 +309,18 @@ class FileHandler:
                 return set()
             return {n for n in names if n in exclude_set}
 
-        shutil.copytree(self.repo_path, abs_dst, ignore=_ignore)
+        # ADR-147 follow-up (b): preserve symlinks instead of dereferencing
+        # them. A repo-root symlink to an external mount would otherwise be
+        # copied by content, ballooning the snapshot (the ITAM incident);
+        # dangling links are skipped rather than raising. Mirrors the sibling
+        # fix in CrateProcessingService._run_canary_validation.
+        shutil.copytree(
+            self.repo_path,
+            abs_dst,
+            ignore=_ignore,
+            symlinks=True,
+            ignore_dangling_symlinks=True,
+        )
         return FileOpResult("success", "Copied repo snapshot", f". -> {rel_dst_dir}")
 
     # ---------------------------------------------------------------------
