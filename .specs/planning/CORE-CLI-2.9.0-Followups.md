@@ -36,6 +36,13 @@ who should run it.
   `onboard --write --stage` and `promote` write a full `.intent/` floor; `scout --write`
   induces real rules. Details + findings F-1/F-2/F-3 in the smoke-test doc's
   "Phase 5 write-flow exercise" section.
+- [x] **`core-runtime 2.9.1` published to PyPI** (F-1/F-2 fixes + `docs/byor-quickstart.md`
+  rewrite + `CORE_API_URL` wiring — see F-1/F-2 entries above and CHANGELOG.md `[2.9.1]`).
+  Commit `5a5c6277`, tag `v2.9.1` → CI publish via OIDC, verified green
+  (`gh run` `29191796948`, 1m17s). Verified: `pip index versions core-runtime` shows
+  `2.9.1`. GitHub Release `v2.9.1 — BYOR Write-Flow Fixes` created. `core-cli 1.0.1`
+  already pins `core-runtime>=2.9.0`, so it picks this up on the next install/upgrade
+  with no core-cli-side change needed.
 
 ---
 
