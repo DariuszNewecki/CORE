@@ -100,9 +100,16 @@ async def run_tests(
 
     duration = time.perf_counter() - start_time
     ok = exit_code == 0
-    summary = (
-        _summarize(stdout) if ok else (stderr.split("\n")[0] or "Execution failed")
-    )
+    # pytest writes its failure report (and the final summary line) to stdout,
+    # not stderr — stderr is empty for an ordinary test failure and only
+    # populated by a genuine subprocess-level crash. Deriving the failure
+    # summary from stderr alone produced a useless "Execution failed" for
+    # every normal test failure while the real reason sat unexamined in
+    # stdout (#787-adjacent: same failure summary for every distinct cause).
+    if stdout:
+        summary = _summarize(stdout)
+    else:
+        summary = stderr.split("\n")[0] or "Execution failed"
 
     # 1. Construct the Result Payload
     result_data = {
