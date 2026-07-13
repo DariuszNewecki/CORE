@@ -18,11 +18,35 @@ from pathlib import Path
 
 # ID: e849337b-b8f4-4d34-8681-a5b42e6aae73
 def extract_symbol_code(source_path: Path, symbol_name: str) -> str | None:
-    """Extract the source text of a named top-level symbol via AST."""
+    """Extract the source text of a named symbol via AST.
+
+    ``symbol_name`` is either a plain top-level function/class name, or a
+    dotted ``ClassName.method_name`` reference to a method nested inside a
+    class (test-gen's ``symbol_kind == "method"`` case). A bare top-level
+    scan with ``ast.iter_child_nodes(tree)`` never matches a dotted name —
+    no top-level node's ``.name`` is ever ``"ClassName.method_name"`` — so
+    that case silently returned None, and callers fell back to a bare
+    signature comment with no real implementation for the LLM to ground a
+    test in (confirmed cause of outright-hallucinated mocks for method-kind
+    symbols; ~40% of failed will/workers test-gen attempts are method-kind).
+    """
     try:
         source = source_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(source_path))
     except (OSError, SyntaxError):
+        return None
+
+    class_name, _dot, method_name = symbol_name.partition(".")
+    if method_name:
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.ClassDef) and node.name == class_name:
+                for child in ast.iter_child_nodes(node):
+                    if (
+                        isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and child.name == method_name
+                    ):
+                        return ast.get_source_segment(source, child)
+                return None
         return None
 
     for node in ast.iter_child_nodes(tree):
