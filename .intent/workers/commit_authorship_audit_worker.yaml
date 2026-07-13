@@ -14,17 +14,13 @@ identity:
 
 mandate:
   responsibility: >
-    Post-commit authorship integrity auditor (ADR-129 D4), extended with
-    finalization integrity (ADR-148 D5). Reads recent core.proposal_
-    consequences entries and verifies each autonomous commit's actual diff
-    (git diff --name-only pre_sha post_sha) is a subset of the declared
-    production set. Posts governance.commit_authorship_integrity::
-    {proposal_id} findings to the blackboard for any discrepancy. Skips
-    pre-ADR-129 entries whose declared_production is empty. Also flags any
-    status='completed' proposal missing consequence_recorded_at (posts
+    Post-commit authorship auditor (ADR-129 D4), extended with finalization
+    integrity (ADR-148 D5). Verifies each autonomous commit's diff is a
+    subset of its declared production set; posts
+    governance.commit_authorship_integrity::{proposal_id} on discrepancy.
+    Also flags completed proposals missing consequence_recorded_at (posts
     governance.proposal_finalization_integrity::{proposal_id}), excluding
-    proposals completed before the ADR-148 barrier existed. Does not
-    modify any record — detection only, per ADR-129 D5 / ADR-148 D5.
+    pre-ADR-148 rows. Detection only — no record modification.
   phase: audit
   permitted_tools: []
   approval_required: false
