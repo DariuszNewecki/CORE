@@ -71,6 +71,28 @@ async def test_fetch_completed_without_consequence_passes_barrier_cutoff() -> No
     )
 
 
+async def test_fetch_completed_without_consequence_checks_row_existence_not_marker() -> (
+    None
+):
+    """#789: the query must verify the actual core.proposal_consequences row
+    is absent (NOT EXISTS), not merely that consequence_recorded_at is NULL —
+    a marker-only check would pass even if a future bug set the timestamp
+    without writing the row, defeating the audit's purpose."""
+    session = _mock_session([])
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        await svc.fetch_completed_without_consequence(limit=100)
+
+    call_args = session.execute.await_args
+    query_text = str(call_args.args[0])
+    assert "NOT EXISTS" in query_text
+    assert "core.proposal_consequences" in query_text
+
+
 async def test_fetch_completed_without_consequence_empty_result() -> None:
     """No violating rows returns an empty list."""
     session = _mock_session([])

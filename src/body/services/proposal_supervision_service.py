@@ -331,6 +331,14 @@ class ProposalSupervisionService:
         Return proposals in status='completed' lacking a durable consequence
         record (ADR-148 D5), completed after the finalization barrier existed.
 
+        Checks for the actual absence of a core.proposal_consequences row via
+        NOT EXISTS, not merely a null consequence_recorded_at marker (#789):
+        the marker and the row are written together by every known path
+        today, but a query that only inspects the marker would pass even if
+        a future bug set the timestamp without writing the row — exactly the
+        drift this audit exists to catch. NOT EXISTS makes the row itself
+        the ground truth.
+
         By construction, both the executor's finalizing->completed transition
         (D2) and ProposalPipelineShopManager's stuck_finalizing roll-forward
         (D4) record the consequence before marking completed — a row matching
@@ -345,14 +353,17 @@ class ProposalSupervisionService:
                 text(
                     """
                     SELECT
-                        proposal_id,
-                        execution_completed_at,
-                        updated_at
-                    FROM core.autonomous_proposals
-                    WHERE status = 'completed'
-                      AND consequence_recorded_at IS NULL
-                      AND execution_completed_at >= :barrier_live_at
-                    ORDER BY updated_at DESC
+                        p.proposal_id,
+                        p.execution_completed_at,
+                        p.updated_at
+                    FROM core.autonomous_proposals p
+                    WHERE p.status = 'completed'
+                      AND p.execution_completed_at >= :barrier_live_at
+                      AND NOT EXISTS (
+                          SELECT 1 FROM core.proposal_consequences pc
+                          WHERE pc.proposal_id = p.proposal_id
+                      )
+                    ORDER BY p.updated_at DESC
                     LIMIT :limit
                     """
                 ),
