@@ -25,7 +25,12 @@ async def test_execute_proposal():
         "proposal_id": proposal_id,
     }
 
-    with patch("api.v1.proposals_routes.ProposalExecutor", return_value=mock_executor):
+    # #771: execute logic moved to will.governance.proposal_runner, which
+    # imports ProposalExecutor from its source module — patch there.
+    with patch(
+        "will.autonomy.proposal_executor.ProposalExecutor",
+        return_value=mock_executor,
+    ):
         # Act
         result = await execute_proposal(proposal_id, payload, request)
 

@@ -68,9 +68,14 @@ async def test_create_proposal_dry_run_does_not_persist():
 
 
 async def test_create_proposal_write_true_persists_and_commits():
-    """write=True calls ProposalService.create and commits the session."""
+    """write=True calls ProposalService.create and commits the session.
+
+    #771: creation logic moved to will.governance.proposal_runner, which
+    imports ProposalService from its source module — patch there, not on
+    the route module, so the facade's function-local import is intercepted.
+    """
     session = _mock_session()
-    with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
+    with patch("will.autonomy.proposal_service.ProposalService") as mock_svc_cls:
         mock_svc = AsyncMock()
         mock_svc.create = AsyncMock()
         mock_svc_cls.return_value = mock_svc
@@ -366,7 +371,7 @@ async def test_execute_proposal_delegates_to_executor_dry_run():
     """execute_proposal delegates to ProposalExecutor.execute with write=False."""
     pid = str(uuid4())
     result = {"ok": True, "proposal_id": pid, "actions_executed": 2}
-    with patch("api.v1.proposals_routes.ProposalExecutor") as mock_exec_cls:
+    with patch("will.autonomy.proposal_executor.ProposalExecutor") as mock_exec_cls:
         mock_exec = AsyncMock()
         mock_exec.execute = AsyncMock(return_value=result)
         mock_exec_cls.return_value = mock_exec
@@ -387,7 +392,7 @@ async def test_execute_proposal_delegates_to_executor_dry_run():
 async def test_execute_proposal_passes_write_true_when_requested():
     """write=True is forwarded to ProposalExecutor.execute."""
     pid = str(uuid4())
-    with patch("api.v1.proposals_routes.ProposalExecutor") as mock_exec_cls:
+    with patch("will.autonomy.proposal_executor.ProposalExecutor") as mock_exec_cls:
         mock_exec = AsyncMock()
         mock_exec.execute = AsyncMock(return_value={"ok": True})
         mock_exec_cls.return_value = mock_exec

@@ -111,7 +111,7 @@ async def test_symbols_drift_returns_pipeline_data():
         "last_sync_at": "2026-07-11T10:00:00",
     }
     with patch(
-        "api.v1.symbols_routes.run_drift_analysis_async",
+        "body.introspection.drift_service.run_drift_analysis_async",
         new=AsyncMock(return_value=expected),
     ):
         result = await symbols_drift()
@@ -121,7 +121,7 @@ async def test_symbols_drift_returns_pipeline_data():
 async def test_symbols_drift_returns_unavailable_on_error():
     expected = {"available": False, "error": "DB connection failed"}
     with patch(
-        "api.v1.symbols_routes.run_drift_analysis_async",
+        "body.introspection.drift_service.run_drift_analysis_async",
         new=AsyncMock(return_value=expected),
     ):
         result = await symbols_drift()
