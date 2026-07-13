@@ -163,7 +163,7 @@ def test_format_payload_real_audit_finding_shape() -> None:
         message="Direct import",
         file_path="src/will/foo.py",
         line_number=12,
-        severity=AuditSeverity.BLOCKING,
+        severity=AuditSeverity.BLOCK,
     )
     finding_dict = af.as_dict()
     result = format_finding(finding_dict)
