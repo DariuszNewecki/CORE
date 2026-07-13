@@ -20,6 +20,7 @@ Three synchronous endpoints; no resource table:
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from body.services.worker_registry_service import WorkerRegistryService
@@ -41,7 +42,21 @@ __all__ = [
 logger = getLogger(__name__)
 
 
-_SYSTEMCTL_TIMEOUT_SECONDS = 30.0
+def _systemctl_timeout_sec() -> float:
+    """Governed systemctl subprocess timeout (#774 — ADR-040 sweep).
+
+    Falls back to 30.0 seconds if the operational-config key is absent —
+    matches the constant this replaced. run_command_async has no native
+    timeout support; _run_systemctl wraps it with asyncio.wait_for.
+    """
+    try:
+        cfg = load_operational_config()
+        value = getattr(cfg.daemon, "systemctl_timeout_sec", None)
+        if value is not None:
+            return float(value)
+    except Exception as exc:
+        logger.debug("daemon_runner: systemctl timeout lookup failed: %s", exc)
+    return 30.0
 
 
 def _default_alive_threshold_sec() -> int:
@@ -140,10 +155,21 @@ async def stop_daemon_background() -> None:
 
 # ID: 7b4d1c9e-3a8f-4c5b-dcad-6f7890ab12cd
 async def _run_systemctl(argv_tail: tuple[str, ...]) -> dict:
-    """Run systemctl --user via the sanctioned subprocess primitive."""
+    """Run systemctl --user via the sanctioned subprocess primitive.
+
+    run_command_async has no native timeout — wrapped with asyncio.wait_for
+    (#774) so a hung systemctl call can't block this coroutine forever.
+    """
     argv = ["systemctl", "--user", *argv_tail]
+    timeout_sec = _systemctl_timeout_sec()
     try:
-        completed = await run_command_async(argv)
+        completed = await asyncio.wait_for(run_command_async(argv), timeout=timeout_sec)
+    except TimeoutError:
+        return {
+            "ok": False,
+            "exit_code": -1,
+            "error": f"systemctl timed out after {timeout_sec}s",
+        }
     except FileNotFoundError as exc:
         return {
             "ok": False,
