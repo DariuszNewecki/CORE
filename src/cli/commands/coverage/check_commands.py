@@ -16,15 +16,13 @@ from rich.table import Table
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
+from shared.infrastructure.intent.operational_config import load_operational_config
 
 
 logger = logging.getLogger(__name__)
 console = Console()
 
-
-_GAP_THRESHOLD_PCT_DEFAULT = 75.0
-_LOW_BUCKET_PCT_DEFAULT = 50.0
-_WARN_PCT_DEFAULT = 80.0
+_CFG = load_operational_config().coverage
 
 
 # ID: 72963da2-9a25-487b-92ee-0d67a6d1376d
@@ -134,7 +132,7 @@ async def show_targets(ctx: typer.Context) -> None:
 async def show_coverage_gaps(
     ctx: typer.Context,
     threshold: float = typer.Option(
-        _GAP_THRESHOLD_PCT_DEFAULT,
+        _CFG.gap_threshold_pct,
         "--threshold",
         "-t",
         help="Coverage percentage below which a module is flagged.",
@@ -159,9 +157,9 @@ async def show_coverage_gaps(
         coverage = float(gap.get("coverage", 0))
         color = (
             "red"
-            if coverage < _LOW_BUCKET_PCT_DEFAULT
+            if coverage < _CFG.low_bucket_pct
             else "yellow"
-            if coverage < _WARN_PCT_DEFAULT
+            if coverage < _CFG.warn_pct
             else "green"
         )
         table.add_row(

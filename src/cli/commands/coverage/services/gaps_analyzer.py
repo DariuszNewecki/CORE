@@ -14,13 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from api.cli import CoreApiClient
+from shared.infrastructure.intent.operational_config import load_operational_config
 
 
 logger = logging.getLogger(__name__)
 
+_CFG = load_operational_config().coverage
 
-_DEFAULT_GAP_THRESHOLD_PCT = 75.0
-_DEFAULT_LOW_BUCKET_PCT = 50.0
 _SORTED_LOWEST_LIMIT = 20
 
 
@@ -48,7 +48,7 @@ class GapsAnalyzer:
 
     # ID: 9ac607c3-502e-4cd1-9349-26fe7044d996
     async def find_gaps(
-        self, threshold: float = _DEFAULT_GAP_THRESHOLD_PCT
+        self, threshold: float = _CFG.gap_threshold_pct
     ) -> dict[str, Any]:
         """Find modules below coverage threshold.
 
@@ -77,9 +77,7 @@ class GapsAnalyzer:
 
         total_modules = len(coverage_map)
         below_threshold_count = len(below_threshold)
-        below_50 = sum(
-            1 for cov in coverage_map.values() if cov < _DEFAULT_LOW_BUCKET_PCT
-        )
+        below_50 = sum(1 for cov in coverage_map.values() if cov < _CFG.low_bucket_pct)
 
         return {
             "below_threshold": below_threshold,
