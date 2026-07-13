@@ -177,12 +177,18 @@ class TestRunnerSensor(ScheduledWorker):
                 runner = PytestRunner(path_resolver)
                 result = await runner.run_tests([test_file])
             except Exception as e:
+                # Pytest-infra failure, not a test result — do NOT resolve
+                # the triggering python::test.coverage entry. Same
+                # evidence-preserving pattern as _adjudicate_test_quarantine's
+                # "keeping subjects in current set to avoid spurious resolve":
+                # leave it open so the next cycle retries rather than the
+                # test-gen chain silently losing its trigger (#766).
                 logger.error(
-                    "TestRunnerSensor: pytest execution failed for %s: %s",
+                    "TestRunnerSensor: pytest execution failed for %s: %s "
+                    "— leaving python::test.coverage entry open for retry",
                     test_file,
                     e,
                 )
-                await svc.resolve_entries([entry_id])
                 continue
 
             count_run += 1
