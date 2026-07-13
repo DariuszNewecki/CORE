@@ -118,7 +118,7 @@ class CapabilityTaggerWorker(Worker):
         """
         from body.services.service_registry import service_registry
         from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-        from will.agents.capability_tagger_agent import CapabilityTaggerAgent
+        from will.agents.tagger_agent import CapabilityTaggerAgent
 
         if self._repo_root is None:
             logger.error("CapabilityTaggerWorker: _repo_root unavailable")
