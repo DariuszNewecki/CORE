@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: URS — Consequence Chain
+status: draft
+---
+
 <!-- path: .specs/requirements/URS-consequence-chain.md -->
 
 # URS — Consequence Chain

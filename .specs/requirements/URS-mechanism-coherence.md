@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: URS — Mechanism Coherence
+status: draft
+---
+
 <!-- path: .specs/requirements/URS-mechanism-coherence.md -->
 
 # URS — Mechanism Coherence

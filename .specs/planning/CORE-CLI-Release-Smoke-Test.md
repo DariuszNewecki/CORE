@@ -1,3 +1,9 @@
+---
+kind: planning
+title: core-cli 1.0.0 — Release Smoke Test
+status: accepted
+---
+
 # core-cli 1.0.0 — Release Smoke Test
 
 **Purpose:** End-to-end validation of `core-cli 1.0.0` on a vanilla Ubuntu VM against a

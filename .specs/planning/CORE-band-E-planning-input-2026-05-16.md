@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — Band E Strategic Planning Input
+status: proposed
+---
+
 # CORE — Band E Strategic Planning Input
 # Enterprise Readiness Tracks
 # Captured: 2026-05-16 | Status: Open — awaiting governor sequencing

@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: CORE — Governor Dashboard
+status: accepted
+---
+
 # CORE — Governor Dashboard
 ## User Requirements
 

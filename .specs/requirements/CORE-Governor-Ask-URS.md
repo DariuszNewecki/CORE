@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: CORE — Governor Interrogation Command
+status: draft
+---
+
 # CORE — Governor Interrogation Command
 ## User Requirements
 

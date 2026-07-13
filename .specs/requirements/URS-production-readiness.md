@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: URS — Production Readiness
+status: accepted
+---
+
 <!-- path: .specs/requirements/URS-production-readiness.md -->
 
 # URS — Production Readiness

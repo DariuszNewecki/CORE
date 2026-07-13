@@ -1,3 +1,9 @@
+---
+kind: planning
+title: core-cli 1.0.0 Smoke Test — Follow-up Actions
+status: draft
+---
+
 # core-cli 1.0.0 Smoke Test — Follow-up Actions
 
 Tracks the actions arising from the 2026-07-12 `core-cli 1.0.0` release smoke test

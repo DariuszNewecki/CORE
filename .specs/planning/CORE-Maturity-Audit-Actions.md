@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — Maturity-Audit Action List
+status: draft
+---
+
 # CORE — Maturity-Audit Action List
 
 **Status:** Working backlog (derived, non-authoritative)

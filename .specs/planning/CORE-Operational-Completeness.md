@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — Open Operational Completeness Tracker
+status: canonical
+---
+
 # CORE — Open Operational Completeness Tracker
 
 **Status:** Authoritative (operational surface for ADR-085)

@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — External Adoption Gap Closure Plan
+status: accepted
+---
+
 # CORE — External Adoption Gap Closure Plan
 
 **Status:** Items 1–3 DONE; Item 4 DONE (pre-existing, ADR-119) — verified against

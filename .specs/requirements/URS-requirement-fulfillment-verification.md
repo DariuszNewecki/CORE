@@ -1,3 +1,9 @@
+---
+kind: requirement
+title: URS — Requirement Fulfillment Verification
+status: draft
+---
+
 <!-- path: .specs/requirements/URS-requirement-fulfillment-verification.md -->
 
 # URS — Requirement Fulfillment Verification

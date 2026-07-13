@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — Versioning & Release Policy
+status: canonical
+---
+
 <!-- path: .specs/planning/CORE-Semver-Policy.md -->
 
 # CORE — Versioning & Release Policy

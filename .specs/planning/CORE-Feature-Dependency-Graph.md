@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE — Feature Dependency Graph
+status: canonical
+---
+
 # CORE — Feature Dependency Graph
 
 **Status:** Authoritative (visualization of `CORE-Features.md` + ADR-084 D8)

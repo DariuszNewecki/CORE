@@ -1,3 +1,9 @@
+---
+kind: planning
+title: VM SSH Access — Internal Runbook for core-cli Smoke Testing
+status: accepted
+---
+
 # VM SSH Access — Internal Runbook for core-cli Smoke Testing
 
 Procedure for getting Claude Code SSH access to a test VM before running a

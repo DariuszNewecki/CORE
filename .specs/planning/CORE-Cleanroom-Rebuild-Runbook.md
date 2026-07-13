@@ -1,3 +1,9 @@
+---
+kind: planning
+title: CORE Clean-Room Rebuild & Test Runbook
+status: accepted
+---
+
 # CORE Clean-Room Rebuild & Test Runbook
 
 **Goal:** rebuild the test estate from zero to validate the *complete* installation
