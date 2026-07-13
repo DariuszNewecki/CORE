@@ -1255,6 +1255,190 @@ mappings:
       to be built.
     status: PENDING
 
+  # --- ADDED 2026-07-13 (#781) — API request-DTO conformance rules ---
+  # ADR-056 Wave 3 (API DTOs) added these *_request_conforms rules but their
+  # remediation entries were never created, tripping
+  # governance.remediation.all_rules_mapped. Each is the same structural
+  # Pydantic-conformance check as the 46 sibling data.contracts.*_conforms
+  # rules already mapped above; a mismatch requires editing the DTO or its
+  # JSON contract (a human decision), so all take the same
+  # fix.contract_conformance / PENDING stanza the family uses.
+  data.contracts.approve_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.create_audit_run_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.create_baseline_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.create_census_run_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.create_proposal_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.create_remediation_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.development_goal_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.execute_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.generate_batch_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.generate_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.integrate_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.integrity_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.interactive_tests_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.propose_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.quality_async_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.quality_lint_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.quality_target_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.quality_tests_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.reject_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.report_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.run_autonomous_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
+  data.contracts.sync_request_conforms:
+    action: fix.contract_conformance
+    confidence: 0.40
+    description: >
+      Pydantic model conformance check under ADR-056 wave work. Fixer
+      to be built.
+    status: PENDING
+
   infrastructure.no_bare_except:
     action: fix.bare_except
     confidence: 0.40
