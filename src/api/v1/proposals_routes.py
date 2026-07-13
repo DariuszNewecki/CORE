@@ -7,13 +7,16 @@ Surfaces the core.autonomous_proposals state machine over HTTP so the
 CLI (and other governor-direct clients) can migrate off direct
 `will.*` / `shared.*` imports. The semantics — approval authority
 closed-set, claim sentinel, dry-run vs write — are unchanged from the
-CLI path; this module is a thin translation layer over
-ProposalService and ProposalExecutor.
+CLI path; this module is a thin translation layer.
 
 CONSTITUTIONAL:
 - Session access goes through api.dependencies.get_api_session only.
-- ProposalService is the facade; ProposalRepository and
-  ProposalStateManager are not imported here.
+- Domain construction (Proposal/ProposalScope + compute_risk) and
+  ProposalExecutor invocation route through the will.governance.
+  proposal_runner facade (ADR-049 D1 architectural-debt closure, #771) —
+  mirroring the fix_runner / sync_runner pattern the /fix and /sync
+  surfaces use. Read/lifecycle endpoints delegate to ProposalService /
+  ConsequenceLogService facades.
 - CoreContext is read from request.app.state.core_context — never
   constructed in routes.
 """
@@ -36,15 +39,13 @@ from api.v1.schemas import GovernanceChainResponse, ProposalResponse
 from body.services.consequence_log_service import ConsequenceLogService
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.autonomy.proposal import (
-    Proposal,
-    ProposalAction,
-    ProposalScope,
-    ProposalStatus,
-)
-from will.autonomy.proposal_executor import ProposalExecutor
+from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_service import ProposalService
 from will.autonomy.proposal_state_manager import ProposalNotFoundError
+from will.governance.proposal_runner import (
+    create_and_score_proposal,
+    execute_proposal_direct,
+)
 
 
 logger = getLogger(__name__)
@@ -124,35 +125,17 @@ async def create_proposal(
     Validates the action sequence, computes risk, and (when write=True)
     persists via ProposalService.create. Returns the proposal's
     `to_dict()` representation either way; in dry-run mode the row
-    is not flushed to the database.
+    is not flushed to the database. Domain construction + scoring lives
+    in the will.governance.proposal_runner facade (#771).
     """
-    proposal_actions = [
-        ProposalAction(
-            action_id=a.get("action_id"),
-            flow_id=a.get("flow_id"),
-            parameters=a.get("parameters", {}),
-            order=a.get("order", i),
-        )
-        for i, a in enumerate(payload.actions)
-    ]
-    proposal = Proposal(
+    return await create_and_score_proposal(
+        session,
         goal=payload.goal,
-        actions=proposal_actions,
-        scope=ProposalScope(files=payload.files),
+        actions=payload.actions,
+        files=payload.files,
         created_by=payload.created_by,
+        write=payload.write,
     )
-    proposal.compute_risk()
-
-    if payload.write:
-        service = ProposalService(session)
-        await service.create(proposal)
-        await session.commit()
-
-    return {
-        "ok": True,
-        "persisted": payload.write,
-        "proposal": proposal.to_dict(),
-    }
 
 
 @router.get(
@@ -379,8 +362,13 @@ async def execute_proposal(
 
     Defaults to dry-run; pass `{"write": true}` to apply changes.
     ProposalExecutor manages its own session via service_registry, so
-    no get_api_session dependency is required here.
+    no get_api_session dependency is required here. Executor invocation
+    routes through the will.governance.proposal_runner facade (#771).
     """
     core_context: CoreContext = request.app.state.core_context
-    executor = ProposalExecutor(core_context)
-    return await executor.execute(proposal_id, API_CLAIMER_UUID, write=payload.write)
+    return await execute_proposal_direct(
+        core_context,
+        proposal_id=proposal_id,
+        claimer=API_CLAIMER_UUID,
+        write=payload.write,
+    )
