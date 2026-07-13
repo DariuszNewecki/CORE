@@ -9,10 +9,11 @@ description: >
   YAML frontmatter header validated against .specs/META/adr.header.schema.json.
   Discovery overlaps the spec_markdown supertype by design (ADR-105
   implementation note — additive, not replace, because spec_markdown has 8+
-  consumers in the CCC engine); both route to the same core-specs collection,
-  so the overlap is benign — content-hash dedup makes the second crawl pass a
-  no-op. spec_markdown remains the discovery universe the CCC checks consume;
-  this type adds the header model on top.
+  consumers in the CCC engine); both route to the same core_specs collection
+  (corrected #784 — was core-specs, a duplicate of ADR-022's collection with
+  zero consumers), so the overlap is benign — content-hash dedup makes the
+  second crawl pass a no-op. spec_markdown remains the discovery universe the
+  CCC checks consume; this type adds the header model on top.
 
 discovery:
   - ".specs/decisions/ADR-*.md"
@@ -20,8 +21,8 @@ discovery:
 identity_key: path
 schema_ref: ".specs/META/adr.header.schema.json"   # ADR-105 D6 hook 1 — repo-root-relative; consumer (the .specs header validator) lands with the migration
 change_record: text_diff
-vector_collection: core-specs   # matches spec_markdown — keeps the discovery overlap benign
-crawler_indexed: true
+vector_collection: core_specs   # matches spec_markdown — keeps the discovery overlap benign (#784)
+crawler_indexed: false   # #784 — semantic search served by ADR-022's SpecsAdapter pipeline; still registers in repo_artifacts for CCC/governance
 
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
   - repo_crawler

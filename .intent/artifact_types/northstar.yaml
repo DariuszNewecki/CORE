@@ -10,8 +10,9 @@ description: >
   the non-negotiable principles it operates under. Modeled subtype of the
   broader .specs markdown surface (ADR-105 D4): carries a typed YAML frontmatter
   header validated against .specs/META/northstar.header.schema.json. Discovery
-  overlaps spec_markdown by design; benign (content-hash dedup in core-specs
-  collection).
+  overlaps spec_markdown by design; benign (content-hash dedup in core_specs
+  collection; corrected #784 — was core-specs, a duplicate of ADR-022's
+  collection with zero consumers).
 
 discovery:
   - ".specs/northstar/*.md"
@@ -19,8 +20,8 @@ discovery:
 identity_key: path
 schema_ref: ".specs/META/northstar.header.schema.json"
 change_record: text_diff
-vector_collection: core-specs
-crawler_indexed: true
+vector_collection: core_specs   # #784 — matches spec_markdown
+crawler_indexed: false   # #784 — semantic search served by ADR-022's SpecsAdapter pipeline; still registers in repo_artifacts for CCC/governance
 
 supported_sensors:
   - repo_crawler

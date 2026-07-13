@@ -10,9 +10,11 @@ description: >
   .specs/META/paper.header.schema.json, with both status and doctrine_tier
   mandatory and orthogonal (the #627 conflation fix). Discovery overlaps the
   spec_markdown supertype by design (ADR-105 implementation note — additive,
-  not replace); both route to the same core-specs collection, so the overlap
-  is benign (content-hash dedup). spec_markdown remains the discovery universe
-  the CCC checks consume; this type adds the header model on top.
+  not replace); both route to the same core_specs collection (corrected #784
+  — was core-specs, a duplicate of ADR-022's collection with zero consumers),
+  so the overlap is benign (content-hash dedup). spec_markdown remains the
+  discovery universe the CCC checks consume; this type adds the header model
+  on top.
 
 discovery:
   - ".specs/papers/CORE-*.md"
@@ -20,8 +22,8 @@ discovery:
 identity_key: path
 schema_ref: ".specs/META/paper.header.schema.json"   # ADR-105 D6 hook 1 — repo-root-relative; consumer lands with the migration
 change_record: text_diff
-vector_collection: core-specs   # matches spec_markdown — keeps the discovery overlap benign
-crawler_indexed: true
+vector_collection: core_specs   # matches spec_markdown — keeps the discovery overlap benign (#784)
+crawler_indexed: false   # #784 — semantic search served by ADR-022's SpecsAdapter pipeline; still registers in repo_artifacts for CCC/governance
 
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
   - repo_crawler

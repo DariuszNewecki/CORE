@@ -17,8 +17,8 @@ discovery:
 identity_key: path
 schema_ref: null   # semantic / structural checks, not JSON-schema-validated
 change_record: text_diff
-vector_collection: core-specs   # ADR-090 D7 — new collection for .specs/ markdown semantic search
-crawler_indexed: true   # ADR-090 D7 — .specs/ becomes crawler-indexed (was implicitly skipped)
+vector_collection: core_specs   # #784 — ADR-090 D7's "core-specs" duplicated the ADR-022 collection
+crawler_indexed: false   # #784 — semantic search already served by ADR-022's SpecsAdapter pipeline into core_specs; repo_crawler still registers this type in repo_artifacts for CCC/governance, it just no longer double-embeds vectors
 
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
   - repo_crawler
