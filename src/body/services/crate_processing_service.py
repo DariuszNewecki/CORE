@@ -169,7 +169,13 @@ class CrateProcessingService:
 
                 dst = canary_repo_path / item.name
                 try:
-                    if item.is_dir():
+                    if item.is_symlink():
+                        # copytree's symlinks=True only preserves symlinks it
+                        # encounters *inside* a copied tree — passed as `src`
+                        # itself, a symlinked dir is scanned via os.scandir()
+                        # and still fully dereferenced. Recreate it directly.
+                        dst.symlink_to(item.readlink())
+                    elif item.is_dir():
                         shutil.copytree(
                             item, dst, symlinks=True, ignore_dangling_symlinks=True
                         )
