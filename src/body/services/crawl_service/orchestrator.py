@@ -68,6 +68,59 @@ def _load_crawl_scopes_from_registry() -> tuple[list[tuple[str, str]], dict[str,
     return scopes, collection_map
 
 
+def _glob_specificity(glob_pattern: str) -> int:
+    """Rank a discovery glob's specificity by its literal (non-wildcard) prefix.
+
+    Length of the substring before the first glob metacharacter. A more
+    specific glob like ``.intent/architecture/bridges/**/*.yaml`` (literal
+    prefix ``.intent/architecture/bridges/``) outranks a broader one like
+    ``.intent/**/*.yaml`` (literal prefix ``.intent/``). Used by
+    _resolve_file_artifact_types (#786) so a file matched by two globs is
+    assigned the type of the most-specific one, deterministically, instead
+    of whichever registry scope happened to be processed last.
+    """
+    for i, ch in enumerate(glob_pattern):
+        if ch in "*?[":
+            return i
+    return len(glob_pattern)
+
+
+def _resolve_file_artifact_types(
+    repo_root: Path, crawl_scopes: list[tuple[str, str]]
+) -> dict[Path, str]:
+    """Assign each matched file to exactly one artifact_type — the most-specific
+    matching glob's — resolving overlapping-glob ambiguity (#786).
+
+    Returns file_path -> artifact_type. A file matched by multiple discovery
+    globs (e.g. .intent/architecture/bridges/*.yaml matches both
+    architecture_bridge's specific glob and intent_yaml's broad .intent/**
+    glob) is resolved to the type whose glob has the longest literal prefix.
+    Ties (equal specificity) keep the first-seen assignment and log a warning
+    — a genuine tie is a registry ambiguity a human should resolve.
+    """
+    resolved: dict[Path, str] = {}
+    best_spec: dict[Path, int] = {}
+    for glob_pattern, artifact_type in crawl_scopes:
+        spec = _glob_specificity(glob_pattern)
+        for file_path in repo_root.glob(glob_pattern):
+            if file_path.is_symlink() or not file_path.is_file():
+                continue
+            prior = best_spec.get(file_path)
+            if prior is None or spec > prior:
+                resolved[file_path] = artifact_type
+                best_spec[file_path] = spec
+            elif spec == prior and resolved[file_path] != artifact_type:
+                logger.warning(
+                    "CrawlOrchestrator: glob-precedence tie for %s — "
+                    "%r (kept) vs %r (ignored); equal specificity. Registry "
+                    "ambiguity — narrow one type's discovery glob.",
+                    file_path,
+                    resolved[file_path],
+                    artifact_type,
+                )
+    return resolved
+
+
 # Stale-running janitor threshold for the crawl_runs table (#179).
 # Set to 6x RepoCrawlerWorker.max_interval (600s). A run sitting in 'running'
 # past this window has either been orphaned by a daemon crash or its
@@ -188,52 +241,56 @@ class CrawlOrchestrator:
                 len(qdrant_collection_map),
             )
 
-            for glob_pattern, artifact_type in crawl_scopes:
-                for file_path in sorted(repo_root.glob(glob_pattern)):
-                    if file_path.is_symlink():
-                        continue
-                    rel_path = str(file_path.relative_to(repo_root))
-                    seen_paths.add(rel_path)
-                    stats["files_scanned"] += 1
-                    try:
-                        content_hash = _sha256(file_path)
-                        if artifact_type == "python":
-                            changed = await self._crawl_python_file(
-                                file_path=file_path,
-                                rel_path=rel_path,
-                                content_hash=content_hash,
-                                existing_hashes=existing_hashes,
-                                symbol_index=symbol_index,
-                                crawl_run_id=crawl_run_id,
-                                stats=stats,
-                                qdrant_collection_map=qdrant_collection_map,
-                            )
-                        else:
-                            changed = await self._crawl_artifact_file(
-                                file_path=file_path,
-                                rel_path=rel_path,
-                                content_hash=content_hash,
-                                artifact_type=artifact_type,
-                                existing_hashes=existing_hashes,
-                                symbol_index=symbol_index,
-                                crawl_run_id=crawl_run_id,
-                                stats=stats,
-                                qdrant_collection_map=qdrant_collection_map,
-                            )
-                        if changed:
-                            stats["files_changed"] += 1
-                        successes += 1
-                    except Exception as exc:
-                        failures += 1
-                        if len(error_samples) < _MAX_ERROR_SAMPLES:
-                            error_samples.append(
-                                f"{rel_path} ({type(exc).__name__}: {str(exc)[:80]})"
-                            )
-                        logger.warning(
-                            "CrawlOrchestrator.run_crawl: error processing %s: %s",
-                            rel_path,
-                            exc,
+            # #786: resolve overlapping-glob ambiguity BEFORE the walk — each
+            # file is assigned to exactly one artifact_type (most-specific
+            # matching glob) and processed once, rather than once-per-matching-
+            # scope with last-scope-wins (registry-iteration-order) semantics.
+            resolved_types = _resolve_file_artifact_types(repo_root, crawl_scopes)
+
+            for file_path in sorted(resolved_types):
+                artifact_type = resolved_types[file_path]
+                rel_path = str(file_path.relative_to(repo_root))
+                seen_paths.add(rel_path)
+                stats["files_scanned"] += 1
+                try:
+                    content_hash = _sha256(file_path)
+                    if artifact_type == "python":
+                        changed = await self._crawl_python_file(
+                            file_path=file_path,
+                            rel_path=rel_path,
+                            content_hash=content_hash,
+                            existing_hashes=existing_hashes,
+                            symbol_index=symbol_index,
+                            crawl_run_id=crawl_run_id,
+                            stats=stats,
+                            qdrant_collection_map=qdrant_collection_map,
                         )
+                    else:
+                        changed = await self._crawl_artifact_file(
+                            file_path=file_path,
+                            rel_path=rel_path,
+                            content_hash=content_hash,
+                            artifact_type=artifact_type,
+                            existing_hashes=existing_hashes,
+                            symbol_index=symbol_index,
+                            crawl_run_id=crawl_run_id,
+                            stats=stats,
+                            qdrant_collection_map=qdrant_collection_map,
+                        )
+                    if changed:
+                        stats["files_changed"] += 1
+                    successes += 1
+                except Exception as exc:
+                    failures += 1
+                    if len(error_samples) < _MAX_ERROR_SAMPLES:
+                        error_samples.append(
+                            f"{rel_path} ({type(exc).__name__}: {str(exc)[:80]})"
+                        )
+                    logger.warning(
+                        "CrawlOrchestrator.run_crawl: error processing %s: %s",
+                        rel_path,
+                        exc,
+                    )
 
             # ADR-044: purge llm_gate verdicts for files that disappeared
             # from the crawl scope (deleted, moved, or renamed). Bounded by

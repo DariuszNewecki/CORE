@@ -207,12 +207,23 @@ class CrawlService:
                         qdrant_collection = EXCLUDED.qdrant_collection,
                         chunk_count       = CASE
                             WHEN repo_artifacts.content_hash != EXCLUDED.content_hash
+                              OR repo_artifacts.qdrant_collection
+                                 IS DISTINCT FROM EXCLUDED.qdrant_collection
                             THEN 0
                             ELSE repo_artifacts.chunk_count
                         END,
                         last_crawled_at   = EXCLUDED.last_crawled_at,
                         crawl_run_id      = EXCLUDED.crawl_run_id
+                    -- #786: also fire on registry-driven reclassification, not
+                    -- only content drift. artifact_type / qdrant_collection are
+                    -- registry facts, not content-derived — a changed glob
+                    -- precedence or vector_collection must reclassify a frozen
+                    -- row even when the file's bytes are unchanged. chunk_count
+                    -- resets on a collection change so vectors follow the move.
                     WHERE repo_artifacts.content_hash != EXCLUDED.content_hash
+                       OR repo_artifacts.artifact_type != EXCLUDED.artifact_type
+                       OR repo_artifacts.qdrant_collection
+                          IS DISTINCT FROM EXCLUDED.qdrant_collection
                     """
                 ),
                 {
@@ -258,12 +269,23 @@ class CrawlService:
                         qdrant_collection = EXCLUDED.qdrant_collection,
                         chunk_count       = CASE
                             WHEN repo_artifacts.content_hash != EXCLUDED.content_hash
+                              OR repo_artifacts.qdrant_collection
+                                 IS DISTINCT FROM EXCLUDED.qdrant_collection
                             THEN 0
                             ELSE repo_artifacts.chunk_count
                         END,
                         last_crawled_at   = EXCLUDED.last_crawled_at,
                         crawl_run_id      = EXCLUDED.crawl_run_id
+                    -- #786: also fire on registry-driven reclassification, not
+                    -- only content drift. artifact_type / qdrant_collection are
+                    -- registry facts, not content-derived — a changed glob
+                    -- precedence or vector_collection must reclassify a frozen
+                    -- row even when the file's bytes are unchanged. chunk_count
+                    -- resets on a collection change so vectors follow the move.
                     WHERE repo_artifacts.content_hash != EXCLUDED.content_hash
+                       OR repo_artifacts.artifact_type != EXCLUDED.artifact_type
+                       OR repo_artifacts.qdrant_collection
+                          IS DISTINCT FROM EXCLUDED.qdrant_collection
                     """
                 ),
                 {
