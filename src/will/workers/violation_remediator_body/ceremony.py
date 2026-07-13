@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import run_command_async
@@ -19,6 +20,8 @@ from ._host import HostBase
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: 7309bbd3-8a4b-427f-9d6f-b93b6bd3f719
@@ -92,7 +95,9 @@ class CeremonyMixin(HostBase):
             ),
         ):
             try:
-                proc = await asyncio.wait_for(run_command_async(cmd), timeout=30)
+                proc = await asyncio.wait_for(
+                    run_command_async(cmd), timeout=_CFG.ceremony_timeout_sec
+                )
                 if proc.returncode == 0:
                     logger.info(
                         "ViolationRemediator: %s aligned %s",
