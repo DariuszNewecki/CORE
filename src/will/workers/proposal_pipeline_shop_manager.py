@@ -25,6 +25,7 @@ Constitutional standing:
 ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:      proposal.stuck_approved::<proposal_id>
                          proposal.stuck_executing::<proposal_id>
+                         proposal.stuck_finalizing::<proposal_id>
                          proposal.repeated_failure::<action_id>::<rule_id>
 - resolution_mechanism:  self_resolve
 - Resolver path:         this worker's own run() method, in-Python
