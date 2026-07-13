@@ -27,6 +27,7 @@ import typer
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from api.dependencies import require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -49,7 +50,11 @@ class PromoteRequest(BaseModel):
     path: str
 
 
-@router.post("/onboard", summary="Deliver BYOR machinery floor to an external repo")
+@router.post(
+    "/onboard",
+    summary="Deliver BYOR machinery floor to an external repo",
+    dependencies=[require_governor],
+)
 # ID: dd315c9c-2767-4e95-a350-ee73b04402b0
 async def onboard_project(body: OnboardRequest, request: Request) -> dict:
     """Deliver the CORE machinery floor into an external repository (BYOR Phase A).
@@ -110,7 +115,11 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
     }
 
 
-@router.post("/onboard/promote", summary="Promote a staged machinery floor to target")
+@router.post(
+    "/onboard/promote",
+    summary="Promote a staged machinery floor to target",
+    dependencies=[require_governor],
+)
 # ID: 940ac03d-68ef-416f-a39a-dc53e868b4e1
 async def promote_onboard(body: PromoteRequest, request: Request) -> dict:
     """Promote a staged machinery floor into the target repository (ADR-123 D2).

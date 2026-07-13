@@ -60,6 +60,58 @@ def _stage_dir_for(core_root: Path, target_path: Path) -> Path:
     return core_root / _STAGE_ROOT / Path(target_path).resolve().name
 
 
+# Universally-dangerous write targets — refused regardless of overlap with
+# CORE's own tree. Not an attempt to enumerate every sensitive path; a fixed
+# backstop for the obviously-wrong ones (CodeQL py/path-injection, #787).
+_UNSAFE_TARGET_ROOTS = frozenset(
+    Path(p)
+    for p in (
+        "/",
+        "/etc",
+        "/bin",
+        "/sbin",
+        "/usr",
+        "/boot",
+        "/sys",
+        "/proc",
+        "/dev",
+        "/root",
+        "/lib",
+        "/lib64",
+    )
+)
+
+
+# ID: cdf75615-3371-4b61-9e19-4ad12fbe0de7
+def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
+    """Refuse a BYOR target that would corrupt the running install or a system dir.
+
+    BYOR intentionally writes ``.intent/`` into an operator-specified external
+    path — that write-anywhere-on-host-the-operator-names capability is the
+    feature, bounded primarily by ADR-054 D3's loopback-only, single-operator
+    trust boundary (no path sanitization can substitute for that; a caller who
+    can reach the API can already reach the filesystem directly). This is a
+    defense-in-depth backstop only: refuse the two shapes of self-inflicted
+    damage that have no legitimate BYOR use — targeting CORE's own repo tree,
+    or a fixed set of universally-dangerous system directories.
+    """
+    overlaps_core = (
+        target_root == core_root
+        or core_root in target_root.parents
+        or target_root in core_root.parents
+    )
+    if overlaps_core:
+        logger.error(
+            "Refusing BYOR target %s — overlaps CORE's own repo root %s",
+            target_root,
+            core_root,
+        )
+        raise typer.Exit(code=1)
+    if target_root in _UNSAFE_TARGET_ROOTS:
+        logger.error("Refusing BYOR target %s — system-critical directory", target_root)
+        raise typer.Exit(code=1)
+
+
 # ID: 3f7a1c82-e4d9-4b6e-9c21-d58f02a7b3e1
 def _resolve_machinery_floor(core_root: Path) -> Path:
     """
@@ -105,6 +157,7 @@ async def initialize_repository(
 
     # CORE's repo root (the running install) anchors the file.create path base.
     core_root = context.git_service.repo_path.resolve()
+    _reject_unsafe_target(target_root, core_root)
     try:
         starter_dir = _resolve_machinery_floor(core_root)
     except RuntimeError as exc:
@@ -226,6 +279,7 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     """
     target_root = Path(path).resolve()
     core_root = context.git_service.repo_path.resolve()
+    _reject_unsafe_target(target_root, core_root)
     stage_dir = _stage_dir_for(core_root, target_root)
     stage_intent = stage_dir / ".intent"
 

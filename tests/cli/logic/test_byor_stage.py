@@ -227,6 +227,52 @@ async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# _reject_unsafe_target wiring (#787, CodeQL py/path-injection) — unit
+# coverage of the guard itself lives in test_byor_target_safety.py; these
+# confirm initialize_repository/promote_staged actually call it.
+# ---------------------------------------------------------------------------
+
+
+async def test_initialize_repository_refuses_target_inside_core_root(
+    tmp_path: Path,
+) -> None:
+    from cli.logic.byor import initialize_repository
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = core_root / "some-subdir"
+    target.mkdir()
+
+    context = _make_context(core_root)
+
+    with pytest.raises(typer.Exit):
+        await initialize_repository(context=context, path=target, dry_run=False)
+
+    # Refused before any write — no .intent/ materialized.
+    assert not (target / ".intent").exists()
+
+
+async def test_promote_staged_refuses_target_inside_core_root(tmp_path: Path) -> None:
+    from cli.logic.byor import _stage_dir_for, promote_staged
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = core_root / "some-subdir"
+    target.mkdir()
+
+    # Even with a legitimate-looking stage already present, the target-safety
+    # guard runs first and must still refuse.
+    stage_intent = _stage_dir_for(core_root, target) / ".intent"
+    stage_intent.mkdir(parents=True)
+    (stage_intent / "dummy.yaml").write_text("x: 1", encoding="utf-8")
+
+    context = _make_context(core_root)
+
+    with pytest.raises(typer.Exit):
+        await promote_staged(context=context, path=target)
+
+
+# ---------------------------------------------------------------------------
 # OSError on target write (F-2 — cross-host target path not accessible)
 # ---------------------------------------------------------------------------
 

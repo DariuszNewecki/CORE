@@ -19,6 +19,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from api.dependencies import require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -35,7 +36,11 @@ class ScoutRequest(BaseModel):
     reset: bool = False
 
 
-@router.post("/scout", summary="Detect signals and induce candidate governance rules")
+@router.post(
+    "/scout",
+    summary="Detect signals and induce candidate governance rules",
+    dependencies=[require_governor],
+)
 # ID: 8bfc1844-6f15-42d2-aae7-d98090598702
 async def scout_project(body: ScoutRequest, request: Request) -> dict:
     """Detect, suggest, and catalog-match candidate governance rules for a target repo.
