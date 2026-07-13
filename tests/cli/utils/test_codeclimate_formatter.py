@@ -159,7 +159,6 @@ def test_format_payload_real_audit_finding_shape() -> None:
     """Round-trip through AuditFinding.as_dict() — guards against key-name drift."""
     af = AuditFinding(
         check_id="architecture.boundary.test",
-        rule_id="architecture.boundary.test",
         message="Direct import",
         file_path="src/will/foo.py",
         line_number=12,
