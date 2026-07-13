@@ -22,7 +22,10 @@ import hashlib
 import pytest
 
 from cli.commands import daemon as daemon_module
-from cli.commands.daemon import _STARTUP_JITTER_CAP_SEC, _run_one_shot_loop
+from cli.commands.daemon import _run_one_shot_loop
+
+
+_STARTUP_JITTER_CAP_SEC = daemon_module._CFG.startup_jitter_cap_sec
 
 
 def _expected_offset(stem: str, cap: int) -> int:
