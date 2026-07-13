@@ -13,15 +13,36 @@ Import constraints (CRITICAL — violations cause hard rejection):
 - Import ONLY from modules that appear in the provided symbol code or module path. Do not invent module paths.
 - The first line of the ```python block MUST be: from __future__ import annotations
 
+## MOCK TARGET RESOLUTION (CRITICAL — wrong patch target is the most common cause of generated-test failure)
+Before writing any `patch(...)`, find WHERE the dependency's import statement
+actually appears in the provided symbol code:
+- Import at the TOP of the file (module level): patch it via the consuming
+  module's path — `patch("module.path.DependencyName", ...)`.
+- Import INSIDE a function or method body (a local import — very common in
+  this codebase, e.g. `from body.services.service_registry import
+  service_registry` written inside `run()`, not at the top of the file):
+  patching the consuming module's path ALWAYS fails with `AttributeError:
+  module '...' does not have the attribute '...'` — a local import never
+  becomes a module-level attribute of the file that contains it. Patch it at
+  its DEFINING module instead — the exact path that appears after `from` in
+  that local import statement:
+  WRONG:   `patch("will.workers.my_worker.service_registry.get_x", ...)`
+  CORRECT: `patch("body.services.service_registry.service_registry.get_x", ...)`
+- If a dependency is clearly used but its import statement is not visible in
+  the provided code (e.g. it's set up in a method not shown), do not guess a
+  module path. Instead patch the attribute directly on the instance under
+  test (`worker.some_attr = MagicMock()`), or omit asserting on that
+  dependency's calls.
+
 ## WORKER PATTERN (applies when the symbol is a Worker class or a method on one)
 Workers in this codebase (subclasses of Worker or ScheduledWorker) follow a strict
 no-injection constructor contract:
 - Constructor signature: `__init__(self, *, declaration_name: str = "", repo_root: Path | None = None)`
 - NEVER pass db, session, queue, event_bus, services, or any dependency to the constructor.
 - Correct instantiation: `worker = MyWorker()` — no arguments, declaration_name is a class attribute.
-- Services (DB, blackboard, etc.) are accessed via `service_registry` inside `run()`.
-  Mock them with `unittest.mock.patch`:
-  `with patch("module.path.service_registry.get_some_service", return_value=mock_svc):`
+- Services (DB, blackboard, etc.) are typically accessed via `service_registry`
+  inside `run()` via a LOCAL import — see MOCK TARGET RESOLUTION above for the
+  correct patch target.
 - Testing `run()` requires mocking `post_heartbeat`, `post_finding`, `post_report` on the
   worker instance (they're async), and patching any service_registry calls the method makes.
 
