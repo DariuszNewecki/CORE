@@ -711,3 +711,165 @@ Note: `FlowDefinition.generation_mode` and its loader already exist in `registry
 - `architecture.layers.no_body_to_will` (reporting) — DI pattern resolves this
 - `architecture.flows.atomic_action_must_not_compose` — why Will → Body routing via
   DI is the only clean path (actions cannot call other actions)
+
+---
+
+## Amendment 2026-07-13 — pytest belongs in the acceptance loop: wiring ADR-135 D6 onto the D5 generation path
+
+**Status:** Accepted (decision) — implementation **deferred by intent** pending evidence
+**Tracking:** #791
+
+### Implementation status — deferred by intent (2026-07-13)
+
+This amendment records an accepted *decision*, not a completed change. Implementation is
+deliberately deferred, and that deferral is put on paper here so it reads as a **known,
+triggered decision — not silent drift** (the exact failure mode that produced the D6 gap
+in the first place).
+
+Why deferred: the static-context fixes shipped 2026-07-13 (dotted-method, mock-target,
+constructor, and module-constant extraction — #791 lineage) already lifted the generator's
+hit rate, and every one of them fixed the generator for *all future files*, cheaply and
+without touching the autonomous generation path. The pytest-in-the-loop rewire is a
+different cost class: multi-file, high blast radius (it changes the daemon's core
+generation loop and could regress files that now pass), and justified so far only by a
+small **manually-driven** generation sample — not by the *daemon's* measured behaviour.
+Spending it now would be optimising ahead of evidence.
+
+**Re-evaluation trigger:** let the daemon run the improved (static-fix) pipeline against
+the live remediation backlog, then measure the residual runtime-contract failure rate.
+Implement the change-set below only if that rate justifies the rewire cost. If the residual
+is instead dominated by integration-shaped workers (ones that genuinely need a real
+`declaration_name` declaration or DB wiring to test), the boring answer is to exclude those
+from autonomous *unit*-test-gen scope (`include_files` in `test_coverage.yaml`) rather than
+grow the generator — a one-line decision, not a pipeline rewire.
+
+The decision below (D6 stands; here is the correct wiring) is recorded now so it is not
+re-derived from scratch later; the *when* is gated on the trigger above.
+
+### The gap
+
+ADR-135 D6 (accepted) prescribed that `flow.build_test_for_symbol`'s acceptance
+condition be `CompositeAcceptanceCondition([PytestAcceptanceCondition,
+AuditAcceptanceCondition])` — pytest run *inside* the iterative generate→validate→repair
+loop, so a test that imports cleanly but fails at runtime feeds its failure back as the
+repair signal. This is the exact exit gate whose **10/10 recovery rate** the ADR-135 spike
+evidence rests on.
+
+This ADR (140) then introduced `PromptModelIterativeAgent` (D5) as the cognitive-write-
+separation vehicle for that flow. In doing so it inadvertently dropped D6's acceptance
+wiring: `PromptModelIterativeAgent.generate()` hardcodes a single static gate
+(`intent_guard.validate_generated_code`) as its only accept/reject check, and pytest was
+left as a *separate, post-loop* flow step (`test.sandbox_validate`, `required: true`).
+Consequence: a sandbox/runtime failure fails the whole flow instead of driving a repair
+iteration. The richest signal the iterative loop exists to exploit — "does the generated
+test actually run?" — is excluded from the loop.
+
+Verified on disk 2026-07-13 (#791):
+
+- `src/will/agents/acceptance/conditions.py` contains the `AcceptanceCondition` protocol,
+  `IntentGuardAcceptanceCondition`, `PytestAcceptanceCondition`, and
+  `CompositeAcceptanceCondition` — but nothing imports or wires them into the live
+  generation path.
+- `AuditAcceptanceCondition` (named in D6's literal composite) **was never built**.
+- `PytestAcceptanceCondition.evaluate` is **incomplete**: it receives `code` but never
+  writes it before validating (calls `test.sandbox_validate` with `write=False` against
+  whatever is already on disk).
+- **No tests** reference any acceptance-condition class.
+- The `task: ExecutionTask` parameter on `AcceptanceCondition.evaluate` is **unused by all
+  three implementations** — a vestige of ADR-135's `ExecutionTask`-based `IterativeCoderAgent`
+  design that does not fit ADR-140's context-dict + `target_path` `PromptModelIterativeAgent`.
+
+This is a textbook "closed-by-ADR ≠ closed-by-evidence": the decision was accepted, the
+parts were ~two-thirds built, then the live path was rerouted and the wiring rotted
+unwired and untested. This amendment fixes it.
+
+### Decision
+
+1. **ADR-135 D6 stands — pytest belongs inside the acceptance loop, not after it.**
+   Rationale: (a) it is the only position with evidence (the 10/10 spike); (b) the
+   iterative loop's entire value is feedback richness, and runtime execution is the
+   richest signal; (c) the empirically-observed remaining failure class (worker
+   `declaration_name` contract, unmocked session factory — #791) is *only* catchable by a
+   runtime signal, not by static analysis; (d) the layer concern is already resolved —
+   `PytestAcceptanceCondition` delegates to Body via `ActionExecutor.execute
+   ("test.sandbox_validate")`, so Will never runs a subprocess.
+
+2. **ADR-140's cognitive-write separation structure stands; this amendment completes it,
+   it does not revert it.** The D5 reroute through `PromptModelIterativeAgent` was correct
+   for the `architecture.boundary.llm_client_access` concern (LLM call out of Body). It
+   dropped D6's acceptance wiring as *collateral*, not as a deliberate rejection.
+   `PromptModelIterativeAgent` remains the canonical test-generation path;
+   `IterativeCoderAgent` is unchanged.
+
+3. **The loop consumes an injected `AcceptanceCondition` instead of a hardcoded static
+   gate.** `PromptModelIterativeAgent.generate()` accepts an `AcceptanceCondition` (default
+   for test-gen: `CompositeAcceptanceCondition([IntentGuardAcceptanceCondition,
+   PytestAcceptanceCondition])`). On rejection, the condition's `violation_summary`
+   becomes the repair-prompt feedback — the identical mechanism the hardcoded IntentGuard
+   violations use today, so the repair contract is unchanged; only the *source* of
+   violations widens from static-only to static+runtime.
+
+4. **Deviation from D6's literal composite, stated explicitly.** The target composite is
+   `[IntentGuardAcceptanceCondition, PytestAcceptanceCondition]`, **not** the D6-literal
+   `[PytestAcceptanceCondition, AuditAcceptanceCondition]`. Reasons: `AuditAcceptanceCondition`
+   was never built and shells out to `core-admin code audit` (heavier, a subprocess);
+   `IntentGuardAcceptanceCondition` already provides the equivalent static-governance check
+   in-process and is exactly what the live loop uses today. So the minimal, boring target is
+   "keep today's static check + add the missing runtime check." Order matters and is
+   deliberate: IntentGuard first (cheap, in-process), Pytest second (expensive, subprocess)
+   — `CompositeAcceptanceCondition` short-circuits on first failure, so a statically-broken
+   candidate never reaches pytest. `AuditAcceptanceCondition` remains deferred/unbuilt; if a
+   future flow needs the full offline-audit gate, it is added then.
+
+5. **The impedance mismatch is resolved by dropping the unused `task: ExecutionTask`
+   parameter** from `AcceptanceCondition.evaluate` (verified unused by all three
+   implementations). Per-condition configuration stays constructor-injected
+   (`target_path`, `source_file`, `executor`, `repo_root`). No `ExecutionTask` adapter is
+   invented; the protocol is adapted to what the `PromptModelIterativeAgent` path can
+   actually supply (the generated `code` string).
+
+6. **`PytestAcceptanceCondition` is completed** so it writes `code` to the sandbox target
+   (via the injected `FileHandler`, or by ordering behind `build.test_for_symbol`) before
+   invoking `test.sandbox_validate` — today it validates stale on-disk content and ignores
+   its own `code` argument.
+
+7. **`test.sandbox_validate` as a post-loop flow step becomes redundant on the happy path**
+   once the loop validates the accepted candidate. Removing it is *optional and out of
+   scope for this decision* — the load-bearing decision is pytest-in-the-loop. It may be
+   kept as a final belt-and-suspenders gate against the actually-written file, or removed
+   in a follow-up; either is compatible with this amendment.
+
+8. **A fitness function guards the decision going forward.** Once wired, a reporting-posture
+   rule asserts the observable property — the test-generation acceptance path includes a
+   sandbox-execution gate — so this cannot silently drift again. The *absence* of exactly
+   this enforcement at D6 acceptance time is the root cause of the drift this amendment
+   repairs: an accepted decision that claimed a runtime behavior was never encoded as
+   enforced data. Encoding it is the boring-consistency fix; the meta-lesson (ADR decisions
+   claiming a runtime behavior should carry an enforcement link before they are treated as
+   closed) is noted for the governance process but is a larger call left to a separate ADR.
+
+### Change-set (when implemented — gated on the re-evaluation trigger above)
+
+- `src/will/agents/acceptance/conditions.py`: drop unused `task` param from the protocol
+  and the three `evaluate` signatures; complete `PytestAcceptanceCondition` to write `code`
+  before validating.
+- `src/will/agents/prompt_model_iterative_agent.py`: accept an injected
+  `AcceptanceCondition`; replace the hardcoded `intent_guard.validate_generated_code` block
+  with `condition.evaluate(code)`; map its `AcceptanceResult` onto the existing
+  violation-feedback path.
+- `src/will/agents/test_gen_cognitive_delegate.py`: construct
+  `CompositeAcceptanceCondition([IntentGuardAcceptanceCondition, PytestAcceptanceCondition])`
+  with the executor + `target_path` + `source_file` and inject it.
+- Tests: acceptance conditions (currently zero coverage) and the wired loop, including a
+  case proving a runtime-only failure (imports clean, fails at run) drives a repair
+  iteration.
+- Add the fitness-function rule (decision 8).
+
+### Consequences
+
+Positive: the failure class that static analysis cannot see (runtime contracts —
+`declaration_name`, session factory, wrong mock target that only fails on execution)
+becomes self-correcting inside the governed iteration budget, restoring the spike's
+measured recovery behavior. Negative: pytest runs per rejected iteration rather than once,
+within the already-governed `generation_budget.yaml` cap (`max_iterations`,
+`wall_clock_cap_secs`) — the cost the spike already accepted for its payoff.

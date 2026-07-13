@@ -281,6 +281,17 @@ addressed: after this ADR is implemented, `TestRemediatorWorker` re-queues them 
 `flow.build_test_for_symbol` proposals (per ADR-133 D4), which then benefit from iterative
 mode automatically.
 
+> **Status note (2026-07-13):** D6's acceptance-condition wiring was not carried onto the
+> live generation path introduced by ADR-140 D5 (`PromptModelIterativeAgent`) — the
+> machinery in `src/will/agents/acceptance/` exists but drifted unwired and untested, and
+> pytest ran as a post-loop flow step instead of inside the loop (#791). **D6 STANDS** —
+> pytest-in-the-loop is reaffirmed. Its wiring onto the `PromptModelIterativeAgent` path,
+> and the two deviations found in the process (`AuditAcceptanceCondition` was never built;
+> the target composite is `[IntentGuard, Pytest]` in-process rather than `[Pytest, Audit]`),
+> are specified in **ADR-140, Amendment 2026-07-13** — where implementation is
+> **deliberately deferred** pending measured daemon behaviour (a recorded, triggered
+> deferral, not silent drift).
+
 ### D7 — `EnhancedTestGenerator` is deprecated as a generation path
 
 `src/will/self_healing/test_generation/EnhancedTestGenerator` is deprecated. It is not
