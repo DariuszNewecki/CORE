@@ -21,7 +21,11 @@ from typing import TYPE_CHECKING, Any
 from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
 from shared.protocols.cognitive_flow_delegate import CognitiveStepError
-from shared.utils.test_gen_utils import derive_module_path, extract_symbol_code
+from shared.utils.test_gen_utils import (
+    derive_module_path,
+    extract_constructor_signature,
+    extract_symbol_code,
+)
 from will.agents.prompt_model_iterative_agent import (
     GenerationFailedError,
     PromptModelIterativeAgent,
@@ -95,6 +99,21 @@ class TestGenCognitiveDelegate:
         symbol_code = extract_symbol_code(source_path, symbol_name)
         if not symbol_code:
             symbol_code = f"# {signature}"
+
+        # Method-level symbols (dotted ClassName.method_name) never include
+        # the containing class's constructor in symbol_code above — the
+        # method body alone doesn't say whether the class needs constructor
+        # arguments. Prepend it when present so instantiation isn't a guess.
+        class_name, _dot, method_name = symbol_name.partition(".")
+        if method_name:
+            constructor_code = extract_constructor_signature(source_path, class_name)
+            if constructor_code:
+                symbol_code = (
+                    f"# {class_name}.__init__ (constructor context for "
+                    f"instantiating the class under test):\n"
+                    f"{constructor_code}\n\n"
+                    f"# Method under test:\n{symbol_code}"
+                )
 
         module_path = derive_module_path(source_file)
 

@@ -15,7 +15,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.utils.test_gen_utils import extract_symbol_code
+from shared.utils.test_gen_utils import (
+    extract_constructor_signature,
+    extract_symbol_code,
+)
 
 
 _SOURCE = '''\
@@ -113,4 +116,37 @@ def test_syntax_error_returns_none(tmp_path: Path) -> None:
     p = tmp_path / "broken.py"
     p.write_text("def f(:\n    pass", encoding="utf-8")
     result = extract_symbol_code(p, "f")
+    assert result is None
+
+
+# ── extract_constructor_signature ──────────────────────────────────────────
+# Method-level extraction never includes the containing class's __init__ —
+# this is the companion extraction that supplies it, so a generated test
+# knows how to instantiate a class whose constructor deviates from the
+# common no-arg worker pattern (confirmed live: DbSyncWorker.__init__
+# requires core_context; two independent LLM generations both guessed
+# DbSyncWorker() with no arguments because they never saw otherwise).
+
+
+def test_extracts_explicit_constructor(tmp_path: Path) -> None:
+    result = extract_constructor_signature(_write(tmp_path), "Widget")
+    assert result is not None
+    assert "def __init__(self) -> None:" in result
+    assert "self.value = 0" in result
+
+
+def test_no_explicit_constructor_returns_none(tmp_path: Path) -> None:
+    """OtherWidget has no __init__ of its own — relies on the base class's
+    default. That's genuine absence, not an extraction failure."""
+    result = extract_constructor_signature(_write(tmp_path), "OtherWidget")
+    assert result is None
+
+
+def test_constructor_missing_class_returns_none(tmp_path: Path) -> None:
+    result = extract_constructor_signature(_write(tmp_path), "NoSuchClass")
+    assert result is None
+
+
+def test_constructor_unreadable_file_returns_none(tmp_path: Path) -> None:
+    result = extract_constructor_signature(tmp_path / "missing.py", "Widget")
     assert result is None

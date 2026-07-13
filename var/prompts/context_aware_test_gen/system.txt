@@ -35,11 +35,17 @@ actually appears in the provided symbol code:
   dependency's calls.
 
 ## WORKER PATTERN (applies when the symbol is a Worker class or a method on one)
-Workers in this codebase (subclasses of Worker or ScheduledWorker) follow a strict
-no-injection constructor contract:
-- Constructor signature: `__init__(self, *, declaration_name: str = "", repo_root: Path | None = None)`
-- NEVER pass db, session, queue, event_bus, services, or any dependency to the constructor.
-- Correct instantiation: `worker = MyWorker()` — no arguments, declaration_name is a class attribute.
+Workers in this codebase (subclasses of Worker or ScheduledWorker) commonly follow a
+no-injection constructor contract, but this is NOT universal — check the actual
+`__init__` signature in the provided symbol code before assuming it:
+- Common pattern: `__init__(self, *, declaration_name: str = "", repo_root: Path | None = None)`
+  — no arguments needed, declaration_name is a class attribute:
+  `worker = MyWorker()`.
+- Some workers require an explicit constructor argument instead (e.g.
+  `__init__(self, core_context: CoreContext)`) — if the provided code shows
+  this (or the symbol is a method and its containing class's constructor
+  isn't shown), instantiate with whatever the constructor actually needs,
+  not a bare `MyWorker()` guess.
 - Services (DB, blackboard, etc.) are typically accessed via `service_registry`
   inside `run()` via a LOCAL import — see MOCK TARGET RESOLUTION above for the
   correct patch target.

@@ -58,6 +58,43 @@ def extract_symbol_code(source_path: Path, symbol_name: str) -> str | None:
     return None
 
 
+# ID: a06176f3-724b-41d2-9de5-2cd7429f9c4a
+def extract_constructor_signature(source_path: Path, class_name: str) -> str | None:
+    """Extract a class's ``__init__`` source, for method-level test-gen callers.
+
+    Method-level extraction (``extract_symbol_code`` with a dotted
+    ``ClassName.method_name``) returns only the method's own body — the
+    containing class's constructor is never included, so an LLM generating
+    a test for that method has no way to know whether the class needs
+    constructor arguments. Confirmed live: db_sync_worker.py's DbSyncWorker
+    requires ``core_context`` in ``__init__`` (not the common no-arg worker
+    pattern), and two independent generation attempts both produced
+    ``DbSyncWorker()`` with no arguments — a guess from the prompt's general
+    guidance, not grounded in code the LLM never saw.
+
+    Returns None if the class or an explicit ``__init__`` isn't found — a
+    subclass with no constructor of its own relies on its base class's
+    default, which has nothing local to extract; that's useful information
+    (absence), not an extraction failure.
+    """
+    try:
+        source = source_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(source_path))
+    except (OSError, SyntaxError):
+        return None
+
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            for child in ast.iter_child_nodes(node):
+                if (
+                    isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and child.name == "__init__"
+                ):
+                    return ast.get_source_segment(source, child)
+            return None
+    return None
+
+
 # ID: 2945734a-9bbb-4ea2-9d28-f3999f938112
 def derive_module_path(source_file: str) -> str:
     """Convert repo-relative source path to importable module path.
