@@ -385,6 +385,27 @@ class Worker(ABC):
         self._cycle_post_count += 1
         return await self._blackboard.post_observation(subject, payload, status=status)
 
+    # ID: 85c2bf0f-9608-410d-b529-2b3974b6c53e
+    async def post_unavailable(
+        self, subject: str, *, reason: str, detail: dict[str, Any] | None = None
+    ) -> uuid.UUID:
+        """Post an instrument-unavailable observation — "couldn't look", not "clean".
+
+        The instrument-result taxonomy leg for #765/T1.3: a sensor whose input
+        source is unreachable (missing scan root, unresolvable dependency) MUST
+        NOT let an empty result read as a genuine all-clear. This names that
+        state distinctly. Stored as an ``indeterminate`` observation — the
+        sanctioned "evidence insufficient to evaluate" leg (Indeterminate
+        vocabulary term; ``resolution_mechanism='human'`` stamped by
+        BlackboardPublisher, satisfying
+        ``architecture.blackboard.indeterminate_requires_human_mechanism``).
+        Terminal at creation and dedup-guarded, like any observation.
+        """
+        payload: dict[str, Any] = {"instrument_result": "unavailable", "reason": reason}
+        if detail:
+            payload.update(detail)
+        return await self.post_observation(subject, payload, status="indeterminate")
+
     # -------------------------------------------------------------------------
     # Properties
     # -------------------------------------------------------------------------

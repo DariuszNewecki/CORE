@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.intent.test_coverage_paths import (
+    InstrumentUnavailable,
     load_test_coverage_config,
     uncovered_source_files,
 )
@@ -87,7 +88,20 @@ class TestCoverageSensor(ScheduledWorker):
         await self.post_heartbeat()
 
         config = self._load_coverage_config()
-        uncovered = self._scan_uncovered_files(config)
+
+        # #765/T1.3: distinguish "scanned, genuinely clean" from "couldn't
+        # scan". A missing source root raises InstrumentUnavailable rather
+        # than returning [] — post an instrument-unavailable observation
+        # instead of a false "all files covered" all-clear.
+        try:
+            uncovered = self._scan_uncovered_files(config)
+        except InstrumentUnavailable as exc:
+            await self.post_unavailable(
+                subject="test_coverage_sensor.instrument_unavailable",
+                reason=str(exc),
+            )
+            logger.warning("TestCoverageSensor: coverage scan unavailable — %s", exc)
+            return
 
         if not uncovered:
             await self.post_report(

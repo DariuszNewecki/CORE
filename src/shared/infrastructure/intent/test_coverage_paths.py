@@ -31,6 +31,15 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+
+# ID: c3f8a2d6-1e4b-4c79-9a5d-8b6f0e1d2c3a
+class InstrumentUnavailable(Exception):
+    """Raised when a coverage scan cannot actually run — the input source is
+    unreachable (missing/misconfigured source root), so an empty result would
+    be "couldn't look", not "genuinely clean" (#765/T1.3). Callers translate
+    this into a post_unavailable observation rather than a false all-clear."""
+
+
 _FALLBACK_SOURCE_ROOT = "src"
 _FALLBACK_TEST_ROOT = "tests"
 _FALLBACK_TEST_FILE_SUFFIX = "/test_generated.py"
@@ -151,11 +160,15 @@ def uncovered_source_files(
 
     src_root = repo_root / source_root_rel
     if not src_root.exists():
-        logger.warning(
-            "test_coverage_paths.uncovered_source_files: source root not found at %s",
-            src_root,
+        # #765/T1.3: an empty scan here is "couldn't look", not "all covered".
+        # Previously this returned [] and both callers read it as a genuine
+        # all-clear — TestCoverageSensor posting "all files covered" and
+        # TestRunnerSensor resolving quarantined 'missing' findings as if the
+        # sources were now covered. Raise so callers post_unavailable instead.
+        raise InstrumentUnavailable(
+            f"coverage source root not found at {src_root} "
+            f"(source_root={source_root_rel!r})"
         )
-        return []
 
     uncovered: list[str] = []
 

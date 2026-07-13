@@ -128,7 +128,19 @@ class TestRemediatorWorker(Worker):
         open_findings = await _load_open_findings(self._worker_uuid)
 
         if not open_findings:
+            # #765/T1.3: post a positive all-clear record rather than only a
+            # heartbeat. A bare return left "nothing to do" indistinguishable
+            # from a cycle that never reached this point; the report makes the
+            # clean result an observable fact.
             logger.info("TestRemediatorWorker: no open test findings")
+            await self.post_report(
+                subject="test_remediator.run.complete",
+                payload={
+                    "open_findings": 0,
+                    "proposals_created": 0,
+                    "message": "No open test findings to remediate.",
+                },
+            )
             return
 
         logger.info(

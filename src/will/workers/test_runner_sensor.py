@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.intent.test_coverage_paths import (
+    InstrumentUnavailable,
     load_test_coverage_config,
     source_to_test_path,
     uncovered_source_files,
@@ -307,33 +308,53 @@ class TestRunnerSensor(ScheduledWorker):
         bb_svc = await service_registry.get_blackboard_service()
 
         # --- python::test.runner.missing drain -------------------------------
-        uncovered = uncovered_source_files(self._repo_root, config)
-        missing_current = {f"{_MISSING_REAUDIT_PREFIX}::{src}" for src in uncovered}
-
-        missing_reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
-            subject_prefix=_MISSING_REAUDIT_PREFIX,
-            current_violation_subjects=missing_current,
-            resolved_by="test_runner_sensor",
-        )
-        missing_released = len(missing_reaudit["released_subjects"])
-        missing_resolved = len(missing_reaudit["resolved_subjects"])
-
-        if missing_released or missing_resolved:
-            logger.info(
-                "TestRunnerSensor: test.runner.missing reaudit drained %d released, %d resolved.",
-                missing_released,
-                missing_resolved,
+        # #765/T1.3: if the coverage scan can't run (source root missing), an
+        # empty uncovered set here would resolve every quarantined 'missing'
+        # finding as if its source were now covered — a false all-clear that
+        # loses the trigger. Skip the missing-drain entirely and post an
+        # instrument-unavailable observation instead; the failure-drain below
+        # is independent (pytest-driven, not scan-driven) and still runs.
+        try:
+            uncovered = uncovered_source_files(self._repo_root, config)
+        except InstrumentUnavailable as exc:
+            await self.post_unavailable(
+                subject="test_runner_sensor.missing_drain.instrument_unavailable",
+                reason=str(exc),
             )
-            await self.post_report(
-                subject="audit.reaudit.complete::test.runner.missing",
-                payload={
-                    "namespace": "test.runner.missing",
-                    "released_count": missing_released,
-                    "resolved_count": missing_resolved,
-                    "released_subjects": missing_reaudit["released_subjects"],
-                    "resolved_subjects": missing_reaudit["resolved_subjects"],
-                },
+            logger.warning(
+                "TestRunnerSensor: missing-drain skipped — coverage scan "
+                "unavailable (%s)",
+                exc,
             )
+            uncovered = None
+
+        if uncovered is not None:
+            missing_current = {f"{_MISSING_REAUDIT_PREFIX}::{src}" for src in uncovered}
+
+            missing_reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
+                subject_prefix=_MISSING_REAUDIT_PREFIX,
+                current_violation_subjects=missing_current,
+                resolved_by="test_runner_sensor",
+            )
+            missing_released = len(missing_reaudit["released_subjects"])
+            missing_resolved = len(missing_reaudit["resolved_subjects"])
+
+            if missing_released or missing_resolved:
+                logger.info(
+                    "TestRunnerSensor: test.runner.missing reaudit drained %d released, %d resolved.",
+                    missing_released,
+                    missing_resolved,
+                )
+                await self.post_report(
+                    subject="audit.reaudit.complete::test.runner.missing",
+                    payload={
+                        "namespace": "test.runner.missing",
+                        "released_count": missing_released,
+                        "resolved_count": missing_resolved,
+                        "released_subjects": missing_reaudit["released_subjects"],
+                        "resolved_subjects": missing_reaudit["resolved_subjects"],
+                    },
+                )
 
         # --- python::test.runner.failure drain -------------------------------
         failure_quarantined = await bb_svc.fetch_awaiting_reaudit_subjects_by_prefix(
