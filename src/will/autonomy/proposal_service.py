@@ -43,7 +43,7 @@ class ProposalService:
     Usage:
         async with ProposalService.open() as service:
             proposal = await service.get("id")
-            await service.mark_completed("id", results)
+            await service.mark_completed("id")
     """
 
     def __init__(self, session: Any):
@@ -120,9 +120,14 @@ class ProposalService:
     # -------------------------
 
     # ID: bc89da1a-1a65-4982-8e45-1e85d5bea7c6
-    async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:
-        """Mark proposal as completed."""
-        await self._state_manager.mark_completed(proposal_id, results)
+    async def mark_completed(self, proposal_id: str) -> None:
+        """Mark a finalized proposal as completed (ADR-148 D1).
+
+        No results payload: under the FINALIZING barrier, execution_results is
+        persisted at mark_finalizing (executing -> finalizing); mark_completed
+        only advances finalizing -> completed and stamps consequence_recorded_at.
+        """
+        await self._state_manager.mark_completed(proposal_id)
 
     # ID: c30a8f14-0c38-4c1b-b42b-675d5e498ca7
     async def mark_failed(self, proposal_id: str, reason: str) -> None:

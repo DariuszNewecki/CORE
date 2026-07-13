@@ -101,7 +101,7 @@ async def test_three_same_action_id_results_persist_distinctly(
     }
 
     try:
-        await ProposalStateManager(db_session).mark_completed(proposal_id, results)
+        await ProposalStateManager(db_session).mark_finalizing(proposal_id, results)
 
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)

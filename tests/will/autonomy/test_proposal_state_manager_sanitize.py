@@ -2,7 +2,7 @@
 
 The PostgreSQL DB is SQL_ASCII-encoded; non-ASCII characters in the JSONB
 ``execution_results`` payload trigger ``UntranslatableCharacterError`` on insert.
-``mark_completed()`` and ``mark_failed()`` now route their payloads through
+``mark_finalizing()`` and ``mark_failed()`` route their payloads through
 ``_sanitize_payload`` before the write, replacing non-ASCII bytes with '?'.
 """
 
@@ -25,10 +25,9 @@ pytestmark = [pytest.mark.integration]
 
 
 def _draft_row(proposal_id: str) -> AutonomousProposal:
-    # approval_authority pre-set on the draft so mark_completed's transition
-    # to 'completed' satisfies the approval_authority_required_when_approved
-    # CHECK; mark_failed does not require it (status='failed' is outside the
-    # constraint's enforced status set).
+    # approval_authority pre-set on the draft to satisfy the
+    # approval_authority_required_when_approved CHECK; harmless for the
+    # executing -> finalizing / failed transitions these tests exercise.
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="sanitize() unit test",
@@ -59,9 +58,13 @@ async def _fetch(
     return result.scalar_one_or_none()
 
 
-async def test_mark_completed_sanitizes_non_ascii(db_session: AsyncSession) -> None:
-    """em-dash in execution_results is replaced with '?', no exception raised."""
-    proposal_id = f"test-sanitize-completed-{uuid.uuid4().hex[:8]}"
+async def test_mark_finalizing_sanitizes_non_ascii(db_session: AsyncSession) -> None:
+    """em-dash in execution_results is replaced with '?', no exception raised.
+
+    execution_results persistence moved to mark_finalizing under the ADR-148
+    FINALIZING barrier; #274 sanitization now guards that transition.
+    """
+    proposal_id = f"test-sanitize-finalizing-{uuid.uuid4().hex[:8]}"
     db_session.add(_draft_row(proposal_id))
     await db_session.commit()
 
@@ -76,12 +79,12 @@ async def test_mark_completed_sanitizes_non_ascii(db_session: AsyncSession) -> N
     }
 
     try:
-        await ProposalStateManager(db_session).mark_completed(proposal_id, results)
+        await ProposalStateManager(db_session).mark_finalizing(proposal_id, results)
 
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "completed"
+        assert row.status == "finalizing"
         assert row.execution_completed_at is not None
 
         stored = row.execution_results["fix.path_resolver"]["data"]
