@@ -102,10 +102,19 @@ reorganization; (4) semantically invariant — two readers interpret the file th
 before and after. Passing examples: filename-rename propagation, path-reference updates after
 a move, renaming a governor-decided constant.
 
+**Path C — batched confirmation for precedent-grounded transcription.** When several planned
+writes are each a mechanical transcription of a decision already made elsewhere (an accepted
+ADR, an existing enum/taxonomy value, a rule already stated in prose) — not a fresh
+interpretive call — Claude Code may present the batch together with its grounding citation per
+item and get one confirmation covering the set, rather than confirming file-by-file. Any item
+in the batch that requires judgment beyond transcription drops out and needs its own Path A
+confirmation. Does not apply to the constitutional core (below), which always confirms
+file-by-file regardless of how well-grounded the change is.
+
 **Constitutional core — heightened confirmation.** `.intent/constitution/`, `.intent/META/`,
 `.intent/rules/governance/` define the governance frame. Path A reaches them, but the
 governor must name the **specific** file in the confirmation (no blanket "go ahead"), and
-Claude Code surfaces the change for review before writing.
+Claude Code surfaces the change for review before writing. Path C (batching) never applies here.
 
 When neither path applies, draft-in-response. Direct writes are the exception.
 
