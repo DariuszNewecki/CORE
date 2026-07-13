@@ -217,6 +217,7 @@ class BlackboardConfig:
 # ID: eeee047a-d8a0-46d7-858a-1c6bb47079b5
 class HealthLogConfig:
     stale_threshold_seconds: int = 3600
+    convergence_rolling_window: int = 30
 
 
 @dataclass(frozen=True)
@@ -228,6 +229,8 @@ class DaemonConfig:
     # a structured handler to the slow-callback warnings these settings emit.
     slow_callback_duration_sec: float = 0.1
     set_debug: bool = False
+    startup_jitter_cap_sec: int = 30
+    systemctl_timeout_sec: float = 30.0
 
 
 @dataclass(frozen=True)

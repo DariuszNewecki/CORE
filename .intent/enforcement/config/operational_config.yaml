@@ -144,6 +144,10 @@ blackboard:
 # ---------------------------------------------------------------------------
 health_log:
   stale_threshold_seconds: 3600
+  # F-19 convergence CTE (#563) rolling window — see
+  # body/services/health_log_service.py. #774 (ADR-040 sweep): moved out
+  # of a src/ literal.
+  convergence_rolling_window: 30
 
 # ---------------------------------------------------------------------------
 # Daemon
@@ -157,6 +161,17 @@ daemon:
   # emissions; do not revert without coordinating with Step 3a/3b.
   slow_callback_duration_sec: 1.0
   set_debug: true
+  # Cold-start jitter cap (#611). Each one-shot worker delays its first
+  # cycle by a hash-of-stem offset in [0, startup_jitter_cap_sec) so a
+  # cohort of audit sensors can't blackout the single-worker uvicorn API
+  # after a restart. #774 (ADR-040 sweep): moved out of a src/ literal.
+  startup_jitter_cap_sec: 30
+  # will/governance/daemon_runner.py — timeout on `systemctl --user
+  # start|stop core-daemon` subprocess calls. #774 (ADR-040 sweep): the
+  # constant existed in src/ but was never actually applied to the
+  # subprocess call (dead), so systemctl invocations had no timeout
+  # protection at all until this fix wired it via asyncio.wait_for.
+  systemctl_timeout_sec: 30.0
 
 # ---------------------------------------------------------------------------
 # Worker classification (ADR-081 D7 / ADR-082)
