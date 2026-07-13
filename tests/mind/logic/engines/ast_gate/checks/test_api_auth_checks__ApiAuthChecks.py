@@ -199,3 +199,148 @@ def test_empty_module_is_violation() -> None:
     tree = _parse("")
     violations = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
     assert len(violations) == 1
+
+
+# ── sensitive_route_must_be_gated (#770) ───────────────────────────────────────
+
+
+def test_governor_only_module_never_flagged() -> None:
+    """governor-only modules are already fully gated at the router-constructor
+    level — the per-route check doesn't even apply to them."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "governor-only"
+        router = APIRouter(prefix="/ops", dependencies=[require_governor])
+
+        @router.post("/danger")
+        async def do_danger():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_get_route_never_flagged() -> None:
+    """Read-only GET routes are never sensitive regardless of gating."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/data")
+
+        @router.get("/items")
+        async def list_items():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_ungated_post_route_on_user_facing_module_is_violation() -> None:
+    """The core gap (#770): a mutation route with no gate anywhere ships silently."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/secrets")
+
+        @router.post("")
+        async def set_secret():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "set_secret" in violations[0]
+    assert "'post'" in violations[0]
+
+
+def test_all_four_mutation_verbs_detected() -> None:
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/x")
+
+        @router.post("/a")
+        async def a():
+            ...
+
+        @router.put("/b")
+        async def b():
+            ...
+
+        @router.delete("/c")
+        async def c():
+            ...
+
+        @router.patch("/d")
+        async def d():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 4
+
+
+def test_decorator_dependencies_gate_passes() -> None:
+    """Gated via dependencies=[require_governor] on the route decorator."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/proposals")
+
+        @router.post("/create", dependencies=[require_governor])
+        async def create_proposal():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_decorator_depends_wrapped_gate_passes() -> None:
+    """Depends(require_governor) form in the decorator's dependencies also counts."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/proposals")
+
+        @router.post("/create", dependencies=[Depends(require_governor)])
+        async def create_proposal():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_parameter_default_gate_passes() -> None:
+    """Gated via a handler parameter defaulting to require_governor (the
+    FastAPI DI-parameter idiom used elsewhere in this codebase)."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/proposals")
+
+        @router.post("/create")
+        async def create_proposal(user: dict = require_governor):
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_parameter_default_depends_wrapped_gate_passes() -> None:
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/proposals")
+
+        @router.post("/create")
+        async def create_proposal(user: dict = Depends(require_governor)):
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_mixed_gated_and_ungated_routes_only_flags_ungated() -> None:
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/mixed")
+
+        @router.post("/gated", dependencies=[require_governor])
+        async def gated_route():
+            ...
+
+        @router.post("/ungated")
+        async def ungated_route():
+            ...
+
+        @router.get("/read")
+        async def read_route():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "ungated_route" in violations[0]

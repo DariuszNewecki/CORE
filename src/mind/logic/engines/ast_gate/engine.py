@@ -114,6 +114,7 @@ class ASTGateEngine(BaseEngine):
             "type_annotations",
             "router_exposure_enforcement",
             "route_module_must_declare_exposure",
+            "sensitive_route_must_be_gated",
         }
     )
 
@@ -346,6 +347,9 @@ class ASTGateEngine(BaseEngine):
             violations.extend(
                 ApiAuthChecks.check_route_module_must_declare_exposure(tree)
             )
+
+        elif check_type == "sensitive_route_must_be_gated":
+            violations.extend(ApiAuthChecks.check_sensitive_route_must_be_gated(tree))
 
         # --- Logging & Channel Discipline ---
         elif check_type == "logger_not_presentation":

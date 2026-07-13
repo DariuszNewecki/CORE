@@ -1441,6 +1441,16 @@ mappings:
       posture — governor decision. Non-automatable.
     status: DELEGATE
 
+  architecture.api.sensitive_route_must_be_gated:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A mutation-verb route on a user-facing module lacks a require_governor
+      gate. Adding one requires a governor decision on whether the route is
+      genuinely sensitive or intentionally ungated (#770) — same class as
+      router_exposure_must_match_dependencies. Non-automatable.
+    status: DELEGATE
+
   architecture.artifact_discovery_through_registry:
     action: fix.modularity
     confidence: 0.40

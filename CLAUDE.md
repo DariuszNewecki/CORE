@@ -138,7 +138,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 37 blocking + 28 reporting + 8 advisory = 73.
+the other two surface findings. At digest time: 37 blocking + 29 reporting + 8 advisory = 74.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -215,7 +215,7 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
 **Will** — `architecture.will.no_direct_database_access` [r]; `no_filesystem_operations` [r — SHOULD delegate to Body]; `must_delegate_to_body` [r — orchestration SHOULD import and delegate to Body services].
 
-**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services]. `architecture.api.response_must_use_declared_schema` [r — routes returning findings/audit/run results MUST declare an explicit `response_model` from `api/v1/schemas.py`].
+**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services]. `architecture.api.response_must_use_declared_schema` [r — routes returning findings/audit/run results MUST declare an explicit `response_model` from `api/v1/schemas.py`]. `architecture.api.sensitive_route_must_be_gated` [r — every POST/PUT/DELETE/PATCH route on a `user-facing` module MUST carry `require_governor` per-route (decorator dependency or parameter default); per-route completeness companion to `router_exposure_must_match_dependencies`, which only checks the router-constructor level (#770)].
 
 **Shared / layout** — `architecture.shared.no_strategic_decisions` [r]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point; `logic.di.no_global_session` [a — SUPERSEDED by `architecture.boundary.database_session_access`, #512].
 

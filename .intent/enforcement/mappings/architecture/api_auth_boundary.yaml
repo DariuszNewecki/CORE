@@ -24,3 +24,11 @@ mappings:
         - "src/api/v1/**/*.py"
       excludes:
         - "src/api/v1/__init__.py"
+
+  architecture.api.sensitive_route_must_be_gated:
+    engine: ast_gate
+    params:
+      check_type: sensitive_route_must_be_gated
+    scope:
+      applies_to:
+        - "src/api/v1/**/*_routes.py"

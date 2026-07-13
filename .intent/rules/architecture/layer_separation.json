@@ -161,6 +161,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "Completeness companion to router_exposure_must_match_dependencies. The consistency rule (ADR-132 D7) only fires when ROUTER_EXPOSURE is present; a new route file that silently omits the declaration escapes classification entirely. This rule closes that gap: any *_routes.py file without ROUTER_EXPOSURE is undeclared and therefore ungoverned."
+        },
+        {
+            "id": "architecture.api.sensitive_route_must_be_gated",
+            "statement": "Every POST/PUT/DELETE/PATCH route declared on a ROUTER_EXPOSURE='user-facing' module MUST carry require_governor, either in the route decorator's dependencies list or as a handler parameter default, unless explicitly confirmed as intentionally ungated.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "router_exposure_must_match_dependencies only validates the router-CONSTRUCTOR-level gate; it has no visibility into per-route decorators, so a newly added sensitive endpoint on an already-compliant user-facing router ships completely ungated and that rule still passes. This is the per-route completeness companion, mirroring route_module_must_declare_exposure's relationship to the consistency rule. Sensitivity signal is the HTTP mutation verb, reusing the read/write axis CORE already applies elsewhere (ActionImpact, action_risk.yaml) rather than a new taxonomy. Reporting rather than blocking: require_governor is a no-op passthrough in this OSS build (api/dependencies.py), so the gap is currently structural rather than live-exploitable, and an initial sweep surfaces a nonzero false-positive set (read-shaped POST routes) that should be triaged before promotion to blocking (#770)."
         }
     ]
 }

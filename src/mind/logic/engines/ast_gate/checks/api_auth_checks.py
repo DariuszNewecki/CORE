@@ -78,6 +78,54 @@ class ApiAuthChecks:
             ]
         return []
 
+    @staticmethod
+    # ID: 5c1d8e2a-9f4b-4a67-b3c8-2d5e6f7a8b9c
+    def check_sensitive_route_must_be_gated(tree: ast.AST) -> list[str]:
+        """Verify every mutation-verb route in a user-facing module is gated (#770).
+
+        check_router_exposure_enforcement only validates router-CONSTRUCTOR-level
+        gates; it has no visibility into per-route decorators, so a newly added
+        sensitive endpoint on an already-compliant user-facing router ships
+        completely ungated and the existing rule still passes.
+
+        Sensitivity signal: HTTP mutation verb (post/put/delete/patch), reusing
+        the read/write axis CORE already applies elsewhere (ActionImpact,
+        action_risk.yaml) rather than a new taxonomy. GET/HEAD routes are never
+        flagged.
+
+        A route counts as gated if EITHER form already used across this codebase
+        is present: `dependencies=[require_governor]` (or `Depends(require_governor)`)
+        on the route decorator, or a handler parameter defaulting to
+        `require_governor` / `Depends(require_governor)` (the FastAPI DI-parameter
+        idiom, e.g. `user: dict = require_governor`).
+
+        Only applies to ROUTER_EXPOSURE='user-facing' modules — governor-only
+        modules are already fully gated at the router-constructor level.
+        """
+        if _find_router_exposure(tree) != "user-facing":
+            return []
+
+        findings: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef):
+                continue
+            route_deco = _find_mutation_route_decorator(node)
+            if route_deco is None:
+                continue
+            if _call_has_require_governor(route_deco) or _params_have_require_governor(
+                node
+            ):
+                continue
+            findings.append(
+                f"'{node.name}' is a {_route_verb(route_deco)!r} route on a "
+                "user-facing router with no require_governor gate (neither in "
+                "the decorator's dependencies= nor as a handler parameter "
+                "default). Add dependencies=[require_governor] to the route "
+                "decorator, or a parameter defaulting to require_governor, or "
+                "confirm this route is intentionally ungated."
+            )
+        return findings
+
 
 # ID: a906415b-311a-42d5-8df8-8a8db0b856fe
 def _find_router_exposure(tree: ast.AST) -> str | None:
@@ -143,4 +191,51 @@ def _call_has_require_governor(call: ast.Call) -> bool:
                 and elt.args[0].id == "require_governor"
             ):
                 return True
+    return False
+
+
+_MUTATION_VERBS = frozenset({"post", "put", "delete", "patch"})
+
+
+# ID: 6d2e9f3b-0a5c-4b78-c4d9-3e6f7a8b9c0d
+def _find_mutation_route_decorator(
+    func: ast.AsyncFunctionDef | ast.FunctionDef,
+) -> ast.Call | None:
+    """Return the `@<router>.{post,put,delete,patch}(...)` decorator call on
+    this function, or None if it has no mutation-verb route decorator."""
+    for deco in func.decorator_list:
+        if not isinstance(deco, ast.Call):
+            continue
+        func_expr = deco.func
+        if isinstance(func_expr, ast.Attribute) and func_expr.attr in _MUTATION_VERBS:
+            return deco
+    return None
+
+
+# ID: 7e3f0a4c-1b6d-4c89-d5ea-4f7a8b9c0d1e
+def _route_verb(deco: ast.Call) -> str:
+    """Return the HTTP verb name from a route decorator call (e.g. 'post')."""
+    func_expr = deco.func
+    assert isinstance(func_expr, ast.Attribute)
+    return func_expr.attr
+
+
+# ID: 8f4a1b5d-2c7e-4d9a-e6fb-5a8b9c0d1e2f
+def _params_have_require_governor(func: ast.AsyncFunctionDef | ast.FunctionDef) -> bool:
+    """Return True if any handler parameter defaults to require_governor or
+    Depends(require_governor) — the FastAPI DI-parameter gating idiom."""
+    for default in func.args.defaults + func.args.kw_defaults:
+        if default is None:
+            continue
+        if isinstance(default, ast.Name) and default.id == "require_governor":
+            return True
+        if (
+            isinstance(default, ast.Call)
+            and isinstance(default.func, ast.Name)
+            and default.func.id == "Depends"
+            and default.args
+            and isinstance(default.args[0], ast.Name)
+            and default.args[0].id == "require_governor"
+        ):
+            return True
     return False
