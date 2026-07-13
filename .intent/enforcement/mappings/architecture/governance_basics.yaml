@@ -68,6 +68,9 @@
           - "src/shared/infrastructure/cli_session.py" # ADR-132: writes ~/.config/core/session.json (user home, outside repo root); FileHandler is repo-bound and refuses out-of-repo paths
           - "src/cli/logic/byor.py" # BYOR CLI: shutil.rmtree on external project staging dir (outside CORE repo root); cannot route through FileHandler
           - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
+          # --- ADDED 2026-07-13 (#779) ---
+          # Mirrored in mutation_surface.yaml's excludes set.
+          - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* — work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
           # --- AUTONOMOUS CODE: Now enforced (no exclusions for self-healing) ---
           # Self-healing modules MUST route writes through FileHandler
           # (sandbox.py above is test-generation, not self-healing)
