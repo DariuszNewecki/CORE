@@ -157,6 +157,12 @@ async def test_proposal_pipeline_classifies_all_three_subjects_as_self_resolve(
     proposal_svc = MagicMock()
     proposal_svc.fetch_stuck_approved = AsyncMock(return_value=[stuck_approved_row])
     proposal_svc.fetch_stuck_executing = AsyncMock(return_value=[stuck_executing_row])
+    # ProposalPipelineShopManager.run also queries stuck_finalizing (ADR-148
+    # Stage 3) and stuck_undeferred (#764); seed both empty so this cycle's
+    # three seeded conditions remain the only findings. Without these the
+    # MagicMock returns a non-awaitable and run() raises at the fetch call.
+    proposal_svc.fetch_stuck_finalizing = AsyncMock(return_value=[])
+    proposal_svc.fetch_stuck_undeferred = AsyncMock(return_value=[])
     proposal_svc.fetch_repeated_failures = AsyncMock(
         return_value=[repeated_failure_row]
     )
