@@ -90,10 +90,11 @@ class PackLoader:
         for path in sorted(self._packs_dir.glob("*.yaml")):
             try:
                 data = strict_yaml_processor.load_strict(path)
-                if data.get("id") == pack_id:
-                    return self._build(data, path)
             except Exception as exc:
                 logger.warning("pack_loader: error reading %s: %s", path.name, exc)
+                continue
+            if data.get("id") == pack_id:
+                return self._build(data, path)
         return None
 
     # ID: a24c1264-e474-4131-a15e-cc08073a3ac9
