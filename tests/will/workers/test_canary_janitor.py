@@ -85,3 +85,16 @@ def test_reap_missing_directory_is_reported_not_raised(tmp_path: Path) -> None:
     candidate = StaleSandbox(path=missing, age_seconds=9999.0, size_bytes=0)
 
     assert _reap(candidate) is False
+
+
+def test_retention_rails_sourced_from_operational_config() -> None:
+    """#774 (ADR-040): the retention rails must trace to
+    operational_config.yaml, not a src/ literal."""
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+    from will.workers.canary_janitor import MAX_REAP_PER_RUN, RETENTION_SECONDS
+
+    cfg = load_operational_config().workers.canary_janitor
+    assert RETENTION_SECONDS == cfg.retention_seconds
+    assert MAX_REAP_PER_RUN == cfg.max_reap_per_run

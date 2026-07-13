@@ -19,15 +19,19 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-# ADR-117 D2/D3 — the rails, as governor-tunable dials.
-RETENTION_DAYS: int = 7
-MAX_REAP_PER_RUN: int = 200
+# ADR-117 D2/D3 — the rails, as governor-tunable dials. Governed via
+# operational_config.yaml workers.var_tmp_janitor (#774, ADR-040 sweep);
+# these module constants are now thin governed aliases, not literals.
+_CFG = load_operational_config().workers.var_tmp_janitor
+RETENTION_DAYS: int = _CFG.retention_days
+MAX_REAP_PER_RUN: int = _CFG.max_reap_per_run
 
 _KEEP_MARKER = ".keep"
 _TMP_RELPATH = ("var", "tmp")

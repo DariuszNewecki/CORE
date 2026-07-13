@@ -691,6 +691,22 @@ class WorkerCoherenceSensorConfig:
 
 
 @dataclass(frozen=True)
+# ID: 5b0e2c1a-9d47-4f8e-b3a6-7c1e0f4d2a98
+class WorkerVarTmpJanitorConfig:
+    # ADR-117 D2/D3 retention rails, governor-tunable.
+    retention_days: int = 7
+    max_reap_per_run: int = 200
+
+
+@dataclass(frozen=True)
+# ID: 7f3a9d05-1e62-4b8c-8f04-2d5b6a1c9e73
+class WorkerCanaryJanitorConfig:
+    # ADR-147 sandbox retention rails, governor-tunable.
+    retention_seconds: int = 3600
+    max_reap_per_run: int = 50
+
+
+@dataclass(frozen=True)
 # ID: e1b5e532-edb4-405f-b09f-57339041baf9
 class WorkersConfig:
     call_site_rewriter: WorkerCallSiteRewriterConfig = field(
@@ -732,6 +748,12 @@ class WorkersConfig:
     observer: WorkerObserverConfig = field(default_factory=WorkerObserverConfig)
     coherence_sensor: WorkerCoherenceSensorConfig = field(
         default_factory=WorkerCoherenceSensorConfig
+    )
+    var_tmp_janitor: WorkerVarTmpJanitorConfig = field(
+        default_factory=WorkerVarTmpJanitorConfig
+    )
+    canary_janitor: WorkerCanaryJanitorConfig = field(
+        default_factory=WorkerCanaryJanitorConfig
     )
 
 

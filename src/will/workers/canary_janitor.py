@@ -33,15 +33,19 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-# Governor-tunable dials, mirroring var_tmp_janitor's pattern.
-RETENTION_SECONDS: int = 3600  # 1 hour — far past any normal canary trial duration
-MAX_REAP_PER_RUN: int = 50
+# Governor-tunable dials, mirroring var_tmp_janitor's pattern. Governed via
+# operational_config.yaml workers.canary_janitor (#774, ADR-040 sweep);
+# these module constants are now thin governed aliases, not literals.
+_CFG = load_operational_config().workers.canary_janitor
+RETENTION_SECONDS: int = _CFG.retention_seconds  # far past any normal canary trial
+MAX_REAP_PER_RUN: int = _CFG.max_reap_per_run
 
 _SANDBOX_PREFIX = "sandbox_"
 _CANARY_RELPATH = ("work", "canary")

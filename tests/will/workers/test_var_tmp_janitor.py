@@ -74,3 +74,17 @@ def test_retention_threshold_is_honored(tmp_path: Path) -> None:
 
 def test_absent_root_is_empty_not_error(tmp_path: Path) -> None:
     assert find_reap_candidates(tmp_path / "does_not_exist", now_ts=time.time()) == []
+
+
+def test_retention_rails_sourced_from_operational_config() -> None:
+    """#774 (ADR-040): the retention rails must trace to
+    operational_config.yaml, not a src/ literal — guards against a future
+    edit silently re-hardcoding them."""
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+    from will.workers.var_tmp_janitor import MAX_REAP_PER_RUN, RETENTION_DAYS
+
+    cfg = load_operational_config().workers.var_tmp_janitor
+    assert RETENTION_DAYS == cfg.retention_days
+    assert MAX_REAP_PER_RUN == cfg.max_reap_per_run

@@ -96,6 +96,14 @@ workers:
     stale_threshold_seconds: 3600
   coherence_sensor:
     lookback_seconds: 7200
+  # #774 (ADR-040 sweep): retention rails moved out of src/ literals.
+  # Both janitors' source explicitly called these "governor-tunable dials".
+  var_tmp_janitor:
+    retention_days: 7          # ADR-117 D2/D3
+    max_reap_per_run: 200
+  canary_janitor:
+    retention_seconds: 3600    # ADR-147 D5 — 1h, far past any normal canary trial
+    max_reap_per_run: 50
 
 # ---------------------------------------------------------------------------
 # Blackboard
