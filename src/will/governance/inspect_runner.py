@@ -396,9 +396,10 @@ def get_analysis_bridges(*, consuming: str | None = None) -> dict:
 
         bridges = bridges_consuming(consuming) if consuming else load_bridges()
     except Exception as exc:
+        logger.error("get_analysis_bridges: failed to load bridges: %s", exc)
         return {
             "available": False,
-            "error": f"{type(exc).__name__}: {exc}",
+            "error": "Failed to load architecture bridges — see server logs.",
             "bridges": [],
         }
 
