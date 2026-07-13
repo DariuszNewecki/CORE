@@ -35,8 +35,6 @@ from shared.workers.schedule import load_worker_schedule_state
 
 logger = getLogger(__name__)
 
-_CONVERGENCE_ROLLING_WINDOW = 30
-
 _CFG = load_operational_config().health_log
 
 # F-19 convergence CTE (#563). Single source of truth — also imported by
@@ -284,8 +282,8 @@ class HealthLogService:
     def _append_convergence_artifact(self, state: dict[str, Any]) -> None:
         """Append one JSONL entry to var/reports/convergence.jsonl.
 
-        Maintains a rolling window of _CONVERGENCE_ROLLING_WINDOW entries so
-        the file stays ~30 lines. Reads existing content with Path.read_text
+        Maintains a rolling window of _CFG.convergence_rolling_window entries
+        so the file stays ~30 lines. Reads existing content with Path.read_text
         (reads are ungoverned); writes back via FileHandler (governed write
         surface). Fail-soft: any error is logged and swallowed so the artifact
         never disrupts the main health-log path.
@@ -313,7 +311,7 @@ class HealthLogService:
                     for ln in artifact_path.read_text(encoding="utf-8").splitlines()
                     if ln.strip()
                 ]
-            tail = existing[-(_CONVERGENCE_ROLLING_WINDOW - 1) :]
+            tail = existing[-(_CFG.convergence_rolling_window - 1) :]
             tail.append(json.dumps(entry))
             FileHandler(str(repo_root)).write_runtime_text(rel_path, "\n".join(tail))
         except Exception as err:

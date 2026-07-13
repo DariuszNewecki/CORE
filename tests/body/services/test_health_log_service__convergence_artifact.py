@@ -20,10 +20,10 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from body.services.health_log_service import (
-    _CONVERGENCE_ROLLING_WINDOW,
-    HealthLogService,
-)
+from body.services.health_log_service import _CFG, HealthLogService
+
+
+_CONVERGENCE_ROLLING_WINDOW = _CFG.convergence_rolling_window
 
 
 _STATE = {
