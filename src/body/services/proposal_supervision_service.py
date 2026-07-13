@@ -255,6 +255,74 @@ class ProposalSupervisionService:
     # would flag every pre-ADR-148 completed proposal as a violation.
     _ADR_148_BARRIER_LIVE_AT = datetime(2026, 7, 12, 20, 25, 34, tzinfo=UTC)
 
+    # ID: 8a43c113-be31-41c8-a7da-0744b06fe00b
+    async def fetch_stuck_undeferred(
+        self, sla_sec: int, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return proposals whose declared finding_ids include findings still
+        at 'open'/'claimed' (never reached 'deferred_to_proposal') beyond
+        the SLA (#764 — creation-side outbox).
+
+        create_proposal and defer_entries_to_proposal are separate,
+        independently-committed transactions (ViolationRemediatorWorker.run);
+        defer_entries_to_proposal is documented fail-soft — a failure there
+        does not reverse proposal creation. A finding stuck at
+        'claimed' is invisible to both revival (which matches
+        status='deferred_to_proposal') and re-claim (which matches
+        status='open'): permanently orphaned without this reconciliation.
+
+        Only proposals with a non-empty finding_ids array are considered;
+        forward-only per ADR-015 D7 (historical proposals predating the
+        field are not backfilled, so they never match jsonb_typeof=='array'
+        with elements).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=sla_sec)
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        p.proposal_id,
+                        p.constitutional_constraints->'finding_ids' AS finding_ids,
+                        p.created_at,
+                        EXTRACT(EPOCH FROM (now() - p.created_at))::int
+                            AS seconds_stuck
+                    FROM core.autonomous_proposals p
+                    WHERE p.status != 'rejected'
+                      AND jsonb_typeof(p.constitutional_constraints->'finding_ids')
+                          = 'array'
+                      AND p.created_at < :cutoff
+                      AND EXISTS (
+                          SELECT 1
+                          FROM jsonb_array_elements_text(
+                              p.constitutional_constraints->'finding_ids'
+                          ) AS fid
+                          JOIN core.blackboard_entries be
+                              ON be.id = fid::uuid
+                          WHERE be.status IN ('open', 'claimed')
+                      )
+                    ORDER BY p.created_at ASC
+                    LIMIT :limit
+                    """
+                ),
+                {"cutoff": cutoff, "limit": limit},
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": str(row[0]),
+                "finding_ids": list(row[1] or []),
+                "created_at": row[2],
+                "seconds_stuck": int(row[3]),
+            }
+            for row in rows
+        ]
+
     # ID: c020638a-5208-476f-bb7f-7257051a31b3
     async def fetch_completed_without_consequence(
         self, limit: int

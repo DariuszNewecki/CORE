@@ -83,3 +83,75 @@ async def test_fetch_completed_without_consequence_empty_result() -> None:
         result = await svc.fetch_completed_without_consequence(limit=100)
 
     assert result == []
+
+
+async def test_fetch_stuck_undeferred_maps_rows() -> None:
+    """Rows returned by the query are mapped into the expected dict shape,
+    including the finding_ids array (#764)."""
+    created_at = datetime(2026, 7, 13, 1, 0, 0, tzinfo=UTC)
+    session = _mock_session(
+        [("pid-undeferred-1", ["fid-a", "fid-b"], created_at, 300)]
+    )
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_undeferred(sla_sec=120, limit=100)
+
+    assert result == [
+        {
+            "proposal_id": "pid-undeferred-1",
+            "finding_ids": ["fid-a", "fid-b"],
+            "created_at": created_at,
+            "seconds_stuck": 300,
+        }
+    ]
+
+
+async def test_fetch_stuck_undeferred_null_finding_ids_becomes_empty_list() -> None:
+    """A NULL finding_ids column (shouldn't happen given the WHERE clause,
+    but defensively) maps to an empty list, not None."""
+    created_at = datetime(2026, 7, 13, 1, 0, 0, tzinfo=UTC)
+    session = _mock_session([("pid-1", None, created_at, 200)])
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_undeferred(sla_sec=120, limit=100)
+
+    assert result[0]["finding_ids"] == []
+
+
+async def test_fetch_stuck_undeferred_passes_sla_cutoff() -> None:
+    """The query binds sla_sec and limit as provided by the caller."""
+    session = _mock_session([])
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        await svc.fetch_stuck_undeferred(sla_sec=120, limit=75)
+
+    call_args = session.execute.await_args
+    params = call_args.args[1]
+    assert params["limit"] == 75
+    assert "cutoff" in params
+
+
+async def test_fetch_stuck_undeferred_empty_result() -> None:
+    """No stuck rows returns an empty list."""
+    session = _mock_session([])
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_undeferred(sla_sec=120, limit=100)
+
+    assert result == []

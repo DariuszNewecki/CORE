@@ -10,6 +10,8 @@ Responsibility (per CORE-ShopManager.md §3.3, issue #170):
   (ADR-104 D9 / #637).
 - Detect repeated failures for the same (action_id, rule_id) pair
   within the lookback window.
+- Detect proposals whose findings were never deferred to them (the
+  creation-side outbox gap, #764) and re-attempt the deferral.
 - Post one finding per condition occurrence to the Blackboard, with
   deduplication against already-open findings.
 - Resolve open findings whose underlying condition has cleared.
@@ -26,18 +28,32 @@ ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:      proposal.stuck_approved::<proposal_id>
                          proposal.stuck_executing::<proposal_id>
                          proposal.stuck_finalizing::<proposal_id>
+                         proposal.stuck_undeferred::<proposal_id>
                          proposal.repeated_failure::<action_id>::<rule_id>
 - resolution_mechanism:  self_resolve
 - Resolver path:         this worker's own run() method, in-Python
-                         resolve_entries loop. After the three flagging
-                         passes, every open proposal.* finding whose
-                         subject is NOT in this cycle's flagged_subjects
-                         set is resolved via
-                         BlackboardService.resolve_entries — the finding
-                         clears when the proposal exits its stuck status.
+                         resolve_entries loop. After the flagging passes,
+                         every open proposal.* finding whose subject is
+                         NOT in this cycle's flagged_subjects set is
+                         resolved via BlackboardService.resolve_entries —
+                         the finding clears when the proposal exits its
+                         stuck status.
 - Not eligible for ADR-045 awaiting_reaudit: proposal pipeline state is
   live runtime state; there is no re-readable artifact for a sensor to
   re-evaluate against.
+
+stuck_undeferred redrive contract (#764 — creation-side outbox):
+- create_proposal and defer_entries_to_proposal
+  (ViolationRemediatorWorker.run) are separate, independently-committed
+  transactions; defer_entries_to_proposal is documented fail-soft. A
+  finding stuck at 'claimed' (never reached 'deferred_to_proposal') is
+  invisible to both revival and re-claim — permanently orphaned without
+  this redrive. _redrive_undeferred_findings re-attempts
+  defer_entries_to_proposal every cycle the proposal appears in
+  fetch_stuck_undeferred; the UPDATE's own status guard (only 'open'/
+  'claimed' rows match) makes retries idempotent, and once all findings
+  are deferred the proposal stops matching the query, so the finding
+  self-resolves via the existing resolve pass.
 
 stuck_executing termination contract:
 - _retire_stuck_proposal runs EVERY cycle the proposal appears in
@@ -62,6 +78,7 @@ logger = getLogger(__name__)
 _SUBJECT_STUCK_APPROVED = "proposal.stuck_approved"
 _SUBJECT_STUCK_EXECUTING = "proposal.stuck_executing"
 _SUBJECT_STUCK_FINALIZING = "proposal.stuck_finalizing"
+_SUBJECT_STUCK_UNDEFERRED = "proposal.stuck_undeferred"
 _SUBJECT_REPEATED_FAILURE = "proposal.repeated_failure"
 
 _CFG = load_operational_config().workers.proposal_pipeline_shop
@@ -114,6 +131,10 @@ class ProposalPipelineShopManager(ScheduledWorker):
             sla_sec=_CFG.stuck_finalizing_sla_sec,
             limit=_CFG.findings_scan_limit,
         )
+        stuck_undeferred = await proposal_svc.fetch_stuck_undeferred(
+            sla_sec=_CFG.stuck_undeferred_sla_sec,
+            limit=_CFG.findings_scan_limit,
+        )
         repeated_failures = await proposal_svc.fetch_repeated_failures(
             threshold=_CFG.repeated_failure_threshold,
             lookback_sec=_CFG.repeated_failure_lookback_sec,
@@ -126,6 +147,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         flagged = 0
         terminated_proposals = 0
         rolled_forward_proposals = 0
+        redriven_proposals = 0
 
         for row in stuck_approved:
             subject = f"{_SUBJECT_STUCK_APPROVED}::{row['proposal_id']}"
@@ -214,6 +236,39 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 _CFG.stuck_finalizing_sla_sec,
             )
 
+        for row in stuck_undeferred:
+            subject = f"{_SUBJECT_STUCK_UNDEFERRED}::{row['proposal_id']}"
+            flagged_subjects.add(subject)
+
+            # Re-attempt the deferral every cycle the proposal appears
+            # (#764). Idempotent: defer_entries_to_proposal's own status
+            # guard (WHERE status IN ('open','claimed')) means findings
+            # already deferred by a prior partial attempt are left alone.
+            redriven = await self._redrive_undeferred_findings(row)
+            if redriven:
+                redriven_proposals += 1
+
+            if subject in existing:
+                continue
+            await self.post_finding(
+                subject=subject,
+                payload={
+                    "proposal_id": row["proposal_id"],
+                    "finding_ids": row["finding_ids"],
+                    "seconds_stuck": row["seconds_stuck"],
+                    "sla_seconds": _CFG.stuck_undeferred_sla_sec,
+                },
+                resolution_mechanism="self_resolve",
+            )
+            flagged += 1
+            logger.warning(
+                "ProposalPipelineShopManager: proposal %s has undeferred "
+                "findings for %ds (sla=%ds) — redriving",
+                row["proposal_id"],
+                row["seconds_stuck"],
+                _CFG.stuck_undeferred_sla_sec,
+            )
+
         for row in repeated_failures:
             subject = (
                 f"{_SUBJECT_REPEATED_FAILURE}::{row['action_id']}::{row['rule_id']}"
@@ -261,23 +316,28 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 "stuck_approved": len(stuck_approved),
                 "stuck_executing": len(stuck_executing),
                 "stuck_finalizing": len(stuck_finalizing),
+                "stuck_undeferred": len(stuck_undeferred),
                 "repeated_failures": len(repeated_failures),
                 "flagged": flagged,
                 "resolved": resolved,
                 "terminated_proposals": terminated_proposals,
                 "rolled_forward_proposals": rolled_forward_proposals,
+                "redriven_proposals": redriven_proposals,
             },
         )
         logger.info(
             "ProposalPipelineShopManager: cycle complete — "
-            "stuck_approved=%d stuck_executing=%d repeated_failures=%d "
-            "flagged=%d resolved=%d terminated=%d",
+            "stuck_approved=%d stuck_executing=%d stuck_undeferred=%d "
+            "repeated_failures=%d flagged=%d resolved=%d terminated=%d "
+            "redriven=%d",
             len(stuck_approved),
             len(stuck_executing),
+            len(stuck_undeferred),
             len(repeated_failures),
             flagged,
             resolved,
             terminated_proposals,
+            redriven_proposals,
         )
 
     async def _retire_stuck_proposal(
@@ -422,17 +482,59 @@ class ProposalPipelineShopManager(ScheduledWorker):
             )
             return False
 
+    async def _redrive_undeferred_findings(self, row: dict[str, Any]) -> bool:
+        """
+        Re-attempt defer_entries_to_proposal for a proposal's undeferred
+        findings (#764 — creation-side outbox).
+
+        Idempotent: defer_entries_to_proposal's own status guard (WHERE
+        status IN ('open','claimed')) means findings a prior partial
+        attempt already deferred are left untouched — only the genuinely
+        stuck ones transition. Returns True if at least one finding was
+        deferred by this call.
+        """
+        from body.services.service_registry import service_registry
+
+        proposal_id = row["proposal_id"]
+        finding_ids = row.get("finding_ids") or []
+        if not finding_ids:
+            return False
+
+        try:
+            blackboard_svc = await service_registry.get_blackboard_service()
+            deferred_count = await blackboard_svc.defer_entries_to_proposal(
+                finding_ids, proposal_id
+            )
+        except Exception as defer_err:
+            logger.error(
+                "ProposalPipelineShopManager: failed to redrive undeferred "
+                "findings for proposal %s: %s",
+                proposal_id,
+                defer_err,
+            )
+            return False
+
+        if deferred_count:
+            logger.warning(
+                "ProposalPipelineShopManager: redrove %d undeferred finding(s) "
+                "for proposal %s",
+                deferred_count,
+                proposal_id,
+            )
+        return deferred_count > 0
+
     async def _fetch_existing_findings(self, blackboard_svc: Any) -> dict[str, str]:
         """
         Return mapping of subject → entry_id for open findings matching
-        any of this worker's three subject prefixes. Entry_id is needed
-        for the resolution pass.
+        any of this worker's subject prefixes. Entry_id is needed for the
+        resolution pass.
         """
         existing: dict[str, str] = {}
         for prefix in (
             _SUBJECT_STUCK_APPROVED,
             _SUBJECT_STUCK_EXECUTING,
             _SUBJECT_STUCK_FINALIZING,
+            _SUBJECT_STUCK_UNDEFERRED,
             _SUBJECT_REPEATED_FAILURE,
         ):
             rows = await blackboard_svc.fetch_open_findings(

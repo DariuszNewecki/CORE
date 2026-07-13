@@ -74,6 +74,12 @@ workers:
     # proposal.stuck_executing::{proposal_id}.
     stuck_executing_sla_sec: 900
     stuck_finalizing_sla_sec: 300
+    # Stuck-undeferred SLA (#764): a proposal whose finding_ids include
+    # findings still at 'open'/'claimed' instead of 'deferred_to_proposal'
+    # beyond this window — the creation-side deferral call either never ran
+    # or failed. Short window: deferral should happen essentially
+    # immediately after proposal creation in the same worker cycle.
+    stuck_undeferred_sla_sec: 120
     # Repeated-failure detection: a (first action_id, source_check_id)
     # pair failing this many times within the lookback window posts
     # proposal.repeated_failure::{action_id}::{rule_id}.
