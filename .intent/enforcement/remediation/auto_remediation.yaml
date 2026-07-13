@@ -785,6 +785,19 @@ mappings:
       placeholder only.
     status: PENDING
 
+  governance.proposal_finalization_integrity:
+    action: fix.modularity
+    confidence: 0.10
+    description: >
+      ADR-148 D5: a completed proposal missing its durable consequence
+      record requires governor investigation — the invariant should be
+      unreachable given the D2/D4 code paths, so a flagged row indicates a
+      bug or race that needs root-causing, not a mechanical fix. No
+      autonomous remediation action exists. PENDING satisfies ADR-066
+      (governance.remediation.all_rules_mapped). action: field is a
+      placeholder only.
+    status: PENDING
+
   modularity.needs_refactor:
     action: fix.modularity
     confidence: 0.40

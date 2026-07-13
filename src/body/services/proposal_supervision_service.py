@@ -244,3 +244,59 @@ class ProposalSupervisionService:
             }
             for row in rows
         ]
+
+    # ADR-148's consequence_recorded_at column has no backfill (migration
+    # 20260712_adr148_finalizing_and_consequence_recorded_at.sql, applied
+    # 2026-07-12 20:25:34 UTC) — every row completed before this instant is
+    # NULL regardless of legitimacy; the finalization barrier didn't exist
+    # yet to set it. Same grandfather-clause shape as this table's own
+    # approval_authority_required_when_approved CHECK (created_at <
+    # '2026-04-27'). Without this cutoff fetch_completed_without_consequence
+    # would flag every pre-ADR-148 completed proposal as a violation.
+    _ADR_148_BARRIER_LIVE_AT = datetime(2026, 7, 12, 20, 25, 34, tzinfo=UTC)
+
+    # ID: c020638a-5208-476f-bb7f-7257051a31b3
+    async def fetch_completed_without_consequence(
+        self, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return proposals in status='completed' lacking a durable consequence
+        record (ADR-148 D5), completed after the finalization barrier existed.
+
+        By construction, both the executor's finalizing->completed transition
+        (D2) and ProposalPipelineShopManager's stuck_finalizing roll-forward
+        (D4) record the consequence before marking completed — a row matching
+        this query indicates that invariant was violated (bug or race), not
+        a pre-ADR-148 row completed before the barrier existed (those are
+        excluded via _ADR_148_BARRIER_LIVE_AT).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        proposal_id,
+                        execution_completed_at,
+                        updated_at
+                    FROM core.autonomous_proposals
+                    WHERE status = 'completed'
+                      AND consequence_recorded_at IS NULL
+                      AND execution_completed_at >= :barrier_live_at
+                    ORDER BY updated_at DESC
+                    LIMIT :limit
+                    """
+                ),
+                {"limit": limit, "barrier_live_at": self._ADR_148_BARRIER_LIVE_AT},
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": str(row[0]),
+                "execution_completed_at": row[1],
+                "updated_at": row[2],
+            }
+            for row in rows
+        ]

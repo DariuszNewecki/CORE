@@ -396,6 +396,39 @@ its 300-second `max_interval`).
 
 ---
 
+## Transaction boundaries — what each terminal state proves (ADR-148)
+
+A proposal's status is a chain of proofs, not just an execution milestone. Don't read `completed`
+as "the whole chain is durable" without knowing what each state actually establishes:
+
+- **`executing`** — claimed, actions running. Proves nothing durable yet.
+- **`finalizing`** — the git commit landed (`execution_completed_at` set) but the consequence
+  chain (git SHAs, changed files, declared production, resolved findings) may not be durably
+  recorded yet. This is the ADR-148 **eventual-consistency window**: bounded, named, and
+  reconciled by the same reaper pattern CORE already runs (`ProposalPipelineShopManager`'s
+  `stuck_finalizing` roll-forward, ADR-148 D4) — never by rollback, which would double-apply an
+  already-committed change.
+- **`completed`** — a proof state, not merely "execution finished." Reached only from
+  `finalizing`, and only once `consequence_recorded_at` is set. Two independent facts must both
+  hold: the commit happened (`execution_completed_at`) and the consequence chain is durable
+  (`consequence_recorded_at`). `ProposalStateManager.mark_completed` raises
+  `ProposalNotFoundError` if called from any state other than `finalizing`.
+- **`failed`** — commit refused or failed; `rollback_proposal` restores pre-execution state.
+  Never reached with committed-but-unrecorded bytes.
+
+**`CommitOutcome` (ADR-148 D3)** replaces a bare bool so "commit failed" can't be conflated with
+success: `COMMITTED` / `NOTHING_TO_COMMIT` proceed toward `finalizing`; `REFUSED_CONTAMINATION`
+(ADR-129 D1 staging contamination) / `FAILED` route to `rollback_proposal` + `mark_failed` —
+never a `completed` row with no git record.
+
+**Enforcement, not just declaration (ADR-148 D5):** `governance.proposal_finalization_integrity`
+(reporting posture) — `CommitAuthorshipAuditWorker` flags any `completed` proposal missing
+`consequence_recorded_at`, excluding proposals completed before the barrier existed. Detection
+only; same ramp arc as `governance.commit_authorship_integrity` (reporting → resolve drift →
+blocking).
+
+---
+
 ## Commit authorship integrity (ADR-101 D1)
 
 A commit's diff MUST contain only bytes its author produced. Constitutional; applies to every

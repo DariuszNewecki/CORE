@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.proposal_finalization_integrity",
+        "title": "Proposal Finalization Integrity",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.proposal_finalization_integrity",
+            "statement": "A Proposal in status='completed' MUST have a durable consequence record (consequence_recorded_at IS NOT NULL on core.autonomous_proposals). By construction, both ProposalExecutor's finalizing->completed transition (ADR-148 D2) and ProposalPipelineShopManager's stuck_finalizing roll-forward (ADR-148 D4) record the consequence before marking completed. Checked post-hoc by CommitAuthorshipAuditWorker against core.autonomous_proposals. Proposals completed before the ADR-148 finalization barrier existed (execution_completed_at before the migration's applied_at) are excluded as unverifiable.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-148 D5 establishes that the finalization barrier's invariant (completed implies a durable consequence record) is enforced, not merely declared: 'a completed proposal without a durable consequence record is a violation detectable post-hoc exactly as ADR-129 D4's CommitAuthorshipAuditWorker detects authorship contamination.' This rule operationalises D5 as a post-completion audit invariant, extending that same worker per the ADR's own suggestion. Reporting rather than blocking because post-completion detection is the current implementation constraint; promotion to blocking requires a commit-time or pre-completion check (same open question ADR-129 D6 left for commit_authorship_integrity). Grounding: ADR-148 D5; detection: CommitAuthorshipAuditWorker (.intent/workers/commit_authorship_audit_worker.yaml); remediation: PENDING in auto_remediation.yaml (no autonomous fix; requires governor investigation)."
+        }
+    ]
+}
