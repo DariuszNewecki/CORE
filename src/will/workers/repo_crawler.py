@@ -103,6 +103,12 @@ class RepoCrawlerWorker(ScheduledWorker):
                     "pair_id": "repo_artifacts ↔ filesystem",
                 },
                 status="open",
+                # A tripped safety guard needs a governor to inspect the
+                # candidate list before any destructive action — matches
+                # this findings's own remediation_hint. entry_type='finding'
+                # rows require a non-null resolution_mechanism from the
+                # closed set (blackboard_entry_resolution_mechanism_closed_set).
+                resolution_mechanism="human",
             )
         elif orphans_reaped > 0:
             # Normal inline reap completed — record audit-trail attribution
@@ -121,6 +127,11 @@ class RepoCrawlerWorker(ScheduledWorker):
                     "pair_id": "repo_artifacts ↔ filesystem",
                 },
                 status="resolved",
+                # The writer resolved this in-cycle (ADR-070 D4 inline
+                # remediation) — no reaudit or human step involved.
+                # entry_type='finding' rows require a non-null
+                # resolution_mechanism from the closed set.
+                resolution_mechanism="self_resolve",
             )
 
         await self.post_report(
