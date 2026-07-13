@@ -7,8 +7,8 @@ discovery:
 
 schema_ref: ".specs/META/architecture_bridge.schema.json"
 
-vector_collection: core-specs
-crawler_indexed: true
+vector_collection: core-patterns   # #785 — placeholder pending a deliberate decision; inert while crawler_indexed is false
+crawler_indexed: false   # #785 — core-specs (the prior value) was deleted in #784 as an orphaned duplicate; no evidence anything needs semantic search over these small structural bridge declarations. Per #786, these files are already claimed by intent_yaml's broader .intent/**/*.yaml glob regardless, so excluding architecture_bridge from crawl scope here doesn't lose registry coverage — intent_yaml still registers them in repo_artifacts. Revisit if a real consumer + correct-classification fix (#786) both land.
 supported_sensors:
   - repo_crawler
 supported_actions: []
