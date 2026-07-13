@@ -58,8 +58,10 @@ reconnaissance for governor review.
 
 **Tests are part of the change.** Signature/behavior change in `src/` → update the
 corresponding test in the same change. New public function/class → at least basic tests. You
-cannot run `pytest` (governor verifies) but you must author the tests. Do not rely on the
-autonomous test-gen loop to compensate: it is deliberately scope-limited to a single-file
+author the tests and run them scoped to the file(s) you touched (e.g. `pytest
+tests/path/to/test_file.py -q`) — full-suite and shared-state runs still route through the
+governor (see Verification after editing). Do not rely on the autonomous test-gen loop to
+compensate: it is deliberately scope-limited to a single-file
 pilot (`include_files` in `.intent/enforcement/config/test_coverage.yaml`), so it does not
 cover most of `src/`. Its write-time gates have since hardened — import-resolution + shape
 checks (#574, #589) plus a `test.sandbox_validate` execution gate that rejects generated
@@ -70,8 +72,12 @@ Minimum-scope does **not** exempt test updates.
 with its path. The governor reviews whole files.
 
 **Verification after editing.** Run `ruff check` on every file touched; run import/
-instantiation smoke tests where possible. Do NOT run `pytest`, do NOT commit — governor
-actions. Restarting `core-daemon` + `core-api` is in-scope when a fix needs
+instantiation smoke tests where possible. Scoped `pytest` runs against the specific test
+file(s) you touched or added for this change are part of normal delivery — run them and
+report the result honestly, including failures. This does not extend to full-suite runs,
+`-k`/directory-wide sweeps, or any test file known to hit shared live state (the `core_test`
+database, a live daemon/API integration) — those remain governor-initiated; ask first. Do NOT
+commit — governor action. Restarting `core-daemon` + `core-api` is in-scope when a fix needs
 operationalization (the daemon caches imported modules); avoid restarting mid-flight against
 an active CCC scan or long-running remediation.
 
