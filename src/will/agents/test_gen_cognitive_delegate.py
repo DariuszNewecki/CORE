@@ -24,6 +24,7 @@ from shared.protocols.cognitive_flow_delegate import CognitiveStepError
 from shared.utils.test_gen_utils import (
     derive_module_path,
     extract_constructor_signature,
+    extract_referenced_module_constants,
     extract_symbol_code,
 )
 from will.agents.prompt_model_iterative_agent import (
@@ -114,6 +115,22 @@ class TestGenCognitiveDelegate:
                     f"{constructor_code}\n\n"
                     f"# Method under test:\n{symbol_code}"
                 )
+
+        # Module-level constants the symbol reads but doesn't define (e.g. a
+        # worker's run() reading _ARTIFACT_TYPE = "python") are never in
+        # symbol_code either -- confirmed live producing plausible-but-wrong
+        # guessed values in generated assertions. Append their real source
+        # so the LLM has the actual value, not a guess.
+        referenced_constants = extract_referenced_module_constants(
+            source_path, symbol_name
+        )
+        if referenced_constants:
+            symbol_code = (
+                f"# Module-level constants referenced by the symbol under "
+                f"test (their real values, not to be guessed):\n"
+                f"{referenced_constants}\n\n"
+                f"{symbol_code}"
+            )
 
         module_path = derive_module_path(source_file)
 

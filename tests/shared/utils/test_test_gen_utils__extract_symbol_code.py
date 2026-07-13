@@ -17,6 +17,7 @@ from pathlib import Path
 
 from shared.utils.test_gen_utils import (
     extract_constructor_signature,
+    extract_referenced_module_constants,
     extract_symbol_code,
 )
 
@@ -149,4 +150,107 @@ def test_constructor_missing_class_returns_none(tmp_path: Path) -> None:
 
 def test_constructor_unreadable_file_returns_none(tmp_path: Path) -> None:
     result = extract_constructor_signature(tmp_path / "missing.py", "Widget")
+    assert result is None
+
+
+# ── extract_referenced_module_constants ────────────────────────────────────
+# Neither extract_symbol_code nor extract_constructor_signature includes
+# module-level names the symbol reads but doesn't define. Confirmed live on
+# prompt_extractor_worker.py: the LLM guessed plausible-but-wrong values for
+# _ARTIFACT_TYPE and _EXTRACTION_SUB_NAMESPACE because it never saw them.
+
+_CONST_SOURCE = '''\
+"""Module docstring."""
+
+_TOP = "top-level-value"
+_UNUSED = "not referenced by anything in Gadget"
+_COMPUTED = some_call().attr
+
+
+class Gadget:
+    def __init__(self, x: int) -> None:
+        self.x = x
+
+    def method_using_const(self) -> str:
+        local_var = _TOP
+        return local_var
+
+    def method_shadowing(self) -> str:
+        """Locally reassigns _TOP before using it — the module-level _TOP
+        is irrelevant here since the local binding shadows it."""
+        _TOP = "shadowed locally"
+        return _TOP
+
+    def method_with_param_shadow(self, _TOP: str) -> str:
+        return _TOP
+
+    def method_no_module_refs(self) -> int:
+        return len("hello")
+
+
+def top_level_func() -> str:
+    return _COMPUTED
+'''
+
+
+def _write_const(tmp_path: Path) -> Path:
+    p = tmp_path / "consts.py"
+    p.write_text(_CONST_SOURCE, encoding="utf-8")
+    return p
+
+
+def test_includes_referenced_constant_excludes_unreferenced(tmp_path: Path) -> None:
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "Gadget.method_using_const"
+    )
+    assert result is not None
+    assert '_TOP = "top-level-value"' in result
+    assert "_UNUSED" not in result
+    assert "_COMPUTED" not in result
+
+
+def test_extracts_computed_constant_source_not_evaluated(tmp_path: Path) -> None:
+    """A non-literal module constant (a call expression) is included as
+    source text — the LLM doesn't need the runtime value, just to know
+    this name is real and not something to invent."""
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "top_level_func"
+    )
+    assert result is not None
+    assert "_COMPUTED = some_call().attr" in result
+
+
+def test_local_shadow_excludes_module_level_constant(tmp_path: Path) -> None:
+    """A method that reassigns _TOP before reading it doesn't need the
+    module-level constant of the same name — the local binding shadows it."""
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "Gadget.method_shadowing"
+    )
+    assert result is None
+
+
+def test_parameter_shadow_excludes_module_level_constant(tmp_path: Path) -> None:
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "Gadget.method_with_param_shadow"
+    )
+    assert result is None
+
+
+def test_no_module_level_references_returns_none(tmp_path: Path) -> None:
+    """Only references a builtin (len) — nothing module-level to surface."""
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "Gadget.method_no_module_refs"
+    )
+    assert result is None
+
+
+def test_referenced_constants_missing_symbol_returns_none(tmp_path: Path) -> None:
+    result = extract_referenced_module_constants(
+        _write_const(tmp_path), "NoSuchClass.method"
+    )
+    assert result is None
+
+
+def test_referenced_constants_unreadable_file_returns_none(tmp_path: Path) -> None:
+    result = extract_referenced_module_constants(tmp_path / "missing.py", "anything")
     assert result is None
