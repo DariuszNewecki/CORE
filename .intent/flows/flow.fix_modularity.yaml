@@ -1,0 +1,42 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+cognitive_capability: modularity_analysis
+
+metadata:
+  id: flows.fix_modularity
+  title: Fix Modularity Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-140 Cognitive-Write Separation applied to fix.modularity (#769).
+    The single-shot modularity_analyze LLM call — finding the split seam
+    and gating the proposed plan (inventory + confidence) — moves to the
+    Will-tier ModularityCognitiveDelegate. fix.modularity is narrowed to a
+    write-only operation that receives resolved_file_path and plan_raw
+    from the preceding cognitive step via FlowExecutor's accumulated_params
+    threading. Governor-invoked only (ADR-095 D5); no autonomous rule
+    binding — remediates is intentionally absent here, matching the
+    action's own remediates=[].
+
+flow:
+  flow_id: flow.fix_modularity
+  description: >
+    Analyze a modularity-violating file via LLM to find the natural seam,
+    then mechanically execute the accepted split plan with decorator and
+    Logic Conservation Gate validation.
+  policies:
+    - rules/architecture/modularity
+
+  steps:
+    - ref_id: analyze.modularity_seam
+      kind: cognitive
+      required: true
+      consumes: [file_path]
+      produces: [resolved_file_path, plan_raw]
+
+    - ref_id: fix.modularity
+      kind: action
+      required: true
+      consumes: [resolved_file_path, plan_raw, write]

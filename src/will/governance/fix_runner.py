@@ -306,6 +306,48 @@ async def run_and_persist_fix(
     )
 
 
+# ID: 8b1c9d2e-3f4a-4b5c-9d6e-7f8a9b0c1d2e
+def _build_cognitive_delegate(flow_id: str, context: CoreContext) -> Any | None:
+    """Return the CognitiveFlowDelegate for flow_id's cognitive_capability, or None.
+
+    Mirrors will.autonomy.proposal_executor.ProposalExecutor.
+    _build_cognitive_delegate (ADR-140 D9) for the fix_runner (governor
+    CLI/API) dispatch path, which flows with cognitive steps did not
+    previously reach — only the autonomous ProposalExecutor path injected
+    a delegate. Added for flow.fix_modularity (#769); reusable by any
+    future flow dispatched through run_and_persist_flow.
+    """
+    flow_def = flow_registry.get(flow_id)
+    if not flow_def:
+        return None
+
+    from body.flows.registry import StepKind
+
+    has_cognitive = any(s.kind == StepKind.COGNITIVE for s in flow_def.steps)
+    if not has_cognitive:
+        return None
+
+    cap = flow_def.cognitive_capability
+    if cap == "test_generation":
+        from will.agents.test_gen_cognitive_delegate import TestGenCognitiveDelegate
+
+        return TestGenCognitiveDelegate(context)
+    if cap == "modularity_analysis":
+        from will.agents.modularity_cognitive_delegate import (
+            ModularityCognitiveDelegate,
+        )
+
+        return ModularityCognitiveDelegate(context)
+
+    logger.error(
+        "fix_runner: no delegate registered for cognitive_capability=%r "
+        "in flow %r — cognitive steps will fail",
+        cap,
+        flow_id,
+    )
+    return None
+
+
 # ID: 6c0712fe-1cb8-47ae-9de7-d51055b17cd0
 async def run_and_persist_flow(
     context: CoreContext,
@@ -314,18 +356,25 @@ async def run_and_persist_flow(
     run_id: UUID,
     flow_id: str,
     write: bool,
+    params: dict[str, Any] | None = None,
 ) -> None:
     """Execute a Flow and persist the result on the fix_runs row.
 
     Mirrors run_and_persist_fix but dispatches to FlowExecutor. The
     caller (the route handler) owns the row's `kind` column — this
     function only updates lifecycle state and the result payload.
+
+    `params` (#769) carries initial caller-supplied params (e.g.
+    flow.fix_modularity's optional file_path) forwarded to
+    FlowExecutor.execute as **params. A cognitive delegate is injected
+    when flow_id's cognitive_capability names one (ADR-140 D9 pattern).
     """
     await _update_fix_run_status(session, run_id, "executing", started=True)
 
     try:
-        executor = FlowExecutor(context)
-        flow_result = await executor.execute(flow_id, write=write)
+        cognitive_delegate = _build_cognitive_delegate(flow_id, context)
+        executor = FlowExecutor(context, cognitive_delegate=cognitive_delegate)
+        flow_result = await executor.execute(flow_id, write=write, **(params or {}))
     except Exception as exc:
         logger.exception("fix_runner: flow %s raised for %s", flow_id, run_id)
         await _update_fix_run_status(

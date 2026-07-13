@@ -12,99 +12,37 @@ Constitutional Alignment:
 - Circularity Fix: Feature-level imports are performed inside functions.
 - Remediation: Each action declares which audit check_ids it fixes via remediates=[].
   ViolationRemediatorWorker uses this to close the autonomous audit loop.
+
+ADR-140 D1/D7 (#769): fix.modularity is write-only. Target-file resolution,
+layer/caller/symbol-inventory extraction, the modularity_analyze LLM call,
+and split-plan acceptance gating (inventory + confidence) all moved to
+will.agents.modularity_cognitive_delegate.ModularityCognitiveDelegate — the
+Will-tier cognitive step of flow.fix_modularity. This action receives
+resolved_file_path + plan_raw as required parameters and performs only the
+deterministic mechanical split, decorator/logic conservation gates, and the
+FileHandler write. MUST only be invoked via flow.fix_modularity; direct
+invocation as a standalone action target is prohibited (no caller would
+supply resolved_file_path/plan_raw).
 """
 
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-
-
-_CFG_AZ = load_operational_config().analyzers
 
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from body.atomic.split_plan import SplitPlan
     from body.infrastructure.storage.file_handler import FileHandler
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-
-
-def _find_worst_modularity_violator(repo_root):
-    """Find the src/ Python file with the most lines. Excludes __init__.py and tests."""
-    skip_dirs = {"tests", "__pycache__", ".venv", "venv", ".git", "work", "var"}
-    src_root = repo_root / "src"
-    if not src_root.exists():
-        return None
-
-    worst: tuple[int, Path] | None = None
-    for py_file in src_root.rglob("*.py"):
-        if py_file.name == "__init__.py":
-            continue
-        if any(part in py_file.parts for part in skip_dirs):
-            continue
-        try:
-            line_count = len(py_file.read_text(encoding="utf-8").splitlines())
-            if line_count >= _CFG_AZ.max_module_lines:
-                if worst is None or line_count > worst[0]:
-                    worst = (line_count, py_file)
-        except Exception:
-            continue
-    return worst[1] if worst else None
-
-
-def _detect_layer_from_path(path, repo_root) -> str:
-    """Detect architectural layer from file path."""
-    rel = str(path.relative_to(repo_root))
-    if rel.startswith("src/mind"):
-        return "mind"
-    if rel.startswith("src/body"):
-        return "body"
-    if rel.startswith("src/will"):
-        return "will"
-    if rel.startswith("src/shared"):
-        return "shared"
-    return "unknown"
-
-
-def _find_callers(target_path, repo_root) -> list[str]:
-    """Find files in src/ that import from the target module."""
-    import ast
-
-    target_module = (
-        str(target_path.relative_to(repo_root)).replace("/", ".").removesuffix(".py")
-    )
-    if target_module.startswith("src."):
-        target_module = target_module[4:]
-
-    callers = []
-    src_root = repo_root / "src"
-    for py_file in src_root.rglob("*.py"):
-        if py_file == target_path:
-            continue
-        try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8"))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import | ast.ImportFrom):
-                    if isinstance(node, ast.ImportFrom) and node.module:
-                        if node.module == target_module or node.module.startswith(
-                            target_module + "."
-                        ):
-                            callers.append(str(py_file.relative_to(repo_root)))
-                            break
-        except Exception:
-            continue
-    return callers
 
 
 _DECORATORS_TO_PRESERVE: frozenset[str] = frozenset(
@@ -233,353 +171,69 @@ def _check_decorator_conservation(
     return sorted(missing)
 
 
-@dataclass
-class _SymbolInventory:
-    """AST-extracted classification of a file's symbol surface.
-
-    Locally-defined names are valid split candidates; imported names are
-    re-exports and must never appear in a plan. Issue #296: prior to this
-    classification the LLM was free-associating over the raw file text and
-    routinely placed imported or invented symbols in plans, costing a full
-    retry cycle each time.
-    """
-
-    classes: list[str] = field(default_factory=list)
-    functions: list[str] = field(default_factory=list)
-    constants: list[str] = field(default_factory=list)
-    dominant_class: str | None = None
-    dominant_methods: list[str] = field(default_factory=list)
-    dominant_class_assigns: list[str] = field(default_factory=list)
-    imported: list[tuple[str, str]] = field(default_factory=list)
-
-    # ID: 1c64dbd5-326a-45a1-adad-598b5d79f4ef
-    def defined_top_level_names(self) -> set[str]:
-        """Returns a set of all top-level names defined in the current scope.
-
-        This includes class, function, and constant definitions at the top level,
-        excluding any nested or local definitions within functions or classes.
-
-        Returns:
-            A set of strings representing the names of defined entities.
-        """
-        return set(self.classes) | set(self.functions) | set(self.constants)
-
-    # ID: b5ab6c31-5f6e-4294-b735-4232e4f6ffac
-    def defined_class_member_names(self) -> set[str]:
-        """Returns a set of names for all defined class members.
-
-        Aggregates method and variable names that are considered dominant within the class,
-        indicating their significance or frequency of use in the class's implementation.
-
-        Args:
-            None
-
-        Returns:
-            A set containing names of all significant class member definitions.
-
-        Raises:
-            None"""
-        return set(self.dominant_methods) | set(self.dominant_class_assigns)
-
-    # ID: 2407928f-b671-43f8-b991-e31f9b9f1892
-    def imported_lookup(self) -> dict[str, str]:
-        """Fetches a mapping of imported symbols to their sources.
-
-        Returns:
-            A dictionary where keys are names of imported symbols and values
-            are the corresponding source locations or module paths.
-        """
-        return {name: source for name, source in self.imported}
-
-    # ID: be209121-da7a-4a19-9eff-3df1c907d6ec
-    def render_for_prompt(self) -> str:
-        """
-        Generates a human-readable summary of symbol definitions and imports.
-
-        Provides a detailed overview of what symbols are defined in this file, including
-        classes, functions, constants, and dominant class methods, aiding developers in
-        understanding the file's content and structure. Also lists imported symbols that
-        are not considered valid split candidates.
-
-        Returns:
-            A multi-line string summarizing the file's symbol definitions and imports.
-        """
-        if not (
-            self.classes or self.functions or self.constants or self.dominant_methods
-        ):
-            return "(file could not be parsed — no symbols available)"
-
-        lines: list[str] = ["Defined here:"]
-        if self.classes:
-            lines.append(f"  Classes:    {self.classes}")
-        if self.functions:
-            lines.append(f"  Functions:  {self.functions}")
-        if self.constants:
-            lines.append(f"  Constants:  {self.constants}")
-        if self.dominant_class and self.dominant_methods:
-            lines.append(
-                f"  Methods of dominant class '{self.dominant_class}' "
-                f"({len(self.dominant_methods)}):"
-            )
-            for m in self.dominant_methods:
-                lines.append(f"    - {m}")
-            if self.dominant_class_assigns:
-                lines.append("  Class-level assignments:")
-                for a in self.dominant_class_assigns:
-                    lines.append(f"    - {a}")
-
-        if self.imported:
-            lines.append("")
-            lines.append(
-                "Imported (NOT valid split candidates — these are "
-                "re-exports, not definitions):"
-            )
-            for name, source in self.imported:
-                lines.append(f"  - {name} (from {source})")
-
-        return "\n".join(lines)
-
-
-def _extract_symbol_inventory(source: str) -> _SymbolInventory:
-    """Classify every top-level symbol in *source* by origin.
-
-    Walks the AST once and returns a structured inventory. Used twice by
-    fix.modularity: once to constrain the LLM prompt to locally-defined
-    candidates, and once after the LLM returns to reject any plan symbol
-    that resolves to an import or to nothing at all. The dominant-class
-    heuristic (≥3 methods on the largest top-level ClassDef) mirrors the
-    one in ModularitySplitter so prompt and splitter agree on what counts
-    as a class split.
-
-    An empty inventory is returned on SyntaxError; downstream gates will
-    catch the resulting validation failure.
-    """
-    import ast as _ast
-
-    inv = _SymbolInventory()
-    try:
-        tree = _ast.parse(source)
-    except SyntaxError:
-        return inv
-
-    class_defs: list[_ast.ClassDef] = []
-    for node in _ast.iter_child_nodes(tree):
-        if isinstance(node, _ast.ClassDef):
-            class_defs.append(node)
-            inv.classes.append(node.name)
-        elif isinstance(node, _ast.FunctionDef | _ast.AsyncFunctionDef):
-            inv.functions.append(node.name)
-        elif isinstance(node, _ast.AnnAssign) and isinstance(node.target, _ast.Name):
-            inv.constants.append(node.target.id)
-        elif isinstance(node, _ast.Assign):
-            for target in node.targets:
-                if isinstance(target, _ast.Name):
-                    inv.constants.append(target.id)
-        elif isinstance(node, _ast.Import):
-            for alias in node.names:
-                bound = alias.asname or alias.name.split(".")[0]
-                inv.imported.append((bound, alias.name))
-        elif isinstance(node, _ast.ImportFrom):
-            source_mod = ("." * (node.level or 0)) + (node.module or "")
-            for alias in node.names:
-                if alias.name == "*":
-                    continue
-                bound = alias.asname or alias.name
-                inv.imported.append((bound, source_mod))
-
-    if class_defs:
-        best: _ast.ClassDef | None = None
-        best_count = 0
-        for cls in class_defs:
-            methods = [
-                m
-                for m in cls.body
-                if isinstance(m, _ast.FunctionDef | _ast.AsyncFunctionDef)
-            ]
-            if len(methods) > best_count:
-                best_count = len(methods)
-                best = cls
-
-        if best is not None and best_count >= 3:
-            inv.dominant_class = best.name
-            for member in best.body:
-                if isinstance(member, _ast.FunctionDef | _ast.AsyncFunctionDef):
-                    inv.dominant_methods.append(member.name)
-                elif isinstance(member, _ast.AnnAssign) and isinstance(
-                    member.target, _ast.Name
-                ):
-                    inv.dominant_class_assigns.append(member.target.id)
-                elif isinstance(member, _ast.Assign):
-                    for target in member.targets:
-                        if isinstance(target, _ast.Name):
-                            inv.dominant_class_assigns.append(target.id)
-
-    return inv
-
-
-def _validate_plan_against_inventory(
-    plan: SplitPlan, inv: _SymbolInventory
-) -> tuple[list[str], list[str]]:
-    """Check every plan symbol resolves to a locally-defined name.
-
-    Returns ``(imported_offenders, unknown_offenders)``. The first list
-    holds symbols the LLM proposed that are actually imported (rendered as
-    ``"name (from source_module)"``); the second holds names that exist
-    nowhere in the file. Empty pair means the plan is internally
-    consistent with the inventory.
-    """
-    imported_map = inv.imported_lookup()
-    top_level_set = inv.defined_top_level_names()
-    class_member_set = inv.defined_class_member_names()
-
-    imported_offenders: list[str] = []
-    unknown_offenders: list[str] = []
-
-    for mod in plan.modules:
-        valid_set = class_member_set if mod.is_class_split else top_level_set
-        for sym in mod.symbols:
-            if sym in valid_set:
-                continue
-            if sym in imported_map:
-                imported_offenders.append(f"{sym} (from {imported_map[sym]})")
-            else:
-                unknown_offenders.append(sym)
-
-    return imported_offenders, unknown_offenders
-
-
 @register_action(
     action_id="fix.modularity",
-    description="Split a file that violates modularity rules using two-phase LLM analysis",
+    description="Mechanically split a file per a pre-validated LLM-produced plan",
     category=ActionCategory.FIX,
     policies=["rules/architecture/modularity"],
     remediates=[],  # ADR-095 D5: governor-invoked CLI tool only; no autonomous rule binding.
 )
 @atomic_action(
     action_id="fix.modularity",
-    intent="Two-phase split: Architect finds the seam, then Architect executes the plan. Logic Conservation Gate guards.",
+    intent="Write-only: execute a pre-validated split plan mechanically. Logic Conservation Gate guards.",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
 # ID: 2e4e8a14-6495-4869-a047-43bb508d0d4a
 async def action_fix_modularity(
     core_context: CoreContext,
+    resolved_file_path: str,
+    plan_raw: str,
     write: bool = False,
-    file_path: str | None = None,
     **kwargs,
 ) -> ActionResult:
     """
-    Split a modularity-violating file using two-phase LLM analysis.
+    Mechanically execute a pre-validated split plan (ADR-140 D1/D7).
 
-    Phase 1 (modularity_analyze): Architect finds the natural seam and
-    assigns confidence. Low/medium confidence defers to human session.
-
-    Phase 2 (modularity_split): Architect executes the approved plan
-    mechanically. Logic Conservation Gate validates before any write.
+    resolved_file_path and plan_raw are produced by the preceding
+    analyze.modularity_seam cognitive step (ModularityCognitiveDelegate),
+    which already ran the modularity_analyze LLM call and gated the plan
+    (inventory + confidence). This action performs one further defensive
+    parse+validate pass on the received artifact, then the deterministic
+    split, decorator/logic conservation gates, and the FileHandler write.
+    No LLM calls. No prompt loading.
     """
     from body.atomic.modularity_splitter import ModularitySplitter
     from body.atomic.split_plan import SplitPlan, SplitPlanError
     from body.validators.logic_conservation_validator import LogicConservationValidator
-    from shared.models.prompt_model import PromptModel
 
     start = time.time()
     repo_root = core_context.git_service.repo_path
 
-    # 1. Find target file
-    if file_path:
-        target = repo_root / file_path
-        if not target.exists():
-            return ActionResult(
-                action_id="fix.modularity",
-                ok=False,
-                data={"error": f"File not found: {file_path}"},
-                duration_sec=time.time() - start,
-            )
-    else:
-        target = _find_worst_modularity_violator(repo_root)
-        if target is None:
-            return ActionResult(
-                action_id="fix.modularity",
-                ok=True,
-                data={"message": "No modularity violations found"},
-                duration_sec=time.time() - start,
-            )
+    target = repo_root / resolved_file_path
+    if not target.exists():
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": f"File not found: {resolved_file_path}"},
+            duration_sec=time.time() - start,
+        )
 
-    rel_path = str(target.relative_to(repo_root))
+    rel_path = resolved_file_path
     original_content = target.read_text(encoding="utf-8")
-    line_count = len(original_content.splitlines())
-    layer = _detect_layer_from_path(target, repo_root)
-    callers = _find_callers(target, repo_root)
 
-    logger.info(
-        "fix.modularity: analyzing %s (%d lines, layer=%s, callers=%d)",
-        rel_path,
-        line_count,
-        layer,
-        len(callers),
-    )
-
-    # 2. Classify every symbol in the file by origin (defined here vs
-    # imported) from the AST. The rendered form goes into the LLM prompt
-    # so the model only chooses split candidates from locally-defined
-    # names; the structured form is re-checked after the LLM returns.
-    # Issue #296: prior to this, the LLM saw raw file content and routinely
-    # placed imported or invented symbols in plans.
-    symbol_inventory = _extract_symbol_inventory(original_content)
-
-    # 3. Phase 1 — find the seam via LLM
-    if core_context.cognitive_service is None:
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=False,
-            data={"error": "cognitive_service not initialized"},
-            impact=ActionImpact.WRITE_CODE,
-            duration_sec=time.time() - start,
-        )
-    try:
-        analyze_model = PromptModel.load("modularity_analyze")
-        analyze_client = await core_context.cognitive_service.aget_client_for_role(
-            analyze_model.manifest.role
-        )
-        plan_raw = await analyze_model.invoke(
-            analyze_client,
-            {
-                "file_path": rel_path,
-                "layer": layer,
-                "violations": "architecture.max_file_size, modularity.refactor_score_threshold",
-                "line_count": str(line_count),
-                "content": original_content,
-                "callers": "\n".join(callers) if callers else "(none)",
-                "symbol_inventory": symbol_inventory.render_for_prompt(),
-            },
-        )
-    except Exception as e:
-        logger.error("fix.modularity: analyze phase failed: %s", e)
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=False,
-            data={"error": f"analyze phase failed: {e}", "file": rel_path},
-            duration_sec=time.time() - start,
-        )
-
-    # 4. Parse LLM response into a validated SplitPlan
+    # One defensive parse+validate pass on the received artifact (ADR-140
+    # D1) — the cognitive step already ran this same validation to decide
+    # whether the plan was acceptable; this pass guards against the
+    # artifact being malformed in transit, not against a bad LLM response.
     try:
         split_plan = SplitPlan.from_llm_json(plan_raw)
     except SplitPlanError as e:
         logger.error(
-            "fix.modularity: could not parse analyze response: %s\nRaw: %s",
+            "fix.modularity: could not parse plan_raw for %s: %s",
+            rel_path,
             e,
-            plan_raw[:500] if plan_raw else "(empty)",
         )
-        err_str = str(e)
-        if err_str.startswith("llm_declined:"):
-            reason = err_str[len("llm_declined:") :].strip()
-            return ActionResult(
-                action_id="fix.modularity",
-                ok=False,
-                data={"error": "llm_declined", "reason": reason, "file": rel_path},
-                duration_sec=time.time() - start,
-            )
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
@@ -609,59 +263,6 @@ async def action_fix_modularity(
         rel_path,
         len(split_plan.modules),
     )
-
-    # 4a. Inventory gate (issue #296) — every plan symbol must be locally
-    # defined in the source file. Imported names (re-exports) and invented
-    # names would otherwise reach the splitter as a generic "Symbols not
-    # found in source AST" error after the LLM call has already been paid
-    # for; catch them here with a precise message so retries don't keep
-    # burning cycles on the same misclassification.
-    imported_offenders, unknown_offenders = _validate_plan_against_inventory(
-        split_plan, symbol_inventory
-    )
-    if imported_offenders or unknown_offenders:
-        logger.error(
-            "fix.modularity: plan references non-local symbols in %s "
-            "(imported=%s, unknown=%s)",
-            rel_path,
-            imported_offenders,
-            unknown_offenders,
-        )
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=False,
-            data={
-                "error": "plan references non-local symbols",
-                "imported_in_plan": imported_offenders,
-                "unknown_in_plan": unknown_offenders,
-                "file": rel_path,
-            },
-            duration_sec=time.time() - start,
-        )
-
-    # 4b. Confidence gate — halt if LLM was insufficiently certain about the seam.
-    confidence_threshold = (
-        load_operational_config().modularity.split_confidence_threshold
-    )
-    if split_plan.confidence < confidence_threshold:
-        logger.warning(
-            "fix.modularity: low confidence split plan for %s "
-            "(confidence=%.2f < threshold=%.2f) — aborting",
-            rel_path,
-            split_plan.confidence,
-            confidence_threshold,
-        )
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=False,
-            data={
-                "error": "low_confidence",
-                "confidence": split_plan.confidence,
-                "threshold": confidence_threshold,
-                "file": rel_path,
-            },
-            duration_sec=time.time() - start,
-        )
 
     # 5. Phase 2 — deterministic split via ModularitySplitter
     logger.info(

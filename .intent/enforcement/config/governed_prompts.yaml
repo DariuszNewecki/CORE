@@ -50,8 +50,8 @@ governed_prompts:
     rationale: Generates docstrings written to source files via FileHandler.write_runtime_text.
 
   - name: modularity_analyze
-    anchors: ["ADR-134:D8"]
-    rationale: Analyzes and produces split plans inside the modularity_fix atomic action (Body-layer LLM call).
+    anchors: ["ADR-134:D8", "ADR-140:D9"]
+    rationale: Analyzes and produces split plans; the LLM call is the analyze.modularity_seam cognitive step of flow.fix_modularity (ModularityCognitiveDelegate, Will-tier, ADR-140 D1/D9), not the fix.modularity Body action (#769).
 
   - name: line_length_refactorer
     anchors: ["ADR-134:D8"]
