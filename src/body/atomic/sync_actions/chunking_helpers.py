@@ -124,8 +124,18 @@ def _chunk_by_function(content: str, source: str) -> list[dict[str, Any]]:
 
 
 def _chunk_whole(content: str, source: str) -> list[dict[str, Any]]:
-    """Treat small files as a single chunk."""
-    return _split_large(content.strip(), source, "full")
+    """Treat small files as a single chunk.
+
+    Empty/whitespace-only content yields no chunks — not a single
+    empty-text chunk — so callers' `if not chunks: mark_artifact_empty()`
+    guard can reach permanently-skipped instead of looping forever (the
+    embedder short-circuits empty text to `None`, which `_embed_and_upsert`
+    silently drops, leaving chunk_count stuck at 0).
+    """
+    stripped = content.strip()
+    if not stripped:
+        return []
+    return _split_large(stripped, source, "full")
 
 
 def _split_large(
