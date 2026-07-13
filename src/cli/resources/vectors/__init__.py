@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import cleanup
+from . import cleanup, rebuild
 from .hub import app
 
 
