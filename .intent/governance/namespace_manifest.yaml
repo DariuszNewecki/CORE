@@ -1641,3 +1641,134 @@ classifications:
   # .specs/planning/ — project::core (planning and roadmap documents)
   - path: .specs/planning/CORE-Semver-Policy.md
     governance_namespace: project::core
+
+  # =====================================================================
+  # ADDED 2026-07-13 (#780) — governance.namespace.classification_complete
+  # backfill. Files added to .intent/ and .specs/ since the last manifest
+  # pass. Classified by dominant exact-directory precedent (the manifest's
+  # own 'directory seeds the default' rule, ADR-075 D5); entries carrying
+  # a `notes:` field had no or split sibling precedent and are flagged for
+  # governor review.
+  # =====================================================================
+
+  # --- framework ---
+  - path: .intent/META/governance_pack.schema.json
+    governance_namespace: framework
+  - path: .intent/artifact_types/architecture_bridge.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/charter.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/northstar.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/planning.yaml
+    governance_namespace: framework
+  - path: .intent/artifact_types/requirement.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/finalization_integrity.yaml
+    governance_namespace: framework
+  - path: .intent/packs/architectural_boundaries.yaml
+    governance_namespace: framework
+    notes: >-
+      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
+  - path: .intent/packs/python_hygiene.yaml
+    governance_namespace: framework
+    notes: >-
+      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
+  - path: .intent/packs/starter_python.yaml
+    governance_namespace: framework
+    notes: >-
+      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
+  - path: .intent/rules/governance/proposal_finalization_integrity.json
+    governance_namespace: framework
+  - path: .specs/META/architecture_bridge.schema.json
+    governance_namespace: framework
+  - path: .specs/META/charter.header.schema.json
+    governance_namespace: framework
+  - path: .specs/META/northstar.header.schema.json
+    governance_namespace: framework
+  - path: .specs/META/planning.header.schema.json
+    governance_namespace: framework
+  - path: .specs/META/requirement.header.schema.json
+    governance_namespace: framework
+
+  # --- project::core ---
+  - path: .intent/architecture/bridges/audit_ingest_worker.yaml
+    governance_namespace: project::core
+    notes: >-
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+  - path: .intent/architecture/bridges/proposal_consumer_worker.yaml
+    governance_namespace: project::core
+    notes: >-
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+  - path: .intent/architecture/bridges/quality_ingest_worker.yaml
+    governance_namespace: project::core
+    notes: >-
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+  - path: .intent/enforcement/contracts/ApproveRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CreateAuditRunRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CreateBaselineRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CreateCensusRunRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CreateProposalRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CreateRemediationRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/DevelopmentGoal.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ExecuteRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/GenerateBatchRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/GenerateRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/IntegrateRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/IntegrityRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/InteractiveTestsRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposeRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/QualityAsyncRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/QualityLintRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/QualityTargetRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/QualityTestsRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RejectRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ReportRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RunAutonomousRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/SyncRequest.json
+    governance_namespace: project::core
+  - path: .intent/flows/flow.fix_modularity.yaml
+    governance_namespace: project::core
+    notes: >-
+      REVIEW: flows/ dir is split (fix_code/dev_sync/sync_state=project::core; audit_remediate_validate/build_test_for_symbol=framework). fix_modularity is a fix-family governor CLI tool, aligning with fix_code. Classified project::core.
+  - path: .specs/decisions/ADR-145-process-mode-provenance.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-146-cli-consumer-operator-split.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-147-canary-sandbox-janitor-worker.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-148-proposal-finalization-barrier.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-CLI-2.9.0-Followups.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-CLI-Release-Smoke-Test.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-CLI-VM-Test-Access-Runbook.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-Cleanroom-Rebuild-Runbook.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-External-Adoption-Plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/external-review-2026-07-todo.md
+    governance_namespace: project::core
