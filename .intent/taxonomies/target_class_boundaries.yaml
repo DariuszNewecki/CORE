@@ -57,6 +57,20 @@ boundaries:
   - prefix: "var/tmp/"
     target_class: ephemeral-scratch
 
+  # work/ is autonomous-workspace scratch (.gitignore: "ephemeral by
+  # definition") written by ~8 subsystems — canary sandbox snapshots
+  # (ADR-147 D4, work/canary/sandbox_<crate_id>/), context cache,
+  # test-generation artifacts, code-generation work dirs, interactive
+  # sessions, the vulture healer, and BYOR staging. ADR-147 D4 already
+  # named the correct classification ("the wrong tier for a directory
+  # that is pure ephemeral trial scratch... work/ should be ephemeral-
+  # scratch") and deferred only this taxonomy transcription as a
+  # follow-up. Broad work/ prefix, not narrow work/canary/ — all
+  # subdirectories share the same ephemeral, gitignored, never-committed
+  # shape; narrowing would leave the other ~7 subsystems misclassified.
+  - prefix: "work/"
+    target_class: ephemeral-scratch
+
   # ---------------------------------------------------------------------------
   # runtime-output — operational output that persists across runs but is
   # not commit-bearing. reports/ is the audit/remediation evidence

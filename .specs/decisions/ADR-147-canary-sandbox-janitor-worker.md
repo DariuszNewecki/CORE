@@ -86,6 +86,14 @@ up the identical path the identical way. **Open item:** if the governor wants `w
 brought under the FileHandler chokepoint uniformly, that is a follow-up ADR amending the
 target-class taxonomy, not a blocker for this one.
 
+> **Note (2026-07-13, #772):** the open item is closed. `.intent/taxonomies/
+> target_class_boundaries.yaml` now declares `work/` (broad prefix — canary sandboxes plus
+> the ~7 other subsystems that write ephemeral scratch under `work/`) as `ephemeral-scratch`,
+> citing this D4 as grounding. No follow-up ADR was needed — the classification decision was
+> already made here; only the taxonomy transcription was deferred. `canary_janitor`'s direct
+> `shutil.rmtree` remains as-is (unaffected by this closure — see D4 above for why it bypasses
+> FileHandler regardless of tier).
+
 **D5 — No report-only ramp; deletes from day one (a deliberate departure from ADR-117
 D5).** ADR-117 shipped `var_tmp_janitor` report-only first because `var/tmp/` can hold
 arbitrary scratch content from many uncoordinated creators, so the age/boundary predicate
