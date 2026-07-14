@@ -27,6 +27,11 @@ from shared.utils.test_gen_utils import (
     extract_referenced_module_constants,
     extract_symbol_code,
 )
+from will.agents.acceptance.conditions import (
+    CompositeAcceptanceCondition,
+    IntentGuardAcceptanceCondition,
+    PytestAcceptanceCondition,
+)
 from will.agents.prompt_model_iterative_agent import (
     GenerationFailedError,
     PromptModelIterativeAgent,
@@ -154,14 +159,43 @@ class TestGenCognitiveDelegate:
             "module_path": module_path,
         }
 
+        # Capture the target test file's pre-loop content once (ADR-140 Amendment
+        # 2026-07-14, later). PytestAcceptanceCondition recomputes base + candidate
+        # and overwrites on every iteration — it must not accumulate onto its own
+        # prior (rejected) candidate.
+        target_test_path = repo_root / target_path
+        base_content = (
+            target_test_path.read_text(encoding="utf-8")
+            if target_test_path.exists()
+            else ""
+        )
+
+        from body.atomic.executor import ActionExecutor
+
+        executor = ActionExecutor(self._core_context)
+        acceptance = CompositeAcceptanceCondition(
+            [
+                IntentGuardAcceptanceCondition(
+                    repo_root=repo_root, target_path=target_path
+                ),
+                PytestAcceptanceCondition(
+                    executor=executor,
+                    source_file=source_file,
+                    target_path=target_path,
+                    base_content=base_content,
+                    file_service=self._core_context.file_service,
+                ),
+            ]
+        )
+
         try:
             generated_code = await self._agent.generate(
                 prompt_name=_INITIAL_PROMPT,
                 repair_prompt_name=_REPAIR_PROMPT,
                 context=context,
                 target_path=target_path,
+                acceptance=acceptance,
                 cognitive_service=cognitive_service,
-                repo_root=repo_root,
                 step_ref="generate.test_snippet",
                 task_type="test_generation",
             )

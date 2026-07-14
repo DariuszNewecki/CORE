@@ -8,7 +8,13 @@ variables rather than CoderAgent's ContextService pipeline.
 
 This agent carries the iterative loop extracted from body/atomic/build_test_for_symbol_action.py
 (ADR-140 D5). The behavioral contract is preserved: same budget source, same prompts,
-same IntentGuard acceptance condition, same failure semantics where practical.
+same failure semantics where practical.
+
+ADR-140 Amendment 2026-07-14 (later): the loop's acceptance gate is an injected
+AcceptanceCondition rather than a hardcoded IntentGuard check, restoring ADR-135 D6's
+pytest-in-the-loop wiring — a rejected candidate's violation_summary (which may now
+originate from a runtime pytest failure, not just static analysis) becomes the repair
+prompt's feedback signal, identically to how IntentGuard violations were threaded before.
 
 Layer: Will. No filesystem writes. No direct database access. Delegates all mutations
 to Body actions via the Flow mechanism.
@@ -18,17 +24,17 @@ from __future__ import annotations
 
 import asyncio
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.intent.generation_budget import load_generation_budget
 from shared.logger import getLogger
-from shared.utils.test_gen_utils import extract_from_fences, format_violations
+from shared.utils.test_gen_utils import extract_from_fences
 
 
 if TYPE_CHECKING:
     from shared.protocols.cognitive import CognitiveProtocol
+    from will.agents.acceptance.conditions import AcceptanceCondition
 
 logger = getLogger(__name__)
 
@@ -46,7 +52,7 @@ class GenerationFailedError(Exception):
         self,
         step_ref: str,
         attempts: int,
-        violations: list[dict],
+        violations: list[str],
         reason: str = "budget_exhausted",
     ) -> None:
         self.step_ref = step_ref
@@ -63,7 +69,7 @@ class PromptModelIterativeAgent:
     """
     Will-tier iterative generation agent for direct PromptModel.invoke() paths.
 
-    Loop: generate → IntentGuard → feed violations back → repeat, up to the
+    Loop: generate → acceptance.evaluate → feed violations back → repeat, up to the
     governed cap in generation_budget.yaml.
 
     Accepts pre-built context dicts — context preparation (symbol extraction,
@@ -78,8 +84,8 @@ class PromptModelIterativeAgent:
         repair_prompt_name: str,
         context: dict[str, Any],
         target_path: str,
+        acceptance: AcceptanceCondition,
         cognitive_service: CognitiveProtocol,
-        repo_root: Path,
         step_ref: str = "generate",
         task_type: str = "test_generation",
     ) -> str:
@@ -96,22 +102,24 @@ class PromptModelIterativeAgent:
                                  Repair iterations extend this with
                                  violations_summary and previous_code.
             target_path:         Repo-relative path of the file to be written.
-                                 Passed to IntentGuard for path-level validation.
+                                 Passed to the acceptance condition for path-level
+                                 validation.
+            acceptance:          Injected AcceptanceCondition (ADR-140 Amendment
+                                 2026-07-14, later). Evaluated once per candidate;
+                                 a rejection's violation_summary drives the next
+                                 repair iteration.
             cognitive_service:   CognitiveProtocol instance for LLM calls.
-            repo_root:           Absolute repo root path for IntentGuard.
             step_ref:            Identifier for logging/error attribution.
             task_type:           Budget lookup key in generation_budget.yaml.
 
         Returns:
-            The first generated code string that passes IntentGuard.
+            The first generated code string the acceptance condition accepts.
 
         Raises:
             GenerationFailedError: If the governed budget is exhausted without
                                    an accepted result, or if the wall-clock cap
                                    is hit.
         """
-        from body.governance.intent_guard import get_intent_guard
-
         start = time.time()
         budget = load_generation_budget().for_task_type(task_type)
         max_iterations = budget.max_iterations
@@ -143,10 +151,9 @@ class PromptModelIterativeAgent:
                 reason=f"prompt_or_client_init_failed: {exc}",
             ) from exc
 
-        intent_guard = get_intent_guard(repo_path=repo_root)
-
         previous_code: str | None = None
-        last_violations: list[dict] = []
+        last_violations: list[str] = []
+        last_violation_summary = ""
 
         for attempt in range(max_iterations):
             is_repair = attempt > 0
@@ -159,9 +166,7 @@ class PromptModelIterativeAgent:
                         repair_model.invoke(
                             context={
                                 **context,
-                                "violations_summary": format_violations(
-                                    last_violations
-                                ),
+                                "violations_summary": last_violation_summary,
                                 "previous_code": previous_code or "",
                             },
                             client=generator,
@@ -211,12 +216,10 @@ class PromptModelIterativeAgent:
             generated_code = extract_from_fences(raw_response)
             if not generated_code:
                 if attempt < max_iterations - 1:
-                    last_violations = [
-                        {
-                            "rule_name": "output.no_code_fence",
-                            "message": "LLM response contained no ```python fences",
-                        }
-                    ]
+                    last_violation_summary = (
+                        "LLM response contained no ```python fences"
+                    )
+                    last_violations = ["output.no_code_fence"]
                     previous_code = raw_response[:500]
                     logger.warning(
                         "PromptModelIterativeAgent[%s]: no fences on attempt %d/%d — retrying",
@@ -228,21 +231,17 @@ class PromptModelIterativeAgent:
                 raise GenerationFailedError(
                     step_ref=step_ref,
                     attempts=attempt + 1,
-                    violations=[{"rule_name": "output.no_code_fence"}],
+                    violations=["output.no_code_fence"],
                     reason="no_code_fence",
                 )
 
-            # IntentGuard validation.
+            # Acceptance evaluation (ADR-140 Amendment 2026-07-14, later).
             try:
-                validation = intent_guard.validate_generated_code(
-                    code=generated_code,
-                    pattern_id="test_file",
-                    component_type="test",
-                    target_path=target_path,
-                )
+                acceptance_result = await acceptance.evaluate(generated_code)
             except Exception as exc:
                 logger.error(
-                    "PromptModelIterativeAgent[%s]: IntentGuard raised on attempt %d: %s",
+                    "PromptModelIterativeAgent[%s]: acceptance.evaluate raised on "
+                    "attempt %d: %s",
                     step_ref,
                     attempt + 1,
                     exc,
@@ -252,10 +251,10 @@ class PromptModelIterativeAgent:
                     step_ref=step_ref,
                     attempts=attempt + 1,
                     violations=last_violations,
-                    reason=f"intent_guard_raised: {exc}",
+                    reason=f"acceptance_evaluate_raised: {exc}",
                 ) from exc
 
-            if validation.is_valid:
+            if acceptance_result.accepted:
                 if attempt > 0:
                     logger.info(
                         "PromptModelIterativeAgent[%s]: accepted on attempt %d/%d",
@@ -265,14 +264,10 @@ class PromptModelIterativeAgent:
                     )
                 return generated_code
 
-            # Validation failed — accumulate violations for the repair prompt.
-            last_violations = [
-                {
-                    "rule_name": getattr(v, "rule_name", "unknown"),
-                    "message": getattr(v, "message", ""),
-                    "severity": getattr(v, "severity", "error"),
-                }
-                for v in validation.violations
+            # Rejected — accumulate violations for the repair prompt.
+            last_violation_summary = acceptance_result.violation_summary
+            last_violations = acceptance_result.violations or [
+                acceptance_result.violation_summary
             ]
             previous_code = generated_code
 
@@ -281,11 +276,11 @@ class PromptModelIterativeAgent:
                     step_ref=step_ref,
                     attempts=attempt + 1,
                     violations=last_violations,
-                    reason="intent_guard_violations",
+                    reason="acceptance_rejected",
                 )
 
             logger.info(
-                "PromptModelIterativeAgent[%s]: attempt %d/%d — %d violations, retrying",
+                "PromptModelIterativeAgent[%s]: attempt %d/%d — %d violation(s), retrying",
                 step_ref,
                 attempt + 1,
                 max_iterations,

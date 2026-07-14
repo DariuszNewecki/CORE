@@ -153,7 +153,7 @@ class IterativeCoderAgent:
                 )
 
             try:
-                result = await acceptance.evaluate(code, task)
+                result = await acceptance.evaluate(code)
             except Exception as exc:
                 logger.error(
                     "IterativeCoderAgent: acceptance.evaluate raised on attempt %d: %s",

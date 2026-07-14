@@ -5,6 +5,13 @@ Tests for PromptModelIterativeAgent — Will-tier iterative generation (ADR-140 
 The iterative loop previously lived in body/atomic/build_test_for_symbol_action.py
 (ADR-135 D1/D3). It was extracted to PromptModelIterativeAgent by ADR-140. These
 tests verify the loop contract: retry on violation, succeed on repair, fail after cap.
+
+ADR-140 Amendment 2026-07-14 (later): the acceptance gate is an injected
+AcceptanceCondition rather than a hardcoded IntentGuard call. Most tests here use a
+real IntentGuardAcceptanceCondition (patching get_intent_guard, as before) to keep
+the existing static-gate coverage; one test uses a bare fake AcceptanceCondition
+whose first rejection carries a pytest-shaped (runtime) violation_summary, proving
+the loop drives a repair iteration off a runtime signal, not just a static one.
 """
 
 from __future__ import annotations
@@ -14,6 +21,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from will.agents.acceptance.conditions import (
+    AcceptanceResult,
+    IntentGuardAcceptanceCondition,
+)
 from will.agents.prompt_model_iterative_agent import (
     GenerationFailedError,
     PromptModelIterativeAgent,
@@ -72,6 +83,9 @@ async def test_iterative_succeeds_on_second_attempt(
     intent_guard.validate_generated_code = MagicMock(
         side_effect=[fail_validation, pass_validation]
     )
+    acceptance = IntentGuardAcceptanceCondition(
+        repo_root=tmp_path, target_path="tests/x/test_generated.py"
+    )
 
     with (
         patch(
@@ -104,8 +118,8 @@ async def test_iterative_succeeds_on_second_attempt(
                 "module_path": "x",
             },
             target_path="tests/x/test_generated.py",
+            acceptance=acceptance,
             cognitive_service=mock_cognitive_service,
-            repo_root=tmp_path,
             step_ref="generate.test_snippet",
         )
 
@@ -129,6 +143,9 @@ async def test_iterative_raises_after_cap_exhausted(
 
     intent_guard = MagicMock()
     intent_guard.validate_generated_code = MagicMock(return_value=fail_validation)
+    acceptance = IntentGuardAcceptanceCondition(
+        repo_root=tmp_path, target_path="tests/x/test_generated.py"
+    )
 
     with (
         patch(
@@ -158,13 +175,13 @@ async def test_iterative_raises_after_cap_exhausted(
                     "module_path": "x",
                 },
                 target_path="tests/x/test_generated.py",
+                acceptance=acceptance,
                 cognitive_service=mock_cognitive_service,
-                repo_root=tmp_path,
                 step_ref="generate.test_snippet",
             )
 
     assert exc_info.value.attempts == 3
-    assert exc_info.value.reason == "intent_guard_violations"
+    assert exc_info.value.reason == "acceptance_rejected"
     assert intent_guard.validate_generated_code.call_count == 3
 
 
@@ -183,6 +200,9 @@ async def test_single_attempt_passes_on_first_try(
 
     intent_guard = MagicMock()
     intent_guard.validate_generated_code = MagicMock(return_value=pass_validation)
+    acceptance = IntentGuardAcceptanceCondition(
+        repo_root=tmp_path, target_path="tests/x/test_generated.py"
+    )
 
     with (
         patch(
@@ -211,10 +231,78 @@ async def test_single_attempt_passes_on_first_try(
                 "module_path": "x",
             },
             target_path="tests/x/test_generated.py",
+            acceptance=acceptance,
             cognitive_service=mock_cognitive_service,
-            repo_root=tmp_path,
             step_ref="generate.test_snippet",
         )
 
     assert "def test_do_work" in result
     assert intent_guard.validate_generated_code.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_runtime_only_failure_drives_repair_iteration(
+    agent: PromptModelIterativeAgent,
+    mock_cognitive_service: MagicMock,
+) -> None:
+    """A candidate that is statically clean but fails at runtime (the class
+    ADR-135 D6's pytest-in-the-loop exists to catch — 'imports fine, fails at
+    run') must still drive a repair iteration, fed by the acceptance
+    condition's violation_summary. This exercises the loop's acceptance-driven
+    contract independent of any one condition implementation.
+    """
+    initial_model = MagicMock()
+    initial_model.manifest.role = "Coder"
+    initial_model.invoke = AsyncMock(return_value=_bad_response())
+
+    repair_model = MagicMock()
+    repair_model.manifest.role = "Coder"
+    repair_model.invoke = AsyncMock(return_value=_good_response())
+
+    runtime_failure = AcceptanceResult(
+        accepted=False,
+        violation_summary="pytest: AssertionError: do_work(2) == 4, got 5 (runtime-only, imports cleanly)",
+        violations=["AssertionError: do_work(2) == 4, got 5"],
+    )
+    acceptance = MagicMock()
+    acceptance.evaluate = AsyncMock(
+        side_effect=[runtime_failure, AcceptanceResult(accepted=True, violation_summary="")]
+    )
+
+    with (
+        patch(
+            "will.agents.prompt_model_iterative_agent.PromptModel.load",
+            side_effect=lambda name: (
+                repair_model
+                if name == "context_aware_test_gen_repair"
+                else initial_model
+            ),
+        ),
+        patch(
+            "will.agents.prompt_model_iterative_agent.load_generation_budget",
+        ) as mock_budget,
+    ):
+        from shared.infrastructure.intent.generation_budget import TaskBudget
+
+        mock_budget.return_value.for_task_type.return_value = TaskBudget(5, 600)
+
+        result = await agent.generate(
+            prompt_name="context_aware_test_gen",
+            repair_prompt_name="context_aware_test_gen_repair",
+            context={
+                "file_path": "src/x.py",
+                "symbol_name": "do_work",
+                "symbol_code": "def do_work(x): ...",
+                "module_path": "x",
+            },
+            target_path="tests/x/test_generated.py",
+            acceptance=acceptance,
+            cognitive_service=mock_cognitive_service,
+            step_ref="generate.test_snippet",
+        )
+
+    assert "def test_do_work" in result
+    repair_model.invoke.assert_called_once()
+    repair_context = repair_model.invoke.call_args.kwargs["context"]
+    assert "runtime-only" in repair_context["violations_summary"]
+    assert acceptance.evaluate.call_count == 2

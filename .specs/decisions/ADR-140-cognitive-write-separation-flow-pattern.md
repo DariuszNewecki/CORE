@@ -914,3 +914,52 @@ legible.
 not a cognitive gap but a plain pipeline bug: `build.test_for_symbol` appends a snippet whose
 mandated leading `from __future__ import annotations` then lands mid-file → `SyntaxError` at
 collection. Bounded fix, higher throughput payoff than the rewire; tracked separately as #792.
+
+---
+
+## Status note 2026-07-14 (later) — trigger re-fires GO after #792; change-set corrected and implemented
+
+**Status:** Accepted (decision) — **implemented this session.** Tracking: #791.
+
+#792 landed after the NO-GO note above was written. Re-measuring on the real (fixed) append
+path, n=16 previously-failed symbols: **7/16 pass, 0 static/collection failures.** The 9-symbol
+residual is dominated by **async/mock-contract failures** — `coroutine object has no attribute
+'first'` (async call not awaited), `assert_awaited_once_with` against a plain `MagicMock`
+instead of `AsyncMock`, item-assignment on a `MagicMock`, mock-call-signature mismatches, a
+hallucinated `pytest.helpers` API. This is a different failure shape than the
+`declaration_name`/session-factory population the morning NO-GO measured (which the static
+fixes had already emptied) — but it is the same *category*: only a runtime execution signal
+distinguishes "imports cleanly" from "actually passes," and static analysis (IntentGuard)
+cannot see it.
+
+**Disposition: GO.** The trigger's condition — "implement only if the residual runtime-contract
+failure rate justifies the rewire" — is met by this new population. Decisions 1–8 above stand
+as written and are now implemented, with two corrections surfaced during implementation
+reconnaissance that the original change-set did not account for:
+
+**Correction A — a second, unlisted caller of `AcceptanceCondition.evaluate`.**
+`IterativeCoderAgent.generate_until_accepted` (`src/will/agents/iterative_coder_agent.py`,
+ADR-135 D2) already calls `acceptance.evaluate(code, task)` with a live `ExecutionTask`. Decision
+5's "drop the unused `task` parameter" is correct — no implementation reads it — but the change
+is only safe once this call site is also updated to `acceptance.evaluate(code)`. Added to the
+change-set: `iterative_coder_agent.py` is a 4th file, alongside `conditions.py`,
+`prompt_model_iterative_agent.py`, and `test_gen_cognitive_delegate.py`.
+
+**Correction B — decision 6's "either/or" write options are not equivalent.** Decision 6 allowed
+completing `PytestAcceptanceCondition` either "via the injected FileHandler, or by ordering
+behind `build.test_for_symbol`." The second option is unsafe as stated: `build.test_for_symbol`'s
+`write=True` path **appends** the candidate snippet to existing file content (ADR-133/#792
+behavior, intentionally preserved for the real single production write). Calling that action once
+per loop iteration would leave every rejected candidate's body permanently appended, with each
+repair attempt's candidate stacking on top instead of replacing it — a corruption mode, not a
+neutral implementation choice. Corrected design: `TestGenCognitiveDelegate` captures the test
+file's pre-loop base content once, injects it into `PytestAcceptanceCondition`, which recomputes
+`base + candidate` fresh and **overwrites** (never appends) on every `evaluate()` call, via
+`CoreContext.file_service` (ADR-097 D4) — the sanctioned Will-tier write door built specifically
+so Will consumers do not touch `FileHandler` directly. No new boundary debt: `file_service` is
+already the correct injection point for this, simply not yet used by this code path. The real,
+single, append-based production write is unchanged: it still happens exactly once, after
+acceptance, via the flow's own `build.test_for_symbol` step.
+
+Both corrections are refinements of the already-accepted decision, not new architectural
+calls — no protocol shape, layering, or trigger logic changes as a result.
