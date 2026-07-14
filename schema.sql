@@ -688,7 +688,8 @@ CREATE TABLE core.audit_findings (
     file_path text,
     line_number integer,
     context jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    run_id uuid NOT NULL
 );
 
 
@@ -786,7 +787,6 @@ CREATE TABLE core.autonomous_proposals (
     validation_results jsonb DEFAULT '{}'::jsonb NOT NULL,
     execution_started_at timestamp with time zone,
     execution_completed_at timestamp with time zone,
-    consequence_recorded_at timestamp with time zone,
     execution_results jsonb DEFAULT '{}'::jsonb NOT NULL,
     constitutional_constraints jsonb DEFAULT '{}'::jsonb NOT NULL,
     approval_required boolean DEFAULT false NOT NULL,
@@ -797,6 +797,7 @@ CREATE TABLE core.autonomous_proposals (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     approval_authority text,
     claimed_by uuid,
+    consequence_recorded_at timestamp with time zone,
     CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
     CONSTRAINT autonomous_proposals_approval_authority_value_check CHECK (((approval_authority IS NULL) OR (approval_authority = ANY (ARRAY['risk_classification.safe_auto_approval'::text, 'principal.governor'::text])))),
     CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
@@ -828,7 +829,7 @@ COMMENT ON COLUMN core.autonomous_proposals.goal IS 'Strategic intent - what thi
 -- Name: COLUMN autonomous_proposals.status; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON COLUMN core.autonomous_proposals.status IS 'Lifecycle: draft\u2192pending\u2192approved\u2192executing\u2192completed/failed/rejected';
+COMMENT ON COLUMN core.autonomous_proposals.status IS 'Lifecycle: draft->pending->approved->executing->finalizing->completed/failed/rejected';
 
 
 --
@@ -2520,33 +2521,6 @@ CREATE TABLE core.runtime_services (
 
 
 --
--- Name: runtime_settings; Type: TABLE; Schema: core; Owner: -
---
-
-CREATE TABLE core.runtime_settings (
-    key text NOT NULL,
-    value text,
-    description text,
-    is_secret boolean DEFAULT false NOT NULL,
-    last_updated timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: TABLE runtime_settings; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
-
-
---
--- Name: COLUMN runtime_settings.is_secret; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
-
-
---
 -- Name: secret_store; Type: TABLE; Schema: core; Owner: -
 --
 
@@ -2837,7 +2811,8 @@ CREATE TABLE core.users (
     mfa_secret text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     last_login_at timestamp with time zone,
-    locked_until timestamp with time zone
+    locked_until timestamp with time zone,
+    display_name text
 );
 
 
@@ -3979,14 +3954,6 @@ ALTER TABLE ONLY core.runtime_services
 
 
 --
--- Name: runtime_settings runtime_settings_pkey; Type: CONSTRAINT; Schema: core; Owner: -
---
-
-ALTER TABLE ONLY core.runtime_settings
-    ADD CONSTRAINT runtime_settings_pkey PRIMARY KEY (key);
-
-
---
 -- Name: secret_store secret_store_pkey; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -4421,10 +4388,38 @@ CREATE INDEX idx_audit_findings_check_id ON core.audit_findings USING btree (che
 
 
 --
+-- Name: idx_audit_findings_check_run; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE INDEX idx_audit_findings_check_run ON core.audit_findings USING btree (check_id, run_id);
+
+
+--
 -- Name: idx_audit_findings_created_at; Type: INDEX; Schema: core; Owner: -
 --
 
 CREATE INDEX idx_audit_findings_created_at ON core.audit_findings USING btree (created_at DESC);
+
+
+--
+-- Name: idx_audit_findings_file_run; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE INDEX idx_audit_findings_file_run ON core.audit_findings USING btree (file_path, run_id);
+
+
+--
+-- Name: idx_audit_findings_run_id; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE INDEX idx_audit_findings_run_id ON core.audit_findings USING btree (run_id);
+
+
+--
+-- Name: idx_audit_findings_run_severity; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE INDEX idx_audit_findings_run_severity ON core.audit_findings USING btree (run_id, severity);
 
 
 --
@@ -5940,6 +5935,14 @@ ALTER TABLE ONLY core.artifact_symbol_links
 
 
 --
+-- Name: audit_findings audit_findings_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.audit_findings
+    ADD CONSTRAINT audit_findings_run_id_fkey FOREIGN KEY (run_id) REFERENCES core.audit_runs(run_id);
+
+
+--
 -- Name: audit_remediation_runs audit_remediation_runs_audit_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -6289,26 +6292,6 @@ ALTER TABLE ONLY core.tasks
 
 ALTER TABLE ONLY core.tasks
     ADD CONSTRAINT tasks_parent_task_id_fkey FOREIGN KEY (parent_task_id) REFERENCES core.tasks(id);
-
-
---
--- Name: runtime_settings; Type: ROW SECURITY; Schema: core; Owner: -
---
-
-ALTER TABLE core.runtime_settings ENABLE ROW LEVEL SECURITY;
-
---
--- Name: runtime_settings settings_read_policy; Type: POLICY; Schema: core; Owner: -
---
-
-CREATE POLICY settings_read_policy ON core.runtime_settings FOR SELECT USING (((NOT is_secret) OR (CURRENT_USER = ANY (ARRAY['postgres'::name, 'admin'::name, 'core_db'::name]))));
-
-
---
--- Name: runtime_settings settings_write_policy; Type: POLICY; Schema: core; Owner: -
---
-
-CREATE POLICY settings_write_policy ON core.runtime_settings USING ((CURRENT_USER = ANY (ARRAY['postgres'::name, 'admin'::name, 'core_db'::name])));
 
 
 --
