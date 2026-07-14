@@ -567,6 +567,7 @@ class StrategicAuditorConfig:
 class MiscConfig:
     linelength_max_line_chars: int = 100
     enrichment_description_max_chars: int = 500
+    enrichment_symbols_batch_limit: int = 200
     conversation_max_content_chars: int = 2000
     code_snippet_context_lines: int = 20
     embedding_search_default_limit: int = 10

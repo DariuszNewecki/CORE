@@ -485,6 +485,7 @@ strategic_auditor:
 misc:
   linelength_max_line_chars: 100
   enrichment_description_max_chars: 500
+  enrichment_symbols_batch_limit: 200   # symbols per 'enrich symbols' run (#774)
   conversation_max_content_chars: 2000
   code_snippet_context_lines: 20
   embedding_search_default_limit: 10

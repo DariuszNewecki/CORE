@@ -50,7 +50,8 @@ async def _get_symbols_to_enrich(session: Any) -> list[dict[str, Any]]:
 
     NOTE:
       - This is intentionally conservative: it avoids overwriting real intent.
-      - Tune patterns or LIMIT if you want broader enrichment runs.
+      - The per-run cap is governed via operational_config.yaml
+        misc.enrichment_symbols_batch_limit (#774); tune it there, not here.
     """
     stmt = text(
         """
@@ -62,11 +63,13 @@ async def _get_symbols_to_enrich(session: Any) -> list[dict[str, Any]]:
            OR intent ILIKE 'tbd%'
            OR intent ILIKE 'placeholder%'
         ORDER BY updated_at NULLS FIRST, created_at
-        LIMIT 200
+        LIMIT :batch_limit
         """
     )
 
-    result = await session.execute(stmt)
+    result = await session.execute(
+        stmt, {"batch_limit": _CFG.enrichment_symbols_batch_limit}
+    )
     rows = result.mappings().all()
     return [dict(r) for r in rows]
 
