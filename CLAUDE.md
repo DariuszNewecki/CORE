@@ -76,10 +76,12 @@ instantiation smoke tests where possible. Scoped `pytest` runs against the speci
 file(s) you touched or added for this change are part of normal delivery — run them and
 report the result honestly, including failures. This does not extend to full-suite runs,
 `-k`/directory-wide sweeps, or any test file known to hit shared live state (the `core_test`
-database, a live daemon/API integration) — those remain governor-initiated; ask first. Do NOT
-commit — governor action. Restarting `core-daemon` + `core-api` is in-scope when a fix needs
-operationalization (the daemon caches imported modules); avoid restarting mid-flight against
-an active CCC scan or long-running remediation.
+database, a live daemon/API integration) — those remain governor-initiated; ask first. Commit
+your own authored work (stage by name per ADR-101 D1, `Co-Authored-By` trailer) once verification
+is reported — the governor confirmed this 2026-06-14. **Push remains governor-only**: never push
+without the governor's explicit go-ahead in the current turn. Restarting `core-daemon` +
+`core-api` is in-scope when a fix needs operationalization (the daemon caches imported modules);
+avoid restarting mid-flight against an active CCC scan or long-running remediation.
 
 **When in doubt, ask.** Do not invent requirements or infer CLI commands from plausibility.
 If a brief says "atomic action" and no CLI surface exists to invoke one, ask rather than
