@@ -1,8 +1,10 @@
 # src/shared/infrastructure/intent/pack_loader.py
 
 """
-Governance Pack Loader — reads .intent/packs/*.yaml and extracts rule
-definitions and enforcement mappings for adoption into a consumer repo.
+Governance Pack Loader — reads the top-level packs/*.yaml registry and extracts
+rule definitions and enforcement mappings for adoption into a consumer repo.
+Packs are adoptable products, not CORE's own law, and live outside .intent/
+(ADR-149).
 
 CONSTITUTIONAL:
 - Read-only: no writes, no side effects.
@@ -27,7 +29,7 @@ CORE_ROLE = "catalog"  # ADR-095 D3
 @dataclass(frozen=True)
 # ID: b646137e-6410-4bc4-a023-29c1cd18286a
 class LoadedPack:
-    """A governance pack loaded from a .intent/packs/*.yaml declaration.
+    """A governance pack loaded from a packs/*.yaml declaration.
 
     rules: list of rule dicts (rule_document.schema.json item shape).
     enforcement_mappings: dict of rule_id → mapping dict (enforcement_mapping.schema.json shape).
@@ -54,9 +56,10 @@ class LoadedPack:
 class PackLoader:
     """Load and validate governance packs from a packs directory.
 
-    Typically pointed at .intent/packs/ in the CORE installation. Each YAML
-    file in the directory is treated as one pack declaration and must conform
-    to META/governance_pack.schema.json.
+    Typically pointed at the top-level packs/ registry in the CORE installation
+    (a sibling of .intent/, per ADR-149). Each YAML file in the directory is
+    treated as one pack declaration and must conform to
+    META/governance_pack.schema.json.
     """
 
     def __init__(self, packs_dir: Path) -> None:

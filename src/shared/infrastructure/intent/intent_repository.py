@@ -588,17 +588,22 @@ class IntentRepository(RootedRepository):
 
     # ID: c8b1701b-7849-453f-b15c-3eeddde6becf
     def list_packs(self) -> list[str]:
-        """Return all pack IDs available in the .intent/packs/ directory."""
+        """Return all pack IDs available in the top-level packs/ registry.
+
+        Packs are adoptable governance products, not CORE's own law (ADR-149):
+        they live in the repo-root `packs/` directory, a sibling of `.intent/`,
+        resolved as the law-root's parent.
+        """
         from shared.infrastructure.intent.pack_loader import PackLoader
 
-        return PackLoader(self._root / "packs").list_pack_ids()
+        return PackLoader(self._root.parent / "packs").list_pack_ids()
 
     # ID: 61c28228-0704-45f7-addd-b81a378d6a42
     def load_pack(self, pack_id: str) -> object | None:
         """Load a governance pack by ID. Returns LoadedPack or None if not found."""
         from shared.infrastructure.intent.pack_loader import PackLoader
 
-        return PackLoader(self._root / "packs").load_pack(pack_id)
+        return PackLoader(self._root.parent / "packs").load_pack(pack_id)
 
     def _ensure_index(self) -> None:
         if (

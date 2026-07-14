@@ -76,13 +76,14 @@ async def adopt_pack_command(
 
     Packs are self-contained bundles of rules and enforcement mappings that
     remove the need to author governance YAML manually. Each pack is resolved
-    from the installed core-runtime's .intent/packs/ directory.
+    from the installed core-runtime's top-level packs/ registry (a sibling of
+    .intent/, not part of CORE's own law — ADR-149).
 
     Run without --write to preview what would be written. Run with --write
     to apply. After adoption, run 'core-admin code audit --offline' to see
     findings against the pack's rules.
     """
-    builtin_packs_dir = settings.MIND / "packs"
+    builtin_packs_dir = settings.MIND.parent / "packs"
     loader = PackLoader(builtin_packs_dir)
 
     pack = loader.load_pack(pack_id)

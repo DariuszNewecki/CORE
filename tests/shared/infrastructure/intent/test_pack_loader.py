@@ -200,9 +200,9 @@ def test_real_packs_dir_loads_without_error():
     """Smoke test: the three built-in packs load without error."""
     from shared.config import settings
 
-    packs_dir = settings.MIND / "packs"
+    packs_dir = settings.MIND.parent / "packs"
     if not packs_dir.exists():
-        pytest.skip("CORE .intent/packs/ not found in test environment")
+        pytest.skip("CORE packs/ registry not found in test environment")
 
     loader = PackLoader(packs_dir)
     packs = loader.load_all()
