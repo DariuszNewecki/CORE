@@ -1760,6 +1760,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-148-proposal-finalization-barrier.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-149-governance-packs-live-outside-self-law-root.md
+    governance_namespace: project::core
   - path: .specs/planning/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-CLI-Release-Smoke-Test.md
