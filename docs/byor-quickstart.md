@@ -39,7 +39,7 @@ remote client. Run `core-cli` on the same host as the CORE API (or the CORE
 API on the same host as your target repo). `scout`'s ratified rule files, by
 contrast, are written locally by `core-cli` itself — only the rule
 *induction* (reading your code, proposing candidates) goes over the API.
-Details: F-1, `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
+Details: F-1, `.specs/planning/archive/CORE-CLI-2.9.0-Followups.md`.
 
 **Always pass an absolute path** to `onboard`/`promote`/`scout` — never `.`.
 `core-cli` sends `path` as a plain string over HTTP; a relative path is

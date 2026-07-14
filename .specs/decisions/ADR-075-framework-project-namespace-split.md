@@ -226,7 +226,7 @@ requires, in addition:
   — constitutional context for the artifact surface being classified (per #457).
 - Issue #457 — Constitutional layer reorganization: framework vs project
   namespace split.
-- `.specs/planning/CORE-band-E-planning-input-2026-05-16.md` Track 1 (Operating
+- `.specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md` Track 1 (Operating
   Models) and Track 3 (User Management) — downstream consumers gated by this split.
 - 2026-05-28 reconnaissance pass — empirical confirmation that no operational
   namespace mechanism exists and that "namespace" is already used in three

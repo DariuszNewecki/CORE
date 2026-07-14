@@ -1240,7 +1240,7 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/requirements/** — newly added planning inputs (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/planning/CORE-band-E-planning-input-2026-05-16.md
+  - path: .specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1295,7 +1295,7 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .specs/verification/F-40-sidecar-walk.md
     governance_namespace: project::core
-  - path: .specs/planning/CORE-Maturity-Audit-Actions.md
+  - path: .specs/planning/archive/CORE-Maturity-Audit-Actions.md
     governance_namespace: project::core
   - path: .specs/verification/CORE-Scout-External-Validation-click.md
     governance_namespace: project::core
@@ -1762,15 +1762,15 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-149-governance-packs-live-outside-self-law-root.md
     governance_namespace: project::core
-  - path: .specs/planning/CORE-CLI-2.9.0-Followups.md
+  - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
-  - path: .specs/planning/CORE-CLI-Release-Smoke-Test.md
+  - path: .specs/planning/archive/CORE-CLI-Release-Smoke-Test.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-CLI-VM-Test-Access-Runbook.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Cleanroom-Rebuild-Runbook.md
     governance_namespace: project::core
-  - path: .specs/planning/CORE-External-Adoption-Plan.md
+  - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
     governance_namespace: project::core
-  - path: .specs/planning/external-review-2026-07-todo.md
+  - path: .specs/planning/archive/external-review-2026-07-todo.md
     governance_namespace: project::core

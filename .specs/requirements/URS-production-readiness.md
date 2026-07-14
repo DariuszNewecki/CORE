@@ -349,7 +349,7 @@ pilot-ready.** Primary open gates: G4 (soak), G8 (integration tests), G9
 - `.specs/requirements/URS-consequence-chain.md` — G5 and G10 consequence-chain requirements
 - `.specs/requirements/URS-mechanism-coherence.md` — G9 fixture discipline grounding
 - `.specs/planning/CORE-Operational-Completeness.md` — gate-closure sequencing tracker
-- `.specs/planning/CORE-Maturity-Audit-Actions.md` — prior maturity audit inputs
+- `.specs/planning/archive/CORE-Maturity-Audit-Actions.md` — prior maturity audit inputs
 - ADR-110 — Exposure trust tiers (G12)
 - ADR-132 — Governor authentication boundary (G12)
 - ADR-133 — Test gap evaluator (G7, G8)

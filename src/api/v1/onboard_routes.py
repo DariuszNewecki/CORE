@@ -69,7 +69,7 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
     of ADR-054 D3 (core-api is loopback-bound, single-operator, no auth) —
     a remote consumer CLI (ADR-146 D2) cannot safely direct writes to an
     arbitrary server-side path without authentication, which loopback-only
-    Phase 1 does not provide. See F-1, `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
+    Phase 1 does not provide. See F-1, `.specs/planning/archive/CORE-CLI-2.9.0-Followups.md`.
     """
     from cli.logic.byor import _stage_dir_for, initialize_repository
 
@@ -129,7 +129,7 @@ async def promote_onboard(body: PromoteRequest, request: Request) -> dict:
 
     Requires the caller and the CORE API to be co-located on the same host/
     filesystem — same constraint as POST /project/onboard; see that docstring
-    and F-1 in `.specs/planning/CORE-CLI-2.9.0-Followups.md`.
+    and F-1 in `.specs/planning/archive/CORE-CLI-2.9.0-Followups.md`.
     """
     from cli.logic.byor import promote_staged
 

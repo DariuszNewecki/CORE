@@ -38,5 +38,5 @@ session on ad-hoc guessing.
 
 5. **Run the test**, following `docs/byor-quickstart.md` / the smoke-test
    doc's procedure. Record results in
-   `.specs/planning/CORE-CLI-Release-Smoke-Test.md` or the relevant
+   `.specs/planning/archive/CORE-CLI-Release-Smoke-Test.md` or the relevant
    followups doc.
