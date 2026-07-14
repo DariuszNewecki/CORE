@@ -32,6 +32,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
+from shared.utils.test_gen_utils import strip_leading_future_imports
 
 
 if TYPE_CHECKING:
@@ -152,12 +153,17 @@ async def action_build_test_for_symbol(
     created_files: list[str] = []
     if write:
         test_path = repo_root / test_file
+        # Strip the snippet's own leading `from __future__ import annotations`
+        # (mandated by the generation prompt). On append it would land mid-file
+        # and raise SyntaxError at collection (#792); on a fresh file we re-add
+        # exactly one at the top ourselves. Either way the body carries none.
+        snippet_body = strip_leading_future_imports(generated_code)
         if test_path.exists():
             existing = test_path.read_text(encoding="utf-8")
-            full_content = existing.rstrip() + "\n\n\n" + generated_code + "\n"
+            full_content = existing.rstrip() + "\n\n\n" + snippet_body + "\n"
         else:
             full_content = (
-                "from __future__ import annotations\n\n\n" + generated_code + "\n"
+                "from __future__ import annotations\n\n\n" + snippet_body + "\n"
             )
 
         try:

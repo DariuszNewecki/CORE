@@ -231,6 +231,38 @@ def extract_from_fences(raw: str) -> str | None:
     return None
 
 
+# ID: 699bd651-48b7-4399-85a7-4c759d37efa1
+def strip_leading_future_imports(code: str) -> str:
+    """Remove leading ``from __future__ import ...`` lines from a snippet.
+
+    ``from __future__`` imports are only legal at the very top of a module,
+    before any other statement. The context_aware_test_gen prompt mandates
+    every generated snippet begin with ``from __future__ import annotations``.
+    When ``build.test_for_symbol`` *appends* such a snippet to an existing
+    test file, that mandated import lands mid-file and raises
+    ``SyntaxError: from __future__ imports must occur at the beginning of the
+    file`` at pytest collection (#792) — masking the real signal and rolling
+    the finding toward circuit-breaker abandonment.
+
+    The caller owns re-adding exactly one future import at the file top for a
+    fresh file; this strips the snippet's own copy so it never lands mid-file.
+    Only the leading header region is scanned — blank lines and comments are
+    preserved, and a ``from __future__`` occurring after real code (which
+    would already be a caller bug, not ours to rewrite) is left untouched.
+    """
+    lines = code.splitlines()
+    result: list[str] = []
+    past_header = False
+    for line in lines:
+        stripped = line.strip()
+        if not past_header and stripped.startswith("from __future__ import"):
+            continue
+        if stripped and not stripped.startswith("#"):
+            past_header = True
+        result.append(line)
+    return "\n".join(result).lstrip("\n")
+
+
 # ID: c3f027f0-a435-4054-8a6c-7c95472828fe
 def format_violations(violations: list[dict]) -> str:
     """Format IntentGuard violations into a concise summary for a repair prompt."""

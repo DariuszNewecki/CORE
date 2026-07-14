@@ -8,6 +8,7 @@ Pure utility functions moved to shared/utils/test_gen_utils.py — tested there.
 
 from __future__ import annotations
 
+import ast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -216,3 +217,57 @@ async def test_action_returns_not_ok_on_intent_guard_violation(
     assert not result.ok
     assert result.data["error"] == "intent_guard_violations"
     assert len(result.data["violations"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_append_to_existing_file_stays_collectible(mock_core_context, source_setup):
+    """#792 regression: appending a snippet (whose mandated first line is
+    `from __future__ import annotations`) to an existing test file must not
+    produce a mid-file future import → SyntaxError at pytest collection."""
+    from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
+
+    repo_root = mock_core_context.git_service.repo_path
+    test_file = "tests/mypkg/service/test_generated.py"
+    existing_path = repo_root / test_file
+    existing_path.parent.mkdir(parents=True, exist_ok=True)
+    existing_path.write_text(
+        "from __future__ import annotations\n\n\ndef test_first():\n    assert True\n"
+    )
+
+    written: dict[str, str] = {}
+    mock_core_context.file_handler.write = MagicMock(
+        side_effect=lambda path, content: written.__setitem__(path, content)
+    )
+
+    mock_validation = MagicMock()
+    mock_validation.is_valid = True
+    mock_validation.violations = []
+    mock_intent_guard = MagicMock()
+    mock_intent_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with (
+        patch(
+            "body.atomic.build_test_for_symbol_action.get_intent_guard",
+            return_value=mock_intent_guard,
+        ),
+        patch(
+            "body.atomic.build_test_for_symbol_action.source_to_test_path",
+            return_value=test_file,
+        ),
+        authorize_execution("build.test_for_symbol"),
+    ):
+        result = await action_build_test_for_symbol(
+            source_file=source_setup,
+            symbol_name="do_work",
+            symbol_kind="function",
+            generated_code=_GOOD_CODE,
+            core_context=mock_core_context,
+            write=True,
+        )
+
+    assert result.ok
+    appended = written[test_file]
+    # Would raise SyntaxError before the fix (future import lands mid-file).
+    ast.parse(appended)
+    assert appended.count("from __future__") == 1
+    assert "def test_first():" in appended and "def test_do_work():" in appended
