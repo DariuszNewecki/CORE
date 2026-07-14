@@ -311,8 +311,12 @@ to write rules from scratch are stuck with the four-rule fallback.
 - `project onboard <target>` — Phase A — delivers the machinery floor (~27
   system files from `examples/starter-intent/`) into the target repo's
   `.intent/`. Dry-runs by default; `--write` applies. Complete.
-- `project scout` — Phase B — does not exist. ADR-119 scopes it but
-  implementation is post-milestone.
+- `project scout` — Phase B — **update (2026-07-14): built, not absent.**
+  `src/cli/logic/scout.py`, `src/mind/logic/scout_inducer.py`,
+  `src/body/analyzers/scout_analyzer.py`, `src/api/v1/scout_routes.py` all
+  exist and run per ADR-119. The remaining gap is rule-candidate *quality*,
+  not existence — tracked as #762 ("Scout Phase B: rule-candidate quality gap
+  blocks external adoption value"), deliberately parked.
 - The four-rule fallback (`examples/starter-intent/rules/starter.json`) is
   available as a no-LLM floor but is not automatically inducted.
 - `ContextService` and `CoderAgent` infrastructure is available for LLM
@@ -491,9 +495,21 @@ Items 1 + 2: DONE
             → Item 3 Phase C Sprint 3: DONE — project/scout.py migrated (7cac311)
               → Item 3 Phase D: DONE — consumer stubs removed from CORE
                 → core-cli published at 1.0.0
+                  → VM release smoke test: DONE (2026-07-11/12), see below
+                    → superseded by a harder pass: core-cli 1.0.2 + core-runtime 2.9.1
 ```
 
-Everything in this plan is closed except the VM release smoke test
-(`CORE-CLI-Release-Smoke-Test.md`, not yet executed — needs governor-provided
-VM + SSH access) and the Scout output-quality gap noted above, now tracked
-as #762.
+**Update (2026-07-14):** every item in this plan is now closed, including the VM release smoke
+test this section previously listed as "not yet executed." It ran 2026-07-11, graded HOLD → SHIP
+after republishing `core-runtime 2.9.0` (the 1.0.0/2.8.0 pairing was missing the `symbols`/
+`vectors`/`secrets`/`project` sub-clients the CLI needed). That SHIP grade was itself superseded
+the next day by a harder pass: a genuinely fresh VM, full BYOR walkthrough (`onboard` → `scout` →
+`audit`, PASS/FAIL/PASS), 3 real bugs found and fixed (F-1 topology/co-location, F-2 error-leak +
+a `typer.Exit`/`SystemExit` bug, F-4 relative-path resolution), and `core-cli 1.0.2` +
+`core-runtime 2.9.1` published to PyPI as a result. Details: `CORE-CLI-Release-Smoke-Test.md`
+(run log) and `CORE-CLI-2.9.0-Followups.md` (canonical current state, all 13 items closed).
+**`core-cli` is now at `1.0.2`, `core-runtime` at `2.9.1`** — the `1.0.0`/`2.8.0` version strings
+elsewhere in this doc (Items 3, "Recommended sequence") are the versions verified at authoring
+time (2026-07-11) and are left as-is as a historical record; this note is the current pointer.
+The only remaining open item anywhere in this plan is the Scout output-quality gap tracked as
+#762 (deliberately parked, not a gap in this plan's own scope).

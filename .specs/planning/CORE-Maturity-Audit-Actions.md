@@ -15,6 +15,14 @@ working tree (`.github/workflows/`, repo root, `pyproject.toml`, `gh issue`). Ea
 now carries its **verified state**, not the audit's read. Items that could not be checked
 from the repo this pass are marked `❓ UNVERIFIED` rather than asserted.
 
+**Note (2026-07-14):** spot-checked the issue-numbered items for drift ahead of a planning/GH
+sync pass. #640 (P1, "the audit's single most load-bearing finding") closed 2026-06-17 via
+ADR-111 — fixed by a different mechanism than this doc assumed; see the updated item below.
+The remaining `❓ UNVERIFIED` and CI-inventory items were not re-derived this pass (would need
+a fresh walk of `.github/workflows/` and the Proof Index, not just an issue-state check) —
+treat everything below #640 as still needing its own re-verification pass, not as freshly
+confirmed.
+
 **Source:** External artifact-based maturity audit (2026-06-16). The audit did **not** clone
 the repo, run `install-core.sh`, run tests, or read CI logs / `.intent/` rules — it read
 public GitHub artifacts only. It is a list of **leads**, and as the verification pass below
@@ -43,15 +51,16 @@ heterogeneous axes discards the only signal that matters (which axis is weak and
 
 ## 1. P1 — Adoption blocker
 
-- [ ] ✅ **VERIFIED-REAL — Fix BYOR onboarding (#640).** `gh issue view 640` → **OPEN**;
-  there is **no `starter_kits/` directory anywhere in the tree**. `project onboard` reads a
-  missing `starter_kits/default/` path → fails at runtime. Ship a minimal valid `.intent/`
-  scaffold so an external repo can be governed without hand-authoring the constitution. *The
-  audit's single most load-bearing finding, and it holds. Restore + wire per ADR-075.*
+- [x] ✅ **CLOSED — Fix BYOR onboarding (#640).** Closed 2026-06-17 via `d0418920` (ADR-111):
+  `project onboard <target>` now delivers the authored starter from `examples/starter-intent/`
+  rather than generating one — a different mechanism than the `starter_kits/` scaffold this
+  finding originally assumed, but the same user-facing gap. `examples/starter-intent/` confirmed
+  present on disk 2026-07-14. *Verified fixed, not just closed-by-commit-reference.*
 - [ ] ❓ **UNVERIFIED — Fail-fast on a no-`.intent/` repo.** Auditing a repo with no
   constitution is reported to hang instead of erroring with guidance. Same root surface as
-  #640. *Not reproduced this pass — confirm the hang before treating as separate work; it may
-  resolve with the #640 scaffold.*
+  #640, which is now closed via the ADR-111 starter-delivery path. *Not reproduced this pass —
+  confirm the hang still occurs before treating as separate work; it may already be moot given
+  the #640 fix changed the onboarding code path entirely.*
 
 ---
 

@@ -8,6 +8,10 @@ status: proposed
 # Enterprise Readiness Tracks
 # Captured: 2026-05-16 | Status: Open — awaiting governor sequencing
 # Status overlay refreshed 2026-05-24 (constitutional-prerequisite ADRs noted on Tracks 3 and 10)
+# Status overlay refreshed 2026-07-14 (open-core/commercial-surface split — ADR-083, ADR-084,
+# ADR-124 — silently resolved or foreclosed the multi-tenant/RBAC/observability/regulatory-export
+# portions of Tracks 1, 3, 5, 6, 7, 8; Track 2 decided via ADR-086; Track 9 delivered as BYOR.
+# Per-track status notes below carry the evidence; this line is the pointer, not a rewrite.
 
 ---
 
@@ -47,6 +51,17 @@ deployment topology, with a proven installation procedure for each.
 **ADR trigger:** One ADR per operating model, or one ADR covering all
 with per-model annexes. Governor to decide.
 
+**Status (2026-07-14):** Partially decided, and narrowed by a scope split not anticipated
+when this track was written. **ADR-124** (accepted, updated 2026-07-05) decided CORE OSS
+supports **single-governor local only**; Multi-operator server, Air-gapped-with-guarantee,
+and Multi-project are reclassified `sourcing:commercial` — built in downstream commercial
+distributions, not this repo. Issues #407 (multi-repo) and #412 (air-gapped) closed
+2026-07-05 as commercial. **ADR-086** (2026-06-02) supplies the install-profile inventory
+this track asked for, across five tiers. **ADR-146** (2026-07-07, CLI consumer/operator
+split) operationalizes the topology split. The open questions above (multi-project scope,
+air-gapped artifact, per-model hardware spec) are answered for OSS: multi-project and
+guaranteed air-gapped are out of scope here.
+
 ---
 
 ## Track 2 — Installation & Upgrade
@@ -70,6 +85,12 @@ for each operating model. Includes first-run, upgrade, and rollback.
   arbitrary version?
 
 **ADR trigger:** Installation architecture ADR before any packaging work.
+
+**Status (2026-07-14): SUPERSEDED / DECIDED.** **ADR-086 — Installation Architecture**
+(accepted 2026-06-02) explicitly names this track ("Band E Track 2") and answers it:
+distribution channels (pip/Docker/script), first-run wizard, tier-specific install
+profiles, upgrade/rollback shape. Prerequisite bug #536 (schema ownership split) closed
+same day. This track can be considered closed at the OSS scope ADR-124 sets.
 
 ---
 
@@ -113,6 +134,14 @@ explicitly notes: *"this ADR is the constitutional prerequisite, not the full
 Track 3 delivery."* The auth model itself (API key lifecycle, RBAC
 enforcement, mTLS) remains the open ADR trigger.
 
+**Status (2026-07-14):** The auth-model trigger has partly fired: **ADR-132 — Governor
+Authentication Boundary** (accepted 2026-06-28, closes #670) implements the governor/
+non-governor JWT gate. Real hardening also landed: `eaadb0de`/`86ce613a` (RBAC gaps + JWT
+guard bypass fixes, closing #707/#710/#711) and `7cf1eb86` (`/v1/secrets/*` routes). But
+**ADR-124** (2026-07-05) decided the broader multi-operator RBAC/API-key/SSO vision in the
+role table above is **out of OSS scope** — redirected to a commercial fork (E-31/E-32/E-36 closed as `sourcing:commercial` 2026-07-05). So: single-governor auth
+boundary — done; full Track 3 multi-operator RBAC — decided out-of-repo, not merely open.
+
 ---
 
 ## Track 4 — Documentation Automation
@@ -147,6 +176,11 @@ external tool.
 
 **ADR trigger:** Documentation architecture ADR; likely a CORE workflow
 (a Will-layer job that produces documentation artifacts on release).
+
+**Status (2026-07-14): PARTIALLY ADDRESSED.** API Reference fully shipped: F-40.3 (#552,
+closed 2026-06-02) — OpenAPI generation + per-route annotation, governed by ADR-087. User
+Manual / Administrator Guide / Release Notes / Compliance Evidence Package automation:
+no evidence found — still genuinely open.
 
 ---
 
@@ -183,6 +217,14 @@ run CORE, under what terms, and at which capability tier.
 **ADR trigger:** Licensing architecture ADR; requires Belgian legal
 counsel input on contract structure.
 
+**Status (2026-07-14): PARTIALLY ADDRESSED, reframed.** ADR-083 and ADR-084 (both 2026-06-02,
+commercial-surface taxonomy + open-core honesty contract) decide the tier/feature-gate
+*architecture* (plugin/sidecar/runtime-fork shapes; up to 5 private commercial repos).
+ADR-116 (accepted 2026-06-19, Phase 2 updated 2026-07-05) decides a concrete public/licensed
+split for GRC content specifically. The open questions actually asked here — license file
+format, offline validation mechanism, trial mode, expiry behavior — remain unanswered; a
+different, more architectural question (how tiers are structured at all) got decided instead.
+
 ---
 
 ## Track 6 — Security Hardening
@@ -211,6 +253,13 @@ before any multi-user or internet-facing deployment.
 - Is pen testing in-house or third-party?
 
 **ADR trigger:** Security posture ADR before any public-facing deployment.
+
+**Status (2026-07-14): PARTIALLY ADDRESSED, ad hoc — no dedicated ADR.** Real fixes landed:
+RBAC gaps + JWT guard bypass (`eaadb0de`, `86ce613a`), secrets routes (`7cf1eb86`). But rate
+limiting was scoped as F-40.6 (#555) then **closed 2026-07-05** with the comment "superseded
+by the CORE/core-platform architecture split... belongs in core-platform's issue tracker, not
+the public OSS repo" — i.e. decided out of OSS scope, not merely deferred. TLS and
+penetration testing: no evidence of progress either way.
 
 ---
 
@@ -255,6 +304,15 @@ evidence in a GxP or EU AI Act compliance context.
 a GxP consultant (GxP early adopter (pharma, Belgium) or equivalent). This is the highest-value
 near-term track for the EIC Accelerator application.
 
+**Status (2026-07-14): PARTIALLY ADDRESSED — the most substantive quiet progress of any
+track, never cross-referenced back here.** ADR-113 (accepted 2026-06-18, per-finding evidence
+class proven/judged/attested) and ADR-116 (2026-06-19, GRC catalog, public NIST 800-171
+catalog shipped #678) build real substrate for exactly this track — explicitly named "the
+revenue priority (Scenario 4)" in grounding papers, just never labeled "Track 7." The actual
+deliverable (E-37, "Regulatory export GxP/EU AI Act", #411) was closed 2026-07-05 as
+commercial/roadmap — the IQ/OQ/PQ export package itself is not yet built in OSS, but the
+evidence substrate it would export from now exists.
+
 ---
 
 ## Track 8 — Observability & Incident Response
@@ -285,6 +343,12 @@ production.
 **ADR trigger:** Observability ADR; can be deferred until first
 Enterprise customer is in procurement.
 
+**Status (2026-07-14): STILL PENDING, with one explicit redirect.** The Prometheus-metrics/
+observability bundle was scoped alongside Track 6's rate limiting in F-40.6 (#555), then
+closed 2026-07-05 as commercial/`core-platform`-scoped — decided out of OSS engineering
+scope, not merely unstarted. A bare `/health` route exists (predates this window, not a
+response to this track). No runbook, SLA, or backup/recovery work found.
+
 ---
 
 ## Track 9 — Onboarding
@@ -310,6 +374,16 @@ operator, including documentation, tooling, and support touchpoints.
 
 **ADR trigger:** Onboarding architecture ADR; low urgency until first
 external customer is in evaluation.
+
+**Status (2026-07-14): PARTIALLY ADDRESSED — real movement, executed under the name "BYOR"
+rather than "Track 9."** #639 ("no starter constitution") filed and closed same-day
+2026-06-14 — `core-admin project onboard` already existed. Since: **ADR-108** (2026-06-14,
+minimal starter-intent, `examples/starter-intent/` shipped — this is the scaffold generator
+this track asked for), **ADR-111** (2026-06-17, onboard delivers the authored starter),
+**ADR-119** (Scout BYOR induction — the "example project that demonstrates the full loop"),
+**ADR-120–123** (repository adapter, GRC document type, ingestion pipeline, `--stage` flag).
+#688 (external-repo audit path) closed 2026-06-25. Functionally this is Track 9's Getting-
+Started + scaffold-generator work, delivered — just never cross-referenced to this doc.
 
 ---
 
