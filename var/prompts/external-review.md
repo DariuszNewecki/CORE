@@ -30,7 +30,7 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-147),
+  .specs/      — human-authored reasoning: ADRs (through ADR-148),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -44,7 +44,11 @@ The code layers (src/) are:
 
 These layer boundaries are enforced by constitutional rules in .intent/.
 Violations are blocking (stop a commit) or reporting (surface findings).
-The runtime enforces 37 blocking + 28 reporting + 8 advisory rules = 73.
+The runtime enforces 37 blocking + 29 reporting + 8 advisory rules = 74.
+(Verify before trusting this count — it drifts. The authoritative set is
+`jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u | wc -l`,
+and per-severity via `jq -r '.rules[].enforcement' .intent/rules/architecture/*.json
+| sort | uniq -c`.)
 
 Key architectural patterns to know before reading the code:
   • Atomic actions  — mutations wrapped in @atomic_action + @register_action,
@@ -69,6 +73,12 @@ Key architectural patterns to know before reading the code:
                         prompts must declare an adr_anchor in model.yaml and
                         appear in .intent/enforcement/config/governed_prompts.yaml;
                         content changes surface as prompt.drift_detected findings
+  • Cognitive/Write   — ADR-140 separates the AI-cognitive step from the
+    separation           terminal write. A Will-injected StepKind.COGNITIVE
+                        produces content; a Body terminal writer commits it. Body
+                        actions MUST NOT make the AI call inline. This is a named,
+                        foundational pattern — an inline LLM call in a Body action
+                        is a known violation class (see ADR-140), not a novel find.
 
 ────────────────────────────────────────────────────────────────────────────
 DESIGN INTENT — SECURITY AND ACCESS POSTURE
@@ -148,6 +158,17 @@ WHAT TO READ FIRST (in this order)
                                       loop participants)
 9. src/mind/logic/engines/          — the audit engine implementations
 10. tests/                          — test suite structure and coverage density
+11. Adoption surface (read if the    — install-core.sh, docs/byor-quickstart.md,
+    focus area touches external        examples/starter-intent/ (the delivered
+    adoption / onboarding):            starter constitution), src/cli/logic/byor.py
+                                       + scout.py (bring-your-own-repo onboard →
+                                       scout → audit), and the planning record of
+                                       the release proof: .specs/planning/
+                                       CORE-CLI-Release-Smoke-Test.md +
+                                       CORE-CLI-2.9.0-Followups.md. Note the
+                                       package split: core-runtime (the engine) and
+                                       core-cli (the thin consumer client) are
+                                       separate PyPI packages (ADR-146).
 
 Snapshot date: [SNAPSHOT DATE]
 GitHub repo:   https://github.com/DariuszNewecki/CORE
@@ -350,7 +371,17 @@ In addition to the standing questions, spend extra depth on:
    or
    "the proposal lifecycle from DRAFT to COMPLETE — is every state
     transition atomic and correctly guarded, and are there execution paths
-    that can leave a proposal visibly stuck without emitting a finding?"]
+    that can leave a proposal visibly stuck without emitting a finding?"
+   or
+   "external adoption readiness — trace the full path a stranger takes from
+    `pip install core-cli` to a governed audit running on their OWN repo:
+    install-core.sh / docs/byor-quickstart.md → `project onboard` delivering
+    examples/starter-intent/ → `project scout` inducing candidate rules →
+    a first audit. Where does a first-time outside operator hit friction,
+    a missing step, or a silent failure? Judge it as a product an outsider
+    must succeed with unaided — not as an architecture. And does the planning
+    layer (the CORE-CLI-* and Adoption-Plan docs under .specs/planning/)
+    honestly reflect where that readiness actually stands?"]
 
 ────────────────────────────────────────────────────────────────────────────
 OUTPUT FORMAT
