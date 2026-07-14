@@ -873,3 +873,44 @@ becomes self-correcting inside the governed iteration budget, restoring the spik
 measured recovery behavior. Negative: pytest runs per rejected iteration rather than once,
 within the already-governed `generation_budget.yaml` cap (`max_iterations`,
 `wall_clock_cap_secs`) — the cost the spike already accepted for its payoff.
+
+---
+
+## Status note 2026-07-14 — the deferral trigger fired NO on measured evidence
+
+**Status:** The Amendment 2026-07-13 change-set (pytest-in-the-loop rewire) stays
+**deferred — now on measured evidence, not merely on intent.** Tracking: #791.
+
+The amendment deferred implementation behind a re-evaluation trigger: *let the improved
+pipeline run against the backlog, measure the residual runtime-contract failure rate, and
+implement only if it justifies the (high-blast-radius) rewire.* That measurement was run
+2026-07-14 (governor-authorised offline harness exercising CORE's own
+`flow.build_test_for_symbol` path — `TestGenCognitiveDelegate` + the 2026-07-13 static
+fixes — at HEAD `e9006ff9`, one hermetic worktree per symbol; the daemon could not measure
+itself because all pilot files were sitting `remediation_cap_reached`/`abandoned`).
+
+**Result (16 symbols that had failed pre-fix, first-attempt condition):**
+
+- **PASS 9/16 (56%)** — including the cap-abandoned *integration-shaped* workers the
+  amendment named as the "exclude, don't grow the generator" population
+  (`CapabilityTaggerWorker`, `RepoEmbedderWorker.run`, `DbSyncWorker.run`,
+  `RepoCrawlerWorker.run` all green).
+- **runtime-contract `declaration_name` / session-factory: 0/16.** The exact failure class
+  D6 was justified to catch — the one only a runtime signal can see and static analysis
+  cannot — is **empty** post-fix. The cheap static-context fixes (constructor / module-const
+  / mock-target extraction) converted it.
+- runtime-contract `mock target`: 2/16; generic runtime assertion/other: 5/16; static gate: 0/16.
+
+**Conclusion.** The residual does not justify the rewire. Neither branch of the trigger
+fires cleanly: the population D6 uniquely serves is gone, and the "exclude integration
+workers" branch is moot because those workers now pass. The Amendment 2026-07-13 change-set
+(§Change-set) is therefore **not implemented and not re-queued**; D6-in-the-abstract still
+"stands" as the correct shape *were* the runtime-contract residual to grow, but there is no
+current evidence to act on. **Decision 8 (the fitness-function drift-guard) remains worth
+doing cheaply and independently** of the rewire, so the acceptance path's shape stays
+legible.
+
+**What the measurement surfaced instead (#792).** The dominant *reproducible* failure was
+not a cognitive gap but a plain pipeline bug: `build.test_for_symbol` appends a snippet whose
+mandated leading `from __future__ import annotations` then lands mid-file → `SyntaxError` at
+collection. Bounded fix, higher throughput payoff than the rewire; tracked separately as #792.
