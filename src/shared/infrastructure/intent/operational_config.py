@@ -272,6 +272,23 @@ class ConsequenceLogConfig:
 
 
 @dataclass(frozen=True)
+# ID: 4d2c1a90-8e6b-4f37-9c05-3b1e2a7d6f84
+class LogMaintenanceConfig:
+    """ADR-052 — core.llm_exchange_log DDL partition-maintenance policy.
+
+    - advance_months: how many future monthly partitions the maintenance
+      action pre-creates ahead of ``today`` so inserts never hit a missing
+      partition.
+    - default_retention_months: fallback retention horizon when a caller
+      does not pass an explicit value — partitions older than this are
+      detached and archived.
+    """
+
+    advance_months: int = 3
+    default_retention_months: int = 24
+
+
+@dataclass(frozen=True)
 # ID: 8b3c6f4e-2a91-43d7-b582-7e1d4a9c0f6b
 class AuditConfig:
     """ADR-044 — incremental llm_gate verdict cache knobs.
@@ -777,6 +794,7 @@ class OperationalConfig:
     )
     proposals: ProposalsConfig = field(default_factory=ProposalsConfig)
     consequence_log: ConsequenceLogConfig = field(default_factory=ConsequenceLogConfig)
+    log_maintenance: LogMaintenanceConfig = field(default_factory=LogMaintenanceConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
     coverage: CoverageConfig = field(default_factory=CoverageConfig)
     workflow_gate: WorkflowGateConfig = field(default_factory=WorkflowGateConfig)

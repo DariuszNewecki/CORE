@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.atomic import log_actions
 from body.atomic.log_actions import (
     _cutoff_month,
     _parse_partition_month,
@@ -23,6 +24,23 @@ from body.atomic.log_actions import (
     action_maintain_log_partitions,
 )
 from shared.governance_token import authorize_execution
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+# ── governed-alias rails (ADR-052 / ADR-040, #774) ──────────────────────────
+
+
+# ID: 8f0a1c62-4d3e-4b7a-9e21-6c5f0b8d2a13
+def test_partition_policy_sourced_from_operational_config() -> None:
+    """The DDL partition-maintenance dials are governed aliases, not literals.
+
+    `_ADVANCE_MONTHS` / `_DEFAULT_RETENTION_MONTHS` must equal the values in
+    operational_config.yaml `log_maintenance`, proving the #774 migration off
+    hardcoded constants held (ADR-040 no-literal-runtime-knobs).
+    """
+    cfg = load_operational_config().log_maintenance
+    assert log_actions._ADVANCE_MONTHS == cfg.advance_months
+    assert log_actions._DEFAULT_RETENTION_MONTHS == cfg.default_retention_months
 
 
 # ── _cutoff_month ─────────────────────────────────────────────────────────────

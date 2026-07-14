@@ -218,6 +218,13 @@ consequence_log:
   default_lookback_seconds: 3600
 
 # ---------------------------------------------------------------------------
+# Log partition maintenance (ADR-052 — core.llm_exchange_log DDL policy)
+# ---------------------------------------------------------------------------
+log_maintenance:
+  advance_months: 3          # future monthly partitions pre-created ahead of today
+  default_retention_months: 24  # fallback archive horizon when caller omits one
+
+# ---------------------------------------------------------------------------
 # Audit pipeline (ADR-044 — llm_gate verdict cache)
 # ---------------------------------------------------------------------------
 audit:

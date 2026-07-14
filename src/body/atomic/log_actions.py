@@ -20,13 +20,18 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
-_ADVANCE_MONTHS: int = 3
-_DEFAULT_RETENTION_MONTHS: int = 24
+# ADR-052 partition-maintenance policy, now governor-tunable via
+# operational_config.yaml log_maintenance (#774, ADR-040 sweep); these
+# module constants are thin governed aliases, not literals.
+_CFG = load_operational_config().log_maintenance
+_ADVANCE_MONTHS: int = _CFG.advance_months
+_DEFAULT_RETENTION_MONTHS: int = _CFG.default_retention_months
 _TABLE = "core.llm_exchange_log"
 _ARCHIVE_SCHEMA = "core_archive"
 _PARTITION_RE = re.compile(r"^llm_exchange_log_(\d{4})_(\d{2})$")
