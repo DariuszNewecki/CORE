@@ -146,7 +146,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 37 blocking + 29 reporting + 8 advisory = 74.
+the other two surface findings. At digest time: 37 blocking + 30 reporting + 8 advisory = 75.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -236,6 +236,8 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 **Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern].
 
 **Workers / quality** — all `[a]`: `architecture.flows.worker_must_not_hardwire_sequence` (a Worker `run()` MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls extractable into a named Flow); `governance.intent_meta.required`; `governance.no_governance_bypass` (if a precondition cannot be evaluated, block); `modularity.unix_philosophy`; `quality.security_audit` (pip-audit); `quality.test_integrity` (suite passing, no collection errors). (`architecture.artifact_discovery_through_registry` and `quality.type_safety` promoted to blocking — see above.)
+
+**Test generation** — `architecture.acceptance.test_gen_must_include_sandbox_gate` [r — the `test_generation` cognitive capability's `CompositeAcceptanceCondition` MUST include `PytestAcceptanceCondition`, not `IntentGuardAcceptanceCondition` alone; ADR-140 Amendment 2026-07-14 (later) decision 8, drift-guard for #791. Static-verification ceiling stated in the rule's own rationale per #801: proves the class is referenced, not that it executes at runtime].
 
 ### Operational corollaries
 

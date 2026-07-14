@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.test_generation_acceptance",
+        "title": "Test-Generation Acceptance Must Include a Runtime Gate",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.acceptance.test_gen_must_include_sandbox_gate",
+            "statement": "The CognitiveFlowDelegate implementation wired for the 'test_generation' cognitive capability MUST construct its generation-loop AcceptanceCondition as a CompositeAcceptanceCondition that includes PytestAcceptanceCondition. A static-only gate (IntentGuardAcceptanceCondition alone) is insufficient: ADR-135 D6's measured 10/10 recovery rate is conditioned on a runtime execution signal being present inside the iterative generate-evaluate-repair loop, not appended after it as a separate flow step.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-135 D6 (accepted 2026-07-01) prescribed pytest execution inside the test-generation loop. ADR-140's cognitive-write-separation reroute (2026-07-05) dropped this wiring as collateral, not as a deliberate rejection: PromptModelIterativeAgent hardcoded a static-only IntentGuard check, and the gap went undetected until #791 (2026-07-13/14). The absence of exactly this kind of standing check is the root cause named in ADR-140 Amendment 2026-07-13, decision 8: an accepted decision that claimed a runtime behavior was never encoded as enforced data. This rule closes that gap for the wiring re-established per ADR-140's 'Status note 2026-07-14 (later)'. Static-verification ceiling, stated explicitly per #801: this is an ast_gate AST check. It proves PytestAcceptanceCondition is referenced inside the composite construction in the scoped file; it cannot prove evaluate() executes on every real invocation, or that a rejection is honored rather than silently swallowed by some future edit that keeps this static shape intact while defeating its intent. It catches wholesale removal or replacement of the runtime gate — the failure mode that actually happened here — not a subtler in-place neutering of it. Enforcement starts at reporting, matching CORE's standard ramp for newly-added drift guards."
+        }
+    ]
+}

@@ -31,6 +31,9 @@ from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import 
 from mind.logic.engines.ast_gate.checks.runtime_import_boundary import (
     RuntimeImportBoundaryCheck,
 )
+from mind.logic.engines.ast_gate.checks.test_gen_acceptance_check import (
+    TestGenAcceptanceCheck,
+)
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from shared.infrastructure.intent.filesystem_operations import (
     FsOperationTaxonomy,
@@ -104,6 +107,7 @@ class ASTGateEngine(BaseEngine):
             "logger_not_presentation",
             "protected_namespace_access",
             "artifact_discovery_through_registry",
+            "test_gen_acceptance_includes_pytest_gate",
             "import_order",
             "module_header",
             "schema_conformance",
@@ -262,6 +266,11 @@ class ASTGateEngine(BaseEngine):
                     tree=tree,
                     file_path=file_path,
                 )
+            )
+
+        elif check_type == "test_gen_acceptance_includes_pytest_gate":
+            violations.extend(
+                TestGenAcceptanceCheck.check(tree=tree, file_path=file_path)
             )
 
         elif check_type == "schema_conformance":

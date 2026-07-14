@@ -1,0 +1,21 @@
+# .intent/enforcement/mappings/architecture/test_generation_acceptance.yaml
+#
+# Enforcement mapping for architecture.acceptance.test_gen_must_include_sandbox_gate
+# (ADR-140 Amendment 2026-07-14, later, decision 8; #791, #800).
+#
+# The check is a bespoke, single-purpose AST check (TestGenAcceptanceCheck,
+# src/mind/logic/engines/ast_gate/checks/test_gen_acceptance_check.py) scoped
+# to the one known wiring point: TestGenCognitiveDelegate is the sole
+# CognitiveFlowDelegate for the test_generation capability (ADR-140 D9 —
+# no global delegate registry exists until >=3 delegate types do). Scope is
+# narrowed to that file rather than swept broadly, since the check has no
+# meaning outside it.
+
+mappings:
+  architecture.acceptance.test_gen_must_include_sandbox_gate:
+    engine: ast_gate
+    params:
+      check_type: test_gen_acceptance_includes_pytest_gate
+    scope:
+      applies_to:
+        - "src/will/agents/test_gen_cognitive_delegate.py"
