@@ -817,6 +817,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/rules/architecture/artifact_discovery.json
     governance_namespace: project::core
+  - path: .intent/rules/architecture/test_generation_acceptance.json
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .intent/rules/cli/** — CORE-specific CLI rules.
@@ -1126,6 +1128,8 @@ classifications:
   - path: .intent/enforcement/mappings/architecture/quality_gates.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/artifact_discovery.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/test_generation_acceptance.yaml
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------

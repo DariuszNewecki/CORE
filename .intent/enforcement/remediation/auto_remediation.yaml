@@ -248,6 +248,16 @@ mappings:
       Non-automatable. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
+  architecture.acceptance.test_gen_must_include_sandbox_gate:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      The test_generation CognitiveFlowDelegate's AcceptanceCondition is
+      missing PytestAcceptanceCondition from its composite. Restoring the
+      runtime gate requires understanding the delegate's construction site
+      and ADR-140 D9's wiring — governor decision. Non-automatable.
+    status: DELEGATE
+
   architecture.api.must_route_through_will:
     action: fix.modularity
     confidence: 0.40

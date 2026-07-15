@@ -23,11 +23,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from shared.logger import getLogger
 from shared.utils.test_gen_utils import strip_leading_future_imports
 
+
+if TYPE_CHECKING:
+    from body.services.file_service import FileService
 
 logger = getLogger(__name__)
 
@@ -136,7 +139,7 @@ class PytestAcceptanceCondition:
         source_file: str,
         target_path: str,
         base_content: str,
-        file_service: object,
+        file_service: FileService,
     ) -> None:
         self._executor = executor
         self._source_file = source_file
