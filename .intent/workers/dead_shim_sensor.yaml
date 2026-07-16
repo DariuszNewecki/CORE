@@ -15,14 +15,11 @@ identity:
 mandate:
   responsibility: >
     Post a python::modernization.dead_shim::<symbol_path> finding for every
-    public symbol satisfying the ADR-151 D1 conjunction: self-declared
-    deprecated (state='deprecated', attributed by the sync visitor with the
-    property exclusion and decorator-visible dispatch grace applied) AND
-    zero inbound call edges outside tests/. Applies the D2 published-__all__
-    grace and the dispatch path grace (src/cli/commands/, src/api/v1/), and
-    self-resolves findings whose condition has cleared (symbol deleted,
-    gained a caller, or lost its marker). Findings carry the D4
-    verify-then-delete remediation contract. Governed by ADR-151.
+    public symbol satisfying the ADR-151 D1 conjunction (self-declared
+    deprecated AND zero inbound call edges outside tests/), applying the D2
+    published-__all__ and dispatch-surface graces, self-resolving findings
+    whose condition has cleared, and carrying the D4 verify-then-delete
+    contract in each finding payload.
   phase: audit
   permitted_tools: []
   approval_required: false

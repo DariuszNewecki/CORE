@@ -12,6 +12,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from will.workers.dead_shim_sensor import _SUBJECT_PREFIX, DeadShimSensor
 
 
+def test_dead_shim_subject_prefix_value() -> None:
+    """Resolver-ownership backing (ADR-091 D2 Rev B (d), #778 shape): the
+    sensor's own run() owns the open → resolved transition for the
+    python::modernization.dead_shim subject prefix — documented in the
+    module docstring, proven by test_cleared_condition_self_resolves."""
+    assert _SUBJECT_PREFIX == "python::modernization.dead_shim"
+
+
 _SYNC_MANIFEST_ROW = {
     "symbol_path": "src/cli/logic/sync_manifest.py::sync_manifest",
     "module": "cli.logic.sync_manifest",
