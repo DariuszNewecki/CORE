@@ -165,6 +165,20 @@ class ProposalSupervisionService:
                     WHERE p.status = 'finalizing'
                       AND p.execution_completed_at IS NOT NULL
                       AND p.execution_completed_at < :cutoff
+                      -- ADR-150 D2: a proposal whose stuck_finalizing finding
+                      -- has been escalated to the governor (indeterminate/
+                      -- human at the redrive cap) leaves the redrive set until
+                      -- a human resolves the finding (D3 re-arm). Keying on
+                      -- the escalated finding — not a proposal-row flag —
+                      -- makes resolve-the-finding the single re-arm act.
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM core.blackboard_entries b
+                          WHERE b.entry_type = 'finding'
+                            AND b.subject = 'proposal.stuck_finalizing::'
+                                            || p.proposal_id::text
+                            AND b.status = 'indeterminate'
+                      )
                     ORDER BY p.execution_completed_at ASC
                     LIMIT :limit
                     """

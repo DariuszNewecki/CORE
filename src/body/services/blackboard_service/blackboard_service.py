@@ -404,6 +404,88 @@ class BlackboardService:
                     updated += result.rowcount
         return updated
 
+    # ID: 3209a4b6-09d9-4ba5-8e67-0e5dc4028237
+    async def increment_finding_counter(self, entry_id: str, key: str) -> int:
+        """
+        Atomically increment an integer counter in an open finding's payload.
+
+        ADR-150 D1 (#802): the finalizing-redrive rail counts failed
+        roll-forward attempts in place on the proposal's single persistent
+        open stuck_finalizing finding. In-place is safe for that lifecycle —
+        the finding never renews while the proposal stays stuck — and is
+        deliberately NOT ADR-104 D9's counter inheritance, which exists for
+        abandoned-and-renewed findings (its seed query filters
+        status='abandoned', a status self_resolve findings never reach).
+
+        Only updates entries currently 'open'. Returns the new counter value,
+        or 0 when no row was updated (entry missing or not open).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET payload = jsonb_set(
+                                COALESCE(payload, '{}'::jsonb),
+                                ARRAY[:key],
+                                to_jsonb(COALESCE((payload->>:key)::int, 0) + 1)
+                            ),
+                            updated_at = now()
+                        WHERE id = cast(:entry_id as uuid)
+                          AND status = 'open'
+                        RETURNING (payload->>:key)::int
+                        """
+                    ),
+                    {"entry_id": entry_id, "key": key},
+                )
+                row = result.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    # ID: 43ad4850-d196-4eea-ae37-de9ca6ef9117
+    async def escalate_finding_to_governor(
+        self, entry_id: str, payload_merge: dict[str, Any]
+    ) -> bool:
+        """
+        Escalate an open finding to the governor inbox (ADR-150 D2).
+
+        Single-statement transition: status='indeterminate' co-assigned with
+        resolution_mechanism='human' (blocking rule
+        architecture.blackboard.indeterminate_requires_human_mechanism), with
+        payload_merge folded into the payload as context for the human. The
+        escalated finding drops out of the open-only existing-findings fetch,
+        so shop-manager resolve passes cannot auto-clear it; resolving it is
+        the single re-arm act (ADR-150 D3).
+
+        Only updates entries currently 'open'. Returns True when a row was
+        escalated.
+        """
+        import json
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'indeterminate',
+                            resolution_mechanism = 'human',
+                            payload = COALESCE(payload, '{}'::jsonb)
+                                      || cast(:merge as jsonb),
+                            resolved_at = now(),
+                            updated_at = now()
+                        WHERE id = cast(:entry_id as uuid)
+                          AND status = 'open'
+                        """
+                    ),
+                    {"entry_id": entry_id, "merge": json.dumps(payload_merge)},
+                )
+        return bool(result.rowcount)
+
     # ID: a091392a-11e2-4ee5-be56-b01e864f404d
     async def resolve_findings_with_retired_rules(
         self,

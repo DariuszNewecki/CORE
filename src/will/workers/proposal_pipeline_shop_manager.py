@@ -41,6 +41,11 @@ ADR-091 D2 Revision B resolution classification:
 - Not eligible for ADR-045 awaiting_reaudit: proposal pipeline state is
   live runtime state; there is no re-readable artifact for a sensor to
   re-evaluate against.
+- ADR-150 exception: a stuck_finalizing finding escalated to the governor
+  at the redrive cap (indeterminate/human) is OUTSIDE this resolver's
+  reach — the existing-findings fetch is status='open' only, so the
+  resolve pass cannot auto-clear an escalation. Its resolver is a human;
+  resolving it re-arms detection (ADR-150 D3).
 
 stuck_undeferred redrive contract (#764 — creation-side outbox):
 - create_proposal and defer_entries_to_proposal
@@ -148,6 +153,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         terminated_proposals = 0
         rolled_forward_proposals = 0
         redriven_proposals = 0
+        escalated_proposals = 0
 
         for row in stuck_approved:
             subject = f"{_SUBJECT_STUCK_APPROVED}::{row['proposal_id']}"
@@ -212,29 +218,75 @@ class ProposalPipelineShopManager(ScheduledWorker):
             # idempotent evidence steps and complete it (ADR-148 D4). Unlike
             # stuck_executing (which retires), a finalizing proposal is already
             # committed; rolling it back would double-apply the change.
-            if await self._roll_forward_finalizing(row):
+            advanced = await self._roll_forward_finalizing(row)
+            if advanced:
                 rolled_forward_proposals += 1
 
-            if subject in existing:
+            entry_id = existing.get(subject)
+            if entry_id is None:
+                # First detection. The initial count records this cycle's
+                # failed redrive (ADR-150 D1); 0 when the roll-forward
+                # advanced the proposal (the finding self-resolves next
+                # cycle once the proposal leaves the stuck set).
+                await self.post_finding(
+                    subject=subject,
+                    payload={
+                        "proposal_id": row["proposal_id"],
+                        "execution_completed_at": _isoformat(
+                            row["execution_completed_at"]
+                        ),
+                        "seconds_stuck": row["seconds_stuck"],
+                        "sla_seconds": _CFG.stuck_finalizing_sla_sec,
+                        "finalization_redrive_count": 0 if advanced else 1,
+                    },
+                    resolution_mechanism="self_resolve",
+                )
+                flagged += 1
+                logger.warning(
+                    "ProposalPipelineShopManager: proposal %s stuck finalizing "
+                    "for %ds (sla=%ds) — rolling forward",
+                    row["proposal_id"],
+                    row["seconds_stuck"],
+                    _CFG.stuck_finalizing_sla_sec,
+                )
                 continue
-            await self.post_finding(
-                subject=subject,
-                payload={
-                    "proposal_id": row["proposal_id"],
-                    "execution_completed_at": _isoformat(row["execution_completed_at"]),
-                    "seconds_stuck": row["seconds_stuck"],
-                    "sla_seconds": _CFG.stuck_finalizing_sla_sec,
-                },
-                resolution_mechanism="self_resolve",
+
+            if advanced:
+                continue
+
+            # ADR-150 D1: count the failed redrive in place on the single
+            # persistent open finding — this lifecycle never renews the
+            # finding while the proposal stays stuck, so in-place cannot be
+            # laundered (contrast ADR-104 D9 counter inheritance, which is
+            # for abandoned-and-renewed findings).
+            count = await blackboard_svc.increment_finding_counter(
+                entry_id, "finalization_redrive_count"
             )
-            flagged += 1
-            logger.warning(
-                "ProposalPipelineShopManager: proposal %s stuck finalizing for %ds "
-                "(sla=%ds) — rolling forward",
-                row["proposal_id"],
-                row["seconds_stuck"],
-                _CFG.stuck_finalizing_sla_sec,
-            )
+            if count >= _CFG.finalizing_redrive_cap_n:
+                # ADR-150 D2: at cap — hand to the governor and stop.
+                # indeterminate + human in one statement; the escalated
+                # finding drops out of the open-only `existing` fetch (so
+                # the resolve pass cannot auto-clear it), and the
+                # supervision query's NOT EXISTS guard keeps the proposal
+                # out of the redrive set until a human resolves the finding
+                # (ADR-150 D3 re-arm).
+                escalated = await blackboard_svc.escalate_finding_to_governor(
+                    entry_id,
+                    {
+                        "escalation": "finalizing_redrive_cap_reached",
+                        "finalization_redrive_count": count,
+                        "cap_n": _CFG.finalizing_redrive_cap_n,
+                    },
+                )
+                if escalated:
+                    escalated_proposals += 1
+                    logger.error(
+                        "ProposalPipelineShopManager: proposal %s exhausted %d "
+                        "finalizing redrives — escalated to governor (ADR-150 "
+                        "D2); remains finalizing pending human disposition",
+                        row["proposal_id"],
+                        count,
+                    )
 
         for row in stuck_undeferred:
             subject = f"{_SUBJECT_STUCK_UNDEFERRED}::{row['proposal_id']}"
@@ -323,6 +375,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 "terminated_proposals": terminated_proposals,
                 "rolled_forward_proposals": rolled_forward_proposals,
                 "redriven_proposals": redriven_proposals,
+                "escalated_proposals": escalated_proposals,
             },
         )
         logger.info(

@@ -669,6 +669,18 @@ class WorkerShopConfig:
 @dataclass(frozen=True)
 # ID: db4c3515-9de4-44ee-9bb5-283ef53b87b6
 class WorkerProposalPipelineShopConfig:
+    """
+    finalizing_redrive_cap_n — ADR-150 D1 (#802): the abandon-at-cap rail
+    (ADR-104 D3/D9 family, third instance) applied to the stuck-finalizing
+    roll-forward loop. After this many failed redrives, counted in place on
+    the proposal's single persistent open stuck_finalizing finding, the
+    finding escalates to the governor inbox (indeterminate/human, ADR-150
+    D2) and the proposal is excluded from further redrive until a human
+    resolves the finding (ADR-150 D3 re-arm). Own knob per D9's precedent:
+    an unrecordable consequence chain is a distinct phenomenon from a
+    crashing worker or a perpetually-failing generation.
+    """
+
     stuck_approved_sla_sec: int = 1800
     stuck_executing_sla_sec: int = 900
     stuck_finalizing_sla_sec: int = 300
@@ -676,6 +688,7 @@ class WorkerProposalPipelineShopConfig:
     repeated_failure_threshold: int = 3
     repeated_failure_lookback_sec: int = 86400
     findings_scan_limit: int = 200
+    finalizing_redrive_cap_n: int = 3
 
 
 @dataclass(frozen=True)
