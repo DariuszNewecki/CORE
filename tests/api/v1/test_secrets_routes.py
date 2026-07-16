@@ -178,3 +178,26 @@ async def test_rotate_secret_not_found():
     with pytest.raises(HTTPException) as exc_info:
         await rotate_secret(key="k", body=body, session=_mock_session(), svc=svc)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Governor gating (#803 — sensitive_route_must_be_gated / ADR-132 placement)
+# ---------------------------------------------------------------------------
+
+
+def test_sensitive_secret_routes_carry_governor_gate():
+    """Mutations + the plaintext-returning GET are governor-gated per-route."""
+    from api.dependencies import require_governor
+    from api.v1.secrets_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/secrets")] is True
+    assert gated_by_route[("GET", "/secrets/{key}")] is True
+    assert gated_by_route[("DELETE", "/secrets/{key}")] is True
+    assert gated_by_route[("PUT", "/secrets/{key}/rotate")] is True
+    # The list route stays consumer-open: keys only, values never returned.
+    assert gated_by_route[("GET", "/secrets")] is False

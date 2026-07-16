@@ -140,3 +140,23 @@ async def test_vector_rebuild_404_unknown_collection():
     with pytest.raises(HTTPException) as exc_info:
         await vector_rebuild(body=body, request=request, session=MagicMock())
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Governor gating (#803 — sensitive_route_must_be_gated / ADR-132 placement)
+# ---------------------------------------------------------------------------
+
+
+def test_rebuild_route_carries_governor_gate():
+    """The destructive rebuild is governor-gated; diagnostic reads stay open."""
+    from api.dependencies import require_governor
+    from api.v1.vectors_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/vectors/rebuild")] is True
+    assert gated_by_route[("POST", "/vectors/query")] is False
+    assert gated_by_route[("GET", "/vectors/status")] is False

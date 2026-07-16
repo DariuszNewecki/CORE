@@ -12,6 +12,9 @@ CONSTITUTIONAL:
 - No direct QdrantService import; instance provided via request.app.state.core_context.
 - CognitiveEmbedderAdapter + VectorIndexService are shared/ imports (permitted in API).
 - No settings imports.
+- The destructive rebuild route carries per-route require_governor
+  (architecture.api.sensitive_route_must_be_gated, ADR-132 placement contract; #803).
+  No-op in OSS; core-platform mounts the real guard in Console mode.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import get_api_session, require_governor
 from shared.context import CoreContext
 from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
@@ -106,7 +109,11 @@ async def vector_query(body: VectorQueryRequest, request: Request) -> dict:
     return {"results": results, "collection": collection_name, "count": len(results)}
 
 
-@router.post("/rebuild", summary="Delete a Qdrant collection and reset chunk_count")
+@router.post(
+    "/rebuild",
+    summary="Delete a Qdrant collection and reset chunk_count",
+    dependencies=[require_governor],
+)
 # ID: 02533572-d289-472f-a8c7-ddb122e81a97
 async def vector_rebuild(
     body: VectorRebuildRequest,

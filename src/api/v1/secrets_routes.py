@@ -8,6 +8,9 @@ All values are encrypted at rest via Fernet (CORE_MASTER_KEY).
 CONSTITUTIONAL:
 - No direct database session imports; session acquired through api.dependencies.
 - No settings imports; secrets service initialised through shared infrastructure.
+- Mutating routes and the plaintext-returning GET carry per-route require_governor
+  (architecture.api.sensitive_route_must_be_gated, ADR-132 placement contract; #803).
+  No-op in OSS; core-platform mounts the real guard in Console mode.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, get_secrets_service_dep
+from api.dependencies import get_api_session, get_secrets_service_dep, require_governor
 from shared.exceptions import SecretNotFoundError, SecretsError
 from shared.infrastructure.secrets_service import SecretsService
 from shared.logger import getLogger
@@ -52,7 +55,9 @@ async def list_secrets(
     return {"secrets": secrets, "count": len(secrets)}
 
 
-@router.post("", status_code=201, summary="Set a secret")
+@router.post(
+    "", status_code=201, summary="Set a secret", dependencies=[require_governor]
+)
 # ID: 5177689f-5d51-48c5-9496-57955471baca
 async def set_secret(
     body: SecretSetRequest,
@@ -92,7 +97,7 @@ async def set_secret(
     }
 
 
-@router.get("/{key}", summary="Get / check a secret")
+@router.get("/{key}", summary="Get / check a secret", dependencies=[require_governor])
 # ID: be2e7656-48b9-4dff-9460-c0d1561178e7
 async def get_secret(
     key: str,
@@ -116,7 +121,7 @@ async def get_secret(
     return result
 
 
-@router.delete("/{key}", summary="Delete a secret")
+@router.delete("/{key}", summary="Delete a secret", dependencies=[require_governor])
 # ID: a59154fe-481d-41d5-a936-d845c7085b92
 async def delete_secret(
     key: str,
@@ -131,7 +136,9 @@ async def delete_secret(
     return {"key": key, "deleted": True}
 
 
-@router.put("/{key}/rotate", summary="Rotate a secret value")
+@router.put(
+    "/{key}/rotate", summary="Rotate a secret value", dependencies=[require_governor]
+)
 # ID: ec242740-9acb-41ea-bd55-94fc0e8ab138
 async def rotate_secret(
     key: str,
