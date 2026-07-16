@@ -146,6 +146,11 @@ protecting.
 alongside the existing `proposal.stuck_executing`. Bounded per the ADR-070 D8 cap. This is the
 reconciler/durable-execution piece — the machinery CORE already runs, pointed at the new state.
 
+> **Note (2026-07-16, ADR-150):** the cap referenced above as "the ADR-070 D8 cap"
+> is implemented by ADR-150 on the **ADR-104 D3/D9** rail; ADR-070 D8 is an
+> unrelated projection delivery (`repo_artifacts ↔ filesystem`). Citation drift,
+> not a changed decision — D4's substance stands as written.
+
 **D5 — The invariant is enforced, not merely declared.** A `completed` proposal without a durable
 consequence record is a violation detectable post-hoc exactly as ADR-129 D4's
 `CommitAuthorshipAuditWorker` detects authorship contamination — that worker already reads

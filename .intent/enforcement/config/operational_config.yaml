@@ -74,6 +74,12 @@ workers:
     # proposal.stuck_executing::{proposal_id}.
     stuck_executing_sla_sec: 900
     stuck_finalizing_sla_sec: 300
+    # ADR-150 D1 (#802) — finalizing-redrive rail (ADR-104 D3/D9 family,
+    # third instance). Failed roll-forwards are counted in place on the
+    # proposal's single persistent open stuck_finalizing finding; at cap
+    # the finding escalates to the governor inbox (indeterminate/human)
+    # and the proposal leaves the redrive set until a human resolves it.
+    finalizing_redrive_cap_n: 3
     # Stuck-undeferred SLA (#764): a proposal whose finding_ids include
     # findings still at 'open'/'claimed' instead of 'deferred_to_proposal'
     # beyond this window — the creation-side deferral call either never ran
