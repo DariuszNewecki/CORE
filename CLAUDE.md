@@ -181,7 +181,7 @@ digest has drifted — surface it to the governor.
 - `architecture.boundary.file_handler_access` (mind|will) — Only Body and infrastructure MAY instantiate `FileHandler` directly; Will and Mind delegate file operations to Body services.
 - `architecture.boundary.llm_client_access` (body|mind) — Only Will and autonomous services MAY import LLM client infrastructure; Body MUST NOT make AI decisions, Mind MUST NOT invoke AI.
 - `architecture.boundary.embedding_access` (body|mind|will|cli) — Embedding capability MUST go through `CognitiveEmbedderAdapter` (Vectorizer role, DB-backed registry). Direct import of `EmbeddingService` or `build_embedder_from_env` from `shared.utils.embedding_utils` is prohibited outside `src/shared/`.
-- `architecture.shared.no_layer_imports` (`src/shared/**`) — Shared MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (8 `excludes:` pending closure ADRs per ADR-049 D1/D3; no new excludes without a companion closure ADR.)
+- `architecture.shared.no_layer_imports` (`src/shared/**`) — Shared MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (Historical excludes all closed — last non-test exclude removed per ADR-126 Stage 3, `c968b6d9`; only test globs remain in the mapping. No new excludes without a companion closure ADR per ADR-049 D3.)
 
 **Channels**
 - `architecture.channels.logic_logger_only` (`src/**`) — Non-UI runtime and logic modules MUST use the CORE standard logger for operational output.
