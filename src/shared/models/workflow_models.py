@@ -3,9 +3,9 @@
 """
 Workflow orchestration data models.
 
-Contains TWO workflow result types:
-1. WorkflowResult - Legacy dev_sync result (uses WorkflowPhase with ActionResult list)
-2. PhaseWorkflowResult - New constitutional workflow result (uses PhaseResult)
+PhaseWorkflowResult is the constitutional workflow result type (PhaseResult
+per phase). The legacy WorkflowResult/WorkflowPhase pair (ActionResult-list
+style) was retired with dev_sync's migration (#805).
 """
 
 from __future__ import annotations
@@ -13,74 +13,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from shared.action_types import ActionResult
 from shared.models import ExecutionTask
 
 
 # ============================================================================
-# WORKFLOW MODELS (for dev_sync_workflow)
-# ============================================================================
-
-
-@dataclass
-# ID: 0352ca76-3ff1-4f84-971c-4572951b0b0c
-class WorkflowPhase:
-    """A logical phase in a workflow."""
-
-    name: str
-    actions: list[ActionResult] = field(default_factory=list)
-
-    @property
-    # ID: 39efa875-1c8f-47e0-90d2-33b94916de32
-    def ok(self) -> bool:
-        """Phase succeeds if all actions succeed."""
-        return all(a.ok for a in self.actions)
-
-    @property
-    # ID: 45fd80e5-f4e7-49f6-a9a2-7dde8d57dd54
-    def duration(self) -> float:
-        """Total duration of all actions in this phase."""
-        return sum(a.duration_sec for a in self.actions)
-
-
-@dataclass
-# ID: df39bc33-ee51-4bba-8bc8-f6bb0b368936
-class WorkflowResult:
-    """Result of a complete workflow execution (legacy dev_sync style)."""
-
-    workflow_id: str
-    phases: list[WorkflowPhase] = field(default_factory=list)
-
-    @property
-    # ID: 897f3983-2c7d-4b9c-9301-da47be7fc218
-    def ok(self) -> bool:
-        """Workflow succeeds if all phases succeed."""
-        return all(p.ok for p in self.phases)
-
-    @property
-    # ID: 8c7c93d5-c288-4c76-a79e-83f1ca92c3b0
-    def total_duration(self) -> float:
-        """Total duration of entire workflow."""
-        return sum(p.duration for p in self.phases)
-
-    @property
-    # ID: 2ac79685-321a-423b-989c-02d3201fb143
-    def total_actions(self) -> int:
-        """Total number of actions executed."""
-        return sum(len(p.actions) for p in self.phases)
-
-    @property
-    # ID: a791f908-24e6-4774-8d94-cf9bbbbf1a8e
-    def failed_actions(self) -> list[ActionResult]:
-        """All failed actions across all phases."""
-        failed = []
-        for phase in self.phases:
-            failed.extend([a for a in phase.actions if not a.ok])
-        return failed
-
-
-# ============================================================================
-# CONSTITUTIONAL WORKFLOW MODELS (for new orchestrator)
+# CONSTITUTIONAL WORKFLOW MODELS
 # ============================================================================
 
 

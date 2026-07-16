@@ -13,11 +13,9 @@ Each workflow has:
 
 from __future__ import annotations
 
-from shared.models.workflow_models import WorkflowResult
 from will.workflows.dev_sync_workflow import DevSyncWorkflow
 
 
 __all__ = [
     "DevSyncWorkflow",
-    "WorkflowResult",
 ]

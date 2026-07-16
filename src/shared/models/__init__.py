@@ -30,7 +30,6 @@ from .workflow_models import (
     ExecutionResults,
     PhaseResult,
     PhaseWorkflowResult,
-    WorkflowResult,
 )
 
 
@@ -59,5 +58,4 @@ __all__ = [
     "RequirementVerdict",
     "TaskParams",
     "ValidationResult",
-    "WorkflowResult",
 ]
