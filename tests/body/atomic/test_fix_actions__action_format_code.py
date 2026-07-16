@@ -1,5 +1,5 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
-- Source: src/body/atomic/fix_actions.py
+- Source: src/body/atomic/fix/ (split from fix_actions.py, #806)
 - Symbol: action_format_code
 - Status: 6 tests passed, some failed
 - Passing tests: test_action_format_code_basic, test_action_format_code_with_write, test_action_format_code_explicit_false, test_action_format_code_duration_calculation, test_action_format_code_always_true_formatted, test_action_format_code_format_code_called
@@ -15,7 +15,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from body.atomic.fix_actions import action_format_code
+from body.atomic.fix import action_format_code
 from shared.governance_token import authorize_execution
 
 

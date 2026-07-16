@@ -2,7 +2,7 @@
 """
 Body-layer dispatch facade for capability tagging (ADR-064 closure).
 
-Eliminates the body→will import in fix_actions.py by wrapping the
+Eliminates the body→will import in the fix.* actions (body/atomic/fix/) by wrapping the
 Will-layer main_async callable behind a constructor-injected interface.
 The composition root (service_registry / daemon.py) wires the callable in;
 Body code only sees this facade — no will.* import exists in this file.

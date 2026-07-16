@@ -2,7 +2,7 @@
 """
 AST helpers for the fix.path_resolver atomic action.
 
-Extracted from fix_actions.py so the two rewrite functions can be tested
+Extracted from the former fix_actions.py (now body/atomic/fix/) so the two rewrite functions can be tested
 in isolation (previously untestable-in-isolation, flagged in the 2026-07-02
 external review). Nothing here has I/O or import-time side-effects; every
 function is deterministic and pure.

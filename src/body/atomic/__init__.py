@@ -20,7 +20,7 @@ from body.atomic import (
     crate_ops,
     document,
     file_ops,
-    fix_actions,
+    fix,
     log_actions,
     metadata_ops,
     modularity_fix,
@@ -44,14 +44,14 @@ from body.atomic.file_ops import (
     action_edit_file,
     action_read_file,
 )
-from body.atomic.fix_actions import (
+from body.atomic.fix import (
     action_fix_headers,
     action_fix_ids,
     action_fix_logging,
 )
 
 # Re-export action functions
-from body.atomic.fix_actions import (
+from body.atomic.fix import (
     action_format_code as action_fix_format,
 )
 from body.atomic.log_actions import (

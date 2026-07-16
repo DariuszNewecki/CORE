@@ -1,5 +1,5 @@
 """AUTO-GENERATED TEST (PARTIAL SUCCESS)
-- Source: src/body/atomic/fix_actions.py
+- Source: src/body/atomic/fix/ (split from fix_actions.py, #806)
 - Symbol: action_fix_placeholders
 - Status: 9 tests passed, some failed
 - Passing tests: test_action_fix_placeholders_no_changes_dry_run, test_action_fix_placeholders_with_changes_dry_run, test_action_fix_placeholders_with_changes_and_write, test_action_fix_placeholders_no_src_directory, test_action_fix_placeholders_empty_src_directory, test_action_fix_placeholders_error_handling, test_action_fix_placeholders_mixed_content, test_action_fix_placeholders_explicit_parameters, test_action_fix_placeholders_duration_measurement
@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from body.atomic.fix_actions import action_fix_placeholders
+from body.atomic.fix import action_fix_placeholders
 from shared.governance_token import authorize_execution
 
 
