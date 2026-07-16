@@ -79,6 +79,25 @@ async def run_db_merge(session: AsyncSession, code_state: list[dict]) -> dict[st
         )
     )
 
+    # ADR-151 D5: propagate deprecation-marker state to existing rows —
+    # deliberately scoped to transitions INTO or OUT OF 'deprecated' so the
+    # sync never clobbers other lifecycle values (e.g. 'classified') that
+    # different writers may own. Separate statement so a state-only change
+    # does not reset last_embedded / trigger re-embedding.
+    state_result = await session.execute(
+        text(
+            """
+        UPDATE core.symbols
+        SET state = st.state, updated_at = NOW()
+        FROM core_symbols_staging st
+        WHERE core.symbols.symbol_path = st.symbol_path
+          AND core.symbols.state IS DISTINCT FROM st.state
+          AND (st.state = 'deprecated' OR core.symbols.state = 'deprecated');
+    """
+        )
+    )
+    stats["state_transitions"] = state_result.rowcount
+
     await session.execute(
         text(
             """

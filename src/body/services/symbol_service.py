@@ -58,6 +58,40 @@ class SymbolService:
             )
             return [dict(row) for row in result.mappings().all()]
 
+    # ID: b9566cf1-fcc6-49e4-bf68-8ba5a4bb9968
+    async def fetch_dead_shim_candidates(self, limit: int) -> list[dict[str, Any]]:
+        """
+        Return public symbols that satisfy the ADR-151 D1 conjunction:
+        self-declared deprecated (state='deprecated', attributed by the sync
+        visitor, which already applies the property exclusion and the
+        dispatch-registration grace) AND zero inbound call edges outside
+        tests/. The remaining D2 grace — the published __all__ contract —
+        is applied by the DeadShimSensor, which can import the packages.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT s.symbol_path, s.module, s.qualname, s.kind
+                    FROM core.symbols s
+                    WHERE s.state = 'deprecated'
+                      AND s.is_public = true
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM core.symbol_calls c
+                          WHERE c.callee_id = s.id
+                            AND c.file_path NOT LIKE 'tests/%'
+                      )
+                    ORDER BY s.symbol_path
+                    LIMIT :limit
+                    """
+                ),
+                {"limit": limit},
+            )
+            return [dict(row) for row in result.mappings().all()]
+
     # ID: a47395b5-daea-43f4-94eb-515619cc9678
     async def apply_symbol_keys(self, assignments: list[dict[str, str]]) -> int:
         """
