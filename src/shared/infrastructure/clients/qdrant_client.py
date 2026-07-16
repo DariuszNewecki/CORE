@@ -349,17 +349,6 @@ class QdrantService:
         )
         return point_ids
 
-    # ID: 98614945-4d37-4cff-9977-bd59ae8c550d
-    async def upsert_capability_vector(
-        self,
-        point_id_str: str,
-        vector: list[float],
-        payload_data: dict[str, Any],
-    ) -> str:
-        """Deprecated alias."""
-        logger.debug("upsert_capability_vector is deprecated.")
-        return await self.upsert_symbol_vector(point_id_str, vector, payload_data)
-
     # ID: 4a4561cb-79aa-4aa2-bc77-d259999e3e18
     async def get_all_vectors(self) -> list[qm.Record]:
         """Fetch all points with vectors and payloads from the collection."""
