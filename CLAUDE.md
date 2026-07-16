@@ -61,11 +61,13 @@ corresponding test in the same change. New public function/class → at least ba
 author the tests and run them scoped to the file(s) you touched (e.g. `pytest
 tests/path/to/test_file.py -q`) — full-suite and shared-state runs still route through the
 governor (see Verification after editing). Do not rely on the autonomous test-gen loop to
-compensate: it is deliberately scope-limited to a single-file
-pilot (`include_files` in `.intent/enforcement/config/test_coverage.yaml`), so it does not
-cover most of `src/`. Its write-time gates have since hardened — import-resolution + shape
-checks (#574, #589) plus a `test.sandbox_validate` execution gate that rejects generated
-tests which fail to run — but until that scope opens, tests for your change are on you.
+compensate: it is deliberately scope-limited to a pilot set (`include_files` in
+`.intent/enforcement/config/test_coverage.yaml` — 44 files as of 2026-07-16, mostly
+`will/workers/` + `api/v1/` routes), so it does not cover most of `src/`. Its write-time
+gates have since hardened — import-resolution + shape checks (#574, #589), a
+`test.sandbox_validate` execution gate that rejects generated tests which fail to run, and
+pytest-in-the-loop acceptance inside the generation loop (ADR-135 D6 / ADR-140, #791) —
+but until that scope opens, tests for your change are on you.
 Minimum-scope does **not** exempt test updates.
 
 **Complete files, not diffs.** Output the complete file content in a fenced block labelled
