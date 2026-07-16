@@ -1,30 +1,38 @@
 {
-    "$schema": "META/rule_document.schema.json",
-    "kind": "rule_document",
-    "metadata": {
-        "id": "rules.architecture.modernization",
-        "title": "System Modernization & Evolutionary Purity",
-        "version": "1.0.0",
-        "authority": "policy",
-        "phase": "audit",
-        "status": "active"
+  "$schema": "META/rule_document.schema.json",
+  "kind": "rule_document",
+  "metadata": {
+    "id": "rules.architecture.modernization",
+    "title": "System Modernization & Evolutionary Purity",
+    "version": "1.0.0",
+    "authority": "policy",
+    "phase": "audit",
+    "status": "active"
+  },
+  "rules": [
+    {
+      "id": "modernization.legacy_signal",
+      "statement": "A source file containing structural markers of legacy / shim / deprecation patterns MUST be flagged as a candidate for evolutionary-purity review. This rule is a low-cost pre-selector for modernization.legacy_scars and does not itself produce a verdict.",
+      "enforcement": "reporting",
+      "authority": "policy",
+      "phase": "audit",
+      "rationale": "Per ADR-043 D7: LOC-style fan-out across 872 files at ~17s per LLM call exceeds the 600s sensor SLA. A regex pre-selector reduces the LLM verdict scope to files that contain at least one structural marker (legacy import, shim comment, deprecated parameter name)."
     },
-    "rules": [
-        {
-            "id": "modernization.legacy_signal",
-            "statement": "A source file containing structural markers of legacy / shim / deprecation patterns MUST be flagged as a candidate for evolutionary-purity review. This rule is a low-cost pre-selector for modernization.legacy_scars and does not itself produce a verdict.",
-            "enforcement": "reporting",
-            "authority": "policy",
-            "phase": "audit",
-            "rationale": "Per ADR-043 D7: LOC-style fan-out across 872 files at ~17s per LLM call exceeds the 600s sensor SLA. A regex pre-selector reduces the LLM verdict scope to files that contain at least one structural marker (legacy import, shim comment, deprecated parameter name)."
-        },
-        {
-            "id": "modernization.legacy_scars",
-            "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
-            "enforcement": "advisory",
-            "authority": "policy",
-            "phase": "audit",
-            "rationale": "To visualize the gap between the Historical Body and the Future Truth defined in REBIRTH v0.1."
-        }
-    ]
+    {
+      "id": "modernization.legacy_scars",
+      "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
+      "enforcement": "advisory",
+      "authority": "policy",
+      "phase": "audit",
+      "rationale": "To visualize the gap between the Historical Body and the Future Truth defined in REBIRTH v0.1."
+    },
+    {
+      "id": "modernization.dead_shim",
+      "statement": "A public symbol that self-declares as deprecated (a '.. deprecated::' directive, a DeprecationWarning in its body, or a first-line docstring self-declaration, including module-level attribution) AND has zero inbound call edges in the knowledge graph outside tests/ MUST be flagged as a dead shim. Properties are excluded (attribute reads are not call edges); the published __all__ extension contract and runtime-dispatch surfaces are graced (their callers are invisible to the static graph). Resolution is governed verify-then-delete: confirm no dynamic or string-keyed dispatch or config reference before removal.",
+      "enforcement": "reporting",
+      "authority": "policy",
+      "phase": "audit",
+      "rationale": "ADR-151 (#807): the legacy ladder (legacy_signal reporting, legacy_scars advisory) never escalates - six self-declared dead shims survived up to seven months with zero callers until an external review hand-found them (#804). The conjunction is the precision: 2,012 symbols have zero inbound edges (mostly legitimate entry points) and prose legacy-mentions intersect that set 60 times, while the measured self-declaration-AND-orphan join fires on exactly one true positive on the day-one tree. Static-graph ceiling per #801: zero inbound edges is necessary but not sufficient evidence for deletion - ADR-151 D4's dynamic-dispatch re-verification is the compensating control. Detection: DeadShimSensor (graph-backed, ADR-091 sensor model); enforcement starts at reporting, promotion gated on measured false-positive rate including the non-enumerated dispatch surfaces (ADR-151 D3)."
+    }
+  ]
 }

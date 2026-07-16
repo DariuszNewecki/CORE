@@ -41,3 +41,19 @@
         # provider, blocking the architecture sensor from completing its SLA.
         requires_findings_from:
           - modernization.legacy_signal
+
+      # RULE: modernization.dead_shim (ADR-151, #807)
+      # Sensor-based detection via DeadShimSensor: the D1 conjunction
+      # (state='deprecated' attributed by the sync visitor AND zero inbound
+      # symbol_calls edges outside tests/) is a cross-file, DB-backed join
+      # that cannot run in file-scoped commit-gate engines. passive_gate
+      # signals the audit engine does not duplicate the sensor's runtime
+      # check — same shape as governance.proposal_finalization_integrity
+      # (finalization_integrity.yaml). Satisfies ADR-066 all-rules-mapped.
+      modernization.dead_shim:
+        engine: passive_gate
+        params:
+          attestation_class: "C"
+        scope:
+          applies_to:
+            - "src/**/*.py"

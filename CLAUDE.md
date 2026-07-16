@@ -148,7 +148,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 37 blocking + 30 reporting + 8 advisory = 75.
+the other two surface findings. At digest time: 37 blocking + 31 reporting + 8 advisory = 76.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -235,7 +235,7 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
 **Intent access** — `architecture.intent.no_legacy_root_assumptions` [r]; `architecture.namespace.no_direct_protected_access` [r — no direct filesystem crawling/parsing of `.intent`; route through shared intent infrastructure]; `architecture.intent.gateway_is_shared_infrastructure` [r — consume `.intent` through `src/shared/infrastructure/intent/`].
 
-**Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern].
+**Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern]; `modernization.dead_shim` [r — a public symbol self-declaring deprecation with zero inbound call edges outside tests/ MUST be flagged; properties excluded, `__all__` contract + dispatch surfaces graced; resolution is verify-then-delete; ADR-151].
 
 **Workers / quality** — all `[a]`: `architecture.flows.worker_must_not_hardwire_sequence` (a Worker `run()` MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls extractable into a named Flow); `governance.intent_meta.required`; `governance.no_governance_bypass` (if a precondition cannot be evaluated, block); `modularity.unix_philosophy`; `quality.security_audit` (pip-audit); `quality.test_integrity` (suite passing, no collection errors). (`architecture.artifact_discovery_through_registry` and `quality.type_safety` promoted to blocking — see above.)
 

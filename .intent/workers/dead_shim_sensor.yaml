@@ -1,0 +1,42 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.dead_shim_sensor
+  title: Dead Shim Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "af3fb52d-59de-4741-940a-a6ba63ed01fa"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Post a python::modernization.dead_shim::<symbol_path> finding for every
+    public symbol satisfying the ADR-151 D1 conjunction: self-declared
+    deprecated (state='deprecated', attributed by the sync visitor with the
+    property exclusion and decorator-visible dispatch grace applied) AND
+    zero inbound call edges outside tests/. Applies the D2 published-__all__
+    grace and the dispatch path grace (src/cli/commands/, src/api/v1/), and
+    self-resolves findings whose condition has cleared (symbol deleted,
+    gained a caller, or lost its marker). Findings carry the D4
+    verify-then-delete remediation contract. Governed by ADR-151.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    rule_namespace: "modernization.dead_shim"
+    artifact_type:
+      - python
+    domains:
+      - modernization
+      - governance
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.dead_shim_sensor
+  class: DeadShimSensor
+  requires_core_context: false

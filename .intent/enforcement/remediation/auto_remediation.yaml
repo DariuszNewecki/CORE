@@ -808,6 +808,19 @@ mappings:
       placeholder only.
     status: PENDING
 
+  modernization.dead_shim:
+    action: fix.modularity
+    confidence: 0.10
+    description: >
+      ADR-151 D4: dead-shim findings resolve by governed verify-then-delete
+      — a dynamic-dispatch/config re-verification precedes removal, and
+      autonomous remediation is deliberately deferred until the sensor's
+      false-positive rate is measured (D3). First cycles route to the
+      governor / Claude Code, mirroring the #804 procedure. PENDING
+      satisfies ADR-066 (governance.remediation.all_rules_mapped).
+      action: field is a placeholder only.
+    status: PENDING
+
   modularity.needs_refactor:
     action: fix.modularity
     confidence: 0.40
