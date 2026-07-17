@@ -252,7 +252,7 @@ async def action_archive_log_partitions(
                 "SELECT c.relname "
                 "FROM pg_inherits i "
                 "JOIN pg_class c ON c.oid = i.inhrelid "
-                "JOIN pg_class p ON p.oid = i.inhparentid "
+                "JOIN pg_class p ON p.oid = i.inhparent "
                 "JOIN pg_namespace n ON n.oid = c.relnamespace "
                 "WHERE p.relname = 'llm_exchange_log' "
                 "  AND n.nspname = 'core' "
