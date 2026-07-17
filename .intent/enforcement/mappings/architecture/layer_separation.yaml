@@ -338,15 +338,18 @@ mappings:
         - "src/will/workers/**/*.py"
         - "src/body/workers/**/*.py"
       excludes:
-        # Helper modules co-located in will/workers/ — not Worker subclasses.
-        # These import utility functions (not Worker instances) from sibling
-        # helper files. Pending extraction to will/ or shared/ (#723 follow-up,
-        # #793). proposal_consumer_worker.py and proposal_pipeline_shop_manager.py
-        # closed by moving proposal_consumer_effects.py / proposal_consumer_revival.py
-        # to will/autonomy/ (2026-07-17).
-        - "src/will/workers/violation_remediator.py"
-        - "src/will/workers/violation_remediator_proposal.py"
-        - "src/will/workers/audit_violation_sensor.py"
+        # violation_executor.py — the sixth of #723/#793's original six files.
+        # Unlike the other five (mechanical extractions, all closed
+        # 2026-07-17: proposal_consumer_worker.py / proposal_pipeline_shop_manager.py
+        # via proposal_consumer_effects.py + proposal_consumer_revival.py ->
+        # will/autonomy/; audit_violation_sensor.py via audit_violation_filter.py
+        # + audit_violation_normalizer.py -> will/audit_violation/;
+        # violation_remediator.py + violation_remediator_proposal.py via
+        # circuit_breaker.py + violation_remediator_blackboard.py +
+        # violation_remediator_proposal.py -> will/autonomy/), this file's
+        # exclusion was mischaracterized: it imports and instantiates a real
+        # Worker subclass (ViolationRemediator), not a helper function.
+        # ADR-153 (accepted) covers the architectural fix.
         - "src/will/workers/violation_executor.py"
 
 # ==============================================================================

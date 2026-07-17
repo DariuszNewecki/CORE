@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from will.workers.circuit_breaker import (
+from will.autonomy.circuit_breaker import (
     CircuitBreakerConfig,
     canonical_signature,
 )

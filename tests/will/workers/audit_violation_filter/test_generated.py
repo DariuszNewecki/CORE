@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from will.workers.audit_violation_filter import filter_actionable_violations
+from will.audit_violation.filter import filter_actionable_violations
 
 
 SENTINEL_STDIN = "/dev/stdin"
@@ -180,7 +180,7 @@ def test_file_path_with_py_but_slash_in_directory():
     assert result == [violation]
 
 
-@patch("will.workers.audit_violation_filter.logger")
+@patch("will.audit_violation.filter.logger")
 # ID: ff5b9fa4-53f3-46cb-b66f-4835342d6534
 def test_dropped_violation_logged_at_debug(mock_logger):
     """When a sentinel violation is dropped, logger.debug should be called."""
@@ -189,7 +189,7 @@ def test_dropped_violation_logged_at_debug(mock_logger):
     mock_logger.debug.assert_called_once()
 
 
-@patch("will.workers.audit_violation_filter.logger")
+@patch("will.audit_violation.filter.logger")
 # ID: 722232a2-f47b-4f1c-a5a5-e164e57271e0
 def test_non_python_file_logged_at_debug(mock_logger):
     """When a non-Python file violation is dropped, logger.debug should be called."""
@@ -198,7 +198,7 @@ def test_non_python_file_logged_at_debug(mock_logger):
     mock_logger.debug.assert_called_once()
 
 
-@patch("will.workers.audit_violation_filter.logger")
+@patch("will.audit_violation.filter.logger")
 # ID: 29733363-5d26-450b-864f-ef5a2f1bc720
 def test_symbol_pair_logged_at_debug(mock_logger):
     """When symbol-pair violation is dropped, logger.debug should be called."""
@@ -210,7 +210,7 @@ def test_symbol_pair_logged_at_debug(mock_logger):
     mock_logger.debug.assert_called_once()
 
 
-@patch("will.workers.audit_violation_filter.logger")
+@patch("will.audit_violation.filter.logger")
 # ID: 7eae7280-09ec-4023-b3c3-3dc5e072f8f6
 def test_malformed_rule_id_logged_at_debug(mock_logger):
     """When malformed rule_id violation is dropped, logger.debug should be called."""
@@ -222,7 +222,7 @@ def test_malformed_rule_id_logged_at_debug(mock_logger):
     mock_logger.debug.assert_called_once()
 
 
-@patch("will.workers.audit_violation_filter.logger")
+@patch("will.audit_violation.filter.logger")
 # ID: 7a093efb-ce7c-42ea-bb6a-a7358d0a3664
 def test_no_logging_for_actionable_violation(mock_logger):
     """Actionable violations should not trigger any DEBUG logging."""

@@ -47,13 +47,13 @@ from __future__ import annotations
 from typing import Any
 
 from shared.logger import getLogger
+from will.autonomy.circuit_breaker import recent_consecutive_identical_count
 from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
     ProposalScope,
     ProposalStatus,
 )
-from will.workers.circuit_breaker import recent_consecutive_identical_count
 
 
 logger = getLogger(__name__)

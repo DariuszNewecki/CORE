@@ -39,8 +39,8 @@ from shared.infrastructure.intent.vocabulary_projection import (
 )
 from shared.logger import getLogger
 from shared.workers.base import Worker
-from will.workers.circuit_breaker import load_circuit_breaker_config, trip
-from will.workers.violation_remediator_blackboard import (
+from will.autonomy.circuit_breaker import load_circuit_breaker_config, trip
+from will.autonomy.violation_remediator_blackboard import (
     defer_to_proposal,
     load_open_findings,
     mark_delegated,
@@ -48,7 +48,7 @@ from will.workers.violation_remediator_blackboard import (
     release_unmappable,
     resolve_entries,
 )
-from will.workers.violation_remediator_proposal import (
+from will.autonomy.violation_remediator_proposal import (
     check_circuit_breaker,
     create_proposal,
     get_active_proposal_id_by_action_file,

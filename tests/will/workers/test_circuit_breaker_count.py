@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.infrastructure.database.models.autonomous_proposals import (
     AutonomousProposal,
 )
-from will.workers.circuit_breaker import (
+from will.autonomy.circuit_breaker import (
     canonical_signature,
     load_circuit_breaker_config,
     recent_consecutive_identical_count,

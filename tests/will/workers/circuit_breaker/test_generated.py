@@ -1,5 +1,5 @@
 """
-Generated tests for will.workers.circuit_breaker.
+Generated tests for will.autonomy.circuit_breaker.
 
 Covers load_circuit_breaker_config and trip — the two public functions
 not exercised by the sibling tests (test_circuit_breaker_signature.py
@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from will.workers.circuit_breaker import (
+from will.autonomy.circuit_breaker import (
     load_circuit_breaker_config,
     trip,
 )

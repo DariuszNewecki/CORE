@@ -56,8 +56,8 @@ from typing import Any
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.workers.base import Worker
-from will.workers.audit_violation_filter import filter_actionable_violations
-from will.workers.audit_violation_normalizer import normalize_audit_findings
+from will.audit_violation.filter import filter_actionable_violations
+from will.audit_violation.normalizer import normalize_audit_findings
 
 
 logger = getLogger(__name__)

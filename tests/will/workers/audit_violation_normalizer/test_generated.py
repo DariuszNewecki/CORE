@@ -1,5 +1,5 @@
 """
-Generated tests for will.workers.audit_violation_normalizer.
+Generated tests for will.audit_violation.normalizer.
 
 Complements test_normalize_audit_findings.py (which covers the main
 branches). Adds the edge case not tested there: a symbols_map hit
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from will.workers.audit_violation_normalizer import normalize_audit_findings
+from will.audit_violation.normalizer import normalize_audit_findings
 
 
 def _core_ctx(symbols_map: dict | None = None) -> MagicMock:

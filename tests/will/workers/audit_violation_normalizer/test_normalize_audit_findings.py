@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from will.workers.audit_violation_normalizer import normalize_audit_findings
+from will.audit_violation.normalizer import normalize_audit_findings
 
 
 pytestmark = [pytest.mark.integration]

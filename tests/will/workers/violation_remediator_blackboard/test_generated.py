@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from will.workers.violation_remediator_blackboard import mark_delegated
+from will.autonomy.violation_remediator_blackboard import mark_delegated
 
 
 @pytest.mark.asyncio
