@@ -344,3 +344,131 @@ def test_mixed_gated_and_ungated_routes_only_flags_ungated() -> None:
     violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
     assert len(violations) == 1
     assert "ungated_route" in violations[0]
+
+
+# ── INTENTIONALLY_UNGATED marker (ADR-132 D9, #808) ────────────────────────────
+
+
+def test_intentionally_ungated_route_with_rationale_passes() -> None:
+    """A route named in INTENTIONALLY_UNGATED with a non-empty rationale
+    resolves the finding — the confirmation the rule's own message text
+    promises, now with a code path implementing it."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED = {
+            "create_census_run": "Read-shaped: INSERTs a tracking row only.",
+        }
+
+        @router.post("/runs")
+        async def create_census_run():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+def test_intentionally_ungated_empty_rationale_still_flags() -> None:
+    """An empty-string rationale does not count as a confirmation."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED = {
+            "create_census_run": "",
+        }
+
+        @router.post("/runs")
+        async def create_census_run():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "create_census_run" in violations[0]
+
+
+def test_intentionally_ungated_only_excuses_the_named_route() -> None:
+    """A marker entry for one route doesn't blanket-excuse its ungated
+    siblings in the same file — the co-location hazard D9 exists to avoid."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED = {
+            "create_census_run": "Read-shaped: tracking row only.",
+        }
+
+        @router.post("/runs")
+        async def create_census_run():
+            ...
+
+        @router.post("/baselines/{name}")
+        async def create_census_baseline():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "create_census_baseline" in violations[0]
+
+
+def test_intentionally_ungated_stale_entry_is_flagged() -> None:
+    """An INTENTIONALLY_UNGATED key that matches no unguarded mutation route
+    in the module is itself a violation — a stale marker looks like coverage
+    but is inert (mirrors ADR-152 D4's governed_exclusions orphan check)."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED = {
+            "renamed_or_removed_route": "Stale entry.",
+        }
+
+        @router.get("/runs")
+        async def list_census_runs():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "renamed_or_removed_route" in violations[0]
+    assert "stale" in violations[0].lower()
+
+
+def test_intentionally_ungated_entry_for_already_gated_route_is_stale() -> None:
+    """If a route gains a real require_governor gate, its now-redundant
+    INTENTIONALLY_UNGATED entry is flagged as stale rather than silently
+    tolerated — the marker should track reality, not accumulate history."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED = {
+            "create_census_run": "Read-shaped: tracking row only.",
+        }
+
+        @router.post("/runs", dependencies=[require_governor])
+        async def create_census_run():
+            ...
+    """)
+    violations = ApiAuthChecks.check_sensitive_route_must_be_gated(tree)
+    assert len(violations) == 1
+    assert "create_census_run" in violations[0]
+    assert "stale" in violations[0].lower()
+
+
+def test_intentionally_ungated_annotated_form_is_recognised() -> None:
+    """Real call sites declare INTENTIONALLY_UNGATED with a type annotation
+    (`: dict[str, str] = {...}`, an ast.AnnAssign) rather than the plain
+    Assign form ROUTER_EXPOSURE uses — both must be recognised."""
+    tree = _parse("""
+        ROUTER_EXPOSURE = "user-facing"
+        router = APIRouter(prefix="/census")
+
+        INTENTIONALLY_UNGATED: dict[str, str] = {
+            "create_census_run": "Read-shaped: tracking row only.",
+        }
+
+        @router.post("/runs")
+        async def create_census_run():
+            ...
+    """)
+    assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []

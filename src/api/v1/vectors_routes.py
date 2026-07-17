@@ -36,6 +36,16 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/vectors", tags=["Vectors"])
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "vector_query": (
+        "Read-shaped: embeds the query and reads nearest vectors from Qdrant "
+        "via service.query — no writes. Contrast the destructive vector_rebuild "
+        "(gated, see module docstring): deletes a collection and resets "
+        "chunk_count."
+    ),
+}
+
 _COLLECTION_ALIASES: dict[str, str] = {
     "policies": "core_policies",
     "patterns": "core-patterns",

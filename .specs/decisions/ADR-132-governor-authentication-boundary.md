@@ -247,3 +247,133 @@ This ADR closes #670 when:
 - `src/api/v1/*/ROUTER_EXPOSURE` — module-level exposure declarations (ADR-110 D5).
 - Issue #670 — authentication mechanism (this ADR's target).
 - Issue #671 — exposure backfill (ADR-110 D5 implementation, prerequisite; closed).
+
+---
+
+## Addendum — D9: per-route "intentionally ungated" marker (2026-07-17, accepted)
+
+**Status of this addendum:** Accepted (governor confirmed 2026-07-17, Path A
+confirmation naming this file).
+
+**Grounding note, corrected during drafting:** `architecture.api.sensitive_route_
+must_be_gated` (the rule this addendum gives an escape hatch to) is not itself a
+decision this ADR made — it was added to `.intent/` citing issue #770, with no
+ADR anchor of its own found anywhere in `.specs/decisions/`. This addendum homes
+here anyway because ADR-132 is the closest existing decision on record for the
+adjacent vocabulary the new marker extends: D3/D7 own the `ROUTER_EXPOSURE`-
+consuming, router-level gate-consistency shape (`ROUTER_EXPOSURE` itself
+originates in ADR-110 D5); a per-route sibling marker for the per-route
+completeness rule is a natural, closely-related extension of that same posture,
+not a mechanical application of a decision already made word-for-word here.
+Recorded as a genuine (if narrowly-scoped) new decision, per the same append-only
+shape as ADR-127 D7 / ADR-148 D7.
+
+### The gap (issue #808 triage)
+
+`sensitive_route_must_be_gated`'s own finding text says a route can be resolved
+by confirming it "intentionally ungated" — but `check_sensitive_route_must_be_
+gated` (`src/mind/logic/engines/ast_gate/checks/api_auth_checks.py`) is a pure
+AST scan for `require_governor` presence: no exclusion list, no marker it
+recognizes, no code path implementing that prose. #808's triage found 11 routes
+that are read-shaped (analysis dispatch — no `src/`, `.intent/`, or git writes;
+nothing dereferenced as governing state by a later decision) sitting in
+`status='indeterminate'` on the blackboard with no way to close them that means
+anything durable.
+
+### Why `governed_exclusions` (ADR-152) is the wrong tool here
+
+The obvious reach — reuse the generalized exemption register ADR-152 just
+built — doesn't fit, for two independent reasons, both verified against source
+before rejecting it:
+
+1. **Wrong grain.** `governed_exclusions` entries are keyed on `file`
+   (`enforcement_mapping.schema.json`: `required: [file, rationale,
+   closure_type]`; `class`/`category`/`removal_condition` apply only to the
+   `condition` shape and describe a *class*, not a function). The audit pipeline
+   honors a `governed_exclusions` entry's `file` value "as if it were listed
+   under `scope.excludes`" — i.e. it suppresses the rule for the **whole file**.
+   `sensitive_route_must_be_gated` findings are per-route-function; there is no
+   field in this schema that names a function.
+2. **The routes co-habit files with real mutations.** `census_routes.py`
+   contains both `create_census_run` (read-shaped) and `create_census_baseline`
+   (the mutation gated in `84ebb387`) at module scope. `coverage_routes.py`
+   contains `request_coverage_report` (read-shaped) alongside `generate_
+   coverage`/`generate_coverage_batch`/`interactive_tests` (mutations, same
+   commit). `quality_routes.py` contains six read-shaped checks alongside
+   `quality_lint` (mutation, same commit). A file-level exclusion silencing the
+   read-shaped route would also silence the check for its mutating siblings in
+   the same file — trading a benign false positive for a genuine blind spot: if
+   `require_governor` were later stripped from `create_census_baseline`, nothing
+   would catch it. That is exactly the labeled-silent-green pattern ADR-148 D7
+   closed for `proposal_consequences` rows, one governance surface over.
+
+### D9 — `INTENTIONALLY_UNGATED`, a route-level marker the check consults
+
+A module-level constant, parallel to `ROUTER_EXPOSURE`, mapping route function
+name to a required, non-empty rationale:
+
+```python
+ROUTER_EXPOSURE = "user-facing"
+
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "create_census_run": (
+        "Read-shaped: INSERTs a core.census_runs tracking row (status="
+        "'pending'), same shape as create_audit_run. No src/, .intent/, or "
+        "git writes. Nothing is ever dereferenced against a census_run as "
+        "governing state (contrast create_census_baseline, gated)."
+    ),
+}
+```
+
+`check_sensitive_route_must_be_gated` gains a parallel `_find_intentionally_
+ungated(tree) -> dict[str, str]` helper (same AST shape as the existing
+`_find_router_exposure`), and skips a route's finding when `node.name` is a key
+in that dict with a non-empty string value — the confirmation and its reason
+live beside the route it excuses, survive a refactor that moves the file, and
+stay greppable, matching the reasoning ADR-095 gave for preferring the in-file
+`CORE_ROLE` marker over `governed_exclusions` for co-located, function-scoped
+acknowledgments.
+
+**Orphan-entry check, cheap to add while touching this function anyway:** after
+walking the module for mutation routes, any `INTENTIONALLY_UNGATED` key that
+never matched an actual route-function name is itself flagged — a stale entry
+(renamed or removed route) looks like coverage but is inert, the same "declared
+but nothing validates it" gap ADR-152 D4 closed for `governed_exclusions`
+entries. Keeps the marker from silently rotting.
+
+### The 11 routes, with one-line read-shaped rationales
+
+| Route | File | Why read-shaped |
+|---|---|---|
+| `create_audit_run` | `audit_routes.py` | INSERTs `core.audit_runs`; writes disposable analysis output (`findings.json`, evidence ledger) to `reports/`, never `src/`/`.intent/`/git. |
+| `create_census_run` | `census_routes.py` | INSERTs `core.census_runs`; `snapshot=True` writes a disposable snapshot to a history dir, same class as audit's `reports/` output. |
+| `request_coverage_report` | `coverage_routes.py` | Runs `pytest --cov`, persists report output to `core.coverage_runs`. No source files touched. |
+| `lint_endpoint` | `lint_routes.py` | Runs `black --check` + `ruff check` only — no `--fix` path exists on this route. |
+| `quality_imports` | `quality_routes.py` | Wraps `action_check_imports`, a pure import-resolution scan. |
+| `quality_body_ui` | `quality_routes.py` | Wraps `check_body_contracts`, a read-only Body-layer contract scan. |
+| `quality_policy_coverage` | `quality_routes.py` | `PolicyCoverageService.run()` is a read-only audit report. |
+| `quality_tests` | `quality_routes.py` | Runs `pytest -q --no-cov` only. |
+| `quality_system` | `quality_routes.py` | Runs `ruff check src/` (no `--fix`) + pytest — analysis only. |
+| `quality_gates` | `quality_routes.py` | Runs six analysis subprocesses (ruff/mypy/pytest/pip-audit/radon/vulture); none pass fix/write flags. |
+| `vector_query` | `vectors_routes.py` | Embeds the query and reads nearest vectors from Qdrant; no writes (contrast sibling `/vectors/rebuild`, already gated). |
+
+### Governed surfaces this touches
+
+| Surface | Authority | Change |
+|---|---|---|
+| `src/mind/logic/engines/ast_gate/checks/api_auth_checks.py` | code | `_find_intentionally_ungated()` helper; `check_sensitive_route_must_be_gated` consults it; orphan-entry check |
+| `src/api/v1/audit_routes.py`, `census_routes.py`, `coverage_routes.py`, `lint_routes.py`, `quality_routes.py`, `vectors_routes.py` | code | add `INTENTIONALLY_UNGATED` with the 11 routes' rationales |
+
+### Consequences
+
+**Positive.** The 11 blackboard findings close and *stay* closed for a real
+reason, checked by the same mechanism that raised them — not a one-time
+blackboard resolve that reopens next cycle. The mutations co-located in the same
+files keep full coverage; no blind spot traded in.
+
+**Costs.** A second module-level marker convention alongside `ROUTER_EXPOSURE`
+(both are small, greppable dicts/strings — consistent surface, not sprawl). A
+future contributor adding a new mutation route to one of these six files must
+know not to add themselves to `INTENTIONALLY_UNGATED` by copy-paste without
+reading it — mitigated by the orphan-check catching a stale entry, not a
+misapplied one, so this residual risk is accepted rather than fully closed.

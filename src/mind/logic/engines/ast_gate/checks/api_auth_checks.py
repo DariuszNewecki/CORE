@@ -99,11 +99,23 @@ class ApiAuthChecks:
         `require_governor` / `Depends(require_governor)` (the FastAPI DI-parameter
         idiom, e.g. `user: dict = require_governor`).
 
+        A route also counts as resolved if its function name is a key in a
+        module-level `INTENTIONALLY_UNGATED: dict[str, str]` constant with a
+        non-empty rationale (ADR-132 D9, #808) — the confirmation this rule's
+        own message text has always promised but, before D9, had no code path
+        implementing. Any `INTENTIONALLY_UNGATED` key that never matches an
+        actual route-function name in this module is itself flagged: a stale
+        entry (the route was renamed or removed) looks like coverage but is
+        inert, mirroring ADR-152 D4's orphan-check for `governed_exclusions`.
+
         Only applies to ROUTER_EXPOSURE='user-facing' modules — governor-only
         modules are already fully gated at the router-constructor level.
         """
         if _find_router_exposure(tree) != "user-facing":
             return []
+
+        ungated_map = _find_intentionally_ungated(tree)
+        unguarded_route_names: set[str] = set()
 
         findings: list[str] = []
         for node in ast.walk(tree):
@@ -116,14 +128,32 @@ class ApiAuthChecks:
                 node
             ):
                 continue
+            unguarded_route_names.add(node.name)
+            if ungated_map.get(node.name, "").strip():
+                continue
             findings.append(
                 f"'{node.name}' is a {_route_verb(route_deco)!r} route on a "
                 "user-facing router with no require_governor gate (neither in "
                 "the decorator's dependencies= nor as a handler parameter "
                 "default). Add dependencies=[require_governor] to the route "
                 "decorator, or a parameter defaulting to require_governor, or "
-                "confirm this route is intentionally ungated."
+                "confirm this route is intentionally ungated (add it to "
+                "INTENTIONALLY_UNGATED with a rationale, ADR-132 D9)."
             )
+
+        # Orphan check: a key that names no *currently unguarded mutation
+        # route* is stale, whether it never matched a route at all (renamed/
+        # removed) or the route it named gained a real gate (redundant).
+        # Deliberately NOT scoped to "keys that successfully excused a
+        # finding" — an empty-rationale entry for a real route is caught
+        # above, not double-counted here.
+        for stale_name in sorted(set(ungated_map) - unguarded_route_names):
+            findings.append(
+                f"INTENTIONALLY_UNGATED entry {stale_name!r} does not match any "
+                "unguarded mutation route in this module — stale entry (the "
+                "route was renamed, removed, or gated another way). Remove it."
+            )
+
         return findings
 
 
@@ -141,6 +171,44 @@ def _find_router_exposure(tree: ast.AST) -> str | None:
         ):
             return node.value.value
     return None
+
+
+# ID: c5b8e4d1-6f9a-4b7c-8e2d-1a3f5c7b9d0e
+def _find_intentionally_ungated(tree: ast.AST) -> dict[str, str]:
+    """Return {route_function_name: rationale} from a module-level
+    `INTENTIONALLY_UNGATED` dict constant, or {} if absent (ADR-132 D9).
+    Accepts both plain (`X = {...}`) and annotated (`X: dict[str, str] =
+    {...}`) assignment forms — real call sites use the annotated form,
+    unlike ROUTER_EXPOSURE's plain-Assign convention this was modeled on.
+    Only literal string keys/values are recognised — anything computed is
+    silently ignored."""
+    result: dict[str, str] = {}
+    for node in ast.walk(tree):
+        target: ast.expr | None
+        value: ast.expr | None
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                continue
+            target, value = node.targets[0], node.value
+        elif isinstance(node, ast.AnnAssign):
+            target, value = node.target, node.value
+        else:
+            continue
+        if not (
+            isinstance(target, ast.Name)
+            and target.id == "INTENTIONALLY_UNGATED"
+            and isinstance(value, ast.Dict)
+        ):
+            continue
+        for key, val in zip(value.keys, value.values, strict=True):
+            if (
+                isinstance(key, ast.Constant)
+                and isinstance(key.value, str)
+                and isinstance(val, ast.Constant)
+                and isinstance(val.value, str)
+            ):
+                result[key.value] = val.value
+    return result
 
 
 # ID: 793f2ded-04ad-4710-a813-76ff72f339be

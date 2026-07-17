@@ -31,6 +31,15 @@ router = APIRouter(
     include_in_schema=False,
 )
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "lint_endpoint": (
+        "Read-shaped: run_lint() calls only `black --check` and `ruff check` "
+        "— verified no --fix flag anywhere in lint_runner.py. Pure analysis, "
+        "no src/ writes."
+    ),
+}
+
 
 @router.post("")
 # ID: 923355cf-ad6d-446a-865f-539025a11428

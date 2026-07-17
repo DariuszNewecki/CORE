@@ -67,6 +67,19 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/census")
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "create_census_run": (
+        "Read-shaped: INSERTs a core.census_runs tracking row (status="
+        "'pending'), same shape as create_audit_run. snapshot=True writes only "
+        "a disposable snapshot to a history dir — no src/, .intent/, or git "
+        "writes. Nothing is ever dereferenced against a census_run as "
+        "governing state. Contrast create_census_baseline (gated): writes a "
+        "named reference baseline.json entry that future census diffs resolve "
+        "against."
+    ),
+}
+
 
 # ID: 8c5e2d0f-4b9a-4d7e-ecbe-7f8901ab23cd
 class CreateCensusRunRequest(BaseModel):

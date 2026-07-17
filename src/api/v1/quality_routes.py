@@ -66,6 +66,21 @@ router = APIRouter(
     include_in_schema=False,
 )
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+# Contrast quality_lint (gated): the only quality_* route with a live --fix
+# path (ruff check src/ --fix when payload.fix=True).
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "quality_imports": "Read-shaped: wraps action_check_imports, a pure import-resolution scan.",
+    "quality_body_ui": "Read-shaped: wraps check_body_contracts, a read-only Body-layer contract scan.",
+    "quality_policy_coverage": "Read-shaped: PolicyCoverageService.run() is a read-only audit report.",
+    "quality_tests": "Read-shaped: runs `pytest -q --no-cov` only, no mutation.",
+    "quality_system": "Read-shaped: runs `ruff check src/` (no --fix) + pytest — analysis only.",
+    "quality_gates": (
+        "Read-shaped: runs six analysis subprocesses (ruff/mypy/pytest/"
+        "pip-audit/radon/vulture); none pass fix/write flags."
+    ),
+}
+
 
 # ID: 3b42b16d-03d5-4114-bbda-75965bf614ad
 class QualityTargetRequest(BaseModel):

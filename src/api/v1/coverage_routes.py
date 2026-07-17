@@ -76,6 +76,21 @@ router = APIRouter(prefix="/coverage")
 # D5 (the endpoint produces a one-shot interactive session response).
 tests_router = APIRouter(prefix="/tests")
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "request_coverage_report": (
+        "Read-shaped: verified against run_and_persist_coverage_report's own "
+        "signature (no write param) and body — it calls only "
+        "get_coverage_report/get_coverage_html_report, the same pytest-"
+        "measurement functions the synchronous GET /coverage/report route "
+        "already calls. ReportRequest has no write field; the INSERT hardcodes "
+        "write=false literally. Never reaches remediate_coverage_enhanced. "
+        "Contrast generate_coverage/generate_coverage_batch/interactive_tests "
+        "(gated): all three call remediate_coverage_enhanced, which writes "
+        "generated test files unconditionally (#809)."
+    ),
+}
+
 
 # ID: 8d2e4f0a-1b3c-4d5e-6f7a-8b9c0d1e2f30
 class GenerateRequest(BaseModel):

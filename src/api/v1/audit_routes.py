@@ -68,6 +68,17 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/audit")
 
+# ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "create_audit_run": (
+        "Read-shaped: audit runs are analysis. Writes only to core.audit_runs "
+        "tracking rows and disposable report artifacts (findings.json, "
+        "evidence ledger) under reports/ — never src/, .intent/, or git. "
+        "Contrast create_remediation_run (gated): applies fixes to src/ when "
+        "write=true."
+    ),
+}
+
 
 # ID: b8443c8a-97ea-4011-8b99-f20e8d19e4eb
 class CreateAuditRunRequest(BaseModel):
