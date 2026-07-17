@@ -10,9 +10,15 @@ the property exclusion and dispatch-registration grace) AND zero inbound
 call edges outside tests/. The remaining D2 grace — the published __all__
 extension contract — is applied here, where the packages are importable.
 
-Resolver ownership (ADR-091 D2): resolution_mechanism=self_resolve — this
-sensor's own run() resolves any open dead_shim finding whose symbol has left
-the candidate set (deleted, gained a caller, or lost its marker).
+ADR-091 D2 Revision B resolution classification:
+- Subject prefix:        python::modernization.dead_shim::<symbol_path>
+- resolution_mechanism:  self_resolve
+- Resolver path:         this sensor's own run() method. After the flagging
+                         pass, every open finding whose subject is not in
+                         this cycle's flagged_subjects set is resolved via
+                         BlackboardService.resolve_entries — the finding
+                         clears when the symbol is deleted, gains a caller,
+                         or loses its deprecation marker.
 
 Enforcement is REPORTING (ADR-151 D3): findings surface; deletion remains a
 governed, verify-then-delete act (D4) — the static graph cannot see dynamic
