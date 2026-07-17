@@ -1,7 +1,8 @@
 # CORE — External LLM Review Prompt
 
-Paste the block below verbatim into the external LLM session. Fill in the
-two placeholders (`[SNAPSHOT DATE]`, `[FOCUS AREA]`) before sending.
+Fill in the two placeholders (`[SNAPSHOT DATE]`, `[FOCUS AREA]`) below, then
+paste the entire block into the external LLM session unmodified otherwise —
+don't paraphrase, trim, or summarize any other part of it.
 
 > **Intent.** This is a collaborative review, not an audit. We are looking
 > for a third eye — fresh perspective, pattern recognition, things we may
