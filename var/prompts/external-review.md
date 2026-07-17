@@ -30,7 +30,9 @@ output is trusted by default — it is governed and verified at every stage.
 The repo has three surfaces:
   .intent/     — governance law as data (YAML/JSON). Read at runtime.
                  Never imported as Python. This is the source of truth.
-  .specs/      — human-authored reasoning: ADRs (through ADR-148),
+  .specs/      — human-authored reasoning: ADRs (through ADR-153 as of this
+                 writing — verify with `ls .specs/decisions/ | grep -oE
+                 'ADR-[0-9]+' | sort -t- -k2 -n -u | tail -1`, it drifts),
                  requirement specs, papers, roadmaps.
   src/         — the implementation, structured into constitutional layers.
 
@@ -44,7 +46,7 @@ The code layers (src/) are:
 
 These layer boundaries are enforced by constitutional rules in .intent/.
 Violations are blocking (stop a commit) or reporting (surface findings).
-The runtime enforces 37 blocking + 29 reporting + 8 advisory rules = 74.
+The runtime enforces 37 blocking + 31 reporting + 8 advisory rules = 76.
 (Verify before trusting this count — it drifts. The authoritative set is
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u | wc -l`,
 and per-severity via `jq -r '.rules[].enforcement' .intent/rules/architecture/*.json
@@ -63,8 +65,17 @@ Key architectural patterns to know before reading the code:
                       runtime — a cycle that posts nothing raises an error
   • Proposals       — the lifecycle by which the autonomous loop requests
                       and executes mutations: DRAFT → APPROVED → EXECUTING
-                      → COMPLETE (or REJECTED / ABANDONED). ProposalConsumer-
-                      Worker is the executor; ActionExecutor is the kernel.
+                      → FINALIZING → COMPLETED (or REJECTED / FAILED).
+                      FINALIZING (ADR-148) is the post-commit, pre-durable
+                      state: git changes are committed but the consequence
+                      chain (SHAs, changed files, resolved findings) is
+                      still being recorded — COMPLETED requires that record
+                      durable, not just execution finished. A stuck
+                      FINALIZING proposal is recovered by rolling forward
+                      (re-driving the idempotent evidence steps), never by
+                      rollback, which would double-apply the committed
+                      change. ProposalConsumerWorker is the executor;
+                      ActionExecutor is the kernel.
   • FileHandler     — the single authorised write surface; Path.write_text()
                       is a constitutional violation in production code
   • IntentRepository — the only authorised reader of .intent/; raw Path reads
@@ -251,11 +262,15 @@ STANDING QUESTIONS — answer all of these
 4d. Do workers correctly handle the case where their claimed entries may
     have been released mid-run by a liveness reaper?
 
-4e. Look at the proposal lifecycle (DRAFT → APPROVED → EXECUTING → COMPLETE
-    / REJECTED / ABANDONED). Are the state transitions atomic and correctly
-    guarded? Is ProposalConsumerWorker the sole executor, or are there paths
-    that mutate proposal state outside the consumer? Are abandoned proposals
-    distinguishable from genuinely completed ones?
+4e. Look at the proposal lifecycle (DRAFT → APPROVED → EXECUTING →
+    FINALIZING → COMPLETED / REJECTED / FAILED). Are the state transitions
+    atomic and correctly guarded? Is ProposalConsumerWorker the sole
+    executor, or are there paths that mutate proposal state outside the
+    consumer? Does `completed` genuinely mean the consequence chain is
+    durable (ADR-148 D1 — `consequence_recorded_at` required), or can a
+    proposal reach `completed` on evidence that was reconstructed rather
+    than captured (ADR-148 D4/D7 — check `consequence_source` on
+    `core.proposal_consequences` rows for `reaper_reconstructed`)?
 
 ## 5. Test coverage and quality
 
@@ -287,7 +302,12 @@ STANDING QUESTIONS — answer all of these
     that should carry it (per ROUTER_EXPOSURE and ADR-132's D3/D7 shape)?
     Remember it is a no-op pass-through in this OSS repo by design — the
     finding to look for is missing/misplaced *placement*, not "it doesn't
-    enforce anything" (it isn't supposed to here).
+    enforce anything" (it isn't supposed to here). A mutation-verb route on
+    a user-facing router may legitimately carry no gate if the module
+    declares it in a module-level `INTENTIONALLY_UNGATED: dict[str, str]`
+    constant with a non-empty rationale (ADR-132 D9) — check the rationale
+    is genuine (traces to what the handler actually does, not just asserted)
+    rather than treating the marker's mere presence as sufficient.
 
 6b. Are there any eval / exec / compile / subprocess calls without a
     documented justification comment? (Will MUST NOT use them; Body MAY
