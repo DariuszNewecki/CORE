@@ -3,15 +3,24 @@
 ViolationExecutorWorker - Discovery path for unmapped rules.
 
 Will-layer acting worker. Claims open audit violation findings whose rules
-have no active RemediationMap entry, delegates the LLM remediation ceremony
-to ViolationRemediator (Body layer), and surfaces AtomicAction candidates
+have no active RemediationMap entry, runs the LLM remediation ceremony via
+will.remediation.RemediationCeremony, and surfaces AtomicAction candidates
 to the Blackboard after each successful fix.
+
+ADR-153: this worker used to import and instantiate ViolationRemediator
+(a Worker subclass in will.workers.violation_remediator_body) directly —
+the exact worker-to-worker composition architecture.workers.no_direct_worker_import
+forbids. The ceremony ViolationRemediator ran is now RemediationCeremony,
+a non-Worker service; this worker posts/marks through its own identity via
+WorkerRemediationBlackboard, with no caller_uuid substitution.
 
 Constitutional role in the remediation system:
 
     RemediatorWorker (Will)     — Handles MAPPED rules → Proposals
     ViolationExecutorWorker     — Handles UNMAPPED rules → Candidates   ← THIS
-    ViolationRemediator (Body)  — Performs ceremony for both paths
+    RemediationCeremony         — Performs the ceremony for both this
+                                   worker and ViolationRemediator's own
+                                   autonomous path (ADR-153)
 
 RemediatorWorker has priority. It runs first and claims findings whose rules
 are mapped. ViolationExecutorWorker claims only what remains — findings whose
@@ -35,10 +44,10 @@ Constitutional standing:
 - Phase:            execution
 - Permitted tools:  llm.remote_coder, file.read, crate.create,
                     canary.validate, crate.apply, git.commit
-- Approval:         true (inherited from ViolationRemediator ceremony)
+- Approval:         true (inherited from the RemediationCeremony ceremony)
 
-LAYER: will/workers — acting worker. Delegates all execution ceremony to
-will.workers.violation_remediator_body.ViolationRemediator.process_file().
+LAYER: will/workers — acting worker. Runs the extracted execution ceremony
+via will.remediation.RemediationCeremony.process_file() (ADR-153).
 """
 
 from __future__ import annotations
@@ -70,8 +79,8 @@ class ViolationExecutorWorker(Worker):
     """
     Acting worker. Discovery path for rules with no RemediationMap entry.
 
-    Claims open audit violation findings for unmapped rules, delegates
-    the full LLM + Crate + Canary ceremony to ViolationRemediator (Body),
+    Claims open audit violation findings for unmapped rules, runs the
+    full LLM + Crate + Canary ceremony via RemediationCeremony (ADR-153),
     and surfaces AtomicAction candidates on the Blackboard after success.
 
     Args:
@@ -307,13 +316,16 @@ class ViolationExecutorWorker(Worker):
             {str((f.get("payload") or {}).get("rule") or "unknown") for f in findings}
         )
 
-        # Steps 5-9: Delegate full ceremony to ViolationRemediator (Body layer).
+        # Steps 5-9: run the extracted ceremony (ADR-153).
         # One LLM invocation covers all violations in this file.
         # target_rule: single rule if one, semicolon-joined if multiple.
         target_rule = rule_ids[0] if len(rule_ids) == 1 else "; ".join(rule_ids)
 
         try:
-            from will.workers.violation_remediator_body import ViolationRemediator
+            from will.remediation import (
+                RemediationCeremony,
+                WorkerRemediationBlackboard,
+            )
 
             # Ensure action_executor is available on the context.
             # action_executor is monkey-patched at CLI bootstrap time but is not
@@ -324,13 +336,16 @@ class ViolationExecutorWorker(Worker):
 
                 self._ctx.action_executor = ActionExecutor(self._ctx)
 
-            remediator = ViolationRemediator(
+            # ADR-153: posts/marks land under this worker's own, genuinely
+            # registered identity — no caller_uuid substitution.
+            blackboard = WorkerRemediationBlackboard(self, self._ctx)
+            ceremony = RemediationCeremony(
                 core_context=self._ctx,
                 target_rule=target_rule,
                 write=self._write,
-                caller_uuid=self._worker_uuid,
+                blackboard=blackboard,
             )
-            ok = await remediator.process_file(file_path, findings)
+            ok = await ceremony.process_file(file_path, findings)
             return ok, rule_ids if ok else []
 
         except Exception as exc:

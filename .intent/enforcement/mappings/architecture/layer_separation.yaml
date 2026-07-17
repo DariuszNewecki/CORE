@@ -337,20 +337,11 @@ mappings:
       applies_to:
         - "src/will/workers/**/*.py"
         - "src/body/workers/**/*.py"
-      excludes:
-        # violation_executor.py — the sixth of #723/#793's original six files.
-        # Unlike the other five (mechanical extractions, all closed
-        # 2026-07-17: proposal_consumer_worker.py / proposal_pipeline_shop_manager.py
-        # via proposal_consumer_effects.py + proposal_consumer_revival.py ->
-        # will/autonomy/; audit_violation_sensor.py via audit_violation_filter.py
-        # + audit_violation_normalizer.py -> will/audit_violation/;
-        # violation_remediator.py + violation_remediator_proposal.py via
-        # circuit_breaker.py + violation_remediator_blackboard.py +
-        # violation_remediator_proposal.py -> will/autonomy/), this file's
-        # exclusion was mischaracterized: it imports and instantiates a real
-        # Worker subclass (ViolationRemediator), not a helper function.
-        # ADR-153 (accepted) covers the architectural fix.
-        - "src/will/workers/violation_executor.py"
+      # ADR-153 (accepted, implemented 2026-07-17): all six original
+      # #723/#793 excludes are closed. The last, violation_executor.py, no
+      # longer imports will.workers.violation_remediator_body — it delegates
+      # to will.remediation.RemediationCeremony instead. Zero excludes
+      # remain for this rule.
 
 # ==============================================================================
 # Meta: This mapping file restores CORE's founding architectural principle

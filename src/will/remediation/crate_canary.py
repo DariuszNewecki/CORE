@@ -1,6 +1,6 @@
-# src/will/workers/violation_remediator_body/ceremony.py
+# src/will/remediation/crate_canary.py
 """
-Crate/Canary ceremony helpers for ViolationRemediator.
+Crate/Canary ceremony helpers for RemediationCeremony.
 
 Responsibility: pack Crate, align staged file, run Canary, archive rollback.
 No LLM calls. No Blackboard writes.
@@ -24,10 +24,10 @@ logger = getLogger(__name__)
 _CFG = load_operational_config().workers.violation_remediator
 
 
-# ID: 7309bbd3-8a4b-427f-9d6f-b93b6bd3f719
-class CeremonyMixin(HostBase):
+# ID: 9a5ed353-7e72-46cb-a892-01a913e49844
+class CrateCanaryMixin(HostBase):
     """
-    Mixin providing Crate/Canary ceremony methods for ViolationRemediator.
+    Mixin providing Crate/Canary ceremony methods for RemediationCeremony.
 
     Requires self._ctx and self._target_rule to be set by the host class.
     """
@@ -46,13 +46,13 @@ class CeremonyMixin(HostBase):
             )
             if not result.ok:
                 logger.warning(
-                    "ViolationRemediator: Crate creation failed - %s",
+                    "RemediationCeremony: Crate creation failed - %s",
                     result.data,
                 )
                 return None
             return result.data["crate_id"]
         except Exception as exc:
-            logger.warning("ViolationRemediator: Crate error - %s", exc)
+            logger.warning("RemediationCeremony: Crate error - %s", exc)
             return None
 
     async def _align_staged_file(self, crate_id: str, file_path: str) -> None:
@@ -71,7 +71,7 @@ class CeremonyMixin(HostBase):
         )
         if not staged.exists():
             logger.warning(
-                "ViolationRemediator: staged file not found for alignment - %s",
+                "RemediationCeremony: staged file not found for alignment - %s",
                 staged,
             )
             return
@@ -100,13 +100,13 @@ class CeremonyMixin(HostBase):
                 )
                 if proc.returncode == 0:
                     logger.info(
-                        "ViolationRemediator: %s aligned %s",
+                        "RemediationCeremony: %s aligned %s",
                         label,
                         file_path,
                     )
                 else:
                     logger.warning(
-                        "ViolationRemediator: %s returned %d for %s - %s",
+                        "RemediationCeremony: %s returned %d for %s - %s",
                         label,
                         proc.returncode,
                         file_path,
@@ -114,7 +114,7 @@ class CeremonyMixin(HostBase):
                     )
             except Exception as exc:
                 logger.warning(
-                    "ViolationRemediator: %s failed for %s - %s",
+                    "RemediationCeremony: %s failed for %s - %s",
                     label,
                     file_path,
                     exc,
@@ -129,13 +129,13 @@ class CeremonyMixin(HostBase):
             passed, findings = await service.validate_crate_by_id(crate_id)
             if not passed:
                 logger.warning(
-                    "ViolationRemediator: Canary FAILED for %s (%d findings)",
+                    "RemediationCeremony: Canary FAILED for %s (%d findings)",
                     crate_id,
                     len(findings),
                 )
             return passed
         except Exception as exc:
-            logger.warning("ViolationRemediator: Canary error - %s", exc)
+            logger.warning("RemediationCeremony: Canary error - %s", exc)
             return False
 
     def _archive_rollback(
@@ -166,4 +166,4 @@ class CeremonyMixin(HostBase):
                 },
             )
         except Exception as exc:
-            logger.warning("ViolationRemediator: rollback archive failed - %s", exc)
+            logger.warning("RemediationCeremony: rollback archive failed - %s", exc)

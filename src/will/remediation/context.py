@@ -1,6 +1,6 @@
-# src/will/workers/violation_remediator_body/context.py
+# src/will/remediation/context.py
 """
-Context building for ViolationRemediator.
+Context building for RemediationCeremony.
 
 Responsibility: assemble call-graph and semantic context for a violating file.
 No LLM remediation calls. No file writes. No Blackboard writes.
@@ -20,10 +20,10 @@ _CODE_COLLECTION = "core-code"
 _CFG = load_operational_config().workers.violation_remediator
 
 
-# ID: 4b9c5641-7688-451c-9b3f-09f2c773098d
+# ID: eed1a493-baeb-4675-8f0c-6e63fc5d1e43
 class ContextMixin(HostBase):
     """
-    Mixin providing context-assembly methods for ViolationRemediator.
+    Mixin providing context-assembly methods for RemediationCeremony.
 
     Requires self._ctx to be set by the host class.
     """
@@ -43,7 +43,7 @@ class ContextMixin(HostBase):
                 parts.append(f"=== Call graph context ===\n{call_graph_ctx}")
         except Exception as exc:
             logger.debug(
-                "ViolationRemediator: call graph context unavailable for %s - %s",
+                "RemediationCeremony: call graph context unavailable for %s - %s",
                 file_path,
                 exc,
             )
@@ -64,7 +64,7 @@ class ContextMixin(HostBase):
                 )
         except Exception as exc:
             logger.debug(
-                "ViolationRemediator: semantic context unavailable for %s - %s",
+                "RemediationCeremony: semantic context unavailable for %s - %s",
                 file_path,
                 exc,
             )

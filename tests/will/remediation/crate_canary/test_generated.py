@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from will.workers.violation_remediator_body.ceremony import CeremonyMixin
+from will.remediation.crate_canary import CrateCanaryMixin
 
 
 # ID: 91c87a42-fc5f-42fc-995a-7515d01ed5f9
-class ConcreteCeremonyMixin(CeremonyMixin):
+class ConcreteCrateCanaryMixin(CrateCanaryMixin):
     """Concrete subclass to test the mixin."""
 
     def __init__(self):
@@ -18,8 +18,8 @@ class ConcreteCeremonyMixin(CeremonyMixin):
 
 @pytest.mark.asyncio
 # ID: 80a3a112-2369-4c2d-abf2-5c5855f530d3
-async def test_CeremonyMixin():
-    mixin = ConcreteCeremonyMixin()
+async def test_CrateCanaryMixin():
+    mixin = ConcreteCrateCanaryMixin()
     mock_action_executor = AsyncMock()
     mock_action_executor.execute.return_value = MagicMock(
         ok=True, data={"crate_id": "crate-123"}

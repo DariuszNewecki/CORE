@@ -135,10 +135,11 @@ async def _run_file_pipeline(
     file_path: str,
     write: bool,
 ) -> None:
-    """Audit a single file across all rules, then feed findings into ViolationRemediator."""
+    """Audit a single file across all rules, then run the remediation
+    ceremony directly (ADR-153) — no Worker is instantiated for this path."""
     from mind.governance.audit_context import AuditorContext
     from mind.governance.auditor import ConstitutionalAuditor
-    from will.workers.violation_remediator_body import ViolationRemediator
+    from will.remediation import NullRemediationBlackboard, RemediationCeremony
 
     repo_root: Path = core_context.git_service.repo_path
     abs_path = repo_root / file_path
@@ -182,37 +183,32 @@ async def _run_file_pipeline(
         len({f["rule"] for f in file_findings}),
     )
 
-    # Step 2 — Feed findings into ViolationRemediator directly
-    logger.info("Step 2/2 - ViolationRemediator (file mode)")
+    # Step 2 — Run the remediation ceremony directly.
+    logger.info("Step 2/2 - RemediationCeremony (file mode)")
 
-    # Build synthetic blackboard-style finding dicts that ViolationRemediator expects.
+    # Build synthetic blackboard-style finding dicts RemediationCeremony expects.
     synthetic_findings = _build_synthetic_findings(file_findings, file_path)
 
-    # Determine a combined target_rule label for the remediator.
+    # Determine a combined target_rule label for the ceremony.
     unique_rules = sorted({f["rule"] for f in file_findings})
     target_rule = unique_rules[0] if len(unique_rules) == 1 else "file-audit"
 
-    remediator = ViolationRemediator(
-        core_context=core_context, target_rule=target_rule, write=write
+    # ADR-153: no blackboard entries exist for this ad-hoc, single-file
+    # audit — NullRemediationBlackboard makes that explicit and typed,
+    # replacing the old pattern of instantiating ViolationRemediator (a
+    # Worker) and monkeypatching its claim/mark methods to bypass the
+    # blackboard. This is a deliberate, recorded behavior change (ADR-153
+    # D2/Consequences): unlike before, this path now posts nothing to the
+    # blackboard at all — no worker.heartbeat, no dry_run_complete
+    # observation. Console output below (unchanged) is the only feedback.
+    ceremony = RemediationCeremony(
+        core_context=core_context,
+        target_rule=target_rule,
+        write=write,
+        blackboard=NullRemediationBlackboard(),
     )
-
-    # Bypass blackboard: override _claim_open_findings to return our findings,
-    # and _mark_finding / _mark_findings to no-op (no blackboard entries exist).
-    async def _injected_claim() -> list[dict[str, Any]]:
-        return synthetic_findings
-
-    async def _noop_mark_findings(findings: list[dict[str, Any]], status: str) -> None:
-        pass
-
-    async def _noop_mark_finding(finding_id: str, status: str) -> None:
-        pass
-
-    remediator._claim_open_findings = _injected_claim  # type: ignore[assignment]
-    remediator._mark_findings = _noop_mark_findings  # type: ignore[assignment]
-    remediator._mark_finding = _noop_mark_finding  # type: ignore[assignment]
-
-    await remediator.start()
-    logger.info("Remediator complete.")
+    await ceremony.process_file(file_path, synthetic_findings)
+    logger.info("Remediation complete.")
 
     console.print()
     if write:
@@ -268,7 +264,7 @@ def _filter_findings_for_file(
 def _build_synthetic_findings(
     file_findings: list[dict[str, Any]], file_path: str
 ) -> list[dict[str, Any]]:
-    """Convert filtered audit findings into the blackboard-entry format ViolationRemediator expects."""
+    """Convert filtered audit findings into the blackboard-entry format RemediationCeremony expects."""
     synthetic = []
     for f in file_findings:
         synthetic.append(

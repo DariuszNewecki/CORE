@@ -1,16 +1,12 @@
-# src/will/workers/violation_remediator_body/models.py
+# src/will/remediation/models.py
 """
-Shared dataclasses for the ViolationRemediator package.
+Shared dataclasses for the RemediationCeremony package.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-
-
-# Severity ordering for claim priority (higher = claimed first).
-_SEVERITY_RANK = {"critical": 4, "error": 3, "warning": 2, "info": 1}
 
 
 @dataclass

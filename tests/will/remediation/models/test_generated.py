@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from will.workers.violation_remediator_body.models import _RemediationPlan
+from will.remediation.models import _RemediationPlan
 
 
 # ID: ce3dce84-9354-402b-a303-f0efadd8a89d

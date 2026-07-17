@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from will.workers.violation_remediator_body.context import ContextMixin
+from will.remediation.context import ContextMixin
 
 
 @pytest.fixture

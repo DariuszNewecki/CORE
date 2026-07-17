@@ -1,6 +1,6 @@
-# src/will/workers/violation_remediator_body/llm.py
+# src/will/remediation/llm.py
 """
-LLM invocation for ViolationRemediator.
+LLM invocation for RemediationCeremony.
 
 Responsibility: invoke RemoteCoder via PromptModel, parse and validate
 the response. No file writes. No Blackboard writes.
@@ -19,10 +19,10 @@ from ._host import HostBase
 logger = getLogger(__name__)
 
 
-# ID: a7256a38-cbdf-430e-ac84-1fbfe9bb102b
+# ID: e37e1395-d07a-4d2a-b9ec-7d6ae0b97ec2
 class LLMMixin(HostBase):
     """
-    Mixin providing LLM invocation for ViolationRemediator.
+    Mixin providing LLM invocation for RemediationCeremony.
 
     Requires self._ctx and self._target_rule to be set by the host class.
     """
@@ -76,7 +76,7 @@ class LLMMixin(HostBase):
                 parsed = extract_json(result)
             except (json.JSONDecodeError, ValueError) as parse_exc:
                 logger.warning(
-                    "ViolationRemediator: JSON parse failed for %s - %s\nRaw: %s",
+                    "RemediationCeremony: JSON parse failed for %s - %s\nRaw: %s",
                     file_path,
                     parse_exc,
                     (result or "")[:500],
@@ -86,7 +86,7 @@ class LLMMixin(HostBase):
             code = parsed.get("code") or ""
             if not code:
                 logger.warning(
-                    "ViolationRemediator: LLM response missing 'code' field for %s",
+                    "RemediationCeremony: LLM response missing 'code' field for %s",
                     file_path,
                 )
                 return None
@@ -95,7 +95,7 @@ class LLMMixin(HostBase):
                 _ast.parse(code)
             except SyntaxError as syn_exc:
                 logger.warning(
-                    "ViolationRemediator: LLM produced invalid Python for %s - %s\n"
+                    "RemediationCeremony: LLM produced invalid Python for %s - %s\n"
                     "First 200 chars: %s",
                     file_path,
                     syn_exc,
@@ -107,7 +107,7 @@ class LLMMixin(HostBase):
 
         except Exception as exc:
             logger.warning(
-                "ViolationRemediator: LLM invocation failed for %s - %s",
+                "RemediationCeremony: LLM invocation failed for %s - %s",
                 file_path,
                 exc,
             )
