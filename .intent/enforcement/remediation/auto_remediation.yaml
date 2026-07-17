@@ -2233,6 +2233,18 @@ mappings:
       must be declared or emission rerouted — governor decision. Non-automatable.
     status: DELEGATE
 
+  governance.exemption_debt.declared:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A governed_exclusions entry (ADR-042 D3, generalized by ADR-152) is
+      malformed, or a closure_type=deadline entry has entered its warning
+      or lapsed stage. Resolution requires either correcting the entry's
+      metadata, authoring/accepting its closure ADR, or removing the entry
+      once the underlying violation is fixed — governor decision.
+      Non-automatable.
+    status: DELEGATE
+
   governance.vocabulary.authoritative_source_must_be_paper:
     action: fix.modularity
     confidence: 0.40

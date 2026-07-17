@@ -227,6 +227,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/rules/governance/taxonomy.json
     governance_namespace: framework
+  - path: .intent/rules/governance/exemption_debt.json
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/rules/ai/** — generic AI/prompt governance applicable to
@@ -275,6 +277,8 @@ classifications:
   - path: .intent/enforcement/mappings/governance/sensor_taxonomy.yaml
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/taxonomy.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/exemption_debt.yaml
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/passive_gate_attestation.yaml
     governance_namespace: framework
@@ -1588,6 +1592,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/workers/var_tmp_janitor.yaml
     governance_namespace: framework
+  - path: .intent/workers/dead_shim_sensor.yaml
+    governance_namespace: project::core
   - path: .intent/workers/canary_janitor.yaml
     governance_namespace: framework
   - path: .intent/enforcement/config/deployment_mode.yaml
@@ -1765,6 +1771,14 @@ classifications:
   - path: .specs/decisions/ADR-148-proposal-finalization-barrier.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-149-governance-packs-live-outside-self-law-root.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-150-finalizing-redrive-cap.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-151-dead-shim-reaper.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-152-exemption-schema.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-153-remediation-ceremony-extraction.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
