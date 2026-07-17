@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from will.workers.proposal_consumer_effects import summarize_flow_step_failures
+from will.autonomy.proposal_consumer_effects import summarize_flow_step_failures
 
 
 # ID: 6fd92b2e-36a8-47d4-be50-e0f5f518a5f5

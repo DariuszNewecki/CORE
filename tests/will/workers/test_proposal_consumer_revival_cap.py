@@ -66,7 +66,7 @@ async def test_cap_reached_subject_uses_finding_subject_not_entry_id() -> None:
     revived; using it as the subject creates a new F-19 subject on every
     failure cycle, flooding the convergence metric.
     """
-    from will.workers.proposal_consumer_revival import revive_and_report
+    from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
         abandoned_ids=[_ENTRY_ID_1],
@@ -101,7 +101,7 @@ async def test_cap_reached_subject_uses_finding_subject_not_entry_id() -> None:
 
 async def test_cap_reached_posts_one_observation_per_abandoned_finding() -> None:
     """Two abandoned findings → two stable, distinct observations."""
-    from will.workers.proposal_consumer_revival import revive_and_report
+    from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
         abandoned_ids=[_ENTRY_ID_1, _ENTRY_ID_2],
@@ -131,7 +131,7 @@ async def test_cap_reached_posts_one_observation_per_abandoned_finding() -> None
 
 async def test_no_abandoned_findings_posts_nothing() -> None:
     """If the revival has no abandoned findings, no observation is posted."""
-    from will.workers.proposal_consumer_revival import revive_and_report
+    from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
         abandoned_ids=[],

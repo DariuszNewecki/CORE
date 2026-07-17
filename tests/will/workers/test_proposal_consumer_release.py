@@ -40,7 +40,7 @@ def _make_session_cm(rows: list) -> MagicMock:
 
 async def test_no_stuck_proposals_returns_zero() -> None:
     """Normal successful run: query returns empty, released count is 0."""
-    from will.workers.proposal_consumer_revival import release_executing_proposals
+    from will.autonomy.proposal_consumer_revival import release_executing_proposals
 
     mock_registry = MagicMock()
     mock_registry.session.return_value = _make_session_cm([])
@@ -56,7 +56,7 @@ async def test_one_stuck_proposal_is_released() -> None:
     One EXECUTING proposal owned by this worker → mark_failed + revive_and_report
     called, released count is 1.
     """
-    from will.workers.proposal_consumer_revival import release_executing_proposals
+    from will.autonomy.proposal_consumer_revival import release_executing_proposals
 
     mock_registry = MagicMock()
     mock_registry.session.return_value = _make_session_cm([(_PROPOSAL_ID,)])
@@ -64,11 +64,11 @@ async def test_one_stuck_proposal_is_released() -> None:
     with (
         patch("body.services.service_registry.service_registry", mock_registry),
         patch(
-            "will.workers.proposal_consumer_revival.mark_proposal_failed",
+            "will.autonomy.proposal_consumer_revival.mark_proposal_failed",
             new_callable=AsyncMock,
         ) as mock_mark,
         patch(
-            "will.workers.proposal_consumer_revival.revive_and_report",
+            "will.autonomy.proposal_consumer_revival.revive_and_report",
             new_callable=AsyncMock,
         ) as mock_revive,
     ):
@@ -87,7 +87,7 @@ async def test_one_stuck_proposal_is_released() -> None:
 
 async def test_db_query_error_returns_zero() -> None:
     """DB failure during query → logged, returns 0, does not propagate."""
-    from will.workers.proposal_consumer_revival import release_executing_proposals
+    from will.autonomy.proposal_consumer_revival import release_executing_proposals
 
     mock_registry = MagicMock()
     mock_registry.session.side_effect = RuntimeError("connection lost")

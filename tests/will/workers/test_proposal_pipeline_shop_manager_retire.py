@@ -85,7 +85,7 @@ async def test_retire_executing_proposal_terminates_and_revives() -> None:
     _, orig, svc_mod = _patch_service_registry(session)
     try:
         with patch(
-            "will.workers.proposal_consumer_revival.revive_and_report",
+            "will.autonomy.proposal_consumer_revival.revive_and_report",
             revive_mock,
         ):
             result = await worker._retire_stuck_proposal(  # type: ignore[attr-defined]
@@ -112,7 +112,7 @@ async def test_retire_no_op_when_proposal_not_executing() -> None:
     _, orig, svc_mod = _patch_service_registry(session)
     try:
         with patch(
-            "will.workers.proposal_consumer_revival.revive_and_report",
+            "will.autonomy.proposal_consumer_revival.revive_and_report",
             revive_mock,
         ):
             result = await worker._retire_stuck_proposal(  # type: ignore[attr-defined]
@@ -144,7 +144,7 @@ async def test_retire_fail_soft_on_db_error() -> None:
     _, orig, svc_mod = _patch_service_registry(exploding)
     try:
         with patch(
-            "will.workers.proposal_consumer_revival.revive_and_report",
+            "will.autonomy.proposal_consumer_revival.revive_and_report",
             revive_mock,
         ):
             result = await worker._retire_stuck_proposal(  # type: ignore[attr-defined]

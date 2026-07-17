@@ -340,9 +340,10 @@ mappings:
       excludes:
         # Helper modules co-located in will/workers/ — not Worker subclasses.
         # These import utility functions (not Worker instances) from sibling
-        # helper files. Pending extraction to will/ or shared/ (#723 follow-up).
-        - "src/will/workers/proposal_consumer_worker.py"
-        - "src/will/workers/proposal_pipeline_shop_manager.py"
+        # helper files. Pending extraction to will/ or shared/ (#723 follow-up,
+        # #793). proposal_consumer_worker.py and proposal_pipeline_shop_manager.py
+        # closed by moving proposal_consumer_effects.py / proposal_consumer_revival.py
+        # to will/autonomy/ (2026-07-17).
         - "src/will/workers/violation_remediator.py"
         - "src/will/workers/violation_remediator_proposal.py"
         - "src/will/workers/audit_violation_sensor.py"

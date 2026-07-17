@@ -38,11 +38,11 @@ from typing import Any
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
-from will.workers.proposal_consumer_effects import (
+from will.autonomy.proposal_consumer_effects import (
     apply_success_effects,
     summarize_flow_step_failures,
 )
-from will.workers.proposal_consumer_revival import (
+from will.autonomy.proposal_consumer_revival import (
     mark_proposal_failed,
     release_executing_proposals,
     revive_and_report,

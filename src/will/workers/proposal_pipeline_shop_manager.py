@@ -415,7 +415,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         from sqlalchemy import text
 
         from body.services.service_registry import service_registry
-        from will.workers.proposal_consumer_revival import revive_and_report
+        from will.autonomy.proposal_consumer_revival import revive_and_report
 
         reason = (
             f"stuck_executing: terminated by ProposalPipelineShopManager "
