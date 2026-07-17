@@ -2,7 +2,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "core.intent.enforcement_mapping.schema.json",
       "title": "CORE Enforcement Mapping Entry",
-      "description": "Schema for each entry under `mappings:` in any .intent/enforcement/mappings/**/*.yaml file. An entry pairs a rule_id (the dict key) with the enforcement strategy that resolves it. A non-empty `scope.applies_to` glob list is mandatory — without it, the loader silently widened scope to all of src/**/*.py and over-applied rules across unrelated layers (issue #158).",
+      "description": "Schema for each entry under `mappings:` in any .intent/enforcement/mappings/**/*.yaml file. An entry pairs a rule_id (the dict key) with the enforcement strategy that resolves it. `scope.applies_to` may be empty only for declared context-level dispatch (the check iterates globally, not per-file, e.g. contracts_gate.layer_scope_coherence, llm_gate.purity.logic_conservation) — the loader (rule_extractor.py) treats a missing or empty applies_to as 'match nothing' rather than the pre-#158 silent widen-to-all-of-src/ behavior, so an empty list is safe, not dangerous, and no longer needs the blanket minItems:1 this schema previously carried.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -25,16 +25,16 @@
               "required": [
                   "applies_to"
               ],
-              "description": "Defines which files this rule examines. Required so that rule extraction never falls back to a repo-wide default (issue #158).",
+              "description": "Defines which files this rule examines. The key is required so that rule extraction never falls back to an implicit repo-wide default (issue #158); its value may be an empty list for declared context-level checks.",
               "properties": {
                   "applies_to": {
                       "type": "array",
-                      "minItems": 1,
+                      "minItems": 0,
                       "items": {
                           "type": "string",
                           "minLength": 1
                       },
-                      "description": "Glob patterns (relative to repo root) for files this rule applies to. At least one pattern is required; an empty list is rejected as a misconfiguration."
+                      "description": "Glob patterns (relative to repo root) for files this rule applies to. Empty is permitted only when the rule's engine/check_type is context-level (does not iterate per-file) — document why in a comment above the entry, per the two existing precedents (ADR-043 D7 / #310, and the layer_scope_coherence contracts_gate check)."
                   },
                   "excludes": {
                       "type": "array",
@@ -42,22 +42,20 @@
                           "type": "string",
                           "minLength": 1
                       },
-                      "description": "Optional glob patterns to exclude from applies_to."
+                      "description": "Glob patterns to exclude from applies_to, for files/directories the rule does not conceptually apply to by definition (e.g. test files, __init__.py, a layer positively permitted to do what the rule forbids elsewhere). No governance debt implied — permanent, not tracked. For a file that DOES violate the rule and is temporarily permitted to keep violating it, use governed_exclusions instead (ADR-042 D3, ADR-049 D3, ADR-152)."
                   }
               }
           },
           "governed_exclusions": {
               "type": "array",
-              "description": "Per-file exemption register introduced by ADR-042. Each entry documents why a specific file/class is exempt from this rule and what condition would trigger removal of the exemption. The audit pipeline honors each entry's `file` value as if it were listed under scope.excludes; the additional fields are documentation that constitution validate enforces.",
+              "description": "Per-file exemption register (ADR-042 D3, generalized by ADR-152 to also carry ADR-049 D3's deadline-closure discipline). Each entry documents a file that currently violates this rule and why governance temporarily permits it. The audit pipeline (rule_extractor.py) honors each entry's `file` value as if it were listed under scope.excludes, suppressing the underlying violation for that path. Two closure shapes exist, discriminated by `closure_type`: 'condition' (ADR-042's original modularity shape — closes when an observable code condition changes) and 'deadline' (ADR-049 D3's shape — closes by a named date backed by a closure ADR). Required fields differ by shape; see the per-entry conditional requirements below.",
               "items": {
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
                       "file",
-                      "class",
-                      "category",
                       "rationale",
-                      "removal_condition"
+                      "closure_type"
                   ],
                   "properties": {
                       "file": {
@@ -65,27 +63,81 @@
                           "minLength": 1,
                           "description": "Repo-relative path of the exempted source file."
                       },
+                      "closure_type": {
+                          "type": "string",
+                          "enum": ["condition", "deadline"],
+                          "description": "How this exemption is meant to close. 'condition': the exemption ends when an observable code condition changes (e.g. a class gains a second responsibility, or an audit path becomes operational) — requires class/category/removal_condition. 'deadline': the exemption ends on a named date backed by a closure ADR — requires deadline/closure_adr/tracking_issue (ADR-049 D3)."
+                      },
                       "class": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "Name of the exempted top-level class within the file."
+                          "description": "Name of the exempted top-level class within the file. Required when closure_type is 'condition'; not applicable to whole-file exemptions closed by deadline."
                       },
                       "category": {
                           "type": "string",
                           "enum": ["facade", "algorithm", "catalog"],
-                          "description": "Why the class exceeds the LOC pre-selector despite single-responsibility status. facade: gateway whose size reflects surface breadth. algorithm: cohesive algorithm whose passes share state. catalog: collection of trivial parallel members (e.g. dataclass register or property table)."
+                          "description": "Why the class exceeds the LOC pre-selector despite single-responsibility status. facade: gateway whose size reflects surface breadth. algorithm: cohesive algorithm whose passes share state. catalog: collection of trivial parallel members (e.g. dataclass register or property table). Required when closure_type is 'condition'."
                       },
                       "rationale": {
                           "type": "string",
                           "minLength": 10,
-                          "description": "Why this class fits its declared category and why decomposition would not improve modularity."
+                          "description": "Why this exemption is temporarily accepted. Always required, regardless of closure_type."
                       },
                       "removal_condition": {
                           "type": "string",
                           "minLength": 10,
-                          "description": "The observable change that retires this exemption — typically the emergence of a second responsibility, or the llm_gate audit path becoming operational (ADR-042 D4)."
+                          "description": "The observable change that retires this exemption — typically the emergence of a second responsibility, or the llm_gate audit path becoming operational (ADR-042 D4). Required when closure_type is 'condition'."
+                      },
+                      "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "description": "ISO 8601 date by which this exemption must close (ADR-049 D3). A warning finding is emitted once passed with the closure ADR not yet accepted; the exemption stops suppressing the underlying violation 30 days after (the rule becomes blocking for this path exactly as if unexempted). Required when closure_type is 'deadline'."
+                      },
+                      "closure_adr": {
+                          "type": "string",
+                          "pattern": "^ADR-[0-9]+$",
+                          "description": "The .specs/decisions/ ADR naming the file, the rule it bypasses, why the bypass is temporarily accepted, and the planned refactor that removes it (ADR-049 D3). Required when closure_type is 'deadline'."
+                      },
+                      "tracking_issue": {
+                          "type": "string",
+                          "pattern": "^#[0-9]+$",
+                          "description": "The GitHub issue tracking the closure work. Required when closure_type is 'deadline'."
                       }
-                  }
+                  },
+                  "allOf": [
+                      {
+                          "if": {
+                              "properties": {"closure_type": {"const": "condition"}},
+                              "required": ["closure_type"]
+                          },
+                          "then": {
+                              "required": ["class", "category", "removal_condition"],
+                              "not": {
+                                  "anyOf": [
+                                      {"required": ["deadline"]},
+                                      {"required": ["closure_adr"]},
+                                      {"required": ["tracking_issue"]}
+                                  ]
+                              }
+                          }
+                      },
+                      {
+                          "if": {
+                              "properties": {"closure_type": {"const": "deadline"}},
+                              "required": ["closure_type"]
+                          },
+                          "then": {
+                              "required": ["deadline", "closure_adr", "tracking_issue"],
+                              "not": {
+                                  "anyOf": [
+                                      {"required": ["class"]},
+                                      {"required": ["category"]},
+                                      {"required": ["removal_condition"]}
+                                  ]
+                              }
+                          }
+                      }
+                  ]
               }
           },
           "requires_findings_from": {

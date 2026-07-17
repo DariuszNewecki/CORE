@@ -31,9 +31,15 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 import ast
+import json
+from collections.abc import Iterator
+from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from jsonschema import Draft202012Validator
+
+from mind.governance.specs_doc_validator import parse_frontmatter
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
@@ -57,18 +63,26 @@ _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
 _SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"
 _SELF_RESOLVE_RESOLVER_OWNED_CHECK = "self_resolve_resolver_owned"
 _ACTION_SUPPORT_CHECK = "action_supported_by_declaration"
+_EXEMPTION_DEBT_CHECK = "exemption_debt_declared"
 
-# All three rules this engine evaluates declare enforcement: blocking,
-# which rule_executor._map_enforcement_to_severity maps to BLOCK at
-# dispatch. Matching at emission keeps direct callers (unit tests,
-# smoke checks) agreeing with what the executor sets.
-# Per ADR-098 D4 / #606.
+# All four of the above rules declare enforcement: blocking, which
+# rule_executor._map_enforcement_to_severity maps to BLOCK at dispatch.
+# Matching at emission keeps direct callers (unit tests, smoke checks)
+# agreeing with what the executor sets. Per ADR-098 D4 / #606.
+# governance.exemption_debt.declared (ADR-152) is the exception — it ships
+# at reporting, so its findings emit at INFO (_EXEMPTION_DEBT_SEVERITY)
+# to match what rule_executor will overwrite them to anyway.
 _DEFAULT_FINDING_SEVERITY = AuditSeverity.BLOCK
+_EXEMPTION_DEBT_SEVERITY = AuditSeverity.INFO
 _YAML_REL_PATH = ".intent/taxonomies/operational_capabilities.yaml"
 _WORKERS_REL_DIR = ".intent/workers"
 _ARTIFACT_TYPES_REL_DIR = ".intent/artifact_types"
 _TESTS_REL_DIR = "tests"
 _RESOLVER_DOCSTRING_BLOCK = "ADR-091 D2 Revision B resolution classification:"
+_MAPPINGS_REL_DIR = ".intent/enforcement/mappings"
+_ENFORCEMENT_MAPPING_SCHEMA_REL_PATH = ".intent/META/enforcement_mapping.schema.json"
+_DECISIONS_REL_DIR = ".specs/decisions"
+_EXEMPTION_DEADLINE_GRACE_DAYS = 30
 
 
 # ID: 8c4e1f7b-2d6a-4b58-9e3c-1a7f6d4b5e89
@@ -105,12 +119,13 @@ class TaxonomyGateEngine(BaseEngine):
     @classmethod
     # ID: f3a8d672-5c19-4e2b-b481-6d9e7f3a2c14
     def is_context_level_for(cls, check_type: str | None) -> bool:
-        """All four checks are cross-artifact, not per-file."""
+        """All five checks are cross-artifact, not per-file."""
         return check_type in (
             _DECORATOR_BACKING_CHECK,
             _SENSOR_SUPPORT_CHECK,
             _SELF_RESOLVE_RESOLVER_OWNED_CHECK,
             _ACTION_SUPPORT_CHECK,
+            _EXEMPTION_DEBT_CHECK,
         )
 
     def __init__(self, path_resolver: PathResolver) -> None:
@@ -160,6 +175,8 @@ class TaxonomyGateEngine(BaseEngine):
             return self._build_self_resolve_findings(context.repo_path)
         if check_type == _ACTION_SUPPORT_CHECK:
             return self._build_action_support_findings(context.repo_path)
+        if check_type == _EXEMPTION_DEBT_CHECK:
+            return self._build_exemption_debt_findings(context.repo_path)
         return [
             AuditFinding(
                 check_id="taxonomy_gate.unknown_check_type",
@@ -169,7 +186,8 @@ class TaxonomyGateEngine(BaseEngine):
                     f"valid values: {_DECORATOR_BACKING_CHECK!r}, "
                     f"{_SENSOR_SUPPORT_CHECK!r}, "
                     f"{_SELF_RESOLVE_RESOLVER_OWNED_CHECK!r}, "
-                    f"{_ACTION_SUPPORT_CHECK!r}"
+                    f"{_ACTION_SUPPORT_CHECK!r}, "
+                    f"{_EXEMPTION_DEBT_CHECK!r}"
                 ),
                 file_path="none",
             )
@@ -465,6 +483,165 @@ class TaxonomyGateEngine(BaseEngine):
                     },
                 )
             )
+        return findings
+
+    # ID: 5f8e6b21-3c4a-4e97-8f0d-9a6c2b7e4d15
+    def _build_exemption_debt_findings(self, repo_root: Path) -> list[AuditFinding]:
+        """Compute ADR-152 structural and temporal findings for every
+        ``governed_exclusions`` entry across ``.intent/enforcement/mappings/**``.
+
+        Two finding classes:
+
+        - Structural: an entry that fails ``enforcement_mapping.schema.json``'s
+          ``governed_exclusions.items`` sub-schema (missing a required field,
+          or carrying a field that belongs to the other ``closure_type``'s
+          shape) is malformed — ``check_id
+          governance.exemption_debt.malformed_entry``.
+        - Temporal: a structurally valid entry is surfaced as live governance
+          debt (ADR-152 D3 stages 1-3) — never silent. ``closure_type:
+          condition`` entries (ADR-042's original modularity shape) have no
+          deadline concept and are always ``acknowledged_debt``.
+          ``closure_type: deadline`` entries (ADR-049 D3's shape) are
+          ``acknowledged_debt`` while current, ``warning`` once the deadline
+          has passed with the closure ADR not yet accepted, and ``lapsed``
+          30 days past deadline.
+
+        Severity is uniform across every finding this method returns — the
+        rule ships at ``reporting`` (``rule_executor`` overwrites severity
+        per-rule, not per-finding); ``context['stage']`` carries the real
+        urgency for a human reader until this rule is promoted to blocking.
+
+        There are zero live ``governed_exclusions`` entries at the time this
+        check ships (ADR-042's original modularity entries were retired in
+        favor of ``CORE_ROLE`` per ADR-095 D3) — day-one behavior is a clean
+        pass.
+        """
+        schema_path = repo_root / _ENFORCEMENT_MAPPING_SCHEMA_REL_PATH
+        item_schema = _load_governed_exclusions_item_schema(schema_path)
+        if item_schema is None:
+            return [
+                AuditFinding(
+                    check_id="governance.exemption_debt.schema_load_failed",
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"taxonomy_gate: cannot load the governed_exclusions "
+                        f"item sub-schema from "
+                        f"{_ENFORCEMENT_MAPPING_SCHEMA_REL_PATH}"
+                    ),
+                    file_path=_ENFORCEMENT_MAPPING_SCHEMA_REL_PATH,
+                )
+            ]
+
+        validator = Draft202012Validator(item_schema)
+        mappings_dir = repo_root / _MAPPINGS_REL_DIR
+        today = date.today()
+        findings: list[AuditFinding] = []
+
+        for yaml_path, rule_id, entry, index in _iter_governed_exclusions_entries(
+            mappings_dir
+        ):
+            try:
+                rel_path = yaml_path.relative_to(repo_root)
+            except ValueError:
+                rel_path = yaml_path
+
+            errors = list(validator.iter_errors(entry))
+            if errors:
+                findings.append(
+                    AuditFinding(
+                        check_id="governance.exemption_debt.malformed_entry",
+                        severity=_EXEMPTION_DEBT_SEVERITY,
+                        message=(
+                            f"governed_exclusions[{index}] under rule "
+                            f"'{rule_id}' in {rel_path} is malformed: "
+                            f"{'; '.join(e.message for e in errors)}"
+                        ),
+                        file_path=str(rel_path),
+                        context={
+                            "rule_id": rule_id,
+                            "entry_index": index,
+                            "stage": "malformed",
+                            "errors": [e.message for e in errors],
+                        },
+                    )
+                )
+                continue
+
+            file_field = entry.get("file", "?")
+            rationale = entry.get("rationale", "")
+            closure_type = entry.get("closure_type")
+
+            if closure_type == "condition":
+                findings.append(
+                    AuditFinding(
+                        check_id="governance.exemption_debt.declared",
+                        severity=_EXEMPTION_DEBT_SEVERITY,
+                        message=(
+                            f"Acknowledged governance debt: '{file_field}' is "
+                            f"condition-closed exempted from rule '{rule_id}' "
+                            f"({rel_path}). {rationale}"
+                        ),
+                        file_path=str(rel_path),
+                        context={
+                            "rule_id": rule_id,
+                            "exempted_file": file_field,
+                            "closure_type": "condition",
+                            "stage": "acknowledged_debt",
+                            "removal_condition": entry.get("removal_condition"),
+                        },
+                    )
+                )
+                continue
+
+            # closure_type == "deadline" — the only other schema-valid value.
+            deadline_str = entry.get("deadline", "")
+            try:
+                deadline = date.fromisoformat(deadline_str)
+            except ValueError:
+                deadline = None
+            closure_adr = entry.get("closure_adr", "")
+            adr_accepted = _closure_adr_is_accepted(repo_root, closure_adr)
+
+            if deadline is None:
+                stage = "malformed"
+            elif today <= deadline:
+                stage = "acknowledged_debt"
+            elif (
+                today <= deadline + timedelta(days=_EXEMPTION_DEADLINE_GRACE_DAYS)
+                and not adr_accepted
+            ):
+                stage = "warning"
+            elif adr_accepted:
+                stage = "acknowledged_debt"
+            else:
+                stage = "lapsed"
+
+            findings.append(
+                AuditFinding(
+                    check_id="governance.exemption_debt.declared",
+                    severity=_EXEMPTION_DEBT_SEVERITY,
+                    message=(
+                        f"{stage.replace('_', ' ').capitalize()} governance "
+                        f"debt: '{file_field}' is deadline-closed exempted "
+                        f"from rule '{rule_id}' ({rel_path}), deadline "
+                        f"{deadline_str}, closure {closure_adr} "
+                        f"({'accepted' if adr_accepted else 'not yet accepted'}"
+                        f"). {rationale}"
+                    ),
+                    file_path=str(rel_path),
+                    context={
+                        "rule_id": rule_id,
+                        "exempted_file": file_field,
+                        "closure_type": "deadline",
+                        "stage": stage,
+                        "deadline": deadline_str,
+                        "closure_adr": closure_adr,
+                        "closure_adr_accepted": adr_accepted,
+                        "tracking_issue": entry.get("tracking_issue"),
+                    },
+                )
+            )
+
         return findings
 
 
@@ -835,3 +1012,85 @@ def _prefix_appears_in_tests(prefix: str, tests_root: Path) -> bool:
         if prefix in source:
             return True
     return False
+
+
+def _load_governed_exclusions_item_schema(schema_path: Path) -> dict[str, Any] | None:
+    """Load enforcement_mapping.schema.json and return the
+    governed_exclusions.items sub-schema — ADR-152 D4 validates each
+    governed_exclusions entry against this sub-schema specifically, not
+    the whole mapping-entry schema (a rule's engine/params/scope are not
+    part of a governed_exclusions item's shape).
+
+    Returns None on any load/parse/shape failure — the caller surfaces
+    that as a blocking finding rather than silently skipping validation.
+    """
+    if not schema_path.is_file():
+        return None
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    try:
+        return schema["properties"]["governed_exclusions"]["items"]
+    except (KeyError, TypeError):
+        return None
+
+
+def _iter_governed_exclusions_entries(
+    mappings_dir: Path,
+) -> Iterator[tuple[Path, str, dict[str, Any], int]]:
+    """Walk every .intent/enforcement/mappings/**/*.yaml file; yield
+    (yaml_path, rule_id, entry, index) for every governed_exclusions item
+    found under every rule's mapping entry.
+
+    Fail-soft per file — a single unparseable mapping file must not crash
+    the audit cycle (mirrors _collect_sensor_artifact_pairs's contract).
+    """
+    if not mappings_dir.is_dir():
+        return
+    for yaml_path in sorted(mappings_dir.rglob("*.yaml")):
+        try:
+            data = strict_yaml_processor.load_strict(yaml_path)
+        except Exception as exc:
+            logger.debug("taxonomy_gate: cannot load %s: %s", yaml_path, exc)
+            continue
+        if not isinstance(data, dict):
+            continue
+        rule_mappings = data.get("mappings")
+        if not isinstance(rule_mappings, dict):
+            continue
+        for rule_id, rule_entry in rule_mappings.items():
+            if not isinstance(rule_entry, dict):
+                continue
+            governed = rule_entry.get("governed_exclusions")
+            if not isinstance(governed, list):
+                continue
+            for index, item in enumerate(governed):
+                if isinstance(item, dict):
+                    yield yaml_path, rule_id, item, index
+
+
+def _closure_adr_is_accepted(repo_root: Path, closure_adr: str) -> bool:
+    """True iff .specs/decisions/<closure_adr>-*.md exists and its
+    frontmatter status is 'accepted'.
+
+    False for a missing closure_adr string, a missing file, or any status
+    other than 'accepted' — fail-closed, matching ADR-152 D3 stage 2's
+    "closure ADR not marked accepted" default. Reuses
+    specs_doc_validator.parse_frontmatter rather than hand-rolling a
+    second frontmatter parser.
+    """
+    if not closure_adr:
+        return False
+    decisions_dir = repo_root / _DECISIONS_REL_DIR
+    if not decisions_dir.is_dir():
+        return False
+    matches = sorted(decisions_dir.glob(f"{closure_adr}-*.md"))
+    if not matches:
+        return False
+    try:
+        text = matches[0].read_text(encoding="utf-8")
+    except OSError:
+        return False
+    front = parse_frontmatter(text)
+    return isinstance(front, dict) and front.get("status") == "accepted"

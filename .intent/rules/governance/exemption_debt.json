@@ -1,0 +1,28 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.exemption_debt",
+        "title": "Governed Exclusion Register — Structural and Temporal Debt Discipline",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.exemption_debt.declared",
+            "statement": "Every entry under a rule mapping's `governed_exclusions` list in `.intent/enforcement/mappings/**/*.yaml` MUST satisfy `enforcement_mapping.schema.json`'s per-entry shape (ADR-042 D3, generalized by ADR-152), and every `closure_type: deadline` entry MUST be surfaced as live governance debt until its `deadline` passes and its `closure_adr` is accepted. A `governed_exclusions` entry is never silent decoration — its existence is itself a finding.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-049 D3 (2026-05-15) required every excludes-style entry to reference a closure ADR and carry a deadline, enforced in two stages (warning past deadline, blocking 30 days after) — decided, never wired up until ADR-152 (2026-07-17). Rather than a competing schema construct, ADR-152 generalizes the pre-existing `governed_exclusions` register (ADR-042 D3, 2026-05-13, originally modularity-specific) with a `closure_type` discriminator so 'condition'-closed debt (ADR-042's original shape) and 'deadline'-closed debt (ADR-049's shape) share one schema-enforced construct instead of two. This rule is the D3-mandated engine: for each governed_exclusions entry, it verifies structural completeness against the schema (a malformed entry — missing required field, or a field from the wrong closure_type's shape — is itself a finding) and, for deadline-closed entries, surfaces the entry's temporal state (context.stage: 'acknowledged_debt' while current, 'warning' once the deadline has passed with the closure ADR not yet accepted, 'lapsed' 30 days past deadline). Severity is uniform per rule (rule_executor._map_enforcement_to_severity overwrites every finding from one rule to the same value) — this rule ships at reporting so the discipline is on the books and visible without yet blocking, matching the standard reporting-to-blocking promotion arc used throughout this codebase; stage-differentiated blocking behavior (e.g. a malformed entry actually failing a commit) arrives with that promotion, not within this rule's reporting posture. There are zero live governed_exclusions entries at the time this rule ships (ADR-042's original modularity entries were retired in favor of CORE_ROLE per ADR-095 D3); this rule's day-one behavior is a clean pass, proven by the ADR-152 verification section's synthetic fixtures.",
+            "scope": {
+                "paths": [
+                    ".intent/enforcement/mappings/**/*.yaml"
+                ],
+                "notes": "Context-level check — the substrate is every governed_exclusions entry across every mapping file, cross-referenced against enforcement_mapping.schema.json's governed_exclusions.items sub-schema and, for closure_type: deadline entries, against the current date and the referenced closure ADR's accepted/proposed status in .specs/decisions/. Per-file dispatch is never engaged."
+            }
+        }
+    ]
+}

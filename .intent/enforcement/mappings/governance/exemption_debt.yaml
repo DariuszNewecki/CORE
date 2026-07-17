@@ -1,0 +1,41 @@
+# .intent/enforcement/mappings/governance/exemption_debt.yaml
+#
+# Enforcement mapping for the governed_exclusions structural and temporal
+# debt discipline (ADR-042 D3, generalized by ADR-152 to also carry
+# ADR-049 D3's deadline-closure requirement).
+# Based on: .intent/rules/governance/exemption_debt.json
+
+mappings:
+  # Rule: governance.exemption_debt.declared
+  # Engine: taxonomy_gate (context-level; cross-artifact YAML sweep)
+  #
+  # ADR-152. Walks every .intent/enforcement/mappings/**/*.yaml file,
+  # validates each rule entry's governed_exclusions items against
+  # enforcement_mapping.schema.json's governed_exclusions.items sub-schema
+  # (structural: a malformed entry — missing field, or a field from the
+  # wrong closure_type's shape — is itself a finding), and for
+  # closure_type: deadline entries, surfaces the entry's temporal state
+  # (context.stage: acknowledged_debt while current, warning once the
+  # deadline has passed with the closure ADR not yet accepted, lapsed
+  # 30 days past deadline).
+  #
+  # scope.applies_to declares the substrate the check walks — the entries
+  # here exist so a change to any mapping file re-triggers the check next
+  # cycle. Per-file dispatch is never engaged (is_context_level_for returns
+  # True for this check_type).
+  #
+  # Zero live governed_exclusions entries exist at the time this ships
+  # (ADR-042's original modularity entries were retired in favor of
+  # CORE_ROLE, ADR-095 D3) — day-one behavior is a clean pass.
+  #
+  # Promotion path: ships at `reporting`. Promotes to `blocking` once real
+  # exemption entries exist and one audit cycle confirms the discipline
+  # holds against them — matching the standard arc used elsewhere in this
+  # file (operational_capabilities_decorator_backing, self_resolve_resolver_owned).
+  governance.exemption_debt.declared:
+    engine: taxonomy_gate
+    params:
+      check_type: exemption_debt_declared
+    scope:
+      applies_to:
+        - ".intent/enforcement/mappings/**/*.yaml"
