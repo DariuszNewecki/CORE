@@ -96,7 +96,7 @@ async def run_db_merge(session: AsyncSession, code_state: list[dict]) -> dict[st
     """
         )
     )
-    stats["state_transitions"] = state_result.rowcount
+    stats["state_transitions"] = getattr(state_result, "rowcount", 0)
 
     await session.execute(
         text(
