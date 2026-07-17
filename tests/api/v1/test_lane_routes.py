@@ -223,3 +223,19 @@ async def test_claim_404_when_not_live():
         with pytest.raises(HTTPException) as exc:
             await claim_delegated_finding(finding_id="gone", agent="x")
     assert exc.value.status_code == 404
+
+
+def test_mutation_routes_carry_governor_gate():
+    """#808/#770: claim stamps claimed_by on a live finding row;
+    propose creates a governed Proposal and defers the finding to it.
+    Both are real mutations -- governor-gated."""
+    from api.dependencies import require_governor
+    from api.v1.lane_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/lane/{finding_id}/claim")] is True
+    assert gated_by_route[("POST", "/lane/{finding_id}/propose")] is True

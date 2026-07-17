@@ -166,3 +166,21 @@ async def test_census_diff_default_baseline_is_none():
     _, kwargs = facade.call_args
     assert kwargs["baseline"] is None
     assert out["available"] is False
+
+
+def test_mutation_routes_carry_governor_gate():
+    """#808/#770: create_census_baseline writes durable named reference
+    state (BaselineManager.set_baseline -> FileHandler) that future census
+    diffs resolve against -- governor-gated. create_census_run stays open
+    (read-shaped: an INSERT INTO core.census_runs tracking row, structurally
+    identical to create_audit_run; nothing is ever dereferenced against it)."""
+    from api.dependencies import require_governor
+    from api.v1.census_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/census/baselines/{name}")] is True
+    assert gated_by_route[("POST", "/census/runs")] is False

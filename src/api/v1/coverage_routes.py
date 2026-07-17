@@ -345,6 +345,7 @@ def coverage_methods(request: Request) -> dict:
     "/generate",
     status_code=202,
     response_model=AsyncDispatchResponse,
+    dependencies=[require_governor],
     # F-40.1: internal — triggers adaptive test generation via the
     # autonomy loop. Not a sidecar consumer surface. Excluded from
     # /v1/openapi.json per ADR-087.
@@ -407,6 +408,7 @@ async def generate_coverage(
     "/generate:batch",
     status_code=202,
     response_model=AsyncDispatchResponse,
+    dependencies=[require_governor],
     # F-40.1: internal — batch variant of /generate; same autonomy-loop
     # concern. Excluded from /v1/openapi.json per ADR-087.
     include_in_schema=False,
@@ -471,6 +473,7 @@ async def generate_coverage_batch(
 
 @tests_router.post(
     "/interactive",
+    dependencies=[require_governor],
     # F-40.1: internal — interactive test-shape dispatch is autonomy
     # surface, not a sidecar concern. Excluded from /v1/openapi.json
     # per ADR-087.

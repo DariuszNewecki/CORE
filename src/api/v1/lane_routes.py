@@ -34,7 +34,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import get_api_session, require_governor
 from api.v1.schemas import (
     LaneClaimResponse,
     LaneFindingListResponse,
@@ -148,6 +148,7 @@ async def get_delegated_finding(
 @router.post(
     "/{finding_id}/claim",
     response_model=LaneClaimResponse,
+    dependencies=[require_governor],
     summary="Mark a delegated finding as being worked",
     description=(
         "Stamp a delegated finding as in-progress by an external agent (ADR-109 "
@@ -175,6 +176,7 @@ async def claim_delegated_finding(
     "/{finding_id}/propose",
     status_code=201,
     response_model=LaneProposeResponse,
+    dependencies=[require_governor],
     summary="Ingest a validated agent diff as a human-gated proposal",
     description=(
         "Create a human-gated multi-file proposal from an agent-authored diff "

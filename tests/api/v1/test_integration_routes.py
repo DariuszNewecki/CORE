@@ -75,3 +75,17 @@ async def test_integrate_forwards_commit_message_to_runner():
 
     _, commit_msg_arg = mock_run.call_args.args
     assert commit_msg_arg == "feat: add widget"
+
+
+def test_integrate_route_carries_governor_gate():
+    """#808/#770: integrate commits the working tree to git -- a real
+    mutation, governor-gated."""
+    from api.dependencies import require_governor
+    from api.v1.integration_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/integrate")] is True

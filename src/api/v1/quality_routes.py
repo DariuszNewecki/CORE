@@ -42,7 +42,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session
+from api.dependencies import get_api_session, open_background_session, require_governor
 from api.v1.schemas import AsyncDispatchResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -195,7 +195,12 @@ async def quality_policy_coverage(request: Request) -> dict:
 # ----------------------------------------------------------------------
 
 
-@router.post("/lint", status_code=202, response_model=AsyncDispatchResponse)
+@router.post(
+    "/lint",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
+    dependencies=[require_governor],
+)
 # ID: d410a899-05c7-4ba4-a36e-1e3bb56623ee
 async def quality_lint(
     request: Request,

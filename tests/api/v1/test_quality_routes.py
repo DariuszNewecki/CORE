@@ -303,3 +303,25 @@ async def test_quality_check_row_is_readable_via_fix_runs_get():
     assert out["fix_id"] == "lint"
     assert out["status"] == "completed"
     assert out["result"] == {"check": "lint", "ok": True, "exit_code": 0}
+
+
+def test_mutation_routes_carry_governor_gate():
+    """#808/#770: quality_lint is the only quality_* route with a live
+    --fix path (ruff check src/ --fix when payload.fix=True) -- a real
+    mutation, governor-gated. The read-only checks (imports/body-ui/
+    policy-coverage/tests/system/gates) stay open."""
+    from api.dependencies import require_governor
+    from api.v1.quality_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/quality/lint")] is True
+    assert gated_by_route[("POST", "/quality/imports")] is False
+    assert gated_by_route[("POST", "/quality/body-ui")] is False
+    assert gated_by_route[("POST", "/quality/policy-coverage")] is False
+    assert gated_by_route[("POST", "/quality/tests")] is False
+    assert gated_by_route[("POST", "/quality/system")] is False
+    assert gated_by_route[("POST", "/quality/gates")] is False

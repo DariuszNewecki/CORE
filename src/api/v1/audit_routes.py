@@ -301,6 +301,7 @@ class CreateRemediationRequest(BaseModel):
     "/remediations",
     status_code=202,
     response_model=AsyncDispatchResponse,
+    dependencies=[require_governor],
     summary="Dispatch autonomous remediation",
     description=(
         "Trigger autonomous remediation of findings from a prior audit run "

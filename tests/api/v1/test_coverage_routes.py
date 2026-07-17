@@ -326,3 +326,25 @@ async def test_tests_interactive_returns_inline_payload():
         out = await interactive_tests(request=request, payload=payload)
     facade.assert_awaited_once()
     assert out == {"ok": True}
+
+
+def test_mutation_routes_carry_governor_gate():
+    """ADR-148/#770/#808: generate/generate:batch/interactive write test
+    files unconditionally (no dry-run support in the underlying
+    remediate_coverage_enhanced call chain) — all three must be
+    governor-gated. request_coverage_report stays open (read-shaped:
+    a pytest --cov run, no src/ or tests/ writes)."""
+    from api.dependencies import require_governor
+    from api.v1.coverage_routes import router as coverage_router
+    from api.v1.coverage_routes import tests_router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for r in (coverage_router, tests_router)
+        for route in r.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/coverage/generate")] is True
+    assert gated_by_route[("POST", "/coverage/generate:batch")] is True
+    assert gated_by_route[("POST", "/tests/interactive")] is True
+    assert gated_by_route[("POST", "/coverage/reports")] is False

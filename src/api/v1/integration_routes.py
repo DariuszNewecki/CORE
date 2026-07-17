@@ -19,6 +19,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from api.dependencies import require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.lifecycle.integration_runner import run_integration
@@ -44,7 +45,7 @@ class IntegrateRequest(BaseModel):
     commit_message: str
 
 
-@router.post("")
+@router.post("", dependencies=[require_governor])
 # ID: 578732cb-c976-4577-a6ef-3024e24d9833
 async def integrate(
     payload: IntegrateRequest,

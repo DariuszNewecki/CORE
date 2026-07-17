@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import get_api_session, require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -39,7 +39,11 @@ class DocsRequest(BaseModel):
     output: str = "docs/10_CAPABILITY_REFERENCE.md"
 
 
-@router.post("/docs", summary="Generate capability reference documentation")
+@router.post(
+    "/docs",
+    dependencies=[require_governor],
+    summary="Generate capability reference documentation",
+)
 # ID: 3891de91-00a6-4067-9702-4eef4159d27e
 async def generate_docs(
     body: DocsRequest,

@@ -182,3 +182,20 @@ async def test_get_audit_run_unknown_id_raises_404():
 
     assert exc_info.value.status_code == 404
     assert str(rid) in exc_info.value.detail
+
+
+def test_mutation_routes_carry_governor_gate():
+    """#808/#770: create_remediation_run applies fixes to src/ when write=true
+    (AuditRemediationService) — governor-gated. create_audit_run stays open
+    (read-shaped: audit runs are analysis, writes only to core.audit_runs
+    tracking rows and disposable reports/ artifacts, never src/)."""
+    from api.dependencies import require_governor
+    from api.v1.audit_routes import router
+
+    gated_by_route = {
+        (method, route.path): require_governor in route.dependencies
+        for route in router.routes
+        for method in route.methods
+    }
+    assert gated_by_route[("POST", "/audit/remediations")] is True
+    assert gated_by_route[("POST", "/audit/runs")] is False

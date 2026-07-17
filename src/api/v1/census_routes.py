@@ -201,6 +201,7 @@ async def get_census_run(
 @router.post(
     "/baselines/{name}",
     response_model=CensusBaselineCreateResponse,
+    dependencies=[require_governor],
     summary="Create a named census baseline",
     description=(
         "Promote a census snapshot to a named baseline. F-20 dashboards use "
