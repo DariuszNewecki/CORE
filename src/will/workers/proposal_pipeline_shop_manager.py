@@ -474,8 +474,12 @@ class ProposalPipelineShopManager(ScheduledWorker):
            persisted proposal data (declared_production recomputed from
            execution_results; the SHAs are unavailable to the reaper and are
            omitted — the git commit already exists, and this record satisfies
-           the D1 "consequence chain recorded" obligation). If a record already
-           exists (findings/complete failed but consequence succeeded), it is
+           the D1 "consequence chain recorded" obligation). Marked
+           consequence_source='reaper_reconstructed' (ADR-148 D7, #790) so
+           the row is honestly distinguishable from one captured at
+           execution time and surfaced to the governor rather than passing
+           silently as equivalent evidence. If a record already exists
+           (findings/complete failed but consequence succeeded), it is
            left untouched.
         2. Resolve the proposal's deferred findings.
         3. mark_completed (finalizing -> completed), status-guarded.
@@ -507,6 +511,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
                     finding_ids=list(row.get("finding_ids") or []),
                     policies=list(row.get("policies") or []),
                     declared_production=declared,
+                    source="reaper_reconstructed",
                 )
                 if not consequence_ok:
                     return False

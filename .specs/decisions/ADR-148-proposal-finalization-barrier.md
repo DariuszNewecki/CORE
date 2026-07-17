@@ -232,3 +232,143 @@ the `commit → return True` path, and the fail-soft evidence helpers are confir
 in `Proposal.json`. The companion review claim that *no* `EXECUTING` reaper exists was **refuted** —
 `ProposalPipelineShopManager` / `proposal.stuck_executing` is present and named in governed law
 (ADR-091 D2), which is why D4 extends it rather than proposing a new one.
+
+---
+
+## Addendum — D7: reconstructed consequence rows must be labeled and surfaced (2026-07-17, accepted)
+
+**Status of this addendum:** Accepted (governor confirmed 2026-07-17, Path A confirmation naming
+this file). This extends D4's reconstruction mechanism and D1's "consequence chain recorded"
+obligation; it is not a new principle, so it is recorded as an addendum rather than a fresh ADR.
+
+**Relates:** ADR-150 (finalizing-redrive-cap) — a sibling extension of the same D4 mechanism: ADR-150
+*bounds* the roll-forward loop, this addendum *labels its output honestly*. Both operate on
+`ProposalPipelineShopManager._roll_forward_finalizing`.
+
+### The gap (issue #790)
+
+D4's roll-forward reconstructs a missing consequence record when a `stuck_finalizing` proposal has
+none:
+
+```python
+consequence_ok = await record_consequence(
+    proposal_id=proposal_id,
+    pre_sha=None,
+    post_sha=None,
+    changed_files=[],
+    finding_ids=list(row.get("finding_ids") or []),
+    policies=list(row.get("policies") or []),
+    declared_production=declared,
+)
+```
+
+The code comment is honest that this is a best-effort substitute ("the SHAs are unavailable to the
+reaper and are omitted"), but the resulting `core.proposal_consequences` row carries no marker
+distinguishing it from a normal, fully-evidenced record. A `NULL` SHA cannot serve as that marker:
+`capture_git_sha()` (`will/autonomy/proposal_execution_pipeline.py`) already returns `None` fail-soft
+on the *normal* execution path (git service unavailable, or `get_current_commit()` raising), so
+`pre_execution_sha IS NULL` already means two different things today. An explicit column is the only
+disambiguation that doesn't overload an existing, already-ambiguous signal.
+
+### Why the `DEFAULT` backfill is safe: ADR-150's verified 0/0/0
+
+Backfilling every pre-existing row with a single default value is only honest if none of history's
+existing rows are secretly reconstructed. ADR-150 already queried this exact path live
+(2026-07-16) and found **zero** proposals ever in `finalizing`, **zero** `stuck_finalizing` findings
+ever posted, and **zero** post-barrier `completed` rows missing a consequence record — i.e. D4's
+reconstruction branch has never fired in production. Re-verified live at addendum time
+(2026-07-17, corrected join on `autonomous_proposals.proposal_id`, not `.id`): still zero. So every
+row in `core.proposal_consequences` today is genuinely execution-sourced, and defaulting the
+backfill to `'execution'` mislabels nothing.
+
+### D7 — `consequence_source` column, and a consumer that reads it
+
+**Schema.** Add `consequence_source text NOT NULL DEFAULT 'execution' CHECK (consequence_source IN
+('execution', 'reaper_reconstructed'))` to `core.proposal_consequences`, via a migration sibling to
+`20260712_adr148_finalizing_and_consequence_recorded_at.sql`.
+
+**Write path.** `record_consequence()` (`will/autonomy/proposal_execution_pipeline.py`) gains a
+`source: str = "execution"` parameter, threaded into `ConsequenceLogService.record()`'s INSERT/
+UPDATE. `record_consequence`'s existing parameters map to columns as: `pre_sha` →
+`pre_execution_sha`, `post_sha` → `post_execution_sha`, `changed_files` → `files_changed` (the
+parameter and column names diverge; kept explicit here so the migration and the call sites don't
+drift). The only call site passing a non-default value is
+`ProposalPipelineShopManager._roll_forward_finalizing`, which passes
+`source="reaper_reconstructed"`.
+
+**A label with no consumer is a labeled silent-green, not a fix.** The existing D5 integrity check
+(`governance.proposal_finalization_integrity`, `CommitAuthorshipAuditWorker`) queries `NOT EXISTS
+(SELECT 1 FROM core.proposal_consequences ...)` — it fires only when the row is *absent*. A
+reaper-reconstructed row exists (with `consequence_source='reaper_reconstructed'`), so it
+satisfies that check and passes invisibly: a proposal can be `completed`, with
+`consequence_recorded_at` set, on evidence that is empty and fabricated, and nothing today would
+tell a governor that happened. Labeling without surfacing repeats the pattern the last several
+ADRs have been closing (ADR-151's unpopulated `state='deprecated'`; ADR-152's unvalidated
+`governed_exclusions` entries) — a governed vocabulary term that nothing reads.
+
+So D7 adds a **second, independent check** to `CommitAuthorshipAuditWorker` (same worker, same
+cadence, same dedup-by-open-subject shape it already uses for two other checks — see its own
+module docstring), reporting posture, new rule `governance.consequence_evidence_degraded`:
+
+> A Proposal in `status='completed'` whose `core.proposal_consequences` row has
+> `consequence_source = 'reaper_reconstructed'` MUST be surfaced — its evidence chain (pre/post SHA,
+> changed files) was fabricated by the D4 roll-forward, not captured at execution time.
+
+Posts `governance.consequence_evidence_degraded::{proposal_id}`. The query selects strictly on
+`consequence_source = 'reaper_reconstructed'` — it cannot fire on a normal proposal whose
+`capture_git_sha()` returned `None` fail-soft, because that proposal's row still carries
+`consequence_source = 'execution'` (the column, not the SHA, is the marker; the NULL-SHA ambiguity
+this addendum exists to route around never enters this check's predicate).
+
+Per ADR-150's 0/0/0 (re-verified live at addendum time), zero `reaper_reconstructed` rows exist
+today — the roll-forward's reconstruction branch has never fired in production. So
+`governance.consequence_evidence_degraded` ships firing on zero rows: it is *prevention*, in the
+same sense ADR-151's refined rule shipped primarily as prevention with one live catch — this
+check's first real firing is the reconstruction path's first, and CORE will know the instant it
+happens instead of the row sitting silently labeled-but-unread.
+
+### Governed surfaces this touches
+
+| Surface | Authority | Change |
+|---|---|---|
+| `infra/scripts/migrations/` + `infra/migrations/manifest.yaml` | — | new migration: `consequence_source` column + CHECK |
+| `schema.sql` | — | reflect the new column |
+| `.intent/enforcement/contracts/ProposalConsequence.json` | constitution | add `consequence_source` property |
+| `.intent/rules/governance/consequence_evidence_degraded.json` | policy/constitution | new rule, reporting posture |
+| `.intent/enforcement/mappings/governance/` | — | new mapping for the rule |
+| `.intent/enforcement/remediation/auto_remediation.yaml` | — | `governance.consequence_evidence_degraded` → PENDING (human investigation, same as its sibling) |
+| `.intent/governance/namespace_manifest.yaml` | — | classify the new rule/mapping/migration files |
+| `src/body/services/consequence_log_service.py` | code | `record()` gains `source` param |
+| `src/will/autonomy/proposal_execution_pipeline.py` | code | `record_consequence()` gains `source` param |
+| `src/will/workers/proposal_pipeline_shop_manager.py` | code | pass `source="reaper_reconstructed"` at the one call site |
+| `src/body/services/proposal_supervision_service.py` | code | new `fetch_completed_with_degraded_consequence()` query |
+| `src/will/workers/commit_authorship_audit_worker.py` | code | third check, same worker |
+
+### Out of scope (noted, not fixed here)
+
+`ProposalConsequence.json` is also missing `declared_production` (added by the 2026-06-28 ADR-129
+migration, never added to the contract) — a pre-existing gap, unrelated to this addendum's evidence-
+provenance question. Flagged for a separate fix, not folded in here to keep this change's diff
+legible.
+
+**Named trajectory, not built here (D8 candidate):** a reconstructed row records empty evidence
+(`changed_files=[]`, null SHAs) even though real evidence exists on disk — the proposal is
+post-commit by definition (it reached `finalizing`), and `commit_proposal_changes`
+(`proposal_execution_pipeline.py`) commits with message `fix({proposal_id[:16]}): {goal}`, so the
+commit is discoverable by `git log --grep=<proposal_id[:16]>` under the same ADR-101 attribution
+this codebase already relies on elsewhere. A future roll-forward could recover the actual
+post-SHA/changed-files from that commit instead of recording empty — turning "honestly labeled as
+empty" into "actually reconstructed." Not built now: D7's scope is making the existing empty
+reconstruction honest and visible, not building git-recovery; the label is this addendum's floor,
+not its ceiling.
+
+### Consequences
+
+**Positive.** Closes the silent-mislabeling gap #790 identified: a reconstructed consequence record
+is now explicitly marked and, independently, surfaced to a governor the same reporting-first way
+every other post-hoc integrity check in this ADR family is. The backfill is provably safe (ADR-150's
+0/0/0), not merely assumed safe.
+
+**Costs.** One more column, one more migration, one more reporting rule — consistent with D5's own
+"detection only" ramp discipline. No behavior change to the normal execution path (default value
+applies).

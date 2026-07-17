@@ -50,3 +50,4 @@ migrations:
     - 20260628_adr129_add_declared_production_to_proposal_consequences.sql
     - 20260712_adr148_finalizing_and_consequence_recorded_at.sql
     - 20260713_repo_artifacts_type_check_registry_sync.sql
+    - 20260717_adr148_d7_consequence_source.sql

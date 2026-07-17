@@ -74,6 +74,14 @@
       ],
       "format": "date-time",
       "description": "Timestamp when this consequence record was written. Server-set; null on in-memory instances."
+    },
+    "consequence_source": {
+      "type": "string",
+      "enum": [
+        "execution",
+        "reaper_reconstructed"
+      ],
+      "description": "ADR-148 D7. 'execution': recorded at execution/finalization time with real evidence. 'reaper_reconstructed': ProposalPipelineShopManager.stuck_finalizing roll-forward (ADR-148 D4) synthesized this row after real evidence was unavailable — pre/post SHA and files_changed are empty by construction, not by observation."
     }
   },
   "required": [

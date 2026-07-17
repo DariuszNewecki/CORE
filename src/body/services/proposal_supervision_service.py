@@ -393,3 +393,54 @@ class ProposalSupervisionService:
             }
             for row in rows
         ]
+
+    # ID: 3ce76e75-b2fb-4ea0-b7ea-8af3ebddef39
+    async def fetch_completed_with_degraded_consequence(
+        self, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return proposals in status='completed' whose consequence record was
+        synthesized by the stuck_finalizing roll-forward rather than
+        captured at execution time (ADR-148 D7, #790).
+
+        Selects strictly on consequence_source = 'reaper_reconstructed' —
+        never on SHA nullness, since capture_git_sha() already returns None
+        fail-soft on the normal execution path (pre_execution_sha IS NULL
+        alone cannot distinguish "reconstructed" from "normal execution,
+        git capture legitimately failed"). Unlike its sibling
+        fetch_completed_without_consequence, this query needs no
+        _ADR_148_BARRIER_LIVE_AT exclusion: 'reaper_reconstructed' is a
+        value only this ADR's code ever writes, so no pre-barrier row can
+        carry it — the predicate is self-limiting to the post-barrier world.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        p.proposal_id,
+                        p.execution_completed_at,
+                        p.updated_at
+                    FROM core.autonomous_proposals p
+                    JOIN core.proposal_consequences pc
+                        ON pc.proposal_id = p.proposal_id
+                    WHERE p.status = 'completed'
+                      AND pc.consequence_source = 'reaper_reconstructed'
+                    ORDER BY p.updated_at DESC
+                    LIMIT :limit
+                    """
+                ),
+                {"limit": limit},
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": str(row[0]),
+                "execution_completed_at": row[1],
+                "updated_at": row[2],
+            }
+            for row in rows
+        ]

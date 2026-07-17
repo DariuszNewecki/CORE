@@ -808,6 +808,21 @@ mappings:
       placeholder only.
     status: PENDING
 
+  governance.consequence_evidence_degraded:
+    action: fix.modularity
+    confidence: 0.10
+    description: >
+      ADR-148 D7 (#790): a completed proposal whose consequence record was
+      synthesized by the stuck_finalizing roll-forward carries fabricated,
+      empty evidence (no real pre/post SHA, no real changed_files) —
+      recovering it means a human reading the proposal's own commit
+      (discoverable via its fix({proposal_id}) commit message) to backfill
+      the real evidence, not a mechanical fix. No autonomous remediation
+      action exists. PENDING satisfies ADR-066
+      (governance.remediation.all_rules_mapped). action: field is a
+      placeholder only.
+    status: PENDING
+
   modernization.dead_shim:
     action: fix.modularity
     confidence: 0.10

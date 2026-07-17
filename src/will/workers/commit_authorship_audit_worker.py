@@ -21,7 +21,16 @@ pattern (same service-registry access, same dedup-by-open-subject shape):
    mark_completed. Posts
    governance.proposal_finalization_integrity::{proposal_id}.
 
-Both are 'reporting' posture, no auto-remediation — detection only, per
+3. Consequence evidence degraded (ADR-148 D7, added 2026-07-17, #790). A
+   proposal in status='completed' whose consequence row exists but was
+   synthesized by ProposalPipelineShopManager's stuck_finalizing
+   roll-forward (consequence_source='reaper_reconstructed') satisfies check
+   2 above (the row is present) but carries fabricated, empty evidence —
+   pre/post SHA and files_changed are empty by construction, not by
+   observation. Posts
+   governance.consequence_evidence_degraded::{proposal_id}.
+
+All three are 'reporting' posture, no auto-remediation — detection only, per
 ADR-129 D5 / ADR-148 D5's stated ramp (reporting -> resolve drift -> blocking).
 
 Constitutional standing:
@@ -72,6 +81,12 @@ class CommitAuthorshipAuditWorker(Worker):
     completed before the ADR-148 barrier existed are excluded via
     ProposalSupervisionService._ADR_148_BARRIER_LIVE_AT — same
     unverifiable-history exclusion shape as the authorship audit above.
+
+    Consequence evidence degraded (ADR-148 D7, added 2026-07-17, #790):
+    flags any status='completed' proposal whose consequence row has
+    consequence_source='reaper_reconstructed' — present, but fabricated.
+    No barrier-date exclusion needed: that value is only ever written by
+    this ADR's own code, so no pre-barrier row can carry it.
 
     Runs hourly (schedule.max_interval: 3600 in YAML). Deduplicates
     against open blackboard findings to avoid re-posting on each cycle.
@@ -170,6 +185,11 @@ class CommitAuthorshipAuditWorker(Worker):
             finalization_suppressed,
         ) = await self._audit_finalization_integrity(blackboard_service)
 
+        (
+            degraded_flagged,
+            degraded_suppressed,
+        ) = await self._audit_consequence_evidence_degraded(blackboard_service)
+
         await self.post_report(
             subject="commit_authorship_audit_worker.run.complete",
             payload={
@@ -179,16 +199,20 @@ class CommitAuthorshipAuditWorker(Worker):
                 "suppressed": suppressed,
                 "finalization_integrity_flagged": finalization_flagged,
                 "finalization_integrity_suppressed": finalization_suppressed,
+                "consequence_evidence_degraded_flagged": degraded_flagged,
+                "consequence_evidence_degraded_suppressed": degraded_suppressed,
             },
         )
         logger.info(
             "CommitAuthorshipAuditWorker: checked=%d skipped=%d "
-            "violations=%d suppressed=%d finalization_flagged=%d",
+            "violations=%d suppressed=%d finalization_flagged=%d "
+            "degraded_flagged=%d",
             checked,
             skipped_no_declared,
             violations,
             suppressed,
             finalization_flagged,
+            degraded_flagged,
         )
 
     # ID: 326f9bc9-28da-4e46-a2b4-806de8dd1835
@@ -225,6 +249,65 @@ class CommitAuthorshipAuditWorker(Worker):
             logger.warning(
                 "CommitAuthorshipAuditWorker: finalization integrity violation "
                 "for proposal %s — completed without consequence_recorded_at",
+                proposal_id,
+            )
+            await self.post_observation(
+                subject=subject,
+                payload={
+                    "proposal_id": proposal_id,
+                    "execution_completed_at": (
+                        row["execution_completed_at"].isoformat()
+                        if row["execution_completed_at"]
+                        else None
+                    ),
+                    "updated_at": (
+                        row["updated_at"].isoformat() if row["updated_at"] else None
+                    ),
+                    "detected_at": datetime.now(UTC).isoformat(),
+                    "grounding_adr": "ADR-148",
+                },
+                status="indeterminate",
+            )
+
+        return flagged, suppressed
+
+    # ID: d24ed4c3-5b7e-4ea2-86c0-b83cb6450c96
+    async def _audit_consequence_evidence_degraded(
+        self, blackboard_service: Any
+    ) -> tuple[int, int]:
+        """
+        ADR-148 D7 (#790): flag any completed proposal whose consequence
+        record was synthesized by the stuck_finalizing roll-forward
+        (consequence_source='reaper_reconstructed') rather than captured at
+        execution time. Returns (flagged, suppressed) for the caller's report.
+        """
+        from body.services.service_registry import service_registry
+
+        existing = await blackboard_service.fetch_active_finding_subjects_by_prefix(
+            "governance.consequence_evidence_degraded::%"
+        )
+
+        proposal_svc = await service_registry.get_proposal_supervision_service()
+        rows = await proposal_svc.fetch_completed_with_degraded_consequence(limit=100)
+
+        flagged = 0
+        suppressed = 0
+        for row in rows:
+            proposal_id = row["proposal_id"]
+            subject = f"governance.consequence_evidence_degraded::{proposal_id}"
+            if subject in existing:
+                suppressed += 1
+                logger.debug(
+                    "CommitAuthorshipAuditWorker: %s already open, skipping.",
+                    subject,
+                )
+                continue
+
+            flagged += 1
+            logger.warning(
+                "CommitAuthorshipAuditWorker: consequence evidence degraded "
+                "for proposal %s — completed on a reaper-reconstructed, "
+                "empty consequence record",
                 proposal_id,
             )
             await self.post_observation(

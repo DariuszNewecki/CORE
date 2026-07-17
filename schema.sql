@@ -2268,7 +2268,9 @@ CREATE TABLE core.proposal_consequences (
     files_changed jsonb DEFAULT '[]'::jsonb NOT NULL,
     findings_resolved jsonb DEFAULT '[]'::jsonb NOT NULL,
     authorized_by_rules jsonb DEFAULT '[]'::jsonb NOT NULL,
-    declared_production jsonb DEFAULT '[]'::jsonb NOT NULL
+    declared_production jsonb DEFAULT '[]'::jsonb NOT NULL,
+    consequence_source text DEFAULT 'execution'::text NOT NULL,
+    CONSTRAINT proposal_consequences_consequence_source_check CHECK ((consequence_source = ANY (ARRAY['execution'::text, 'reaper_reconstructed'::text])))
 );
 
 
@@ -2277,6 +2279,13 @@ CREATE TABLE core.proposal_consequences (
 --
 
 COMMENT ON TABLE core.proposal_consequences IS 'Consequence log: records what each executed proposal actually changed. Closes the causal chain: Finding \u2192 Proposal \u2192 Approval \u2192 Execution \u2192 File Changes.';
+
+
+--
+-- Name: COLUMN proposal_consequences.consequence_source; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.proposal_consequences.consequence_source IS 'execution: recorded at execution/finalization time with real evidence. reaper_reconstructed: ProposalPipelineShopManager.stuck_finalizing roll-forward (ADR-148 D4) synthesized this row after real evidence was unavailable — pre/post SHA and changed_files are empty by construction, not by observation.';
 
 
 --

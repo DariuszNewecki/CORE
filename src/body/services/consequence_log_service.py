@@ -46,6 +46,7 @@ class ConsequenceLogService:
         findings_resolved: list,
         authorized_by_rules: list,
         declared_production: list[str] | None = None,
+        consequence_source: str = "execution",
     ) -> None:
         """
         Upsert consequence record for a completed proposal.
@@ -60,6 +61,13 @@ class ConsequenceLogService:
             declared_production: ADR-129 D2 — union of _sandbox_target_paths
                 and files_produced; the paths commit_paths was authorized to
                 commit. Empty list for pre-ADR-129 rows (worker skips them).
+            consequence_source: ADR-148 D7 — 'execution' (default, real
+                evidence captured at execution/finalization time) or
+                'reaper_reconstructed' (ProposalPipelineShopManager's
+                stuck_finalizing roll-forward synthesized this row). Not
+                included in the ON CONFLICT UPDATE SET — a row's source
+                reflects how it was first created and is never overwritten
+                by a later retry.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -70,9 +78,9 @@ class ConsequenceLogService:
                     "(proposal_id, pre_execution_sha, "
                     "post_execution_sha, files_changed, "
                     "findings_resolved, authorized_by_rules, "
-                    "declared_production) "
+                    "declared_production, consequence_source) "
                     "VALUES (:pid, :pre, :post, :files, "
-                    ":findings, :rules, :declared) "
+                    ":findings, :rules, :declared, :source) "
                     "ON CONFLICT (proposal_id) DO UPDATE SET "
                     "files_changed = EXCLUDED.files_changed, "
                     "findings_resolved = EXCLUDED.findings_resolved, "
@@ -88,6 +96,7 @@ class ConsequenceLogService:
                     "findings": json.dumps(findings_resolved),
                     "rules": json.dumps(authorized_by_rules),
                     "declared": json.dumps(declared_production or []),
+                    "source": consequence_source,
                 },
             )
             await session.commit()

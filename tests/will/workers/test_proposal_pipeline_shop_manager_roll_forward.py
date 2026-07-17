@@ -17,6 +17,8 @@ Invariants:
   4. resolve_deferred_findings fails -> mark_completed NOT called -> False
   5. ProposalNotFoundError from mark_completed (concurrent completion) -> False
   6. unexpected exception -> swallowed (fail-soft) -> False
+  7. the reconstructed record is always passed source="reaper_reconstructed"
+     (ADR-148 D7, #790) — never the default "execution"
 """
 
 from __future__ import annotations
@@ -121,6 +123,7 @@ async def test_roll_forward_records_consequence_resolves_and_completes() -> None
 
     assert result is True
     record_mock.assert_awaited_once()
+    assert record_mock.await_args.kwargs["source"] == "reaper_reconstructed"
     resolve_mock.assert_awaited_once_with("pid-finalizing")
     mark_completed_mock.assert_awaited_once_with("pid-finalizing")
 
@@ -234,9 +237,7 @@ async def test_roll_forward_concurrent_completion_is_safe_no_op() -> None:
 
     worker = _make_worker_instance()
     session = AsyncMock()
-    mark_completed_mock = AsyncMock(
-        side_effect=ProposalNotFoundError("pid-finalizing")
-    )
+    mark_completed_mock = AsyncMock(side_effect=ProposalNotFoundError("pid-finalizing"))
 
     _, orig, svc_mod = _patch_service_registry(session)
     try:

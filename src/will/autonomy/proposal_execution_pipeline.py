@@ -121,6 +121,7 @@ async def record_consequence(
     finding_ids: list[str],
     policies: list[str],
     declared_production: list[str] | None = None,
+    source: str = "execution",
 ) -> bool:
     """Record the consequence log entry for a finalizing proposal.
 
@@ -140,6 +141,11 @@ async def record_consequence(
     and files_produced computed by compute_production_set() — the same set
     that drove commit_paths(). Persisted so CommitAuthorshipAuditWorker can
     compare it against the actual git diff post-commit.
+
+    ADR-148 D7: *source* is 'execution' (default, real evidence) or
+    'reaper_reconstructed' — passed by ProposalPipelineShopManager's
+    stuck_finalizing roll-forward when it synthesizes a row from empty
+    evidence rather than capturing it at execution time.
     """
     try:
         consequence_svc = await service_registry.get_consequence_log_service()
@@ -151,6 +157,7 @@ async def record_consequence(
             findings_resolved=finding_ids,
             authorized_by_rules=policies,
             declared_production=declared_production or [],
+            consequence_source=source,
         )
         return True
     except Exception as cons_err:

@@ -1688,6 +1688,8 @@ classifications:
     governance_namespace: framework
     notes: >-
       REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
+  - path: .intent/rules/governance/consequence_evidence_degraded.json
+    governance_namespace: framework
   - path: .intent/rules/governance/proposal_finalization_integrity.json
     governance_namespace: framework
   - path: .specs/META/architecture_bridge.schema.json

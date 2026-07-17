@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.consequence_evidence_degraded",
+        "title": "Consequence Evidence Degraded",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.consequence_evidence_degraded",
+            "statement": "A Proposal in status='completed' whose core.proposal_consequences row has consequence_source='reaper_reconstructed' MUST be surfaced to the governor. Such a row satisfies the governance.proposal_finalization_integrity NOT EXISTS check (the row is present), but its pre_execution_sha, post_execution_sha, and files_changed are empty by construction — ProposalPipelineShopManager's stuck_finalizing roll-forward (ADR-148 D4) synthesized the row after real evidence was unavailable, not captured at execution time. Checked post-hoc by CommitAuthorshipAuditWorker against core.proposal_consequences joined to core.autonomous_proposals.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-148 D7 (addendum, #790): a consequence_source marker with no consumer is a labeled silent-green, not a fix — governance.proposal_finalization_integrity's NOT EXISTS predicate cannot distinguish a genuine record from a reconstructed one, since both are present rows. This rule is the consumer that closes that gap, extending CommitAuthorshipAuditWorker per the same reporting-first pattern as its two existing checks (ADR-129 D4 authorship integrity, ADR-148 D5 finalization integrity). Selects strictly on consequence_source, never on SHA nullness, so it cannot fire on a normal proposal whose capture_git_sha() legitimately returned None fail-soft. Reporting rather than blocking: detection only, per the same ramp ADR-148 D5 and ADR-129 D5 already established (reporting -> resolve drift -> blocking). Grounding: ADR-148 D7; detection: CommitAuthorshipAuditWorker (.intent/workers/commit_authorship_audit_worker.yaml); remediation: PENDING in auto_remediation.yaml (no autonomous fix; requires governor investigation of the underlying evidence loss)."
+        }
+    ]
+}
