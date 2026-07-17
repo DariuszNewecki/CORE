@@ -44,7 +44,11 @@ _MYPY_LINE = re.compile(
 )
 
 # pytest --collect-only: "ERROR collecting tests/foo.py" / "tests/foo.py:12: in ...".
-_PYTEST_ERROR = re.compile(r"(?P<file>(?:tests?|src)/[^\s:]+?\.py)")
+# The leading (?<!\w) rejects a match starting mid-identifier — without it,
+# "_pytest/terminal.py" (pytest's own package, e.g. in a venv traceback line
+# during an INTERNALERROR) matches "test/terminal.py" from the "test" tail
+# of "_pytest", misattributing pytest's internals to a fake project file.
+_PYTEST_ERROR = re.compile(r"(?<!\w)(?P<file>(?:tests?|src)/[^\s:]+?\.py)")
 
 
 # ID: e56a1a25-9a1e-4938-b6fa-34f7263be922
@@ -60,6 +64,7 @@ class QualityGateCheck(WorkflowCheck):
     async def verify(
         self, file_path: Path | None, params: dict[str, Any]
     ) -> Sequence[str | StructuredViolation]:
+        process: asyncio.subprocess.Process | None = None
         try:
             process = await asyncio.create_subprocess_exec(
                 *self.cmd,
@@ -74,6 +79,23 @@ class QualityGateCheck(WorkflowCheck):
             if process.returncode != 0:
                 output = stdout.decode().strip() or stderr.decode().strip()
                 return self._parse_output(output)
+        except TimeoutError:
+            # asyncio.wait_for cancels the await on timeout, not the child
+            # process — without an explicit kill, the subprocess is orphaned
+            # and keeps running (and, for pytest_check, keeps writing to the
+            # shared .coverage/reports/htmlcov store) past the point this
+            # method has already given up and returned.
+            if process is not None and process.returncode is None:
+                process.kill()
+                await process.wait()
+            logger.warning(
+                "%s timed out after %ss; subprocess killed",
+                self.check_type,
+                _CFG.quality_timeout_sec,
+            )
+            return [
+                f"Gate {self.check_type} timed out after {_CFG.quality_timeout_sec}s"
+            ]
         except FileNotFoundError as exc:
             # Tool not installed in this environment (the F-10.3 Action's
             # slim Docker image ships without mypy/pytest/pip-audit by

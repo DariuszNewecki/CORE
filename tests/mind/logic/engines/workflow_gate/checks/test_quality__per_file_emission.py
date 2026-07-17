@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from rich.console import Console
@@ -114,6 +115,69 @@ def test_mypy_crash_without_parseable_lines_falls_back() -> None:
 
     assert len(result) == 1
     assert result[0].context["issue_count"] >= 1
+
+
+def test_pytest_check_ignores_pytest_internals_path() -> None:
+    """A regex match must not fire on the 'test' tail of '_pytest/' in a venv
+    traceback line — that produced a bogus 'test/terminal.py' finding for
+    what was actually pytest's own INTERNALERROR, not a project test file."""
+    output = (
+        'INTERNALERROR>   File "/x/.venv/lib/python3.12/site-packages/'
+        '_pytest/terminal.py", line 707, in pytest_runtestloop\n'
+        "INTERNALERROR> SomeError: boom"
+    )
+    result = _run_verify("pytest_check", output)
+
+    assert len(result) == 1
+    assert result[0].file_path == "System"
+    assert not any(v.file_path.startswith("test/") for v in result)
+
+
+def test_pytest_check_attributes_genuine_collection_error() -> None:
+    """A real 'ERROR collecting tests/x.py' line still attributes correctly —
+    the regex fix must not break legitimate matches."""
+    output = (
+        "ERROR collecting tests/broken_conftest.py\n"
+        "tests/broken_conftest.py:3: in <module>"
+    )
+    result = _run_verify("pytest_check", output)
+
+    assert len(result) == 1
+    assert result[0].file_path == "tests/broken_conftest.py"
+    assert result[0].context["tool"] == "pytest_collection"
+
+
+def test_timeout_kills_orphaned_subprocess() -> None:
+    """A timed-out subprocess must be killed, not left running — asyncio.wait_for
+    cancels the await, not the child process, so without an explicit kill the
+    subprocess is orphaned and keeps running (and, for pytest_check, keeps
+    writing to the shared coverage store) past the point verify() gave up."""
+    check = QualityGateCheck(_path_resolver(), "slow_check", ["tool"])
+    proc = MagicMock()
+    proc.returncode = None
+    proc.kill = MagicMock()
+    proc.wait = AsyncMock(return_value=None)
+
+    async def hang_forever(*args, **kwargs):
+        await asyncio.sleep(3600)
+
+    proc.communicate = hang_forever
+
+    async def fake_exec(*args, **kwargs):
+        return proc
+
+    with (
+        patch("asyncio.create_subprocess_exec", side_effect=fake_exec),
+        patch(
+            "mind.logic.engines.workflow_gate.checks.quality._CFG",
+            SimpleNamespace(quality_timeout_sec=0.01),
+        ),
+    ):
+        result = asyncio.run(check.verify(None, {}))
+
+    proc.kill.assert_called_once()
+    assert len(result) == 1
+    assert "timed out" in result[0]
 
 
 def test_engine_wraps_structured_violations_preserving_context() -> None:
