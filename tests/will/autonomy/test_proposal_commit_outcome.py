@@ -38,7 +38,9 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-_PRODUCED = {"fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": ["target.py"]}}}
+_PRODUCED = {
+    "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": ["target.py"]}}
+}
 
 
 # ID: 41ba428f-cab9-4add-b2dd-c2698d6e87ec
@@ -59,20 +61,43 @@ def test_commit_outcome_nothing_to_commit_on_empty_production(repo: Path) -> Non
         git_service=GitService(repo),
         proposal_id="p-empty",
         proposal_goal="fix.format",
-        action_results={"fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}},
+        action_results={
+            "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}
+        },
     )
     assert outcome is CommitOutcome.NOTHING_TO_COMMIT
 
 
 # ID: 0314bef6-5fec-4467-a893-c8672c8d8215
-def test_commit_outcome_nothing_to_commit_when_no_git_service() -> None:
+def test_commit_outcome_nothing_to_commit_when_no_git_service_and_no_production() -> (
+    None
+):
+    """git_service=None is legitimate only when there is also nothing to
+    commit — the production-empty check runs first."""
     outcome = commit_proposal_changes(
         git_service=None,
-        proposal_id="p-nogit",
+        proposal_id="p-nogit-empty",
+        proposal_goal="fix.format",
+        action_results={
+            "fix.format:0": {"ok": True, "data": {"_sandbox_target_paths": []}}
+        },
+    )
+    assert outcome is CommitOutcome.NOTHING_TO_COMMIT
+
+
+# ID: 83540eee-31c3-4925-b95d-40e26d79ff5a
+def test_commit_outcome_failed_when_no_git_service_but_real_production() -> None:
+    """#812 follow-up: real, non-empty production with no git_service must
+    NOT be silently discarded as 'nothing to commit' — that would let a
+    proposal proceed toward FINALIZING/COMPLETED with an uncommitted
+    working tree. Routes to FAILED (-> mark_failed + rollback) instead."""
+    outcome = commit_proposal_changes(
+        git_service=None,
+        proposal_id="p-nogit-produced",
         proposal_goal="fix.format",
         action_results=_PRODUCED,
     )
-    assert outcome is CommitOutcome.NOTHING_TO_COMMIT
+    assert outcome is CommitOutcome.FAILED
 
 
 # ID: 7987a6e6-b709-42ae-bcb4-38312550cc98
@@ -92,7 +117,9 @@ def test_commit_outcome_failed_on_git_error() -> None:
 # ID: 43e23e01-f017-4eda-be73-76261e2fa1e0
 def test_commit_outcome_refused_on_staging_contamination() -> None:
     git = MagicMock()
-    git.commit_paths.side_effect = StagingContaminationError("staged work outside production set")
+    git.commit_paths.side_effect = StagingContaminationError(
+        "staged work outside production set"
+    )
     outcome = commit_proposal_changes(
         git_service=git,
         proposal_id="p-contam",

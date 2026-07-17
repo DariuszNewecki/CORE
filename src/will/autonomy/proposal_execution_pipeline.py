@@ -271,26 +271,44 @@ def commit_proposal_changes(
     :class:`CommitOutcome`:
 
     - ``COMMITTED`` — a real commit was created.
-    - ``NOTHING_TO_COMMIT`` — empty production set (or no ``git_service``);
-      no commit emitted and nothing to recover. Both COMMITTED and
-      NOTHING_TO_COMMIT let the executor proceed toward completion.
+    - ``NOTHING_TO_COMMIT`` — empty production set; no commit emitted and
+      nothing to recover. Both COMMITTED and NOTHING_TO_COMMIT let the
+      executor proceed toward completion.
     - ``REFUSED_CONTAMINATION`` — a ``StagingContaminationError`` (ADR-129 D1)
       blocked the commit; the executor routes to ``mark_failed`` + rollback.
     - ``FAILED`` — the commit was attempted and raised (e.g. an unrecoverable
-      pre-commit hook failure). ADR-148 D3: this now routes to ``mark_failed``
-      + rollback rather than completing with no git record — superseding the
-      ADR-129 D7 clause that returned success on non-contamination errors.
+      pre-commit hook failure), OR the production set is non-empty but no
+      ``git_service`` is available to commit it. ADR-148 D3: this now routes
+      to ``mark_failed`` + rollback rather than completing with no git
+      record — superseding the ADR-129 D7 clause that returned success on
+      non-contamination errors.
+
+    ``git_service`` is missing only ever legitimately when there is also
+    nothing to commit — ``CoreContext.git_service`` is a mandatory,
+    non-Optional field (ADR-128, #643) on every real production path, so a
+    ``None`` here paired with real production indicates a caller wired up
+    wrong, not an expected degraded mode. The production set is therefore
+    computed before ``git_service`` is consulted at all, so real,
+    non-empty production can never be silently discarded as
+    "nothing to commit" (#812 follow-up).
     """
-    if git_service is None:
+    paths_to_commit = compute_production_set(action_results)
+    if not paths_to_commit:
+        logger.info(
+            "Proposal %s produced no changes — no commit emitted (ADR-101 D2)",
+            proposal_id,
+        )
         return CommitOutcome.NOTHING_TO_COMMIT
+    if git_service is None:
+        logger.error(
+            "Proposal %s produced %d change(s) but no git_service is "
+            "available to commit them — routing to mark_failed + rollback "
+            "rather than silently discarding real production",
+            proposal_id,
+            len(paths_to_commit),
+        )
+        return CommitOutcome.FAILED
     try:
-        paths_to_commit = compute_production_set(action_results)
-        if not paths_to_commit:
-            logger.info(
-                "Proposal %s produced no changes — no commit emitted (ADR-101 D2)",
-                proposal_id,
-            )
-            return CommitOutcome.NOTHING_TO_COMMIT
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
