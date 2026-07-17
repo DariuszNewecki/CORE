@@ -89,9 +89,7 @@ async def test_commit_failure_triggers_rollback_and_mark_failed() -> None:
             "will.autonomy.proposal_executor.commit_proposal_changes",
             MagicMock(return_value=CommitOutcome.FAILED),
         ),
-        patch(
-            "will.autonomy.proposal_executor.rollback_proposal", rollback_mock
-        ),
+        patch("will.autonomy.proposal_executor.rollback_proposal", rollback_mock),
         patch(
             "will.autonomy.proposal_executor.record_consequence",
             AsyncMock(),
@@ -111,6 +109,7 @@ async def test_commit_failure_triggers_rollback_and_mark_failed() -> None:
         )
 
     assert result["ok"] is False
+    assert result["lifecycle_status"] == "failed"
     rollback_mock.assert_called_once()
     mark_failed_mock.assert_awaited_once()
     assert mark_failed_mock.await_args.args[0] == "pid-exec-1"
@@ -122,7 +121,14 @@ async def test_commit_failure_triggers_rollback_and_mark_failed() -> None:
 async def test_consequence_failure_after_finalizing_never_reaches_completed() -> None:
     """record_consequence returning False after mark_finalizing succeeded
     must leave the proposal in finalizing — mark_completed must not be
-    called. The stuck-finalizing reaper (ADR-148 D4) picks it up later."""
+    called. The stuck-finalizing reaper (ADR-148 D4) picks it up later.
+
+    #812: `ok` stays True here — its contract (no action/commit failure)
+    is genuinely unchanged and still correct for a synchronous caller. The
+    load-bearing assertion for "did this reach the durable proof state" is
+    lifecycle_status, which callers that need ADR-148's guarantee (e.g.
+    ProposalConsumerWorker) must check instead of `ok` — see
+    test_proposal_consumer_worker_lifecycle_gating.py for that side."""
     proposal = _make_proposal()
     executor, session, repo_instance = _make_executor(proposal)
 
@@ -173,6 +179,7 @@ async def test_consequence_failure_after_finalizing_never_reaches_completed() ->
         )
 
     assert result["ok"] is True
+    assert result["lifecycle_status"] == "finalizing"
     mark_finalizing_mock.assert_awaited_once()
     record_consequence_mock.assert_awaited_once()
     resolve_findings_mock.assert_awaited_once()
@@ -235,6 +242,7 @@ async def test_commit_and_consequence_success_reaches_completed() -> None:
         )
 
     assert result["ok"] is True
+    assert result["lifecycle_status"] == "completed"
     mark_finalizing_mock.assert_awaited_once()
     mark_completed_mock.assert_awaited_once_with("pid-exec-1")
     mark_failed_mock.assert_not_awaited()

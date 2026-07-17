@@ -448,6 +448,14 @@ never a `completed` row with no git record.
 only; same ramp arc as `governance.commit_authorship_integrity` (reporting → resolve drift →
 blocking).
 
+**Never infer proposal lifecycle status from `ProposalExecutor.execute()`'s `ok` field (#812).**
+`ok` means "no action or commit failure" — it stays `True` for a proposal left `finalizing`
+(commit succeeded, consequence chain not yet durable), because that's a defensible contract for
+a synchronous, human-triggered caller. It is the wrong field for "did this reach the durable
+proof state." Check the `lifecycle_status` field instead (`"completed" | "finalizing" | "failed" |
+"dry_run"`) — only `"completed"` is the ADR-148 proof state; `ProposalConsumerWorker` gates its
+success counter and `apply_success_effects` on it for exactly this reason.
+
 ---
 
 ## Commit authorship integrity (ADR-101 D1)

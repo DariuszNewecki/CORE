@@ -109,6 +109,7 @@ class ProposalConsumerWorker(Worker):
 
         succeeded = 0
         failed = 0
+        pending = 0
         results: list[dict[str, Any]] = []
 
         try:
@@ -132,7 +133,16 @@ class ProposalConsumerWorker(Worker):
                     # Content scope is enforced in commit_proposal_changes via
                     # the action's production set rather than path-shaped guards.
 
-                    if result["ok"]:
+                    # #812: gate on lifecycle_status, not the bare `ok` flag.
+                    # `ok` historically meant "no action/commit failure", which
+                    # stayed True even when the proposal was left FINALIZING
+                    # (commit succeeded but the consequence chain never became
+                    # durable) — so this worker counted it as succeeded and
+                    # ran success effects (test-coverage findings, forwarded
+                    # action findings) for a proposal that never reached the
+                    # ADR-148 proof state COMPLETED.
+                    lifecycle_status = result.get("lifecycle_status")
+                    if lifecycle_status == "completed":
                         succeeded += 1
                         logger.info(
                             "ProposalConsumerWorker: proposal '%s' succeeded "
@@ -142,6 +152,22 @@ class ProposalConsumerWorker(Worker):
                             result["duration_sec"],
                         )
                         await apply_success_effects(self, proposal_id, result)
+                    elif lifecycle_status == "finalizing":
+                        # Committed but not yet durable — neither success nor
+                        # failure. The ADR-148 D4 stuck-finalizing reaper
+                        # (ProposalPipelineShopManager) owns re-driving this;
+                        # revive_and_report is NOT called here since the
+                        # deferred findings are not actually failed, just not
+                        # yet resolved, and reviving them would race the
+                        # reaper's own ownership of the row.
+                        pending += 1
+                        logger.warning(
+                            "ProposalConsumerWorker: proposal '%s' left "
+                            "FINALIZING — commit succeeded but evidence is "
+                            "not yet durable; the stuck-finalizing reaper "
+                            "will re-drive it (ADR-148 D4).",
+                            proposal_id,
+                        )
                     else:
                         failed += 1
                         logger.warning(
@@ -171,6 +197,7 @@ class ProposalConsumerWorker(Worker):
                             "proposal_id": proposal_id,
                             "goal": goal,
                             "ok": result["ok"],
+                            "lifecycle_status": lifecycle_status,
                             "actions_executed": result.get("actions_executed", 0),
                             "actions_succeeded": result.get("actions_succeeded", 0),
                             "actions_failed": result.get("actions_failed", 0),
@@ -199,6 +226,7 @@ class ProposalConsumerWorker(Worker):
                             "proposal_id": proposal_id,
                             "goal": goal,
                             "ok": False,
+                            "lifecycle_status": "failed",
                             "error": str(e),
                         }
                     )
@@ -220,15 +248,20 @@ class ProposalConsumerWorker(Worker):
                 "executed": len(results),
                 "succeeded": succeeded,
                 "failed": failed,
+                "pending": pending,
                 "results": results,
-                "message": f"{succeeded} proposals executed, {failed} failed.",
+                "message": (
+                    f"{succeeded} proposals executed, {failed} failed, "
+                    f"{pending} left finalizing (ADR-148 D4 reaper owns them)."
+                ),
             },
         )
 
         logger.info(
-            "ProposalConsumerWorker: %d succeeded, %d failed.",
+            "ProposalConsumerWorker: %d succeeded, %d failed, %d finalizing.",
             succeeded,
             failed,
+            pending,
         )
 
     # -------------------------------------------------------------------------

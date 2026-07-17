@@ -119,6 +119,7 @@ class ProposalExecutor:
                 logger.error(error)
                 return {
                     "ok": False,
+                    "lifecycle_status": "failed",
                     "error": error,
                     "duration_sec": time.time() - start_time,
                 }
@@ -136,6 +137,7 @@ class ProposalExecutor:
                 logger.error(error)
                 return {
                     "ok": False,
+                    "lifecycle_status": "failed",
                     "error": error,
                     "proposal_id": proposal.proposal_id,
                     "status": proposal.status.value,
@@ -161,6 +163,7 @@ class ProposalExecutor:
                 if not claim_result.ok:
                     return {
                         "ok": False,
+                        "lifecycle_status": "failed",
                         "error": (
                             f"claim.proposal failed: "
                             f"{claim_result.data.get('error', 'rowcount=0')}"
@@ -185,6 +188,17 @@ class ProposalExecutor:
             # 4. Execute actions in order
             action_results: dict[str, Any] = {}
             all_ok = True
+            # #812: distinct from `ok` — `ok` historically meant "no action/
+            # commit failure", which is a defensible contract for a
+            # synchronous, human-triggered caller (proposal_runner.py /
+            # proposals_routes.py) but was WRONG for ProposalConsumerWorker,
+            # which needs to know whether the durable proof state (ADR-148
+            # COMPLETED) was actually reached before running success effects.
+            # lifecycle_status carries that distinction without changing
+            # `ok`'s existing meaning for other callers. Default covers the
+            # write=False (dry-run) path, which never reaches the write block
+            # below.
+            lifecycle_status = "dry_run"
 
             sorted_actions = sorted(proposal.actions, key=lambda a: a.order)
 
@@ -353,6 +367,7 @@ class ProposalExecutor:
                         CommitOutcome.FAILED,
                     ):
                         all_ok = False
+                        lifecycle_status = "failed"
                         if commit_outcome == CommitOutcome.REFUSED_CONTAMINATION:
                             reason = (
                                 "ADR-129 D1: staging contamination detected — "
@@ -426,12 +441,22 @@ class ProposalExecutor:
                         # durable and the deferred findings are adjudicated.
                         if consequence_ok and findings_ok:
                             await state_manager.mark_completed(proposal.proposal_id)
+                            lifecycle_status = "completed"
                             logger.info(
                                 "Proposal completed successfully: %s (%.2fs)",
                                 proposal.proposal_id,
                                 total_duration,
                             )
                         else:
+                            # #812: was previously indistinguishable from
+                            # "completed" in the return value — all_ok stayed
+                            # True here, so callers (ProposalConsumerWorker)
+                            # counted this as succeeded and ran success
+                            # effects for a proposal that never reached the
+                            # durable proof state. lifecycle_status makes the
+                            # distinction load-bearing without changing `ok`'s
+                            # existing meaning for other callers.
+                            lifecycle_status = "finalizing"
                             logger.warning(
                                 "Proposal %s left FINALIZING (consequence=%s "
                                 "findings=%s) — evidence not yet durable; the "
@@ -443,6 +468,7 @@ class ProposalExecutor:
                             )
 
                 else:
+                    lifecycle_status = "failed"
                     failed_actions = [
                         aid for aid, res in action_results.items() if not res["ok"]
                     ]
@@ -466,6 +492,7 @@ class ProposalExecutor:
             # 6. Return results
             return {
                 "ok": all_ok,
+                "lifecycle_status": lifecycle_status,
                 "proposal_id": proposal.proposal_id,
                 "goal": proposal.goal,
                 "write": write,
