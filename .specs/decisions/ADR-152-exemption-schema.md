@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-152
 title: "ADR-152 — Generalizing governed_exclusions for ADR-049 D3's deadline-closure discipline"
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-152-exemption-schema.md -->
@@ -11,7 +11,7 @@ status: proposed
 
 **Date:** 2026-07-17
 **Governing paper:** none directly — implements ADR-049 D3
-**Status:** Proposed
+**Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-07-17 — drafted under governor direction, issue #794)
 **Relates to:** ADR-042 D3 (the pre-existing register this ADR generalizes),
