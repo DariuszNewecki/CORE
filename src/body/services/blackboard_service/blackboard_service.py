@@ -866,6 +866,98 @@ class BlackboardService:
 
         return {"resolved_subjects": resolved_subjects}
 
+    # ID: 768d32db-9b99-4dab-bda4-ea48eb84aaf3
+    async def adjudicate_abandoned_findings(
+        self,
+        subject_prefix: str,
+        current_violation_subjects: set[str],
+        resolved_by: str,
+    ) -> dict[str, list[str]]:
+        """
+        ADR-127 D7 clean-pass drain for Type-B ``abandoned`` findings.
+
+        Mirrors ``adjudicate_indeterminate_findings`` (D2) exactly, targeting
+        ``'abandoned'`` status rather than ``'indeterminate'``. Reaches only
+        Type-B abandons (``ViolationExecutorWorker._abandon_findings``, ADR-104
+        D9's remediation_attempt_count cap) — never Type-A (sensor-posted
+        telemetry like ``worker.silent::*`` / ``loop_hold.sample::*``), because
+        those subjects never match the ``<artifact_type>::<rule_namespace>``
+        prefix this method is called with. See ADR-127 addendum D7 and memory
+        ``reference_blackboard_abandoned_two_semantics``.
+
+        For each finding in ``'abandoned'`` whose subject begins with
+        ``subject_prefix``:
+
+        - Subject present in *current_violation_subjects*: the violation still
+          holds — the daemon genuinely could not self-heal this. Leave the
+          finding ``'abandoned'``; no transition.
+        - Subject absent from *current_violation_subjects*: the underlying
+          condition has cleared (later commit, manual fix, or refactor).
+          Transition to ``'resolved'`` with ``resolution_authority =
+          'system.audit'`` and a ``payload.resolution`` attribution block.
+
+        Only ``resolved_subjects`` is returned, matching D2's shape.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        resolved_subjects: list[str] = []
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                pending = await session.execute(
+                    text(
+                        """
+                        SELECT id, subject
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND status = 'abandoned'
+                          AND (subject = :prefix
+                               OR subject LIKE :prefix || '.%'
+                               OR subject LIKE :prefix || '::%')
+                        FOR UPDATE
+                        """
+                    ),
+                    {"prefix": subject_prefix},
+                )
+                rows = pending.fetchall()
+
+                resolve_ids: list[str] = []
+                for row in rows:
+                    entry_id = str(row[0])
+                    subject = str(row[1])
+                    if subject not in current_violation_subjects:
+                        resolve_ids.append(entry_id)
+                        resolved_subjects.append(subject)
+
+                if resolve_ids:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = jsonb_set(
+                                    payload,
+                                    '{resolution}',
+                                    jsonb_build_object(
+                                        'reason', 'ADR-127 D7 clean-pass: violation no longer present (Type-B abandoned finding)',
+                                        'resolved_by', cast(:resolved_by as text),
+                                        'resolution_authority', 'system.audit',
+                                        'resolved_at', to_char(now() at time zone 'UTC',
+                                                               'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                    ),
+                                    true
+                                )
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'abandoned'
+                            """
+                        ),
+                        {"ids": resolve_ids, "resolved_by": resolved_by},
+                    )
+
+        return {"resolved_subjects": resolved_subjects}
+
     # ID: 0c2f1a8d-3e6b-4c9f-a7d4-5b8e2f1c4a7d
     async def sweep_terminal_telemetry(
         self,

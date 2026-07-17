@@ -270,14 +270,28 @@ class AuditViolationSensor(Worker):
         )
         indet_resolved = len(indet["resolved_subjects"])
 
-        if reaudit_released or reaudit_resolved or indet_resolved:
+        # ADR-127 D7: drain Type-B 'abandoned' findings whose violations have
+        # cleared. Symmetrical to the indeterminate drain above. Reaches only
+        # Type-B (ViolationExecutorWorker's remediation-attempt-cap abandons,
+        # ADR-104 D9) — never Type-A telemetry (worker.silent, loop_hold.sample,
+        # ...), which never matches this subject_prefix by construction. See
+        # ADR-127 addendum D7.
+        aband = await bb_svc.adjudicate_abandoned_findings(
+            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
+            current_violation_subjects=current_subjects,
+            resolved_by="audit_violation_sensor",
+        )
+        aband_resolved = len(aband["resolved_subjects"])
+
+        if reaudit_released or reaudit_resolved or indet_resolved or aband_resolved:
             logger.info(
                 "AuditViolationSensor[%s]: reaudit drained %d released, %d resolved; "
-                "indeterminate clean-pass resolved %d.",
+                "indeterminate clean-pass resolved %d; abandoned clean-pass resolved %d.",
                 self._rule_namespace,
                 reaudit_released,
                 reaudit_resolved,
                 indet_resolved,
+                aband_resolved,
             )
             await self.post_report(
                 subject=f"audit.reaudit.complete::{self._rule_namespace}",
@@ -289,6 +303,8 @@ class AuditViolationSensor(Worker):
                     "resolved_subjects": reaudit["resolved_subjects"],
                     "indeterminate_drained": indet_resolved,
                     "indeterminate_drain_subjects": indet["resolved_subjects"],
+                    "abandoned_drained": aband_resolved,
+                    "abandoned_drain_subjects": aband["resolved_subjects"],
                 },
             )
 

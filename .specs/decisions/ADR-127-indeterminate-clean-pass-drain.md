@@ -278,3 +278,98 @@ Three sites, in order:
 - 2026-06-27 observed instance: three `style.formatter_required` `indeterminate`
   findings persisting 1–2 weeks after files reached compliance; closed manually
   via SQL as a one-time recovery; this ADR prevents recurrence.
+
+---
+
+## Addendum — D7: clean-pass drain extends to Type-B `abandoned` findings (2026-07-17, accepted)
+
+**Status of this addendum:** Accepted (governor confirmed 2026-07-17, Path A
+confirmation naming this file). This is an **application of the already-decided
+clean-pass principle** (D1–D3 above), not a new decision — recorded here,
+append-only, per the same shape as ADR-104's D9 addendum.
+
+### The gap
+
+Issue #788 found that `status='abandoned'` findings never get re-verified once
+set — the same gap D1–D3 closed for `indeterminate`, but for a different
+terminal status. A 2026-07-13 manual audit of 18 abandoned findings
+(`governance.mutation_surface.filehandler_required` /
+`governance.logic_mutation.governed` / `architecture.boundary.settings_access`)
+found **0 of 18 were still live** — every one had already been fixed by a later
+commit; the blackboard row just never closed. This is the third time someone
+has hand-archaeologied the abandoned pile (#175, #666, #788), each cycle
+requiring a human to cross-reference timestamps against git log by hand.
+
+### Why only Type-B, never Type-A — and why that's structural, not a filter
+
+Per memory `reference_blackboard_abandoned_two_semantics` (also cited by
+ADR-104 D9 and ADR-082's D3 / "Why one ADR with two mechanisms" section),
+`abandoned` carries two architecturally distinct meanings:
+
+- **Type A** — sensors and shop managers post `status='abandoned'` directly at
+  creation (`worker.silent::*`, `loop_hold.sample::*`, `*.cycle_error`, ...).
+  Terminal by design; there was never an open violation to close. ADR-082
+  Mechanism 1 already governs this class's retention (hard-DELETE past TTL).
+- **Type B** — `ViolationExecutorWorker._abandon_findings` (ADR-104 D9),
+  reached when `remediation_attempt_count` hits the governed cap after
+  repeated autonomous-remediation failures. This is the real "daemon cannot
+  self-heal" signal (the F-19 stuck bucket) — the only class this addendum's
+  drain can reach.
+
+Type-B subjects share the canonical `<artifact_type>::<rule_id>::<file_path>`
+shape `AuditViolationSensor` already computes as `current_violation_subjects`
+every cycle (verified against `audit_violation_like_patterns()` and the
+current claim path in `violation_executor.py` at the time of this addendum).
+Type-A subjects live under structurally different prefixes
+(`worker.silent::`, `loop_hold.sample::`, ...) that can never match
+`<artifact_type>::<rule_namespace>`. The drain's subject-prefix scoping —
+identical to D2's `adjudicate_indeterminate_findings` — therefore cannot reach
+Type A by construction, not by an added filter. This addendum does not touch,
+and could not touch, ADR-082's Class A/Class B split or its retention
+mechanisms.
+
+### D7 — decision
+
+`AuditViolationSensor.run()` gains a third drain pass, alongside the existing
+`awaiting_reaudit` (ADR-045) and `indeterminate` (D1–D3) drains, using the same
+`current_subjects` set already computed for both:
+
+1. Fetch all findings with `status = 'abandoned'` AND `entry_type = 'finding'`
+   whose subject begins with `<artifact_type_id>::<rule_namespace>`.
+2. If the subject is present in `current_violation_subjects`: the violation
+   still holds — leave the finding `abandoned`. The daemon genuinely could not
+   self-heal this; that signal must survive.
+3. If the subject is absent: the violation has cleared (later commit, manual
+   fix, or refactor). Transition to `resolved` with
+   `resolution_authority = 'system.audit'` and the same `payload.resolution`
+   attribution shape as D1, with a distinct reason string:
+   `"ADR-127 D7 clean-pass: violation no longer present (Type-B abandoned finding)"`.
+
+Implementation: a new `BlackboardService.adjudicate_abandoned_findings()`
+method, structurally identical to `adjudicate_indeterminate_findings` (D2)
+with `status = 'abandoned'` substituted in the predicate. Called from
+`AuditViolationSensor.run()` immediately after the `indeterminate` drain,
+before the new-violations pass — same ordering rationale as D5.
+
+### D7 — acceptance criterion
+
+- A Type-B `abandoned` finding whose file no longer violates its rule
+  transitions to `resolved` within one `AuditViolationSensor` cycle.
+- A Type-B `abandoned` finding whose violation still holds is untouched.
+- No Type-A `abandoned` entry (verified by subject prefix, e.g.
+  `worker.silent::*`, `loop_hold.sample::*`) is ever selected by this drain's
+  query — covered by a test asserting the query predicate's subject-prefix
+  scoping excludes them.
+- The `audit.reaudit.complete` report for the affected namespace gains an
+  `abandoned_drained` field, mirroring D6's `indeterminate_drained`.
+
+### D7 — references
+
+- #788 — the recurring manual-triage issue this addendum closes.
+- ADR-104 D9 — defines Type-B abandonment (`remediation_attempt_count` cap)
+  and the F-19 stuck-bucket framing this addendum preserves for still-real
+  violations.
+- ADR-082 — the Class A/Class B split this addendum's scoping is structurally
+  incapable of crossing.
+- Memory `reference_blackboard_abandoned_two_semantics` — the governing
+  distinction.
