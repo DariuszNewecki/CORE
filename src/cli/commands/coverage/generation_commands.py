@@ -37,7 +37,11 @@ async def generate_adaptive_command(
     write: bool = typer.Option(
         False,
         "--write",
-        help="Promote sandbox-passing tests to /tests (mirror src/). Route failures to var/artifacts/.",
+        help=(
+            "Required — the legacy adaptive generator has no dry-run mode "
+            "and writes test files unconditionally. Must be passed "
+            "explicitly; omitting it exits without calling the API (#809)."
+        ),
     ),
     max_failures: int = typer.Option(
         3, "--max-failures", help="Switch strategy after N failures with same pattern"
@@ -46,6 +50,13 @@ async def generate_adaptive_command(
     """Generate tests using adaptive learning (V2 - Component Architecture)."""
     _ = ctx
     _ = max_failures  # The API owns the adaptive failure threshold.
+    if not write:
+        console.print(
+            "[red]This legacy generation command currently writes test "
+            "files unconditionally — there is no dry-run mode. Re-run with "
+            "--write to confirm mutation.[/red]"
+        )
+        raise typer.Exit(code=2)
     console.print("[bold cyan]🧪 Adaptive Test Generation (V2)[/bold cyan]\n")
 
     client = CoreApiClient()
@@ -85,10 +96,9 @@ async def generate_adaptive_command(
         ):
             console.print(f"  • {pattern}: {count}x")
 
-    if write:
-        console.print("\n[dim]Write mode:[/dim]")
-        console.print("  • Passing tests -> tests/... (mirrored)")
-        console.print("  • Failing tests  -> var/artifacts/test_gen/failures/...")
+    console.print("\n[dim]Write mode:[/dim]")
+    console.print("  • Passing tests -> tests/... (mirrored)")
+    console.print("  • Failing tests  -> var/artifacts/test_gen/failures/...")
 
     if payload.get("tests_generated", 0):
         console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
@@ -105,7 +115,15 @@ async def generate_adaptive_batch_command(
     priority: str = typer.Option(
         "all", "--priority", help="Batch priority: 'high' or 'all'."
     ),
-    write: bool = typer.Option(False, "--write", help="Save passing tests"),
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help=(
+            "Required — the legacy adaptive generator has no dry-run mode "
+            "and writes test files unconditionally. Must be passed "
+            "explicitly; omitting it exits without calling the API (#809)."
+        ),
+    ),
 ) -> None:
     """Generate tests for multiple files via the API batch endpoint."""
     _ = ctx
@@ -114,12 +132,19 @@ async def generate_adaptive_batch_command(
             f"[red]Unknown priority '{priority}'. Allowed: 'high', 'all'.[/red]"
         )
         raise typer.Exit(code=1)
+    if not write:
+        console.print(
+            "[red]This legacy generation command currently writes test "
+            "files unconditionally — there is no dry-run mode. Re-run with "
+            "--write to confirm mutation.[/red]"
+        )
+        raise typer.Exit(code=2)
 
     console.print(
         "[bold cyan]🧪 Adaptive Test Generation - Batch Mode (V2)[/bold cyan]\n"
     )
     console.print(f"[cyan]Priority: {priority}[/cyan]")
-    console.print(f"[dim]Write mode: {'on' if write else 'dry-run'}[/dim]\n")
+    console.print("[dim]Write mode: on[/dim]\n")
 
     client = CoreApiClient()
     initial = await client.coverage_generate_batch(priority=priority, write=write)

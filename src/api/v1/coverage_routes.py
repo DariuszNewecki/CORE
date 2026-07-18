@@ -69,6 +69,22 @@ from will.governance.coverage_runner import (
 
 logger = getLogger(__name__)
 
+# #809: EnhancedTestGenerator (the underlying generator these two routes
+# drive) is deprecated per ADR-135 D7 and has no dry-run contract —
+# TestExecutor.execute_test() writes the generated test file unconditionally.
+# Building real dry-run into a retiring component wastes effort; the
+# successor pipeline (IterativeCoderAgent / build.test_for_symbol) already
+# has one via PytestSandboxRunner (var/tmp/, never touches tests/). Until
+# generation routes that way, write=false is rejected rather than silently
+# ignored.
+_WRITE_FALSE_UNSUPPORTED = (
+    "write=false is unsupported by the legacy adaptive coverage generator: "
+    "it mutates tests/ unconditionally regardless of this flag. Pass "
+    "write=true to run generation. Dry-run is available only through the "
+    "governed successor pipeline (IterativeCoderAgent / "
+    "build.test_for_symbol), not this route."
+)
+
 
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/coverage")
@@ -94,7 +110,12 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
 
 # ID: 8d2e4f0a-1b3c-4d5e-6f7a-8b9c0d1e2f30
 class GenerateRequest(BaseModel):
-    """Body for POST /coverage/generate."""
+    """Body for POST /coverage/generate.
+
+    `write` must be `true` (#809): the underlying generator has no
+    dry-run contract and writes unconditionally, so `write=false` is
+    rejected with a 422 rather than silently ignored.
+    """
 
     target_file: str
     write: bool = False
@@ -107,6 +128,10 @@ class GenerateBatchRequest(BaseModel):
 
     `priority` ∈ {'high', 'all'} per ADR-057 D1. 'high' raises the target
     coverage; 'all' uses the default constitutional target.
+
+    `write` must be `true` (#809): the underlying generator has no
+    dry-run contract and writes unconditionally, so `write=false` is
+    rejected with a 422 rather than silently ignored.
     """
 
     priority: str = "all"
@@ -379,6 +404,9 @@ async def generate_coverage(
     Inserts a pending row in core.coverage_runs and queues background
     execution via will.governance.coverage_runner.
     """
+    if not payload.write:
+        raise HTTPException(status_code=422, detail=_WRITE_FALSE_UNSUPPORTED)
+
     core_context: CoreContext = request.app.state.core_context
 
     result = await session.execute(
@@ -442,6 +470,8 @@ async def generate_coverage_batch(
             status_code=422,
             detail=f"Unknown priority: {payload.priority!r}. Allowed: ['high', 'all']",
         )
+    if not payload.write:
+        raise HTTPException(status_code=422, detail=_WRITE_FALSE_UNSUPPORTED)
 
     core_context: CoreContext = request.app.state.core_context
 
@@ -489,6 +519,11 @@ async def generate_coverage_batch(
 @tests_router.post(
     "/interactive",
     dependencies=[require_governor],
+    description=(
+        "Run interactive adaptive test generation synchronously. This "
+        "endpoint always writes generated tests through FileService before "
+        "execution — no `write` field, no dry-run mode (#809)."
+    ),
     # F-40.1: internal — interactive test-shape dispatch is autonomy
     # surface, not a sidecar concern. Excluded from /v1/openapi.json
     # per ADR-087.
@@ -501,7 +536,9 @@ async def interactive_tests(
 ) -> dict:
     """Run interactive adaptive test generation synchronously.
 
-    No resource row. Returns the result dict inline with 200.
+    No resource row. Returns the result dict inline with 200. Always
+    writes generated tests through FileService before execution — no
+    `write` field, no dry-run mode (#809).
     """
     core_context: CoreContext = request.app.state.core_context
     return await run_tests_interactive(core_context, target_file=payload.target_file)

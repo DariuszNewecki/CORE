@@ -63,7 +63,7 @@ async def test_generate_inserts_pending_and_schedules_background(target_file):
     session.execute = AsyncMock(return_value=result_obj)
     session.commit = AsyncMock()
 
-    payload = GenerateRequest(target_file=target_file, write=False)
+    payload = GenerateRequest(target_file=target_file, write=True)
 
     out = await generate_coverage(
         request=request,
@@ -83,6 +83,30 @@ async def test_generate_inserts_pending_and_schedules_background(target_file):
     session.commit.assert_awaited_once()
 
 
+async def test_generate_write_false_returns_422_without_touching_db():
+    """#809: write=false is rejected before the coverage_runs row is
+    inserted, not silently ignored (the underlying generator writes
+    test files unconditionally regardless of this flag)."""
+    request = _mock_request_with_context()
+    response = MagicMock(spec=Response)
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    session = AsyncMock()
+
+    payload = GenerateRequest(target_file="src/foo/bar.py", write=False)
+
+    with pytest.raises(HTTPException) as exc:
+        await generate_coverage(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+    assert exc.value.status_code == 422
+    session.execute.assert_not_awaited()
+    background_tasks.add_task.assert_not_called()
+
+
 async def test_generate_batch_high_priority_inserts_and_schedules():
     """POST /coverage/generate:batch with priority='high' inserts a row
     (batch_priority='high', target_file=NULL) and schedules background
@@ -100,7 +124,7 @@ async def test_generate_batch_high_priority_inserts_and_schedules():
     session.execute = AsyncMock(return_value=result_obj)
     session.commit = AsyncMock()
 
-    payload = GenerateBatchRequest(priority="high", write=False)
+    payload = GenerateBatchRequest(priority="high", write=True)
 
     out = await generate_coverage_batch(
         request=request,
@@ -123,6 +147,29 @@ async def test_generate_batch_unknown_priority_returns_422():
     session = AsyncMock()
 
     payload = GenerateBatchRequest(priority="bogus")
+
+    with pytest.raises(HTTPException) as exc:
+        await generate_coverage_batch(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+    assert exc.value.status_code == 422
+    session.execute.assert_not_awaited()
+    background_tasks.add_task.assert_not_called()
+
+
+async def test_generate_batch_write_false_returns_422_without_touching_db():
+    """#809: write=false is rejected before the coverage_runs row is
+    inserted, same as the single-file /generate route."""
+    request = _mock_request_with_context()
+    response = MagicMock(spec=Response)
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    session = AsyncMock()
+
+    payload = GenerateBatchRequest(priority="high", write=False)
 
     with pytest.raises(HTTPException) as exc:
         await generate_coverage_batch(

@@ -59,6 +59,18 @@ _COVERAGE_RULE_IDS = (
     "test_coverage.required",
 )
 
+# #809: the route layer already rejects write=false before dispatch, but
+# this facade advertises `write` as part of its own contract — a future or
+# direct caller that bypasses the route must not have the flag silently
+# disregarded. remediate_coverage_enhanced() has no dry-run mode; it writes
+# unconditionally.
+_WRITE_FALSE_UNSUPPORTED = (
+    "write=false is unsupported: remediate_coverage_enhanced() has no "
+    "dry-run contract and writes test files unconditionally. Pass "
+    "write=true, or route through the sandboxed successor pipeline "
+    "(IterativeCoderAgent / build.test_for_symbol) for a real preview."
+)
+
 
 # ID: 7c1d3e9a-8b5f-4a02-bc18-9e3d5f627c01
 async def get_coverage_check(context: CoreContext) -> dict:
@@ -342,6 +354,16 @@ async def run_and_persist_coverage_generation(
     """
     await _update_coverage_run_status(session, run_id, "executing", started=True)
 
+    if not write:
+        await _update_coverage_run_status(
+            session,
+            run_id,
+            "failed",
+            finished=True,
+            error=_WRITE_FALSE_UNSUPPORTED,
+        )
+        return
+
     repo_root = context.git_service.repo_path
     file_path = (repo_root / target_file).resolve()
     if not file_path.exists() or not file_path.is_file():
@@ -417,6 +439,16 @@ async def run_and_persist_coverage_batch(
     function transitions it through executing → completed | failed.
     """
     await _update_coverage_run_status(session, run_id, "executing", started=True)
+
+    if not write:
+        await _update_coverage_run_status(
+            session,
+            run_id,
+            "failed",
+            finished=True,
+            error=_WRITE_FALSE_UNSUPPORTED,
+        )
+        return
 
     repo_root = context.git_service.repo_path
 
