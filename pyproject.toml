@@ -270,9 +270,12 @@ ignore_errors = true
 module = "src.mind.logic.engines.ast_gate.*"
 ignore_errors = false
 
-# Third-party packages with no published stubs
+# Third-party packages with no published stubs, or declared as an optional
+# extra (pyproject.toml [project.optional-dependencies]) so not guaranteed
+# present in a bare `poetry install` — ruamel.yaml backs the `migration`
+# extra, only installed by src/cli/logic/utils_migration.py's consumers.
 [[tool.mypy.overrides]]
-module = ["radon.*", "sklearn.*"]
+module = ["radon.*", "sklearn.*", "ruamel.*"]
 ignore_missing_imports = true
 
 # Internal modules referenced via optional/lazy imports that may be absent

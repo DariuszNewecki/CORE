@@ -40,3 +40,9 @@ jobs:
       - name: "Run Constitutional Audit"
         run: |
           poetry run core-admin code audit --offline --format=github-annotations --severity=block
+
+      - name: "Dump raw mypy output (on audit failure)"
+        if: failure()
+        continue-on-error: true
+        run: |
+          poetry run mypy src/
