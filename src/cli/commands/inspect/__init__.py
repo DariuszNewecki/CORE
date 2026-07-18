@@ -28,7 +28,7 @@ import typer
 from .analysis import analysis_commands
 from .decisions import decisions_commands
 from .diagnostics import diagnostics_commands
-from .drift import drift_commands, register_drift_commands
+from .drift import register_drift_commands
 from .patterns import patterns_commands
 from .refusals import refusals_commands
 from .repo_census import repo_census_cmd
@@ -58,10 +58,8 @@ for cmd in patterns_commands:
 for cmd in refusals_commands:
     inspect_app.command(cmd["name"], **cmd.get("kwargs", {}))(cmd["func"])
 
-# Drift detection (includes guard commands)
-for cmd in drift_commands:
-    inspect_app.command(cmd["name"], **cmd.get("kwargs", {}))(cmd["func"])
-register_drift_commands(inspect_app)  # Register guard commands
+# Guard commands (module retains its historical "drift" name — see drift.py)
+register_drift_commands(inspect_app)
 
 # Analysis tools
 for cmd in analysis_commands:

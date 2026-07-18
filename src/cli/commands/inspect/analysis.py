@@ -14,7 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from api.cli import CoreApiClient
-from cli.utils import core_command, deprecated_command
+from cli.utils import core_command
 from shared.cli.command_meta import (
     CommandBehavior,
     CommandExposure,
@@ -62,27 +62,6 @@ async def clusters_cmd(
         )
         size = cluster.get("size", 0) if isinstance(cluster, dict) else ""
         console.print(f"- {topic}: {size} items")
-
-
-@command_meta(
-    canonical_name="inspect.find-clusters",
-    behavior=CommandBehavior.READ,
-    layer=CommandLayer.BODY,
-    exposure=CommandExposure.USER_FACING,
-    summary="DEPRECATED alias for 'inspect clusters'",
-    aliases=["clusters"],
-)
-@core_command(dangerous=False, requires_context=False)
-# ID: 27c63367-a75d-4fbe-bc3e-aebfa1542549
-async def find_clusters_cmd(
-    ctx: typer.Context,
-    n_clusters: int = typer.Option(
-        25, "--n-clusters", "-n", help="The number of clusters to find."
-    ),
-) -> None:
-    """DEPRECATED alias for `inspect clusters`."""
-    deprecated_command("inspect find-clusters", "inspect clusters")
-    await clusters_cmd(ctx, n_clusters=n_clusters)
 
 
 @command_meta(
@@ -161,7 +140,6 @@ async def common_knowledge_cmd(ctx: typer.Context) -> None:
 
 analysis_commands = [
     {"name": "clusters", "func": clusters_cmd},
-    {"name": "find-clusters", "func": find_clusters_cmd},
     {"name": "duplicates", "func": duplicates_command},
     {"name": "common-knowledge", "func": common_knowledge_cmd},
 ]
