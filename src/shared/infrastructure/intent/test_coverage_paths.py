@@ -23,7 +23,7 @@ will/, body/, or cli/.
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from shared.logger import getLogger
@@ -107,7 +107,12 @@ def source_to_test_path(
             "tests/foo/bar/test_generated.py".
 
     Raises:
-        ValueError: if source_file does not start with "{source_root}/".
+        ValueError: if source_file does not start with "{source_root}/", or
+            contains a ".." path segment (#817 — the prefix check alone is
+            textual, so "src/../../../etc/passwd" passes it while resolving
+            well outside source_root; callers that need actual filesystem
+            containment against a repo_root should use
+            resolve_contained_source_path instead/in addition).
     """
     if config is None:
         config = load_test_coverage_config()
@@ -122,11 +127,43 @@ def source_to_test_path(
             f"source_file {source_file!r} does not start with configured "
             f"source_root prefix {prefix!r}"
         )
+    if ".." in PurePosixPath(source_file).parts:
+        raise ValueError(
+            f"source_file {source_file!r} contains '..' path segments — "
+            "traversal outside source_root is not permitted"
+        )
 
     return (
         source_file.replace(prefix, f"{test_root}/", 1).removesuffix(".py")
         + test_file_suffix
     )
+
+
+# ID: 6160b527-a734-4501-9804-18c299228a5b
+def resolve_contained_source_path(repo_root: Path, source_file: str) -> Path:
+    """Resolve `source_file` against `repo_root`, rejecting any traversal
+    outside it (#817).
+
+    A bare `(repo_root / source_file).resolve()` does not, by itself, reject
+    a result outside `repo_root` — `resolve()` only normalizes `..`
+    segments, it does not bound the result. `source_to_test_path`'s textual
+    prefix check catches this for callers that map source_file to a test
+    path, but several existence-check call sites (does this source file
+    exist on disk?) resolve and check `source_file` directly, before any
+    call to `source_to_test_path` — those call sites need this helper
+    instead, or in addition.
+
+    Raises:
+        ValueError: the resolved path is not contained within `repo_root`.
+    """
+    repo_root = repo_root.resolve()
+    resolved = (repo_root / source_file).resolve()
+    if not resolved.is_relative_to(repo_root):
+        raise ValueError(
+            f"source_file {source_file!r} resolves outside repo_root "
+            f"({resolved} is not within {repo_root})"
+        )
+    return resolved
 
 
 # ID: 8f9a4e1c-6d7b-4a23-be35-c4d5e6f7a819

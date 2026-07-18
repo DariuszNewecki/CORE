@@ -29,6 +29,9 @@ from body.evaluators.test_gap_evaluator import TestGapEvaluator
 from body.flows.executor import FlowExecutor
 from body.flows.result import declared_production
 from body.quality.coverage_candidate_selector import select_batch_candidates
+from shared.infrastructure.intent.test_coverage_paths import (
+    resolve_contained_source_path,
+)
 from shared.logger import getLogger
 from will.agents.test_gen_cognitive_delegate import TestGenCognitiveDelegate
 
@@ -88,7 +91,14 @@ async def remediate_file_by_symbol(
         }
 
     repo_root = context.git_service.repo_path
-    source_path = (repo_root / source_file).resolve()
+    try:
+        source_path = resolve_contained_source_path(repo_root, source_file)
+    except ValueError as exc:
+        return {
+            "status": "failed",
+            "source_file": source_file,
+            "error": str(exc),
+        }
     if not source_path.exists() or not source_path.is_file():
         return {
             "status": "failed",

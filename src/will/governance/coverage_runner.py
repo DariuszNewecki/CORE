@@ -32,6 +32,9 @@ from sqlalchemy import text
 from body.quality.coverage_analyzer import CoverageAnalyzer
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
+from shared.infrastructure.intent.test_coverage_paths import (
+    resolve_contained_source_path,
+)
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_command_async
 from will.self_healing.symbol_coverage_remediation import (
@@ -365,7 +368,13 @@ async def run_and_persist_coverage_generation(
         return
 
     repo_root = context.git_service.repo_path
-    file_path = (repo_root / target_file).resolve()
+    try:
+        file_path = resolve_contained_source_path(repo_root, target_file)
+    except ValueError as exc:
+        await _update_coverage_run_status(
+            session, run_id, "failed", finished=True, error=str(exc)
+        )
+        return
     if not file_path.exists() or not file_path.is_file():
         await _update_coverage_run_status(
             session,
@@ -635,7 +644,10 @@ async def run_tests_interactive(
     """
     repo_root = context.git_service.repo_path
     if target_file:
-        file_path = (repo_root / target_file).resolve()
+        try:
+            file_path = resolve_contained_source_path(repo_root, target_file)
+        except ValueError as exc:
+            return {"ok": False, "error": str(exc)}
         if not file_path.exists() or not file_path.is_file():
             return {
                 "ok": False,

@@ -97,6 +97,20 @@ async def test_missing_source_file_rejected(tmp_path: Path) -> None:
     assert "does not exist" in result["error"]
 
 
+async def test_traversal_source_file_rejected_before_touching_disk(tmp_path: Path) -> None:
+    """#817: a source_file that resolves outside repo_root must be rejected
+    by containment, not just fail later for some unrelated reason."""
+    context = _make_context(tmp_path)
+    with patch(f"{_MODULE}.TestGapEvaluator") as gap_eval:
+        result = await remediate_file_by_symbol(
+            context, "src/../../../../../../etc/passwd", write=True
+        )
+
+    assert result["status"] == "failed"
+    assert "resolves outside repo_root" in result["error"]
+    gap_eval.assert_not_called()
+
+
 async def test_zero_gaps_skips_worktree_entirely(tmp_path: Path) -> None:
     context = _make_context(tmp_path)
     evaluator_instance = AsyncMock()
