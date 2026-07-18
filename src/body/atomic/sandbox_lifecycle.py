@@ -25,6 +25,7 @@ repo-source IntentGuard tier idempotently).
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionDefinition
@@ -98,7 +99,7 @@ class SandboxLifecycle:
     """
     ADR-071 D2.2 sandbox decision + copy-back subsystem.
 
-    Two public methods, both operating on the same scoped-git instance:
+    Four public methods:
 
     - `build_execution_context` — decide whether to sandbox the about-to-run
       action, and if so produce a scoped CoreContext with `git_service`,
@@ -106,16 +107,29 @@ class SandboxLifecycle:
       worktree (#815 — every filesystem-facing service must agree on the same
       repo root; a mismatch splits writes across the worktree and main tree).
 
+    - `build_flow_execution_context` — the flow-granularity counterpart.
+
     - `propagate_changes` — after a successful sandboxed run, copy the
       worktree's modified/untracked files back to the main tree through
       the unified `FileHandler.write` channel, with a conflict check that
       refuses to overwrite uncommitted main-tree changes (loud-failure
       contract).
 
-    Both methods are pure delegations of subsystem state — they share no
-    in-flight state between calls. ActionExecutor holds the instance and
-    drives both call sites within a single `execute()` invocation, passing
-    the `scoped_git` handle between them.
+    - `checkpoint_paths` / `restore_paths` (#814-adjacent) — snapshot and
+      undo a caller's own multi-step write *within* one worktree, for a
+      caller that runs several governed steps against the same worktree
+      (e.g. one per symbol) and needs a later step's failure to roll back
+      only that step's writes without discarding earlier steps' successes.
+      Uses `scoped_context.file_handler` internally so Will-tier callers —
+      whose sanctioned write door is `file_service`, not `file_handler` —
+      never need to touch `file_handler` (or, for deletion, an escape hatch
+      `file_service` doesn't even expose) directly themselves.
+
+    All four are pure delegations of subsystem state — they share no
+    in-flight state between calls. ActionExecutor/FlowExecutor callers hold
+    the instance and drive the relevant call sites within a single
+    `execute()` invocation, passing the `scoped_git`/`scoped_context` handle
+    between them.
     """
 
     def __init__(self, core_context: CoreContext):
@@ -407,3 +421,52 @@ class SandboxLifecycle:
             copied,
         )
         return target_paths
+
+    # ID: 85d80659-74d3-47c7-bbd1-d51a6abf4527
+    def checkpoint_paths(
+        self, scoped_context: CoreContext, rel_paths: Iterable[str]
+    ) -> dict[str, str | None]:
+        """Snapshot the current content of each path inside a scoped worktree.
+
+        Read-only. Returns `{rel_path: content_or_None}` — `None` means the
+        path did not exist at checkpoint time. Pair with `restore_paths` to
+        undo a caller's own multi-step write within one worktree when a
+        later step fails and the earlier steps' writes must not survive
+        (e.g. #817-adjacent: a per-symbol write inside a shared worktree
+        whose later validation step fails must not leak into what a
+        *different*, later-succeeding symbol propagates).
+        """
+        worktree_root = scoped_context.git_service.repo_path
+        snapshot: dict[str, str | None] = {}
+        for rel in rel_paths:
+            path = worktree_root / rel
+            snapshot[rel] = path.read_text(encoding="utf-8") if path.exists() else None
+        return snapshot
+
+    # ID: fb9c1231-70f7-422f-a1cb-ad57b2742852
+    def restore_paths(
+        self, scoped_context: CoreContext, snapshot: dict[str, str | None]
+    ) -> None:
+        """Restore each checkpointed path to its pre-checkpoint state.
+
+        Rewrites the checkpointed content where it existed, removes the
+        path where it did not (via `file_handler.remove_file` — the
+        sanctioned Body-tier deletion surface; Will-tier callers MUST NOT
+        reach for raw file_handler/unlink themselves, which is exactly the
+        boundary violation this method exists to avoid — CoreContext
+        documents `file_service` as the Will-tier write door and reserves
+        `file_handler` for Body/infrastructure). A path whose current
+        content already matches its checkpoint is left untouched (no-op
+        write). Uses `scoped_context.file_handler` — the scoped, worktree-
+        rooted handler — never the main tree's.
+        """
+        worktree_root = scoped_context.git_service.repo_path
+        for rel, checkpointed_content in snapshot.items():
+            path = worktree_root / rel
+            current = path.read_text(encoding="utf-8") if path.exists() else None
+            if current == checkpointed_content:
+                continue
+            if checkpointed_content is None:
+                scoped_context.file_handler.remove_file(rel)
+            else:
+                scoped_context.file_handler.write(rel, checkpointed_content)

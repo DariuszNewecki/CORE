@@ -166,6 +166,38 @@ def resolve_contained_source_path(repo_root: Path, source_file: str) -> Path:
     return resolved
 
 
+# ID: fef2a66e-f052-45e1-ac25-db1d90d26695
+def test_file_ancestor_init_paths(test_file: str) -> list[str]:
+    """Repo-relative `__init__.py` paths from `test_file`'s directory up
+    through `tests/`, inclusive.
+
+    Mirrors `body.atomic.build_test_for_symbol_action`'s ancestor-walk
+    exactly — including its hardcoded `"tests"` stop condition (that action
+    does not consult the configured `test_root`; this mirrors it as-is
+    rather than introducing a second, possibly-divergent source of truth).
+    build.test_for_symbol creates any of these that are missing so
+    pytest/importlib can resolve the generated test's module path, and
+    declares them in `files_produced` alongside the test file itself — a
+    caller that needs to know the *full* candidate footprint of a
+    build.test_for_symbol write (not just the test file) for checkpoint/
+    restore purposes needs this list too. Pure path arithmetic, no I/O —
+    does not check which of these actually exist or would actually be
+    created; callers combine this with their own existence checks (or a
+    Body-layer checkpoint) as needed.
+    """
+    ancestor = PurePosixPath(test_file).parent
+    paths: list[str] = []
+    while True:
+        paths.append(str(ancestor / "__init__.py"))
+        if str(ancestor) == "tests":
+            break
+        parent = ancestor.parent
+        if parent == ancestor:
+            break
+        ancestor = parent
+    return paths
+
+
 # ID: 8f9a4e1c-6d7b-4a23-be35-c4d5e6f7a819
 def uncovered_source_files(
     repo_root: Path,

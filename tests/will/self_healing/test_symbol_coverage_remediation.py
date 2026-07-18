@@ -504,3 +504,116 @@ async def test_failed_symbol_write_never_propagates_via_another_symbols_success(
     assert "test_do_a" in final_content
     assert "test_do_c" in final_content
     assert "test_do_b" not in final_content
+
+
+def _flow_executor_factory_with_ancestor_inits(script: dict, test_file: str):
+    """Like _flow_executor_factory, but the fake .execute() also mirrors
+    build_test_for_symbol_action.py's ancestor __init__.py creation exactly
+    — needed to exercise the orphaned-support-file scenario: a failed first
+    symbol on a brand-new nested test path can leave __init__.py files
+    behind that a later-succeeding symbol never re-declares (they already
+    exist by the time it runs), so they'd be silently dropped from
+    propagation unless checkpoint/restore covers them too, not just the
+    test file itself.
+    """
+
+    def factory(scoped_context, cognitive_delegate=None):
+        executor = AsyncMock()
+
+        async def fake_execute(*, flow_id, write, source_file, symbol_name, symbol_kind, signature):
+            ok, snippet = script[symbol_name]
+            worktree_root = scoped_context.git_service.repo_path
+            test_path = worktree_root / test_file
+            test_path.parent.mkdir(parents=True, exist_ok=True)
+            existing = test_path.read_text() if test_path.exists() else ""
+            test_path.write_text(existing + snippet)
+            produced = [test_file]
+
+            tests_root = worktree_root / "tests"
+            ancestor = test_path.parent
+            while True:
+                init_path = ancestor / "__init__.py"
+                if not init_path.exists():
+                    init_path.write_text("")
+                    produced.append(str(init_path.relative_to(worktree_root)))
+                if ancestor == tests_root or ancestor == worktree_root:
+                    break
+                ancestor = ancestor.parent
+
+            build_step = StepResult(
+                ref_id="build.test_for_symbol",
+                required=True,
+                ok=True,
+                data={"test_file": test_file, "files_produced": produced},
+            )
+            if ok:
+                return FlowResult(flow_id=flow_id, ok=True, steps=[build_step])
+            return FlowResult(
+                flow_id=flow_id,
+                ok=False,
+                steps=[
+                    build_step,
+                    StepResult(
+                        ref_id="test.sandbox_validate",
+                        required=True,
+                        ok=False,
+                        data={"error": f"{symbol_name} failed sandbox validation"},
+                    ),
+                ],
+            )
+
+        executor.execute = fake_execute
+        return executor
+
+    return factory
+
+
+async def test_failed_first_symbol_on_new_nested_path_does_not_orphan_init_files(
+    tmp_path: Path,
+) -> None:
+    """A brand-new nested test path (no existing tests/pkg/sub/ scaffolding):
+    symbol A's build.test_for_symbol writes the test file AND creates the
+    missing ancestor __init__.py files, then final validation fails; symbol
+    B succeeds. The main tree must end up with B's test exactly once, no A
+    content, and every required __init__.py file — not just the test file
+    with no package scaffolding."""
+    repo = _make_real_repo(tmp_path)
+    context = _make_real_context(repo)
+    test_file = "tests/pkg/sub/test_thing.py"
+
+    gaps = [
+        {"name": "do_a", "kind": "function", "signature": "def do_a()"},
+        {"name": "do_b", "kind": "function", "signature": "def do_b()"},
+    ]
+    evaluator_instance = AsyncMock()
+    evaluator_instance.execute = AsyncMock(
+        return_value=_gap_result(gaps, test_file=test_file)
+    )
+
+    script = {
+        "do_a": (False, "def test_do_a():\n    assert True\n\n"),
+        "do_b": (True, "def test_do_b():\n    assert True\n\n"),
+    }
+
+    with (
+        patch(f"{_MODULE}.TestGapEvaluator", return_value=evaluator_instance),
+        patch(f"{_MODULE}.TestGenCognitiveDelegate", return_value=MagicMock()),
+        patch(
+            f"{_MODULE}.FlowExecutor",
+            side_effect=_flow_executor_factory_with_ancestor_inits(script, test_file),
+        ),
+    ):
+        result = await remediate_file_by_symbol(context, "src/thing.py", write=True)
+
+    assert result["status"] == "completed"
+    assert result["summary"] == {"gaps": 2, "succeeded": 1, "failed": 1, "skipped": 0}
+
+    final_content = (repo / test_file).read_text()
+    assert "test_do_b" in final_content
+    assert "test_do_a" not in final_content
+
+    # Every ancestor __init__.py must have made it to the main tree — not
+    # just the test file — or pytest/importlib cannot collect it.
+    assert (repo / "tests" / "pkg" / "sub" / "__init__.py").exists()
+    assert (repo / "tests" / "pkg" / "__init__.py").exists()
+    assert (repo / "tests" / "__init__.py").exists()
