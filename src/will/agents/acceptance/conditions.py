@@ -23,14 +23,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from shared.logger import getLogger
 from shared.utils.test_gen_utils import strip_leading_future_imports
 
-
-if TYPE_CHECKING:
-    from body.services.file_service import FileService
 
 logger = getLogger(__name__)
 
@@ -117,20 +114,25 @@ class IntentGuardAcceptanceCondition:
 # ID: 76e1f64e-810c-484c-ba12-d32b54c84337
 class PytestAcceptanceCondition:
     """
-    AcceptanceCondition that runs the generated test via test.sandbox_validate.
+    AcceptanceCondition that runs the generated test via test.candidate_validate.
 
     Delegates test execution to Body via ActionExecutor — Will MUST NOT invoke
     subprocess directly (governance.dangerous_execution_primitives). The worktree
     must already be sandboxed (ADR-106) before this condition is used.
 
-    Writes `base_content + code` to `target_path` before every evaluate() call,
-    via the injected `file_service` — a full overwrite, never an append. This is
-    deliberate (ADR-140 Amendment 2026-07-14, later): the production write action
-    `build.test_for_symbol` appends, which would leave every rejected candidate's
-    body stacked in the file across repair iterations. `base_content` is the
-    target file's content captured once, before the loop starts, so each iteration
-    replaces only the candidate portion. `file_service` is `CoreContext.file_service`
-    (ADR-097 D4) — the sanctioned Will-tier write door, not a raw `FileHandler`.
+    #815: this condition never writes to `target_path` — the real test file's
+    location — at all, for any candidate, accepted or rejected. It previously
+    wrote `base_content + code` there directly via `file_service` on every
+    evaluate() call, which (a) was not scoped to the sandbox worktree even when
+    running inside one, so rejected candidates leaked into the main repo tree,
+    and (b) once file_service scoping was fixed, would have collided with
+    `build.test_for_symbol`'s own later append of the same accepted snippet — a
+    duplicate-definition bug. `test.candidate_validate` (Body) materializes each
+    candidate under `var/tmp/` ephemeral scratch instead, runs pytest there, and
+    cleans up — `target_path` is passed through only so the action can name the
+    scratch file and attribute results, never as a write destination. The single
+    authoritative writer of `target_path` remains `build.test_for_symbol`, after
+    acceptance.
     """
 
     def __init__(
@@ -139,13 +141,11 @@ class PytestAcceptanceCondition:
         source_file: str,
         target_path: str,
         base_content: str,
-        file_service: FileService,
     ) -> None:
         self._executor = executor
         self._source_file = source_file
         self._target_path = target_path
         self._base_content = base_content
-        self._file_service = file_service
 
     # ID: 1761e499-621c-4daa-9c40-0e124f6b27b2
     async def evaluate(self, code: str) -> AcceptanceResult:
@@ -166,32 +166,20 @@ class PytestAcceptanceCondition:
             )
 
         try:
-            self._file_service.write(self._target_path, full_content)
-        except Exception as exc:
-            logger.error(
-                "PytestAcceptanceCondition: candidate write to %s raised: %s",
-                self._target_path,
-                exc,
-            )
-            return AcceptanceResult(
-                accepted=False,
-                violation_summary=f"candidate write failed: {exc}",
-                violations=[str(exc)],
-            )
-
-        try:
             result = await self._executor.execute(
-                "test.sandbox_validate",
+                "test.candidate_validate",
                 write=False,
                 source_file=self._source_file,
+                target_path=self._target_path,
+                candidate_content=full_content,
             )
         except Exception as exc:
             logger.error(
-                "PytestAcceptanceCondition: test.sandbox_validate raised: %s", exc
+                "PytestAcceptanceCondition: test.candidate_validate raised: %s", exc
             )
             return AcceptanceResult(
                 accepted=False,
-                violation_summary=f"test.sandbox_validate raised: {exc}",
+                violation_summary=f"test.candidate_validate raised: {exc}",
                 violations=[str(exc)],
             )
 

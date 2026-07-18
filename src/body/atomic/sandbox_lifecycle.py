@@ -101,8 +101,10 @@ class SandboxLifecycle:
     Two public methods, both operating on the same scoped-git instance:
 
     - `build_execution_context` — decide whether to sandbox the about-to-run
-      action, and if so produce a scoped CoreContext with `git_service` and
-      `file_handler` repointed at a fresh ScopedGitService worktree.
+      action, and if so produce a scoped CoreContext with `git_service`,
+      `file_handler`, and `file_service` repointed at a fresh ScopedGitService
+      worktree (#815 — every filesystem-facing service must agree on the same
+      repo root; a mismatch splits writes across the worktree and main tree).
 
     - `propagate_changes` — after a successful sandboxed run, copy the
       worktree's modified/untracked files back to the main tree through
@@ -139,9 +141,11 @@ class SandboxLifecycle:
 
         Returns (context_to_pass_to_action, scoped_git_or_None). When
         sandboxing applies, the returned context is a shallow copy of
-        self.core_context with `git_service` and `file_handler` repointed
-        at a fresh ScopedGitService rooted at `pre_execution_sha`. The
-        caller MUST call `scoped_git.cleanup()` in a finally block.
+        self.core_context with `git_service`, `file_handler`, and
+        `file_service` all repointed at a fresh ScopedGitService rooted
+        at `pre_execution_sha` (#815 — all filesystem-facing services
+        must agree on the same repo root). The caller MUST call
+        `scoped_git.cleanup()` in a finally block.
 
         Gate (all required):
           - pre_execution_sha is not None (autonomous call path)
@@ -184,10 +188,11 @@ class SandboxLifecycle:
         last executes it), so the unit of isolation is the *flow execution*, not
         the individual action — one worktree spans every step. Returns
         ``(context_to_pass_to_FlowExecutor, scoped_git_or_None)``; when sandboxing
-        applies the context is a scoped copy with ``git_service`` and
-        ``file_handler`` repointed at a fresh worktree at ``pre_execution_sha``.
-        The caller MUST ``scoped_git.cleanup()`` in a finally block and, on
-        flow success, call ``propagate_changes(scoped_git)``.
+        applies the context is a scoped copy with ``git_service``,
+        ``file_handler``, and ``file_service`` all repointed at a fresh worktree
+        at ``pre_execution_sha`` (#815). The caller MUST ``scoped_git.cleanup()``
+        in a finally block and, on flow success, call
+        ``propagate_changes(scoped_git)``.
 
         Gate (all required, ADR-106 D5):
           - pre_execution_sha is not None (autonomous call path)
@@ -220,10 +225,21 @@ class SandboxLifecycle:
         ``scoped_git.cleanup()`` in a finally block.
         """
         from body.infrastructure.storage.file_handler import FileHandler
+        from body.services.file_service import FileService
 
         scoped_git = self.core_context.git_service.create_worktree(pre_execution_sha)
         try:
             scoped_file_handler = FileHandler(str(scoped_git.repo_path))
+            # #815: file_handler and file_service are two independent
+            # filesystem-facing services on CoreContext (shared.context) —
+            # FileService binds its own internal FileHandler permanently to
+            # whatever repo_path it is constructed with. Leaving file_service
+            # unscoped here left a scoped CoreContext with a split-brain
+            # filesystem: file_handler pointed at the worktree, file_service
+            # still pointed at the main tree, so consumers that write via
+            # file_service (e.g. PytestAcceptanceCondition) silently wrote
+            # into the real repo instead of the sandbox.
+            scoped_file_service = FileService(scoped_git.repo_path)
         except Exception:
             scoped_git.cleanup()
             raise
@@ -232,6 +248,7 @@ class SandboxLifecycle:
             self.core_context,
             git_service=scoped_git,
             file_handler=scoped_file_handler,
+            file_service=scoped_file_service,
         )
         logger.info(
             "SandboxLifecycle: %s sandboxed in %s at sha %s",

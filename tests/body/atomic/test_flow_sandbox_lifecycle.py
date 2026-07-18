@@ -106,6 +106,26 @@ def test_sandboxes_write_bearing_flow(repo: Path) -> None:
             scoped_git.cleanup()
 
 
+# ID: 2c9e7b41-8f36-4d02-a1c5-6b8e3d9f7a20
+def test_scoped_context_file_service_matches_worktree(repo: Path) -> None:
+    """#815: file_service must be repointed at the worktree too, not just
+    git_service/file_handler — a scoped CoreContext with filesystem services
+    split across two repo roots is the exact defect this fix closes."""
+    sandbox, ctx = _make_sandbox(repo)
+    sha = ctx.git_service.get_current_commit()
+    scoped_ctx, scoped_git = sandbox.build_flow_execution_context(
+        "flow.build_test_for_symbol", write=True, pre_execution_sha=sha
+    )
+    try:
+        assert scoped_git is not None
+        assert scoped_ctx.file_service is not ctx.file_service
+        assert Path(scoped_ctx.file_service.repo_path) == Path(scoped_git.repo_path)
+        assert Path(scoped_ctx.file_service.repo_path) != Path(repo)
+    finally:
+        if scoped_git is not None:
+            scoped_git.cleanup()
+
+
 # ID: 6c0f8e23-9a17-4d54-b8e2-1f5a3c9d7b48
 def test_passthrough_when_pre_execution_sha_is_none(repo: Path) -> None:
     sandbox, ctx = _make_sandbox(repo)

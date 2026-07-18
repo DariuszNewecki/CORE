@@ -60,56 +60,62 @@ async def test_intent_guard_condition_rejects_invalid_code(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pytest_condition_writes_full_content_then_validates() -> None:
+async def test_pytest_condition_never_writes_target_path_only_delegates_candidate() -> None:
+    """#815: PytestAcceptanceCondition must never write target_path itself — it
+    passes the fully-assembled candidate to test.candidate_validate and lets that
+    action own scratch materialization entirely."""
     executor = AsyncMock()
     executor.execute = AsyncMock(
-        return_value=ActionResult(action_id="test.sandbox_validate", ok=True, data={})
+        return_value=ActionResult(
+            action_id="test.candidate_validate", ok=True, data={}
+        )
     )
-    file_service = MagicMock()
-    file_service.write = MagicMock()
 
     cond = PytestAcceptanceCondition(
         executor=executor,
         source_file="src/x.py",
         target_path="tests/x/test_generated.py",
         base_content="from __future__ import annotations\n\n\ndef test_existing():\n    assert True\n",
-        file_service=file_service,
     )
 
     result = await cond.evaluate("def test_new():\n    assert 1 == 1\n")
 
     assert result.accepted
-    written_path, written_content = file_service.write.call_args[0]
-    assert written_path == "tests/x/test_generated.py"
-    assert "def test_existing" in written_content
-    assert "def test_new" in written_content
-    executor.execute.assert_called_once_with(
-        "test.sandbox_validate", write=False, source_file="src/x.py"
-    )
+    executor.execute.assert_called_once()
+    call = executor.execute.call_args
+    assert call.args == ("test.candidate_validate",)
+    assert call.kwargs["write"] is False
+    assert call.kwargs["source_file"] == "src/x.py"
+    assert call.kwargs["target_path"] == "tests/x/test_generated.py"
+    candidate_content = call.kwargs["candidate_content"]
+    assert "def test_existing" in candidate_content
+    assert "def test_new" in candidate_content
 
 
 @pytest.mark.asyncio
-async def test_pytest_condition_overwrites_not_appends_across_iterations() -> None:
-    """A rejected candidate's body must not survive into the next iteration's write."""
+async def test_pytest_condition_recomputes_not_accumulates_across_iterations() -> None:
+    """A rejected candidate's body must not survive into the next iteration's
+    candidate_content — each evaluate() call assembles base_content + this
+    iteration's code only, never a prior iteration's rejected candidate."""
     executor = AsyncMock()
     executor.execute = AsyncMock(
-        return_value=ActionResult(action_id="test.sandbox_validate", ok=False, data={})
+        return_value=ActionResult(
+            action_id="test.candidate_validate", ok=False, data={}
+        )
     )
-    file_service = MagicMock()
 
     cond = PytestAcceptanceCondition(
         executor=executor,
         source_file="src/x.py",
         target_path="tests/x/test_generated.py",
         base_content="",
-        file_service=file_service,
     )
 
     await cond.evaluate("def test_attempt_one():\n    assert False\n")
     await cond.evaluate("def test_attempt_two():\n    assert True\n")
 
-    assert file_service.write.call_count == 2
-    second_content = file_service.write.call_args_list[1][0][1]
+    assert executor.execute.call_count == 2
+    second_content = executor.execute.call_args_list[1].kwargs["candidate_content"]
     assert "test_attempt_one" not in second_content
     assert "test_attempt_two" in second_content
 
@@ -119,19 +125,17 @@ async def test_pytest_condition_rejects_on_sandbox_failure() -> None:
     executor = AsyncMock()
     executor.execute = AsyncMock(
         return_value=ActionResult(
-            action_id="test.sandbox_validate",
+            action_id="test.candidate_validate",
             ok=False,
             data={"error": "AssertionError: 1 != 2"},
         )
     )
-    file_service = MagicMock()
 
     cond = PytestAcceptanceCondition(
         executor=executor,
         source_file="src/x.py",
         target_path="tests/x/test_generated.py",
         base_content="",
-        file_service=file_service,
     )
 
     result = await cond.evaluate("def test_new():\n    assert 1 == 2\n")
@@ -147,7 +151,6 @@ async def test_pytest_condition_rejects_when_executor_not_wired() -> None:
         source_file="src/x.py",
         target_path="tests/x/test_generated.py",
         base_content="",
-        file_service=MagicMock(),
     )
 
     result = await cond.evaluate("def test_new(): assert True")

@@ -183,7 +183,6 @@ class TestGenCognitiveDelegate:
                     source_file=source_file,
                     target_path=target_path,
                     base_content=base_content,
-                    file_service=self._core_context.file_service,
                 ),
             ]
         )

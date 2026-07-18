@@ -136,6 +136,9 @@ actions:
   refactor.apply_split:
     impact_level: dangerous
     artifact_types: [python]
+  test.candidate_validate:
+    impact_level: safe
+    artifact_types: [python]
   test.execute:
     impact_level: moderate
     artifact_types: [python]

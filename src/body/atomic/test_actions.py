@@ -14,16 +14,21 @@ correctly. The underlying run_tests stays in shared/infrastructure
 
 from __future__ import annotations
 
+import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.validation.test_runner import run_tests
+from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
+
+logger = getLogger(__name__)
 
 
 @register_action(
@@ -124,6 +129,107 @@ async def action_test_sandbox_validate(
                 "rule": "test.generated.must_execute",
                 "message": (
                     "Generated test failed sandbox execution: "
+                    + str(result.data.get("summary", "unknown failure"))
+                ),
+            }
+        ]
+    return result
+
+
+@register_action(
+    action_id="test.candidate_validate",
+    description="Validate a not-yet-accepted candidate test snippet against pytest in ephemeral scratch",
+    category=ActionCategory.CHECK,
+    policies=["rules/code/purity"],
+    requires_db=True,
+    requires_vectors=False,
+)
+@atomic_action(
+    action_id="test.candidate_validate",
+    intent="Materialize a candidate test file under var/tmp/ ephemeral scratch and run pytest against it, so the generation acceptance loop never writes to the real target test path",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["atomic_actions"],
+)
+# ID: 5f8a2c94-6b1e-4d37-9a80-2c5e7f9b3d16
+async def action_test_candidate_validate(
+    *,
+    source_file: str,
+    target_path: str,
+    candidate_content: str,
+    core_context: CoreContext | None = None,
+    **kwargs: Any,
+) -> ActionResult:
+    """Evaluate one generation candidate without ever touching production paths (#815).
+
+    PytestAcceptanceCondition previously wrote `base_content + candidate` straight
+    to the real `target_path` on every iteration (rejected candidates included) via
+    `CoreContext.file_service`. When that context wasn't scoped to a sandbox
+    worktree, candidates leaked into the main repo tree; even scoped, it collided
+    with `build.test_for_symbol`'s own later append of the same accepted snippet
+    (a duplicate-definition bug). Neither problem can occur here: this action
+    writes only to a fresh `var/tmp/candidate_validate/<token>/` directory
+    (`FileHandler.write` classifies `var/tmp/` as ephemeral-scratch — no
+    syntax/schema gates, no ID-anchor injection), runs pytest against that scratch
+    copy, and removes the directory before returning. Nothing under `tests/` or
+    `src/` is ever written by this action; `target_path` is used only to name the
+    scratch file, never as a write destination.
+
+    `source_file` is not consulted for path derivation — `target_path` is already
+    resolved by the caller (mirrors test.sandbox_validate's contract, which is
+    invoked identically once a candidate is accepted) — it is threaded through only
+    for traceability in the returned data.
+    """
+    if core_context is None or core_context.file_handler is None:
+        return ActionResult(
+            action_id="test.candidate_validate",
+            ok=False,
+            data={"error": "core_context with file_handler is required"},
+            impact=ActionImpact.WRITE_DATA,
+        )
+
+    scratch_dir = f"var/tmp/candidate_validate/{uuid.uuid4().hex}"
+    scratch_rel_path = f"{scratch_dir}/{Path(target_path).name}"
+
+    try:
+        core_context.file_handler.write(scratch_rel_path, candidate_content)
+    except Exception as exc:
+        return ActionResult(
+            action_id="test.candidate_validate",
+            ok=False,
+            data={
+                "error": f"candidate scratch write failed: {exc}",
+                "source_file": source_file,
+                "target_path": target_path,
+            },
+            impact=ActionImpact.WRITE_DATA,
+        )
+
+    repo_root = core_context.git_service.repo_path if core_context.git_service else None
+    try:
+        result = await run_tests(
+            target=scratch_rel_path,
+            action_id="test.candidate_validate",
+            repo_root=repo_root,
+        )
+    finally:
+        try:
+            core_context.file_handler.remove_tree(scratch_dir)
+        except Exception as exc:
+            logger.warning(
+                "test.candidate_validate: scratch cleanup failed for %s: %s",
+                scratch_dir,
+                exc,
+            )
+
+    result.data["source_file"] = source_file
+    result.data["target_path"] = target_path
+    if not result.ok:
+        result.data["violations"] = [
+            {
+                "file": target_path,
+                "rule": "test.candidate.must_execute",
+                "message": (
+                    "Candidate test failed sandboxed execution: "
                     + str(result.data.get("summary", "unknown failure"))
                 ),
             }
