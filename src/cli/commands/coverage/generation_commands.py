@@ -72,40 +72,27 @@ async def generate_adaptive_command(
         console.print(f"[red]❌ Generation failed: {final.get('error') or final}[/red]")
         raise typer.Exit(code=1)
 
+    # EnhancedSingleFileRemediationService.remediate()'s real success shape:
+    # {"status": "completed", "file", "test_file", "final_coverage", "metrics"}.
+    # The key list this used to render (sandbox_passed, patterns_learned,
+    # strategy_switches, ...) never existed in that shape — this rendered
+    # near-empty on every run, success or not (#813).
     payload = final.get("result") or {}
     console.print("\n[bold]📊 Generation Results:[/bold]")
-    for key, label in (
-        ("file_path", "File"),
-        ("total_symbols", "Total symbols"),
-        ("tests_generated", "Validated tests"),
-        ("sandbox_passed", "Sandbox passed"),
-        ("tests_failed", "Sandbox failed"),
-        ("tests_skipped", "Skipped"),
-        ("success_rate", "Validation rate"),
-        ("strategy_switches", "Strategy switches"),
-        ("total_duration", "Duration (s)"),
-    ):
-        if key in payload:
-            console.print(f"  {label}: {payload[key]}")
-
-    patterns = payload.get("patterns_learned") or {}
-    if patterns:
-        console.print("\n[bold]🧠 Patterns Learned:[/bold]")
-        for pattern, count in sorted(
-            patterns.items(), key=lambda x: x[1], reverse=True
-        ):
-            console.print(f"  • {pattern}: {count}x")
+    console.print(f"  File: {payload.get('file', file_path)}")
+    console.print(f"  Test file: {payload.get('test_file', 'unknown')}")
+    final_coverage = payload.get("final_coverage")
+    if final_coverage is not None:
+        console.print(f"  Final coverage: {final_coverage}%")
 
     console.print("\n[dim]Write mode:[/dim]")
     console.print("  • Passing tests -> tests/... (mirrored)")
     console.print("  • Failing tests  -> var/artifacts/test_gen/failures/...")
 
-    if payload.get("tests_generated", 0):
-        console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
-    else:
-        console.print(
-            "\n[bold yellow]⚠️  No tests validated successfully.[/bold yellow]"
-        )
+    # final["status"] == "completed" was already confirmed above (coverage_runs
+    # row status now correctly reflects the generator's own "completed" status
+    # per #813's coverage_runner.py fix) — reaching here always means success.
+    console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
 
 
 @core_command(dangerous=True, confirmation=True, requires_context=False)
@@ -163,18 +150,26 @@ async def generate_adaptive_batch_command(
         )
         raise typer.Exit(code=1)
 
+    # BatchRemediationService.process_batch()'s real shape: {"status",
+    # "processed", "results": [...], "summary": {"success","failed","skipped"}}.
+    # The key list this used to render (files_processed, tests_sandbox_passed,
+    # tests_saved, ...) never existed — rendered near-empty every run (#813).
     payload = final.get("result") or {}
+    summary = payload.get("summary") or {}
     console.print("\n" + "=" * 80)
     console.print("[bold]📊 Batch Generation Summary[/bold]\n")
-    for key, label in (
-        ("files_processed", "Files processed"),
-        ("files_failed", "Files failed"),
-        ("total_symbols", "Total symbols"),
-        ("tests_validated", "Tests validated"),
-        ("tests_sandbox_passed", "Tests sandbox-passed"),
-        ("tests_saved", "Tests saved"),
-        ("total_duration", "Duration (s)"),
-    ):
-        if key in payload:
-            console.print(f"  {label}: {payload[key]}")
+    console.print(f"  Files processed: {payload.get('processed', 0)}")
+    console.print(f"  Success: {summary.get('success', 0)}")
+    console.print(f"  Failed: {summary.get('failed', 0)}")
+    console.print(f"  Skipped: {summary.get('skipped', 0)}")
+
+    failures = [
+        r for r in (payload.get("results") or []) if r.get("status") == "failed"
+    ]
+    if failures:
+        console.print("\n[bold]Failed files:[/bold]")
+        for r in failures:
+            console.print(
+                f"  • {r.get('file', 'unknown')}: {r.get('error', 'unknown error')}"
+            )
     console.print("=" * 80)

@@ -62,6 +62,7 @@ async def remediate_coverage_enhanced(
     batch_service = BatchRemediationService(
         cognitive_service=cognitive_service,
         auditor_context=auditor_context,
+        file_handler=file_handler,
         max_complexity=max_complexity,
     )
 

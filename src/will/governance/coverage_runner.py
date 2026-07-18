@@ -403,7 +403,11 @@ async def run_and_persist_coverage_generation(
         )
         return
 
-    ok = bool(result.get("success", False)) if isinstance(result, dict) else False
+    # EnhancedSingleFileRemediationService.remediate() reports outcome via a
+    # "status" key ("completed"/"failed"/"error"), never "success" — the
+    # prior check here read a key the producer never returns, so every run,
+    # win or lose, persisted as failed (#813).
+    ok = isinstance(result, dict) and result.get("status") == "completed"
     await _update_coverage_run_status(
         session,
         run_id,
@@ -479,7 +483,17 @@ async def run_and_persist_coverage_batch(
         )
         return
 
-    ok = bool(result.get("success", False)) if isinstance(result, dict) else False
+    # BatchRemediationService.process_batch() reports "did the batch loop
+    # run" via "status" in {"completed", "no_candidates", "no_matches"} —
+    # never "success". Per-file win/loss detail lives in "summary"/"results",
+    # not this top-level flag; a batch with some failed files is still an
+    # "ok" run (#813). The prior check here read a key that never existed,
+    # so every batch run persisted as failed regardless of outcome.
+    ok = isinstance(result, dict) and result.get("status") in (
+        "completed",
+        "no_candidates",
+        "no_matches",
+    )
     await _update_coverage_run_status(
         session,
         run_id,
@@ -492,10 +506,11 @@ async def run_and_persist_coverage_batch(
     )
 
     logger.info(
-        "coverage_runner: batch %s completed priority=%s ok=%s",
+        "coverage_runner: batch %s completed priority=%s ok=%s summary=%s",
         run_id,
         batch_priority,
         ok,
+        result.get("summary") if isinstance(result, dict) else None,
     )
 
 

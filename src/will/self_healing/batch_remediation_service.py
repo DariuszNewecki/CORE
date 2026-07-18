@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from body.quality.coverage_analyzer import CoverageAnalyzer
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -45,6 +46,7 @@ class BatchRemediationService:
         self,
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
+        file_handler: FileService,
         config_service: ConfigService | None = None,
         max_complexity: str = "MODERATE",
     ):
@@ -52,6 +54,7 @@ class BatchRemediationService:
 
         self.cognitive = cognitive_service
         self.auditor = auditor_context
+        self.file_handler = file_handler
         self.config_service = config_service
         self.max_complexity = max_complexity
         self.analyzer: CoverageAnalyzer | None = None
@@ -75,7 +78,12 @@ class BatchRemediationService:
 
         if not candidates:
             logger.warning("No suitable files found for testing")
-            return {"status": "no_candidates", "processed": 0, "results": []}
+            return {
+                "status": "no_candidates",
+                "processed": 0,
+                "results": [],
+                "summary": {"success": 0, "failed": 0, "skipped": 0},
+            }
 
         logger.info(
             "Found %d files below %.1f%% coverage. Filtering by complexity: %s",
@@ -89,7 +97,12 @@ class BatchRemediationService:
             logger.warning(
                 "No files match complexity threshold: %s", self.max_complexity
             )
-            return {"status": "no_matches", "processed": 0, "results": []}
+            return {
+                "status": "no_matches",
+                "processed": 0,
+                "results": [],
+                "summary": {"success": 0, "failed": 0, "skipped": 0},
+            }
 
         logger.info("%d files match complexity threshold", len(filtered))
 
@@ -111,8 +124,13 @@ class BatchRemediationService:
                 {"file": str(file_path), "original_coverage": coverage, **result}
             )
 
-        self._log_summary(results)
-        return {"status": "completed", "processed": len(results), "results": results}
+        summary = self._summarize(results)
+        return {
+            "status": "completed",
+            "processed": len(results),
+            "results": results,
+            "summary": summary,
+        }
 
     def _get_candidate_files(self) -> list[tuple[Path, float]]:
         """Get files with coverage data, sorted by lowest coverage first."""
@@ -160,51 +178,36 @@ class BatchRemediationService:
         return filtered
 
     async def _process_file(self, file_path: Path) -> dict[str, Any]:
-        """Process a single file."""
+        """Process a single file.
+
+        Reads the real keys EnhancedSingleFileRemediationService.remediate()
+        returns ("status" in {"completed", "failed", "skipped", "error"}) —
+        a prior version of this method checked a "test_result" key that
+        producer never returned, so every file silently reported "failed"
+        regardless of outcome (#813).
+        """
+        if self.repo_root is None:
+            # _ensure_runtime_config() populates repo_root before any file is
+            # processed via process_batch(); guard the standalone path too.
+            return {"status": "error", "error": "repo_root not initialized"}
         try:
-            service = EnhancedSingleFileRemediationService(  # type: ignore[call-arg]
+            service = EnhancedSingleFileRemediationService(
                 self.cognitive,
                 self.auditor,
                 file_path,
+                file_handler=self.file_handler,
+                repo_root=self.repo_root,
                 max_complexity=self.max_complexity,
             )
             result = await service.remediate()
-            test_result = result.get("test_result", {})
 
-            if test_result:
-                output = test_result.get("output", "")
-                passed_count = self._count_passed(output)
-                total_count = self._count_total(output)
-
-                if total_count == 0:
-                    passed = test_result.get("passed", False)
-                    if passed:
-                        logger.info("Tests passed (no count available)")
-                        return {"status": "success", "tests_passed": True}
-                    else:
-                        logger.warning("Tests failed (no count available)")
-                        return {"status": "failed", "error": "Tests failed"}
-
-                success_rate = (
-                    passed_count / total_count * 100 if total_count > 0 else 0
-                )
-
-                if success_rate == 100:
-                    logger.info("All tests passed (%d/%d)", total_count, total_count)
-                    return {"status": "success", "tests_passed": True}
-                else:
-                    logger.info(
-                        "Partial success: %d/%d tests passed (%.0f%%)",
-                        passed_count,
-                        total_count,
-                        success_rate,
-                    )
-                    return {
-                        "status": "partial" if success_rate >= 50 else "low_success",
-                        "passed_count": passed_count,
-                        "total_count": total_count,
-                        "success_rate": success_rate,
-                    }
+            if result.get("status") == "completed":
+                logger.info("Tests generated successfully: %s", file_path)
+                return {
+                    "status": "success",
+                    "test_file": result.get("test_file"),
+                    "final_coverage": result.get("final_coverage"),
+                }
 
             if result.get("status") == "skipped":
                 logger.info("Skipped: %s", result.get("reason", "Unknown"))
@@ -217,27 +220,10 @@ class BatchRemediationService:
             logger.error("Error processing %s: %s", file_path, e, exc_info=True)
             return {"status": "error", "error": str(e)}
 
-    def _count_passed(self, pytest_output: str) -> int:
-        """Extract passed test count from pytest output."""
-        import re
-
-        match = re.search("(\\d+) passed", pytest_output)
-        return int(match.group(1)) if match else 0
-
-    def _count_total(self, pytest_output: str) -> int:
-        """Extract total test count from pytest output."""
-        import re
-
-        passed_match = re.search("(\\d+) passed", pytest_output)
-        failed_match = re.search("(\\d+) failed", pytest_output)
-        passed = int(passed_match.group(1)) if passed_match else 0
-        failed = int(failed_match.group(1)) if failed_match else 0
-        return passed + failed
-
-    def _log_summary(self, results: list[dict]):
-        """Log summary of results."""
+    def _summarize(self, results: list[dict]) -> dict[str, int]:
+        """Count per-file outcomes and log the summary. Returns the counts
+        so callers (coverage_runner.py, the CLI) can render them — #813."""
         success_count = 0
-        partial_count = 0
         failed_count = 0
         skipped_count = 0
 
@@ -245,36 +231,19 @@ class BatchRemediationService:
             status = result.get("status", "unknown")
             if status == "success":
                 success_count += 1
-            elif status in ("partial", "low_success"):
-                partial_count += 1
             elif status == "skipped":
                 skipped_count += 1
             else:
                 failed_count += 1
 
         logger.info(
-            "Batch Summary: Success=%d, Partial=%d, Failed=%d, Skipped=%d",
+            "Batch Summary: Success=%d, Failed=%d, Skipped=%d",
             success_count,
-            partial_count,
             failed_count,
             skipped_count,
         )
-
-
-async def _remediate_batch(
-    cognitive_service: CognitiveService,
-    auditor_context: AuditorContext,
-    config_service: ConfigService | None,
-    count: int,
-    max_complexity: str = "MODERATE",
-) -> dict[str, Any]:
-    """
-    Entry point for batch remediation.
-    """
-    service = BatchRemediationService(
-        cognitive_service,
-        auditor_context,
-        config_service=config_service,
-        max_complexity=max_complexity,
-    )
-    return await service.process_batch(count)
+        return {
+            "success": success_count,
+            "failed": failed_count,
+            "skipped": skipped_count,
+        }
