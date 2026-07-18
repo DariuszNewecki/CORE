@@ -21,6 +21,7 @@ same split-brain filesystem defect #815 closed.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.sandbox_lifecycle import SandboxLifecycle
@@ -57,6 +58,12 @@ async def remediate_file_by_symbol(
     same in-worktree file), with a single propagate_changes() call at the
     end restricted to the union of what each successful flow execution
     declared as its production (ADR-107 D1) — never the full worktree diff.
+    A failed symbol's write (build.test_for_symbol can succeed before a
+    later required step like test.sandbox_validate fails, and FlowExecutor
+    does not roll that back) is explicitly restored to its pre-symbol state
+    via _restore_test_file — otherwise a *different*, later-succeeding
+    symbol sharing the same path would carry the failed symbol's leftover
+    content into the propagate allowlist.
 
     `status="completed"` means the orchestration reached a controlled
     terminal state, not that every symbol succeeded — per-symbol outcomes
@@ -102,6 +109,9 @@ async def remediate_file_by_symbol(
 
         gaps = gap_result.data.get("gaps", [])
         test_file = gap_result.data.get("test_file")
+        assert isinstance(test_file, str), (
+            "TestGapEvaluator.execute() always sets test_file to a str on ok=True"
+        )
 
         if not gaps:
             return {
@@ -130,10 +140,26 @@ async def remediate_file_by_symbol(
 
         delegate = TestGenCognitiveDelegate(scoped_context)
         flow_executor = FlowExecutor(scoped_context, cognitive_delegate=delegate)
+        test_path_in_worktree = scoped_git.repo_path / test_file
 
         results: list[dict[str, Any]] = []
         declared: set[str] = set()
         for gap in gaps:
+            # A required step can fail *after* an earlier required step already
+            # wrote — FlowExecutor halts on failure but does not roll back prior
+            # steps' writes (build.test_for_symbol writes, then test.sandbox_validate
+            # validates; a validation failure leaves the write in place). Since
+            # every symbol for this file shares test_path_in_worktree, a failed
+            # symbol's leftover write would otherwise get swept into the main tree
+            # by a *different* symbol's success (same path, both in the allowlist).
+            # Snapshot before and restore after failure so only accepted content
+            # ever survives to be a propagation candidate.
+            pre_content = (
+                test_path_in_worktree.read_text(encoding="utf-8")
+                if test_path_in_worktree.exists()
+                else None
+            )
+
             flow_result = await flow_executor.execute(
                 flow_id="flow.build_test_for_symbol",
                 write=True,
@@ -156,6 +182,10 @@ async def remediate_file_by_symbol(
                 produced = declared_production(flow_result)
                 if produced:
                     declared |= produced
+            else:
+                _restore_test_file(
+                    scoped_context, test_file, test_path_in_worktree, pre_content
+                )
 
         propagated: set[str] = set()
         if declared:
@@ -255,6 +285,42 @@ def _first_failure_reason(flow_result: Any) -> str:
     step = failed_steps[0]
     data = step.data if isinstance(step.data, dict) else {}
     return str(data.get("error") or data.get("summary") or f"{step.ref_id} failed")
+
+
+# ID: bcc4c1b8-6fad-46ef-a9dd-62e4a4dff3b4
+def _restore_test_file(
+    scoped_context: Any,
+    test_file: str,
+    test_path_in_worktree: Path,
+    pre_content: str | None,
+) -> None:
+    """Undo a failed symbol's write to the shared per-file test target.
+
+    FlowExecutor halts on a required-step failure but does not roll back
+    writes already made by earlier required steps in the *same* flow
+    execution — build.test_for_symbol writes, then test.sandbox_validate
+    (or an optional fix.* step ahead of it) can still leave that write, or
+    a further mutation of it, on disk even though the flow's overall
+    ok=False. Every symbol for one source file shares test_path_in_worktree,
+    so an untouched leftover here would be swept into the main tree by a
+    *different*, later-succeeding symbol's propagate_changes — same path,
+    both in the declared-production allowlist. Comparing current content
+    against the pre-symbol snapshot (rather than assuming a write happened)
+    is deliberate: a flow that failed before ever reaching
+    build.test_for_symbol (e.g. generate.test_snippet itself) leaves the
+    file untouched, and this is then correctly a no-op.
+    """
+    current = (
+        test_path_in_worktree.read_text(encoding="utf-8")
+        if test_path_in_worktree.exists()
+        else None
+    )
+    if current == pre_content:
+        return
+    if pre_content is None:
+        scoped_context.file_handler.remove_file(test_file)
+    else:
+        scoped_context.file_handler.write(test_file, pre_content)
 
 
 # ID: aff2c2cd-fd8e-4fa7-a3fc-a75ccf81a8d8

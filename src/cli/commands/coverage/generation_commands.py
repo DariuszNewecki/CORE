@@ -96,14 +96,25 @@ async def generate_adaptive_command(
                 f"{symbol_result.get('error', 'unknown error')}"
             )
 
-    console.print("\n[dim]Write mode:[/dim]")
-    console.print("  • Passing tests -> tests/... (mirrored)")
-    console.print("  • Failing tests  -> var/artifacts/test_gen/failures/...")
-
-    # final["status"] == "completed" was already confirmed above (coverage_runs
-    # row status now correctly reflects the generator's own "completed" status
-    # per #813's coverage_runner.py fix) — reaching here always means success.
-    console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
+    # final["status"] == "completed" (checked above) is the orchestration
+    # lifecycle status — coverage_runs reached a controlled terminal state,
+    # NOT that every symbol succeeded. That's a separate signal, in
+    # summary.failed/summary.gaps, and must be checked independently:
+    # a run with 0/7 generated is a "completed" run but not a successful one.
+    gap_count = summary.get("gaps", 0)
+    failed_count = summary.get("failed", 0)
+    if gap_count == 0:
+        console.print(
+            "\n[bold green]✅ No untested public symbols — nothing to generate.[/bold green]"
+        )
+    elif failed_count == 0:
+        console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
+    else:
+        console.print(
+            f"\n[bold red]❌ {failed_count}/{gap_count} symbol(s) failed to generate "
+            "— see failures above.[/bold red]"
+        )
+        raise typer.Exit(code=1)
 
 
 @core_command(dangerous=True, confirmation=True, requires_context=False)
@@ -190,3 +201,9 @@ async def generate_adaptive_batch_command(
             )
             console.print(f"  • {r.get('file', 'unknown')}: {error}")
     console.print("=" * 80)
+
+    # Top-level "completed" (checked above) is orchestration lifecycle, not
+    # per-file success — a batch with every file failing is still a
+    # "completed" run. summary.failed is the actual success signal.
+    if summary.get("failed", 0) > 0:
+        raise typer.Exit(code=1)

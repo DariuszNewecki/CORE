@@ -520,8 +520,8 @@ async def generate_coverage_batch(
     dependencies=[require_governor],
     description=(
         "Run interactive adaptive test generation synchronously. This "
-        "endpoint always writes generated tests through FileService before "
-        "execution — no `write` field, no dry-run mode (#809)."
+        "endpoint always writes accepted generated tests unconditionally — "
+        "no `write` field, no dry-run mode (#809)."
     ),
     # F-40.1: internal — interactive test-shape dispatch is autonomy
     # surface, not a sidecar concern. Excluded from /v1/openapi.json
@@ -535,9 +535,9 @@ async def interactive_tests(
 ) -> dict:
     """Run interactive adaptive test generation synchronously.
 
-    No resource row. Returns the result dict inline with 200. Always
-    writes generated tests through FileService before execution — no
-    `write` field, no dry-run mode (#809).
+    No resource row. Returns the result dict inline with 200. Always writes
+    accepted generated tests unconditionally — no `write` field, no dry-run
+    mode (#809).
     """
     core_context: CoreContext = request.app.state.core_context
     return await run_tests_interactive(core_context, target_file=payload.target_file)

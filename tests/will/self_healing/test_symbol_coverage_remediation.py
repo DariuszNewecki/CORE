@@ -12,6 +12,7 @@ own internals (each of those has — or, per #815, now has — its own coverage)
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -334,3 +335,158 @@ async def test_batch_skipped_counts_zero_gap_files_separately(tmp_path: Path) ->
         result = await remediate_batch_by_symbol(context, write=True)
 
     assert result["summary"] == {"success": 0, "failed": 0, "skipped": 1}
+
+
+# ---- Real-worktree regression test for the mixed-success propagation defect ----
+#
+# The mocked FlowResult tests above use MagicMock scoped_git objects with no
+# real filesystem behind them, so they cannot exercise (and did not catch)
+# the actual defect: FlowExecutor halts on a required-step failure but does
+# NOT roll back writes already made by earlier required steps in that same
+# flow execution. build.test_for_symbol (required) writes, then
+# test.sandbox_validate (required, later) can still fail — leaving the write
+# in place with flow_result.ok=False. Since every symbol for one file shares
+# the same target test path, a different symbol's success would otherwise
+# carry that leftover content into the propagate allowlist. These tests use
+# a real git repo + real SandboxLifecycle worktree (same pattern as
+# test_flow_sandbox_lifecycle.py) with only FlowExecutor faked — the fake
+# performs a real file write in the worktree before returning ok True/False,
+# so _restore_test_file's snapshot/compare/restore runs against real bytes.
+
+
+def _run_git(args: list[str], cwd: Path) -> None:
+    subprocess.run(args, cwd=cwd, check=True, capture_output=True)
+
+
+def _make_real_repo(tmp_path: Path) -> Path:
+    _run_git(["git", "init"], tmp_path)
+    _run_git(["git", "config", "user.email", "exec@test.local"], tmp_path)
+    _run_git(["git", "config", "user.name", "Exec Test"], tmp_path)
+    _run_git(["git", "config", "commit.gpgsign", "false"], tmp_path)
+    (tmp_path / ".intent").mkdir()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "thing.py").write_text("def do_a(): pass\n")
+    _run_git(["git", "add", "-A"], tmp_path)
+    _run_git(["git", "commit", "-m", "initial"], tmp_path)
+    return tmp_path
+
+
+def _neutered_file_handler(repo_path):
+    from body.infrastructure.storage.file_handler import FileHandler
+
+    fh = FileHandler(str(repo_path))
+    fh._guard_paths = lambda *a, **k: None
+    return fh
+
+
+def _make_real_context(repo: Path):
+    from shared.context import CoreContext
+    from shared.infrastructure.git_service import GitService
+
+    return CoreContext(
+        registry=MagicMock(),
+        git_service=GitService(repo),
+        knowledge_service=MagicMock(),
+        file_handler=_neutered_file_handler(repo),
+        file_service=MagicMock(),
+    )
+
+
+def _flow_executor_factory(script: dict, test_file: str):
+    """Returns a FlowExecutor-constructor stand-in. `script` maps symbol_name
+    -> (ok, snippet_to_append). The fake .execute() really appends `snippet`
+    to the worktree's test_file (simulating build.test_for_symbol's write)
+    before returning a FlowResult with the scripted ok — exactly modeling a
+    required step writing successfully and a *later* required step failing.
+    """
+
+    def factory(scoped_context, cognitive_delegate=None):
+        executor = AsyncMock()
+
+        async def fake_execute(*, flow_id, write, source_file, symbol_name, symbol_kind, signature):
+            ok, snippet = script[symbol_name]
+            test_path = scoped_context.git_service.repo_path / test_file
+            test_path.parent.mkdir(parents=True, exist_ok=True)
+            existing = test_path.read_text() if test_path.exists() else ""
+            test_path.write_text(existing + snippet)
+            if ok:
+                return FlowResult(
+                    flow_id=flow_id,
+                    ok=True,
+                    steps=[
+                        StepResult(
+                            ref_id="build.test_for_symbol",
+                            required=True,
+                            ok=True,
+                            data={"test_file": test_file, "files_produced": [test_file]},
+                        )
+                    ],
+                )
+            return FlowResult(
+                flow_id=flow_id,
+                ok=False,
+                steps=[
+                    StepResult(
+                        ref_id="build.test_for_symbol",
+                        required=True,
+                        ok=True,
+                        data={"test_file": test_file, "files_produced": [test_file]},
+                    ),
+                    StepResult(
+                        ref_id="test.sandbox_validate",
+                        required=True,
+                        ok=False,
+                        data={"error": f"{symbol_name} failed sandbox validation"},
+                    ),
+                ],
+            )
+
+        executor.execute = fake_execute
+        return executor
+
+    return factory
+
+
+async def test_failed_symbol_write_never_propagates_via_another_symbols_success(
+    tmp_path: Path,
+) -> None:
+    """symbol A succeeds; symbol B's build.test_for_symbol writes but its
+    later test.sandbox_validate fails; symbol C succeeds. The final
+    propagated main-tree file must contain A and C exactly once, with zero
+    B content — B's leftover worktree write must never ride along on A's or
+    C's declared production."""
+    repo = _make_real_repo(tmp_path)
+    context = _make_real_context(repo)
+    test_file = "tests/x/test_thing.py"
+
+    gaps = [
+        {"name": "do_a", "kind": "function", "signature": "def do_a()"},
+        {"name": "do_b", "kind": "function", "signature": "def do_b()"},
+        {"name": "do_c", "kind": "function", "signature": "def do_c()"},
+    ]
+    evaluator_instance = AsyncMock()
+    evaluator_instance.execute = AsyncMock(
+        return_value=_gap_result(gaps, test_file=test_file)
+    )
+
+    script = {
+        "do_a": (True, "def test_do_a():\n    assert True\n\n"),
+        "do_b": (False, "def test_do_b():\n    assert True\n\n"),
+        "do_c": (True, "def test_do_c():\n    assert True\n\n"),
+    }
+
+    with (
+        patch(f"{_MODULE}.TestGapEvaluator", return_value=evaluator_instance),
+        patch(f"{_MODULE}.TestGenCognitiveDelegate", return_value=MagicMock()),
+        patch(f"{_MODULE}.FlowExecutor", side_effect=_flow_executor_factory(script, test_file)),
+    ):
+        result = await remediate_file_by_symbol(context, "src/thing.py", write=True)
+
+    assert result["status"] == "completed"
+    assert result["summary"] == {"gaps": 3, "succeeded": 2, "failed": 1, "skipped": 0}
+    assert result["files_produced"] == [test_file]
+
+    final_content = (repo / test_file).read_text()
+    assert "test_do_a" in final_content
+    assert "test_do_c" in final_content
+    assert "test_do_b" not in final_content
