@@ -187,13 +187,3 @@ class ActionResult:
         keeps existing workflows running while we migrate.
         """
         return self.action_id
-
-
-# Backward compatibility aliases (temporary - will be removed in future version)
-CommandResult = ActionResult
-"""
-DEPRECATED: Use ActionResult instead.
-
-This alias exists for backward compatibility during migration.
-Will be removed once all commands are migrated to ActionResult.
-"""

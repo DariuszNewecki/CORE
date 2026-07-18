@@ -19,8 +19,8 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from body.governance.intent_guard import IntentGuard
     from shared.models import ExecutionTask
-    from will.orchestration.intent_guard import IntentGuard
 
 logger = getLogger(__name__)
 
