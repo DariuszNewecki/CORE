@@ -38,9 +38,9 @@ async def generate_adaptive_command(
         False,
         "--write",
         help=(
-            "Required — the legacy adaptive generator has no dry-run mode "
+            "Required — symbol-granular test generation has no dry-run mode "
             "and writes test files unconditionally. Must be passed "
-            "explicitly; omitting it exits without calling the API (#809)."
+            "explicitly; omitting it exits without calling the API (#809, #814)."
         ),
     ),
     max_failures: int = typer.Option(
@@ -52,8 +52,8 @@ async def generate_adaptive_command(
     _ = max_failures  # The API owns the adaptive failure threshold.
     if not write:
         console.print(
-            "[red]This legacy generation command currently writes test "
-            "files unconditionally — there is no dry-run mode. Re-run with "
+            "[red]This generation command writes test files "
+            "unconditionally — there is no dry-run mode. Re-run with "
             "--write to confirm mutation.[/red]"
         )
         raise typer.Exit(code=2)
@@ -72,18 +72,29 @@ async def generate_adaptive_command(
         console.print(f"[red]❌ Generation failed: {final.get('error') or final}[/red]")
         raise typer.Exit(code=1)
 
-    # EnhancedSingleFileRemediationService.remediate()'s real success shape:
-    # {"status": "completed", "file", "test_file", "final_coverage", "metrics"}.
-    # The key list this used to render (sandbox_passed, patterns_learned,
-    # strategy_switches, ...) never existed in that shape — this rendered
-    # near-empty on every run, success or not (#813).
+    # remediate_file_by_symbol()'s real shape (#814 — replaces the retired
+    # EnhancedSingleFileRemediationService): {"status": "completed",
+    # "source_file", "test_file", "summary": {"gaps","succeeded","failed",
+    # "skipped"}, "results": [...per-symbol...], "files_produced": [...]}.
+    # No final_coverage — the new pipeline generates per-symbol against
+    # TestGapEvaluator's gap list rather than measuring whole-file coverage
+    # after the fact; per-symbol pass/fail in "summary" is the replacement
+    # signal.
     payload = final.get("result") or {}
+    summary = payload.get("summary") or {}
     console.print("\n[bold]📊 Generation Results:[/bold]")
-    console.print(f"  File: {payload.get('file', file_path)}")
+    console.print(f"  File: {payload.get('source_file', file_path)}")
     console.print(f"  Test file: {payload.get('test_file', 'unknown')}")
-    final_coverage = payload.get("final_coverage")
-    if final_coverage is not None:
-        console.print(f"  Final coverage: {final_coverage}%")
+    console.print(
+        f"  Symbols: {summary.get('succeeded', 0)}/{summary.get('gaps', 0)} generated"
+        + (f", {summary.get('failed', 0)} failed" if summary.get("failed") else "")
+    )
+    for symbol_result in payload.get("results") or []:
+        if not symbol_result.get("ok"):
+            console.print(
+                f"    [red]✗ {symbol_result.get('symbol_name', 'unknown')}[/red]: "
+                f"{symbol_result.get('error', 'unknown error')}"
+            )
 
     console.print("\n[dim]Write mode:[/dim]")
     console.print("  • Passing tests -> tests/... (mirrored)")
@@ -106,9 +117,9 @@ async def generate_adaptive_batch_command(
         False,
         "--write",
         help=(
-            "Required — the legacy adaptive generator has no dry-run mode "
+            "Required — symbol-granular test generation has no dry-run mode "
             "and writes test files unconditionally. Must be passed "
-            "explicitly; omitting it exits without calling the API (#809)."
+            "explicitly; omitting it exits without calling the API (#809, #814)."
         ),
     ),
 ) -> None:
@@ -121,8 +132,8 @@ async def generate_adaptive_batch_command(
         raise typer.Exit(code=1)
     if not write:
         console.print(
-            "[red]This legacy generation command currently writes test "
-            "files unconditionally — there is no dry-run mode. Re-run with "
+            "[red]This generation command writes test files "
+            "unconditionally — there is no dry-run mode. Re-run with "
             "--write to confirm mutation.[/red]"
         )
         raise typer.Exit(code=2)
@@ -150,10 +161,13 @@ async def generate_adaptive_batch_command(
         )
         raise typer.Exit(code=1)
 
-    # BatchRemediationService.process_batch()'s real shape: {"status",
-    # "processed", "results": [...], "summary": {"success","failed","skipped"}}.
-    # The key list this used to render (files_processed, tests_sandbox_passed,
-    # tests_saved, ...) never existed — rendered near-empty every run (#813).
+    # remediate_batch_by_symbol()'s real shape (#814 — replaces the retired
+    # BatchRemediationService): {"status", "processed", "results": [...],
+    # "summary": {"success","failed","skipped"}} — the top-level shape is
+    # unchanged from the pre-#814 batch service, but each entry in "results"
+    # now carries its own nested "summary" (a file with status="completed"
+    # can still have partial per-symbol failures) rather than a flat
+    # "success"/"failed"/"skipped" status string.
     payload = final.get("result") or {}
     summary = payload.get("summary") or {}
     console.print("\n" + "=" * 80)
@@ -164,12 +178,15 @@ async def generate_adaptive_batch_command(
     console.print(f"  Skipped: {summary.get('skipped', 0)}")
 
     failures = [
-        r for r in (payload.get("results") or []) if r.get("status") == "failed"
+        r
+        for r in (payload.get("results") or [])
+        if r.get("status") != "completed" or (r.get("summary") or {}).get("failed")
     ]
     if failures:
         console.print("\n[bold]Failed files:[/bold]")
         for r in failures:
-            console.print(
-                f"  • {r.get('file', 'unknown')}: {r.get('error', 'unknown error')}"
+            error = r.get("error") or (
+                f"{(r.get('summary') or {}).get('failed', 0)} symbol(s) failed"
             )
+            console.print(f"  • {r.get('file', 'unknown')}: {error}")
     console.print("=" * 80)

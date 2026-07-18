@@ -10,10 +10,11 @@ The /coverage namespace has two characters:
   constitutional targets, gaps, history, method comparison. These query
   existing data and return synchronously.
 
-* **Stateful generation** (`POST`) — adaptive test generation for a
+* **Stateful generation** (`POST`) — symbol-granular test generation for a
   single file or a prioritised batch. Async; backed by
-  `will.self_healing.coverage_remediation_service.remediate_coverage_enhanced`.
-  Cycle rows live on core.coverage_runs.
+  `will.self_healing.symbol_coverage_remediation` (ADR-133/ADR-140 successor
+  pipeline — flow.build_test_for_symbol / PromptModelIterativeAgent — direct
+  synchronous invocation, #814). Cycle rows live on core.coverage_runs.
 
 All async runners share `_update_coverage_run_status` for the
 pending → executing → completed | failed lifecycle.
@@ -33,8 +34,9 @@ from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_command_async
-from will.self_healing.coverage_remediation_service import (
-    remediate_coverage_enhanced,
+from will.self_healing.symbol_coverage_remediation import (
+    remediate_batch_by_symbol,
+    remediate_file_by_symbol,
 )
 
 
@@ -62,13 +64,11 @@ _COVERAGE_RULE_IDS = (
 # #809: the route layer already rejects write=false before dispatch, but
 # this facade advertises `write` as part of its own contract — a future or
 # direct caller that bypasses the route must not have the flag silently
-# disregarded. remediate_coverage_enhanced() has no dry-run mode; it writes
-# unconditionally.
+# disregarded. Neither remediate_file_by_symbol() nor remediate_batch_by_symbol()
+# has a dry-run mode; each writes unconditionally when untested symbols exist.
 _WRITE_FALSE_UNSUPPORTED = (
-    "write=false is unsupported: remediate_coverage_enhanced() has no "
-    "dry-run contract and writes test files unconditionally. Pass "
-    "write=true, or route through the sandboxed successor pipeline "
-    "(IterativeCoderAgent / build.test_for_symbol) for a real preview."
+    "write=false is unsupported: symbol-granular remediation has no "
+    "dry-run contract and writes test files unconditionally. Pass write=true."
 )
 
 
@@ -376,20 +376,14 @@ async def run_and_persist_coverage_generation(
         )
         return
 
-    if context.cognitive_service is None or context.auditor_context is None:
+    if context.cognitive_service is None:
         await _update_coverage_run_status(
             session, run_id, "failed", finished=True, error="Brain services unavailable"
         )
         return
 
     try:
-        result = await remediate_coverage_enhanced(
-            cognitive_service=context.cognitive_service,
-            auditor_context=context.auditor_context,
-            file_handler=context.file_service,
-            repo_root=repo_root,
-            file_path=file_path,
-        )
+        result = await remediate_file_by_symbol(context, target_file, write=True)
     except Exception as exc:
         logger.exception(
             "coverage_runner: single-file remediation raised for %s", run_id
@@ -403,10 +397,10 @@ async def run_and_persist_coverage_generation(
         )
         return
 
-    # EnhancedSingleFileRemediationService.remediate() reports outcome via a
-    # "status" key ("completed"/"failed"/"error"), never "success" — the
-    # prior check here read a key the producer never returns, so every run,
-    # win or lose, persisted as failed (#813).
+    # remediate_file_by_symbol() reports outcome via a "status" key
+    # ("completed"/"failed"/"error"); "completed" means the orchestration
+    # reached a controlled terminal state, not that every symbol succeeded —
+    # per-symbol detail lives in result["summary"]/result["results"] (#814).
     ok = isinstance(result, dict) and result.get("status") == "completed"
     await _update_coverage_run_status(
         session,
@@ -454,24 +448,22 @@ async def run_and_persist_coverage_batch(
         )
         return
 
-    repo_root = context.git_service.repo_path
+    # batch_priority ("high" raises the target coverage percentage per
+    # ADR-057 D1 / coverage_routes.py's documented contract) is accepted and
+    # persisted on the run row but not threaded into selection here — it
+    # never was: the pre-#814 BatchRemediationService.process_batch() also
+    # never received a target_coverage argument from its caller, only a
+    # hardcoded count=5. Pre-existing drift between the documented API
+    # contract and the implementation, not introduced by this change.
 
-    target_coverage = 90 if batch_priority == "high" else 75
-
-    if context.cognitive_service is None or context.auditor_context is None:
+    if context.cognitive_service is None:
         await _update_coverage_run_status(
             session, run_id, "failed", finished=True, error="Brain services unavailable"
         )
         return
 
     try:
-        result = await remediate_coverage_enhanced(
-            cognitive_service=context.cognitive_service,
-            auditor_context=context.auditor_context,
-            file_handler=context.file_service,
-            repo_root=repo_root,
-            target_coverage=target_coverage,
-        )
+        result = await remediate_batch_by_symbol(context, write=True)
     except Exception as exc:
         logger.exception("coverage_runner: batch remediation raised for %s", run_id)
         await _update_coverage_run_status(
@@ -483,16 +475,14 @@ async def run_and_persist_coverage_batch(
         )
         return
 
-    # BatchRemediationService.process_batch() reports "did the batch loop
-    # run" via "status" in {"completed", "no_candidates", "no_matches"} —
-    # never "success". Per-file win/loss detail lives in "summary"/"results",
-    # not this top-level flag; a batch with some failed files is still an
-    # "ok" run (#813). The prior check here read a key that never existed,
-    # so every batch run persisted as failed regardless of outcome.
+    # remediate_batch_by_symbol() reports "did the batch loop run" via
+    # "status" in {"completed", "no_candidates"} — never "success". Per-file
+    # win/loss detail lives in "summary"/"results", not this top-level flag;
+    # a batch with some failed files is still an "ok" run (#813, carried
+    # forward into #814's replacement pipeline).
     ok = isinstance(result, dict) and result.get("status") in (
         "completed",
         "no_candidates",
-        "no_matches",
     )
     await _update_coverage_run_status(
         session,
@@ -637,13 +627,13 @@ async def run_tests_interactive(
     """Synchronous interactive test-generation entry point.
 
     Per ADR-057 D5 this returns inline (no resource row, no background
-    task). For Phase 3 the inline response is the result dict from
-    `remediate_coverage_enhanced` keyed on the supplied target_file.
-    Callers wanting full step-by-step control will iterate by re-issuing
-    requests; the API does not hold session state.
+    task). The inline response is the result dict from
+    `remediate_file_by_symbol` (target_file supplied) or
+    `remediate_batch_by_symbol` (target_file omitted) — #814. Callers wanting
+    full step-by-step control will iterate by re-issuing requests; the API
+    does not hold session state.
     """
     repo_root = context.git_service.repo_path
-    file_path: Path | None = None
     if target_file:
         file_path = (repo_root / target_file).resolve()
         if not file_path.exists() or not file_path.is_file():
@@ -652,17 +642,14 @@ async def run_tests_interactive(
                 "error": f"target_file does not exist: {target_file}",
             }
 
-    if context.cognitive_service is None or context.auditor_context is None:
+    if context.cognitive_service is None:
         return {"ok": False, "error": "Brain services unavailable"}
 
     try:
-        result = await remediate_coverage_enhanced(
-            cognitive_service=context.cognitive_service,
-            auditor_context=context.auditor_context,
-            file_handler=context.file_service,
-            repo_root=repo_root,
-            file_path=file_path,
-        )
+        if target_file:
+            result = await remediate_file_by_symbol(context, target_file, write=True)
+        else:
+            result = await remediate_batch_by_symbol(context, write=True)
     except Exception as exc:
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 

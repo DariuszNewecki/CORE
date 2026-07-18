@@ -378,7 +378,7 @@ async def test_tests_interactive_returns_inline_payload():
 def test_mutation_routes_carry_governor_gate():
     """ADR-148/#770/#808: generate/generate:batch/interactive write test
     files unconditionally (no dry-run support in the underlying
-    remediate_coverage_enhanced call chain) — all three must be
+    symbol_coverage_remediation call chain, #814) — all three must be
     governor-gated. request_coverage_report stays open (read-shaped:
     a pytest --cov run, no src/ or tests/ writes)."""
     from api.dependencies import require_governor

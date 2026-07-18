@@ -2,11 +2,11 @@
 
 """#809: generate-adaptive / generate-adaptive-batch require --write.
 
-The legacy adaptive generator (EnhancedTestGenerator, deprecated per
-ADR-135 D7) has no dry-run contract and writes test files unconditionally.
-Omitting --write must exit locally without ever calling the API — the
-route-level 422 (tests/api/v1/test_coverage_routes.py) is defense in depth,
-not the only guard.
+Symbol-granular test generation (will.self_healing.symbol_coverage_remediation,
+the #814 successor to the retired EnhancedTestGenerator / ADR-135 D7) has no
+dry-run contract and writes test files unconditionally. Omitting --write must
+exit locally without ever calling the API — the route-level 422
+(tests/api/v1/test_coverage_routes.py) is defense in depth, not the only guard.
 """
 
 from __future__ import annotations
@@ -110,10 +110,10 @@ async def test_generate_adaptive_batch_with_write_calls_api():
 
 
 async def test_generate_adaptive_renders_real_result_fields():
-    """#813: the rendering used to key off fields (sandbox_passed,
-    patterns_learned, ...) that EnhancedSingleFileRemediationService never
-    returns. Pin that the real fields (file, test_file, final_coverage)
-    now actually reach the console."""
+    """#814: pin that remediate_file_by_symbol()'s real shape (source_file,
+    test_file, summary.{gaps,succeeded,failed}, per-symbol results) reaches
+    the console — no final_coverage in the new pipeline (#813 was about the
+    predecessor's shape; this is the successor's)."""
     with (
         patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls,
         patch("cli.commands.coverage.generation_commands.console.print") as mock_print,
@@ -125,9 +125,19 @@ async def test_generate_adaptive_renders_real_result_fields():
                 "status": "completed",
                 "result": {
                     "status": "completed",
-                    "file": "src/foo/bar.py",
+                    "source_file": "src/foo/bar.py",
                     "test_file": "tests/foo/test_bar.py",
-                    "final_coverage": 92.5,
+                    "summary": {"gaps": 2, "succeeded": 1, "failed": 1, "skipped": 0},
+                    "results": [
+                        {"symbol_name": "do_work", "symbol_kind": "function", "ok": True, "error": None},
+                        {
+                            "symbol_name": "do_other",
+                            "symbol_kind": "function",
+                            "ok": False,
+                            "error": "generation failed for do_other",
+                        },
+                    ],
+                    "files_produced": ["tests/foo/test_bar.py"],
                 },
             }
         )
@@ -138,15 +148,19 @@ async def test_generate_adaptive_renders_real_result_fields():
 
         rendered = _rendered(mock_print)
         assert "tests/foo/test_bar.py" in rendered
-        assert "92.5" in rendered
+        assert "1/2 generated" in rendered
+        assert "do_other" in rendered
+        assert "generation failed for do_other" in rendered
         assert "Completed generation cycle" in rendered
 
 
 async def test_generate_adaptive_batch_renders_summary_and_failed_files():
-    """#813: same defect on the batch side — the rendering keyed off
-    files_processed/tests_sandbox_passed/tests_saved, none of which
-    BatchRemediationService.process_batch() returns. Pin the real
-    processed/summary/results shape now renders, including failures."""
+    """#814: pin remediate_batch_by_symbol()'s real shape — processed/summary
+    top-level unchanged from the retired BatchRemediationService, but each
+    "results" entry now nests its own per-symbol summary rather than a flat
+    status string, so a file can be status="completed" and still count as a
+    failure (partial symbol failures). Cover both failure shapes: a hard
+    per-file error (status != completed) and a partial-symbol failure."""
     with (
         patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls,
         patch("cli.commands.coverage.generation_commands.console.print") as mock_print,
@@ -161,9 +175,17 @@ async def test_generate_adaptive_batch_renders_summary_and_failed_files():
                     "processed": 3,
                     "summary": {"success": 1, "failed": 2, "skipped": 0},
                     "results": [
-                        {"file": "src/a.py", "status": "success"},
-                        {"file": "src/b.py", "status": "failed", "error": "boom"},
-                        {"file": "src/c.py", "status": "failed", "error": "kaboom"},
+                        {
+                            "file": "src/a.py",
+                            "status": "completed",
+                            "summary": {"gaps": 1, "succeeded": 1, "failed": 0, "skipped": 0},
+                        },
+                        {"file": "src/b.py", "status": "error", "error": "boom"},
+                        {
+                            "file": "src/c.py",
+                            "status": "completed",
+                            "summary": {"gaps": 2, "succeeded": 0, "failed": 2, "skipped": 0},
+                        },
                     ],
                 },
             }
@@ -177,4 +199,6 @@ async def test_generate_adaptive_batch_renders_summary_and_failed_files():
         assert "Success: 1" in rendered
         assert "Failed: 2" in rendered
         assert "src/b.py" in rendered and "boom" in rendered
-        assert "src/c.py" in rendered and "kaboom" in rendered
+        assert "src/c.py" in rendered and "2 symbol(s) failed" in rendered
+        # src/a.py fully succeeded — never printed by file path anywhere.
+        assert "src/a.py" not in rendered

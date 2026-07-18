@@ -6,9 +6,10 @@ The route layer (api.v1.coverage_routes) already rejects write=false
 before dispatch, but run_and_persist_coverage_generation/batch accept
 `write` as part of their own signature — a direct or future caller that
 bypasses the route must not have the flag silently disregarded, since
-remediate_coverage_enhanced() has no dry-run contract and writes
-unconditionally. These tests pin the runner-level guard independent of
-the route.
+neither remediate_file_by_symbol() nor remediate_batch_by_symbol()
+(will.self_healing.symbol_coverage_remediation, #814) has a dry-run
+contract — each writes unconditionally. These tests pin the runner-level
+guard independent of the route.
 """
 
 from __future__ import annotations

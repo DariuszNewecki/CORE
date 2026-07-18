@@ -92,9 +92,9 @@ class TestGenerationPhase:
 
             logger.info("🧪 Generating tests for %d files...", len(target_files))
 
-            # FUTURE: Integrate with EnhancedTestGenerator
-            # For now, this is a stub that acknowledges the need
-            # but doesn't actually generate tests
+            # FUTURE: Integrate with will.self_healing.symbol_coverage_remediation
+            # (#814). For now, this is a stub that acknowledges the need
+            # but doesn't actually generate tests.
 
             logger.warning("⚠️ Test generation not yet implemented - placeholder phase")
             logger.info("Files needing tests: %s", ", ".join(target_files))

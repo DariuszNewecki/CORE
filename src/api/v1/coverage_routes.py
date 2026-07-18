@@ -69,20 +69,18 @@ from will.governance.coverage_runner import (
 
 logger = getLogger(__name__)
 
-# #809: EnhancedTestGenerator (the underlying generator these two routes
-# drive) is deprecated per ADR-135 D7 and has no dry-run contract —
-# TestExecutor.execute_test() writes the generated test file unconditionally.
-# Building real dry-run into a retiring component wastes effort; the
-# successor pipeline (IterativeCoderAgent / build.test_for_symbol) already
-# has one via PytestSandboxRunner (var/tmp/, never touches tests/). Until
-# generation routes that way, write=false is rejected rather than silently
-# ignored.
+# #809 (original decision) / #814 (pipeline swap): these routes now drive
+# will.self_healing.symbol_coverage_remediation directly — flow.build_test_for_symbol
+# / PromptModelIterativeAgent via TestGenCognitiveDelegate, ADR-140 D5/D6 — the
+# same primitives the autonomous TestRemediatorWorker/Proposal path uses, called
+# synchronously instead of through a Proposal. Neither remediate_file_by_symbol()
+# nor remediate_batch_by_symbol() has a dry-run contract; each writes test files
+# unconditionally when untested public symbols exist. write=false is rejected
+# here rather than silently ignored.
 _WRITE_FALSE_UNSUPPORTED = (
-    "write=false is unsupported by the legacy adaptive coverage generator: "
-    "it mutates tests/ unconditionally regardless of this flag. Pass "
-    "write=true to run generation. Dry-run is available only through the "
-    "governed successor pipeline (IterativeCoderAgent / "
-    "build.test_for_symbol), not this route."
+    "write=false is unsupported: symbol-granular coverage generation has no "
+    "dry-run contract and writes test files unconditionally when untested "
+    "public symbols exist. Pass write=true to run generation."
 )
 
 
@@ -100,10 +98,11 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
         "get_coverage_report/get_coverage_html_report, the same pytest-"
         "measurement functions the synchronous GET /coverage/report route "
         "already calls. ReportRequest has no write field; the INSERT hardcodes "
-        "write=false literally. Never reaches remediate_coverage_enhanced. "
-        "Contrast generate_coverage/generate_coverage_batch/interactive_tests "
-        "(gated): all three call remediate_coverage_enhanced, which writes "
-        "generated test files unconditionally (#809)."
+        "write=false literally. Never reaches remediate_file_by_symbol/"
+        "remediate_batch_by_symbol. Contrast generate_coverage/"
+        "generate_coverage_batch/interactive_tests (gated): all three reach "
+        "will.self_healing.symbol_coverage_remediation, which writes "
+        "generated test files unconditionally (#809, #814)."
     ),
 }
 

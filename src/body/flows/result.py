@@ -14,6 +14,38 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+# ID: 5b6c8e1a-2d4f-4a37-9b06-c1e3f7a9d502
+def declared_production(flow_result: Any) -> set[str] | None:
+    """Union of a flow's steps' declared production (ADR-107 D1).
+
+    Reads ``files_produced`` from each step's result data and returns the union
+    as an allowlist for ``SandboxLifecycle.propagate_changes``. Returns ``None``
+    when NO step declares production (the key is absent on every step) — the
+    ADR-107 D4 fallback that keeps un-migrated flows on the full worktree-diff
+    behavior. A step that declares ``files_produced`` (even an empty list)
+    counts as opted in, so a flow whose only writer wrote nothing propagates
+    nothing rather than falling back to the whole diff.
+
+    Public and colocated with FlowResult (rather than private inside
+    ProposalExecutor, where it originated) because #814's symbol-level
+    remediation orchestrator needs the identical per-flow-result semantic to
+    union declared production across multiple flow executions against the
+    same worktree — one per symbol, all targeting the same file.
+    """
+    declared: set[str] = set()
+    any_declared = False
+    for step in getattr(flow_result, "steps", None) or []:
+        data = step.data if isinstance(step.data, dict) else {}
+        produced = data.get("files_produced")
+        if produced is None:
+            continue
+        any_declared = True
+        for path in produced:
+            if isinstance(path, str) and path:
+                declared.add(path)
+    return declared if any_declared else None
+
+
 @dataclass
 # ID: 9553ab38-2830-4211-ba47-080671561054
 class StepResult:

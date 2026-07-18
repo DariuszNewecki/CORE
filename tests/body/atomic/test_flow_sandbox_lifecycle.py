@@ -299,8 +299,7 @@ def test_propagate_new_directory_file_level_paths(repo: Path) -> None:
 # ID: 1a7e3c95-4d68-4f02-b9a1-6c5e2d8f4b37
 def test_declared_production_unions_files_produced() -> None:
     """ADR-107 D1: the flow production set is the union of steps' files_produced."""
-    from body.flows.result import FlowResult, StepResult
-    from will.autonomy.proposal_executor import _declared_production
+    from body.flows.result import FlowResult, StepResult, declared_production
 
     fr = FlowResult(
         flow_id="flow.build_test_for_symbol",
@@ -320,15 +319,14 @@ def test_declared_production_unions_files_produced() -> None:
             ),
         ],
     )
-    assert _declared_production(fr) == {"tests/x/test_generated.py"}
+    assert declared_production(fr) == {"tests/x/test_generated.py"}
 
 
 # ID: 6b9d2f47-8a13-4e56-90c2-1f7a5e3d8b09
 def test_declared_production_none_when_no_step_declares() -> None:
     """ADR-107 D4: a flow whose steps declare no files_produced returns None so
     propagate falls back to the full worktree diff (un-migrated flows)."""
-    from body.flows.result import FlowResult, StepResult
-    from will.autonomy.proposal_executor import _declared_production
+    from body.flows.result import FlowResult, StepResult, declared_production
 
     fr = FlowResult(
         flow_id="flow.legacy",
@@ -343,7 +341,7 @@ def test_declared_production_none_when_no_step_declares() -> None:
             ),
         ],
     )
-    assert _declared_production(fr) is None
+    assert declared_production(fr) is None
 
 
 # ID: 3f8c1e74-9b25-4a60-b8d3-5e2a7c9f4d18
@@ -364,7 +362,7 @@ def test_proposal_executor_passes_declared_production_to_propagate() -> None:
     from will.autonomy import proposal_executor as pe
 
     source = inspect.getsource(pe)
-    assert "_declared_production(" in source, (
+    assert "declared_production(" in source, (
         "ADR-107 D1/D3: flow branch must derive the declared production set"
     )
     assert "only_paths=" in source, (
