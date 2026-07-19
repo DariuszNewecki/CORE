@@ -40,8 +40,8 @@ claims:
     summary: "every executed action is recorded; a failed write-action record is surfaced, not silent"
     evidence_mode: split
     ci:
-      tests: []
-      note: "AUDIT_GAP-on-failure path is unit-mechanizable (mocked failing session) — NOT YET WIRED."
+      tests: [tests/proof_index/test_claim_04_audit_gap.py]
+      note: "AUDIT_GAP-on-failure path pinned (mocked failing session); live-trail accumulation is the attestation half below."
     attestation:
       reason: "the live audit trail (core.action_results rows accumulating) requires a running instance + PostgreSQL."
       command_ref: "docs/proof-index.md#audit-trail-query"
@@ -88,6 +88,15 @@ claims:
 
   - claim: 10
     summary: "sensors cannot post outside declared artifact type / namespace; duplicate indeterminate refused"
-    evidence_mode: ci-test
-    tests: [tests/proof_index/test_claim_10_blackboard_namespace.py]
-    note: "artifact-type + sub-namespace validation is unit-pinned; the duplicate-indeterminate refusal is currently source-inspected (docs/proof-index.md), not live-DB."
+    evidence_mode: split
+    ci:
+      tests: [tests/proof_index/test_claim_10_blackboard_namespace.py]
+      note: "covers artifact-type + sub-namespace validation only."
+    attestation:
+      reason: "duplicate-indeterminate refusal requires persisted blackboard state — post_observation queries an existing indeterminate row before inserting."
+      command_ref: "docs/proof-index.md#boundaries (source-inspected today; needs a live-DB or deterministic DB test)"
+      expected: "a second identical indeterminate observation is refused (logged warning), not overwritten."
+      status: needs-attestation
+      last_attested: null
+      attested_by: null
+      result: null
