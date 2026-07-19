@@ -1,0 +1,93 @@
+# .specs/attestations/proof-index.yaml
+#
+# Evidence mode for each claim in docs/proof-index.md (#798).
+#
+# Purpose: record HOW each Proof Index claim is proven — a standing CI test, or
+# an explicit dated human attestation for claims whose evidence exists only in a
+# running instance with PostgreSQL state. This prevents a claim reading as
+# "covered" on the strength of plausible-looking code alone (the anti-rot goal
+# of #798). A CI job can staleness-check the attestation-only entries WITHOUT a
+# database — it verifies the human evidence has not silently expired; it does not
+# re-run the live claim.
+#
+# evidence_mode:
+#   ci-test          — proven by a standing automated test (paths under `tests:`)
+#   attestation-only — evidence exists only in a live instance; see `attestation:`
+#   split            — a mechanizable part (ci) plus a live part (attestation)
+
+meta:
+  source: docs/proof-index.md
+  default_attestation_max_age_days: 90
+  commands_live_in: docs/proof-index.md   # referenced by anchor, not duplicated here (single source, no drift)
+
+claims:
+  - claim: 1
+    summary: ".intent/ is reached through a single gateway"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_01_intent_gateway.py]
+
+  - claim: 2
+    summary: "@atomic_action functions cannot be called outside ActionExecutor"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_02_executor_bypass.py]
+
+  - claim: 3
+    summary: "the API layer holds no direct database imports"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_03_api_no_direct_db.py]
+
+  - claim: 4
+    summary: "every executed action is recorded; a failed write-action record is surfaced, not silent"
+    evidence_mode: split
+    ci:
+      tests: []
+      note: "AUDIT_GAP-on-failure path is unit-mechanizable (mocked failing session) — NOT YET WIRED."
+    attestation:
+      reason: "the live audit trail (core.action_results rows accumulating) requires a running instance + PostgreSQL."
+      command_ref: "docs/proof-index.md#audit-trail-query"
+      expected: "recent rows; agent_id=ActionExecutor; action_type matches a registered id; created_at monotonic."
+      status: needs-attestation
+      last_attested: null
+      attested_by: null
+      result: null
+
+  - claim: 5
+    summary: "a dangerous-impact action cannot auto-execute; it requires explicit approval"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_05_dangerous_requires_approval.py]
+
+  - claim: 6
+    summary: "every executed change is traceable end-to-end: finding -> proposal -> approval -> execution -> file change"
+    evidence_mode: attestation-only
+    attestation:
+      reason: "requires an executed proposal and live PostgreSQL consequence records (core.proposal_consequences JOIN core.autonomous_proposals)."
+      command_ref: "docs/proof-index.md#consequence-chain-query"
+      expected: "rows joining proposal goal, approval authority, pre/post SHA, and changed files."
+      status: needs-attestation
+      last_attested: null
+      attested_by: null
+      result: null
+
+  - claim: 7
+    summary: "governor-only routes carry the enforcement hook at the dependency layer, rule-enforced"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_07_governor_route_gating.py]
+
+  - claim: 8
+    summary: "an autonomous commit cannot include files outside the action's declared production set"
+    evidence_mode: ci-test
+    tests:
+      - tests/shared/infrastructure/test_git_service_commit_authorship.py
+      - tests/will/autonomy/test_proposal_commit_outcome.py
+    note: "pre-existing behavioural coverage — real temp git repo, StagingContaminationError on out-of-set staging (WIP stays staged), and REFUSED_CONTAMINATION outcome at the proposal layer. Referenced, not duplicated (#798: check existing coverage first)."
+
+  - claim: 9
+    summary: "no code path may write .intent/ directly; vocabulary regeneration outputs a draft"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_09_intent_immutable.py]
+
+  - claim: 10
+    summary: "sensors cannot post outside declared artifact type / namespace; duplicate indeterminate refused"
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_10_blackboard_namespace.py]
+    note: "artifact-type + sub-namespace validation is unit-pinned; the duplicate-indeterminate refusal is currently source-inspected (docs/proof-index.md), not live-DB."
