@@ -90,15 +90,6 @@ claims:
 
   - claim: 10
     summary: "sensors cannot post outside declared artifact type / namespace; duplicate indeterminate refused"
-    evidence_mode: split
-    ci:
-      tests: [tests/proof_index/test_claim_10_blackboard_namespace.py]
-      note: "covers artifact-type + sub-namespace validation only."
-    attestation:
-      reason: "duplicate-indeterminate refusal requires persisted blackboard state — post_observation queries an existing indeterminate row before inserting."
-      command_ref: "docs/proof-index.md#boundaries (source-inspected today; needs a live-DB or deterministic DB test)"
-      expected: "a second identical indeterminate observation is refused (logged warning), not overwritten."
-      status: needs-attestation
-      last_attested: null
-      attested_by: null
-      result: null
+    evidence_mode: ci-test
+    tests: [tests/proof_index/test_claim_10_blackboard_namespace.py]
+    note: "artifact-type + sub-namespace validation AND duplicate-indeterminate refusal both pinned deterministically (fake async session, no live DB)."

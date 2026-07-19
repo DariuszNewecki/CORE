@@ -3,14 +3,13 @@
 
 Runs without PostgreSQL. FAIL (blocking) on structural defects: malformed YAML,
 unknown evidence mode, a referenced test file that does not exist, or an
-incomplete attestation schema. WARN (non-blocking, initial ramp) on
-needs-attestation or a stale attestation — promote these to blocking once
-claims 4 and 6 carry valid initial attestations.
+incomplete attestation schema. Also FAIL (blocking, promoted 2026-07-19 now that
+claims 4 and 6 are signed and no unattested live claim remains) on a missing or
+stale attestation.
 """
 
 from __future__ import annotations
 
-import warnings
 from datetime import date
 from pathlib import Path
 
@@ -67,28 +66,27 @@ def test_attestation_schema_complete() -> None:
             assert not missing, f"claim {c['claim']}: attestation missing fields {missing}"
 
 
-def test_attestation_freshness_warns_only() -> None:
-    # WARN-only ramp: needs-attestation / stale entries warn, they do not fail.
-    # Promote to assert once claims 4 and 6 carry initial attestations.
+def test_no_missing_or_stale_attestations() -> None:
+    # Blocking (promoted from warn 2026-07-19): every attestation-bearing claim
+    # must be `attested` and within max_age. This is the forcing function that
+    # makes an un-refreshed live claim a CI failure, not a silent gap.
     data = yaml.safe_load(_INDEX.read_text(encoding="utf-8"))
     max_age = int(data["meta"].get("default_attestation_max_age_days", 90))
     today = date.today()
+    unattested: list[int] = []
+    stale: list[tuple[int, int]] = []
     for c in data["claims"]:
         att = _attestation(c)
         if att is None:
             continue
-        if att.get("status") == "needs-attestation":
-            warnings.warn(
-                f"claim {c['claim']}: needs-attestation (no live evidence recorded yet)",
-                stacklevel=2,
-            )
+        if att.get("status") != "attested":
+            unattested.append(c["claim"])
             continue
         last = att.get("last_attested")
-        if last:
-            last_date = last if isinstance(last, date) else date.fromisoformat(str(last))
-            age = (today - last_date).days
-            if age > max_age:
-                warnings.warn(
-                    f"claim {c['claim']}: attestation stale ({age}d > {max_age}d)",
-                    stacklevel=2,
-                )
+        assert last, f"claim {c['claim']}: attested but missing last_attested"
+        last_date = last if isinstance(last, date) else date.fromisoformat(str(last))
+        age = (today - last_date).days
+        if age > max_age:
+            stale.append((c["claim"], age))
+    assert not unattested, f"live claims missing attestation: {unattested}"
+    assert not stale, f"stale attestations (> {max_age}d): {stale}"
