@@ -45,11 +45,12 @@ claims:
     attestation:
       reason: "the live audit trail (core.action_results rows accumulating) requires a running instance + PostgreSQL."
       command_ref: "docs/proof-index.md#audit-trail-query"
-      expected: "recent rows; agent_id=ActionExecutor; action_type matches a registered id; created_at monotonic."
-      status: needs-attestation
-      last_attested: null
-      attested_by: null
-      result: null
+      expected: "recent rows with agent_id='ActionExecutor'; action_type matches a governed action id; trail accumulates to the present. Writer exclusivity over the shared table is NOT claimed (test_runner_infra / alignment_orchestrator also write)."
+      status: attested
+      last_attested: 2026-07-19
+      attested_by: Dariusz Newecki
+      result: pass
+      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-5015170990"
 
   - claim: 5
     summary: "a dangerous-impact action cannot auto-execute; it requires explicit approval"
@@ -63,10 +64,11 @@ claims:
       reason: "requires an executed proposal and live PostgreSQL consequence records (core.proposal_consequences JOIN core.autonomous_proposals)."
       command_ref: "docs/proof-index.md#consequence-chain-query"
       expected: "rows joining proposal goal, approval authority, pre/post SHA, and changed files."
-      status: needs-attestation
-      last_attested: null
-      attested_by: null
-      result: null
+      status: attested
+      last_attested: 2026-07-19
+      attested_by: Dariusz Newecki
+      result: pass
+      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-5015170990"
 
   - claim: 7
     summary: "governor-only routes carry the enforcement hook at the dependency layer, rule-enforced"
