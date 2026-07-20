@@ -97,6 +97,7 @@ class ASTGateEngine(BaseEngine):
             "write_defaults_false",
             "prompt_model_required",
             "required_decorator",
+            "action_pattern",
             "decorator_args",
             "capability_assignment",
             "no_direct_writes",
@@ -197,6 +198,16 @@ class ASTGateEngine(BaseEngine):
                         tree, decorator=decorator, file_path=file_path
                     )
                 )
+
+        elif check_type == "action_pattern":
+            # #820: dispatched here for the first time. The mapping named
+            # this check_type from the start; no clause existed, so the
+            # unknown-check_type guard below returned ok=False with an
+            # empty violation list — which rule_executor then swallowed,
+            # leaving a blocking constitutional rule silently inert.
+            violations.extend(
+                PurityChecks.check_action_pattern(tree, file_path=file_path)
+            )
 
         elif check_type == "forbidden_decorators":
             violations.extend(

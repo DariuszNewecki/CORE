@@ -31,6 +31,16 @@ class PurityChecks:
 
     _ID_ANCHOR_PREFIXES: ClassVar[tuple[str, ...]] = ("# ID:",)
 
+    # architecture.patterns.action_pattern (#820). Decorator names are
+    # matched on their final segment, so "@app.command()" and
+    # "@coverage_app.command()" both read as "command".
+    _ACTION_DECORATORS: ClassVar[frozenset[str]] = frozenset(
+        {"atomic_action", "register_action"}
+    )
+    _COMMAND_DECORATORS: ClassVar[frozenset[str]] = frozenset(
+        {"command", "core_command"}
+    )
+
     @staticmethod
     # ID: d0d9b1d6-5849-486a-9f77-8333f4fd75a4
     def check_stable_id_anchor(source: str) -> list[str]:
@@ -288,6 +298,140 @@ class PurityChecks:
         return violations
 
     @staticmethod
+    # ID: 2b6c1f47-9e0a-4d5c-8f31-7a4e0c9b6d82
+    def check_action_pattern(tree: ast.AST, file_path: Path | None = None) -> list[str]:
+        """Enforce architecture.patterns.action_pattern (#820).
+
+        The rule: "Action commands MUST use @atomic_action and have a
+        'write' parameter defaulting to False", scoped to
+        ``src/body/atomic/**`` and ``src/cli/commands/**``.
+
+        The two obligations bind to different layers, because the two
+        layers register actions differently:
+
+        - **Decorator** — in ``src/body/atomic/``, a public function
+          carrying ``@register_action`` MUST also carry
+          ``@atomic_action``. CLI commands are exempt: the sanctioned CLI
+          pattern is ``@core_command`` routing mutations through
+          ``ActionExecutor`` (CLAUDE.md), so requiring ``@atomic_action``
+          on a Typer command would contradict the documented pattern.
+        - **Write default** — in both layers, a selected function that
+          declares a ``write`` parameter MUST default it to ``False``.
+          Dry-run is the default posture; opting into mutation is
+          explicit.
+
+        Selection is by decorator, not by position in the file. An
+        undecorated helper that happens to take ``write: bool`` is not an
+        action command and is not flagged — forcing an explicit argument
+        at a call site is a different, legitimate contract.
+
+        Prior to #820 this check_type had no dispatcher at all: ast_gate's
+        unknown-check_type guard returned ``ok=False, violations=[]``,
+        which ``rule_executor`` then swallowed, so a blocking
+        constitutional rule enforced nothing on every audit.
+        """
+        violations: list[str] = []
+        in_atomic_layer = bool(
+            file_path and "src/body/atomic" in str(file_path).replace("\\", "/")
+        )
+
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if fn.name.startswith("_"):
+                continue
+
+            names = PurityChecks._decorator_names(fn)
+            is_action = bool(names & PurityChecks._ACTION_DECORATORS)
+            is_command = bool(names & PurityChecks._COMMAND_DECORATORS)
+            if not (is_action or is_command):
+                continue
+
+            if (
+                in_atomic_layer
+                and "register_action" in names
+                and "atomic_action" not in names
+            ):
+                violations.append(
+                    f"Line {fn.lineno}: action '{fn.name}' is registered with "
+                    "@register_action but lacks @atomic_action — it would execute "
+                    "outside governance metadata."
+                )
+
+            declares_write, default = PurityChecks._write_param_default(fn)
+            if not declares_write:
+                continue
+            if not (isinstance(default, ast.Constant) and default.value is False):
+                rendered = "no default" if default is None else ast.unparse(default)
+                violations.append(
+                    f"Line {fn.lineno}: '{fn.name}' declares a 'write' parameter "
+                    f"that does not default to False (found: {rendered}). "
+                    "Mutation must be opt-in."
+                )
+
+        return violations
+
+    @staticmethod
+    def _decorator_names(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
+        """Bare names of a function's decorators, unwrapping calls and attributes.
+
+        ``@app.command()`` and ``@atomic_action(action_id=...)`` both reduce
+        to their final attribute segment, so a check can match on the name
+        without caring how the decorator was spelled at the call site.
+        """
+        names: set[str] = set()
+        for dec in fn.decorator_list:
+            node = dec.func if isinstance(dec, ast.Call) else dec
+            full = ASTHelpers.full_attr_name(node)
+            if full:
+                names.add(full.split(".")[-1])
+        return names
+
+    @staticmethod
+    def _write_param_default(
+        fn: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> tuple[bool, ast.expr | None]:
+        """Resolve the default of a ``write`` parameter.
+
+        Returns ``(declares_write, default)``. The boolean separates "no
+        such parameter" (no obligation) from "declared with no default"
+        (a violation) — collapsing both onto ``None`` would silently
+        exempt the second. A Typer-wrapped default
+        (``typer.Option(False, '--write')``) is unwrapped to the value the
+        caller actually receives, since the wrapper is a CLI binding
+        detail, not the default itself.
+        """
+        args = fn.args
+        offset = len(args.args) - len(args.defaults)
+        for idx, default in enumerate(args.defaults):
+            if args.args[offset + idx].arg == "write":
+                return True, PurityChecks._unwrap_cli_default(default)
+        for kwarg, kw_default in zip(args.kwonlyargs, args.kw_defaults):
+            if kwarg.arg == "write":
+                if kw_default is None:
+                    return True, None
+                return True, PurityChecks._unwrap_cli_default(kw_default)
+        declared = {a.arg for a in [*args.args, *args.kwonlyargs, *args.posonlyargs]}
+        if "write" in declared:
+            return True, None
+        return False, None
+
+    @staticmethod
+    def _unwrap_cli_default(default: ast.expr) -> ast.expr:
+        """Unwrap ``typer.Option(False, ...)`` / ``typer.Argument(False, ...)``."""
+        if not isinstance(default, ast.Call):
+            return default
+        name = ASTHelpers.full_attr_name(default.func) or ""
+        if name.split(".")[-1] not in ("Option", "Argument"):
+            return default
+        if default.args:
+            return default.args[0]
+        for kw in default.keywords:
+            if kw.arg == "default":
+                return kw.value
+        return default
+
+    @staticmethod
     # ID: b7d320ba-ce8b-4274-8576-a254eeb58bd0
     def check_no_direct_writes(
         tree: ast.AST,
@@ -423,8 +567,12 @@ class PurityChecks:
 
         The check only verifies that `dir=` is *present*; the kwarg's value
         is not statically validated. This is sound for the four real-world
-        siblings closed by #508 and matches how other purity rules trust
-        present-but-unverified kwargs (e.g. write_defaults_false).
+        siblings closed by #508.
+
+        (An earlier version of this docstring cited `write_defaults_false`
+        as precedent for trusting present-but-unverified kwargs. That
+        check_type dispatches but has no validator branch, so it verifies
+        nothing at all — corrected under #820.)
         """
         violations: list[str] = []
         alias_map = ASTHelpers.build_import_alias_map(tree)

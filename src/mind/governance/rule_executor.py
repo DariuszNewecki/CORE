@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from mind.logic.engines.base import extract_line_number, normalize_violation
+from mind.logic.engines.base import (
+    EngineResult,
+    extract_line_number,
+    normalize_violation,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 
@@ -65,6 +69,83 @@ if TYPE_CHECKING:
     from mind.governance.executable_rule import ExecutableRule
 
 logger = getLogger(__name__)
+
+
+# ID: 944875ec-f3eb-44d1-aff1-ba17a2fed502
+def declared_check_types(engine: Any) -> frozenset[str] | None:
+    """Return the check_type vocabulary an engine declares, or None if it declares none.
+
+    Two conventions exist in the engine tree and both are honoured: a
+    ``supported_check_types()`` classmethod (knowledge_gate) and a
+    ``_SUPPORTED_CHECK_TYPES`` ClassVar (ast_gate). An engine that declares
+    neither is not validated — the contract is opt-in, because only an engine
+    that publishes its vocabulary can be held to it. Declaring is what buys
+    the protection.
+    """
+    declared = getattr(engine, "supported_check_types", None)
+    if callable(declared):
+        try:
+            return frozenset(declared())
+        except Exception:  # pragma: no cover - defensive
+            return None
+    classvar = getattr(engine, "_SUPPORTED_CHECK_TYPES", None)
+    if classvar:
+        return frozenset(classvar)
+    return None
+
+
+def _unsupported_check_type_finding(
+    rule: ExecutableRule, check_type: object, declared: frozenset[str]
+) -> AuditFinding:
+    """Build the BLOCK finding for a rule naming a check_type its engine cannot dispatch."""
+    return AuditFinding(
+        check_id=f"{rule.rule_id}.enforcement_failure",
+        severity=AuditSeverity.BLOCK,
+        message=(
+            f"ENFORCEMENT_FAILURE: Rule declares check_type {check_type!r}, which "
+            f"engine '{rule.engine}' does not implement. The rule enforces nothing. "
+            f"Compliance status UNKNOWN — treat as non-compliant until fixed. "
+            f"Engine supports: {', '.join(sorted(declared))}."
+        ),
+        file_path="none",
+        context={
+            "finding_type": "ENFORCEMENT_FAILURE",
+            "engine": rule.engine,
+            "policy_id": rule.policy_id,
+            "declared_check_type": check_type,
+            "supported_check_types": sorted(declared),
+        },
+    )
+
+
+def _empty_violation_finding(
+    rule: ExecutableRule, result: EngineResult, rel_path: str
+) -> AuditFinding:
+    """Build the BLOCK finding for an engine that failed without naming a violation.
+
+    ``execute_rule`` materialises findings by iterating ``result.violations``.
+    An engine returning ``ok=False`` with an empty list therefore produced a
+    verdict of "failed" that renders as nothing at all — indistinguishable from
+    a clean pass. ast_gate's own #588 unknown-check_type guard has exactly this
+    shape, which is why that fix has been invisible since it landed.
+    """
+    message = getattr(result, "message", "") or "engine reported failure without detail"
+    return AuditFinding(
+        check_id=f"{rule.rule_id}.enforcement_failure",
+        severity=AuditSeverity.BLOCK,
+        message=(
+            f"ENFORCEMENT_FAILURE: Engine '{rule.engine}' returned ok=False with no "
+            f"violations on {rel_path}: {message}. A failure without evidence cannot "
+            f"be adjudicated — treat as non-compliant until fixed."
+        ),
+        file_path=rel_path,
+        context={
+            "finding_type": "ENFORCEMENT_FAILURE",
+            "engine": rule.engine,
+            "policy_id": rule.policy_id,
+            "engine_message": message,
+        },
+    )
 
 
 def _map_enforcement_to_severity(enforcement: str) -> AuditSeverity:
@@ -155,6 +236,31 @@ async def execute_rule(
                 },
             )
         ]
+
+    # #820 contract 1 — dispatch integrity. A rule naming a check_type its
+    # engine cannot dispatch enforces nothing, and does so silently: every
+    # named-dispatch engine falls through to an empty result for an
+    # unrecognised name. Four `capability.taxonomy.*` rules sat blocking-but-
+    # inert this way since 4849af15 (March 2026), against a
+    # `capability_taxonomy_whitelist` handler that never landed. Validate
+    # before dispatch so the drift is a verdict, not a silence.
+    #
+    # Opt-in by design: only engines that publish a check_type vocabulary are
+    # checked (see declared_check_types). Engines that publish nothing are
+    # unchanged — this adds a contract, it does not retrofit one.
+    declared = declared_check_types(engine)
+    if declared is not None:
+        rule_check_type = rule.params.get("check_type")
+        if rule_check_type is not None and rule_check_type not in declared:
+            logger.error(
+                "ENFORCEMENT_FAILURE: Rule %s declares check_type %r unsupported "
+                "by engine %s (supports: %s)",
+                rule.rule_id,
+                rule_check_type,
+                rule.engine,
+                ", ".join(sorted(declared)),
+            )
+            return [_unsupported_check_type_finding(rule, rule_check_type, declared)]
 
     # ADR-113: the producing engine is the authority on how it establishes a
     # verdict. Stamp its declared class onto every genuine-verdict finding
@@ -297,6 +403,20 @@ async def execute_rule(
                     rel_path = str(file_path.relative_to(context.repo_path))
                     err_msg, _ = normalize_violation(marker_violation)
                     transient_llm_failures.append((rel_path, err_msg))
+                    continue
+                # #820 contract 2 — result truthfulness. Findings below are
+                # materialised solely by iterating result.violations, so an
+                # engine that says ok=False while naming nothing renders as a
+                # clean pass. Never cached: like a crash, this is an
+                # infrastructure signal that must re-evaluate each cycle.
+                if not result.violations:
+                    findings.append(
+                        _empty_violation_finding(
+                            rule,
+                            result,
+                            str(file_path.relative_to(context.repo_path)),
+                        )
+                    )
                     continue
                 file_findings: list[AuditFinding] = []
                 for v in result.violations:
