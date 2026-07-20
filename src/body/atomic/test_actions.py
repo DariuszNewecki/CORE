@@ -23,6 +23,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.validation.test_runner import run_tests
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -187,8 +188,12 @@ async def action_test_candidate_validate(
             impact=ActionImpact.WRITE_DATA,
         )
 
-    scratch_dir = f"var/tmp/candidate_validate/{uuid.uuid4().hex}"
-    scratch_rel_path = f"{scratch_dir}/{Path(target_path).name}"
+    file_handler = core_context.file_handler
+    _tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
+        file_handler.repo_path
+    )
+    scratch_dir = str(_tmp / "candidate_validate" / uuid.uuid4().hex)
+    scratch_rel_path = str(Path(scratch_dir) / Path(target_path).name)
 
     try:
         core_context.file_handler.write(scratch_rel_path, candidate_content)

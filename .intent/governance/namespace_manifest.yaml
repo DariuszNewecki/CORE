@@ -1782,6 +1782,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-153-remediation-ceremony-extraction.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-154-mutation-lane-equivalence.md
+    governance_namespace: project::core
+  - path: .specs/attestations/proof-index.yaml
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-Release-Smoke-Test.md

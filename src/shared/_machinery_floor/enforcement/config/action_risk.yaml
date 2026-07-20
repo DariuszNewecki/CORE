@@ -60,5 +60,6 @@ actions:
   sync.db: moderate
   sync.vectors_code: moderate
   sync.vectors_constitution: moderate
+  test.candidate_validate: safe
   test.execute: moderate
   test.sandbox_validate: safe
