@@ -71,6 +71,16 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+# ID: 8c1f0a52-4e7d-4b93-a06c-2d9f7b31e845
+class VocabularyUnavailableError(Exception):
+    """An engine's check_type vocabulary could not be read.
+
+    Raised rather than returned so the condition cannot be mistaken for
+    "this engine declares no vocabulary" — the two are opposite verdicts and
+    collapsing them re-opens the fail-open hole.
+    """
+
+
 # ID: 944875ec-f3eb-44d1-aff1-ba17a2fed502
 def declared_check_types(engine: Any) -> frozenset[str] | None:
     """Return the check_type vocabulary an engine declares, or None if it declares none.
@@ -81,15 +91,28 @@ def declared_check_types(engine: Any) -> frozenset[str] | None:
     neither is not validated — the contract is opt-in, because only an engine
     that publishes its vocabulary can be held to it. Declaring is what buys
     the protection.
+
+    Fail-closed on both edges (#820 follow-up):
+
+    - A vocabulary accessor that *raises* must not be read as "declares
+      nothing". Swallowing the error would silently disable the very contract
+      this function exists to enforce — the failure mode #820 was opened for.
+      ``VocabularyUnavailableError`` propagates so the caller can BLOCK.
+    - An **empty** ``_SUPPORTED_CHECK_TYPES`` is a declaration ("I dispatch no
+      named check_types"), not an absence of one. Testing it by truthiness
+      conflated the two and handed a fully-inert engine an exemption.
     """
     declared = getattr(engine, "supported_check_types", None)
     if callable(declared):
         try:
             return frozenset(declared())
-        except Exception:  # pragma: no cover - defensive
-            return None
+        except Exception as exc:
+            raise VocabularyUnavailableError(
+                f"engine '{type(engine).__name__}' failed to publish its "
+                f"check_type vocabulary: {exc}"
+            ) from exc
     classvar = getattr(engine, "_SUPPORTED_CHECK_TYPES", None)
-    if classvar:
+    if classvar is not None:
         return frozenset(classvar)
     return None
 
@@ -97,15 +120,26 @@ def declared_check_types(engine: Any) -> frozenset[str] | None:
 def _unsupported_check_type_finding(
     rule: ExecutableRule, check_type: object, declared: frozenset[str]
 ) -> AuditFinding:
-    """Build the BLOCK finding for a rule naming a check_type its engine cannot dispatch."""
+    """Build the BLOCK finding for a rule whose check_type its engine cannot dispatch.
+
+    Covers both shapes: a name the engine does not implement, and no name at
+    all. A missing check_type against a finite vocabulary is the more
+    dangerous of the two — for a context-level engine it reaches
+    ``verify_context()``, whose empty result reads as a clean pass.
+    """
+    fault = (
+        "declares no check_type"
+        if check_type is None
+        else f"declares check_type {check_type!r}, which"
+    )
     return AuditFinding(
         check_id=f"{rule.rule_id}.enforcement_failure",
         severity=AuditSeverity.BLOCK,
         message=(
-            f"ENFORCEMENT_FAILURE: Rule declares check_type {check_type!r}, which "
+            f"ENFORCEMENT_FAILURE: Rule {fault} "
             f"engine '{rule.engine}' does not implement. The rule enforces nothing. "
             f"Compliance status UNKNOWN — treat as non-compliant until fixed. "
-            f"Engine supports: {', '.join(sorted(declared))}."
+            f"Engine supports: {', '.join(sorted(declared)) or '(nothing)'}."
         ),
         file_path="none",
         context={
@@ -114,6 +148,34 @@ def _unsupported_check_type_finding(
             "policy_id": rule.policy_id,
             "declared_check_type": check_type,
             "supported_check_types": sorted(declared),
+        },
+    )
+
+
+def _vocabulary_unavailable_finding(
+    rule: ExecutableRule, error: Exception
+) -> AuditFinding:
+    """Build the BLOCK finding for an engine that could not publish its vocabulary.
+
+    Without this the accessor's failure would degrade to "declares nothing",
+    which exempts the engine from dispatch validation entirely — a fail-open
+    path through the fail-closed contract.
+    """
+    return AuditFinding(
+        check_id=f"{rule.rule_id}.enforcement_failure",
+        severity=AuditSeverity.BLOCK,
+        message=(
+            f"ENFORCEMENT_FAILURE: Engine '{rule.engine}' could not publish its "
+            f"check_type vocabulary ({error}), so dispatch integrity cannot be "
+            f"verified. Compliance status UNKNOWN — treat as non-compliant until "
+            f"fixed."
+        ),
+        file_path="none",
+        context={
+            "finding_type": "ENFORCEMENT_FAILURE",
+            "engine": rule.engine,
+            "policy_id": rule.policy_id,
+            "vocabulary_error": str(error),
         },
     )
 
@@ -248,10 +310,27 @@ async def execute_rule(
     # Opt-in by design: only engines that publish a check_type vocabulary are
     # checked (see declared_check_types). Engines that publish nothing are
     # unchanged — this adds a contract, it does not retrofit one.
-    declared = declared_check_types(engine)
+    #
+    # A *missing* check_type is included, not exempted: against an engine
+    # publishing a finite vocabulary, dispatching on nothing selects nothing.
+    # For context-level engines that lands in verify_context(), whose empty
+    # result is indistinguishable from a clean pass — the per-file
+    # ok=False/violations=[] contract below cannot see it.
+    try:
+        declared = declared_check_types(engine)
+    except VocabularyUnavailableError as exc:
+        logger.error(
+            "ENFORCEMENT_FAILURE: Rule %s — engine %s could not publish its "
+            "check_type vocabulary: %s",
+            rule.rule_id,
+            rule.engine,
+            exc,
+        )
+        return [_vocabulary_unavailable_finding(rule, exc)]
+
     if declared is not None:
         rule_check_type = rule.params.get("check_type")
-        if rule_check_type is not None and rule_check_type not in declared:
+        if rule_check_type is None or rule_check_type not in declared:
             logger.error(
                 "ENFORCEMENT_FAILURE: Rule %s declares check_type %r unsupported "
                 "by engine %s (supports: %s)",

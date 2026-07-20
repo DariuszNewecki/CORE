@@ -71,10 +71,21 @@ class ASTGateEngine(BaseEngine):
     # Every check_type listed here MUST have a matching dispatch clause in
     # ``verify()``. The unknown-check_type guard at the end of verify()
     # surfaces any drift between this set and the dispatch chain — keep
-    # them aligned. Three aliases (``decorator_args``,
-    # ``write_defaults_false``, ``required_calls``) route through the
-    # ``generic_primitive`` harness with ``selector`` + ``requirement``
-    # params; the rest are first-class entries with their own clauses.
+    # them aligned. Two aliases (``decorator_args``, ``required_calls``)
+    # route through the ``generic_primitive`` harness with ``selector`` +
+    # ``requirement`` params; the rest are first-class entries with their own
+    # clauses.
+    #
+    # ``write_defaults_false`` was a third alias and is retired (#820
+    # follow-up). It was declared here and routed to the harness, but
+    # ``GenericASTChecks.validate_requirement`` has no branch for it, so it
+    # validated nothing on every input — a capability the vocabulary
+    # advertised and did not have. Declaring it was worse than omitting it:
+    # dispatch succeeded, so neither the unsupported-check_type contract nor
+    # the empty-violations contract could see it. The real obligation is
+    # enforced by ``action_pattern`` (and, on the Body contracts surface, by
+    # body_contracts_service's own `write_defaults_false` rule — a different
+    # namespace, untouched here). No enforcement mapping referenced the alias.
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "generic_primitive",
@@ -94,7 +105,6 @@ class ASTGateEngine(BaseEngine):
             "forbidden_primitives",
             "forbidden_assignments",
             "forbidden_imports_and_calls",
-            "write_defaults_false",
             "prompt_model_required",
             "required_decorator",
             "action_pattern",
@@ -380,7 +390,6 @@ class ASTGateEngine(BaseEngine):
             "generic_primitive",
             "required_calls",
             "decorator_args",
-            "write_defaults_false",
         ):
             selector = params.get("selector", {})
             requirement = params.get(

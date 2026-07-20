@@ -21,6 +21,7 @@ narrow assertion these tests exist to make.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 
 from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
@@ -54,15 +55,27 @@ def _rule(
     rule_id: str,
     *,
     engine: str = "ast_gate",
+    params: dict[str, Any] | None = None,
     scope: list[str] | None = None,
     exclusions: list[str] | None = None,
     enforcement: str = "blocking",
     is_context_level: bool = False,
 ) -> ExecutableRule:
+    """Build an ExecutableRule that is valid to dispatch, not merely to inspect.
+
+    The default `params` names a real ast_gate check_type. An empty dict was
+    the previous default, which the #820 dispatch contract now refuses for any
+    engine publishing a finite vocabulary: dispatching on no name selects
+    nothing, so the rule is an ENFORCEMENT_FAILURE rather than a silent pass.
+    Tests exercising gate logic alone never noticed; the moment one dispatched
+    through `execute_rule` it inherited a fail-open fixture. Callers needing a
+    different check_type — or deliberately testing the invalid shape — pass
+    `params` explicitly.
+    """
     return ExecutableRule(
         rule_id=rule_id,
         engine=engine,
-        params={},
+        params=params if params is not None else {"check_type": "docstrings_present"},
         enforcement=enforcement,
         scope=scope if scope is not None else ["src/**/*.py"],
         exclusions=exclusions or [],
@@ -233,7 +246,13 @@ async def test_run_dynamic_rules_surfaces_scope_inert_to_verdict(monkeypatch):
     planted = ExecutableRule(
         rule_id="test.integration.drifted",
         engine="ast_gate",
-        params={},
+        # A real check_type is required: under the #820 dispatch contract an
+        # engine publishing a finite vocabulary refuses a rule that names no
+        # check_type, and the resulting ENFORCEMENT_FAILURE marks the rule
+        # crashed — drowning the SCOPE_INERT signal this test is about. The
+        # name chosen is irrelevant to the assertion; ctx.get_files() returns
+        # [] so nothing is ever checked.
+        params={"check_type": "docstrings_present"},
         enforcement="blocking",
         scope=["src/nonexistent_dir/**/*.py"],
         exclusions=[],

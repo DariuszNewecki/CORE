@@ -314,6 +314,121 @@ async def test_supported_check_type_still_dispatches(
 
 
 @pytest.mark.asyncio
+async def test_missing_check_type_produces_block_finding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Contract 1, missing-name edge: no check_type at all must also BLOCK.
+
+    The first cut guarded only `check_type not in declared`, so `None` walked
+    straight past it. Against a context-level engine that reaches
+    verify_context(), whose empty result is indistinguishable from a clean
+    pass — the per-file ok=False/violations=[] contract cannot see it. This is
+    the same fail-open shape #820 exists to close, one layer up.
+    """
+
+    class _DeclaringEngine:
+        engine_id = "knowledge_gate"
+
+        @classmethod
+        def supported_check_types(cls) -> set[str]:
+            return {"duplicate_ids"}
+
+        async def verify_context(self, *_a: Any, **_k: Any) -> list[Any]:
+            raise AssertionError("dispatch must be refused before the engine runs")
+
+    monkeypatch.setattr(
+        EngineRegistry, "get", classmethod(lambda cls, _id: _DeclaringEngine())
+    )
+
+    rule = ExecutableRule(
+        rule_id="some.rule.without.a.check_type",
+        engine="knowledge_gate",
+        params={},
+        enforcement="blocking",
+        scope=[],
+        exclusions=[],
+        is_context_level=True,
+    )
+    findings = await execute_rule(rule, _context(tmp_path))
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity is AuditSeverity.BLOCK
+    assert finding.context["finding_type"] == "ENFORCEMENT_FAILURE"
+    assert finding.context["declared_check_type"] is None
+    assert "declares no check_type" in finding.message
+
+
+@pytest.mark.asyncio
+async def test_vocabulary_accessor_failure_produces_block_finding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fail-closed discovery: a raising accessor must BLOCK, not opt out.
+
+    Returning None on error read as "declares no vocabulary", which exempts
+    the engine from validation entirely — the contract disabling itself at
+    precisely the moment something is wrong with the engine.
+    """
+
+    class _BrokenVocabularyEngine:
+        engine_id = "knowledge_gate"
+
+        @classmethod
+        def supported_check_types(cls) -> set[str]:
+            raise RuntimeError("registry unavailable")
+
+        async def verify_context(self, *_a: Any, **_k: Any) -> list[Any]:
+            raise AssertionError("dispatch must be refused before the engine runs")
+
+    monkeypatch.setattr(
+        EngineRegistry, "get", classmethod(lambda cls, _id: _BrokenVocabularyEngine())
+    )
+
+    rule = ExecutableRule(
+        rule_id="some.rule",
+        engine="knowledge_gate",
+        params={"check_type": "duplicate_ids"},
+        enforcement="blocking",
+        scope=[],
+        exclusions=[],
+        is_context_level=True,
+    )
+    findings = await execute_rule(rule, _context(tmp_path))
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity is AuditSeverity.BLOCK
+    assert finding.context["finding_type"] == "ENFORCEMENT_FAILURE"
+    assert "registry unavailable" in finding.context["vocabulary_error"]
+    assert "could not publish" in finding.message
+
+
+# ID: 97b8300c-7fe4-4c62-b3e3-959026bc173f
+def test_empty_declared_vocabulary_is_a_declaration() -> None:
+    """An engine declaring an empty vocabulary declares one — it is not absent.
+
+    Truthiness-testing the ClassVar collapsed "dispatches no named check_type"
+    into "publishes no contract", handing a fully-inert engine the exemption
+    meant for engines that never opted in.
+    """
+
+    class _EmptyVocabularyEngine:
+        _SUPPORTED_CHECK_TYPES: frozenset[str] = frozenset()
+
+    assert declared_check_types(_EmptyVocabularyEngine()) == frozenset()
+
+
+# ID: 3f7b2d90-6a15-48ce-b304-9e2d7c015b8a
+def test_engine_publishing_no_vocabulary_returns_none() -> None:
+    """The opt-in escape hatch survives: no accessor, no ClassVar, no contract."""
+
+    class _NoVocabularyEngine:
+        pass
+
+    assert declared_check_types(_NoVocabularyEngine()) is None
+
+
+@pytest.mark.asyncio
 async def test_engine_declaring_nothing_is_not_validated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

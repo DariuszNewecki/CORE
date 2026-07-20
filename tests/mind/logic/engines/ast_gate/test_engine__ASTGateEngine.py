@@ -18,12 +18,16 @@
     * test_verify_forbidden_assignments updated for #588's dispatch wiring
       — source now flags assignments to forbidden target names (the
       data.ssot.database_primacy rule in governance.yaml depends on this).
-    * test_verify_write_defaults_false_violation / _decorator_args still
-      pin the generic-primitive alias semantics: source dispatches them
-      through the generic harness, which needs explicit selector +
-      requirement params. The flat-params shape this test passes still
-      yields no violations — that's the alias-without-explicit-params
-      behavior, not a missing dispatch.
+    * test_verify_write_defaults_false_* replaced under #820: the alias is
+      retired, so the engine now rejects it as an unknown check_type. The
+      former pair asserted that `write=True` and `write=False` both passed,
+      which documented a validator branch that never existed.
+    * test_verify_decorator_args still pins generic-primitive alias
+      semantics: it dispatches through the generic harness, which needs
+      explicit selector + requirement params. Unlike the retired alias it
+      does have a `validate_requirement` branch — the flat-params shape
+      here yields no violations because `required_kwargs` is unset, not
+      because the check is absent.
 """
 
 from __future__ import annotations
@@ -156,32 +160,36 @@ async def test_verify_forbidden_assignments_clean(path_resolver, tmp_py_file):
     assert result.engine_id == "ast_gate"
 
 
-async def test_verify_write_defaults_false_violation(path_resolver, tmp_py_file):
-    """write_defaults_false is dispatched via the generic-primitive harness
-    (engine.py:300) which requires non-trivial selector+requirement params.
-    With the flat {check_type: ...} shape this test passes, the harness
-    selects every node and validates with empty requirement → no violations.
-    Pinning current behavior; see #588 (Drift 2) for the alias-semantics
-    documentation gap."""
+async def test_verify_write_defaults_false_is_retired(path_resolver, tmp_py_file):
+    """The retired alias must now be rejected, not silently accepted (#820).
+
+    Until this change `write_defaults_false` was declared in
+    _SUPPORTED_CHECK_TYPES and routed to the generic-primitive harness, but
+    `validate_requirement` had no branch for it — so it returned a clean pass
+    for `write=True` and `write=False` alike. The two tests replaced here
+    asserted exactly that, which made a fake capability look load-bearing.
+
+    Retired rather than reimplemented: no enforcement mapping referenced it,
+    and the real obligation is enforced by `action_pattern`.
+    """
     engine = ASTGateEngine(path_resolver=path_resolver)
     tmp_py_file.write_text("def foo(write=True):\n    pass")
     result = await engine.verify(tmp_py_file, {"check_type": "write_defaults_false"})
-    assert result.ok
-    assert result.message == "AST Check complete: write_defaults_false"
-    assert result.violations == []
+    assert not result.ok
+    assert "Unknown check_type" in result.message
     assert result.engine_id == "ast_gate"
 
 
-async def test_verify_write_defaults_false_compliant(path_resolver, tmp_py_file):
-    """Same generic-primitive dispatch as the violation case; the bare-params
-    path produces no violations either way."""
+async def test_write_defaults_false_absent_from_declared_vocabulary(path_resolver):
+    """The vocabulary must not advertise a capability the engine lacks.
+
+    rule_executor's dispatch contract trusts this set: anything listed here is
+    treated as dispatchable, so a phantom entry is invisible to both #820
+    contracts — dispatch succeeds and the result is ok=True with no violations.
+    """
     engine = ASTGateEngine(path_resolver=path_resolver)
-    tmp_py_file.write_text("def foo(write=False):\n    pass")
-    result = await engine.verify(tmp_py_file, {"check_type": "write_defaults_false"})
-    assert result.ok
-    assert result.message == "AST Check complete: write_defaults_false"
-    assert result.violations == []
-    assert result.engine_id == "ast_gate"
+    assert "write_defaults_false" not in engine._SUPPORTED_CHECK_TYPES
+    assert "action_pattern" in engine._SUPPORTED_CHECK_TYPES
 
 
 async def test_verify_max_file_lines_violation(path_resolver, tmp_py_file):
