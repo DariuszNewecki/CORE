@@ -48,14 +48,16 @@ roles:
       Identifies potential contradictions, gaps, and drift between ADRs, rule
       domains, and northstar documents. Read-only, analysis-only.
     required_capabilities:
-      - long_context_reasoning
-      - structured_output
+      - reasoning
+      - analysis
+      - json_output
+      - schema_compliance
 
   DocstringWriter:
     description: Authors and maintains docstrings and inline documentation for code artifacts.
     required_capabilities:
       - code_understanding
-      - documentation
+      - code_generation
 
   LocalCoder:
     description: Locally-executed coding role for symbol enrichment and code-adjacent reasoning.
@@ -69,7 +71,8 @@ roles:
       analysis, and cross-document alignment checks.
     required_capabilities:
       - reasoning
-      - yaml_analysis
+      - analysis
+      - document_parsing
 
   Planner:
     description: Decomposes high-level goals into step-by-step plans.
