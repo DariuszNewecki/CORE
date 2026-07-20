@@ -130,42 +130,31 @@ jobs:
       - name: Vocabulary freshness check
         run: poetry run core-admin intent sync vocabulary --check
 
-      # Constitutional audit at FULL rule coverage, per push.
+      # Constitutional audit, per push, blocking rules only.
       #
-      # daily_sync.yml runs this same audit with --offline, which drops to
-      # stateless mode and skips the 19 knowledge_gate + llm_gate rules. Five
-      # of those are `blocking` — linkage.duplicate_ids and the four
-      # capability.taxonomy.* rules — so until now they were enforced by
-      # nothing, in any automated context. This job is the one place that can
-      # close that gap: it already provisions ephemeral postgres + qdrant per
-      # ADR-115, and all five are knowledge_gate (DB-backed, no LLM needed).
+      # Until now the only automated audit was daily_sync.yml's, on a ~24h
+      # cron. Blocking constitutional rules were therefore the *least*
+      # promptly enforced checks in the repo — ordinary pytest assertions gate
+      # every push, while a blocking rule violation could sit for a day. Two
+      # of the three CI blockers fixed in f5b14a32 were exactly that shape.
+      # This step closes the timing gap for every rule the stateless engine
+      # can evaluate.
       #
-      # CORE_ENV=TEST routes shared.config to .env.test, already rewritten
-      # above to point at the ephemeral services.
+      # --offline is required, and not merely for the no-DB reason its name
+      # suggests: without it the CLI routes through CoreApiClient to a running
+      # core-api daemon (audit.py -> client.audit), which does not exist on a
+      # runner. Same constraint ADR-115 D3 already recorded for ruff.
       #
-      # This works *because .env does not exist on the runner* (it is
-      # gitignored, machine-specific). shared.config loads .env with
-      # override=True before it reads CORE_ENV, so on a developer machine that
-      # file wins and this step-level variable is silently discarded —
-      # verified locally, where it resolved to the dev DB, not core_test. On
-      # the runner load_dotenv no-ops on the missing file, CORE_ENV=TEST
-      # survives, and .env.test is selected. If a .env is ever materialized
-      # into CI, this step points at whatever that file names instead: the
-      # same trap already documented on the sed step above.
-      #
-      # llm_gate rules do run here without a provider and return
-      # ENFORCEMENT_UNAVAILABLE. That cannot fail this gate: severity is
-      # derived from each rule's own `enforcement` field
-      # (rule_executor._map_enforcement_to_severity), and every llm_gate rule
-      # is reporting or advisory, so they map to INFO and are filtered out by
-      # --severity=block. The timeout bounds the only thing not verified ahead
-      # of landing this — how long those provider-less attempts take on a
-      # runner.
-      - name: Constitutional audit (full coverage, blocking rules only)
+      # KNOWN GAP, deliberately not closed here: stateless mode skips 19
+      # knowledge_gate + llm_gate rules, five of them `blocking` —
+      # linkage.duplicate_ids and the four capability.taxonomy.* rules. Those
+      # remain enforced by nothing automated. Closing it needs an in-process
+      # audit path that can use a database; there is currently no such mode,
+      # only stateless-in-process or daemon-over-HTTP. That is a src/ change,
+      # not a workflow change.
+      - name: Constitutional audit (blocking rules, stateless engine)
         timeout-minutes: 10
-        env:
-          CORE_ENV: TEST
-        run: poetry run core-admin code audit --severity=block
+        run: poetry run core-admin code audit --offline --severity=block
 
       # ADR-115 D3: lint statically (ruff), not via the core-api server.
       - name: Lint (ruff — static, no server)
