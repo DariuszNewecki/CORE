@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import json
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -28,6 +29,7 @@ from mind.logic.engines._knowledge_gate_duplication import (
 from mind.logic.engines.base import BaseEngine, EngineResult, EvidenceClass
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+from shared.utils.glob_match import matches_glob
 
 
 if TYPE_CHECKING:
@@ -66,6 +68,22 @@ class KnowledgeGateEngine(BaseEngine):
         }
     )
 
+    # Identity column per table, for attributing a non-canonical capability
+    # reference to a specific row in capability_taxonomy_whitelist findings.
+    _CAPABILITY_IDENTITY_COLUMNS: ClassVar[dict[str, str]] = {
+        "core.cognitive_roles": "role",
+        "core.llm_resources": "name",
+    }
+
+    # Column names cannot be parameterized any more than table names can
+    # (see _ALLOWED_TABLES above) — a database_sources entry is enforcement-
+    # mapping YAML, the same supply-chain surface, so the column half of
+    # "<schema>.<table>.<column>" is validated against this whitelist before
+    # interpolation too.
+    _ALLOWED_CAPABILITY_COLUMNS: ClassVar[frozenset[str]] = frozenset(
+        {"required_capabilities", "provided_capabilities"}
+    )
+
     @classmethod
     # ID: 301b31bb-1c1c-4c1e-8bb6-3880f1a1dd4d
     def supported_check_types(cls) -> set[str]:
@@ -76,6 +94,7 @@ class KnowledgeGateEngine(BaseEngine):
             "duplicate_ids",
             "table_has_records",
             "orphan_file_check",
+            "capability_taxonomy_whitelist",
         }
 
     # ID: d2fa4e12-5198-462f-9615-0d286c200529
@@ -109,6 +128,8 @@ class KnowledgeGateEngine(BaseEngine):
             return await self._check_table_has_records(context, params)
         elif check_type == "orphan_file_check":
             return self._check_orphan_files(context, params)
+        elif check_type == "capability_taxonomy_whitelist":
+            return await self._check_capability_taxonomy_whitelist(context, params)
 
         return []
 
@@ -227,6 +248,269 @@ class KnowledgeGateEngine(BaseEngine):
                         line_number=symbol_data.get("line_number"),
                     )
                 )
+        return findings
+
+    async def _check_capability_taxonomy_whitelist(
+        self, context: AuditorContext, params: dict[str, Any]
+    ) -> list[AuditFinding]:
+        """Verify capability references against the canonical taxonomy.
+
+        Two source kinds, both declared in the enforcement mapping:
+        ``database_sources`` (``"<schema>.<table>.<column>"`` — a jsonb array
+        column on a whitelisted table) and ``artifact_sources`` (repo-relative
+        glob patterns over `.intent/` YAML/JSON). A capability value present
+        in a source but absent from the taxonomy is a non-canonical-reference
+        finding. A source that cannot be evaluated (taxonomy unreadable, DB
+        unavailable, query failure) is an ENFORCEMENT_FAILURE finding, never a
+        silent pass — per CORE-Internal-Truthfulness: absence of findings is
+        evidence of compliance only when the source was actually evaluated.
+
+        ``reject_unknown`` (present on ``no_ad_hoc_capabilities``, absent on
+        ``canonical_only``) is accepted but not read: both rules currently run
+        the identical canonical-membership check. That is a real, not a
+        hidden, redundancy — the two rules are near-duplicates against
+        today's data (see the #820 Group A disposition on retiring one of
+        them) rather than the parameter implying an unimplemented distinction.
+        """
+        taxonomy_path = params.get("taxonomy_path")
+        if not taxonomy_path:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    "capability_taxonomy_whitelist called without taxonomy_path "
+                    "— no canonical vocabulary to check against."
+                )
+            ]
+
+        resolved_taxonomy_path = self._resolve_within_repo(
+            context.repo_path, taxonomy_path
+        )
+        if resolved_taxonomy_path is None:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"taxonomy_path '{taxonomy_path}' escapes the repository "
+                    "root — refusing to load it."
+                )
+            ]
+
+        try:
+            taxonomy_doc = context.intent_repo.load_document(resolved_taxonomy_path)
+        except Exception as exc:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"Canonical capability taxonomy at '{taxonomy_path}' could "
+                    f"not be loaded: {exc}"
+                )
+            ]
+
+        canonical = self._extract_canonical_capabilities(
+            taxonomy_doc, params.get("taxonomy_root", "families")
+        )
+        if not canonical:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"Canonical capability taxonomy at '{taxonomy_path}' "
+                    f"declares zero capabilities under "
+                    f"'{params.get('taxonomy_root', 'families')}' — cannot "
+                    "distinguish canonical from ad hoc."
+                )
+            ]
+
+        findings: list[AuditFinding] = []
+        for source in params.get("database_sources") or []:
+            findings.extend(
+                await self._check_db_capability_source(context, source, canonical)
+            )
+        for pattern in params.get("artifact_sources") or []:
+            findings.extend(
+                self._check_artifact_capability_source(context, pattern, canonical)
+            )
+        return findings
+
+    @staticmethod
+    def _resolve_within_repo(repo_path: Path, rel: str) -> Path | None:
+        """Resolve ``rel`` under ``repo_path``, refusing any escape.
+
+        ``repo_path / rel`` alone is not safe: pathlib's ``/`` operator
+        discards the left side entirely when the right side is absolute
+        (``Path("/repo") / "/etc/passwd" == Path("/etc/passwd")``), and a
+        ``../``-laden relative path resolves outside the repo too. Both are
+        real paths for a YAML-sourced param — the enforcement mapping is a
+        governed but still supply-chain-relevant surface, the same rationale
+        _ALLOWED_TABLES documents for table names.
+        """
+        repo_root = repo_path.resolve()
+        candidate = (repo_path / rel).resolve()
+        try:
+            candidate.relative_to(repo_root)
+        except ValueError:
+            return None
+        return candidate
+
+    @staticmethod
+    def _capability_taxonomy_enforcement_failure(detail: str) -> AuditFinding:
+        return AuditFinding(
+            check_id="capability_taxonomy_whitelist.enforcement_failure",
+            severity=AuditSeverity.BLOCK,
+            message=(
+                f"ENFORCEMENT_FAILURE: {detail} Compliance status UNKNOWN — "
+                "treat as non-compliant until fixed."
+            ),
+            file_path="none",
+            context={"finding_type": "ENFORCEMENT_FAILURE"},
+        )
+
+    @staticmethod
+    def _extract_canonical_capabilities(doc: dict[str, Any], root_key: str) -> set[str]:
+        root = doc.get(root_key) if isinstance(doc, dict) else None
+        if not isinstance(root, dict):
+            return set()
+        caps: set[str] = set()
+        for family in root.values():
+            if not isinstance(family, dict):
+                continue
+            family_caps = family.get("capabilities")
+            if isinstance(family_caps, dict):
+                caps.update(family_caps.keys())
+        return caps
+
+    @staticmethod
+    def _coerce_capability_list(raw: Any) -> list[str]:
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        if isinstance(raw, list):
+            return [str(v) for v in raw]
+        return []
+
+    async def _check_db_capability_source(
+        self, context: AuditorContext, source: str, canonical: set[str]
+    ) -> list[AuditFinding]:
+        try:
+            table, column = source.rsplit(".", 1)
+        except ValueError:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"database_sources entry '{source}' is not a "
+                    "'<schema>.<table>.<column>' reference."
+                )
+            ]
+
+        if table not in self._ALLOWED_TABLES:
+            return [
+                AuditFinding(
+                    check_id="knowledge_gate.table_not_whitelisted",
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"Table '{table}' is not in the constitutional whitelist. "
+                        "Add it to KnowledgeGateEngine._ALLOWED_TABLES via a "
+                        "governed proposal."
+                    ),
+                    file_path="DB",
+                )
+            ]
+
+        if column not in self._ALLOWED_CAPABILITY_COLUMNS:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"Column '{column}' on '{table}' is not a recognized "
+                    "capability column "
+                    f"(allowed: {sorted(self._ALLOWED_CAPABILITY_COLUMNS)})."
+                )
+            ]
+
+        db_session = getattr(context, "db_session", None)
+        if not db_session:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"Database source '{source}' unavailable — no db_session "
+                    "in this audit context."
+                )
+            ]
+
+        identity_col = self._CAPABILITY_IDENTITY_COLUMNS.get(table, "name")
+        try:
+            query = text(f"SELECT {identity_col}, {column} FROM {table}")
+            result = await db_session.execute(query)
+            rows = result.fetchall()
+        except Exception as exc:
+            return [
+                self._capability_taxonomy_enforcement_failure(
+                    f"Database source '{source}' could not be queried: {exc}"
+                )
+            ]
+
+        findings: list[AuditFinding] = []
+        for identity_val, raw_caps in rows:
+            for cap in self._coerce_capability_list(raw_caps):
+                if cap not in canonical:
+                    findings.append(
+                        AuditFinding(
+                            check_id="capability.taxonomy.non_canonical_reference",
+                            severity=AuditSeverity.BLOCK,
+                            message=(
+                                f"{table}.{identity_col}='{identity_val}' declares "
+                                f"non-canonical capability '{cap}' in {column}."
+                            ),
+                            file_path="DB",
+                            context={
+                                "source": source,
+                                "table": table,
+                                "identity": str(identity_val),
+                                "column": column,
+                                "capability": cap,
+                            },
+                        )
+                    )
+        return findings
+
+    def _check_artifact_capability_source(
+        self, context: AuditorContext, pattern: str, canonical: set[str]
+    ) -> list[AuditFinding]:
+        # Routed through IntentRepository.iter_documents() rather than a raw
+        # glob over `.intent/` — architecture.namespace.no_direct_protected_access.
+        # matches_glob (ADR-012 sanctioned entry point) rather than fnmatch:
+        # fnmatch has no real "**" semantics (requires a literal intervening
+        # "/"), so a flat file directly under the pattern's directory (e.g.
+        # ".intent/workers/example.yaml" against ".intent/workers/**/*")
+        # would silently never match.
+        findings: list[AuditFinding] = []
+        capability_keys = (
+            "capabilities",
+            "required_capabilities",
+            "provided_capabilities",
+        )
+        for doc_path, doc_data in context.intent_repo.iter_documents():
+            try:
+                rel = str(doc_path.relative_to(context.repo_path)).replace("\\", "/")
+            except ValueError:
+                continue
+            if not matches_glob(rel, pattern):
+                continue
+            if not isinstance(doc_data, dict):
+                continue
+            for key in capability_keys:
+                for cap in self._coerce_capability_list(doc_data.get(key)):
+                    if cap not in canonical:
+                        findings.append(
+                            AuditFinding(
+                                check_id="capability.taxonomy.non_canonical_reference",
+                                severity=AuditSeverity.BLOCK,
+                                message=(
+                                    f"'{rel}' declares non-canonical capability "
+                                    f"'{cap}' under '{key}'."
+                                ),
+                                file_path=rel,
+                                context={
+                                    "source": pattern,
+                                    "key": key,
+                                    "capability": cap,
+                                },
+                            )
+                        )
         return findings
 
     # ID: fd5a8798-4e91-46e4-8a30-f9ae98479a12

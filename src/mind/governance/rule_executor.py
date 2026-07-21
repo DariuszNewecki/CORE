@@ -370,7 +370,20 @@ async def execute_rule(
             )
             for f in engine_findings:
                 f.severity = severity
-                f.evidence_class = engine_evidence_class  # ADR-113
+                # ADR-113 D3 fail-closed: an engine can return a finding from
+                # inside verify_context() that represents "could not
+                # evaluate" rather than a genuine verdict (context-level
+                # engines have no early-return path for this — unlike the
+                # unsupported-check_type/vocabulary-unavailable guards above,
+                # which return before this loop and keep AuditFinding's
+                # ATTESTED default). Promoting such a finding to the engine's
+                # declared evidence_class would render an unevaluated source
+                # indistinguishable from a proven violation. Findings that
+                # self-identify via context["finding_type"] ==
+                # "ENFORCEMENT_FAILURE" keep the ATTESTED default; only
+                # genuine verdicts get stamped with the engine's class.
+                if f.context.get("finding_type") != "ENFORCEMENT_FAILURE":
+                    f.evidence_class = engine_evidence_class  # ADR-113
                 # Restore check_id == rule.rule_id invariant (#485). The per-file
                 # path at the bottom of this function constructs AuditFinding with
                 # check_id=rule.rule_id; the context-level path historically passed

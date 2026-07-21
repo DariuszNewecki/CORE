@@ -11,7 +11,13 @@ engine cannot dispatch falls through to an empty result. Four
 ``capability.taxonomy.*`` rules sat blocking-but-inert this way since
 ``4849af15`` (March 2026), naming a ``capability_taxonomy_whitelist``
 handler that never landed. The rules executed, returned nothing, and
-reported clean on every audit.
+reported clean on every audit. #820 Group A implemented the handler
+(``KnowledgeGateEngine._check_capability_taxonomy_whitelist``), so these four
+now dispatch for real — see the updated ``KNOWN_UNSUPPORTED`` below. This
+closes the dispatch-integrity gap only; it does not decide whether
+``canonical_only``/``no_ad_hoc_capabilities`` should be retired as
+near-duplicates of the two precise rules, nor does it touch the six
+``component_responsibility`` rules, which remain open.
 
 **Contract 2 — failure without evidence.** ``execute_rule`` materialises
 findings by iterating ``result.violations``. An engine returning
@@ -55,13 +61,17 @@ def _primed_registry() -> None:
 
 
 # Every rule currently naming a check_type no engine implements. Each entry
-# is a live defect awaiting #820 step 2, NOT an accepted exception — the pin
+# is a live defect awaiting repair, NOT an accepted exception — the pin
 # exists so *new* drift fails the suite, not to bless what is here.
 #
-# Three groups, found by the sweep rather than assumed:
+# Groups, found by the sweep rather than assumed:
 #
-#   capability_taxonomy_whitelist (4, blocking) — handler never landed;
-#     mapped in 4849af15 (March 2026) against an engine change that did not.
+#   capability_taxonomy_whitelist (4, blocking) — REPAIRED, no longer listed
+#     (#820 Group A). Handler never landed after being mapped in 4849af15
+#     (March 2026); KnowledgeGateEngine._check_capability_taxonomy_whitelist
+#     now implements it. Dispatch integrity only — whether canonical_only
+#     and no_ad_hoc_capabilities should be retired as near-duplicates of the
+#     two precise rules is a separate, undecided disposition question.
 #   component_responsibility (6, reporting) — same shape, different missing
 #     handler. Doubly dark: knowledge_gate is also partitioned out of
 #     stateless mode, so these never ran in CI either.
@@ -106,26 +116,6 @@ KNOWN_UNSUPPORTED: frozenset[tuple[str, str, str]] = frozenset(
             "infrastructure.no_strategic_decisions",
             "knowledge_gate",
             "component_responsibility",
-        ),
-        (
-            "capability.taxonomy.canonical_only",
-            "knowledge_gate",
-            "capability_taxonomy_whitelist",
-        ),
-        (
-            "capability.taxonomy.no_ad_hoc_capabilities",
-            "knowledge_gate",
-            "capability_taxonomy_whitelist",
-        ),
-        (
-            "capability.taxonomy.roles_require_canonical_capabilities",
-            "knowledge_gate",
-            "capability_taxonomy_whitelist",
-        ),
-        (
-            "capability.taxonomy.resources_provide_canonical_capabilities",
-            "knowledge_gate",
-            "capability_taxonomy_whitelist",
         ),
     }
 )
@@ -195,39 +185,35 @@ def test_known_unsupported_set_is_not_stale() -> None:
 
 
 def test_inert_rule_inventory_is_exactly_as_recorded() -> None:
-    """Pin the #820 inventory: ten rules across two missing handlers.
+    """Pin the inventory: six rules, one missing handler.
 
-    The sweep found eleven; `architecture.patterns.action_pattern` was
-    repaired in this change, leaving the ten knowledge_gate rules for step 2.
+    The sweep originally found eleven; `architecture.patterns.action_pattern`
+    was repaired first, then #820 Group A implemented
+    `capability_taxonomy_whitelist`, leaving the six `component_responsibility`
+    rules (Group B, still open) as the only remaining unsupported pairs.
     """
     unsupported = _unsupported_pairs()
     assert unsupported == set(KNOWN_UNSUPPORTED)
-    assert len(unsupported) == 10
+    assert len(unsupported) == 6
     by_check_type = {ct for _, _, ct in unsupported}
-    assert by_check_type == {
-        "capability_taxonomy_whitelist",
-        "component_responsibility",
-    }
+    assert by_check_type == {"component_responsibility"}
 
 
 def test_blocking_inert_rules_are_named() -> None:
-    """The blocking subset is what makes this urgent — keep it explicit.
+    """No rule is now inert-by-dispatch-failure at blocking severity.
 
-    Four blocking rules still enforce nothing by dispatch failure alone
-    (a fifth, linkage.duplicate_ids, is inert for an unrelated reason — it
-    reads a `key` field the knowledge-graph view does not expose). A sixth,
-    architecture.patterns.action_pattern, was repaired in this change.
+    The four `capability.taxonomy.*` rules (the blocking subset) were
+    repaired by #820 Group A implementing `capability_taxonomy_whitelist`.
+    The remaining six `component_responsibility` rules (Group B, still open)
+    are all `reporting` tier — linkage.duplicate_ids is separately inert for
+    an unrelated reason (reads a `key` field the knowledge-graph view does
+    not expose), so it never appears in this dispatch-integrity sweep at all.
     """
     unsupported = _unsupported_pairs()
     blocking = {
         rid for rid, _, ct in unsupported if ct == "capability_taxonomy_whitelist"
     }
-    assert blocking == {
-        "capability.taxonomy.canonical_only",
-        "capability.taxonomy.no_ad_hoc_capabilities",
-        "capability.taxonomy.roles_require_canonical_capabilities",
-        "capability.taxonomy.resources_provide_canonical_capabilities",
-    }
+    assert blocking == set()
 
 
 def _context(tmp_path: Path) -> Any:
