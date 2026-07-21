@@ -148,7 +148,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 37 blocking + 31 reporting + 8 advisory = 76.
+the other two surface findings. At digest time: 37 blocking + 27 reporting + 12 advisory = 76.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -219,15 +219,15 @@ digest has drifted — surface it to the governor.
 
 Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
-**Mind (`src/mind/**`)** — all `[r]`: `no_database_access` (MUST NOT import `get_session`); `no_filesystem_writes`; `no_body_invocation`; `no_will_invocation`; `architecture.layers.no_mind_execution` (no I/O, no action invocation); `no_execution_semantics` (no risk classification, decision-making, caching strategies, validation enforcement); `execution_signal` (pre-selector, no verdict).
+**Mind (`src/mind/**`)** — all `[r]` unless noted: `no_database_access` (MUST NOT import `get_session`); `no_filesystem_writes`; `no_body_invocation`; `no_will_invocation`; `no_execution_semantics` (no risk classification, decision-making, caching strategies, validation enforcement); `execution_signal` (pre-selector, no verdict). `architecture.layers.no_mind_execution` [a — RETIRED #820 Group B; its mechanically decidable portions (DB/filesystem/Body/Will) are covered by the four `no_*` rules above, the residual "no I/O of any kind" claim (e.g. network) is human-reviewed, not gated].
 
 **Body** — `architecture.body.no_rule_evaluation` [r] — MUST NOT evaluate constitutional rules directly. `architecture.layers.no_body_to_will` [r] — MUST NOT import/invoke Will (narrow 4-sub-path scope per ADR-049 D1, pending tightening).
 
-**Will** — `architecture.will.no_direct_database_access` [r]; `no_filesystem_operations` [r — SHOULD delegate to Body]; `must_delegate_to_body` [r — orchestration SHOULD import and delegate to Body services].
+**Will** — `architecture.will.no_direct_database_access` [r]; `no_filesystem_operations` [r — SHOULD delegate to Body]; `must_delegate_to_body` [a — RETIRED #820 Group B; its mechanically decidable portions are covered by the two rules above, whether Will actually delegates (vs. merely avoiding those two bypasses) is human-reviewed].
 
-**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [r — SHOULD; API → Will use-case layer recorded as architectural debt per ADR-049 D1]. `no_body_bypass` [r — SHOULD NOT directly import Body services]. `architecture.api.response_must_use_declared_schema` [r — routes returning findings/audit/run results MUST declare an explicit `response_model` from `api/v1/schemas.py`]. `architecture.api.sensitive_route_must_be_gated` [r — every POST/PUT/DELETE/PATCH route on a `user-facing` module MUST carry `require_governor` per-route (decorator dependency or parameter default); per-route completeness companion to `router_exposure_must_match_dependencies`, which only checks the router-constructor level (#770)].
+**API** — `architecture.api.no_direct_database_access` [r] — MUST NOT import `get_session` directly; sanctioned repositories/services via `api/dependencies.py` ARE permitted (ADR-049 D1 §6 supersedes the broader framing). `must_route_through_will` [a — RETIRED #820 Group B; its mechanically decidable portions are covered by `no_direct_database_access` and `no_body_bypass`, whether all API logic actually routes through Will remains architectural debt per ADR-049 D1, human-reviewed]. `no_body_bypass` [r — SHOULD NOT directly import Body services]. `architecture.api.response_must_use_declared_schema` [r — routes returning findings/audit/run results MUST declare an explicit `response_model` from `api/v1/schemas.py`]. `architecture.api.sensitive_route_must_be_gated` [r — every POST/PUT/DELETE/PATCH route on a `user-facing` module MUST carry `require_governor` per-route (decorator dependency or parameter default); per-route completeness companion to `router_exposure_must_match_dependencies`, which only checks the router-constructor level (#770)].
 
-**Shared / layout** — `architecture.shared.no_strategic_decisions` [r]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point; `logic.di.no_global_session` [a — SUPERSEDED by `architecture.boundary.database_session_access`, #512].
+**Shared / layout** — `architecture.shared.no_strategic_decisions` [a — advisory doctrine, #820 Group B; "strategic decision" is a semantic judgment no engine mechanically verifies, human-reviewed; the mechanical half of the shared/ admission test — layer independence — is enforced separately and for real by the blocking `architecture.shared.no_layer_imports` above]; `architecture.layer_exclusivity` [r] — every `src/` file resides in a constitutional layer, sanctioned infra dir (`shared/`, `api/`), or root entry point; `logic.di.no_global_session` [a — SUPERSEDED by `architecture.boundary.database_session_access`, #512].
 
 **Channels** — `architecture.channels.logic_no_terminal_rendering` [r]; `cli_rendering_allowed` [r — positive permission]; `logger_not_presentation` [r — logger MUST NOT be used as a presentation renderer].
 

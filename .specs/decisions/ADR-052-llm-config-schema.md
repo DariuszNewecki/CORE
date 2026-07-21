@@ -191,6 +191,15 @@ CREATE TABLE core.capability_alignment_tests (
 `capability` references the canonical capability taxonomy in `.intent/`. The constitutional
 rule `capability.taxonomy.no_ad_hoc_capabilities` applies to this column.
 
+**Note (2026-07-21, #820 Groups A/B):** `capability.taxonomy.no_ad_hoc_capabilities` was
+retired to an advisory historical marker — it dispatched to no engine and is now superseded,
+for its mechanically decidable portions, by `capability.taxonomy.resources_provide_canonical_capabilities`
+and `capability.taxonomy.roles_require_canonical_capabilities`. Neither precise rule's
+`database_sources` currently names `core.capability_alignment_tests.capability`; this column
+has no live automated enforcement today. Canonicality here remains a doctrine expectation, not
+a dispatched check — see `.intent/rules/ai/capability_taxonomy_governance.json` and
+`CORE-Internal-Truthfulness.md`.
+
 ---
 
 #### `model_performance_results`
