@@ -166,18 +166,15 @@ mappings:
         - "src/will/**/*_test.py"
 
   # ==========================================================================
-  # RULE 8: Will Delegates to Body (Advisory - uses knowledge_gate)
+  # RULE 8: Will Delegates to Body — mapping removed (#820 Group B).
+  # architecture.will.must_delegate_to_body retired from automated
+  # enforcement as an advisory historical marker; its currently mechanically
+  # decidable portions are covered by architecture.will.no_direct_database_access
+  # and architecture.will.no_filesystem_operations (both above). The broader
+  # positive claim — that Will actually delegates rather than merely avoiding
+  # those two bypasses — is not exhaustively decided by CORE's current
+  # declared checks and remains a human-reviewed architectural expectation.
   # ==========================================================================
-
-  architecture.will.must_delegate_to_body:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "Will orchestrates by delegating to Body services"
-    scope:
-      applies_to:
-        - "src/will/agents/**/*.py"
-        - "src/will/orchestration/**/*.py"
 
   # ==========================================================================
   # RULE 9: API Never Bypasses Layers - Database
@@ -201,17 +198,16 @@ mappings:
         - "src/api/dependencies.py"
 
   # ==========================================================================
-  # RULE 10: API Routes Through Will (Advisory - uses knowledge_gate)
+  # RULE 10: API Routes Through Will — mapping removed (#820 Group B).
+  # architecture.api.must_route_through_will retired from automated
+  # enforcement as an advisory historical marker; its currently mechanically
+  # decidable portions are covered by architecture.api.no_direct_database_access
+  # and architecture.api.no_body_bypass (below). The broader positive claim —
+  # that all API logic actually routes through Will rather than merely
+  # avoiding those two bypasses — is not exhaustively decided by CORE's
+  # current declared checks and remains a human-reviewed architectural
+  # expectation (see CORE-Mind-Body-Will-Separation.md §6, ADR-049).
   # ==========================================================================
-
-  architecture.api.must_route_through_will:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "API routes requests to Will layer"
-    scope:
-      applies_to:
-        - "src/api/**/*_routes.py"
 
   # ==========================================================================
   # RULE 11: API Doesn't Bypass to Body
@@ -266,33 +262,26 @@ mappings:
         - "src/body/**/*.py"
 
   # ==========================================================================
-  # RULE 13: Mind Never Executes (Advisory - uses knowledge_gate)
+  # RULE 13: Mind Never Executes — mapping removed (#820 Group B).
+  # architecture.layers.no_mind_execution retired from automated enforcement
+  # as an advisory historical marker; its currently mechanically decidable
+  # portions are covered by architecture.mind.no_database_access,
+  # architecture.mind.no_filesystem_writes, architecture.mind.no_body_invocation,
+  # and architecture.mind.no_will_invocation (all above). The broader claim —
+  # that Mind performs no I/O or action-invocation of any kind, including
+  # forms these four do not enumerate (e.g. network I/O) — is not
+  # exhaustively decided by CORE's current declared checks and remains a
+  # human-reviewed architectural expectation.
   # ==========================================================================
 
-  architecture.layers.no_mind_execution:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "Mind defines law but never executes"
-    scope:
-      applies_to:
-        - "src/mind/**/*.py"
-
   # ==========================================================================
-  # RULE 14: Shared Never Makes Strategic Decisions (Advisory - knowledge_gate)
-  # ==========================================================================
-
-  architecture.shared.no_strategic_decisions:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "Shared provides utilities without strategic decisions"
-    scope:
-      applies_to:
-        - "src/shared/**/*.py"
-      excludes:
-        - "src/shared/infrastructure/service_registry.py"
-
+  # RULE 14: Shared Never Makes Strategic Decisions — mapping removed
+  # (#820 Group B). architecture.shared.no_strategic_decisions is retained as
+  # advisory doctrine (not mechanically decidable — see the rule's rationale
+  # in .intent/rules/architecture/layer_separation.json), evaluated by
+  # governor/human architecture review rather than an automated check. The
+  # mechanical half of the shared/ admission test (layer independence) is
+  # enforced separately by architecture.shared.no_layer_imports, below.
   # ==========================================================================
   # RULE 15: Shared Never Imports From Layers — Blocking AST Gate
   # Constitutional basis: CORE-Mind-Body-Will-Separation.md §7.2 Admission Test 1

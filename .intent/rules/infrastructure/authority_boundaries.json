@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.infrastructure.authority_boundaries",
         "title": "Infrastructure Authority Boundaries",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -12,10 +12,11 @@
     "rules": [
         {
             "id": "infrastructure.no_strategic_decisions",
-            "statement": "Infrastructure components MUST provide mechanical coordination without strategic decision-making.",
+            "statement": "Infrastructure components MUST provide mechanical coordination without strategic decision-making. Retained as normative architectural doctrine (CORE-Infrastructure-Definition.md §4.2), evaluated by governor/human architecture review, not by an automated mechanical check.",
             "authority": "constitution",
             "phase": "audit",
-            "enforcement": "reporting"
+            "enforcement": "advisory",
+            "rationale": "This rule's mapping (component_responsibility, engine=knowledge_gate) was never implemented by any engine and dispatched to nothing since it was declared; it is removed rather than left declared-but-inert (#820 Group B). Whether a component makes a 'strategic decision' is a semantic judgment, not a pattern any CORE engine mechanically verifies, and no such check is invented here. CORE-Infrastructure-Definition.md §7.1 previously showed this rule's mapping annotated with a fabricated enforcement: blocking field that never existed in the actual mapping YAML (enforcement is a rule-document field, not a mapping field) and never reflected reality; that section is corrected. The principle remains binding: meeting it is the entry criterion for infrastructure status under §3/§6.2, verified by governor/human architecture review."
         },
         {
             "id": "infrastructure.constitutional_documentation",
@@ -26,10 +27,11 @@
         },
         {
             "id": "infrastructure.no_business_logic",
-            "statement": "Infrastructure MUST remain domain-agnostic and contain no business logic.",
+            "statement": "Infrastructure MUST remain domain-agnostic and contain no business logic. Retained as normative architectural doctrine (CORE-Infrastructure-Definition.md §4.2), evaluated by governor/human architecture review, not by an automated mechanical check.",
             "authority": "constitution",
             "phase": "audit",
-            "enforcement": "reporting"
+            "enforcement": "advisory",
+            "rationale": "This rule's mapping (component_responsibility, engine=knowledge_gate) was never implemented by any engine and dispatched to nothing since it was declared; it is removed rather than left declared-but-inert (#820 Group B). Whether a module contains 'business logic' is a semantic judgment about domain coupling, not a pattern any CORE engine mechanically verifies, and no such check is invented here. The principle remains binding: infrastructure status under CORE-Infrastructure-Definition.md §3/§6.2 requires meeting this criterion, verified by governor/human architecture review at the point a component claims infrastructure status."
         },
         {
             "id": "infrastructure.service_registry.no_conditional_loading",

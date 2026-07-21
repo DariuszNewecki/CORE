@@ -315,14 +315,33 @@ Today's example: `remediation_interpretation/` is deterministic analysis logic w
 
 ### 7.6 Enforcement
 
-The rule `architecture.shared.no_strategic_decisions` is upgraded from advisory (`knowledge_gate`) to a blocking AST gate covering:
+The three admission tests in §7.2 are not equally mechanical, and this
+section previously conflated them.
 
-* Forbidden imports from any of the three layers
-* Strategic decision patterns
+**Test 1 (layer independence) is mechanically enforced.**
+`architecture.shared.no_layer_imports` is a blocking `ast_gate` check
+(`runtime_import_boundary`) forbidding any import from `src/mind/`,
+`src/body/`, or `src/will/` in `src/shared/**/*.py`. This is declared in
+`.intent/enforcement/mappings/architecture/layer_separation.yaml` and is
+real, live, blocking enforcement.
 
-This is declared in `.intent/enforcement/mappings/architecture/layer_separation.yaml` and applies to all of `src/shared/**/*.py`.
+**Test 2 (no strategic decisions) is not mechanically decidable.** Whether
+a given piece of code "makes a strategic decision" is a semantic judgment,
+not a deterministic pattern any CORE engine verifies.
+`architecture.shared.no_strategic_decisions` remains advisory doctrine
+(#820 Group B), evaluated by governor/human architecture review — not by
+an automated gate. An earlier version of this section claimed this rule
+had been "upgraded ... to a blocking AST gate ... covering ... strategic
+decision patterns." That upgrade never happened: no such check_type was
+ever implemented by any engine, and the rule's mapping dispatched to
+nothing since it was declared. The paragraph above corrects that claim.
 
-**Shared that drifts into layers is detectable and blockable. It must be.**
+**Test 3 (no rule evaluation)** has no dedicated mechanical check at this
+time; compliance is reviewed the same way as Test 2.
+
+**Shared's import boundary is detectable and blocked. It must be. Whether
+shared code exercises judgment is a standing architectural review
+question, not something a gate can answer.**
 
 ---
 
@@ -335,11 +354,17 @@ This separation is enforced at multiple phases:
 * Validate that layer structure is respected
 
 ### 8.2 Audit Phase
-* Check for forbidden import patterns
-* Verify cross-layer communication follows rules
-* Detect strategic decision-making in Body
-* Detect action implementation in Will
-* Detect execution in Mind
+* Enforce declared import, invocation, and direct-write boundaries
+  (the `architecture.mind.*`, `architecture.will.*`, `architecture.api.*`,
+  and `architecture.shared.no_layer_imports` rules — each a real,
+  mechanically dispatched check)
+* Detect explicitly enumerated execution primitives (database session
+  imports, filesystem writes, forbidden cross-layer imports) via those
+  same rules
+* Surface strategic-responsibility and layer-placement questions —
+  whether Body is deciding, Will is implementing, or Mind is executing in
+  some form no enumerated primitive covers — for governor/human
+  architecture review (#820 Group B); these are not mechanically detected
 
 ### 8.3 Runtime Phase
 * ServiceRegistry enforces dependency injection patterns

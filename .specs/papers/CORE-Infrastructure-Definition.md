@@ -231,9 +231,21 @@ async def get_service(self, name: str) -> Any:
 ### 6.1 Constitutional Exemption
 
 Infrastructure components are exempt from:
-* Mind/Body/Will layer restrictions
-* Import boundary enforcement (may import from any layer for wiring)
-* Strategic decision prohibition (no decisions to make)
+* Mind/Body/Will layer placement restrictions (layer-independent substrate,
+  not required to reside in `mind/`, `body/`, or `will/`)
+* Import boundary enforcement for wiring purposes (may import from any
+  layer to perform dependency injection)
+
+Infrastructure components are **not** exempt from the no-strategic-decisions
+and no-business-logic criteria in Section 3. Meeting those criteria is what
+*qualifies* a component as infrastructure in the first place (see 6.2) — a
+component does not become exempt from the prohibition by claiming
+infrastructure status; a component that makes strategic decisions or
+contains business logic simply is not infrastructure, regardless of what it
+claims. (An earlier version of this section listed "Strategic decision
+prohibition" under "exempt from," which read as the rule not binding
+infrastructure at all — the opposite of 6.2's disqualifying criterion. This
+is the correction.)
 
 Infrastructure components remain subject to:
 * Authority boundary enforcement (defined in this paper)
@@ -293,21 +305,24 @@ This is a constitutional amendment process.
 
 ### 7.1 Infrastructure Boundary Enforcement
 
-```yaml
-# .intent/enforcement/mappings/infrastructure/authority_boundaries.yaml
+No enforcement mapping exists for `infrastructure.no_strategic_decisions`
+or `infrastructure.no_business_logic` (#820 Group B). Both are declared
+`enforcement: advisory` in `.intent/rules/infrastructure/authority_boundaries.json`
+and are evaluated by governor/human architecture review at the point a
+component claims infrastructure status (§6.2) — not by an automated check.
 
-infrastructure.no_strategic_decisions:
-  engine: knowledge_gate
-  params:
-    check_type: component_responsibility
-    expected_pattern: "Infrastructure provides coordination without strategic decisions"
-  scope:
-    applies_to:
-      - "src/shared/infrastructure/**/*.py"
-  enforcement: blocking
-  authority: constitution
-  phase: audit
-```
+This section previously showed a YAML block claiming
+`infrastructure.no_strategic_decisions` was mapped with
+`enforcement: blocking` via a `knowledge_gate` / `component_responsibility`
+check. That block was never accurate: `enforcement` is a rule-document field, not a
+mapping field, so the snippet did not reflect the real mapping file's
+shape even at the time it was written; the rule itself has always been
+`reporting` or (now) `advisory`, never `blocking`; and `component_responsibility`
+was never implemented by any engine, so the mapping dispatched to nothing
+for as long as it existed. The mapping entry is now removed rather than
+left declared-but-inert. Whether a component "makes a strategic decision"
+or "contains business logic" is a semantic judgment, not a pattern any
+CORE engine mechanically verifies — no such check is invented here.
 
 ### 7.2 Infrastructure Audit Requirements
 
@@ -319,9 +334,12 @@ All infrastructure components MUST:
 
 **Aspirational status:** Enforcing rule not yet authored; this is normative design intent.
 
-### 7.3 Violation Detection
+### 7.3 Violation Review Criteria
 
-Infrastructure violates this paper if it:
+These are human-review indicators, not automated detectors — no CORE
+engine mechanically evaluates domain semantics, retry strategy, or
+error-pattern-driven behavior change. A governor/human reviewer should
+treat a component as violating this paper if it:
 * Contains conditional logic based on domain semantics
 * Implements retry logic with strategic backoff
 * Logs errors and changes behavior based on error patterns
@@ -339,7 +357,12 @@ Infrastructure violates this paper if it:
 
 ### Phase 2: Enforcement Integration (WEEK 1)
 - [ ] Add infrastructure exemption to layer_separation.yaml
-- [ ] Create infrastructure/authority_boundaries.yaml enforcement mapping
+- [x] `infrastructure/authority_boundaries.yaml` exists. Maintain mappings
+      only for mechanically decidable infrastructure constraints (e.g.
+      `infrastructure.no_bare_except`, `infrastructure.constitutional_documentation`);
+      semantic authority-boundary criteria (`no_strategic_decisions`,
+      `no_business_logic`) remain advisory review doctrine, not automated
+      mappings (#820 Group B).
 - [ ] Update ServiceRegistry docstrings with constitutional claims
 - [ ] Add health_check() method to ServiceRegistry
 

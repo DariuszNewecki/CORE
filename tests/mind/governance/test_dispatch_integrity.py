@@ -13,11 +13,16 @@ engine cannot dispatch falls through to an empty result. Four
 handler that never landed. The rules executed, returned nothing, and
 reported clean on every audit. #820 Group A implemented the handler
 (``KnowledgeGateEngine._check_capability_taxonomy_whitelist``), so these four
-now dispatch for real — see the updated ``KNOWN_UNSUPPORTED`` below. This
-closes the dispatch-integrity gap only; it does not decide whether
-``canonical_only``/``no_ad_hoc_capabilities`` should be retired as
-near-duplicates of the two precise rules, nor does it touch the six
-``component_responsibility`` rules, which remain open.
+now dispatch for real, and Group A's own retire-vs-repair follow-up
+demoted ``canonical_only``/``no_ad_hoc_capabilities`` to advisory (removing
+their mappings) as near-duplicates of the two precise rules. #820 Group B
+reconciled the six ``component_responsibility`` rules the same way: three
+retired as advisory historical markers naming their concrete mechanical
+successors, three preserved as advisory doctrine with no mechanical
+replacement invented — all six mappings removed, so none of them appear in
+``KNOWN_UNSUPPORTED`` below either. See
+``tests/mind/governance/test_capability_taxonomy_disposition.py`` and
+``tests/mind/governance/test_component_responsibility_disposition.py``.
 
 **Contract 2 — failure without evidence.** ``execute_rule`` materialises
 findings by iterating ``result.violations``. An engine returning
@@ -26,9 +31,12 @@ ast_gate's own #588 unknown-check_type guard returns exactly that shape,
 so that fix has been invisible since it landed.
 
 The mapping sweep at the end is a standing gate: it pins the currently
-known drift so a *new* unsupported pair fails the suite. Repairing the
-four rules (#820 step 2) means deleting them from ``KNOWN_UNSUPPORTED``,
-which is the definition of done for that work.
+known drift so a *new* unsupported pair fails the suite. ``KNOWN_UNSUPPORTED``
+is now empty — every rule found by the original sweep has been repaired
+(action_pattern, capability_taxonomy_whitelist) or reconciled to advisory
+with its mapping removed (the two duplicate umbrella rules, the six
+component_responsibility rules). A future regression re-populates this set
+and the two disposition test files above catch the specific rule.
 """
 
 from __future__ import annotations
@@ -69,12 +77,22 @@ def _primed_registry() -> None:
 #   capability_taxonomy_whitelist (4, blocking) — REPAIRED, no longer listed
 #     (#820 Group A). Handler never landed after being mapped in 4849af15
 #     (March 2026); KnowledgeGateEngine._check_capability_taxonomy_whitelist
-#     now implements it. Dispatch integrity only — whether canonical_only
-#     and no_ad_hoc_capabilities should be retired as near-duplicates of the
-#     two precise rules is a separate, undecided disposition question.
-#   component_responsibility (6, reporting) — same shape, different missing
-#     handler. Doubly dark: knowledge_gate is also partitioned out of
-#     stateless mode, so these never ran in CI either.
+#     now implements it. Two of the four (canonical_only, no_ad_hoc_capabilities)
+#     were then retired to advisory as near-duplicates of the remaining two
+#     precise rules; their mappings are removed, not repaired.
+#   component_responsibility (6, reporting) — RECONCILED, no longer listed
+#     (#820 Group B). Doubly dark while inert: knowledge_gate is partitioned
+#     out of stateless mode, so these never ran in CI either. Three retired
+#     as advisory historical markers naming their concrete mechanical
+#     successors (architecture.layers.no_mind_execution,
+#     architecture.will.must_delegate_to_body,
+#     architecture.api.must_route_through_will); three preserved as advisory
+#     doctrine with no mechanical replacement invented
+#     (architecture.shared.no_strategic_decisions,
+#     infrastructure.no_business_logic, infrastructure.no_strategic_decisions).
+#     All six mappings removed rather than repaired — "strategic decision"
+#     and "business logic" are semantic judgments, not patterns a check_type
+#     could mechanically verify.
 #   action_pattern (1, BLOCKING, ast_gate) — REPAIRED, no longer listed. It
 #     was the serious one: ast_gate runs in stateless mode, so unlike the
 #     others this rule was reached on every CI audit and silently returned
@@ -85,40 +103,7 @@ def _primed_registry() -> None:
 #     `required_decorator` is a mutating-args heuristic with different
 #     semantics. Repaired instead by implementing the check_type in ast_gate;
 #     see tests/mind/logic/engines/ast_gate/test_action_pattern_check.py.
-KNOWN_UNSUPPORTED: frozenset[tuple[str, str, str]] = frozenset(
-    {
-        (
-            "architecture.api.must_route_through_will",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-        (
-            "architecture.layers.no_mind_execution",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-        (
-            "architecture.shared.no_strategic_decisions",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-        (
-            "architecture.will.must_delegate_to_body",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-        (
-            "infrastructure.no_business_logic",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-        (
-            "infrastructure.no_strategic_decisions",
-            "knowledge_gate",
-            "component_responsibility",
-        ),
-    }
-)
+KNOWN_UNSUPPORTED: frozenset[tuple[str, str, str]] = frozenset()
 
 
 def _mapped_check_type_pairs() -> list[tuple[str, str, str]]:
@@ -185,35 +170,21 @@ def test_known_unsupported_set_is_not_stale() -> None:
 
 
 def test_inert_rule_inventory_is_exactly_as_recorded() -> None:
-    """Pin the inventory: six rules, one missing handler.
+    """Pin the inventory: zero rules with an unsupported check_type.
 
-    The sweep originally found eleven; `architecture.patterns.action_pattern`
-    was repaired first, then #820 Group A implemented
-    `capability_taxonomy_whitelist`, leaving the six `component_responsibility`
-    rules (Group B, still open) as the only remaining unsupported pairs.
+    The sweep originally found eleven. `architecture.patterns.action_pattern`
+    was repaired first (ast_gate). #820 Group A implemented
+    `capability_taxonomy_whitelist` for the two precise rules and retired
+    the two duplicate umbrella rules (`canonical_only`,
+    `no_ad_hoc_capabilities`) to advisory, removing their mappings. #820
+    Group B reconciled the six `component_responsibility` rules the same
+    way — three retired as advisory historical markers, three preserved as
+    advisory doctrine — all six mappings removed rather than repaired.
+    Zero unsupported (rule, engine, check_type) pairs remain anywhere.
     """
     unsupported = _unsupported_pairs()
     assert unsupported == set(KNOWN_UNSUPPORTED)
-    assert len(unsupported) == 6
-    by_check_type = {ct for _, _, ct in unsupported}
-    assert by_check_type == {"component_responsibility"}
-
-
-def test_blocking_inert_rules_are_named() -> None:
-    """No rule is now inert-by-dispatch-failure at blocking severity.
-
-    The four `capability.taxonomy.*` rules (the blocking subset) were
-    repaired by #820 Group A implementing `capability_taxonomy_whitelist`.
-    The remaining six `component_responsibility` rules (Group B, still open)
-    are all `reporting` tier — linkage.duplicate_ids is separately inert for
-    an unrelated reason (reads a `key` field the knowledge-graph view does
-    not expose), so it never appears in this dispatch-integrity sweep at all.
-    """
-    unsupported = _unsupported_pairs()
-    blocking = {
-        rid for rid, _, ct in unsupported if ct == "capability_taxonomy_whitelist"
-    }
-    assert blocking == set()
+    assert len(unsupported) == 0
 
 
 def _context(tmp_path: Path) -> Any:

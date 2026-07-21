@@ -258,13 +258,8 @@ mappings:
       and ADR-140 D9's wiring — governor decision. Non-automatable.
     status: DELEGATE
 
-  architecture.api.must_route_through_will:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # architecture.api.must_route_through_will entry removed (#820 Group B):
+  # retired as an advisory historical marker, no mapping to remediate against.
 
   architecture.api.no_body_bypass:
     action: fix.modularity
@@ -350,13 +345,8 @@ mappings:
       required.
     status: DELEGATE
 
-  architecture.layers.no_mind_execution:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # architecture.layers.no_mind_execution entry removed (#820 Group B):
+  # retired as an advisory historical marker, no mapping to remediate against.
 
   architecture.mind.execution_signal:
     action: fix.modularity
@@ -402,21 +392,11 @@ mappings:
       required.
     status: DELEGATE
 
-  architecture.shared.no_strategic_decisions:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # architecture.shared.no_strategic_decisions entry removed (#820 Group B):
+  # retained as advisory doctrine, no mapping to remediate against.
 
-  architecture.will.must_delegate_to_body:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # architecture.will.must_delegate_to_body entry removed (#820 Group B):
+  # retired as an advisory historical marker, no mapping to remediate against.
 
   architecture.will.no_direct_database_access:
     action: fix.modularity
@@ -586,21 +566,11 @@ mappings:
       required.
     status: DELEGATE
 
-  infrastructure.no_business_logic:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # infrastructure.no_business_logic entry removed (#820 Group B):
+  # retained as advisory doctrine, no mapping to remediate against.
 
-  infrastructure.no_strategic_decisions:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
-    status: DELEGATE
+  # infrastructure.no_strategic_decisions entry removed (#820 Group B):
+  # retained as advisory doctrine, no mapping to remediate against.
 
   infrastructure.service_registry.no_conditional_loading:
     action: fix.modularity

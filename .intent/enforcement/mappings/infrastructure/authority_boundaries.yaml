@@ -5,25 +5,12 @@
 
 mappings:
   # ==========================================================================
-  # RULE 1: Infrastructure May Not Make Strategic Decisions
-  # ==========================================================================
-
-  # LAW: Infrastructure components must provide mechanical coordination without strategic decision-making
-  #
-  # CONSTITUTIONAL NOTE: Infrastructure is exempt from Mind/Body/Will layer restrictions
-  # but must still respect authority boundaries. Strategic decisions are forbidden.
+  # RULE 1: Infrastructure May Not Make Strategic Decisions — mapping removed
+  # (#820 Group B). infrastructure.no_strategic_decisions is retained as
+  # advisory doctrine (not mechanically decidable — see the rule's rationale
+  # in .intent/rules/infrastructure/authority_boundaries.json), evaluated by
+  # governor/human architecture review rather than an automated check.
   # See: .intent/papers/CORE-Infrastructure-Definition.md Section 4.2
-  infrastructure.no_strategic_decisions:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "Infrastructure provides coordination without strategic decisions"
-    scope:
-      applies_to:
-        - "src/shared/infrastructure/**/*.py"
-      excludes:
-        - "src/shared/infrastructure/**/*_test.py"
-
   # ==========================================================================
   # RULE 2: Infrastructure Must Document Constitutional Authority
   # ==========================================================================
@@ -49,22 +36,11 @@ mappings:
         - "src/shared/infrastructure/config_service.py"
 
   # ==========================================================================
-  # RULE 3: Infrastructure May Not Contain Business Logic
-  # ==========================================================================
-
-  # LAW: Infrastructure must remain domain-agnostic and contain no business logic
-  #
-  # CONSTITUTIONAL NOTE: Business logic in infrastructure couples coordination to domain.
-  # Infrastructure should work with any domain - no semantic understanding of operations.
-  infrastructure.no_business_logic:
-    engine: knowledge_gate
-    params:
-      check_type: component_responsibility
-      expected_pattern: "Infrastructure is domain-agnostic coordination machinery"
-    scope:
-      applies_to:
-        - "src/shared/infrastructure/**/*.py"
-
+  # RULE 3: Infrastructure May Not Contain Business Logic — mapping removed
+  # (#820 Group B). infrastructure.no_business_logic is retained as advisory
+  # doctrine (not mechanically decidable — see the rule's rationale in
+  # .intent/rules/infrastructure/authority_boundaries.json), evaluated by
+  # governor/human architecture review rather than an automated check.
   # ==========================================================================
   # RULE 4: ServiceRegistry Specific - No Conditional Service Loading
   # ==========================================================================

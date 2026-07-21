@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.layer_separation",
         "title": "Mind/Body/Will Layer Separation",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -76,11 +76,11 @@
         },
         {
             "id": "architecture.will.must_delegate_to_body",
-            "statement": "Will layer orchestration components SHOULD import and delegate to Body services",
-            "enforcement": "reporting",
+            "statement": "RETIRED from automated enforcement (#820 Group B). Its currently mechanically decidable portions are covered by architecture.will.no_direct_database_access and architecture.will.no_filesystem_operations, which forbid Will from touching those two infrastructure surfaces directly. This rule no longer dispatches to a mapping. Historical marker only — see rationale.",
+            "enforcement": "advisory",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "Will orchestrates by delegating to Body, not by implementing directly."
+            "rationale": "This rule's check_type (component_responsibility, engine=knowledge_gate) was never implemented by any engine — inert since it was mapped, the same #820 dispatch-integrity defect closed in Group A for capability.taxonomy.*. Its own statement was a positive routing claim ('SHOULD import and delegate to Body services'), materially harder to verify mechanically than a forbidden-pattern check: proving delegation occurred requires call-graph or semantic analysis no CORE engine performs, whereas proving the ABSENCE of a direct database or filesystem call is exactly what architecture.will.no_direct_database_access and architecture.will.no_filesystem_operations already do. Those two rules are the mechanical coverage for this claim's currently decidable portions only, not a replacement for the full claim. The residual — that Will's business logic is actually implemented via Body delegation, not merely avoiding those two specific bypasses — is not exhaustively decided by CORE's current declared checks and remains subject to governor/human architecture review. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry and remediation-map entry are removed."
         },
         {
             "id": "architecture.api.no_direct_database_access",
@@ -92,11 +92,11 @@
         },
         {
             "id": "architecture.api.must_route_through_will",
-            "statement": "API route handlers SHOULD delegate all logic to Will layer",
-            "enforcement": "reporting",
+            "statement": "RETIRED from automated enforcement (#820 Group B). Its currently mechanically decidable portions are covered by architecture.api.no_direct_database_access and architecture.api.no_body_bypass, which forbid API from bypassing to those two layers directly. This rule no longer dispatches to a mapping. Historical marker only — see rationale.",
+            "enforcement": "advisory",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "API translates requests to Will. API never implements business logic."
+            "rationale": "This rule's check_type (component_responsibility, engine=knowledge_gate) was never implemented by any engine — inert since it was mapped, the same #820 dispatch-integrity defect closed in Group A for capability.taxonomy.*. Its own statement was a positive routing claim ('SHOULD delegate all logic to Will layer'), materially harder to verify mechanically than a forbidden-pattern check: proving all logic routes through Will requires call-graph or semantic analysis no CORE engine performs, whereas proving the ABSENCE of a direct database or Body-bypass import is exactly what architecture.api.no_direct_database_access and architecture.api.no_body_bypass already do. Those two rules are the mechanical coverage for this claim's currently decidable portions only, not a replacement for the full claim. The residual — a genuine Will use-case layer that API always routes through — remains aspirational per CORE-Mind-Body-Will-Separation.md §6 and ADR-049, not exhaustively decided by CORE's current declared checks, and is tracked as architectural debt reviewed by governor/human judgment rather than an automated check. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry and remediation-map entry are removed."
         },
         {
             "id": "architecture.api.no_body_bypass",
@@ -116,19 +116,19 @@
         },
         {
             "id": "architecture.layers.no_mind_execution",
-            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT perform I/O operations or invoke actions",
-            "enforcement": "reporting",
+            "statement": "RETIRED from automated enforcement (#820 Group B). Its currently mechanically decidable portions are covered by architecture.mind.no_database_access, architecture.mind.no_filesystem_writes, architecture.mind.no_body_invocation, and architecture.mind.no_will_invocation. This rule no longer dispatches to a mapping. Historical marker only — see rationale.",
+            "enforcement": "advisory",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "Mind is law. Law never executes itself."
+            "rationale": "This rule's check_type (component_responsibility, engine=knowledge_gate) was never implemented by any engine — it dispatched to nothing and reported clean on every audit, the same #820 dispatch-integrity defect closed for the capability.taxonomy.* rules in Group A. Rather than implement a new mechanism for a broad umbrella claim, the four sibling rules already listed above mechanically cover the currently decidable portions of its surface: database access, filesystem writes, invoking Body, invoking Will — each a real ast_gate import-boundary check. The residual claim this rule made beyond those four — that Mind performs no I/O or action-invocation of any kind, including forms the four siblings do not enumerate (e.g. network I/O) — is not exhaustively decided by CORE's current declared checks and remains an open architectural expectation reviewed by governor/human judgment, not a gate. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry and remediation-map entry are removed."
         },
         {
             "id": "architecture.shared.no_strategic_decisions",
-            "statement": "Shared infrastructure components (src/shared/**/*.py) MUST NOT make strategic decisions or orchestrate workflows",
-            "enforcement": "reporting",
+            "statement": "Shared infrastructure components (src/shared/**/*.py) MUST NOT make strategic decisions or orchestrate workflows. This is Test 2 of the CORE-Mind-Body-Will-Separation.md §7.2 admission test — retained as normative architectural doctrine, evaluated by governor/human architecture review, not by an automated mechanical check.",
+            "enforcement": "advisory",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "Shared provides utilities. Utilities are tools, not decision-makers."
+            "rationale": "Whether a piece of shared code 'makes a strategic decision' is a semantic judgment, not a pattern a deterministic engine can verify — no check_type exists or is planned for this (#820 Group B declines to invent one). This rule's prior mapping (component_responsibility, engine=knowledge_gate) was never implemented and dispatched to nothing; it is removed rather than left declared-but-inert. The mechanical half of the admission test — Test 1, layer independence — is enforced separately and for real by architecture.shared.no_layer_imports (blocking ast_gate). This rule covers Test 2 only, and remains advisory doctrine: a real constitutional expectation that binds by architecture review, not by gate. CORE-Mind-Body-Will-Separation.md §7.6 previously and incorrectly claimed this rule had been upgraded to a blocking AST gate; that claim is corrected there."
         },
         {
             "id": "architecture.shared.no_layer_imports",
