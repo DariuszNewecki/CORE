@@ -14,6 +14,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from mind.governance.rule_extractor import extract_executable_rules
+from shared.infrastructure.intent.rule_registry import (
+    rule_requires_enforcement_mapping,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -250,17 +253,50 @@ def _count_total_declared_rules(policies: dict[str, Any]) -> tuple[int, list[str
     return len(all_rule_ids), all_rule_ids
 
 
+def _mapping_required_rule_ids(policies: dict[str, Any]) -> set[str]:
+    """Rule IDs that must have an enforcement mapping (canonical predicate).
+
+    Applies ``rule_requires_enforcement_mapping`` — the same definition
+    ``DispatchParityCheck`` uses — so advisory rules are excluded. This is the
+    correct base for both the unmapped-rule set and effective enforcement
+    coverage: an advisory marker (a retired rule or live doctrine with no
+    mapping) is not an enforcement hole and must not be counted as one.
+    """
+    required: set[str] = set()
+    for policy_data in policies.values():
+        if not isinstance(policy_data, dict):
+            continue
+        rules = policy_data.get("rules", [])
+        if not isinstance(rules, list):
+            continue
+        for rule_data in rules:
+            if not isinstance(rule_data, dict):
+                continue
+            rule_id = rule_data.get("id")
+            if (
+                rule_id
+                and isinstance(rule_id, str)
+                and rule_requires_enforcement_mapping(rule_data)
+            ):
+                required.add(rule_id)
+    return required
+
+
 def _find_unmapped_rule_ids(
     policies: dict[str, Any],
     executable_rule_ids: set[str],
 ) -> list[str]:
-    """Identify rules declared in the Constitution but not mapped to enforcement.
+    """Identify non-advisory rules declared in the Constitution but not mapped.
 
-    These are laws that exist but cannot be checked — worse than having
-    no law, because they create false confidence.
+    These are laws that exist but cannot be checked — worse than having no
+    law, because they create false confidence. Advisory rules are excluded
+    via the canonical mapping-required predicate: they are the sanctioned
+    non-executable tier, so demoting a rule to advisory and removing its
+    mapping does not manufacture a phantom unmapped-rule finding. A reporting
+    or blocking rule with no mapping IS a real hole and is reported.
     """
-    _, all_rule_ids = _count_total_declared_rules(policies)
-    return sorted(set(all_rule_ids) - executable_rule_ids)
+    required = _mapping_required_rule_ids(policies)
+    return sorted(required - executable_rule_ids)
 
 
 # ID: 692b645e-7aee-4811-9e3a-5fa51da2c159
@@ -284,8 +320,15 @@ def get_dynamic_execution_stats(
         )
         executable_rule_ids = {r.rule_id for r in executable_rules}
 
-        # TRUE denominator: all rules declared in the Constitution
+        # Honest count of all declared law (advisory included) — reported
+        # as-is for transparency, NOT used as the coverage denominator.
         total_declared, _ = _count_total_declared_rules(context.policies)
+
+        # Canonical base: rules that actually require a mapping (advisory
+        # excluded). This is the denominator for both unmapped-rule detection
+        # and effective coverage, so an advisory marker with no mapping is
+        # never counted as an enforcement hole (governor correction #2).
+        mapping_required_ids = _mapping_required_rule_ids(context.policies)
 
         # Rules that exist in law but have no enforcement mapping
         unmapped_rule_ids = _find_unmapped_rule_ids(
@@ -295,9 +338,14 @@ def get_dynamic_execution_stats(
         # Rules that were mapped and executed successfully (no crash)
         cleanly_executed = executed_rule_ids - crashed_rule_ids
 
-        # Coverage against the TRUE denominator
+        # Coverage against the mapping-required base. Numerator is intersected
+        # with that base too, so cleanly-executed advisory rules (advisory is
+        # dispatched when mapped) cannot push the ratio above 100%.
+        covered = cleanly_executed & mapping_required_ids
         effective_coverage = round(
-            (len(cleanly_executed) / total_declared * 100) if total_declared else 0
+            (len(covered) / len(mapping_required_ids) * 100)
+            if mapping_required_ids
+            else 0
         )
 
         # Coverage against mapped rules only (for comparison)
@@ -318,8 +366,10 @@ def get_dynamic_execution_stats(
         )
 
         return {
-            # True denominator
+            # Honest count of all declared law (advisory included)
             "total_declared_rules": total_declared,
+            # Rules that actually require a mapping — the coverage denominator
+            "mapping_required_rules": len(mapping_required_ids),
             # Enforcement pipeline breakdown
             "total_executable_rules": len(executable_rules),
             "unmapped_rules": len(unmapped_rule_ids),

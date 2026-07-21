@@ -23,6 +23,10 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from shared.infrastructure.intent.rule_registry import (
+    rule_requires_enforcement_mapping,
+)
+
 from .base import CoherenceCandidate
 
 
@@ -98,14 +102,18 @@ class DispatchParityCheck:
 
         Excludes advisory-enforcement rules: these intentionally have no
         automated dispatch (e.g. retired rules kept as historical markers
-        whose statement explicitly says 'mapping entry removed').
+        whose statement explicitly says 'mapping entry removed'). The
+        exclusion is delegated to the canonical
+        ``rule_requires_enforcement_mapping`` predicate so this surface and
+        the audit unmapped-rule statistics share one definition of "mapping
+        required" and cannot drift apart.
         """
         all_ids = self._intent_repo.known_rule_ids()
         dispatchable: set[str] = set()
         for rule_id in all_ids:
             try:
                 ref = self._intent_repo.get_rule(rule_id)
-                if ref.content.get("enforcement") != "advisory":
+                if rule_requires_enforcement_mapping(ref.content):
                     dispatchable.add(rule_id)
             except Exception:
                 dispatchable.add(rule_id)  # fail-open: include if unreadable

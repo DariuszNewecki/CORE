@@ -16,6 +16,7 @@ Pattern:
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,37 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 CORE_ROLE = "catalog"  # ADR-095 D3
+
+# The enforcement tier that is exempt from the mapping-required contract.
+# Advisory is the sanctioned non-executable tier: retired historical markers
+# and live doctrine kept as declarations with no automated dispatch.
+ADVISORY_ENFORCEMENT = "advisory"
+
+
+# ID: 7d5e2a9c-4b81-4f36-9a02-6c3e8d1f0b74
+def rule_requires_enforcement_mapping(rule_content: Mapping[str, Any]) -> bool:
+    """Return True if a rule must have an entry in .intent/enforcement/mappings/.
+
+    The canonical predicate — the single definition of "mapping required",
+    shared by ``DispatchParityCheck`` (coherence) and the audit unmapped-rule
+    statistics (governance) so the two surfaces cannot drift apart. Before
+    this predicate existed they carried two independent interpretations: the
+    coherence check excluded advisory rules, the audit counted them, so
+    demoting a rule to advisory and removing its mapping would show up as a
+    phantom unmapped-rule finding on one surface and not the other.
+
+    A rule requires a mapping when it is active and its enforcement tier is
+    not ``advisory``. Rule documents carry no ``active``/``status`` field —
+    every declared rule is active by construction, a rule that should not be
+    active is deleted or demoted to advisory — so the predicate reduces to
+    ``enforcement != "advisory"``.
+
+    Fail-closed toward visibility: a rule with a missing or unrecognised
+    enforcement tier is treated as requiring a mapping, so a malformed rule
+    surfaces as an unmapped-rule finding rather than silently escaping
+    coverage.
+    """
+    return rule_content.get("enforcement") != ADVISORY_ENFORCEMENT
 
 
 @lru_cache(maxsize=1)

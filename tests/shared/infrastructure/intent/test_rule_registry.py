@@ -60,3 +60,49 @@ def test_result_is_cached():
     r1 = get_rule_registry()
     r2 = get_rule_registry()
     assert r1 is r2, "get_rule_registry() must return the same object on repeated calls"
+
+
+# ---------------------------------------------------------------------------
+# rule_requires_enforcement_mapping — the canonical mapping-required predicate
+# (#820 Group B prerequisite). One definition, shared by DispatchParityCheck
+# and the audit unmapped-rule statistics.
+# ---------------------------------------------------------------------------
+
+
+def test_blocking_rule_requires_mapping():
+    from shared.infrastructure.intent.rule_registry import (
+        rule_requires_enforcement_mapping,
+    )
+
+    assert rule_requires_enforcement_mapping({"enforcement": "blocking"}) is True
+
+
+def test_reporting_rule_requires_mapping():
+    from shared.infrastructure.intent.rule_registry import (
+        rule_requires_enforcement_mapping,
+    )
+
+    assert rule_requires_enforcement_mapping({"enforcement": "reporting"}) is True
+
+
+def test_advisory_rule_does_not_require_mapping():
+    from shared.infrastructure.intent.rule_registry import (
+        rule_requires_enforcement_mapping,
+    )
+
+    assert rule_requires_enforcement_mapping({"enforcement": "advisory"}) is False
+
+
+def test_missing_enforcement_fails_closed_toward_visibility():
+    """A rule with no enforcement tier is treated as requiring a mapping.
+
+    Fail-closed: a malformed rule surfaces as an unmapped-rule finding rather
+    than silently escaping coverage by being mistaken for advisory.
+    """
+    from shared.infrastructure.intent.rule_registry import (
+        rule_requires_enforcement_mapping,
+    )
+
+    assert rule_requires_enforcement_mapping({}) is True
+    assert rule_requires_enforcement_mapping({"enforcement": None}) is True
+    assert rule_requires_enforcement_mapping({"enforcement": "typo"}) is True
