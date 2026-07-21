@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.ai.capability_taxonomy",
         "title": "Capability Taxonomy Governance",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -12,17 +12,19 @@
     "rules": [
         {
             "id": "capability.taxonomy.canonical_only",
-            "statement": "Any capability referenced by CORE cognitive roles, LLM resources, workers, workflows, or related AI governance artifacts MUST exist in the canonical capability taxonomy.",
-            "enforcement": "blocking",
+            "statement": "RETIRED (#820 Group A, superseded by capability.taxonomy.roles_require_canonical_capabilities and capability.taxonomy.resources_provide_canonical_capabilities). This rule no longer dispatches to a mapping. Historical marker only — see rationale.",
+            "enforcement": "advisory",
             "authority": "constitution",
-            "phase": "audit"
+            "phase": "audit",
+            "rationale": "Confirmed via live diagnostic after #820 Group A implemented capability_taxonomy_whitelist in KnowledgeGateEngine (eede781d): this rule and capability.taxonomy.no_ad_hoc_capabilities mapped to the identical dispatch (engine=knowledge_gate, check_type=capability_taxonomy_whitelist), the same database_sources (core.cognitive_roles.required_capabilities, core.llm_resources.provided_capabilities), and the same artifact_sources globs (.intent/workers/**/*, .intent/workflows/**/*) — measured at 58 files, zero capability-bearing keys, contributing nothing. Both produced the identical 6 findings against live data. capability.taxonomy.roles_require_canonical_capabilities and capability.taxonomy.resources_provide_canonical_capabilities already express the two real governed surfaces precisely, one database_sources entry each; this rule added no coverage beyond theirs. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry and remediation-map entry are removed; the two precise rules remain blocking and continue producing all 6 real findings (4 role, 2 resource)."
         },
         {
             "id": "capability.taxonomy.no_ad_hoc_capabilities",
-            "statement": "Ad hoc, undeclared, or locally invented capability names MUST NOT be introduced into routing, role assignment, resource definition, or governance logic.",
-            "enforcement": "blocking",
+            "statement": "RETIRED (#820 Group A, superseded by capability.taxonomy.roles_require_canonical_capabilities and capability.taxonomy.resources_provide_canonical_capabilities). This rule no longer dispatches to a mapping. Historical marker only — see rationale.",
+            "enforcement": "advisory",
             "authority": "constitution",
-            "phase": "audit"
+            "phase": "audit",
+            "rationale": "Confirmed via live diagnostic after #820 Group A implemented capability_taxonomy_whitelist in KnowledgeGateEngine (eede781d): this rule and capability.taxonomy.canonical_only mapped to the identical dispatch (engine=knowledge_gate, check_type=capability_taxonomy_whitelist) and the same database_sources and artifact_sources, producing the identical 6 findings against live data. Its only distinguishing mapping param, reject_unknown: true, was never read by the implementation and did not differentiate its behavior from canonical_only — the two were byte-identical in practice, not merely in intent. capability.taxonomy.roles_require_canonical_capabilities and capability.taxonomy.resources_provide_canonical_capabilities already express the two real governed surfaces precisely; this rule added no coverage beyond theirs. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry and remediation-map entry are removed; the two precise rules remain blocking and continue producing all 6 real findings (4 role, 2 resource)."
         },
         {
             "id": "capability.taxonomy.no_model_specific_names",

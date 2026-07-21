@@ -1,40 +1,10 @@
+  # capability.taxonomy.canonical_only and capability.taxonomy.no_ad_hoc_capabilities
+  # mappings removed (#820 Group A): both duplicated the identical dispatch,
+  # database_sources, and artifact_sources as the two precise rules below,
+  # producing byte-identical findings against live data. Demoted to advisory
+  # historical markers in .intent/rules/ai/capability_taxonomy_governance.json;
+  # per rule_requires_enforcement_mapping, an advisory rule requires no mapping.
   mappings:
-    capability.taxonomy.canonical_only:
-      engine: knowledge_gate
-      params:
-        check_type: capability_taxonomy_whitelist
-        taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
-        taxonomy_root: "families"
-        database_sources:
-          - "core.cognitive_roles.required_capabilities"
-          - "core.llm_resources.provided_capabilities"
-        artifact_sources:
-          - ".intent/workers/**/*"
-          - ".intent/workflows/**/*"
-      scope:
-        applies_to:
-          - ".intent/taxonomies/capability_taxonomy.yaml"
-          - ".intent/workers/**/*"
-          - ".intent/workflows/**/*"
-
-    capability.taxonomy.no_ad_hoc_capabilities:
-      engine: knowledge_gate
-      params:
-        check_type: capability_taxonomy_whitelist
-        taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
-        taxonomy_root: "families"
-        database_sources:
-          - "core.cognitive_roles.required_capabilities"
-          - "core.llm_resources.provided_capabilities"
-        artifact_sources:
-          - ".intent/workers/**/*"
-          - ".intent/workflows/**/*"
-        reject_unknown: true
-      scope:
-        applies_to:
-          - ".intent/workers/**/*"
-          - ".intent/workflows/**/*"
-
     capability.taxonomy.no_model_specific_names:
       engine: regex_gate
       params:

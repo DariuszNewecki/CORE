@@ -1995,26 +1995,10 @@ mappings:
       handler) or suppressing the dispatch — governor decision. Non-automatable.
     status: DELEGATE
 
-  # -- Capability taxonomy (5 rules) --
-
-  capability.taxonomy.canonical_only:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      A capability used in the system is not declared in the canonical
-      operational_capabilities.yaml taxonomy. Resolution requires adding the
-      capability or renaming to an existing canonical entry — governor decision.
-      Non-automatable.
-    status: DELEGATE
-
-  capability.taxonomy.no_ad_hoc_capabilities:
-    action: fix.modularity
-    confidence: 0.40
-    description: >
-      An ad hoc capability string is used where only canonical capability ids
-      are permitted. Resolution requires mapping to a canonical id or extending
-      the taxonomy — governor decision. Non-automatable.
-    status: DELEGATE
+  # -- Capability taxonomy (3 rules) --
+  # capability.taxonomy.canonical_only and capability.taxonomy.no_ad_hoc_capabilities
+  # entries removed (#820 Group A): both rules were demoted to advisory
+  # historical markers and no longer have a mapping to remediate against.
 
   capability.taxonomy.no_model_specific_names:
     action: fix.modularity
