@@ -40,6 +40,23 @@ jobs:
       - name: Check for untracked open ADR phases
         run: python scripts/check_adr_phases.py --specs-dir .specs/decisions
 
+  # Production-readiness chain: URS definition -> attestation manifest ->
+  # generated README status. Blocking — a manifest that over-claims (a `met`
+  # gate without dated human evidence) or a README out of sync with the
+  # manifest must never reach main. Pure Python + pyyaml; no DB.
+  production-readiness:
+    name: Production-readiness manifest ↔ README
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install pyyaml
+        run: pip install pyyaml --quiet
+      - name: Validate manifest invariants + README sync
+        run: python scripts/production_readiness.py
+
   validate:
     name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
