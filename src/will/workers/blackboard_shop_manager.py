@@ -287,7 +287,9 @@ class BlackboardShopManager(ScheduledWorker):
         from body.services.service_registry import service_registry
 
         svc = await service_registry.get_blackboard_service()
-        return await svc.resolve_stale_alerts_for_terminal_targets()
+        return await svc.resolve_stale_alerts_for_terminal_targets(
+            stale_after_seconds=_SLA["finding"]
+        )
 
     async def _sweep_retired_rule_findings(self) -> dict[str, Any]:
         """Resolve findings whose rule id has left the active registry (#657).

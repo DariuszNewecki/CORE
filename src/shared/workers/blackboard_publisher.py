@@ -26,6 +26,12 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+# Non-terminal finding statuses — the scope of the active-finding dedup
+# invariant (the partial unique index uq_active_finding_identity). A finding in
+# any of these states is "live" and must be unique per (subject,
+# resolution_mechanism); terminal statuses may coexist as history.
+_NON_TERMINAL_FINDING_STATUSES = frozenset({"open", "claimed", "awaiting_reaudit"})
+
 # PostgreSQL DB is SQL_ASCII encoded — non-ASCII characters cause
 # UntranslatableCharacterError on insert. Sanitize all payload strings.
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
@@ -237,35 +243,87 @@ class BlackboardPublisher:
         status: str,
         resolution_mechanism: str | None = None,
     ) -> uuid.UUID:
-        """Write a constitutional record to the blackboard."""
+        """Write a constitutional record to the blackboard.
+
+        A non-terminal FINDING is written as an atomic dedup upsert keyed on the
+        canonical active-finding identity (subject, resolution_mechanism): a
+        second poster of the same standing finding collapses into the existing
+        row (occurrence_count += 1, payload = latest evidence, updated_at bumped)
+        instead of manufacturing a duplicate open row. DB-enforced by the partial
+        unique index uq_active_finding_identity — race-proof, not a
+        SELECT-then-INSERT guard, and covering every non-terminal state. The
+        original evidence is retained in first_payload. All other writes
+        (non-findings, terminal-status findings) remain plain inserts.
+        """
         from sqlalchemy import text
 
         entry_id = uuid.uuid4()
+        payload_json = json.dumps(_sanitize_payload(payload))
+        dedup_finding = (
+            entry_type == "finding" and status in _NON_TERMINAL_FINDING_STATUSES
+        )
 
         async with get_session() as session:
             async with session.begin():
-                await session.execute(
-                    text(
+                if dedup_finding:
+                    result = await session.execute(
+                        text(
+                            """
+                            insert into core.blackboard_entries
+                                (id, worker_uuid, entry_type, phase, status, subject,
+                                 payload, first_payload, resolution_mechanism, resolved_at,
+                                 last_seen_at)
+                            values
+                                (:id, :worker_uuid, 'finding', :phase, :status, :subject,
+                                 cast(:payload as jsonb), cast(:payload as jsonb),
+                                 :resolution_mechanism, null, now())
+                            on conflict (subject, resolution_mechanism)
+                                where entry_type = 'finding'
+                                  and status in ('open', 'claimed', 'awaiting_reaudit')
+                            do update set
+                                occurrence_count = core.blackboard_entries.occurrence_count + 1,
+                                payload = excluded.payload,
+                                last_seen_at = now(),
+                                updated_at = now()
+                            returning id
+                            """
+                        ),
+                        {
+                            "id": entry_id,
+                            "worker_uuid": self._worker_uuid,
+                            "phase": self._phase,
+                            "status": status,
+                            "subject": subject,
+                            "payload": payload_json,
+                            "resolution_mechanism": resolution_mechanism,
+                        },
+                    )
+                    row = result.first()
+                    if row is not None:
+                        entry_id = row[0]
+                else:
+                    await session.execute(
+                        text(
+                            """
+                            insert into core.blackboard_entries
+                                (id, worker_uuid, entry_type, phase, status, subject, payload, resolution_mechanism, resolved_at)
+                            values
+                                (:id, :worker_uuid, :entry_type, :phase, :status, :subject, cast(:payload as jsonb),
+                                 :resolution_mechanism,
+                                 case when :status in ('resolved', 'abandoned', 'indeterminate') then now() else null end)
                         """
-                        insert into core.blackboard_entries
-                            (id, worker_uuid, entry_type, phase, status, subject, payload, resolution_mechanism, resolved_at)
-                        values
-                            (:id, :worker_uuid, :entry_type, :phase, :status, :subject, cast(:payload as jsonb),
-                             :resolution_mechanism,
-                             case when :status in ('resolved', 'abandoned', 'indeterminate') then now() else null end)
-                    """
-                    ),
-                    {
-                        "id": entry_id,
-                        "worker_uuid": self._worker_uuid,
-                        "entry_type": entry_type,
-                        "phase": self._phase,
-                        "status": status,
-                        "subject": subject,
-                        "payload": json.dumps(_sanitize_payload(payload)),
-                        "resolution_mechanism": resolution_mechanism,
-                    },
-                )
+                        ),
+                        {
+                            "id": entry_id,
+                            "worker_uuid": self._worker_uuid,
+                            "entry_type": entry_type,
+                            "phase": self._phase,
+                            "status": status,
+                            "subject": subject,
+                            "payload": payload_json,
+                            "resolution_mechanism": resolution_mechanism,
+                        },
+                    )
 
                 if entry_type == "heartbeat":
                     await session.execute(

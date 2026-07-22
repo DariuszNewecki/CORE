@@ -879,6 +879,9 @@ CREATE TABLE core.blackboard_entries (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     resolution_mechanism text,
     orphan_release_count integer DEFAULT 0 NOT NULL,
+    occurrence_count integer DEFAULT 1 NOT NULL,
+    first_payload jsonb,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT blackboard_entry_resolution_mechanism_closed_set CHECK ((((entry_type = 'finding'::text) AND (resolution_mechanism IS NOT NULL) AND (resolution_mechanism = ANY (ARRAY['reaudit'::text, 'self_resolve'::text, 'human'::text]))) OR ((entry_type <> 'finding'::text) AND (resolution_mechanism IS NULL)))),
     CONSTRAINT blackboard_entry_status_closed_set CHECK ((status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text, 'resolved'::text, 'abandoned'::text, 'deferred_to_proposal'::text, 'dry_run_complete'::text, 'indeterminate'::text, 'suppressed'::text])))
 );
@@ -4478,6 +4481,19 @@ CREATE INDEX idx_blackboard_status ON core.blackboard_entries USING btree (statu
 --
 
 CREATE INDEX idx_blackboard_subject_status ON core.blackboard_entries USING btree (subject, status);
+
+
+--
+-- Name: uq_active_finding_identity; Type: INDEX; Schema: core; Owner: -
+-- Active-finding dedup: at most one non-terminal finding per
+-- (subject, resolution_mechanism). DB-enforces the canonical active-finding
+-- identity so a sensor re-emitting a standing condition upserts one row rather
+-- than manufacturing duplicate open rows (the ledger-design defect, #820-era
+-- diagnosis). On the live DB this index is created only AFTER reconciliation
+-- collapses existing duplicates (see infra migration); a fresh schema has none.
+--
+
+CREATE UNIQUE INDEX uq_active_finding_identity ON core.blackboard_entries USING btree (subject, resolution_mechanism) WHERE ((entry_type = 'finding'::text) AND (status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text])));
 
 
 --

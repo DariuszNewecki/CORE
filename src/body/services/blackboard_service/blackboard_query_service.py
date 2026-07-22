@@ -320,7 +320,14 @@ class BlackboardQueryService:
                         subject,
                         worker_uuid,
                         status,
-                        EXTRACT(EPOCH FROM (now() - created_at))::int AS age_seconds,
+                        -- Staleness is time since LAST OBSERVATION (last_seen_at),
+                        -- NOT created_at (first raise) nor updated_at (generic
+                        -- mutation — the touch trigger bumps it on claim/resolve,
+                        -- which must not read as "recovered"). last_seen_at is set
+                        -- only by the dedup upsert. A re-observed finding is live;
+                        -- only one that stopped being observed is orphaned — the
+                        -- inverse the recovered-target resolver invariant closes on.
+                        EXTRACT(EPOCH FROM (now() - last_seen_at))::int AS age_seconds,
                         CASE entry_type
                             WHEN 'heartbeat' THEN CAST(:sla_heartbeat AS INT)
                             WHEN 'finding'   THEN CAST(:sla_finding AS INT)
@@ -340,7 +347,7 @@ class BlackboardQueryService:
                       AND entry_type IN ('finding', 'proposal')
                       AND subject NOT LIKE 'blackboard.entry_stale::%'
                       AND subject NOT LIKE 'worker.silent::%'
-                      AND EXTRACT(EPOCH FROM (now() - created_at)) >
+                      AND EXTRACT(EPOCH FROM (now() - last_seen_at)) >
                         CASE entry_type
                             WHEN 'heartbeat' THEN CAST(:sla_heartbeat AS INT)
                             WHEN 'finding'   THEN CAST(:sla_finding AS INT)

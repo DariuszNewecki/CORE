@@ -48,22 +48,33 @@ def _retired_rule_in_subject(
 # ID: a3842b9b-9285-49d3-bd7e-4fb8f8cbf6b7
 class BlackboardService:
     # ID: 1b4d6e9f-2c7a-4f08-9b53-8a6d2e4c1f3b
-    async def resolve_stale_alerts_for_terminal_targets(self) -> int:
+    async def resolve_stale_alerts_for_terminal_targets(
+        self, stale_after_seconds: int
+    ) -> int:
         """
         Resolve open ``blackboard.entry_stale::*`` findings whose target entry
-        has reached a terminal status (or no longer exists).
+        is no longer both non-terminal AND still stale.
 
         The stale-entry sensor (BlackboardShopManager) posts an alert when an
         entry exceeds its SLA tier. The alert is then itself a finding that
         stays open until something resolves it. Without this sweep, alerts
-        accumulate forever once their target reaches a terminal state — they
-        become meta-noise that the dashboard's open-findings count surfaces
-        as growing backlog.
+        accumulate forever — meta-noise the dashboard's open-findings count
+        surfaces as growing backlog.
 
-        Terminal target statuses mirror ``fetch_stale_entries`` (the inverse
-        relation): resolved, abandoned, suppressed, dry_run_complete,
-        deferred_to_proposal, indeterminate. A target row that no longer
-        exists is also treated as terminal — there is nothing left to act on.
+        An alert is retained ONLY while a target exists that is (a) non-terminal
+        and (b) still stale — its ``updated_at`` older than ``stale_after_seconds``.
+        Everything else closes automatically:
+          - target reached a terminal status (resolved/abandoned/suppressed/
+            dry_run_complete/deferred_to_proposal/indeterminate);
+          - target no longer exists;
+          - target RECOVERED — re-observed within the SLA window (its
+            last_seen_at is fresh), so it is live again, not stuck.
+
+        The invariant after this sweep: every open ``blackboard.entry_stale``
+        alert references an existing target that is currently non-terminal and
+        still stale. ``stale_after_seconds`` must match the finding SLA the
+        sensor flags on (last_seen_at basis — the observation timestamp, not
+        updated_at generic mutation time), so flagging and clearing agree.
 
         Returns the count of stale-alert rows resolved.
         """
@@ -93,9 +104,12 @@ class BlackboardService:
                                     'deferred_to_proposal',
                                     'indeterminate'
                                 )
+                                AND EXTRACT(EPOCH FROM (now() - target.last_seen_at))
+                                    > :stale_after_seconds
                           )
                         """
-                    )
+                    ),
+                    {"stale_after_seconds": stale_after_seconds},
                 )
                 return result.rowcount or 0
 
