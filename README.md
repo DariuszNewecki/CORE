@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.9.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.9.1-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
@@ -335,7 +335,7 @@ To understand what CORE is for before reading its implementation, start here:
 
 ## Project Status
 
-**Current Release:** v2.9.0 — CLI Client Parity
+**Current Release:** v2.9.1 — CLI Client Parity
 
 Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved fixes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 

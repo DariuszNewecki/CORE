@@ -12,9 +12,11 @@ every future release is automatic.
 
 ### 1. Register a pending publisher on PyPI
 
-The `core-runtime` project does not exist on PyPI yet. To allow the
-first publish via OIDC (without manually creating + uploading first),
-register a **pending publisher**:
+The `core-runtime` project is live on PyPI (<https://pypi.org/project/core-runtime/>),
+and the Trusted Publisher relationship is already established. The steps
+below are retained as the original one-time setup record. To allow the
+first publish via OIDC (without manually creating + uploading first), a
+**pending publisher** was registered:
 
 1. Sign in at <https://pypi.org/manage/account/publishing/>.
 2. Under "Add a new pending publisher," fill in:
@@ -48,7 +50,7 @@ No secrets are stored in the environment — OIDC handles authentication.
 
 Once the one-time setup is complete:
 
-1. Update the version in `pyproject.toml` under `[tool.poetry] version`.
+1. Update the version in `pyproject.toml` under `[project] version` (PEP 621, per #543).
 2. Update the release badge in `README.md` to match.
 3. Commit the bump (`chore: bump version to X.Y.Z`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
@@ -60,9 +62,9 @@ publishes via OIDC. The release appears at
 
 ## Semver
 
-CORE follows semantic versioning per ADR-086 D7. Pre-1.0 releases
-(`0.y.z`) signal the public API is still evolving — see issue #541
-(F-48.5) for the in-progress semver policy document.
+CORE follows semantic versioning per ADR-086 D7; the semver policy was
+finalized in #541 (F-48.5). CORE is past 1.0 (current release 2.9.1), so
+minor bumps add backward-compatible surface and patches are fixes only.
 
 Versions are immutable. Mistakes ship as a new patch version, never as
 a re-tagged release.

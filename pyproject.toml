@@ -311,7 +311,7 @@ source = [
 ]
 
 [tool.coverage.report]
-# Coverage gate is opt-in via `--cov-fail-under=45` on the command line
+# Coverage gate is opt-in via `--cov-fail-under=38` on the command line
 # (Makefile `test` target + CI workflow). Moved out of pyproject so dev
 # subset runs don't trip the gate when their tests pass.
 show_missing = true
