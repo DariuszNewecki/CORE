@@ -8,11 +8,20 @@ status: accepted
 
 # URS — Production Readiness
 
-**Status:** Active — governor-ratified definition (2026-07-05)
+**Status:** Active — governor-ratified definition (2026-07-05; revised 2026-07-22).
 **Authority:** Requirements
-**Scope:** All CORE deployments; defines the conditions under which CORE may be described as production-ready.
+**Scope:** `core-runtime`. Defines the conditions under which `core-runtime` may be
+described as production-ready. Platform concerns extracted to `core-platform` (authentication,
+role enforcement, SaaS delivery) are assessed by a separate platform-readiness contract, not
+here — see G12.
 **Audience:** Governor, external evaluators, pilot customers.
-**Relates:** `.specs/papers/CORE-Deployment-Readiness.md` (deployment mode prerequisites — narrower; access-control scoped; a subset of G12 below). `.specs/requirements/URS-mechanism-coherence.md` (G9 grounding). `.specs/requirements/URS-consequence-chain.md` (G5, G10 grounding).
+**Relates:** `.specs/papers/CORE-Deployment-Readiness.md` (deployment mode prerequisites —
+narrower; access-control scoped; a subset of G12 below).
+`.specs/requirements/URS-mechanism-coherence.md` (G2 + G9 grounding).
+`.specs/requirements/URS-consequence-chain.md` (G5, G10, G14 grounding).
+`.specs/attestations/production-readiness.yaml` (the attestation manifest — current
+per-gate verdict, evidence, and blockers; this URS defines the gates, the manifest records
+their state).
 
 ---
 
@@ -27,9 +36,12 @@ but as a set of measurable, falsifiable conditions. It exists because:
    status they can verify themselves — not a self-awarded badge.
 3. The written definition creates pressure. That pressure is the point.
 
-This URS is the authoritative source for any production-readiness claim. The status table
-in `README.md` is a derived artifact summarising the current state against this definition.
-When the two conflict, this document wins.
+This URS is the authoritative source for the **definition** of production readiness. It does
+not record the current verdict: the per-gate state, evidence, and blockers live in the
+attestation manifest (`.specs/attestations/production-readiness.yaml`), and the status table
+in `README.md` is generated from that manifest. Separating the stable definition (here) from
+the volatile evidence (the manifest) is deliberate — it is why the earlier inline "Current
+status" paragraphs went stale, and this revision removes them.
 
 ---
 
@@ -39,11 +51,12 @@ CORE is production-ready when a third party can install it, run it against a rea
 repository, let governed autonomy execute for multiple days, and trust that every mutation
 is:
 
-- **authorised** — every file change passed through the governed proposal lifecycle
-- **reproducible** — the same input produces the same governance decision
-- **auditable** — the full causal chain is queryable without reading source code
-- **reversible** — a failed or unwanted execution can be diagnosed and rolled back
-- **explainable** — every decision is attributed to a specific constitutional rule
+- **authorised** — every file change passed through the governed proposal lifecycle (G5)
+- **reproducible** — the same input produces the same governance decision (G2, G6)
+- **auditable** — the full causal chain is queryable without reading source code (G10)
+- **reversible** — a failed or unwanted execution can be diagnosed and rolled back (G14)
+- **explainable** — every decision is attributed to a specific constitutional rule, and
+  enforcement fails closed rather than passing silently (G3, G9)
 
 Architectural impressiveness does not substitute for operational trust.
 A system that impresses an expert reviewer but cannot be operated by a stranger
@@ -53,8 +66,10 @@ is not production-ready.
 
 ## 3. Production-readiness gates
 
-Thirteen gates. All must hold simultaneously. Partial credit is informational only
-and does not license a production-ready claim.
+Fifteen gates. All must hold simultaneously. Partial credit is informational only
+and does not license a production-ready claim. Each gate below states a stable
+**Requirement** and its **Acceptance criteria**; the current verdict for each lives in the
+attestation manifest, not here.
 
 ---
 
@@ -71,26 +86,19 @@ code audit --offline` clean state — without operator assistance and without ma
 - A CI job reproduces the installation on each main-branch push or a documented periodic
   cadence. Manual cold-room verification alone does not satisfy this gate.
 
-**Current status:** ⚠️ Partial. Scripts exist and are manually verified (Proxmox
-cold-room, 4 clean runs, 2026-06-14). CI-automated fresh-install is absent (#562).
-
 ---
 
 ### G2 — Constitutional enforcement is deterministic and regression-tested
 
-**Requirement:** Every blocking rule deterministically blocks the violation it targets.
-Blocking behaviour is proven by a test, not only by the rule's declaration.
+**Requirement:** Every blocking rule deterministically blocks the violation it targets and
+does not fire on compliant input. Blocking behaviour is proven by a per-rule fixture pair,
+not only by the rule's declaration. (Enforcement-integrity properties — silent-pass, unmapped
+rules, vacuous green — are G9's concern, not G2's.)
 
 **Acceptance criteria:**
-- All 35 blocking rules have at least one known-violating fixture that proves the block
-  fires.
-- All 35 blocking rules have at least one known-compliant fixture that proves no false
-  positive.
-- The `Unmapped: N` count in audit output is 0 for blocking-tier rules.
-
-**Current status:** ⚠️ Partial. Enforcement structure is strong (35 blocking rules,
-machine-checked, CI-gated). Fixture discipline (per-rule known-violating + known-compliant
-tests) is not universally applied. 7 passive_gate rules remain unmapped.
+- Every blocking rule has at least one known-violating fixture that proves the block fires.
+- Every blocking rule has at least one known-compliant fixture that proves no false positive.
+- A fixture regression (block stops firing, or a false positive appears) fails CI.
 
 ---
 
@@ -105,11 +113,6 @@ governance bypass — are blocking, not reporting.
   severity.
 - The remaining reporting-only layer rules are documented with explicit rationale for why
   each is not blocking.
-
-**Current status:** ⚠️ Partial. ADR-140 closed the cognitive/write separation gap.
-Several layer rules remain at reporting severity (`architecture.layers.no_body_to_will`,
-`architecture.will.no_direct_database_access`). The reporting-only set is not formally
-documented with rationale.
 
 ---
 
@@ -127,17 +130,19 @@ silent stalls, duplicate proposals, stuck drafts, zombie leases, or unclaimed fa
 - All failures during the run are classified; no proposal ends the run in an ambiguous
   state.
 
-**Current status:** ❌ Not demonstrated. Two loop bugs fixed 2026-07-05 (cognitive-step
-risk classification silently blocked auto-approval since ADR-140; per-symbol circuit
-breaker was per-file). No soak test has been run against either the old or the fixed code.
-
 ---
 
-### G5 — Proposal lifecycle safety
+### G5 — Mutation-lane equivalence and lifecycle safety
 
-**Requirement:** Every proposal has a valid, auditable transition chain with no bypass.
+**Requirement:** Every production mutation enters the governed proposal lifecycle — there
+is no write lane that bypasses it — and within that lifecycle every proposal has a valid,
+auditable transition chain with no bypass.
 
 **Acceptance criteria:**
+- **Lane equivalence:** every code-mutating path in production (autonomous remediation,
+  operator-triggered ceremony, self-healing) routes through the same governed
+  proposal/consequence lifecycle. No `write=True` path bypasses proposal creation, approval,
+  and consequence recording. (ADR-154 mutation-lane equivalence; #818 is the open bypass.)
 - Every state transition (`DRAFT → APPROVED → EXECUTING → COMPLETE / FAILED / ABANDONED`)
   is atomic and rowcount-guarded.
 - `claim.proposal` is confirmed as the only claim-transition entry point (formal audit).
@@ -145,10 +150,6 @@ breaker was per-file). No soak test has been run against either the old or the f
   reading source code.
 - `approval_authority` is populated on every approved proposal (per URS-consequence-chain
   Q2.A and ADR-015).
-
-**Current status:** ⚠️ Partial. State transition guards exist and are rowcount-checked.
-`claim.proposal` path has not been formally audited this cycle. `approval_authority`
-population status requires verification against live data.
 
 ---
 
@@ -164,11 +165,6 @@ and regression-tested for all current and future step kinds.
 - Adding a new `StepKind` requires an explicit `_compute_flow_risk` branch and a
   regression test before the kind may appear in a production flow.
 
-**Current status:** ⚠️ Mostly met. Cognitive-step fallthrough bug fixed 2026-07-05
-(commit `4c104dea`), regression-tested. The `else: impact = "moderate"` fallthrough
-branch still exists as a safety net for genuinely unknown future kinds; the acceptance
-criterion requires that the known set be exhaustively handled, which it now is.
-
 ---
 
 ### G7 — Circuit breakers operate at the correct granularity
@@ -183,16 +179,15 @@ per-file — with no infinite retry paths.
 - No execution path can retry a failed proposal indefinitely without incrementing the
   failure count.
 
-**Current status:** ⚠️ Mostly met. Per-symbol fix shipped 2026-07-05 (commit `4c104dea`),
-regression-tested (`test_test_remediator_symbol_query.py`). Per-file cap exists and is
-tested. Flow-level and worker-level circuit breakers have not been formally audited.
-
 ---
 
 ### G8 — Integration tests for the governed mutation chain
 
 **Requirement:** The complete governed mutation chain is exercised by integration tests
-that cross component boundaries — not only unit tests of isolated components.
+that cross component boundaries — not only unit tests of isolated components. (Integration
+infrastructure already exists: CI provisions PostgreSQL + Qdrant and the suite carries
+`@pytest.mark.integration` tests. The gap this gate targets is the specific end-to-end
+governed-mutation-chain test, not the absence of integration testing.)
 
 **Acceptance criteria:**
 - At minimum, `flow.build_test_for_symbol` is covered by an integration test that
@@ -203,27 +198,28 @@ that cross component boundaries — not only unit tests of isolated components.
 - At minimum one negative path is tested: sandbox validation fails → file is not
   committed.
 
-**Current status:** ❌ Not started. All existing tests are unit tests. ADR-140's
-cognitive-write chain has a static boundary test (`test_build_tests_flow_risk_is_safe`)
-but no integration test of the runtime composition.
-
 ---
 
-### G9 — Negative-path tests (the blockers actually block)
+### G9 — Enforcement integrity fails closed
 
-**Requirement:** Each blocking constitutional rule is proven to block on a known-violating
-input — not merely declared to block.
+**Requirement:** The audit pipeline cannot report success while enforcement is silently
+degraded. Any condition that would make a blocking rule's verdict unreliable produces a
+non-passing result (`DEGRADED` / block), never a vacuous green.
 
 **Acceptance criteria:**
-- For each of the 35 blocking rules, a known-violating fixture exists and is executed
-  in CI (per mechanism-coherence discipline, URS-mechanism-coherence R-005).
-- A fixture failure causes CI to fail.
-- The fixture set is enumerated in a coverage manifest; gaps are visible, not implied
-  as covered.
-
-**Current status:** ❌ Not started systematically. Individual tests exist for some rules
-(e.g., `test_role_enforcement.py` for ADR-132 auth boundary). No systematic fixture per
-blocking rule; no coverage manifest.
+- **No silent dispatch pass:** a rule whose `check_type` is unsupported or undispatched
+  BLOCKs; it cannot be treated as satisfied (#820).
+- **Unmapped non-advisory blocks PASS:** if any non-advisory rule lacks an enforcement
+  mapping, the audit verdict cannot be `PASS` (#822).
+- **Skipped blocking rules cannot attest:** a blocking rule that was skipped (e.g. filtered
+  out of a stateless run) cannot support a production-readiness attestation; the skip is
+  visible, not implied as covered.
+- **No vacuous green on empty state:** an empty knowledge graph (or other empty backing
+  state) cannot cause a check to pass by iterating nothing; empty backing state fails or
+  degrades, it does not pass.
+- **Crashes degrade, never comply:** an engine crash or unavailable dependency yields
+  `DEGRADED`, never a compliant verdict.
+- Each of the above is proven by a fixture that is executed in CI.
 
 ---
 
@@ -243,16 +239,13 @@ source code:
 - A non-author operator verifies this — documented as part of the G1 cold-room run
   or a separate operator trial.
 
-**Current status:** ⚠️ Partial. `core-admin runtime dashboard`, `core-admin proposals show`,
-and the consequence-chain query exist. Questions 4 and 5 (failure diagnosis and rollback
-guidance) are not confirmed answerable by a non-author without source access.
-
 ---
 
 ### G11 — Upgrade and migration safety
 
 **Requirement:** Schema changes between CORE versions are versioned, delta-applied,
-idempotent, and recoverable without losing governance history.
+idempotent, and recoverable without losing governance history. (Database schema only;
+repository-source reversibility of a single mutation is G14.)
 
 **Acceptance criteria:**
 - A formal upgrade path exists from each released schema version to the next.
@@ -261,31 +254,25 @@ idempotent, and recoverable without losing governance history.
   `proposal_consequences`) is preserved across upgrades.
 - A failed migration can be rolled back to the prior schema state.
 
-**Current status:** ❌ Not started. Schema-as-truth model (`db_schema_live.sql` as a
-full dump) is a fresh-install model only. `core._migrations` records only `(id, applied_at)`
-— no migration names, no version sequence, no delta path. This is the most critical
-structural gap: a governance system that loses its audit trail on upgrade cannot claim
-production-readiness.
-
 ---
 
-### G12 — Security posture is audited and documented
+### G12 — Runtime trust boundary is audited and documented
 
-**Requirement:** Authentication, authorisation, and rate limiting are applied consistently
-across all API routes, with the security boundary documented.
+**Requirement:** `core-runtime`'s own trust boundary is defined, audited, and documented.
+Authentication and role enforcement are `core-platform` responsibilities (extracted per
+SECURITY.md) and are assessed by the platform-readiness contract, not this gate — but the
+runtime must state where external authentication is required when it is deployed remotely.
 
 **Acceptance criteria:**
 - Every API route carries an `exposure` tier (`user-facing` | `governor-only`) per
-  ADR-110 D5 (#671 closed).
-- Rate limiting is wired to all routes, not only auth routes.
-- `SECURITY.md` at the repo root covers: supported versions, vulnerability reporting,
-  known security boundaries, and secrets-handling expectations.
-- `knowledge_routes` and other user-facing routes are confirmed safe for all
-  authenticated (non-governor) callers, or restricted to governor-only.
-
-**Current status:** ⚠️ Partial. ADR-132 governor authentication exists and is tested.
-Rate limiting (`rate_limiter.py`, Redis-backed) is wired only to auth routes. `SECURITY.md`
-is absent. #671 (exposure tier metadata) is open.
+  ADR-110 D5.
+- `user-facing` routes are confirmed safe for all authenticated (non-governor) callers, or
+  restricted to governor-only (per-route gate completeness).
+- `SECURITY.md` at the repo root covers: supported versions, vulnerability reporting, the
+  runtime/platform trust boundary (the runtime API is unauthenticated by design; external
+  authentication is required for remote deployment), and secrets-handling expectations.
+- Rate limiting posture is documented: which routes are rate-limited at the runtime layer
+  and which rely on the platform layer.
 
 ---
 
@@ -303,41 +290,77 @@ recover CORE from public documentation alone — without the original author pre
 - The install and demo paths document prerequisites, expected output, and first
   troubleshooting steps.
 
-**Current status:** ⚠️ Partial. `install-core.sh` and `scripts/demo.sh` are
-self-documenting and demonstrate the install and demo paths. CLAUDE.md is comprehensive
-for Claude Code but is not an operator document. No operator runbook exists.
+---
+
+### G14 — Source reversibility
+
+**Requirement:** Any completed production mutation to the repository can be reversed —
+the pre-mutation source state restored — without losing the governance evidence of what
+happened. (Distinct from G5, which proves the lifecycle is correct, and from G11, which
+covers database-schema migration.)
+
+**Acceptance criteria:**
+- After a completed mutation, CORE can restore the pre-mutation repository state (the
+  bytes as they were before the proposal executed).
+- Restoration preserves the original proposal and its consequence evidence (git SHAs,
+  changed files, resolved findings) — reversal is auditable, not a silent discard.
+- A failed or unwanted execution can be safely retried or abandoned without corrupting
+  state or double-applying.
+- Rollback is distinguishable from ordinary forward execution in the audit trail — a
+  reversal is recorded as a reversal, not as a new mutation.
 
 ---
 
-## 4. Scoring model
+### G15 — Release integrity
 
-The gates are binary: each either holds or does not. All thirteen must hold for the
-production-ready claim to be valid. A partial count is informational only.
+**Requirement:** A published release is traceable to a green, immutable commit that passed
+enforced checks. (This gate governs the publish boundary only; it does not require pull
+requests for ordinary development — direct-to-main development remains permitted.)
 
-For communication, the external review calibration used on 2026-07-05:
+**Acceptance criteria:**
+- A release is cut only from a commit on which the full enforced check set (constitutional
+  audit at blocking severity, tests, security scan) passed.
+- The release commit is immutable and traceable: a semver tag pins the exact commit, and
+  the published artifact's version matches the tagged commit (`publish-pypi.yml` verifies
+  tag == `pyproject` version).
+- The checks that gate a release are declared and enforced, not advisory — a red check
+  blocks the publish.
+- Release provenance (tag, commit SHA, check run) is recorded and queryable.
 
-| Band    | Label                               | Typical gate state                            |
-|---------|-------------------------------------|-----------------------------------------------|
-| 7.0–7.9 | Architecturally promising           | G2, G6 partial; most gates not started        |
-| 8.0–8.6 | Advanced prototype / internal alpha | G2, G3, G5, G6, G7 mostly met; G4/G8/G9/G11 open |
-| 8.7–9.1 | Pilot-ready                         | Above + G1, G10, G12, G13 substantially met   |
-| **9.2–9.5** | **Production-ready**            | **All 13 gates hold**                         |
-| 9.6+    | Enterprise-grade                    | All 13 + multi-user hardening, compliance pkg |
+---
 
-**Assessed position as of 2026-07-05: 8.5 — advanced internal alpha, approaching
-pilot-ready.** Primary open gates: G4 (soak), G8 (integration tests), G9
-(negative-path tests), G11 (migration safety).
+## 4. Production-readiness verdict
+
+The gates are binary: each either holds or does not. **All fifteen must hold for the
+production-ready claim to be valid.** A partial count is informational only and does not
+license the claim. There is no composite score — a decimal maturity number is false
+precision that contradicts the binary model and is not used.
+
+The current verdict is recorded in the attestation manifest
+(`.specs/attestations/production-readiness.yaml`) and surfaced in the generated README
+table. Until every gate holds and each `met` gate carries dated, human-signed evidence, the
+authoritative verdict is:
+
+> **Production readiness: NOT ATTESTED**
+
+Progress is communicated as a per-gate breakdown — `met` / `not met` / `unverified` — derived
+from the manifest, never as a single score. A gate may be reported `met` only when the
+manifest carries evidence and a human attestation for it; an AI-produced status is never an
+attestation.
 
 ---
 
 ## 5. What this URS does not specify
 
+- The current verdict, per-gate evidence, or blockers — those live in the attestation
+  manifest (`.specs/attestations/production-readiness.yaml`), not here.
 - The sequencing in which gates are closed. That is a planning decision recorded in
   `.specs/planning/CORE-Operational-Completeness.md`.
 - The timeline for closing each gate. Gate closure is driven by governor commitment, not
   calendar.
-- Gates specific to multi-user or enterprise deployment. Those are extensions of the
-  production-ready baseline, not prerequisites to it.
+- Gates specific to multi-user or enterprise deployment, or to `core-platform`
+  (authentication, SaaS delivery). Those are extensions of, or separate from, the
+  `core-runtime` production-ready baseline, not prerequisites within it.
 - The internal implementation of each gate. Requirements are observable outcomes; the
   approach is an ADR-level decision.
 
@@ -345,13 +368,16 @@ pilot-ready.** Primary open gates: G4 (soak), G8 (integration tests), G9
 
 ## 6. References
 
+- `.specs/attestations/production-readiness.yaml` — attestation manifest (current verdict + evidence)
 - `.specs/papers/CORE-Deployment-Readiness.md` — deployment mode prerequisites (G12 subset)
-- `.specs/requirements/URS-consequence-chain.md` — G5 and G10 consequence-chain requirements
-- `.specs/requirements/URS-mechanism-coherence.md` — G9 fixture discipline grounding
+- `.specs/requirements/URS-consequence-chain.md` — G5, G10, G14 consequence-chain requirements
+- `.specs/requirements/URS-mechanism-coherence.md` — G2 fixture discipline + G9 enforcement-integrity grounding
 - `.specs/planning/CORE-Operational-Completeness.md` — gate-closure sequencing tracker
-- `.specs/planning/archive/CORE-Maturity-Audit-Actions.md` — prior maturity audit inputs
+- `SECURITY.md` — runtime/platform trust boundary (G12)
 - ADR-110 — Exposure trust tiers (G12)
-- ADR-132 — Governor authentication boundary (G12)
+- ADR-132 — Governor authentication boundary (core-platform; G12 context)
 - ADR-133 — Test gap evaluator (G7, G8)
 - ADR-140 — Cognitive-write separation (G3, G8)
-- External review, 2026-07-05 — architecture + ADR-140 focus; scored 8.5 / 10
+- ADR-148 — Proposal finalization barrier (G5, G14)
+- ADR-154 — Mutation-lane equivalence (G5)
+- #818 — open mutation-lane bypass (G5); #820 / #822 — enforcement-integrity defects (G9)

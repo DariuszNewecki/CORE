@@ -1,0 +1,208 @@
+# Production-Readiness Attestation Manifest
+# Home (governor-confirmed 2026-07-22): .specs/attestations/production-readiness.yaml
+# Companion to .specs/attestations/proof-index.yaml in the attestation namespace.
+#
+# Single machine-readable record of the CURRENT verdict + evidence for the fifteen
+# production gates. Gate DEFINITIONS (requirement + acceptance criteria) live in
+# .specs/requirements/URS-production-readiness.md; this manifest records STATE and points
+# back per gate. The README "Production Readiness" table is GENERATED from this file.
+#
+# BINARY VERDICT vs GRANULAR STATUS:
+#   The authoritative verdict is binary (URS §4): every gate not `met` counts as NOT MET,
+#   and until all fifteen are met the overall verdict is "Production readiness: NOT ATTESTED".
+#   `status` below is PROGRESS granularity only (a communication aid), never a claim that a
+#   non-`met` gate is close.
+#
+# INVARIANT (validator + CI drift-check enforced, see `integrity` below):
+#   status in {met, mostly_met}  REQUIRES  non-empty evidence[]  AND an attestation with
+#   verified_by + verified_at. A status is a PROOF, not a declaration — the same
+#   anti-vacuous-pass discipline G9 requires of the audit itself. Claude never signs an
+#   attestation; a human does.
+
+schema_version: 1
+definition_source: .specs/requirements/URS-production-readiness.md
+generates: README.md#production-readiness
+overall_verdict: NOT ATTESTED           # derived: not all 15 gates met
+
+# Closed status vocabulary (weakest -> strongest):
+#   not_started       — no mechanism, no work begun
+#   not_demonstrated  — mechanism exists but the proving run has never run
+#   partial           — some acceptance sub-criteria met, others open
+#   not_met           — a MANDATORY acceptance criterion is actively violated by an open
+#                       blocker; the verdict is not-met regardless of other progress
+#                       (distinct from partial = incremental progress, no invariant break)
+#   mostly_met        — all but a narrow named residual met  (needs attestation)
+#   met               — every acceptance criterion satisfied  (needs attestation)
+
+gates:
+  - id: G1
+    name: Fresh-install proof
+    status: partial
+    gap: CI-automated fresh-install absent; manual cold-room only
+    evidence:
+      - "Proxmox cold-room: 4 clean runs 2026-06-14 (manual, unpinned)"
+    attestation: null
+    blocking_issues: [796]              # install-core.sh CI is #796 scope (was #562 — closed)
+    urs_ref: URS-production-readiness.md#g1
+
+  - id: G2
+    name: Constitutional enforcement is deterministic and regression-tested
+    status: partial
+    gap: Per-rule known-violating + known-compliant fixtures not universally applied
+    evidence: []
+    attestation: null
+    blocking_issues: [773]
+    urs_ref: URS-production-readiness.md#g2
+
+  - id: G3
+    name: Layer integrity is machine-enforced and blocking
+    status: partial
+    gap: "Several layer rules at reporting severity (no_body_to_will, will.no_direct_database_access); reporting-only set not formally documented"
+    evidence:
+      - "ADR-140 closed the cognitive/write separation gap"
+    attestation: null
+    blocking_issues: [799]              # inferred — ramp-arc work, no dedicated issue
+    urs_ref: URS-production-readiness.md#g3
+
+  - id: G4
+    name: Autonomous loop reliability demonstrated by soak
+    status: not_demonstrated
+    gap: No 72h soak run; two loop bugs fixed 2026-07-05
+    evidence: []
+    attestation: null
+    blocking_issues: [799]
+    urs_ref: URS-production-readiness.md#g4
+
+  - id: G5
+    name: Mutation-lane equivalence and lifecycle safety
+    status: not_met                     # mandatory lane-equivalence criterion is violated
+                                        # while #818 (RemediationCeremony write=True bypass)
+                                        # remains open. Lifecycle machinery itself is sound.
+    gap: "RemediationCeremony(write=True) bypasses the governed lifecycle (#818); claim.proposal path unaudited this cycle; approval_authority population unverified"
+    evidence:
+      - "ADR-148 finalization barrier live (COMPLETED proves committed + durable consequence)"
+      - "ADR-154 mutation-lane equivalence accepted"
+    history: "ADR-154 established lane equivalence as a mandatory criterion; #818 is the open bypass blocking it. Regression is history; the present verdict is not_met."
+    attestation: null
+    blocking_issues: [818]
+    urs_ref: URS-production-readiness.md#g5
+
+  - id: G6
+    name: Risk model is governed, correct, and regression-tested
+    status: partial                     # mandatory exhaustive-handling not independently
+                                        # audited (own evidence admits the else-branch); not attested
+    gap: "else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited"
+    evidence:
+      - "4c104dea: cognitive-step fallthrough fix + regression test"
+    attestation: null
+    blocking_issues: []
+    urs_ref: URS-production-readiness.md#g6
+
+  - id: G7
+    name: Circuit breakers operate at the correct granularity
+    status: partial                     # flow/worker-level breakers not yet audited; not attested
+    gap: "Flow-level and worker-level circuit breakers not formally audited"
+    evidence:
+      - "4c104dea: per-symbol fix + test_test_remediator_symbol_query.py"
+      - "per-file cap exists and is tested"
+    attestation: null
+    blocking_issues: []
+    urs_ref: URS-production-readiness.md#g7
+
+  - id: G8
+    name: Integration tests for the governed mutation chain
+    status: not_started
+    gap: "No end-to-end integration test of the governed mutation chain (cognitive delegate -> write -> sandbox -> evidence). Integration INFRASTRUCTURE exists — the specific chain test does not."
+    evidence:
+      - "CI provisions PostgreSQL + Qdrant; 33 @pytest.mark.integration tests exist (infra present)"
+    attestation: null
+    blocking_issues: [773]
+    urs_ref: URS-production-readiness.md#g8
+
+  - id: G9
+    name: Enforcement integrity fails closed
+    status: partial
+    gap: "Unmapped non-advisory rules can still yield PASS (#822); #820 Group C (linkage.duplicate_ids static remap) pending; empty-graph vacuous-pass guard not built"
+    evidence:
+      - "623b745a / 4d0a316b: dispatch contracts — unsupported/undispatched check_type BLOCKs"
+      - "#820 Groups A & B landed (capability taxonomy + component responsibility)"
+    attestation: null
+    blocking_issues: [820, 822]
+    urs_ref: URS-production-readiness.md#g9
+
+  - id: G10
+    name: Operator observability
+    status: partial
+    gap: "Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access"
+    evidence:
+      - "core-admin runtime dashboard, proposals show, consequence-chain query exist"
+    attestation: null
+    blocking_issues: [797]
+    urs_ref: URS-production-readiness.md#g10
+
+  - id: G11
+    name: Upgrade and migration safety
+    status: not_started
+    gap: "Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap."
+    evidence: []
+    attestation: null
+    blocking_issues: [799]
+    urs_ref: URS-production-readiness.md#g11
+
+  - id: G12
+    name: Runtime trust boundary is audited and documented
+    status: partial
+    gap: "Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route"
+    evidence:
+      - "SECURITY.md present — documents runtime/platform trust boundary (runtime API unauthenticated by design; auth extracted to core-platform)"
+      - "#671 closed — exposure tiers on routes (ADR-110 D5)"
+      - "ADR-132 governor auth (now a core-platform concern)"
+    attestation: null
+    blocking_issues: [796]
+    urs_ref: URS-production-readiness.md#g12
+
+  - id: G13
+    name: Documentation for operators
+    status: partial
+    gap: "No operator runbook; CLAUDE.md is comprehensive for Claude Code but is not an operator document"
+    evidence:
+      - "install-core.sh and scripts/demo.sh are self-documenting"
+    attestation: null
+    blocking_issues: [797]
+    urs_ref: URS-production-readiness.md#g13
+
+  - id: G14
+    name: Source reversibility
+    status: partial
+    gap: "Source-restoration-after-completed-mutation not proven by test; rollback-vs-forward audit distinction not verified"
+    evidence:
+      - "ADR-148 rollback_proposal restores pre-execution state on FAILED/REFUSED"
+      - "SandboxLifecycle checkpoint/restore of full write footprint (#815/#816/#817)"
+    attestation: null
+    blocking_issues: [799]              # inferred — no dedicated reversibility-proof issue yet
+    urs_ref: URS-production-readiness.md#g14
+
+  - id: G15
+    name: Release integrity
+    status: partial
+    gap: "Release-gating checks not fully enforced as a blocking pre-publish gate; release provenance (tag/SHA/check-run) not queryable"
+    evidence:
+      - "publish-pypi.yml verifies tag == pyproject version, OIDC, no stored token"
+      - "core-ci.yml runs --offline --severity=block per push"
+    attestation: null
+    blocking_issues: [796]              # inferred — CI/release hygiene is #796 scope
+    urs_ref: URS-production-readiness.md#g15
+
+# Derived rollup (computed by the generator, NOT hand-written):
+#   met 0/15 · mostly_met 0 · partial 11 · not_met 1 (G5) ·
+#   not_demonstrated 1 (G4) · not_started 2 (G8,G11)
+#   -> overall_verdict: NOT ATTESTED. No composite score.
+
+integrity:
+  # Validator + CI drift-check (mirrors the existing README rule-count drift guard):
+  #   1. status met|mostly_met without evidence[] + attestation   -> FAIL
+  #   2. attestation.verified_by is an AI/Claude handle            -> FAIL
+  #   3. rendered README table != this manifest                   -> FAIL
+  #   4. attestation.verified_at older than newest evidence sha    -> STALE (warn -> block)
+  #   5. overall_verdict != derived-from-gates                     -> FAIL
+  home: scripts/ generator + CI step (per governor decision 2026-07-22)
