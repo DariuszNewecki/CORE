@@ -70,7 +70,7 @@ assert_claim() {
 assert_claim "rules"        "$d_rules"    '[0-9]+ rules'
 assert_claim "rule docs"    "$d_docs"     '[0-9]+ rule documents'
 assert_claim "mapped"       "$d_mapped"   '[0-9]+ are mapped'
-assert_claim "unmapped"     "$d_unmapped" '[0-9]+ test-quality rules'
+assert_claim "unmapped"     "$d_unmapped" '[0-9]+ are advisory rules'
 assert_claim "engines"      "$d_engines"  '[0-9]+ engines'
 
 # docs/how-it-works.md carries the same constraints-node mermaid as the README
