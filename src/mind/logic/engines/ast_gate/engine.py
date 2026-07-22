@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mind.logic.engines.ast_gate.checks import (
     AsyncChecks,
@@ -24,6 +24,9 @@ from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
 from mind.logic.engines.ast_gate.checks.artifact_discovery_check import (
     ArtifactDiscoveryCheck,
 )
+from mind.logic.engines.ast_gate.checks.duplicate_ids_check import (
+    check_duplicate_ids,
+)
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import (
     ProtectedNamespaceAccessCheck,
@@ -39,7 +42,12 @@ from shared.infrastructure.intent.filesystem_operations import (
     FsOperationTaxonomy,
     load_filesystem_operations,
 )
+from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
+
+
+if TYPE_CHECKING:
+    from mind.governance.audit_context import AuditorContext
 
 
 # ID: 0b7d0813-a8e0-4901-b7fa-6c57b48c543d
@@ -100,6 +108,7 @@ class ASTGateEngine(BaseEngine):
             "max_function_length",
             "stable_id_anchor",
             "id_anchor",
+            "duplicate_ids",
             "docstrings_present",
             "forbidden_decorators",
             "forbidden_primitives",
@@ -132,6 +141,33 @@ class ASTGateEngine(BaseEngine):
             "sensitive_route_must_be_gated",
         }
     )
+
+    # duplicate_ids is corpus-level (it must see every file at once to detect
+    # a UUID collision), so it dispatches through verify_context, not the
+    # per-file verify() below. BaseEngine.is_context_level_for consults this.
+    _context_check_types: ClassVar[frozenset[str]] = frozenset({"duplicate_ids"})
+
+    # ID: e2e5faff-20e7-48a0-ad44-5ef2720d2104
+    async def verify_context(
+        self, context: AuditorContext, params: dict[str, Any]
+    ) -> list[AuditFinding]:
+        """Corpus-level dispatch. Only ``duplicate_ids`` is context-level for
+        ast_gate; every other check_type routes per-file through verify()."""
+        check_type = params.get("check_type")
+        if check_type == "duplicate_ids":
+            return check_duplicate_ids(context, params)
+        return [
+            AuditFinding(
+                check_id=f"{self.engine_id}.error",
+                severity=AuditSeverity.BLOCK,
+                message=(
+                    f"{self.engine_id}.verify_context received non-context-level "
+                    f"check_type {check_type!r}; per-file check_types route through "
+                    "verify(file_path, ...)."
+                ),
+                file_path="none",
+            )
+        ]
 
     # ID: d730e583-f41d-482e-ad42-b5ec368775cf
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

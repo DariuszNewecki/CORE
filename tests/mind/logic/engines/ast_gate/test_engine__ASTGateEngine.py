@@ -332,7 +332,14 @@ async def test_verify_all_supported_check_types_exist(path_resolver, tmp_py_file
     error for currently-silent check_types."""
     engine = ASTGateEngine(path_resolver=path_resolver)
     tmp_py_file.write_text("pass")
-    for check_type in ASTGateEngine._SUPPORTED_CHECK_TYPES:
+    # Context-level check_types (e.g. duplicate_ids, #820 Group C) dispatch
+    # through verify_context(), not the per-file verify() — verify() correctly
+    # reports them as Unknown. Exclude them from this per-file parity check;
+    # their dispatch is covered by test_duplicate_ids_check.py.
+    per_file_types = (
+        ASTGateEngine._SUPPORTED_CHECK_TYPES - ASTGateEngine._context_check_types
+    )
+    for check_type in per_file_types:
         result = await engine.verify(tmp_py_file, {"check_type": check_type})
         assert result.engine_id == "ast_gate"
         assert "Logic Error: Unknown check_type" not in result.message

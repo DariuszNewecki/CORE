@@ -15,7 +15,6 @@ from __future__ import annotations
 import ast
 import fnmatch
 import json
-from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -91,7 +90,6 @@ class KnowledgeGateEngine(BaseEngine):
             "capability_assignment",
             "ast_duplication",
             "semantic_duplication",
-            "duplicate_ids",
             "table_has_records",
             "orphan_file_check",
             "capability_taxonomy_whitelist",
@@ -122,8 +120,6 @@ class KnowledgeGateEngine(BaseEngine):
             return _check_ast_duplication(context, params)
         elif check_type == "semantic_duplication":
             return await _check_semantic_duplication(context, params)
-        elif check_type == "duplicate_ids":
-            return self._check_duplicate_ids(context, params)
         elif check_type == "table_has_records":
             return await self._check_table_has_records(context, params)
         elif check_type == "orphan_file_check":
@@ -197,32 +193,6 @@ class KnowledgeGateEngine(BaseEngine):
             else:
                 logger.error("Failed to check table '%s': %s", table_name, e)
 
-        return findings
-
-    def _check_duplicate_ids(
-        self, context: AuditorContext, params: dict[str, Any]
-    ) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
-        id_map: dict[str, list[dict[str, Any]]] = defaultdict(list)
-        for symbol_data in context.symbols_map.values():
-            uuid_val = symbol_data.get("key")
-            if uuid_val and uuid_val != "unassigned":
-                id_map[uuid_val].append(symbol_data)
-        for uuid_val, occurrences in id_map.items():
-            if len(occurrences) > 1:
-                locs = [
-                    f"{s.get('file_path')}:{s.get('line_number', '?')}"
-                    for s in occurrences
-                ]
-                findings.append(
-                    AuditFinding(
-                        check_id="linkage.duplicate_ids",
-                        severity=AuditSeverity.BLOCK,
-                        message=f"Duplicate ID '{uuid_val}' found.",
-                        file_path=occurrences[0].get("file_path"),
-                        context={"duplicates": locs},
-                    )
-                )
         return findings
 
     def _check_capability_assignment(

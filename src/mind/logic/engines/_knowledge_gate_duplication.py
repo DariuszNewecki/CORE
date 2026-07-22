@@ -8,8 +8,9 @@ modularity.class_too_large threshold. The three functions here form the
 "duplication" cluster — AST-fingerprint and semantic-vector matching plus
 the shared finding factory — and are called by the engine's verify_context
 dispatcher. The remaining checks in the engine (capability_assignment,
-duplicate_ids, table_has_records, orphan_file_check) form a different,
-graph-and-DB-shaped cluster and stay on the engine.
+table_has_records, orphan_file_check) form a different, graph-and-DB-shaped
+cluster and stay on the engine. (duplicate_ids moved to ast_gate as a
+stateless corpus check per #820 Group C.)
 """
 
 from __future__ import annotations

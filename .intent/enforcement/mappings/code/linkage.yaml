@@ -8,9 +8,14 @@
         applies_to: ["src/**/*.py"]
         excludes: ["**/__init__.py", "tests/**"]
 
-    # LAW: No ID collisions allowed
+    # LAW: No ID collisions allowed.
+    # Stateless corpus check in ast_gate (#820 Group C) — the prior
+    # knowledge_gate mechanism required the DB knowledge graph (skipped in the
+    # stateless --offline audit) and grouped on the capability `key`, not the
+    # `# ID:` anchor, so it never fired. ast_gate.duplicate_ids is context-level
+    # and reads source directly, so it runs in CI.
     linkage.duplicate_ids:
-      engine: knowledge_gate
+      engine: ast_gate
       params:
         check_type: duplicate_ids
       scope:
