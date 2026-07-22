@@ -265,7 +265,7 @@ Progress: **0/15 met** · 11 partial · 1 not met · 1 not demonstrated · 2 not
 | G6 — Risk model is governed, correct, and regression-tested | ⚠️ partial | else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited |
 | G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
 | G8 — Integration tests for the governed mutation chain | ⬜ not started | No end-to-end integration test of the governed mutation chain (cognitive delegate -> write -> sandbox -> evidence). Integration INFRASTRUCTURE exists — the specific chain test does not. |
-| G9 — Enforcement integrity fails closed | ⚠️ partial | Unmapped non-advisory rules can still yield PASS (#822); #820 Group C (linkage.duplicate_ids static remap) pending; empty-graph vacuous-pass guard not built |
+| G9 — Enforcement integrity fails closed | ⚠️ partial | Unmapped non-advisory rules can still yield PASS (#822); empty-graph vacuous-pass guard not built |
 | G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
 | G11 — Upgrade and migration safety | ⬜ not started | Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap. |
 | G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |

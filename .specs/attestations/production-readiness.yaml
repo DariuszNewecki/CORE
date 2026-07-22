@@ -122,12 +122,12 @@ gates:
   - id: G9
     name: Enforcement integrity fails closed
     status: partial
-    gap: "Unmapped non-advisory rules can still yield PASS (#822); #820 Group C (linkage.duplicate_ids static remap) pending; empty-graph vacuous-pass guard not built"
+    gap: "Unmapped non-advisory rules can still yield PASS (#822); empty-graph vacuous-pass guard not built"
     evidence:
       - "623b745a / 4d0a316b: dispatch contracts — unsupported/undispatched check_type BLOCKs"
-      - "#820 Groups A & B landed (capability taxonomy + component responsibility)"
+      - "#820 closed — Groups A, B, C complete: inert blocking rules eliminated; linkage.duplicate_ids now enforces statelessly via ast_gate (d4fd452a)"
     attestation: null
-    blocking_issues: [820, 822]
+    blocking_issues: [822]
     urs_ref: URS-production-readiness.md#g9
 
   - id: G10
