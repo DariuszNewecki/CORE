@@ -8,6 +8,36 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### 🧭 Production-readiness truth chain
+
+A single, self-checking chain now carries CORE's production-readiness claim:
+**URS definition → attestation manifest → generated public status.**
+
+- **Definition and evidence separated.** `URS-production-readiness.md` is now the
+  stable *definition* only — the inline "Current status" paragraphs (which had gone
+  stale: #562/#671 closed, integration tests miscounted, `SECURITY.md` mis-described)
+  and the subjective "8.5 / 10" score are removed. The verdict is binary:
+  **`Production readiness: NOT ATTESTED`** until every gate holds.
+- **New attestation manifest** (`.specs/attestations/production-readiness.yaml`)
+  records the per-gate verdict, evidence, and blockers. A gate may read `met`/`mostly_met`
+  only with dated, **human-signed** evidence — an AI-produced status is never an
+  attestation. Enforced by `scripts/production_readiness.py` + a blocking CI job.
+- **README status is generated**, not hand-maintained — it cannot silently drift from
+  the manifest.
+- **Gates revised 13 → 15**: G2/G9 de-duplicated (G9 → "enforcement integrity fails
+  closed", modelling #820/#822), G5 → "mutation-lane equivalence and lifecycle safety"
+  (ADR-154), G12 rescoped to the runtime trust boundary, plus new G14 (source
+  reversibility) and G15 (release integrity).
+
+### 🧹 Truth-surface consolidation
+
+- README release badge → **2.9.1** (matching PyPI + the `v2.9.1` tag); coverage floor
+  reconciled to the enforced **38** across Makefile/pyproject; `docs/release.md`
+  corrected (PyPI project exists, PEP 621 `[project]` field, past 1.0).
+- **Two pre-existing CI reds cleared** that had sat on `main` since the #820 demotions
+  (07-21): the README rule-count drift (247 mapped + 8 advisory/mapping-exempt = 255)
+  and a missing namespace classification for the Internal-Truthfulness paper.
+
 ---
 
 ## [2.9.1] — 2026-07-12
