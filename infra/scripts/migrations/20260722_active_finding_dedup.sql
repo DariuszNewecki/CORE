@@ -29,15 +29,24 @@ ALTER TABLE core.blackboard_entries
 
 -- last_seen_at is the OBSERVATION timestamp: set only when a finding is (re)posted
 -- by its sensor. Distinct from updated_at, which the touch trigger bumps on ANY
--- mutation (claim, resolve, ...) — using updated_at for staleness would falsely
--- read a claimed finding as "recovered". Backfill existing rows to updated_at as
--- the best available proxy; the reconciliation recomputes it as max(created_at)
--- per identity group.
+-- mutation (claim, resolve, ...) — backfilling from updated_at would re-import the
+-- exact claim/touch ambiguity this column removes (a long-ago-observed but
+-- recently-claimed row would look fresh). Backfill from created_at, the true
+-- first/only observation time for historical rows; reconciliation later
+-- overwrites duplicated identities with max(created_at) per group.
 ALTER TABLE core.blackboard_entries
     ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone;
-UPDATE core.blackboard_entries SET last_seen_at = updated_at WHERE last_seen_at IS NULL;
+UPDATE core.blackboard_entries SET last_seen_at = created_at WHERE last_seen_at IS NULL;
 ALTER TABLE core.blackboard_entries ALTER COLUMN last_seen_at SET DEFAULT now();
 ALTER TABLE core.blackboard_entries ALTER COLUMN last_seen_at SET NOT NULL;
+
+-- Backfill first_payload for existing findings BEFORE reconciliation. Otherwise a
+-- pre-migration singleton keeps first_payload NULL, and its next dedup upsert
+-- overwrites payload with the latest evidence — permanently losing the original.
+-- (Reconciliation may subsequently replace a duplicated identity's canonical
+-- value with the deterministically earliest payload.)
+UPDATE core.blackboard_entries SET first_payload = payload
+    WHERE entry_type = 'finding' AND first_payload IS NULL;
 
 COMMENT ON COLUMN core.blackboard_entries.occurrence_count IS
     'Number of times this standing finding was observed (dedup upsert increments). first observation = 1.';

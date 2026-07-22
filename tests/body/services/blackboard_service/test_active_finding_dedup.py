@@ -181,6 +181,50 @@ async def test_distinct_mechanism_is_distinct_identity(worker_id):
         assert await _count_active(session, subject, "reaudit") == 1
 
 
+async def test_legacy_singleton_repost_preserves_first_payload(worker_id):
+    """A pre-migration singleton (first_payload backfilled = its original payload)
+    re-posted after migration keeps first_payload original, takes payload=latest,
+    and increments occurrence_count — the original evidence is never lost."""
+    subject = f"test.legacy::{uuid.uuid4()}"
+    fid = uuid.uuid4()
+    # Simulate the backfilled legacy row: first_payload == payload == original,
+    # observed long ago.
+    async with get_session() as session:
+        async with session.begin():
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO core.blackboard_entries
+                        (id, worker_uuid, entry_type, phase, status, subject, payload,
+                         first_payload, resolution_mechanism, created_at, updated_at, last_seen_at)
+                    VALUES
+                        (:i, :w, 'finding', 'audit', 'open', :s,
+                         '{"v":"original"}'::jsonb, '{"v":"original"}'::jsonb, 'human',
+                         now() - interval '10 days', now() - interval '10 days',
+                         now() - interval '10 days')
+                    """
+                ),
+                {"i": fid, "w": worker_id, "s": subject},
+            )
+
+    again = await _publisher(worker_id).post_finding(
+        subject, {"v": "latest"}, resolution_mechanism="human"
+    )
+    assert again == fid  # folded into the existing standing row
+    async with get_session() as session:
+        r = await session.execute(
+            text(
+                "SELECT first_payload->>'v', payload->>'v', occurrence_count "
+                "FROM core.blackboard_entries WHERE id=:i"
+            ),
+            {"i": fid},
+        )
+        first, latest, occ = r.one()
+    assert first == "original"  # original evidence retained across the upsert
+    assert latest == "latest"
+    assert occ == 2
+
+
 async def test_last_seen_at_tracks_observation_not_mutation(worker_id):
     """last_seen_at moves only on a new observation (re-post), never on a generic
     mutation like a claim — that distinction is exactly why staleness keys on
