@@ -1645,6 +1645,8 @@ classifications:
       (also framework). Describes what CORE must deliver as a framework capability.
   - path: .specs/papers/CORE-Instrument-Attestation.md
     governance_namespace: framework
+  - path: .specs/papers/CORE-Internal-Truthfulness.md
+    governance_namespace: framework
   - path: .specs/papers/CORE-Specification-as-Source.md
     governance_namespace: framework
 
