@@ -334,6 +334,12 @@ To understand what CORE is for before reading its implementation, start here:
 
 ---
 
+## Issue Tracker Guide
+
+CORE's tracker mixes governance-internal bookkeeping with ordinary engineering work, so labels do double duty. `type:*`, `priority:*`, `status:*`, `band:*`, and the `*-debt` labels are CORE's own governed taxonomy — they say what kind of work an issue is and where it sits relative to the roadmap (`roadmap` marks epics on a named milestone; `technical-debt`/`governance-debt` mark known gaps CORE is carrying forward deliberately, not bugs; `band:E` marks outward-facing/adoption work). Two standard labels tell you where to actually start: `good-first-issue` is scoped enough to attempt without deep repo context, and `help-wanted` is open to outside contribution but assumes you've read the ADR(s) it links. If an issue carries neither — and especially if it carries `type:question` — it's a live design question awaiting a maintainer decision, not something to open a PR against yet.
+
+---
+
 ## Project Status
 
 **Current Release:** v2.9.1 — CLI Client Parity
