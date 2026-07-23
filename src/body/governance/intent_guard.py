@@ -48,16 +48,33 @@ CORE_ROLE = "facade"  # ADR-095 D3
 #       taxonomy_gate, cli_gate, workflow_gate, contracts_gate, runtime_gate
 #
 # 2. Passive-marker engines (no write-time check exists; enforcement happens
-#    elsewhere — at runtime, at parse time, at decoration, or by code review).
-#    Single-sourced from ``EngineRegistry.PASSIVE_ALIASES`` so the membership
-#    cannot drift from the registry's own definition:
-#       python_runtime, type_system, runtime_metric,
-#       advisory, runtime_check, dataclass_validation
+#    elsewhere — at runtime, at parse time, at decoration, or by code review,
+#    or by a worker auditing persisted state after the fact).
 #
-# Evaluating either category here produces false positives: the rule has no
+#    Two distinct spellings reach the same passive_gate target and must both
+#    be exempt here:
+#    - Aliases that EngineRegistry.get() *resolves to* passive_gate.
+#      Single-sourced from ``EngineRegistry.PASSIVE_ALIASES`` so the
+#      membership cannot drift from the registry's own definition:
+#         python_runtime, type_system, runtime_metric,
+#         advisory, runtime_check, dataclass_validation
+#    - The literal engine name ``"passive_gate"`` itself, declared directly
+#      by mappings whose detector is a worker auditing database state
+#      post-hoc (e.g. CommitAuthorshipAuditWorker for
+#      governance.commit_authorship_integrity /
+#      governance.proposal_finalization_integrity /
+#      governance.consequence_evidence_degraded — see
+#      .intent/enforcement/mappings/governance/{authorship_integrity,
+#      finalization_integrity}.yaml, each explicitly documented "passive_gate
+#      is correct here — the worker is the detector"). PASSIVE_ALIASES is
+#      the alias list; it was never meant to also carry the alias *target*,
+#      so a mapping using the target name directly fell through this check
+#      unexempted — #823.
+#
+# Evaluating any of these here produces false positives: the rule has no
 # applicable write-time check, and check_transaction would surface the rule's
 # statement — and, for constitutional-authority rules, hard-block the write.
-# Two regressions of this exact class:
+# Three regressions of this exact class:
 #   #142 — fix.placeholders failures (128/129 of all autonomous failures,
 #          2026-04-22 → 2026-04-23) traced to runtime_check rules treated as
 #          write-time gates.
@@ -65,6 +82,10 @@ CORE_ROLE = "facade"  # ADR-095 D3
 #          workflow_gate were absent here; the surfaced constitutional cli_gate
 #          rules hard-blocked the transaction, while the error rendered
 #          quality.type_safety (list-order[0]) as a misleading "MyPy" cause.
+#   #823 — any src/**/*.py create or modify hard-blocked (fix.ids's real
+#          write=True path included) because the three DB-audited governance
+#          rules above declare ``engine: passive_gate`` directly rather than
+#          via an alias, and the literal target name was absent from this set.
 # Note: the membership cannot be derived from is_context_level_for(None) — it
 # returns False for cli_gate (its context-levelness is per-check_type) and
 # would silently un-skip ast_gate/glob_gate/llm_gate/regex_gate/taxonomy_gate.
@@ -84,7 +105,15 @@ _CONTEXT_LEVEL_ENGINES = frozenset(
     }
 )
 
-_AUDIT_ENGINES = _CONTEXT_LEVEL_ENGINES | frozenset(PASSIVE_ALIASES)
+# The literal passive_gate engine name — the alias *target*, not one of the
+# aliases in PASSIVE_ALIASES. See #823 above.
+_PASSIVE_GATE_ENGINE_NAME = "passive_gate"
+
+_AUDIT_ENGINES = (
+    _CONTEXT_LEVEL_ENGINES
+    | frozenset(PASSIVE_ALIASES)
+    | {_PASSIVE_GATE_ENGINE_NAME}
+)
 
 # Severity value assigned to constitutional-authority violations.
 # Using a dedicated string (rather than reusing "error") lets check_transaction

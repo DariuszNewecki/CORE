@@ -9,9 +9,26 @@ removed from the skip set, because the underlying rule is enforced at
 audit time by the ``cli_gate`` engine (also driven from
 ``core-admin admin self-check``), not at ``FileHandler``-mediated writes.
 
-The original fix did not include a regression test. These tests are that
-defense: a parametrised set-membership check that fails loudly if the skip
-set is shrunk, plus a behavioural check that ``_check_against_rules``
+Also closes #823: three DB-audited governance rules
+(``governance.commit_authorship_integrity``,
+``governance.proposal_finalization_integrity``,
+``governance.consequence_evidence_degraded`` — detected post-hoc by
+``CommitAuthorshipAuditWorker`` against database rows, never at write time)
+declare ``engine: passive_gate`` *directly*, not via one of
+``PASSIVE_ALIASES``. The alias list was never meant to also carry the alias
+*target*, so the literal ``"passive_gate"`` name fell through this skip
+unexempted, hard-blocking every ``src/**/*.py`` create or modify —
+including ``fix.ids``'s real ``write=True`` path — under the three rules'
+``authority: constitution``. This is a rule-applicability/phase
+classification defect: these rules correctly remain constitutional-severity
+for their real job (auditing persisted proposal/consequence evidence
+post-hoc); they simply must never participate in an in-flight file-write
+decision. The fix widens ``_AUDIT_ENGINES`` by the literal engine name, not
+by touching the rules' ``authority`` or ``enforcement`` fields.
+
+The original #142 fix did not include a regression test. These tests are
+that defense: a parametrised set-membership check that fails loudly if the
+skip set is shrunk, plus a behavioural check that ``_check_against_rules``
 honours the skip, plus a negative control that pins the skip to engine
 identity rather than to "any rule".
 """
@@ -65,6 +82,14 @@ CONTEXT_LEVEL_ENGINES = [
     "workflow_gate",
     "contracts_gate",
     "runtime_gate",
+]
+
+# The literal passive_gate engine name — the alias *target*, declared
+# directly by mappings whose detector is a worker auditing persisted
+# database state post-hoc (not one of PASSIVE_ALIASES, which are names that
+# *resolve to* passive_gate). #823.
+PASSIVE_GATE_LITERAL_ENGINE = [
+    "passive_gate",
 ]
 
 
@@ -170,12 +195,33 @@ def test_context_level_engine_remains_in_audit_set(engine: str) -> None:
     )
 
 
+@pytest.mark.parametrize("engine", PASSIVE_GATE_LITERAL_ENGINE)
+def test_passive_gate_literal_engine_remains_in_audit_set(engine: str) -> None:
+    """The literal ``passive_gate`` engine name must stay in ``_AUDIT_ENGINES``.
+
+    Removing it re-opens #823: governance.commit_authorship_integrity,
+    governance.proposal_finalization_integrity, and
+    governance.consequence_evidence_degraded — each ``authority:
+    constitution``, each declaring ``engine: passive_gate`` directly, each
+    scoped ``src/**/*.py`` — hard-block every file create/modify, including
+    fix.ids's real write=True path, with no in-flight file content able to
+    satisfy a check that can only ever be evaluated against database rows.
+    """
+    assert engine in _AUDIT_ENGINES, (
+        f"{engine!r} was removed from _AUDIT_ENGINES — this re-opens #823: "
+        f"every src/**/*.py write (including fix.ids's real write=True path) "
+        f"hard-blocks under the three passive_gate-engine constitutional "
+        f"governance rules. See src/body/governance/intent_guard.py."
+    )
+
+
 @pytest.mark.parametrize(
     "engine",
     PASSIVE_MARKER_ENGINES
     + CONTENT_ANALYSIS_ENGINES
     + CROSS_ARTIFACT_ENGINES
-    + CONTEXT_LEVEL_ENGINES,
+    + CONTEXT_LEVEL_ENGINES
+    + PASSIVE_GATE_LITERAL_ENGINE,
 )
 def test_rule_with_audit_engine_produces_no_write_time_violation(
     engine: str,
@@ -256,3 +302,49 @@ def test_audit_engine_rule_not_evaluated_when_pattern_does_not_match() -> None:
     violations = guard._check_against_rules(path_str, abs_path)
 
     assert violations == []
+
+
+# ---- #823: reproduce the exact original failure with the real, loaded rules ----
+
+
+def test_check_transaction_permits_any_src_py_write_against_real_rules(
+    tmp_path: Path,
+) -> None:
+    """Direct reproduction of #823 using a fully-initialized IntentGuard.
+
+    Before the fix: any src/**/*.py create or modify was blocked by
+    ``governance.commit_authorship_integrity``,
+    ``governance.proposal_finalization_integrity``, and
+    ``governance.consequence_evidence_degraded`` — the three
+    ``authority: constitution``, ``engine: passive_gate`` rules loaded from
+    the repo's real ``.intent/`` — because ``passive_gate`` (the literal
+    engine name, not one of its aliases) was absent from ``_AUDIT_ENGINES``.
+
+    This does not need a database, an ActionExecutor, or a CoreContext:
+    ``check_transaction`` is a pure rule/path evaluation over the real,
+    repo-loaded rule set, which is exactly what blocked the write in
+    production — reproducing it here needs nothing more.
+    """
+    repo_root = Path(__file__).resolve().parents[3]
+    guard = IntentGuard(repo_root)
+
+    result = guard.check_transaction(
+        ["src/body/analyzers/_does_not_need_to_exist.py"],
+        op_classes={"src/body/analyzers/_does_not_need_to_exist.py": "create"},
+        target_classes={
+            "src/body/analyzers/_does_not_need_to_exist.py": "repo-source"
+        },
+    )
+
+    constitutional_rule_names = {
+        v.rule_name
+        for v in result.violations
+        if v.severity == "constitutional"
+    }
+    assert constitutional_rule_names == set(), (
+        "check_transaction hard-blocked a plain src/**/*.py write via "
+        f"{constitutional_rule_names} — #823 has regressed. These rules are "
+        "detected post-hoc by CommitAuthorshipAuditWorker against database "
+        "rows; they must never surface at write time."
+    )
+    assert result.is_valid is True
