@@ -183,7 +183,12 @@ async def test_inherit_attempt_count_sets_payload_field(
     phase = worker._phase
     await _ensure_worker_registry_row(db_session, worker_uuid)
 
+    # Distinct source_files -> distinct subjects: the active-finding dedup
+    # invariant (uq_active_finding_identity) forbids two non-terminal findings
+    # per (subject, resolution_mechanism). _inherit_attempt_count operates by
+    # id + status regardless of subject, so distinct subjects preserve intent.
     source_file = "src/body/services/count_inherit_fixture_b.py"
+    source_file_high = "src/body/services/count_inherit_fixture_b_high.py"
     id_claimed_low = uuid.uuid4()  # count=1, should be raised to 3
     id_claimed_high = uuid.uuid4()  # count=5, should stay 5 (GREATEST)
     id_abandoned = uuid.uuid4()  # should NOT be touched (status filter)
@@ -203,7 +208,7 @@ async def test_inherit_attempt_count_sets_payload_field(
         worker_uuid=worker_uuid,
         phase=phase,
         status="claimed",
-        source_file=source_file,
+        source_file=source_file_high,
         attempt_count=5,
     )
     await _insert_entry(

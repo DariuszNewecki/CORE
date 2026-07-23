@@ -104,6 +104,11 @@ async def test_resolve_entries_records_subsuming_proposal_id(
 
     await _ensure_worker_registry_row(db_session, worker_uuid)
 
+    # Distinct subjects per finding: the active-finding dedup invariant
+    # (uq_active_finding_identity) forbids two non-terminal findings sharing
+    # (subject, resolution_mechanism). A proposal legitimately subsumes findings
+    # across different files/subjects; _resolve_entries operates by id, so
+    # distinct subjects preserve intent.
     insert_sql = text(
         """
         INSERT INTO core.blackboard_entries
@@ -111,7 +116,7 @@ async def test_resolve_entries_records_subsuming_proposal_id(
              resolution_mechanism, claimed_by, claimed_at)
         VALUES
             (:id, :worker_uuid, 'finding', :phase, 'claimed',
-             'audit.violation::workflow.ruff_format_check',
+             :subject,
              cast(:payload as jsonb), 'reaudit',
              :worker_uuid, now())
         """
@@ -123,6 +128,8 @@ async def test_resolve_entries_records_subsuming_proposal_id(
             "id": entry_id_a,
             "worker_uuid": worker_uuid,
             "phase": phase,
+            "subject": "audit.violation::workflow.ruff_format_check::"
+            + payload_a["file_path"],
             "payload": json.dumps(payload_a),
         },
     )
@@ -132,6 +139,8 @@ async def test_resolve_entries_records_subsuming_proposal_id(
             "id": entry_id_b,
             "worker_uuid": worker_uuid,
             "phase": phase,
+            "subject": "audit.violation::workflow.ruff_format_check::"
+            + payload_b["file_path"],
             "payload": json.dumps(payload_b),
         },
     )
