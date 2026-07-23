@@ -170,6 +170,8 @@ class ChainScenarioResult:
     chain: ChainEvidence | None
     reaudit_clean: bool
     reaudit_matches_count: int
+    finding_final_status: str | None = None
+    finding_final_proposal_id: str | None = None
     error: str | None = None
 
     # ID: 2cdbfe6a-8242-42a9-925b-42072332ec69
@@ -211,5 +213,7 @@ class ChainScenarioResult:
             chain=chain,
             reaudit_clean=data["reaudit_clean"],
             reaudit_matches_count=data["reaudit_matches_count"],
+            finding_final_status=data.get("finding_final_status"),
+            finding_final_proposal_id=data.get("finding_final_proposal_id"),
             error=data.get("error"),
         )
