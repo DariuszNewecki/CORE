@@ -25,6 +25,8 @@ from cli.logic.demo.isolation import (
     hash_directory,
     hash_file,
     prove_clone_isolation,
+    read_state_json,
+    write_state_json,
 )
 from shared.infrastructure.git_service import GitService
 from shared.utils.subprocess_utils import SubprocessResult
@@ -298,3 +300,29 @@ async def test_e12_partial_cancellation_during_compose_up_leaves_cleanup_intact(
     # cleanup still succeeds cleanly afterward.
     cleanup_run(identity, demo_state_dir)
     assert not identity.state_dir.exists()
+
+
+# --- state-dir JSON handoff (Phase 2: child scenario process -> parent) ---
+
+
+def test_write_state_json_then_read_state_json_round_trips(tmp_path: Path) -> None:
+    path = tmp_path / "state" / "runs" / "run-1" / "scenario_result.json"
+    payload = {"run_id": "run-1", "ok": True, "files_changed": ["a.py", "b.py"]}
+
+    write_state_json(path, payload)
+
+    assert path.exists()
+    assert read_state_json(path) == payload
+
+
+def test_read_state_json_raises_on_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        read_state_json(tmp_path / "does" / "not" / "exist.json")
+
+
+def test_read_state_json_raises_on_non_object_json(tmp_path: Path) -> None:
+    path = tmp_path / "not_an_object.json"
+    path.write_text("[1, 2, 3]", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="expected a JSON object"):
+        read_state_json(path)
