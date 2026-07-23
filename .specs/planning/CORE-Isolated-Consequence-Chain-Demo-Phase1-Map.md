@@ -12,12 +12,16 @@ status: draft
 `../decisions/ADR-155-isolated-consequence-chain-demo.md` (governing ADR).
 **Baseline:** `f7430b25`, isolated clone `CORE-demo-consequence-chain`, branch
 `feat/isolated-consequence-chain-demo`.
-**Status:** Proposed change map only — **no production code implemented.** ADR-155 is
-**accepted** (2026-07-23), subject to the design-decision resolutions below. **Implementation
-of this map — including Phase 1 — remains blocked until the production-readiness soak closes
-on 2026-07-26 09:17:45 CEST and the governor records the final verdict**; isolation from the
-invoking repo does not exempt Phase 1 from that gate. Phase 1 is the isolation substrate:
-clone create/cleanup, run identity + marker validation, disposable Compose, child-process
+**Status:** Proposed change map only — **no production code implemented yet.** ADR-155 is
+**accepted** (2026-07-23), subject to the design decisions below and a same-day sequencing
+correction (see ADR-155 "Sequencing and blockers"): **Phase 1 implementation may begin
+immediately in this isolated clone** (`/opt/dev/CORE-demo-consequence-chain`, branch
+`feat/isolated-consequence-chain-demo`), using isolated configuration and disposable Compose
+infrastructure with no connection to production resources; commits land only in this
+clone/branch. The production-readiness soak (closes 2026-07-26 09:17:45 CEST) gates merge,
+deployment, production service restart, material production configuration change, and any
+readiness claim — not isolated development. Phase 1 is the isolation substrate: clone
+create/cleanup, run identity + marker validation, disposable Compose, child-process
 re-rooting, invoking-repo before/after fingerprint. **It adds no audit, sensor, proposal,
 execution, or evidence scenario** (those are Phase 2) and **no CLI command surface** (Phase 3).
 
