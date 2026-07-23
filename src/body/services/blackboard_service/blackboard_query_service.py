@@ -649,3 +649,45 @@ class BlackboardQueryService:
             "payload": payload or {},
             "created_at": row[3].isoformat() if row[3] else None,
         }
+
+    # ID: 503a3ad3-2bb3-477b-8d37-f743024ffd66
+    async def fetch_entry_by_id(self, entry_id: str) -> dict[str, Any] | None:
+        """
+        Return a single blackboard entry by id, in any status, or None if it
+        does not exist.
+
+        Unlike the status/type-scoped fetchers above, this has no predicate
+        beyond the id — the generic exact-identity lookup this service was
+        missing. Used by callers that already hold an entry id (e.g. from an
+        earlier query in the same flow) and need its current status/payload
+        after a subsequent transition, without re-deriving it from a
+        status-filtered query that would no longer match.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, subject, status, payload, created_at
+                    FROM core.blackboard_entries
+                    WHERE id = cast(:entry_id as uuid)
+                    """
+                ),
+                {"entry_id": entry_id},
+            )
+            row = result.fetchone()
+
+        if row is None:
+            return None
+        raw_payload = row[3]
+        payload = (
+            raw_payload if isinstance(raw_payload, dict) else json.loads(raw_payload)
+        )
+        return {
+            "id": str(row[0]),
+            "subject": row[1],
+            "status": row[2],
+            "payload": payload or {},
+            "created_at": row[4].isoformat() if row[4] else None,
+        }
