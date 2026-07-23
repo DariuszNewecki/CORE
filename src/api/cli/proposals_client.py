@@ -99,3 +99,12 @@ class ProposalsClient:
             f"/v1/proposals/{proposal_id}/execute",
             json={"write": write},
         )
+
+    # ID: c9e41e95-e71f-415c-9dea-7184c9e1c473
+    async def get_proposal_chain(self, proposal_id: str) -> dict:
+        """GET /v1/proposals/{id}/chain — exact-ID governance chain evidence
+        (finding, proposal, consequence). ADR-155 D6/D12: the only sanctioned
+        evidence source for the isolated consequence-chain demo's chain
+        rendering — never "latest" selection or direct SQL.
+        """
+        return await self._facade._request("GET", f"/v1/proposals/{proposal_id}/chain")

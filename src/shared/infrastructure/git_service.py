@@ -91,6 +91,23 @@ class GitService:
         """Initializes a new Git repository at the specified path."""
         self._run_command(["init"], cwd=path)
 
+    # ID: 82fee000-943a-45e9-a5d6-9d4894f16682
+    def configure_local_identity(self, email: str, name: str) -> None:
+        """Set a repo-local git author identity (ADR-155 D5).
+
+        A disposable clone's commits must not depend on the operator's
+        global ``~/.gitconfig`` — a child process re-rooted per D5 receives
+        an explicit environment with no ``HOME`` inheritance, so global
+        config is unreachable there, and a fresh "cold-room" host (D12/E15)
+        may have no global identity configured at all. Setting it locally,
+        scoped to this one repo, makes every commit inside the clone —
+        whether authored from the parent process or the re-rooted child —
+        independent of the host's own git configuration.
+        """
+        self._run_command(["config", "user.email", email])
+        self._run_command(["config", "user.name", name])
+        self._run_command(["config", "commit.gpgsign", "false"])
+
     # ID: cc819226-e33c-4559-a2d6-88d5d9e0ddaa
     def get_current_commit(self) -> str:
         """Returns the hash of the current HEAD commit."""
