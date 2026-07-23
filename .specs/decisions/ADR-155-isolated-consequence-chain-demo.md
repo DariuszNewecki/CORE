@@ -11,10 +11,11 @@ status: accepted
 
 **Date:** 2026-07-23
 **Governing spec:** `.specs/planning/CORE-Isolated-Consequence-Chain-Demo.md` (this ADR records its decisions D1–D12 as constitutional commitments)
-**Status:** Accepted (2026-07-23), subject to the sequencing correction and design-point
-resolutions recorded below — see "Governor review and design-point resolutions" and
-"Sequencing and blockers." Approval authorizes the architecture; it does not authorize
-Phase 1 (or any) implementation before the soak-close gate.
+**Status:** Accepted (2026-07-23), subject to the design-point resolutions below and a
+same-day sequencing correction — see "Governor review and design-point resolutions" and
+"Sequencing and blockers." The soak boundary protects the production baseline, not isolated
+development: Phase 1 implementation may begin immediately in the isolated clone; see
+Sequencing for exactly what remains prohibited before soak-close.
 **Author:** Dariusz Newecki (governor)
 **Drafter:** Claude (session 2026-07-23 — drafted under governor direction in the isolated development clone `CORE-demo-consequence-chain`, branched from assessment baseline `f7430b25`; the assessed checkout was untouched)
 **Relates to:** ADR-146 (CLI consumer/operator split — the reason `core-admin proposals` no longer registers, defect 4 below), ADR-148 (proposal finalization barrier — the `COMPLETED`-as-evidence standard the demo asserts against), ADR-101 (commit authorship — the demo's seed commit must contain only the seed file), ADR-106 / ADR-071 D2.2 (execution sandbox — the hermetic worktree the demo relies on), ADR-068 D5 (`risk_classification.safe_auto_approval` — the authority the demo must display truthfully), ADR-054 / ADR-058 (API surface — the demo exercises real FastAPI routes in-process), the production-readiness assessment at `f7430b25` (this work is sequenced *after* that assessment and must not be represented as its evidence), and the G6 risk-vocabulary defect recorded in that assessment's errata (a Phase-2 blocker, below)
@@ -159,33 +160,42 @@ are governed, not left to implementation-time judgment.
 
 ## Sequencing and blockers (supersedes the spec's original Phase 0)
 
-**Approving this ADR is a governance act, not an authorization to begin work.** No
-implementation phase — including Phase 1 in the isolated clone — may begin before the
-production-readiness soak closes on **2026-07-26 09:17:45 CEST** and the governor records the
-final assessment verdict. The governing spec's Phase 0 predated the running assessment; its
-entry conditions are corrected here — the corrected wording also lands in the copied spec in
-this clone:
+**Revision note (2026-07-23, same-day correction):** the first accepted version of this ADR
+blocked all implementation — including Phase 1 in the isolated clone — until the
+production-readiness soak closed. That was overbroad. The soak protects the running production
+baseline; it does not require pausing development that stays fully isolated. This section
+corrects the boundary; the superseded wording is preserved in commit `df0954bc`.
+
+**What the soak protects, precisely:** `/opt/dev/CORE`, its running production services, the
+production database, production configuration, and the soak's own evidence trail must remain
+untouched and unrestarted until the soak closes on **2026-07-26 09:17:45 CEST** and the
+governor records the final verdict. The soak does **not** require pausing development that
+stays fully isolated — clones, worktrees, and disposable infrastructure with no connection to
+production resources. The governing spec's Phase 0 predated the running assessment; its entry
+conditions are corrected here — the corrected wording also lands in the copied spec in this
+clone:
 
 - **Phase 1 (isolation substrate — clone creation/cleanup, run identity + marker validation,
   disposable Compose project, child-process re-rooting, invoking-repo before/after fingerprint)
-  may begin only after the soak closes and the assessment verdict is recorded.** Phase 1 adds
-  no audit or mutation scenario and touches no production service — but it is still
-  implementation, and isolation from the invoking repo is not the same as exemption from the
-  sequencing gate. It does not start early merely because it is low-risk.
-- **Phase 2 (the genuine chain scenario) remains blocked, on top of the gate above, until the
-  G6 risk-vocabulary defect is remediated and regression-tested.** Rationale: D8/D10 assertion 5
-  requires the proposal's risk and approval authority to "match governed state," and D6 mandates
-  the *real* risk computation. While the demo's own `fix.ids` path is a safe, non-flow action
-  that does not itself trip the G6 bug (a flow wrapping a `dangerous` action mis-classified as
-  `"safe"`), asserting correctness against a risk computation known to be defective would be
-  dishonest — the exact failure mode this rebuild exists to eliminate. Phase 2 waits for the fix.
-- **Merge, deployment, production execution, and any readiness claim remain prohibited** until
-  (a) the production-readiness assessment closes and the governor's verdict is recorded, and
-  (b) this ADR's complete acceptance evidence — the D10 15-assertion model, spec §6, and the
-  spec §10 reviewer checklist — is satisfied for the phase in question.
+  may begin immediately, in `/opt/dev/CORE-demo-consequence-chain`.** All development uses
+  isolated configuration and disposable Compose infrastructure with no connection to
+  production resources; work is committed only in the isolated clone/branch
+  (`feat/isolated-consequence-chain-demo`), never merged into or pushed against the invoking
+  checkout.
+- **The G6 risk-vocabulary defect may also be remediated and regression-tested in isolation**,
+  under the same constraint — isolated clone/worktree, disposable infrastructure, no
+  production contact.
+- **Phase 2 (the genuine chain scenario) is gated on G6 remediation and regression evidence,
+  not on the soak** — provided Phase 2 work remains completely isolated. If any Phase 2
+  activity would need to touch production resources, the soak gate below applies to that
+  activity specifically.
+- **Regardless of isolation status, the following remain strictly prohibited until the soak
+  closes and the final verdict is recorded:** merge into `/opt/dev/CORE` or any production
+  checkout, deployment, production service restart, any material production configuration
+  change, any action that could invalidate the soak's evidence trail, and any readiness claim.
 - **This ADR is approved (see header) subject to the corrections in this revision.** Approval
   fixes the architecture now so implementation does not have to re-litigate it later; it does
-  not compress or waive the soak-close gate above.
+  not license anything the paragraph above prohibits.
 
 ## Consequences
 
