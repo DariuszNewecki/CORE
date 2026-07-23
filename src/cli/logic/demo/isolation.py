@@ -2,18 +2,22 @@
 """
 Isolation-substrate orchestration for the isolated consequence-chain demo (ADR-155).
 
-Phase 1 scope only: run identity, disposable clone creation + isolation
-proof, invoking-repo before/after fingerprinting, disposable Compose
-lifecycle, and marker-checked cleanup. No audit/proposal/execution/evidence
-scenario (Phase 2) and no CLI command surface (Phase 3).
+Phase 1: run identity, disposable clone creation + isolation proof,
+invoking-repo before/after fingerprinting, disposable Compose lifecycle, and
+marker-checked cleanup. Phase 2 adds ``write_state_json``/``read_state_json``,
+the parent/child result-handoff primitive the scenario orchestration uses —
+still isolation-substrate concerns, not the chain scenario itself (that
+lives in ``consequence_chain.py``/``scenario_runner.py``). No CLI command
+surface (Phase 3).
 
 Every process spawn delegates to ``shared.utils.subprocess_utils``; every
 git operation delegates to ``shared.infrastructure.git_service.GitService``.
 This module's own direct filesystem writes are limited to the run-identity
-marker and (via ``shutil.rmtree`` inside ``GitService.marker_checked_remove``,
-not here) cleanup — both scoped to ``CORE_DEMO_STATE_DIR``, which is outside
-every repo root and therefore outside ``FileHandler``'s repo-rooted write
-gate. That is a deliberate, named exclusion — see the ADR-155 entries in
+marker and run-state JSON (and, via ``shutil.rmtree`` inside
+``GitService.marker_checked_remove``, not here, cleanup) — all scoped to
+``CORE_DEMO_STATE_DIR``, which is outside every repo root and therefore
+outside ``FileHandler``'s repo-rooted write gate. That is a deliberate,
+named exclusion — see the ADR-155 entries in
 ``.intent/enforcement/mappings/architecture/mutation_surface.yaml`` and
 ``governance_basics.yaml`` — not an unreviewed bypass.
 """
@@ -22,8 +26,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import uuid
+from collections.abc import Coroutine
 from pathlib import Path
+from typing import Any
 
 from cli.logic.demo.models import IsolationFingerprint, RunIdentity
 from shared.exceptions import CoreError
@@ -148,7 +155,7 @@ def capture_fingerprint(git: GitService) -> IsolationFingerprint:
 
 
 async def _with_deadline(
-    coro: asyncio.Future[SubprocessResult] | asyncio.Task[SubprocessResult],
+    coro: Coroutine[Any, Any, SubprocessResult],
     seconds: float,
     phase: str,
 ) -> SubprocessResult:
@@ -189,6 +196,30 @@ async def compose_down(
     args = compose_down_command(project_name, compose_file)
     coro = run_compose_command(args, cwd=compose_file.parent, env=env)
     return await _with_deadline(coro, timeout_seconds, phase="compose down")
+
+
+# ID: 8758fc01-c767-444d-b392-b6637f621576
+def write_state_json(path: Path, payload: dict[str, Any]) -> None:
+    """Write JSON to a path under a run's disposable state directory (ADR-155 D3).
+
+    Phase 2 uses this so the child scenario process (rooted in the clone,
+    D5) can hand its structured result back to the parent orchestrator —
+    both read/write ``CORE_DEMO_STATE_DIR``, outside every repo root and
+    therefore outside ``FileHandler``'s repo-rooted write gate, the same
+    exclusion basis as the run-identity marker above.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+# ID: 03aa64dc-8840-4c96-9d79-d5a524d3d44d
+def read_state_json(path: Path) -> dict[str, Any]:
+    """Read JSON written by ``write_state_json``. Raises if the path is absent —
+    a missing result file is a scenario failure, not a soft-fail default."""
+    data: Any = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"expected a JSON object at {path}, got {type(data).__name__}")
+    return data
 
 
 # ID: efb792bc-c0f5-4c8a-8c87-7257640acb2c
