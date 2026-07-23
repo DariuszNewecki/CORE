@@ -53,3 +53,40 @@ verified: deterministic aggregation (first/latest/sum/max-observation), retained
 reason (no deletes), resolver outcomes (stale stays; recovered/terminal/missing
 close), idempotent re-run (0 changes), and index rejection of a fresh duplicate.
 8/8 integration tests pass against a real Postgres carrying the index.
+
+## Rollout closure — live, 2026-07-23 (commit 3d7dd28e)
+
+Executed against the live `core` database under the full quiesce/migrate/
+reconcile/smoke-test/restart sequence above. Actual results:
+
+- 798 duplicate source rows reconciled (resolved, retained reason
+  `duplicate_open_row_reconciliation`, no deletes).
+- 796 stale alerts resolved by the post-restart resolver cycle (all
+  target-terminal closures — their target was one of the 798 reconciled rows).
+- 17 legitimate stale alerts remaining; each independently verified to
+  reference an existing, non-terminal, still-stale target.
+- 26 non-stale open findings.
+- 43 total open subjects.
+- 0 duplicate active identities; `uq_active_finding_identity` valid and ready.
+- All 17 services (core-daemon, core-api, 15 core-daemon-worker@* instances)
+  healthy throughout, 0 restarts.
+
+Smoke test (production posting path, quiesced): one active row, `occurrence_count
+= 2`, `first_payload`/`payload` correctly split across post 1/post 2, `created_at`
+unchanged, `last_seen_at` advanced, index remained valid; row resolved afterward
+with reason `rollout_smoke_test_cleanup_3d7dd28e`.
+
+**Process deviation:** the pre-flight `pg_dump` snapshot
+(`core_blackboard_entries_pre_rollout_3d7dd28e.dump`) was deleted prematurely
+during post-gate cleanup, before the rollback window was formally closed. Not a
+rollout failure — the reconcile step's correctness had already been
+independently verified (0 duplicate active identities, index valid) before
+deletion — but it means no pre-rollout restore point exists. A fresh
+post-convergence baseline was captured instead:
+`var/tmp/core_blackboard_entries_POST_ROLLOUT_BASELINE_3d7dd28e_20260723T080324Z.dump`
+(SHA-256 `2ebce446f938590b9cd4cde9b6b0143d15cf44454000dcfa29f672ee83a39206`,
+manifest alongside it), verified via `pg_restore --list`. Retained outside
+routine temp cleanup going forward.
+
+No `.intent/` changes, no migration/reconcile re-run, and the unrelated
+Prompt Drift Sensor error was left untouched, all per scope.
