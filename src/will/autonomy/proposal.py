@@ -204,10 +204,17 @@ def _compute_flow_risk(
     if flow_def is None:
         return "moderate"
 
-    # Input keys are action_risk vocabulary (impact_level values from
-    # action_risk.yaml: safe / moderate / dangerous). Output array uses
-    # proposal_risk vocabulary (safe / moderate / high) per ADR-059 D1.
-    risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
+    # `impact` here can arrive in either of two vocabularies: ACTION steps
+    # resolve via _resolve_impact (action_risk.yaml's impact_level vocabulary
+    # — safe/moderate/dangerous), while FLOW steps recurse into this same
+    # function and get back ITS OWN return value, which is already in the
+    # proposal_risk output vocabulary (safe/moderate/high per ADR-059 D1).
+    # "dangerous" and "high" name the same level in those two vocabularies,
+    # not two different levels — the rank table must recognize both as
+    # level 2, or a nested flow's "high" silently falls through the
+    # fallback default below and gets demoted (G6 vocabulary-mismatch
+    # defect; production-readiness assessment errata 2026-07-23 correction 1).
+    risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2, "high": 2}
     max_level = 0
     for step in flow_def.steps:
         if step.kind == StepKind.ACTION:
@@ -395,12 +402,18 @@ class Proposal:
                     action.flow_id, risk_mapping
                 )
 
-        # Determine overall risk (highest action risk). Input keys are
-        # action_risk vocabulary (impact_level values from
-        # action_risk.yaml: safe / moderate / dangerous). Output uses
-        # proposal_risk vocabulary (safe / moderate / high) per
-        # ADR-059 D1.
-        risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
+        # Determine overall risk (highest action risk). action_risks values
+        # can arrive in either vocabulary: direct actions resolve via
+        # _resolve_impact (action_risk.yaml's safe/moderate/dangerous),
+        # flow-typed actions carry _compute_flow_risk's own return value,
+        # already in the proposal_risk output vocabulary (safe/moderate/
+        # high per ADR-059 D1). "dangerous" and "high" name the same level
+        # in those two vocabularies — both must rank as level 2, or a flow
+        # wrapping a dangerous action silently falls through the fallback
+        # default below and is misclassified "safe" (G6 vocabulary-mismatch
+        # defect; production-readiness assessment errata 2026-07-23
+        # correction 1).
+        risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2, "high": 2}
         max_risk = 0
         for impact in action_risks.values():
             level = risk_levels.get(impact, 0)
