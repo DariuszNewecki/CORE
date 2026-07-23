@@ -1,0 +1,71 @@
+# infra/demo/compose.yaml
+#
+# Disposable infrastructure for the isolated consequence-chain demo
+# (ADR-155 D4). Ephemeral PostgreSQL + Qdrant only — no other CORE
+# infrastructure. Every property below exists to make this project safely
+# disposable and impossible to confuse with (or collide against) the
+# production Compose project:
+#
+# - No fixed container_name anywhere: names are Compose-derived from the
+#   project name (-p, supplied by the caller from run_id at invocation
+#   time), so two concurrent runs never collide.
+# - Loopback-only, dynamic host ports: "127.0.0.1::<port>" binds the host
+#   side to localhost and lets the OS pick a free port — never a fixed,
+#   guessable, or externally reachable port.
+# - tmpfs storage: both services' data directories are tmpfs, so no volume
+#   outlives the container and nothing touches the host filesystem.
+# - restart: "no": a crashed service stays down for the run to observe,
+#   rather than masking a failure behind a restart loop.
+# - core.demo.run_id label: every container/network carries the run's
+#   identity, so cleanup can find (and verify it removed) everything
+#   belonging to this run and nothing else.
+#
+# Postgres schema (D4): initialized from the canonical root schema.sql via
+# a bind mount, NOT a copy — docker-entrypoint-initdb.d applies it exactly
+# as install-core.sh does (`psql ... < schema.sql`). The relative path
+# below is resolved by Compose against this file's own directory, so it
+# always resolves to the containing clone's own schema.sql — never the
+# invoking checkout's.
+
+x-demo-labels: &demo-labels
+  core.demo.run_id: "${RUN_ID}"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: "no"
+    labels: *demo-labels
+    environment:
+      POSTGRES_USER: core_demo
+      POSTGRES_PASSWORD: core_demo
+      POSTGRES_DB: core_demo
+      PGDATA: /var/lib/postgresql/data/pgdata
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ../../schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    ports:
+      - "127.0.0.1::5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U core_demo -d core_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.0
+    restart: "no"
+    labels: *demo-labels
+    tmpfs:
+      - /qdrant/storage
+    ports:
+      - "127.0.0.1::6333"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+networks:
+  default:
+    labels: *demo-labels

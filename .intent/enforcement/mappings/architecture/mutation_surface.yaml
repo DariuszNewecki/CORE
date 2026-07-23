@@ -45,6 +45,9 @@ mappings:
         # --- ADDED 2026-07-13 (#779) ---
         # Mirrored in governance_basics.yaml's excludes set.
         - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* — work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
+        # --- ADDED 2026-07-23 (ADR-155 isolated consequence-chain demo, Phase 1) ---
+        # Mirrored in governance_basics.yaml's excludes set.
+        - "src/cli/logic/demo/isolation.py" # ADR-155 D3: writes run-identity marker + isolation-fingerprint records under CORE_DEMO_STATE_DIR (outside any repo root); FileHandler is repo-bound and refuses out-of-repo paths
         - "var/**"
         - "**/__pycache__/**"
         - "tests/**" # Tests may use direct writes for fixtures

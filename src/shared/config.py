@@ -181,6 +181,18 @@ class Settings(BaseSettings):
         20, validation_alias="DATABASE_POOL_MAX_OVERFLOW"
     )
 
+    # --- Isolated Consequence-Chain Demo (ADR-155 D3) ---
+    # Root for disposable demo run state (run-identity marker, isolation
+    # fingerprint records). MUST resolve outside any repo checkout — never
+    # shell-expanded, never derived from REPO_PATH — so a run's bookkeeping
+    # cannot be mistaken for, or collide with, repo content. No platformdirs
+    # dependency in this repo; mirrors the convention the (since-removed)
+    # ADR-132 cli_session.py used for out-of-repo state (Path.home()-rooted).
+    CORE_DEMO_STATE_DIR: Path = Field(
+        default_factory=lambda: Path.home() / ".local" / "state" / "core" / "demo",
+        validation_alias="CORE_DEMO_STATE_DIR",
+    )
+
     def __init__(self, **values: Any) -> None:
         is_testing = (
             "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None

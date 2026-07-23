@@ -168,6 +168,123 @@ def list_all_processes(format_spec: str) -> str:
     return result.stdout
 
 
+# ID: 63ffc8b0-fd1e-4324-9b1b-f546eb094e3d
+async def run_child_process(
+    args: list[str], *, cwd: Path, env: dict[str, str]
+) -> int:
+    """Spawn a child process with inherited stdio and an explicit, non-merged environment.
+
+    Sanctuary primitive for ADR-155 D5: the isolated demo's scenario process
+    must be re-rooted with run-specific configuration (disposable DB/Qdrant
+    endpoints, state dir) and must never inherit the invoking process's live
+    ``.env`` — ``env`` is the complete environment for the child; nothing is
+    merged from ``os.environ``. stdio is inherited (not captured) so a
+    long-running scenario process streams its own output directly. No shell.
+    """
+    logger.debug("Child process exec: %s (cwd=%s)", " ".join(args), cwd)
+    process = await asyncio.create_subprocess_exec(*args, cwd=str(cwd), env=env)
+    return await process.wait()
+
+
+# ID: 25e23e37-5aad-4aa0-8ea0-7c179791fe68
+def compose_up_command(project_name: str, compose_file: Path) -> list[str]:
+    """Build a `docker compose up -d --wait` command for a disposable project.
+
+    Fixed shape (ADR-155 D4): `-d` detaches, `--wait` blocks until Compose's
+    own health checks pass before returning, so the caller does not need a
+    separate polling loop for the common case.
+    """
+    return [
+        "docker",
+        "compose",
+        "-p",
+        project_name,
+        "-f",
+        str(compose_file),
+        "up",
+        "-d",
+        "--wait",
+    ]
+
+
+# ID: dcd817d2-a36f-430f-a335-c4ef2eea0481
+def compose_down_command(project_name: str, compose_file: Path) -> list[str]:
+    """Build a `docker compose down --volumes --remove-orphans` command.
+
+    Always removes volumes and orphaned containers (ADR-155 D4/D11) — the
+    project's infrastructure is disposable by design; nothing it creates
+    should outlive the run.
+    """
+    return [
+        "docker",
+        "compose",
+        "-p",
+        project_name,
+        "-f",
+        str(compose_file),
+        "down",
+        "--volumes",
+        "--remove-orphans",
+    ]
+
+
+# ID: 432d3064-e22f-4381-8df4-f82a9d756a1d
+def compose_ps_command(project_name: str, compose_file: Path) -> list[str]:
+    """Build a `docker compose ps --format json` command for health polling."""
+    return [
+        "docker",
+        "compose",
+        "-p",
+        project_name,
+        "-f",
+        str(compose_file),
+        "ps",
+        "--format",
+        "json",
+    ]
+
+
+# ID: 0d099164-bdbe-45a0-82aa-ff23b1794ff4
+def compose_logs_command(project_name: str, compose_file: Path) -> list[str]:
+    """Build a `docker compose logs` command for post-failure diagnostics."""
+    return [
+        "docker",
+        "compose",
+        "-p",
+        project_name,
+        "-f",
+        str(compose_file),
+        "logs",
+    ]
+
+
+# ID: c9627c6e-a3e7-449c-9e28-ee9f4b95d848
+async def run_compose_command(
+    args: list[str], *, cwd: Path, env: dict[str, str]
+) -> SubprocessResult:
+    """Execute a `docker compose` command built by the `compose_*_command` builders.
+
+    Distinct from `run_child_process` (D5): a Compose invocation is an
+    orchestration/diagnostic step whose output the caller inspects
+    programmatically (health JSON from `ps`, log text after a failure) —
+    output is captured here, not inherited.
+    """
+    logger.debug("Compose exec: %s (cwd=%s)", " ".join(args), cwd)
+    process = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=str(cwd),
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    return SubprocessResult(
+        stdout=stdout.decode().strip(),
+        stderr=stderr.decode().strip(),
+        returncode=process.returncode or 0,
+    )
+
+
 # ID: 3797bae4-956b-4af1-9b67-c626709244d9
 async def run_vulture(
     target: str, repo_root: Path | str, confidence: int = 80

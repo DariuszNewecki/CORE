@@ -49,6 +49,11 @@ class StagingContaminationError(RuntimeError):
 # /tmp is prohibited per CLAUDE.md; all temp writes use var/tmp/.
 SANDBOX_PREFIX = "core-action-sandbox-"
 
+# ADR-155 D3: filename of the run-identity marker written inside a disposable
+# demo run directory. marker_checked_remove() refuses to delete a directory
+# whose marker is missing or whose content does not match the caller's run_id.
+DEMO_RUN_MARKER_FILENAME = ".core-demo-run"
+
 
 # ID: 4c70a9c7-ee57-40d7-80af-470c19223c21
 class GitService:
@@ -124,6 +129,40 @@ class GitService:
             return output.splitlines()
         except RuntimeError:
             return []
+
+    # ID: ddc9fc71-b53c-4c91-bca1-8d36ebf1767c
+    def write_tree(self) -> str:
+        """Return the git object hash of the current index (``git write-tree``).
+
+        Used by the isolated consequence-chain demo's before/after fingerprint
+        (ADR-155 D2/D10) to detect any staged-but-uncommitted drift, distinct
+        from ``get_current_commit()`` which only reflects committed HEAD.
+        """
+        return self._run_command(["write-tree"])
+
+    # ID: f4de1b0d-a24e-4614-a0d4-52890bcc814b
+    def list_tracked_files(self) -> list[str]:
+        """Return every tracked file path (``git ls-files``).
+
+        Used by the isolated consequence-chain demo's fingerprint (ADR-155
+        D2/D10) to hash tracked working-tree content directly, catching
+        unstaged modifications that ``write_tree()`` alone would miss.
+        """
+        output = self._run_command(["ls-files"])
+        return output.splitlines() if output else []
+
+    # ID: 7dbd1fed-8534-4bab-8323-5fd3ebe3caa7
+    def list_untracked_files(self) -> list[str]:
+        """Return untracked, non-ignored file paths (``git ls-files --others --exclude-standard``).
+
+        Used by the isolated consequence-chain demo's fingerprint (ADR-155
+        D2/D10 assertion 15) to prove pre-existing untracked bytes are
+        unchanged after a run. Ignored paths (``.gitignore``) are excluded —
+        the demo asserts nothing about runtime/build ephemera it never
+        touched in the first place.
+        """
+        output = self._run_command(["ls-files", "--others", "--exclude-standard"])
+        return output.splitlines() if output else []
 
     # ID: e506910f-2fc8-41ac-8f77-4dd79da1e6c6
     def is_git_repo(self) -> bool:
@@ -520,6 +559,105 @@ class GitService:
             logger.debug("GitService.sweep_orphan_worktrees: prune failed: %s", exc)
 
         return removed
+
+    # ------------------------------------------------------------------
+    # Isolated consequence-chain demo — disposable clone (ADR-155 D2/D3)
+    # ------------------------------------------------------------------
+
+    # ID: bc0e4718-eea3-45aa-a909-a19f1d691d77
+    def create_disposable_clone(self, head_sha: str, dest: Path) -> GitService:
+        """Create an isolated local clone of this repo at ``head_sha`` (ADR-155 D2).
+
+        Uses ``git clone --no-hardlinks`` so the clone's object store is a
+        physical copy — never hardlinks into this repo's ``.git/objects`` —
+        because the clone must be able to outlive, and never write back
+        into, the source repository's object database. Checks out exactly
+        ``head_sha`` (detached) so the clone is pinned to the caller's
+        captured baseline regardless of what the source's default branch
+        points at, then removes the ``origin`` remote so the clone can
+        never fetch from or push to the source. Returns a ``GitService``
+        bound to the clone.
+        """
+        dest = Path(dest)
+        self._run_command(["clone", "--no-hardlinks", str(self.repo_path), str(dest)])
+        clone = GitService(dest)
+        clone._run_command(["checkout", "--detach", head_sha])
+        clone._run_command(["remote", "remove", "origin"])
+        logger.info(
+            "GitService: created disposable clone %s at %s (no remote)",
+            dest,
+            head_sha[:12],
+        )
+        return clone
+
+    # ID: ecb6813c-e14f-4b1d-8829-d99af17e70c5
+    def clone_has_no_remote(self) -> bool:
+        """Return True if this repo has zero configured remotes (ADR-155 D2)."""
+        output = self._run_command(["remote"])
+        return output.strip() == ""
+
+    @staticmethod
+    # ID: c88cd033-199e-4fd3-b857-4da0826c0b94
+    def marker_checked_remove(path: Path, run_id: str, expected_root: Path) -> None:
+        """Remove ``path`` only after validating it is a legitimate, marker-confirmed
+        disposable run directory (ADR-155 D3).
+
+        Refuses (raises ``ValueError``, removes nothing) unless every one of
+        these holds:
+
+        - ``run_id`` contains no wildcard or env-var-expansion characters
+          (``$ % * ? [``) — defense in depth against an unresolved shell
+          expansion reaching this call.
+        - ``path`` exists and is not itself a symlink (no escape via a
+          redirected directory).
+        - ``path`` resolves to exactly ``expected_root/runs/<run_id>`` — not
+          merely somewhere underneath it. This single equality check is what
+          rejects a wrong parent, a root/``/`` target, and the source-repo
+          path in one guard: none of those can ever equal that exact,
+          deep, run-scoped path.
+        - A marker file (``DEMO_RUN_MARKER_FILENAME``) exists directly
+          inside ``path`` and its content is exactly ``run_id``.
+
+        Only once every check passes does it call ``shutil.rmtree``. No
+        wildcards, no glob, no broad recursive target — the single resolved
+        path is the only thing ever removed.
+        """
+        if any(c in run_id for c in ("$", "%", "*", "?", "[")):
+            raise ValueError(
+                f"marker_checked_remove refused: run_id contains an unsafe "
+                f"character: {run_id!r}"
+            )
+
+        if not path.exists():
+            raise ValueError(f"marker_checked_remove refused: target does not exist: {path}")
+
+        if path.is_symlink():
+            raise ValueError(f"marker_checked_remove refused: target is a symlink: {path}")
+
+        resolved = path.resolve()
+        expected = (expected_root.resolve() / "runs" / run_id).resolve()
+        if resolved != expected:
+            raise ValueError(
+                f"marker_checked_remove refused: {resolved} does not match the "
+                f"expected run directory {expected}"
+            )
+
+        marker_path = resolved / DEMO_RUN_MARKER_FILENAME
+        if not marker_path.is_file():
+            raise ValueError(
+                f"marker_checked_remove refused: missing marker file at {marker_path}"
+            )
+        marker_content = marker_path.read_text(encoding="utf-8").strip()
+        if marker_content != run_id:
+            raise ValueError(
+                f"marker_checked_remove refused: marker content {marker_content!r} "
+                f"does not match run_id {run_id!r}"
+            )
+
+        shutil.rmtree(resolved)
+        logger.info(
+            "GitService.marker_checked_remove: removed %s (run_id=%s)", resolved, run_id
+        )
 
 
 # ID: ea3110a9-3a63-402f-af22-61f1860eff2b
