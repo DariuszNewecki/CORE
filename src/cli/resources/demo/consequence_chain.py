@@ -116,8 +116,14 @@ def _render_interrupt(identity: RunIdentity | None) -> None:
 
 @app.command("consequence-chain")
 @command_meta(
+    # VALIDATE, not MUTATE (ADR-155 Phase 4, governor-approved 2026-07-24): this
+    # command validates the governance consequence chain entirely inside
+    # run-scoped disposable infrastructure and cannot mutate the invoking
+    # repository or any governed production state — the same principle by which
+    # `context build` is READ despite writing `--output`. The D9 confirmation
+    # below remains as an operator-safety gate, unchanged.
     canonical_name="demo.consequence-chain",
-    behavior=CommandBehavior.MUTATE,
+    behavior=CommandBehavior.VALIDATE,
     layer=CommandLayer.BODY,
     exposure=CommandExposure.USER_FACING,
     summary="Run the isolated, genuine governance consequence-chain demonstration.",
