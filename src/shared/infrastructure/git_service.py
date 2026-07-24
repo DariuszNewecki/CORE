@@ -614,13 +614,16 @@ class GitService:
         return output.strip() == ""
 
     @staticmethod
-    # ID: c88cd033-199e-4fd3-b857-4da0826c0b94
-    def marker_checked_remove(path: Path, run_id: str, expected_root: Path) -> None:
-        """Remove ``path`` only after validating it is a legitimate, marker-confirmed
-        disposable run directory (ADR-155 D3).
+    # ID: 10333247-858b-452b-abd6-d0ac8ed1e882
+    def marker_checked_resolve(path: Path, run_id: str, expected_root: Path) -> Path:
+        """Validate that ``path`` is a legitimate, marker-confirmed disposable run
+        directory and return its resolved location — **removing nothing** (ADR-155 D3).
 
-        Refuses (raises ``ValueError``, removes nothing) unless every one of
-        these holds:
+        This is the guard half of :meth:`marker_checked_remove`, extracted so a
+        caller can validate-and-preview (e.g. ``core-admin demo cleanup`` without
+        ``--write``) using the *identical* checks that gate an actual removal.
+
+        Refuses (raises ``ValueError``) unless every one of these holds:
 
         - ``run_id`` contains no wildcard or env-var-expansion characters
           (``$ % * ? [``) — defense in depth against an unresolved shell
@@ -634,43 +637,53 @@ class GitService:
           deep, run-scoped path.
         - A marker file (``DEMO_RUN_MARKER_FILENAME``) exists directly
           inside ``path`` and its content is exactly ``run_id``.
-
-        Only once every check passes does it call ``shutil.rmtree``. No
-        wildcards, no glob, no broad recursive target — the single resolved
-        path is the only thing ever removed.
         """
         if any(c in run_id for c in ("$", "%", "*", "?", "[")):
             raise ValueError(
-                f"marker_checked_remove refused: run_id contains an unsafe "
+                f"marker_checked cleanup refused: run_id contains an unsafe "
                 f"character: {run_id!r}"
             )
 
         if not path.exists():
-            raise ValueError(f"marker_checked_remove refused: target does not exist: {path}")
+            raise ValueError(f"marker_checked cleanup refused: target does not exist: {path}")
 
         if path.is_symlink():
-            raise ValueError(f"marker_checked_remove refused: target is a symlink: {path}")
+            raise ValueError(f"marker_checked cleanup refused: target is a symlink: {path}")
 
         resolved = path.resolve()
         expected = (expected_root.resolve() / "runs" / run_id).resolve()
         if resolved != expected:
             raise ValueError(
-                f"marker_checked_remove refused: {resolved} does not match the "
+                f"marker_checked cleanup refused: {resolved} does not match the "
                 f"expected run directory {expected}"
             )
 
         marker_path = resolved / DEMO_RUN_MARKER_FILENAME
         if not marker_path.is_file():
             raise ValueError(
-                f"marker_checked_remove refused: missing marker file at {marker_path}"
+                f"marker_checked cleanup refused: missing marker file at {marker_path}"
             )
         marker_content = marker_path.read_text(encoding="utf-8").strip()
         if marker_content != run_id:
             raise ValueError(
-                f"marker_checked_remove refused: marker content {marker_content!r} "
+                f"marker_checked cleanup refused: marker content {marker_content!r} "
                 f"does not match run_id {run_id!r}"
             )
 
+        return resolved
+
+    @staticmethod
+    # ID: c88cd033-199e-4fd3-b857-4da0826c0b94
+    def marker_checked_remove(path: Path, run_id: str, expected_root: Path) -> None:
+        """Remove ``path`` only after :meth:`marker_checked_resolve` confirms it is a
+        legitimate, marker-confirmed disposable run directory (ADR-155 D3).
+
+        Delegates every guard to :meth:`marker_checked_resolve` (single source of
+        the escape/marker/parent/root checks), then — and only then — calls
+        ``shutil.rmtree`` on the single resolved path. No wildcards, no glob, no
+        broad recursive target.
+        """
+        resolved = GitService.marker_checked_resolve(path, run_id, expected_root)
         shutil.rmtree(resolved)
         logger.info(
             "GitService.marker_checked_remove: removed %s (run_id=%s)", resolved, run_id

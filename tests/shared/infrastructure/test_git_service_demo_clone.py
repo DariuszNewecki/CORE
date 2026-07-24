@@ -183,6 +183,32 @@ def test_u06_refuses_unsafe_run_id_characters(demo_state_root: Path) -> None:
         )
 
 
+# --- marker_checked_resolve: validate-only half used by `demo cleanup` dry-run ---
+
+
+# ID: d303b849-8be3-4705-a8ad-256d1289f6aa
+def test_marker_checked_resolve_returns_target_without_removing(
+    demo_state_root: Path,
+) -> None:
+    run_id = "run-resolve-ok"
+    run_dir = _make_valid_run_dir(demo_state_root, run_id)
+    resolved = GitService.marker_checked_resolve(run_dir, run_id, demo_state_root)
+    assert resolved == run_dir.resolve()
+    # Validation only — nothing removed.
+    assert run_dir.exists()
+    assert (run_dir / DEMO_RUN_MARKER_FILENAME).exists()
+
+
+# ID: dec29458-85f2-404a-aa74-ca3f2c23be95
+def test_marker_checked_resolve_applies_the_same_guards(demo_state_root: Path) -> None:
+    run_id = "run-resolve-nomark"
+    run_dir = demo_state_root / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    with pytest.raises(ValueError, match="missing marker file"):
+        GitService.marker_checked_resolve(run_dir, run_id, demo_state_root)
+    assert run_dir.exists()
+
+
 # --- Fingerprint support methods (used by capture_fingerprint) ---
 
 
