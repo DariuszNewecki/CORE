@@ -17,8 +17,10 @@ combined with the child's ``ChainScenarioResult`` -> cleanup.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from body.infrastructure.storage.file_handler import FileHandler
@@ -33,7 +35,12 @@ from cli.logic.demo.isolation import (
     prove_clone_isolation,
     read_state_json,
 )
-from cli.logic.demo.models import AssertionResult, ChainScenarioResult, PhaseResult
+from cli.logic.demo.models import (
+    AssertionResult,
+    ChainScenarioResult,
+    PhaseResult,
+    RunIdentity,
+)
 from cli.logic.demo.seed import seed_relative_path, write_and_commit_seed
 from shared.infrastructure.git_service import GitService
 from shared.logger import getLogger
@@ -191,7 +198,14 @@ def _evaluate_assertions(
 
 
 # ID: 906529d3-3398-476d-a1ac-e7ea9014bb72
-async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> PhaseResult:
+async def run_consequence_chain(
+    source: GitService,
+    demo_state_dir: Path,
+    *,
+    keep_workspace: bool = False,
+    timeout_seconds: float | None = None,
+    on_identity: Callable[[RunIdentity], None] | None = None,
+) -> PhaseResult:
     """Drive the full ADR-155 Phase 2 scenario: seed, chain, evidence, cleanup.
 
     Orchestrates Phase 1's isolation substrate and the Phase 2 chain
@@ -200,11 +214,20 @@ async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> Pha
     raises for a scenario-level failure, only for a genuine substrate fault
     (e.g. Docker unavailable), which is itself a pre-flight condition
     distinct from the chain scenario's own pass/fail.
+
+    ``on_identity`` is invoked once, as soon as the run's identity exists, so
+    a caller (Phase 3's CLI) can report the retained-workspace path even if
+    the run is later interrupted mid-scenario. ``keep_workspace`` retains the
+    disposable filesystem on success (it is always retained on failure, D11).
+    ``timeout_seconds`` bounds the child scenario wait; exceeding it is a
+    scenario failure (the phase is named in the result error), never a hang.
     """
     fingerprint_before = capture_fingerprint(source)
     head = source.get_current_commit()
 
     identity = generate_run_identity(demo_state_dir)
+    if on_identity is not None:
+        on_identity(identity)
     clone = create_isolated_clone(source, head, identity)
     prove_clone_isolation(clone, head)
     clone.configure_local_identity(
@@ -226,10 +249,28 @@ async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> Pha
     if path:
         compose_env["PATH"] = path
 
+    def _failed_scenario(error: str) -> ChainScenarioResult:
+        return ChainScenarioResult(
+            run_id=identity.run_id,
+            seed_rel_path=seed_rel_path,
+            finding=None,
+            finding_matches_count=0,
+            proposal=None,
+            chain=None,
+            reaudit_clean=False,
+            reaudit_matches_count=1,
+            error=error,
+        )
+
     infra_healthy = False
     result: ChainScenarioResult
     try:
-        up_result = await compose_up(identity.run_id, compose_file, compose_env)
+        compose_up_kwargs = (
+            {"timeout_seconds": timeout_seconds} if timeout_seconds is not None else {}
+        )
+        up_result = await compose_up(
+            identity.run_id, compose_file, compose_env, **compose_up_kwargs
+        )
         infra_healthy = up_result.returncode == 0
 
         if infra_healthy:
@@ -240,7 +281,7 @@ async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> Pha
             child_env = {}
             if path:
                 child_env["PATH"] = path
-            await run_child_process(
+            child_coro = run_child_process(
                 [
                     sys.executable,
                     "src/cli/logic/demo/scenario_runner.py",
@@ -251,20 +292,21 @@ async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> Pha
                 cwd=clone.repo_path,
                 env=child_env,
             )
-            result = ChainScenarioResult.from_dict(
-                read_state_json(identity.state_dir / "scenario_result.json")
-            )
+            try:
+                if timeout_seconds is not None:
+                    await asyncio.wait_for(child_coro, timeout=timeout_seconds)
+                else:
+                    await child_coro
+                result = ChainScenarioResult.from_dict(
+                    read_state_json(identity.state_dir / "scenario_result.json")
+                )
+            except TimeoutError:
+                result = _failed_scenario(
+                    f"child scenario exceeded its {timeout_seconds}s deadline"
+                )
         else:
-            result = ChainScenarioResult(
-                run_id=identity.run_id,
-                seed_rel_path=seed_rel_path,
-                finding=None,
-                finding_matches_count=0,
-                proposal=None,
-                chain=None,
-                reaudit_clean=False,
-                reaudit_matches_count=1,
-                error="disposable infrastructure failed to become healthy",
+            result = _failed_scenario(
+                "disposable infrastructure failed to become healthy"
             )
     finally:
         await compose_down(identity.run_id, compose_file, compose_env)
@@ -292,20 +334,31 @@ async def run_consequence_chain(source: GitService, demo_state_dir: Path) -> Pha
 
     ok = all(a.passed for a in assertions)
 
-    if ok:
+    cleaned_up = False
+    if ok and not keep_workspace:
         cleanup_run(identity, demo_state_dir)
+        cleaned_up = True
     else:
-        # D11: on failure, the workspace is retained for diagnosis rather
-        # than cleaned up — infra is already down (the `finally` above),
-        # only the filesystem state remains. Phase 3's CLI surface is what
-        # prints this path to an operator and offers
-        # `core-admin demo cleanup <run_id>`; this orchestration layer only
-        # guarantees the state survives to be inspected.
-        logger.warning(
-            "Consequence-chain scenario run %s failed: %s — workspace retained at %s",
-            identity.run_id,
-            [a.name for a in assertions if not a.passed],
-            identity.state_dir,
-        )
+        # D11: on failure (or an explicit --keep-workspace), the disposable
+        # filesystem is retained for diagnosis rather than cleaned up — infra
+        # is already down (the `finally` above), only the filesystem state
+        # remains. Phase 3's CLI surface prints ``state_dir`` to the operator
+        # and offers `core-admin demo cleanup <run_id>`; this orchestration
+        # layer only guarantees the state survives to be inspected.
+        if not ok:
+            logger.warning(
+                "Consequence-chain scenario run %s failed: %s — workspace retained at %s",
+                identity.run_id,
+                [a.name for a in assertions if not a.passed],
+                identity.state_dir,
+            )
 
-    return PhaseResult(run_id=identity.run_id, ok=ok, assertions=assertions)
+    return PhaseResult(
+        run_id=identity.run_id,
+        ok=ok,
+        assertions=assertions,
+        assessed_commit=head,
+        state_dir=identity.state_dir,
+        cleaned_up=cleaned_up,
+        scenario=result,
+    )

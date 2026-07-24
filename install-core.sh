@@ -6,8 +6,9 @@
 #
 #   ./install-core.sh                      # Docker path (default)
 #       Requires: docker, docker compose v2, poetry, python 3.12+
-#       Brings up Postgres + Qdrant via Docker, loads the schema, starts
-#       the CORE API, and runs the consequence-chain demo.
+#       Brings up Postgres + Qdrant via Docker, loads the schema, and starts
+#       the CORE API. Finishes by printing the opt-in consequence-chain demo
+#       command (ADR-155 D1: installation never runs the demo automatically).
 #
 #   ./install-core.sh --bare \             # Bare path
 #       --db-url  "postgresql://user:pass@host:5432/dbname" \
@@ -198,24 +199,21 @@ run_docker() {
     done
   fi
 
-  # ---- demo ------------------------------------------------------------------
-  step "Showing you CORE govern itself"
-  git config user.email >/dev/null 2>&1 || git config user.email "you@example.com"
-  git config user.name  >/dev/null 2>&1 || git config user.name  "CORE User"
-  CORE_API_HOST="$API_HOST" CORE_API_PORT="$API_PORT" bash scripts/demo.sh
-
   # ---- done ------------------------------------------------------------------
+  # ADR-155 D1: installation must NOT run the demo. The isolated
+  # consequence-chain demo is offered as an explicit, opt-in command below — it
+  # spins up its own disposable infrastructure and never touches this checkout.
   step "CORE is yours"
   cat <<EOF
 
-  CORE is installed, running, and has just shown you the full loop:
-  a violation found, a fix proposed, approved, executed, and verified —
-  with the whole causal chain recorded.
+  CORE is installed and running.
+
+  See CORE govern itself, end to end, in one isolated run (opt-in, needs Docker):
+    poetry run core-admin demo consequence-chain
 
   Try it yourself:
     poetry run core-admin code audit --offline      # audit this repo, no services
     poetry run core-admin runtime dashboard         # governor situational awareness
-    bash scripts/demo.sh                            # re-run the demo any time
 
   Turn on autonomy (CORE watches and self-heals in the background):
     make daemon-start
