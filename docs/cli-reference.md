@@ -65,6 +65,56 @@ poetry run core-admin dev test <file>                  # Test generation for a f
 
 ---
 
+### `demo` — Isolated, Opt-In Demonstrations
+
+```bash
+poetry run core-admin demo consequence-chain           # Genuine governance chain, in a disposable clone
+poetry run core-admin demo consequence-chain --output report.md   # + write Markdown report & JSON companion
+poetry run core-admin demo consequence-chain --keep-workspace     # Keep the disposable clone after success
+poetry run core-admin demo consequence-chain --simulate-confirmation  # Unattended (CI/cold-room); labelled "simulated"
+poetry run core-admin demo consequence-chain --timeout-seconds 300    # Bound the infra + scenario waits
+poetry run core-admin demo cleanup <run_id>            # Remove a retained demo workspace (marker-checked)
+```
+
+**Prerequisites:** Docker (Compose v2). No LLM key required.
+
+**What it proves.** `consequence-chain` seeds a real `linkage.assign_ids` violation into a
+**disposable clone** and runs it through the **real** sensor → remediator → proposal route →
+executor → consequence service → re-audit. It never touches the invoking checkout, its git
+index, your database, Qdrant, API, or daemon; it stands up its own loopback-only, dynamically
+ported Postgres + Qdrant, and tears everything down when done. Every displayed fact — finding,
+proposal, approval authority, execution, pre/post SHA, changed files, resolved finding — belongs
+to the **same** proposal; nothing is selected by "latest". The `fix.ids` proposal is
+auto-approved as **policy-safe** (`risk_classification.safe_auto_approval`); the interactive
+prompt is your consent to continue the demonstration, **not** a proposal-approval event.
+
+**Fails closed.** The command exits non-zero unless every isolation, chain, evidence, and cleanup
+assertion holds. Warnings never substitute for an assertion.
+
+**Output.** By default it writes **no** file into your checkout. With `--output PATH` it writes a
+Markdown report and a matching JSON companion (`PATH` with a `.json` suffix) inside the repository
+boundary.
+
+**Exit codes:**
+
+| Exit | Meaning |
+|---|---|
+| `0` | Every scenario and cleanup assertion passed. |
+| `2` | Pre-flight/configuration failure (e.g. Docker missing, bad `--output` path); the scenario did not start. |
+| `64` | Scenario, evidence, isolation, or cleanup failure. |
+| `130` | Operator interruption (Ctrl-C); infrastructure cleanup attempted and the retained workspace path reported. |
+
+**Cleanup.** On success the disposable clone is removed (unless `--keep-workspace`). On failure or
+interruption, disposable infrastructure is still torn down but the clone is **retained** for
+diagnosis; the command prints its path and the `demo cleanup <run_id>` command to remove it. Cleanup
+is marker-checked: it removes only a directory whose basename equals the run id and that carries the
+matching run-id marker file.
+
+> `scripts/demo.sh` is a thin compatibility wrapper that delegates to `demo consequence-chain`; it
+> contains no scenario logic of its own.
+
+---
+
 ### `vectors` — Vector Store Operations (Qdrant)
 
 CORE maintains three vector collections: `core_policies` (`.intent/` governance),

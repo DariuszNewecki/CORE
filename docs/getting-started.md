@@ -37,7 +37,8 @@ You will also need an LLM resource — local model server or external API, your 
 
 **One command** (recommended). Clone, then run the installer — it checks
 prerequisites, installs dependencies, starts the services, applies the schema,
-and finishes by showing CORE govern itself (no LLM key needed for the demo):
+and finishes by **offering** the opt-in consequence-chain demo (it never runs
+it for you):
 
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
@@ -47,6 +48,25 @@ cd CORE
 
 If that succeeds you can skip to [Key Commands](#key-commands) — CORE is running.
 The rest of this section is the same path, done by hand.
+
+### See CORE govern itself (opt-in)
+
+When you want the guided proof, run the isolated demonstration explicitly. It
+needs Docker but **no** LLM key, and runs entirely inside a disposable clone and
+disposable, loopback-only Postgres + Qdrant — your checkout, git index, database,
+and daemon are never touched:
+
+```bash
+poetry run core-admin demo consequence-chain
+```
+
+In one run it seeds a real `linkage.assign_ids` violation, lets the real sensor,
+remediator, proposal route, and executor find → propose → auto-approve (as
+*policy-safe*, not "human approved") → fix → verify it, then prints the exact
+recorded chain and re-audits clean. It **fails closed**: every link is asserted
+and any missing one exits non-zero. See the [`demo`](cli-reference.md) command
+reference for options (`--output`, `--keep-workspace`, `--simulate-confirmation`,
+`--timeout-seconds`), exit codes, and cleanup.
 
 ### Manual installation
 

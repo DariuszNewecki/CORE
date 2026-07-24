@@ -82,11 +82,22 @@ class PhaseResult:
     chain-scenario evidence fields (finding, proposal, consequence, etc.) on
     top of this shell rather than replacing it; Phase 3's CLI renders D12
     evidence from whatever this shell has accumulated by the end of a run.
+
+    The evidence fields carry the *exact* records the real chain produced —
+    ``scenario`` is the unmodified ``ChainScenarioResult`` handed back by the
+    child process. Phase 3's D12 renderer reads from these fields directly and
+    never re-derives a fact from a separate query or "latest" selection.
+    ``state_dir`` is the retained-workspace path an operator inspects (and
+    passes to ``core-admin demo cleanup``) when a run fails or is kept.
     """
 
     run_id: str
     ok: bool
     assertions: list[AssertionResult] = field(default_factory=list)
+    assessed_commit: str | None = None
+    state_dir: Path | None = None
+    cleaned_up: bool = False
+    scenario: ChainScenarioResult | None = None
 
 
 @dataclass(frozen=True)

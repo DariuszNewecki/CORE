@@ -49,15 +49,29 @@ git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE && ./install-core.sh
 ```
 
-`install-core.sh` stands up CORE and finishes by running the consequence-chain demo **live** — no LLM key required. It:
+`install-core.sh` stands up CORE and finishes by **offering** the consequence-chain
+demo as an explicit, opt-in command (it never runs it for you). Run it when you're
+ready — no LLM key required, but it does need Docker:
 
-- commits a function that violates `linkage.assign_ids` (a blocking rule)
-- watches CORE's audit **block** it
-- has CORE propose a fix, the governor approve it, and CORE execute it and commit the repair
-- re-audits to confirm **clean**
-- prints the full causal chain it recorded: finding → proposal → approval → execution → file change
+```bash
+poetry run core-admin demo consequence-chain
+```
 
-Re-run it any time with `scripts/demo.sh`.
+The demo runs entirely inside a **disposable clone** and **disposable, loopback-only
+Postgres + Qdrant** — it never touches your checkout, its git index, your database,
+or a running daemon. In one isolated run it:
+
+- seeds a function that violates `linkage.assign_ids` (a blocking rule) into the clone
+- lets the **real** sensor detect it, the **real** remediator propose a `fix.ids` repair,
+  and the governed risk classifier auto-approve it as *policy-safe* (not "human approved")
+- executes the proposal through the **real** proposal route + executor and commits the repair
+- reads the exact recorded chain back — finding → proposal → approval authority →
+  execution → committed change → durable consequence → resolved finding — and re-audits clean
+- fails closed: every one of those facts is asserted, and any missing link exits non-zero
+- tears down all disposable resources when it's done
+
+Every displayed fact belongs to the *same* proposal — nothing is selected by "latest".
+The wrapper `scripts/demo.sh` still works; it just delegates to the command above.
 
 Governance is executable.
 
@@ -306,7 +320,7 @@ cd CORE
 ./install-core.sh
 ```
 
-`install-core.sh` checks prerequisites, installs dependencies, starts Postgres + Qdrant, applies the schema, and finishes by **showing CORE govern itself** — a violation found, proposed, approved, fixed, and verified, with the consequence chain recorded. No LLM API key needed for the demo.
+`install-core.sh` checks prerequisites, installs dependencies, starts Postgres + Qdrant, applies the schema, and finishes by **offering** the opt-in `core-admin demo consequence-chain` command — an isolated run that has CORE find, propose, approve, fix, and verify a violation and record the consequence chain. Installation never runs it for you; run it yourself when ready (needs Docker, no LLM API key).
 
 <details>
 <summary>Prefer to run the steps yourself?</summary>
