@@ -1786,6 +1786,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-154-mutation-lane-equivalence.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-155-isolated-consequence-chain-demo.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
@@ -1797,6 +1799,8 @@ classifications:
   - path: .specs/planning/CORE-CLI-VM-Test-Access-Runbook.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Cleanroom-Rebuild-Runbook.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-Isolated-Consequence-Chain-Demo-Phase1-Map.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
     governance_namespace: project::core
