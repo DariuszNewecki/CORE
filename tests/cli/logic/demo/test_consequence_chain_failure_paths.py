@@ -1,5 +1,5 @@
 # tests/cli/logic/demo/test_consequence_chain_failure_paths.py
-"""ADR-155 §6.2 adversarial matrix — E05, E08-E11 (orchestration failure paths).
+"""ADR-155 §6.2 adversarial matrix — E05, E08-E11, U15 (orchestration failure paths).
 
 These exercise the *real* isolation substrate — a throwaway git repo is cloned,
 seeded, fingerprinted, asserted, and cleaned/retained by the genuine
@@ -15,10 +15,15 @@ failing run would surface it to the parent.
 - E09  failure after proposal creation: failure evidence identifies the proposal.
 - E10  execution failure: terminal state reported, never the success thesis.
 - E11  missing consequence: a 'completed' proposal without SHAs still fails.
+- U15  outer scenario deadline: the ``asyncio.wait_for`` bounding the child
+       scenario process (distinct from ``compose_down``'s own deadline,
+       covered in ``test_isolation.py``) is bounded, phase-identified, and
+       still tears down infra on timeout.
 """
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -218,6 +223,57 @@ async def test_e11_completed_without_consequence_fails(
     assert result.ok is False
     failed = {a.name for a in result.assertions if not a.passed}
     assert "D10.7_completed_has_durable_consequence" in failed
+
+
+# ── U15: outer scenario asyncio.wait_for deadline ─────────────────────────────
+
+
+# ID: 29691ea4-d9de-4343-94b2-cd81fd84abe0
+async def test_u15_outer_scenario_wait_for_timeout_reports_deadline_and_cleans_up(
+    source_repo: GitService, demo_state_root: Path, monkeypatch
+) -> None:
+    """The ``asyncio.wait_for(child_coro, timeout=timeout_seconds)`` guarding
+    the child scenario process (consequence_chain.py ~line 297) is distinct
+    from ``compose_down``'s own deadline (already covered in
+    ``test_isolation.py``) — it bounds the wait for the *child scenario
+    process itself*, not Docker teardown, and had no test of its own. Faking
+    a child that hangs past the deadline proves: the wait is bounded, the
+    failure names the phase ("child scenario exceeded its Ns deadline"), and
+    infra teardown (``compose_down``) still runs via the ``finally`` clause
+    even though the child never returned."""
+    compose_down_calls: list[str] = []
+
+    async def _compose_up(project, compose_file, env, **kw):
+        return _ok(0)
+
+    async def _compose_down(project, compose_file, env, **kw):
+        compose_down_calls.append(project)
+        return _ok(0)
+
+    async def _port(project, service, port):
+        return "15432"
+
+    async def _hanging_child(*a, **k):
+        await asyncio.sleep(30)
+        return 0
+
+    monkeypatch.setattr(cc, "compose_up", _compose_up)
+    monkeypatch.setattr(cc, "compose_down", _compose_down)
+    monkeypatch.setattr(cc, "_container_host_port", _port)
+    monkeypatch.setattr(cc, "run_child_process", _hanging_child)
+
+    result = await run_consequence_chain(
+        source_repo, demo_state_root, timeout_seconds=0.05
+    )
+
+    assert result.ok is False
+    assert result.scenario is not None
+    assert result.scenario.error == "child scenario exceeded its 0.05s deadline"
+    # Bounded: teardown still ran despite the child never finishing.
+    assert compose_down_calls == [result.run_id]
+    # Failure-visible: retained for diagnosis, not silently cleaned away.
+    assert result.cleaned_up is False
+    assert result.state_dir is not None and result.state_dir.exists()
 
 
 # ── E05: three consecutive runs — distinct ids, each cleans up ────────────────
