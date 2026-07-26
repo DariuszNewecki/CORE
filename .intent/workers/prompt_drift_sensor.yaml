@@ -36,4 +36,4 @@ mandate:
 implementation:
   module: will.workers.prompt_drift_sensor
   class: PromptDriftSensor
-  requires_core_context: false
+  requires_core_context: true
