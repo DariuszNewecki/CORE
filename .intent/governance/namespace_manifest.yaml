@@ -1792,6 +1792,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
     governance_namespace: project::core
+  - path: .specs/attestations/adr-155-final-acceptance-report-20260726.md
+    governance_namespace: project::core
+  - path: .specs/attestations/e15-coldroom-3cbe0be0-20260726.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-Release-Smoke-Test.md
