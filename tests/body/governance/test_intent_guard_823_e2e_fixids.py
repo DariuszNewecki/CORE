@@ -78,7 +78,9 @@ def _run(args: list[str], cwd: Path | None = None, env: dict | None = None, chec
 
 @pytest.fixture(scope="module")
 def docker_compose_available() -> bool:
-    """True only if the `docker compose` v2 subcommand actually works here."""
+    """True only if `docker compose` v2 works here AND the compose file exists."""
+    if not COMPOSE_FILE.exists():
+        return False
     if not shutil.which("docker"):
         return False
     try:
@@ -99,7 +101,7 @@ def _docker_port(container: str, container_port: int) -> str:
 @pytest.fixture
 def disposable_infra(docker_compose_available: bool):
     if not docker_compose_available:
-        pytest.skip("docker compose v2 not available")
+        pytest.skip("docker compose v2 unavailable or infra/demo/compose.yaml missing")
 
     project = f"core-823-test-{uuid.uuid4().hex[:10]}"
     env = {"RUN_ID": project}
