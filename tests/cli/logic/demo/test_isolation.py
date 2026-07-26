@@ -2,7 +2,7 @@
 """Unit tests for the isolated consequence-chain demo's Phase 1 substrate
 orchestration (ADR-155, ``cli.logic.demo.isolation``).
 
-Covers Phase1-Map U13, U15 (partial), E02, E03 (partial), E04, E06, plus the
+Covers Phase1-Map U13, U15, E02, E03 (partial), E04, E06, plus the
 supporting run-identity/fingerprint/isolation-proof primitives. Compose
 lifecycle tests requiring real Docker live in ``test_compose_lifecycle.py``.
 """
@@ -19,6 +19,7 @@ from cli.logic.demo.isolation import (
     SubstrateTimeoutError,
     capture_fingerprint,
     cleanup_run,
+    compose_down,
     compose_up,
     create_isolated_clone,
     generate_run_identity,
@@ -261,6 +262,33 @@ async def test_u15_compose_up_raises_substrate_timeout_on_a_slow_wait(
 
     with pytest.raises(SubstrateTimeoutError, match="compose up exceeded its"):
         await compose_up(
+            "run-timeout", tmp_path / "compose.yaml", {}, timeout_seconds=0.05
+        )
+
+
+# --- U15 (symmetric): compose_down deadline ---
+
+
+async def test_u15_compose_down_raises_substrate_timeout_on_a_slow_wait(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Symmetric to ``test_u15_compose_up_raises_substrate_timeout_on_a_slow_wait``
+    — ``compose_down`` shares ``_with_deadline`` with ``compose_up`` but had no
+    test of its own exercising the deadline path. The phase name in both the
+    exception message and the raised type proves the failure is
+    phase-identified and visible (not swallowed by the ``finally: await
+    compose_down(...)`` teardown callers rely on)."""
+
+    async def _slow_compose_command(*_args: object, **_kwargs: object) -> SubprocessResult:
+        await asyncio.sleep(5)
+        return SubprocessResult(stdout="", stderr="", returncode=0)
+
+    monkeypatch.setattr(
+        "cli.logic.demo.isolation.run_compose_command", _slow_compose_command
+    )
+
+    with pytest.raises(SubstrateTimeoutError, match="compose down exceeded its"):
+        await compose_down(
             "run-timeout", tmp_path / "compose.yaml", {}, timeout_seconds=0.05
         )
 
