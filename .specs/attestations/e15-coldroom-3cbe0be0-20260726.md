@@ -14,7 +14,7 @@ change to `src/`, `.intent/`, or this repository's tracked/untracked state.
 
 ## 1. What E15 requires
 
-Per `.specs/planning/CORE-Isolated-Consequence-Chain-Demo-Spec.md` §6.2:
+Per `.specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md` §6.2:
 
 > **E15 — Cold-room run.** A non-author follows public documentation on a clean
 > supported host and completes the demo without source inspection.
