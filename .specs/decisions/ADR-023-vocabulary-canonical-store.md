@@ -13,7 +13,7 @@ status: accepted
 **Date:** 2026-05-04
 **Depends on:**
 - `.specs/papers/CORE-Constitutional-Foundations.md`
-- `.specs/papers/CORE-Deliberate-Non-Goals.md`
+- CORE-Deliberate-Non-Goals.md
 - `.specs/papers/CORE-Vocabulary.md`
 
 **Related:** ADR-001, ADR-004, ADR-005
@@ -36,7 +36,7 @@ Adjacent vocabulary-family artifacts exist and are **not in scope** for this ADR
 
 - `.intent/taxonomies/capability_taxonomy.yaml` — governed correctly by the four-artifact pattern (paper + data + rules + enforcement). This ADR does not modify or absorb it.
 - `.intent/META/enums.json` — referenced by `vocabulary.schema.json` for enum-typed value vocabularies. This ADR does not modify it.
-- `.intent/enforcement/config/audit_verdict.yaml` — governs verdict-side audit vocabulary per ADR-005. This ADR does not modify it.
+- The verdict-side audit vocabulary config — governed per ADR-005. This ADR does not modify it.
 
 What this ADR resolves is specifically the relationship between `CORE-Vocabulary.md` and `vocabulary.json`. Cross-family integration — whether instrument-emitted schemas like `AuditStats` adopt the same pattern, the capability-taxonomy quartet pattern, or a hybrid — is a downstream question this ADR's resolution makes possible but does not itself answer.
 
@@ -218,16 +218,21 @@ Rejected. Adding a `family: governance | capability | enum | audit` field to eac
 ## References
 
 - `.specs/papers/CORE-Constitutional-Foundations.md` §6 — taxonomies rejected as primitives
-- `.specs/papers/CORE-Deliberate-Non-Goals.md` §3.1 — internal-taxonomies carve-out
+- CORE-Deliberate-Non-Goals.md §3.1 — internal-taxonomies carve-out
 - `.specs/papers/CORE-Vocabulary.md` — the canonical store
 - `.specs/papers/CORE-Authority-Without-Registries.md` — scope-by-location, not by metadata
 - `.intent/META/vocabulary.json` — the projection
 - `.intent/META/vocabulary.schema.json` — the projection's shape constraint
 - ADR-001 — `vocabulary.md` cross-reference weight from the `.specs/` reorganization
 - ADR-004 — precedent for taming drifting vocabulary across `src/`
-- ADR-005 + `.intent/enforcement/config/audit_verdict.yaml` — precedent for tri-state verdict and instrument-failure handling
+- ADR-005 (verdict-policy config) — precedent for tri-state verdict and instrument-failure handling
 - GitHub issue #214 — the diagnosis whose investigation surfaced this ADR's context
 - Follow-up: `CORE-Specification-as-Source.md` (parked) — ratifies the compilation framing established by precedent here
+
+**Note (2026-07-27):** four references above previously named literal paths
+(`.specs/papers/CORE-Deliberate-Non-Goals.md` ×2, `.intent/enforcement/config/audit_verdict.yaml`
+×2) to project-namespace artifacts. Removed per ADR-144 D2 row 14 (framework
+artifacts must not embed a path reference to a project-namespace artifact).
 
 ---
 

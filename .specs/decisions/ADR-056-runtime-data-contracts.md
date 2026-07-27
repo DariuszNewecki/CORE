@@ -165,5 +165,9 @@ Enforcement tightens as coverage matures.
 - ADR-023 — vocabulary canonical store
 - ADR-035 — one finding, one proposal
 - ADR-040 — no hardcoded config values (precedent for externalization)
-- `.specs/planning/data-contracts-inventory.md` — full contract
-  inventory and wave plan
+- The data-contracts inventory and wave-plan document
+
+**Note (2026-07-27):** the entry above previously named a literal path
+(`.specs/planning/data-contracts-inventory.md`). Removed per ADR-144 D2 row
+14 (framework artifacts must not embed a path reference to a
+project-namespace artifact).

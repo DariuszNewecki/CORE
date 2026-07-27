@@ -81,7 +81,7 @@ the test-generation loop produces them.
 
 This contradicts the data. The four constituent steps of `flow.build_tests`
 are all classified `safe` in
-`.intent/enforcement/config/action_risk.yaml`:
+the action-risk config:
 
 ```yaml
 build.tests:  safe
@@ -128,7 +128,7 @@ for flows that it already checks for actions. Minimal change; works for
 the immediate problem. But every new flow needs an explicit risk row,
 and the classifier still cannot answer "what is the risk of this flow?"
 from the flow's own declaration. Pushes the truth out of `.intent/flows/`
-into `.intent/enforcement/config/action_risk.yaml` and asks authors to
+into the action-risk config and asks authors to
 keep two artifacts coherent.
 
 **Option C — Keep TestRemediator on the bare action; inline the auto-heal
@@ -259,8 +259,8 @@ re-read of CORE-Blackboard.md §4 and CORE-Finding.md §3 showed that
 D3a misaligns with the canonical model on three points:
 
 1. **CORE-Blackboard.md §4** declares `finding` as posted by *sensing*
-   workers. ProposalConsumer is an *acting* worker (per its
-   `.intent/workers/proposal_consumer_worker.yaml` declaration). Having
+   workers. ProposalConsumer is an *acting* worker (per its own
+   worker declaration). Having
    an acting worker emit a finding family for its own execution
    outcomes inverts the entry-type contract.
 2. **CORE-Finding.md §3** requires every Finding payload to carry
@@ -400,10 +400,17 @@ existing test satisfies all four.
   declared map: test.missing/test.failure → `flow.build_tests`.
 - `.intent/flows/flow.build_tests.yaml:26–49` — four-step flow
   declaration.
-- `.intent/enforcement/config/action_risk.yaml:22,33,34,36` —
+- The action-risk config (entries 22,33,34,36) —
   constituent steps all classified `safe`.
 - `.intent/enforcement/mappings/code/style.yaml:19–29` —
   `style.formatter_required` scope excludes `tests/**`.
+
+**Note (2026-07-27):** four references in this document (the two above and
+two earlier in the body) previously named the literal path
+`.intent/enforcement/config/action_risk.yaml`, and one named
+`.intent/workers/proposal_consumer_worker.yaml`. Removed per ADR-144 D2 row
+14 (framework artifacts must not embed a path reference to a
+project-namespace artifact).
 - `src/body/atomic/build_tests_action.py:7–9, 145–146` — auto-heal
   explicitly deferred to flow.
 - `src/will/workers/test_remediator/_operations.py:28, 164–186, 208–220`

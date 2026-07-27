@@ -441,12 +441,17 @@ This ADR is verified when:
 
 ## References
 
-- `.specs/decisions/ADR-050-cli-positioning.md` — CLI positioning;
-  establishes `architecture.cli.api_only` and the 4-step resolution
-  sequence this ADR implements.
-- `.specs/decisions/ADR-051-file-handler-shared-excludes-closure.md`
-- `.specs/decisions/ADR-049-*` — doctrine-rule parity; governs how
-  ADRs relate to live rules.
+- ADR-050 (CLI positioning) — establishes `architecture.cli.api_only`
+  and the 4-step resolution sequence this ADR implements.
+- ADR-051 (file_handler shared/excludes closure)
+- ADR-049 (doctrine-rule parity) — governs how ADRs relate to live
+  rules.
+
+**Note (2026-07-27):** the first two entries above previously named literal
+paths (`.specs/decisions/ADR-050-cli-positioning.md`,
+`.specs/decisions/ADR-051-file-handler-shared-excludes-closure.md`).
+Removed per ADR-144 D2 row 14 (framework artifacts must not embed a path
+reference to a project-namespace artifact).
 - `.specs/planning/CORE-API-capability-map-2026-05-16.md` — full
   capability audit output; 58 files, 40 endpoints, 10 namespaces.
   Input to phase ADR sequencing.
