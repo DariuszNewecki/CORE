@@ -2,207 +2,535 @@
 
 # CORE — Session Protocol
 
+**Status:** Active
+**Authority:** Policy
+**Scope:** Opening, running, and closing a CORE working session
+**Last revised:** 2026-07-27
+
+---
+
 ## 1. Purpose
 
-This document defines how a CORE working session opens, runs, and closes. It replaces the previous pattern of producing long narrative handoff documents under `.specs/planning/` with a split: durable architectural artifacts stay under `.specs/`, operational work-tracking lives on GitHub.
+This document defines how a CORE working session establishes state, selects work, maintains scope, records evidence, and closes.
 
-The audience is the governor and any architect instance (human or Claude) opening or closing a working session on CORE.
+It applies regardless of whether the session uses:
+
+* A connected GitHub repository.
+* A local development clone.
+* An isolated clone.
+* Claude Code.
+* Codex.
+* Another executor.
+* A human-operated shell.
+
+Durable architectural reasoning remains under `.specs/`. Runtime governance remains under `.intent/`. Operational work tracking remains in GitHub Issues, pull requests, actions, releases, and commit history.
+
+Long narrative session handoffs are not maintained. A session must be reconstructible from authoritative artifacts and repository history.
 
 ---
 
 ## 2. Where things live
 
-| Location | Role | Cadence |
-|---|---|---|
-| `.specs/decisions/` | ADRs — architectural decisions with rationale | Append-only; rare updates |
-| `.specs/papers/` | Constitutional papers | Append-only; rare updates |
-| `.specs/northstar/` | Strategic direction documents | Rarely touched |
-| `.specs/requirements/` | URS documents | Updated on major feature arcs |
-| `.specs/META/` | Schemas governing `.specs/` and `.intent/` documents | Updated when conventions change |
-| `.specs/state/` | Investigations and historical snapshots cited by ADRs or papers | Append-only; dated artifacts |
-| `.specs/commercial/` | Private commercial material (e.g. tech-rep onboarding) | Gitignored; not published |
-| `.specs/commercial/cadence.md` | Working cadence — three modes, trigger rules, weekly rhythm, content channel priority | Revised when goals or constraints change |
-| `.specs/commercial/PR-XX/` | Pharma pilot (unnamed) — requirements, product position, build gap, demo plan | Updated as pilot progresses |
-| `.specs/planning/CORE-Operational-Completeness.md` | Operational tracker — ADR-085 5+3 gate (post-A3) | Updated per its §4 rules when a 5+3 feature ships or quality goal advances |
-| `.specs/planning/archive/CORE-A3-plan.md` | Historical — A3 milestone closure record (A3 closed 2026-05-12; archived 2026-06-07) | Frozen content; ADR index in this file ends at ADR-076 |
-| `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
-| `.specs/planning/INTERACTION-CONTRACT.md` | Operating contract between governor and architect | Loaded at session-open Step 1; revised when the contract itself changes |
-| `.intent/` | Runtime governance — constitution, rules, enforcement, workers | Updated as governance evolves |
-| `.intent/CHANGELOG.md` | Constitutional version history — anchors each ADR to the governance change it represents | Updated every time an ADR lands |
-| GitHub Issues | Parked items, hazards, open questions, verification-pending, governance-debt | Opened and closed every session |
-| GitHub Milestones | One per band (A through E); the strategic progress surface | Updated as issues close |
-| GitHub Projects board | Visual band status — kanban, roadmap, governance-debt views | Updated automatically as issues open and close |
-| GitHub Discussions | Architectural questions needing broader input | Opt-in |
-| GitHub Releases | Capability milestones ("Band X closed" or "vN.N.N") | On band closure or major milestone |
-| Git commit history | The authoritative record of what changed and when | Generated as sessions run |
+| Location                   | Role                                                                          | Cadence                                                        |
+| -------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `.specs/decisions/`        | ADRs: durable architectural decisions and rationale                           | Append-oriented; revised only when the decision itself changes |
+| `.specs/papers/`           | Constitutional and architectural papers                                       | Durable; revised when the model changes                        |
+| `.specs/northstar/`        | Strategic direction                                                           | Rarely changed                                                 |
+| `.specs/requirements/`     | Requirements and acceptance contracts                                         | Updated with governed feature arcs                             |
+| `.specs/concepts/`         | Pre-decision concepts and proposals                                           | Updated until accepted, rejected, or superseded                |
+| `.specs/attestations/`     | Evidence syntheses and acceptance records                                     | Created for bounded acceptance events                          |
+| `.specs/state/`            | Dated investigations and historical state snapshots                           | Append-oriented                                                |
+| `.specs/planning/`         | Active planning and operating protocols                                       | Updated when operating state changes                           |
+| `.specs/planning/archive/` | Frozen historical plans                                                       | No operational authority                                       |
+| `.specs/META/`             | Schemas and conventions governing specification documents                     | Updated when conventions change                                |
+| `.intent/`                 | Runtime governance law: constitution, rules, mappings, declarations, taxonomy | Updated through governed change                                |
+| `.intent/CHANGELOG.md`     | Constitutional change history                                                 | Updated when constitutional changes land                       |
+| `CLAUDE.md`                | Claude Code executor contract                                                 | Updated when executor discipline changes                       |
+| GitHub Issues              | Open work, hazards, defects, questions, governance debt, verification gaps    | Updated during the session                                     |
+| GitHub Pull Requests       | Review and hosted-CI evidence surface                                         | Used when the workstream requires it                           |
+| GitHub Actions             | Hosted verification evidence                                                  | Run when applicable                                            |
+| GitHub Releases            | Published capability milestones                                               | Governor-authorized                                            |
+| Git commit history         | Authoritative record of repository changes                                    | Produced as work lands                                         |
+| Local working tree         | Current uncommitted or unpushed implementation state                          | Ephemeral but authoritative for that clone                     |
+| Isolated clone             | Bounded implementation, acceptance, or cold-room state                        | Explicitly identified by path, branch, and SHA                 |
 
-What is no longer kept: long-form handoff documents under `.specs/state/handoffs/handoff-*.md`. The existing archive (pre-this-protocol) remains as historical record; no new ones are produced. Session activity is reconstructible from Git history, GitHub Issue events, and GitHub Releases — no separate session log is maintained.
+Gitignored or external commercial material may exist outside the published repository. It must not be assumed visible to an architect or external operator.
 
-Note: gitignored subtrees (`.specs/commercial/`) exist alongside the published ones and are not reflected in the repo or context packets.
-
----
-
-## 3. Session opening
-
-Seven steps. Reads first, commits nothing.
-
-**Step 1 — Contract load.** The architect loads `.specs/planning/INTERACTION-CONTRACT.md` before any state scan. A fresh architect instance that has not loaded this document is not yet operational — the governor is owed the load before being asked anything substantive. This step is the architect's responsibility; the governor verifies it has happened by observing the architect's first turn.
-
-**Step 2 — Context read.** The architect reads the two Project Files context packets via the `view` tool at `/mnt/project/`:
-- `context_tree.txt` — read first; small filtered directory tree for structural navigation.
-- `context_intent_specs.txt` — full `.intent/` and `.specs/` snapshot; grepped as needed during the session. This is the architect's primary state surface: ADR table, A3 plan, constitution, rules, enforcement mappings, papers, and all governance specifications.
-
-Both files are produced on lira by `make context` and uploaded to the Claude.ai Project before the session opens. They reflect the state of the repo at last sync. If they are absent or stale, the governor runs `make context` and re-uploads before proceeding. The architect does not ask the governor to upload or paste code mid-session; the Project Files upload is the delivery mechanism.
-
-Tool preference order for data needs within a session: `view` / `bash_tool` against the Project Files first; Claude Code prompts for anything requiring live system state or `src/` code content (Steps 3–4 below, and any code-level reconnaissance during the session).
-
-**Step 3 — System state scan.** The architect produces a Claude Code prompt that the governor runs on lira at session open. The prompt must cover: `core-admin code audit` (verdict + finding count), `systemctl --user status core-daemon` and `systemctl --user status core-api` (service liveness — both must be up; the audit CLI on :8000 depends on `core-api`). The architect does not wait for the output before proceeding to Steps 5–6; it reasons from the A3 plan and ADR table as the primary state surface. If the scan reveals an unexpected condition, the governor opens an issue and surfaces it as the session's lead candidate or a blocker.
-
-Canonical state-scan Claude Code prompt:
-
-```
-Run the following and report the results:
-
-1. core-admin code audit
-2. systemctl --user status core-daemon
-3. systemctl --user status core-api
-4. core-admin runtime dashboard --plain
-
-Report: audit verdict, total finding count, finding distribution by rule_id, daemon status, api status.
-```
-
-**Step 4 — GitHub state scan.** The architect produces a Claude Code prompt to retrieve open issue state for the current band's milestone. The governor runs it on lira. The architect uses the A3 plan and ADR table (from `context_intent_specs.txt`) as its primary state surface and does not block on GitHub output.
-
-Canonical issue-scan Claude Code prompt:
-
-```
-Run the following and report the results:
-
-gh issue list --milestone "Band E" --state open \
-  --json number,title,labels,assignees \
-  --limit 50
-
-Also run:
-gh issue list --milestone "Band E" --state open \
-  --label "status:verification-pending" \
-  --json number,title --limit 20
-
-gh issue list --milestone "Band E" --state open \
-  --label "status:blocked" \
-  --json number,title --limit 20
-
-gh issue list --search "no:milestone label:priority:high state:open" \
-  --json number,title,labels \
-  --limit 20
-
-Report: full open issue list, verification-pending subset, blocked subset, unbanded high-priority subset.
-```
-
-Close anything that has resolved. Do this first because closures free up pick candidates.
-
-**Step 5 — Candidate list.** From remaining open issues, identify 2–4 candidates for the session's lead. Preference order:
-
-1. Items surfaced last session (regardless of band or milestone).
-2. Banded items with `priority:high` on the currently-advancing band's milestone.
-3. Unbanded items with `priority:high`.
-4. Remaining banded items on the currently-advancing band's milestone.
-
-Unbanded items without `priority:high` are not session lead candidates — they are backlog until banded or escalated. The preference order exists to make picks determinate; the governor's pick always governs.
-
-**Step 6 — Pick one lead.** The governor picks. The architect can propose and argue, but the pick is the governor's. Name it explicitly and state the expected session outcome in one sentence.
-
-**Step 7 — Commit to the lead.** Once chosen, stop evaluating candidates. The parked list is a feature, not a backlog to clear. Newly-surfaced items during the session become new issues, not new leads.
+No new `handoff-*.md` session narratives are produced.
 
 ---
 
-## 4. Session running
+## 3. State authority
 
-The interaction contract between governor and architect governs the session itself. The contract is canonical at `.specs/planning/INTERACTION-CONTRACT.md` and is loaded at session-open Step 1. It is not re-specified here.
+Different questions require different authorities.
 
-One protocol note: when the session surfaces a new parked item, hazard, governance-debt, false-positive, or open question, it is **opened as a GitHub issue during the session**, not deferred to session close. Opening is cheap; deferring causes loss.
+| Question                                  | Primary authority                                       |
+| ----------------------------------------- | ------------------------------------------------------- |
+| What is published on `main`?              | Remote GitHub repository                                |
+| Does a remote branch or SHA exist?        | Remote Git refs or GitHub API                           |
+| What is in an unpushed branch?            | The local clone containing it                           |
+| Is the working tree dirty?                | Local Git state                                         |
+| What issues and PRs are open?             | GitHub                                                  |
+| What does the runtime currently report?   | Live CLI, database, API, and services                   |
+| What decision governs this work?          | Accepted ADR, constitution, rule, paper, or requirement |
+| What did a frozen acceptance run prove?   | SHA-bound test output, report, and attestation          |
+| What did an older context packet contain? | That packet only, as of its generation time             |
 
----
+A context packet is a convenience snapshot, not an authority over newer state.
 
-## 5. Session closing
-
-Four steps. Most are one-line actions.
-
-**Step 1 — Commits.** Work-product commits landed during the session using the governor's existing multi-line commit message discipline. Push to origin if the state is coherent.
-
-**Step 2 — Issues updated.** Close any issues resolved by this session's commits. Confirm labels still accurate on open issues.
-
-**Step 3 — Operational tracker maintenance.** A3 is closed (2026-05-12). Post-A3 operational tracking lives in `CORE-Operational-Completeness.md` (ADR-085 5+3). If this session changed something the tracker tracks, edit it per its §4 update rules:
-- A 5+3 feature shipped → update §2.1 Current status + §6 Activity log.
-- A quality goal advanced → update §2.2 first-met date + §6 Activity log.
-- All eight items satisfied → surface to governor for the explicit D5 constraint-relaxation act (see §4 of the tracker).
-
-ADR landings are recorded in `.intent/CHANGELOG.md` and `.specs/decisions/` is the canonical ADR record — no separate ADR index is maintained in `planning/`. The archived `CORE-A3-plan.md` ADR index is frozen at ADR-076 (2026-05-29).
-
-If nothing the operational tracker tracks changed this session, skip this step. Routine issue closures and commits do not require tracker edits — those are reconstructible from Git and GitHub.
-
-**Step 4 — Release if warranted.** If a band closed or a major capability milestone landed, cut a GitHub Release with the relevant tag (`vN.N.N` per existing convention). Band closure is the canonical trigger. Release notes are the canonical session summary for bands that ship.
+Remote state, local state, runtime state, and evidence state must not be collapsed into one generic concept of “the repo.”
 
 ---
 
-## 6. Issue writing template
+## 4. Session opening
 
-When opening an issue during or after a session, use this minimal structure in the issue body:
+Seven steps. Read and establish state before authorizing implementation.
 
+### Step 1 — Load the interaction contract
+
+The architect loads:
+
+`.specs/planning/INTERACTION-CONTRACT.md`
+
+before substantive analysis.
+
+A fresh architect instance that has not loaded it is not operational.
+
+### Step 2 — Establish the target state surface
+
+Before discussing implementation, establish which state is in scope:
+
+* Repository.
+* Clone or execution environment.
+* Branch.
+* HEAD SHA.
+* Base branch or base SHA.
+* Dirty or clean working-tree status.
+* Remote configuration.
+* Whether the relevant branch and commits are pushed.
+* Whether a candidate is frozen.
+
+For a remote-only planning task, the connected GitHub repository may answer this directly.
+
+For local or isolated work, the executor reports the state.
+
+Canonical local identity prompt:
+
+```text
+Before doing any implementation, report the repository identity:
+
+1. pwd
+2. git status --short --branch
+3. git branch --show-current
+4. git rev-parse HEAD
+5. git log -1 --oneline
+6. git remote -v
+7. git merge-base HEAD main
+8. whether HEAD and the current branch are reachable from origin
+
+Do not edit, stage, commit, push, merge, or clean anything.
 ```
+
+A SHA that exists only locally must be labelled **local-only**.
+
+### Step 3 — Read the governing context
+
+Read the authorities relevant to the proposed work:
+
+* Current file or subsystem.
+* Referenced ADRs.
+* Relevant papers or requirements.
+* Applicable `.intent/` rules and enforcement mappings.
+* Open issue or PR.
+* Existing tests and prior evidence.
+
+Use the connected repository for remote state and the executor for local-only or runtime state.
+
+Generated context packets may be used for broad navigation, but their source ref and freshness must be established before relying on them.
+
+The absence of a context packet does not block a session when the authoritative repository is directly accessible.
+
+### Step 4 — Run the live state scan when relevant
+
+Not every documentation or analysis session requires a running CORE deployment.
+
+When the work depends on repository health, runtime behavior, daemon state, or current findings, run the applicable scan.
+
+Canonical repository and runtime scan:
+
+```text
+Run the applicable current-state checks and report the unedited results.
+
+Repository:
+1. git status --short --branch
+2. git rev-parse HEAD
+3. poetry run core-admin code audit
+
+Runtime, when this session depends on the live deployment:
+4. systemctl --user status core-daemon
+5. systemctl --user status core-api
+6. poetry run core-admin runtime health
+7. poetry run core-admin runtime dashboard --plain
+
+Report:
+- repository path, branch, and HEAD SHA
+- dirty or clean state
+- audit verdict and finding count
+- failed or crashed rules
+- daemon and API status
+- governor-inbox count
+- convergence, pipeline, and autonomous-reach signals
+- any command that failed or returned incomplete output
+
+Do not fix anything during this scan.
+```
+
+A failed scan is evidence, not permission to improvise a fix.
+
+### Step 5 — Scan GitHub work state
+
+Use the connected GitHub tools directly when available. Otherwise use the executor and `gh` with explicit JSON fields.
+
+The scan covers:
+
+* Open issues relevant to the active governed workstream.
+* Recently updated high-priority or blocking issues.
+* Verification-pending items.
+* Open pull requests.
+* Hosted CI state when relevant.
+* Resolved issues that should be closed.
+* Work with no valid issue, ADR, or planning anchor.
+
+The scan must not hard-code a historical band or milestone as permanently current.
+
+Canonical fallback prompt:
+
+```text
+Retrieve the current GitHub work state using gh with explicit JSON output.
+
+1. Open issues:
+   gh issue list --state open \
+     --json number,title,labels,milestone,updatedAt,assignees \
+     --limit 100
+
+2. Open pull requests:
+   gh pr list --state open \
+     --json number,title,headRefName,baseRefName,isDraft,statusCheckRollup,updatedAt \
+     --limit 50
+
+3. Verification-pending issues:
+   gh issue list --state open \
+     --label "status:verification-pending" \
+     --json number,title,labels,updatedAt \
+     --limit 50
+
+4. Blocked issues:
+   gh issue list --state open \
+     --label "status:blocked" \
+     --json number,title,labels,updatedAt \
+     --limit 50
+
+Report the results without choosing or editing anything.
+```
+
+Apply any workstream-specific label, milestone, ADR, or planning filter only after reading the current governing surface.
+
+Close already-resolved items before selecting new work.
+
+### Step 6 — Select the lead
+
+The architect identifies the strongest lead candidates based on:
+
+1. An explicit governor direction.
+2. A blocker in the current workstream.
+3. Work required by an accepted ADR or requirement.
+4. A current verification or acceptance gap.
+5. A high-priority issue with clear closure conditions.
+6. Governor-adjudication work that is blocking autonomous progress.
+
+The architect may recommend one candidate and explain the reason.
+
+The governor selects, redirects, or vetoes.
+
+The lead is named with its issue, ADR, requirement, candidate SHA, or other authoritative anchor.
+
+### Step 7 — Commit to the lead
+
+State the expected session outcome in one sentence.
+
+After selection:
+
+* Stop comparing unrelated candidates.
+* Do not absorb adjacent work silently.
+* Record newly discovered work as issues.
+* Change the lead only through explicit governor direction or a demonstrated blocker.
+
+---
+
+## 5. Session running
+
+### 5.1 Interaction contract governs
+
+`INTERACTION-CONTRACT.md` governs active turns, deliverable shapes, authority, verification, and drift handling.
+
+### 5.2 Reconnaissance precedes editing
+
+For implementation work, the executor reads:
+
+* The target files.
+* Every affected call site.
+* Corresponding tests.
+* Applicable ADRs and rules.
+* Existing implementation that may already satisfy the request.
+
+For non-trivial changes, the executor reports reconnaissance before editing when required by its executor contract.
+
+### 5.3 New work is recorded immediately
+
+A newly discovered:
+
+* Defect.
+* Hazard.
+* Governance mismatch.
+* False positive.
+* Evidence gap.
+* Tooling limitation.
+* Open architectural question.
+
+is opened as a GitHub issue during the session unless it is resolved within the bounded lead and does not warrant an independent record.
+
+Deferred work is never parked only in conversation.
+
+### 5.4 Evidence is claim-specific
+
+For each acceptance claim, record:
+
+* Exact candidate SHA.
+* Exact command or test.
+* Whether it was freshly run.
+* Whether it directly tested the named behavior.
+* Pass, fail, partial, or proxy status.
+* Environment.
+* Operator or agent identity where independence matters.
+* Known limitations.
+
+Partial or proxy evidence is not silently summarized as direct pass.
+
+### 5.5 Candidate changes invalidate affected evidence
+
+When a candidate changes:
+
+* Assign the new SHA explicitly.
+* State whether the change is production, test-only, documentation-only, or metadata-only.
+* Re-run affected checks.
+* Do not reuse an earlier top-line verdict without explaining why the evidence remains valid.
+
+A frozen candidate is not mutated casually. A new commit creates a new candidate.
+
+### 5.6 External-access gate
+
+Before instructing a cold-room operator, external reviewer, hosted runner, or fresh developer to use a candidate, verify:
+
+* The repository is accessible.
+* The branch exists remotely.
+* The SHA is reachable remotely.
+* Required documentation exists at that SHA.
+* Required artifacts are published or reproducible.
+* The checkout command is valid from a clean clone.
+
+A local-only commit cannot be an external acceptance candidate.
+
+Making it remotely accessible is a governor-authorized publication action, not an implicit verification step.
+
+### 5.7 Implementation does not imply publication
+
+An executor may author and commit work where its contract permits.
+
+The following remain separately controlled:
+
+* Push.
+* Pull-request creation when it exposes unpublished work.
+* Merge.
+* Release.
+* Deployment.
+* Branch deletion.
+* Acceptance signature.
+
+A request to verify does not authorize merge. A request to merge does not authorize release or deployment.
+
+---
+
+## 6. Session closing
+
+Seven steps.
+
+### Step 1 — Establish final state
+
+Report:
+
+* Repository or clone.
+* Branch.
+* Final HEAD SHA.
+* Base SHA.
+* Dirty or clean state.
+* Commits created during the session.
+* Whether the branch and commits exist on origin.
+* Whether a candidate is frozen.
+
+Do not describe a local-only commit as available to other operators.
+
+### Step 2 — Report verification
+
+Report every relevant check honestly:
+
+* Scoped tests.
+* Ruff or other lint checks.
+* Type checks.
+* Constitutional audit.
+* Full suite or hosted CI, when run.
+* Runtime or cold-room checks, when run.
+* Failures, skips, incomplete runs, and inherited evidence.
+
+Do not report “all passed” when named acceptance items remain partial, indirect, or unexecuted.
+
+### Step 3 — Commits and publication status
+
+An executor may commit its own authored work in accordance with its executor contract.
+
+State explicitly:
+
+* Commit SHA and message.
+* Files changed.
+* Whether the commit is pushed.
+* Whether a pull request exists.
+* Whether hosted CI ran against the exact candidate or against a synthetic merge ref.
+* Any remaining governor action needed to make the work accessible.
+
+Push remains governor-authorized.
+
+### Step 4 — Update issues
+
+* Close issues whose closure conditions were met.
+* Add evidence to issues that remain open.
+* Correct labels and milestones where needed.
+* Create issues for surfaced but unresolved work.
+* Record blockers precisely.
+
+Issue history is the operational session record.
+
+### Step 5 — Maintain governance artifacts only when triggered
+
+Update a governance or planning artifact only when the session changed what that artifact governs.
+
+Examples:
+
+* New or amended architectural decision → ADR.
+* Constitutional change → `.intent/CHANGELOG.md`.
+* Formal acceptance event → attestation.
+* Tracked operational criterion changed → relevant tracker.
+* Protocol itself changed → this document or `INTERACTION-CONTRACT.md`.
+
+Routine commits and issue closures do not require synthetic planning-log entries.
+
+### Step 6 — Merge, release, or deploy only when separately authorized
+
+A green candidate does not merge itself.
+
+An acceptance recommendation does not constitute governor acceptance.
+
+A merge authorization does not automatically authorize:
+
+* Release.
+* Deployment.
+* Branch deletion.
+* Publication of an unqualified attestation.
+* Relaxation of a constitutional constraint.
+
+Each externally consequential act is explicit.
+
+### Step 7 — Close concisely
+
+The closing statement contains:
+
+* Lead outcome.
+* Final candidate or commit SHA.
+* Verification verdict.
+* Remote publication status.
+* Remaining blocker or limitation.
+* Immediate governor action, when one exists.
+
+No narrative handoff document is produced.
+
+---
+
+## 7. Issue writing template
+
+Use the following minimal issue structure:
+
+```markdown
 ## What it is
 
-<One paragraph. What is the parked item / hazard / question / verification-pending thing?>
+<One paragraph describing the defect, hazard, gap, or decision required.>
 
-## Why it's here
+## How it surfaced
 
-<One paragraph. Which session surfaced it, under what circumstances, what was the context?>
+<The workstream, command, test, candidate, or investigation that exposed it.>
+
+## Authority or expected contract
+
+<ADR, rule, requirement, public API contract, documentation, or other source that defines the expected behavior.>
+
+## Verified current state
+
+<What was directly checked. Include paths, SHAs, commands, or concrete output where relevant.>
 
 ## What would close it
 
-<Bullet list. What are the conditions under which this issue gets closed?>
+- <Concrete closure condition>
+- <Required verification>
+- <Required governance act, if any>
 
 ## References
 
-- Commits: <sha, sha>
-- Related issues: #N, #N
+- Commits: <sha>
+- Related issues: #N
 - Related ADRs: ADR-NNN
-- Related papers: `papers/CORE-X.md`
+- Candidate or branch: <ref>
 ```
 
-Labels applied per the governed catalog. Milestone assigned per band if the item belongs to a specific band's strategic arc. Unbanded items stay milestone-less.
+Labels and milestones follow the current governed catalog. They are not inferred from historical planning documents.
 
 ---
 
-## 7. When the protocol itself changes
+## 8. Changing this protocol
 
-This document is governance text. Changes go through the governor directly — not through Claude Code. Revisions land as commits to `.specs/planning/SESSION-PROTOCOL.md` with a short commit message explaining what changed and why. Major revisions warrant an ADR.
+This document is governance text.
 
----
+A durable revision requires governor authorization and lands at:
 
-## 8. Non-goals
+`.specs/planning/SESSION-PROTOCOL.md`
 
-This document does not specify:
-- The interaction contract between governor and architect during active work — see `.specs/planning/INTERACTION-CONTRACT.md`.
-- Coding or designing workflows beyond the session-open/session-close bookends.
-- Issue-label semantics (see the label catalog on GitHub; each label carries its own description).
-- Band definitions or strategic scope (see `archive/CORE-A3-plan.md` for the historical band record; post-A3 scope lives in `CORE-Operational-Completeness.md`).
+The change may be applied by the governor, an executor, or a connector-backed action under the confirmation rules in `INTERACTION-CONTRACT.md`.
+
+A major change in session authority or decision rights may warrant an ADR. Updating obsolete tools, commands, paths, or work-selection mechanics normally does not.
 
 ---
 
-*This protocol was established as part of the Band A closure session (2026-04-26) when the previous `handoff-*.md` pattern reached structural strain. It is expected to evolve as operational experience with the GitHub-tracking split accumulates.*
+## 9. Non-goals
 
-*Revised 2026-04-26: §3 gained Step 1 (Contract load) and the original five steps renumbered to 2–6; §4 rewritten to reference `.specs/planning/INTERACTION-CONTRACT.md` rather than externalize the contract; §8 updated to point at the same document.*
+This protocol does not specify:
 
-*Revised 2026-05-02: §3 gained Step 2 (Context fetch) and the remaining steps renumbered to 3–7. Step 2 documents the Google Drive context packet delivery mechanism (`context_tree.txt` + `context_core.txt`) and the `make context` command that produces them.*
+* The active-turn interaction contract — see `INTERACTION-CONTRACT.md`.
+* Source implementation rules — see the applicable executor contract.
+* Runtime governance law — see `.intent/`.
+* Architectural content of a lead.
+* Issue-label definitions.
+* A permanent strategic band, milestone, or product priority.
+* A mandatory context-packet delivery mechanism.
+* A requirement that every session operate a live CORE runtime.
 
-*Revised 2026-05-03: §3 Step 2 updated — Google Drive delivery replaced by Claude.ai Project Files. Context packets are uploaded to the Project before the session opens and read via the `view` tool at `/mnt/project/`. Step renamed from "Context fetch" to "Context read." Drive file IDs and `Google Drive:read_file_content` references removed. Matches INTERACTION-CONTRACT.md §3.2 revision of the same date.*
+---
 
-*Revised 2026-05-03: §5 Step 3 rewritten. Previous text referenced "Known Blockers," "Resolved Blockers," and "Milestone Summary" sections that the current A3 plan does not contain. New text aligns with the plan's actual section structure (A3 Gates, A3 Phases, Bands, Architectural Decisions Made). §2 row for `CORE-A3-plan.md` correspondingly updated to describe "gates, phases, bands, ADR index" rather than "bands, phases, known blockers."*
+*Established 2026-04-26.*
 
-*Revised 2026-05-14: §2 gained GitHub Projects board row; §3 Step 4 updated to reference the Projects board as the primary visual surface for session-open state scan, with the Issues tab filter set retained as the verification step.*
-
-*Revised 2026-05-17: Two-file context model adopted. §3 Step 2: `context_core.txt` replaced by `context_intent_specs.txt` (`.intent/` + `.specs/` snapshot only; `src/` code excluded). Tool preference order added to Step 2. §3 Steps 3–4: architect no longer executes these interactively; both steps now describe canonical Claude Code prompts that the governor runs on lira at session open. Architect proceeds to Steps 5–6 without waiting for output; live state surfaces through issues when decision-relevant. INTERACTION-CONTRACT.md §3.2 cross-reference to "Step 2 tooling inventory" remains valid — Step 2 now carries the tool preference order explicitly.*
-
-*Revised 2026-05-24: Three drifts corrected. §3 Step 3: canonical state-scan prompt extended to include `systemctl --user status core-api` alongside `core-daemon`; prose updated to name both services explicitly. §2: `.specs/commercial/` row added (gitignored private commercial material); trailing note added that gitignored subtrees exist outside the context packets. §3 Step 5: preference order extended to four tiers — last-session items, banded `priority:high`, unbanded `priority:high`, remaining banded items; unbanded items without `priority:high` explicitly excluded from lead candidacy. §3 Step 4 canonical prompt gains a fourth `gh` call for unbanded `priority:high` issues to match the expanded Step 5 preference order.*
-
-*Revised 2026-05-24: §3 Step 4 fourth `gh` call corrected. The unbanded-issue lookup originally used a non-existent `--no-milestone` flag (`gh issue list` only supports `-m, --milestone`), which would have failed with `unknown flag: --no-milestone`. Replaced with the equivalent `--search "no:milestone label:priority:high state:open"` form, which is the supported GitHub search syntax for the same filter. Verified against `gh` CLI on lira.*
+*Revised 2026-07-27: replaced the May 2026 Project Files and hard-coded Band E workflow with a platform-neutral authority model; added mandatory repository, branch, SHA, dirty-state, and remote-reachability identification; made context packets optional snapshots rather than prerequisites; updated the live scan to include current audit, runtime-health, and governor-dashboard surfaces; introduced SHA-bound evidence, candidate invalidation, external-access, and operator-independence controls; aligned commit and push boundaries with the current executor contract; and incorporated the operating lessons from isolated-clone and cold-room acceptance work.*
