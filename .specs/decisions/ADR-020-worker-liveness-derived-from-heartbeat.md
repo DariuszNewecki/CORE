@@ -102,7 +102,9 @@ This centralization preserves the architectural invariant from `papers/CORE-Shop
 
 ### D4 — Per-worker thresholds remain owned by `.intent/workers/*.yaml`
 
-The constitutional source of a worker's heartbeat SLA stays where it is: in the worker's own declaration. `WorkerShopManager` already loads these thresholds; D3 does not duplicate that responsibility. Service callers that need a generic threshold for table-wide queries (e.g., the dashboard's "alive count" panel) use a single declared default, sourced from `.intent/enforcement/config/governance_paths.yaml` (or the equivalent appropriate config path; the exact key is left to the implementation pass).
+The constitutional source of a worker's heartbeat SLA stays where it is: in the worker's own declaration. `WorkerShopManager` already loads these thresholds; D3 does not duplicate that responsibility. Service callers that need a generic threshold for table-wide queries (e.g., the dashboard's "alive count" panel) use a single declared default, sourced from a governed configuration file (the exact path and key are left to the implementation pass).
+
+**Note (2026-07-27):** the sentence above previously named an illustrative path (`.intent/enforcement/config/governance_paths.yaml`) that the ADR itself had already left non-binding ("or the equivalent appropriate config path"). Removed per ADR-144 D2 row 14 (framework artifacts must not embed a path reference to a project-namespace artifact).
 
 This ADR does not change the existing per-worker threshold logic in `WorkerShopManager`. It only declares that the same derivation pattern is the only sanctioned liveness signal anywhere in the system.
 

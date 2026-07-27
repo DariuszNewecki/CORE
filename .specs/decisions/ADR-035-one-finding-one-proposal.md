@@ -139,7 +139,9 @@ logic is unchanged.
 ## References
 
 - `ViolationRemediatorWorker` — `src/will/workers/violation_remediator.py`
-- `action_risk.yaml` — `.intent/enforcement/config/action_risk.yaml`
+- `action_risk.yaml` — governs auto-approval delegation for proposal execution (see the "who approves" discussion above; out of scope for this ADR's decision)
+
+  **Note (2026-07-27):** this entry previously gave the file's full path. Removed per ADR-144 D2 row 14 (framework artifacts must not embed a path reference to a project-namespace artifact).
 - ADR-014 — development-phase priority (liveness before quality; this ADR
   reverses the first application of that principle as it applied to
   proposal scoping)

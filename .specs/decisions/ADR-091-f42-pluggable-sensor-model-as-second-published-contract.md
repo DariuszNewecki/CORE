@@ -226,7 +226,7 @@ What this ADR does NOT commit to on F-43's behalf:
 - The canonical subject format (D2) — finding shape `<artifact_type>::<sub_namespace>::<identity_key_value>`, report shape `<worker_declaration_name>.<event_kind>` — is the closed format. Extending the format (a third shape, a fourth segment, a different separator) is a governance amendment.
 - The typed `post_finding(artifact_type, sub_namespace, identity_key_value, payload)` API on `shared.workers.base.Worker` is part of the contract; signature changes are governance amendments.
 
-`.intent/CHANGELOG.md` records the second published-contract status in the change-set that lands D5 Phase 1.
+The constitutional changelog records the second published-contract status in the change-set that lands D5 Phase 1.
 
 ### D8 — Anti-regression: promote F-41's advisory rule + add this ADR's
 
@@ -295,8 +295,14 @@ This ADR closes — and F-42 ships — when all of the following hold:
 6. **CCC sub-discovery migrated.** `CoherenceChecker._adr_paths`, `_northstar_paths`, `_phase_paths`, and the row-check discovery surfaces in `mind.coherence.checks.{row2_grounding, row3_citation, row4_naming, vocabulary}` consult the spec_markdown / intent_yaml / intent_json registry discovery globs as applicable. CCC runs inline during audit (not as a Worker per D3) — its subject format is unchanged by this ADR. CCC outcome (finding identifier set) under registry-routed discovery identical to pre-migration outcome. F-41 verification gate 6 fully met.
 7. **`TestCoverageSensor`, `TestRunnerSensor`, and `CoherenceSensorWorker` migrated + test-remediation predicate centralized.** Discovery and observation walks consult the registry. Subjects rewritten under transform. `shared.infrastructure.intent.test_namespaces.is_test_remediation_subject` is the only mechanism distinguishing test-remediation findings; `TestRemediatorWorker`'s dedup queries call it; no `test.run_required::`, `test.missing::`, or `test.failure::` string literal survives in `src/`. `coherence_sensor` is detection-only per ADR-027 — verified via grep that no production code consumes its subjects for dedup. Coverage-gap, test-execution, and incoherence finding sets identical under transform; predicate over rewritten rows yields the same row identity-key set as pre-migration filters over the originals.
 8. **D4 invariant blocking.** `governance.taxonomy.sensor_supported_by_declaration` is at `blocking` enforcement. Live audit shows zero findings — every sensor declares a registered artifact_type AND every `supported_sensors` entry has a backing sensor declaration.
-9. **Stability commitment recorded.** `.intent/CHANGELOG.md` carries an entry marking the worker.schema.json + canonical subject format + typed post_finding API as the second ADR-084 D1 published contract, with the F-42 effective date.
+9. **Stability commitment recorded.** The constitutional changelog carries an entry marking the worker.schema.json + canonical subject format + typed post_finding API as the second ADR-084 D1 published contract, with the F-42 effective date.
 10. **F-43 forward contract referenced.** F-43's GitHub issue (#417) carries a back-reference to this ADR's D6, confirming the action-side will follow the same artifact_type-as-array pattern and (where actions emit Blackboard findings) the canonical subject format.
+
+**Note (2026-07-27):** the sentence following the contract-fields bullet list
+above (§ preceding this Verification section) and item 9 above previously
+named the changelog's literal path (`.intent/CHANGELOG.md`) twice. Removed
+per ADR-144 D2 row 14 (framework artifacts must not embed a path reference
+to a project-namespace artifact).
 
 When all ten hold, F-42 #416 closes. The remaining open-completeness gate item is F-43 #417.
 

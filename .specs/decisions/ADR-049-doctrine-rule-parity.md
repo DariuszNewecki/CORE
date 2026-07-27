@@ -357,8 +357,13 @@ This ADR's original text is preserved above. Constitutional intent is
 unchanged — only the mechanism name now matches the intent (forbids
 runtime cross-layer invocation; type-level proprioception via
 `if TYPE_CHECKING:` is allowed by default and configurable via the new
-`type_checking_exempt` parameter). See `.intent/CHANGELOG.md` #490 entry
-for the full rationale.
+`type_checking_exempt` parameter). See the constitutional changelog's #490
+entry for the full rationale.
+
+**Note (2026-07-27):** the sentence above previously named the changelog's
+literal path (`.intent/CHANGELOG.md`). Removed per ADR-144 D2 row 14
+(framework artifacts must not embed a path reference to a project-namespace
+artifact).
 
 ## Note — 2026-06-26: ADR-051 superseded by ADR-126
 

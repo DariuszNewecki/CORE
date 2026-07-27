@@ -114,7 +114,12 @@ Sequencing — each step ships green before the next is promoted:
 > historical continuity. Markers/gateway/forbidden_classes remain
 > hardcoded; promoting them to rule-supplied parameters is a separate
 > generalisation step intentionally deferred from #490 to keep the
-> rename atomic. See `.intent/CHANGELOG.md` #490 entries.
+> rename atomic. See the constitutional changelog's #490 entries.
+
+> **Note (2026-07-27):** the sentence above previously named the changelog's
+> literal path (`.intent/CHANGELOG.md`). Removed per ADR-144 D2 row 14
+> (framework artifacts must not embed a path reference to a
+> project-namespace artifact).
 
 ## Alternatives considered
 

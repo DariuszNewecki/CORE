@@ -165,7 +165,7 @@ The crawl scopes file is the most direct precursor of the registry — it alread
 ### Defers (newly identified — to file as GH issues during implementation)
 
 - `RepoCrawlerWorker` constant retirement: `_CRAWL_SCOPES` and `_QDRANT_COLLECTION_MAP` are deleted as part of Phase 1. Track as a sub-issue of F-41.
-- Documentation update: `.intent/CHANGELOG.md` entry for the schema's first published-contract status per ADR-084 D1.
+- Documentation update: a constitutional-changelog entry for the schema's first published-contract status per ADR-084 D1.
 
 ### Risks
 
@@ -186,7 +186,9 @@ This ADR closes — and F-41 ships — when all of the following hold:
 5. **`intent_yaml` pipeline migrated:** `IntentValidator`'s discovery + schema lookup routes through the registry. Validation output is identical.
 6. **`spec_markdown` pipeline migrated:** CCC's ADR/paper discovery routes through the registry. CCC check outcomes are identical.
 7. **F-42/F-43 forward fields present:** `supported_sensors` and `supported_actions` fields are in the schema, populated as empty lists in the three reference declarations.
-8. **Stability commitment recorded:** `.intent/CHANGELOG.md` carries an entry marking `META/artifact_type.schema.json` as the first ADR-084 D1 published contract.
+8. **Stability commitment recorded:** the constitutional changelog carries an entry marking `META/artifact_type.schema.json` as the first ADR-084 D1 published contract.
 9. **Anti-regression rule in place:** an audit rule fires on any pipeline that performs artifact discovery without consulting the registry.
+
+**Note (2026-07-27):** items above (Defers list and item 8) previously named the changelog's literal path (`.intent/CHANGELOG.md`) twice. Removed per ADR-144 D2 row 14 (framework artifacts must not embed a path reference to a project-namespace artifact).
 
 When all nine hold, F-41 #415 closes. F-42 #416 and F-43 #417 then become implementable as their own ADRs.

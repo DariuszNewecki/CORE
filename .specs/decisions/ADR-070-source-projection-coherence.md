@@ -499,7 +499,12 @@ landing.
 2. CORE-A3-plan.md's Architectural Decisions Made table carries a
    row for ADR-070 (per the standing session-close maintenance
    protocol).
-3. `.intent/CHANGELOG.md` records the constitutional change.
+3. The constitutional changelog records the change.
+
+**Note (2026-07-27):** item 3 above previously named the changelog's
+literal path (`.intent/CHANGELOG.md`). Removed per ADR-144 D2 row 14
+(framework artifacts must not embed a path reference to a project-namespace
+artifact).
 
 **At first-delivery (D8):**
 
