@@ -13,7 +13,7 @@ status: accepted
 **Date:** 2026-05-05
 **Depends on:**
 - `.specs/papers/CORE-Constitutional-Foundations.md`
-- `.intent/ai/cognitive_roles.yaml`
+- `.intent/taxonomies/cognitive_roles.yaml`
 - `scripts/eval_ollama.py` (evaluation harness, version pass 3)
 
 **Related:** ADR-018 (vector_sync_worker retirement), ADR-001 (AI trust posture)

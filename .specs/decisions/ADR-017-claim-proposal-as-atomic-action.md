@@ -220,7 +220,7 @@ The `proposal_service.py` layer (the `ProposalService.mark_executing` wrapper) d
 - ADR-016 — test environment architecture (D1 model registry as schema authority; AutonomousProposal model gains `claimed_by` independently of this ADR's write-path decisions)
 
 **Plans and requirements:**
-- `.specs/planning/CORE-A3-plan.md` — G3 closure depends on Edge 3 / #147
+- `.specs/decisions/CORE-A3-plan.md` — G3 closure depends on Edge 3 / #147
 - `.specs/requirements/URS-consequence-chain.md` §3 Q3.F / Q3.R — read path verification
 
 **Discovery sessions (this ADR's drafting, 2026-04-28):**
