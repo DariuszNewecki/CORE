@@ -51,3 +51,4 @@ migrations:
     - 20260712_adr148_finalizing_and_consequence_recorded_at.sql
     - 20260713_repo_artifacts_type_check_registry_sync.sql
     - 20260717_adr148_d7_consequence_source.sql
+    - 20260727_reconcile_cognitive_role_and_resource_capabilities.sql
