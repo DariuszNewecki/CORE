@@ -131,34 +131,38 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
         validation_run_id="run-1",
     )
 
-    # The proposal handed to the atomic submission service carries the
-    # lane's mandatory shape, sourced from the candidate's own recorded
-    # verdict — never asserted — and finding_ids travels as a set (D3b).
-    (proposal,), kwargs = submit.call_args
+    # The proposal handed to the atomic submission service is the already-
+    # mapped AutonomousProposal persistence model (ADR-154 D3b / #layering
+    # correction) — LaneService owns the Proposal -> AutonomousProposal
+    # mapping via ProposalMapper; the Body-owned service never sees the
+    # Will-layer Proposal dataclass. finding_ids still travels as a set.
+    (proposal_model,), kwargs = submit.call_args
     assert kwargs["finding_ids"] == ["f-1"]
-    assert proposal.approval_required is True  # ADR-109 D3 — mandatory
-    assert proposal.validation_checks == candidate.validation_checks
-    assert proposal.validation_results == candidate.validation_results
-    assert proposal.scope.files == candidate.production_set
-    assert proposal.constitutional_constraints["assisted_lane"] is True
-    assert proposal.constitutional_constraints["finding_ids"] == ["f-1"]
-    assert proposal.constitutional_constraints["rules"] == [
+    assert proposal_model.approval_required is True  # ADR-109 D3 — mandatory
+    assert proposal_model.validation_checks == candidate.validation_checks
+    assert proposal_model.validation_results == candidate.validation_results
+    assert proposal_model.scope["files"] == candidate.production_set
+    assert proposal_model.constitutional_constraints["assisted_lane"] is True
+    assert proposal_model.constitutional_constraints["finding_ids"] == ["f-1"]
+    assert proposal_model.constitutional_constraints["rules"] == [
         "modularity.class_too_large"
     ]
-    assert proposal.constitutional_constraints["candidate_id"] == "cand-1"
-    assert proposal.constitutional_constraints["validated_base_sha"] == "base-sha-1"
+    assert proposal_model.constitutional_constraints["candidate_id"] == "cand-1"
+    assert (
+        proposal_model.constitutional_constraints["validated_base_sha"] == "base-sha-1"
+    )
     # The remaining D2 evidence gap: the candidate's own created_at must be
     # durably carried into the proposal too (no separate candidate table).
     assert (
-        proposal.constitutional_constraints["candidate_created_at"]
+        proposal_model.constitutional_constraints["candidate_created_at"]
         == candidate.created_at.isoformat()
     )
-    assert len(proposal.actions) == 1
-    action = proposal.actions[0]
-    assert action.action_id == "assisted.apply_diff"
-    assert action.parameters["patch"] == candidate.patch
-    assert action.parameters["patch_digest"] == "deadbeef"
-    assert action.parameters["validated_base_sha"] == "base-sha-1"
+    assert len(proposal_model.actions) == 1
+    action = proposal_model.actions[0]
+    assert action["action_id"] == "assisted.apply_diff"
+    assert action["parameters"]["patch"] == candidate.patch
+    assert action["parameters"]["patch_digest"] == "deadbeef"
+    assert action["parameters"]["validated_base_sha"] == "base-sha-1"
 
 
 async def test_propose_raises_when_finding_not_live():

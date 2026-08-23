@@ -29,6 +29,9 @@ from body.services.proposal_submission_service import (
 )
 from body.services.service_registry import service_registry
 from body.services.validated_candidate_service import build_validated_candidate
+from shared.infrastructure.database.models.autonomous_proposals import (
+    AutonomousProposal,
+)
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.remediation_guidance import (
@@ -41,6 +44,7 @@ from will.autonomy.proposal import (
     ProposalScope,
     ProposalStatus,
 )
+from will.autonomy.proposal_mapper import ProposalMapper
 
 
 logger = getLogger(__name__)
@@ -198,8 +202,13 @@ class LaneService:
            licenses the ADR-035 multi-file exception), and
            ``validation_checks``/``validation_results`` are the candidate's
            real recorded verdict, not a caller assertion;
-        4. atomically persists the proposal and defers the finding to it in
-           one Body-owned transaction (ADR-154 D3b — see
+        4. maps the proposal to its persistence representation
+           (``ProposalMapper.to_db_model`` — this method owns that mapping;
+           the Body-owned submission service accepts only the already-mapped
+           ``AutonomousProposal``, never the Will-layer ``Proposal``
+           dataclass, per ``architecture.layers.no_body_to_will``) and
+           atomically persists it, deferring the finding to it in one
+           Body-owned transaction (ADR-154 D3b — see
            ``submit_assisted_lane_proposal``), re-verifying eligibility
            inside that same transaction. This is also the fix for a live
            defect this method carried before ADR-154 D3b: the previous
@@ -284,9 +293,15 @@ class LaneService:
             },
         )
 
+        # Will owns constructing/mapping the governed proposal
+        # representation (ADR-154 D3b); the Body-owned service below only
+        # ever receives the shared persistence model, never the Will-layer
+        # Proposal dataclass.
+        proposal_model = ProposalMapper.to_db_model(proposal, AutonomousProposal)
+
         try:
             proposal_id = await submit_assisted_lane_proposal(
-                proposal, finding_ids=[finding_id]
+                proposal_model, finding_ids=[finding_id]
             )
         except ProposalSubmissionError as exc:
             raise LaneProposeError(str(exc)) from exc

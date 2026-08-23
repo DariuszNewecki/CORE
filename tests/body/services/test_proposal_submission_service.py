@@ -36,12 +36,6 @@ from shared.infrastructure.database.models.autonomous_proposals import (
 )
 from shared.infrastructure.database.models.workers import BlackboardEntry
 from shared.infrastructure.database.session_manager import get_session
-from will.autonomy.proposal import (
-    Proposal,
-    ProposalAction,
-    ProposalScope,
-    ProposalStatus,
-)
 
 
 pytestmark = [pytest.mark.integration]
@@ -120,18 +114,25 @@ async def _seed_delegated_finding(
     await session.commit()
 
 
-def _draft_proposal() -> Proposal:
-    return Proposal(
+def _draft_proposal() -> AutonomousProposal:
+    """An unsaved AutonomousProposal — the persistence model
+    submit_assisted_lane_proposal actually accepts (ADR-154 D3b layering:
+    this module, like the service under test, never imports the Will-layer
+    Proposal dataclass; LaneService owns that mapping in production via
+    ProposalMapper.to_db_model)."""
+    return AutonomousProposal(
+        proposal_id=str(uuid.uuid4()),
         goal="ADR-154 D3b atomic submission regression test",
+        status="draft",
         actions=[
-            ProposalAction(
-                action_id="assisted.apply_diff",
-                parameters={"patch": "--- a/x\n+++ b/x\n", "write": True},
-                order=0,
-            )
+            {
+                "action_id": "assisted.apply_diff",
+                "flow_id": None,
+                "parameters": {"patch": "--- a/x\n+++ b/x\n", "write": True},
+                "order": 0,
+            }
         ],
-        scope=ProposalScope(files=["src/x.py"]),
-        status=ProposalStatus.DRAFT,
+        scope={"files": ["src/x.py"], "modules": [], "symbols": [], "policies": []},
         created_by="test-atomic-submission",
         validation_checks=["assisted.validate_diff"],
         validation_results={"assisted.validate_diff": True},

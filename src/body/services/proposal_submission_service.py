@@ -4,10 +4,9 @@ Atomic proposal-submission service (ADR-109, ADR-154 D3b).
 
 Fixes a live defect found during D2 review: ``LaneService.propose_validated_diff``
 previously created the Proposal in one session and deferred its finding in a
-*separate*, independently-committing session. ``ProposalRepository.create()``
-only ``session.add()`` + ``session.flush()``\\ es — its own docstring says
-commit is "left to the workflow orchestrator" — and nothing in the old
-``ProposalService.open()`` call chain ever called it. Verified empirically:
+*separate*, independently-committing session. The old ``ProposalRepository
+.create()`` call chain only ``session.add()`` + ``session.flush()``\\ ed —
+commit was left to a caller that never called it. Verified empirically:
 flush + session.close() with no intervening commit leaves zero durable rows.
 The finding-deferral call, in its own session using ``session.begin()``, DID
 commit — so a finding could be durably stamped ``deferred_to_proposal``
@@ -24,27 +23,33 @@ predicate (``status='indeterminate' AND resolution_mechanism='human'``); a
 ceremony-shaped predicate (``open``/``claimed``) is future work, not built
 speculatively here.
 
-Constitutional note: this module imports ``Proposal``/``ProposalRepository``
-from ``will.autonomy`` — mechanically a ``architecture.layers.no_body_to_will``
-reporting finding. ADR-154 D3b's own text requires "a Body-owned service
-performs ... proposal creation" as one atomic unit with the deferral; the
-alternative (Will owns the session, Body only runs the deferral SQL) would
-split proposal-creation back out of the Body-owned unit the ADR calls for,
-and re-implementing proposal persistence here (bypassing
-``ProposalMapper``) would duplicate the mapping logic ``ProposalRepository``
-already owns. This import is deliberate and ADR-authorized for this one
-call, not a general precedent.
+Layering (``architecture.layers.no_body_to_will``, no excludes, applies to
+every file in this directory): this module accepts an already-mapped
+``AutonomousProposal`` — the persistence model in
+``shared.infrastructure.database.models.autonomous_proposals`` — never the
+Will-layer ``Proposal`` domain dataclass. The Will→persistence-model mapping
+(``ProposalMapper.to_db_model``, already a stateless, no-DB-access utility)
+runs in the caller (``LaneService``), which owns constructing/mapping the
+governed proposal representation; this module owns ``session.add``/
+``flush``, the eligibility recheck, every finding deferral, and the single
+commit — the Body-owned half of D3b's atomicity requirement, with no
+upward-borrowed Will import.
 """
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
 from body.services.service_registry import service_registry
 from shared.logger import getLogger
-from will.autonomy.proposal import Proposal
-from will.autonomy.proposal_repository import ProposalRepository
 
+
+if TYPE_CHECKING:
+    from shared.infrastructure.database.models.autonomous_proposals import (
+        AutonomousProposal,
+    )
 
 logger = getLogger(__name__)
 
@@ -63,13 +68,22 @@ class ProposalSubmissionError(Exception):
 
 # ID: 2ad29754-9984-49c2-8536-84877f7a0884
 async def submit_assisted_lane_proposal(
-    proposal: Proposal,
+    proposal_model: AutonomousProposal,
     finding_ids: list[str],
 ) -> str:
-    """Atomically persist *proposal* and defer every id in *finding_ids* to it.
+    """Atomically persist *proposal_model* and defer every id in
+    *finding_ids* to it.
 
-    Single transaction (ADR-154 D3b): opens one session, creates the
-    proposal and defers every finding inside it, commits once. Re-verifies
+    *proposal_model* is an already-constructed, unsaved
+    ``AutonomousProposal`` instance — typically via ``ProposalMapper
+    .to_db_model(proposal, AutonomousProposal)`` in the caller — with its
+    ``proposal_id`` already set (the Will-layer ``Proposal`` dataclass
+    generates it client-side). This function never constructs or
+    interprets the governed proposal representation itself; it only
+    persists what it is handed and defers findings to it.
+
+    Single transaction (ADR-154 D3b): opens one session, adds the proposal
+    model and defers every finding inside it, commits once. Re-verifies
     eligibility of every finding inside that same transaction via one
     ``UPDATE ... WHERE ... RETURNING`` — the compare-and-swap shape that
     checks and mutates atomically, so there is no separate check-then-act
@@ -96,8 +110,9 @@ async def submit_assisted_lane_proposal(
 
     async with service_registry.session() as session:
         async with session.begin():
-            repo = ProposalRepository(session)
-            proposal_id = await repo.create(proposal)
+            session.add(proposal_model)
+            await session.flush()
+            proposal_id = str(proposal_model.proposal_id)
 
             result = await session.execute(
                 text(
