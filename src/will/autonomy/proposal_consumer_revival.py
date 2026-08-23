@@ -4,18 +4,38 @@
 
 When a proposal terminates non-successfully (executor returned ok=False, or
 the executor raised before completing), the findings that were deferred
-under it must be revived back to 'open' status so the next remediation
-cycle can re-claim them. This module owns that contract.
+under it must be revived so the next remediation cycle — or, for the
+assisted lane, the delegating agent — can pick the work back up. This
+module owns that contract.
 
 Three operations:
 
-- revive_and_report: call BlackboardService.revive_findings_for_failed_proposal
-  (UPDATE-only — clears claimed_by/claimed_at/resolved_at, flips status to
-  'open' for any finding whose payload.proposal_id matches and is still
-  parked at 'deferred_to_proposal'), then post a
-  proposal.failure.revival::<id> report when one or more findings were
-  revived. The post flows through the passed-in Worker so the report
-  carries Worker attribution per ADR-011.
+- revive_and_report: routes to the correct revival predicate by proposal
+  lineage, then posts a proposal.failure.revival::<id> report when one or
+  more findings were revived. The post flows through the passed-in Worker
+  so the report carries Worker attribution per ADR-011.
+
+  Two lineages, two distinct revival targets — deliberately not the same
+  function, even though both eventually land findings back at a
+  resumable state:
+
+  * Autonomous proposals (the ADR-035/ADR-010 mapped-remediation lane):
+    BlackboardService.revive_findings_for_failed_proposal — flips status to
+    'awaiting_reaudit' (ADR-045), passes the ADR-104 D9 remediation-attempt
+    cap so a finding that fails this many times is abandoned instead of
+    revived forever.
+  * Assisted-lane proposals (constitutional_constraints['assisted_lane'],
+    ADR-109) whose approved candidate failed at EXECUTION time (distinct
+    from an explicit governor rejection — see
+    revive_delegated_findings_for_failed_proposal's own docstring):
+    BlackboardService.revive_delegated_findings_for_failed_proposal —
+    governor decision, 2026-08-23: lands back at 'indeterminate'+'human',
+    preserving the delegation, clearing the stale agent work claim
+    (payload.lane_claimed_by/lane_claimed_at), and NEVER entering the
+    remediation-cap/circuit-breaker handling above — a human delegated
+    this work; a failed attempt does not silently re-route it into the
+    autonomous loop.
+
 - mark_proposal_failed: open a dedicated session, instantiate
   ProposalStateManager, transition the proposal row to 'failed'. Used by
   the worker's outer-exception branch where ProposalExecutor never reached
@@ -31,13 +51,14 @@ propagated; the worker's run-loop accounting decisions (failed += 1) must
 not be reversed by a hiccup in the revival path.
 
 LAYER: will/workers — internal collaborator of ProposalConsumerWorker.
-Uses body service registry for blackboard + session access; no direct
-database imports.
+Uses body service registry for blackboard + session access; ProposalRepository
+(will.autonomy, same layer) for the lineage read. No direct database imports.
 """
 
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -46,35 +67,37 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 
-# ID: f8e63aaf-638c-49fe-88da-b6679eb67624
-async def revive_and_report(
-    worker: Worker,
-    proposal_id: str,
-    reason: str,
-) -> None:
-    """
-    Execute the §7a revival contract for a non-successfully-terminated
-    proposal: revive deferred findings via BlackboardService, then post a
-    revival report through the Worker for attribution.
+async def _is_assisted_lane_proposal(proposal_id: str) -> bool:
+    """Return True iff *proposal_id* carries constitutional_constraints
+    ['assisted_lane'] — the sole signal distinguishing the two revival
+    lineages. Fail-closed to False (the autonomous path, the historical
+    default) on any read error so a lookup hiccup degrades to existing
+    behavior rather than silently routing an autonomous proposal's
+    findings into the assisted-lane predicate, which would simply match
+    zero rows and mask the failure differently."""
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_repository import ProposalRepository
 
-    Implements CORE-Finding.md §7a steps 1-3:
-      1+2 (state transition) — delegated to
-          BlackboardService.revive_findings_for_failed_proposal
-      3 (revival report)     — posted here via worker.post_report when one
-                               or more findings were revived
+    try:
+        async with service_registry.session() as session:
+            proposal = await ProposalRepository(session).get(proposal_id)
+    except Exception as fetch_err:
+        logger.warning(
+            "Could not load proposal %s to determine revival lineage: %s — "
+            "defaulting to the autonomous revival path",
+            proposal_id,
+            fetch_err,
+        )
+        return False
 
-    This is the execution-failure path, so it passes the
-    ``remediation_cap_n`` rail (ADR-104 D9 / #637): a finding that has now
-    failed remediation that many times is abandoned (terminal Type-B) by the
-    service instead of revived, and this worker posts the terminal
-    ``blackboard.remediation_cap_reached::<finding_subject>`` observation (D4 — not
-    a silent instrument) per ``worker_only_inserts``. The governor-reject
-    path (proposal_service.reject) does NOT pass the cap — a human decision
-    is not a remediation failure and must not count toward auto-abandon.
+    if proposal is None:
+        return False
+    return bool(proposal.constitutional_constraints.get("assisted_lane"))
 
-    A zero-revival, zero-abandon outcome is legitimate (the proposal had no
-    deferred findings) and is logged silently; nothing is posted then.
-    """
+
+async def _revive_autonomous(proposal_id: str, reason: str) -> dict[str, Any] | None:
+    """The pre-existing autonomous revival call, unchanged: passes the
+    ADR-104 D9 remediation-attempt cap."""
     from body.services.service_registry import service_registry
     from shared.infrastructure.intent.operational_config import (
         load_operational_config,
@@ -84,7 +107,7 @@ async def revive_and_report(
 
     try:
         bb_service = await service_registry.get_blackboard_service()
-        revival = await bb_service.revive_findings_for_failed_proposal(
+        return await bb_service.revive_findings_for_failed_proposal(
             proposal_id=proposal_id,
             failure_reason=reason,
             remediation_cap_n=cap_n,
@@ -95,7 +118,71 @@ async def revive_and_report(
             proposal_id,
             revive_err,
         )
-        revival = None
+        return None
+
+
+async def _revive_assisted_lane(proposal_id: str, reason: str) -> dict[str, Any] | None:
+    """Assisted-lane execution-failure revival — no remediation cap; the
+    delegation is preserved regardless of how many times it has failed
+    (governor decision, 2026-08-23)."""
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        return await bb_service.revive_delegated_findings_for_failed_proposal(
+            proposal_id=proposal_id,
+            failure_reason=reason,
+        )
+    except Exception as revive_err:
+        logger.warning(
+            "Assisted-lane revival query failed for proposal %s: %s",
+            proposal_id,
+            revive_err,
+        )
+        return None
+
+
+# ID: f8e63aaf-638c-49fe-88da-b6679eb67624
+async def revive_and_report(
+    worker: Worker,
+    proposal_id: str,
+    reason: str,
+) -> None:
+    """
+    Execute the §7a revival contract for a non-successfully-terminated
+    proposal: revive deferred findings via the lineage-appropriate
+    BlackboardService predicate, then post a revival report through the
+    Worker for attribution.
+
+    Implements CORE-Finding.md §7a steps 1-3:
+      1+2 (state transition) — delegated to
+          BlackboardService.revive_findings_for_failed_proposal
+          (autonomous) or .revive_delegated_findings_for_failed_proposal
+          (assisted-lane) — see module docstring for the lineage split.
+      3 (revival report)     — posted here via worker.post_report when one
+                               or more findings were revived, using the
+                               same proposal.failure.revival::<id> shape
+                               regardless of lineage (both revival dicts
+                               share the same key shape by design).
+
+    The ADR-104 D9 remediation-attempt cap (a finding that has now failed
+    remediation that many times is abandoned (terminal Type-B) instead of
+    revived, with a terminal
+    ``blackboard.remediation_cap_reached::<finding_subject>`` observation
+    per ``worker_only_inserts``) applies ONLY to the autonomous lineage.
+    The governor-reject path (proposal_service.reject) also never passes
+    it — a human decision is not a remediation failure — and neither does
+    assisted-lane execution failure, for the same reason (governor
+    decision, 2026-08-23): a human delegated the work; the delegation does
+    not expire because one attempt failed to execute.
+
+    A zero-revival, zero-abandon outcome is legitimate (the proposal had no
+    deferred findings) and is logged silently; nothing is posted then.
+    """
+    if await _is_assisted_lane_proposal(proposal_id):
+        revival = await _revive_assisted_lane(proposal_id, reason)
+    else:
+        revival = await _revive_autonomous(proposal_id, reason)
 
     if not revival:
         return
@@ -108,7 +195,17 @@ async def revive_and_report(
     #
     # Subject uses the original finding's subject (stable per violation class),
     # not entry_id (UUID), so the same violation does not generate a new F-19
-    # subject each time it cycles through the cap.
+    # subject each time it cycles through the cap. abandoned_finding_ids is
+    # only ever non-empty on the autonomous path (assisted-lane revival never
+    # abandons), so cap_n is only actually read when the loop body below
+    # runs — but it must still resolve, since bare cap_n is no longer in this
+    # function's scope after the lineage split.
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+
+    cap_n = load_operational_config().blackboard.remediation_cap_n
+
     abandoned_ids = revival.get("abandoned_finding_ids", [])
     abandoned_subjects = revival.get("abandoned_subjects", [])
     for entry_id, finding_subject in zip(abandoned_ids, abandoned_subjects):

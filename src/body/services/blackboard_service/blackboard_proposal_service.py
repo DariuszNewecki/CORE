@@ -191,6 +191,15 @@ class BlackboardProposalService:
         next ``defer_delegated_finding_to_proposal`` overwrites it (last-writer
         -wins) if the finding is proposed again.
 
+        "Clear any claim" means both claim surfaces: the worker
+        ``claimed_by``/``claimed_at`` columns (unused on this lane, cleared for
+        symmetry with the autonomous revival path) AND
+        ``payload.lane_claimed_by``/``payload.lane_claimed_at`` — the marker
+        ``claim_delegated_finding`` stamps when an external agent starts
+        working the item (ADR-109 §2). A prior implementation cleared only the
+        columns; a rejected item could return to the lane queue still showing
+        the old agent's claim in its payload. Both are removed here.
+
         Returns None if nothing matched (the proposal was not an assisted-lane
         proposal, or its finding already moved on); otherwise a dict with
         ``proposal_id``, ``reason``, ``revived_count``, ``revived_finding_ids``,
@@ -209,7 +218,8 @@ class BlackboardProposalService:
                             claimed_by = NULL,
                             claimed_at = NULL,
                             resolved_at = now(),
-                            updated_at = now()
+                            updated_at = now(),
+                            payload = (payload - 'lane_claimed_by' - 'lane_claimed_at')
                         WHERE entry_type = 'finding'
                           AND resolution_mechanism = 'human'
                           AND status = 'deferred_to_proposal'
@@ -226,6 +236,86 @@ class BlackboardProposalService:
         return {
             "proposal_id": proposal_id,
             "reason": reason,
+            "revived_count": len(rows),
+            "revived_finding_ids": [str(row[0]) for row in rows],
+            "revived_subjects": [str(row[1]) for row in rows],
+        }
+
+    # ID: 6197b964-0be4-4e3d-bca0-039ef88fb22e
+    async def revive_delegated_findings_for_failed_proposal(
+        self, proposal_id: str, failure_reason: str
+    ) -> dict[str, Any] | None:
+        """Revive an assisted-lane finding when its proposal fails at
+        EXECUTION time (governor decision, 2026-08-23).
+
+        Distinct from ``revive_delegated_findings_for_rejected_proposal``:
+        that method represents an explicit governor rejection of the
+        candidate diff — a human decision. This one represents an already-
+        approved candidate failing to execute (``assisted.apply_diff``
+        itself failed, or a later step in the proposal failed) — a
+        different lifecycle event that happens to land at the same
+        ``indeterminate+human`` state. They are kept as separate functions
+        deliberately: reusing the rejection path for execution failure
+        would conflate "a human said no" with "the machine could not do
+        it," which the finding's audit trail should not blur.
+
+        The delegation is preserved (this is not an autonomous-loop
+        finding; a human explicitly asked an agent to work it, and that
+        request stands). The agent's WORK CLAIM is not preserved — an agent
+        that claimed this finding and submitted a diff that then failed to
+        execute should not still appear to be actively working it, so
+        ``payload.lane_claimed_by``/``payload.lane_claimed_at`` (the
+        markers ``claim_delegated_finding`` stamps, ADR-109 §2) are
+        removed. Distinct from the worker ``claimed_by``/``claimed_at``
+        columns, also cleared here but irrelevant to this lane in practice
+        (no autonomous worker ever claims a delegated finding).
+
+        Deliberately does NOT accept a ``remediation_cap_n`` — this is NOT
+        the autonomous reaudit/circuit-breaker lane. Per the governor
+        decision, assisted-lane execution failure never enters
+        remediation-cap/abandon handling; the delegation simply survives
+        for another attempt, with the failure recorded as durable evidence
+        by the caller's own revival report (same shape as the autonomous
+        path — see ``revive_findings_for_failed_proposal``).
+
+        Returns None if nothing matched; otherwise a dict with
+        ``proposal_id``, ``failure_reason``, ``revived_count``,
+        ``revived_finding_ids``, ``revived_subjects`` — the same key shape
+        as ``revive_findings_for_failed_proposal`` so a caller can post an
+        identical revival report regardless of which lane the proposal
+        belonged to.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                update_result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'indeterminate',
+                            resolution_mechanism = 'human',
+                            claimed_by = NULL,
+                            claimed_at = NULL,
+                            resolved_at = now(),
+                            updated_at = now(),
+                            payload = (payload - 'lane_claimed_by' - 'lane_claimed_at')
+                        WHERE entry_type = 'finding'
+                          AND resolution_mechanism = 'human'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        RETURNING id, subject
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                rows = update_result.fetchall()
+
+        if not rows:
+            return None
+        return {
+            "proposal_id": proposal_id,
+            "failure_reason": failure_reason,
             "revived_count": len(rows),
             "revived_finding_ids": [str(row[0]) for row in rows],
             "revived_subjects": [str(row[1]) for row in rows],
