@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from body.infrastructure.storage.file_handler import FileOpResult
 from will.remediation.crate_canary import CrateCanaryMixin
 
 
@@ -62,6 +63,25 @@ def _stage_crate_file(
     staged.write_text(content, encoding="utf-8")
 
 
+def _wire_real_file_handler(mixin: ConcreteCrateCanaryMixin, repo_root: Path) -> None:
+    """_generate_patch routes its worktree write through FileHandler
+    (governance.mutation_surface.filehandler_required) — stand in a mock
+    that performs a REAL write and returns success, so the byte-equivalence
+    assertions below still exercise a real on-disk write, not a no-op mock."""
+    repo_root.mkdir(parents=True, exist_ok=True)
+
+    def _write_runtime_text(rel_path: str, content: str) -> FileOpResult:
+        target = repo_root / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        return FileOpResult("success", "Wrote runtime text", rel_path)
+
+    file_handler = MagicMock()
+    file_handler.repo_path = repo_root
+    file_handler.write_runtime_text.side_effect = _write_runtime_text
+    mixin._ctx.file_handler = file_handler
+
+
 def _init_bare_git_repo(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q"], cwd=path, check=True)
@@ -90,10 +110,14 @@ async def test_generate_patch_reproduces_aligned_bytes_via_git_apply(tmp_path) -
     repo_root = tmp_path / "repo"
     _stage_crate_file(repo_root, "crate-1", file_path, aligned)
 
-    worktree_dir = tmp_path / "worktree"
+    # Nested under repo_root/var/tmp/ — matching GitService.create_worktree's
+    # real topology (PathResolver(repo_path).tmp_dir), since _generate_patch
+    # now resolves its write target relative to file_handler.repo_path.
+    worktree_dir = repo_root / "var" / "tmp" / "worktree-sandbox"
     _init_git_repo(worktree_dir, file_path, original)
 
     mixin = ConcreteCrateCanaryMixin()
+    _wire_real_file_handler(mixin, repo_root)
     mixin._ctx.git_service.repo_path = repo_root
     worktree_mock = MagicMock()
     worktree_mock.repo_path = str(worktree_dir)
@@ -123,10 +147,11 @@ async def test_generate_patch_empty_diff_returns_none(tmp_path) -> None:
     repo_root = tmp_path / "repo"
     _stage_crate_file(repo_root, "crate-1", file_path, same)
 
-    worktree_dir = tmp_path / "worktree"
+    worktree_dir = repo_root / "var" / "tmp" / "worktree-sandbox"
     _init_git_repo(worktree_dir, file_path, same)
 
     mixin = ConcreteCrateCanaryMixin()
+    _wire_real_file_handler(mixin, repo_root)
     mixin._ctx.git_service.repo_path = repo_root
     worktree_mock = MagicMock()
     worktree_mock.repo_path = str(worktree_dir)

@@ -196,7 +196,28 @@ class CrateCanaryMixin(HostBase):
                     baseline_sha,
                 )
                 return None
-            target.write_text(aligned_bytes, encoding="utf-8")
+            # governance.mutation_surface.filehandler_required: all
+            # filesystem writes route through FileHandler, never a raw
+            # Path.write_text — the worktree sandbox lives under this
+            # repo's var/tmp/ (GitService.create_worktree roots it at
+            # PathResolver(repo_path).tmp_dir), so it resolves as a normal
+            # repo-relative path. ephemeral-scratch classification means no
+            # source-shape transforms; the only change applied is
+            # ensure_trailing_newline, which is idempotent for the
+            # already-newline-terminated bytes _align_staged_file produces
+            # (proven byte-equivalent by
+            # test_generate_patch_reproduces_aligned_bytes_via_git_apply).
+            file_handler = self._ctx.file_handler
+            rel_target = str(target.relative_to(file_handler.repo_path))
+            write_result = file_handler.write_runtime_text(rel_target, aligned_bytes)
+            if write_result.status != "success":
+                logger.warning(
+                    "RemediationCeremony: failed to stage aligned bytes into "
+                    "patch worktree for %s - %s",
+                    file_path,
+                    write_result.detail,
+                )
+                return None
             result = ToolRunner.run_git(wt_path, "diff", "--", file_path)
             return result.stdout or None
         finally:
