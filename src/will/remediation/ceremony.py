@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from body.services.fix_run_service import submit_and_persist_fix
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.self_healing.remediation_interpretation.service import (
@@ -430,13 +431,26 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             )
             return False
 
-        validate_result = await self._ctx.action_executor.execute(
-            "assisted.validate_diff",
+        # D2's build_validated_candidate never trusts an in-memory
+        # ActionResult — it re-reads a completed assisted.validate_diff row
+        # from core.fix_runs by validation_run_id. A raw
+        # action_executor.execute() call here would produce only that
+        # in-memory result with no durable row for D3 to later construct a
+        # candidate from, so this goes through the Body-owned persisted
+        # service instead (submit_and_persist_fix — the same INSERT/UPDATE
+        # shape the /fix/run API path writes, so a passing row here is
+        # indistinguishable to build_validated_candidate from one produced
+        # externally by the assisted lane).
+        validation_run_id, validate_result = await submit_and_persist_fix(
+            context=self._ctx,
+            fix_id="assisted.validate_diff",
             write=True,
-            patch=patch,
-            finding_rules=rule_ids,
-            subject_files=[file_path],
-            base_sha=plan.baseline_sha,
+            params={
+                "patch": patch,
+                "finding_rules": rule_ids,
+                "subject_files": [file_path],
+                "base_sha": plan.baseline_sha,
+            },
         )
         if not validate_result.ok:
             await self._blackboard.mark_findings(findings, "abandoned")
@@ -445,7 +459,8 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 findings,
                 self._target_rule,
                 self._write,
-                "assisted.validate_diff failed: "
+                "assisted.validate_diff failed "
+                f"(validation_run_id={validation_run_id}): "
                 f"{validate_result.data.get('error', 'validation did not pass')}",
             )
             return False
@@ -462,6 +477,12 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                     "proposed_fix": proposed_fix,
                     "violations_count": len(findings),
                     "architectural_context": plan.architectural_context,
+                    # D3 needs this to construct a ValidatedRemediationCandidate
+                    # (build_validated_candidate re-reads this exact
+                    # core.fix_runs row — never trusts an in-memory verdict).
+                    "validation_run_id": validation_run_id,
+                    "patch": patch,
+                    "finding_rules": rule_ids,
                     "message": (
                         "Dry-run complete. Canary passed. "
                         "Review 'proposed_fix' and 'architectural_context' "
@@ -544,6 +565,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 "baseline_sha": plan.baseline_sha,
                 "violations_fixed": len(findings),
                 "architectural_context": plan.architectural_context,
+                "validation_run_id": validation_run_id,
             },
         )
         await self._blackboard.mark_findings(findings, "resolved")
