@@ -26,11 +26,23 @@ Phase discipline (unchanged from the original):
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 
 from body.services.fix_run_service import submit_and_persist_fix
+from body.services.proposal_submission_service import (
+    ProposalSubmissionError,
+    submit_ceremony_proposal,
+)
+from body.services.validated_candidate_service import build_validated_candidate
+from shared.infrastructure.database.models.autonomous_proposals import (
+    AutonomousProposal,
+)
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.models.validated_remediation_candidate import CandidateConstructionError
+from will.autonomy.proposal_factory import build_assisted_lane_draft_proposal
+from will.autonomy.proposal_mapper import ProposalMapper
 from will.self_healing.remediation_interpretation.service import (
     RemediationInterpretationError,
     RemediationInterpretationService,
@@ -47,6 +59,7 @@ logger = getLogger(__name__)
 
 _DRY_RUN_SUBJECT = "audit.remediation.dry_run"
 _COMPLETE_SUBJECT = "audit.remediation.complete"
+_DRAFT_SUBJECT = "audit.remediation.draft_created"
 
 _CFG = load_operational_config().workers.violation_remediator
 
@@ -465,6 +478,31 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             )
             return False
 
+        # ADR-154 D3/D5: canonical worker/rule-mode findings get an
+        # automatic human-gated DRAFT proposal here, regardless of
+        # self._write — proposal creation is not production mutation, so
+        # it must not depend on the legacy write flag. Once a DRAFT is
+        # created (or its creation fails), this method returns without
+        # ever reaching the dry-run observation or the write-mode
+        # apply/commit branches below — a canonical passing ceremony must
+        # never reach direct apply/commit again (D4 deletes that branch
+        # outright; until then it stays physically present but structurally
+        # unreachable from this terminus). worker_uuid is None only for
+        # CLI file-mode's NullRemediationBlackboard (ADR-154 D3a) — its
+        # synthetic findings have no canonical lineage, so it falls through
+        # to the unchanged legacy branches below (candidate-export-only).
+        worker_uuid = self._blackboard.worker_uuid
+        if worker_uuid is not None:
+            return await self._create_ceremony_draft(
+                file_path,
+                findings,
+                plan,
+                rule_ids,
+                patch,
+                validation_run_id,
+                worker_uuid,
+            )
+
         if not self._write:
             await self._blackboard.post_observation(
                 subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
@@ -575,5 +613,118 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             file_path,
             crate_id,
             self._target_rule,
+        )
+        return True
+
+    # -------------------------------------------------------------------------
+    # ADR-154 D3 — candidate -> privileged candidate -> human-gated DRAFT
+    # -------------------------------------------------------------------------
+
+    async def _create_ceremony_draft(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+        plan: _RemediationPlan,
+        rule_ids: list[str],
+        patch: str,
+        validation_run_id: str,
+        worker_uuid: uuid.UUID,
+    ) -> bool:
+        """Build the privileged candidate and atomically submit the
+        ceremony's human-gated DRAFT proposal (ADR-154 D3).
+
+        Called only when ``self._blackboard.worker_uuid`` is not None —
+        i.e. never for CLI file-mode (ADR-154 D3a stays candidate-export-
+        only). ``findings`` are the real canonical blackboard rows this
+        ceremony claimed; their ``id``s are the candidate's finding_ids.
+
+        On any failure (candidate construction, or the atomic submission),
+        deliberately does NOT touch finding claim/status. The submission
+        service's transaction is all-or-nothing — a failed submission
+        changes nothing in the database, so the findings remain exactly as
+        claimed (normally still owned by this worker). Calling
+        ``release_claimed_entries`` here would be unsafe (it checks
+        ``status='claimed'`` only, not ownership — CLAUDE.md/#812-adjacent
+        concern) and is unnecessary: nothing needs releasing when nothing
+        changed. A submission that failed specifically because
+        ``claimed_by`` no longer matches this worker means some other
+        worker now legitimately owns that row — this method must not mark
+        it abandoned or anything else, since it is no longer this
+        ceremony's claim to dispose of. Any row that stayed stuck this way
+        is within the periodic orphan-claim reaper's existing remit
+        (ADR-072), not a new gap this method must plug.
+        """
+        canonical_finding_ids = [str(f["id"]) for f in findings]
+
+        try:
+            candidate = await build_validated_candidate(
+                finding_ids=canonical_finding_ids,
+                rule_ids=rule_ids,
+                patch=patch,
+                validation_run_id=validation_run_id,
+                subject_files=[file_path],
+            )
+        except CandidateConstructionError as exc:
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                f"Candidate construction failed: {exc}",
+            )
+            return False
+
+        proposal = build_assisted_lane_draft_proposal(
+            candidate,
+            goal=(
+                f"Autonomous remediation of {', '.join(rule_ids)} in "
+                f"{file_path} via ceremony-authored diff"
+            ),
+            created_by="remediation-ceremony",
+            extra_constraints={"proposal_origin": "ceremony"},
+        )
+        proposal_model = ProposalMapper.to_db_model(proposal, AutonomousProposal)
+
+        try:
+            proposal_id = await submit_ceremony_proposal(
+                proposal_model,
+                finding_ids=canonical_finding_ids,
+                expected_worker_uuid=worker_uuid,
+                expected_rule_ids=rule_ids,
+            )
+        except ProposalSubmissionError as exc:
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                f"Ceremony proposal submission failed: {exc}",
+            )
+            return False
+
+        # The atomic submission already transitioned every finding
+        # claimed -> deferred_to_proposal in SQL — no mark_findings call
+        # here would be correct (the legacy 'abandoned'/'resolved' terminal
+        # statuses do not apply to a deferred finding).
+        await self._blackboard.post_report(
+            subject=f"{_DRAFT_SUBJECT}::{file_path}",
+            payload={
+                "file_path": file_path,
+                "proposal_id": proposal_id,
+                "candidate_id": candidate.candidate_id,
+                "rule_ids": rule_ids,
+                "finding_ids": canonical_finding_ids,
+                "validation_run_id": validation_run_id,
+                "production_set": candidate.production_set,
+                "baseline_sha": plan.baseline_sha,
+            },
+        )
+        logger.info(
+            "RemediationCeremony: [DRAFT] created proposal %s for %s "
+            "(%d finding(s), rules=%s)",
+            proposal_id,
+            file_path,
+            len(findings),
+            rule_ids,
         )
         return True

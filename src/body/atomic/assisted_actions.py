@@ -428,6 +428,11 @@ async def action_assisted_validate_diff(
             "validation_results": checks,
             "production_set": touched,
             "finding_rules": rule_ids,
+            # ADR-154 D3: which original finding subject(s) this run treated
+            # as guarded — durably recorded so build_validated_candidate can
+            # verify a caller's asserted subject_files against what was
+            # actually validated, the same way it already verifies rule_ids.
+            "subject_files": subject_files or [],
             "tests_run": existing_tests,
             # Bind this verdict to the exact bytes validated. `lane propose`
             # re-checks this hash against the patch it submits, so an agent

@@ -38,12 +38,7 @@ from shared.infrastructure.intent.remediation_guidance import (
     load_remediation_guidance,
 )
 from shared.logger import getLogger
-from will.autonomy.proposal import (
-    Proposal,
-    ProposalAction,
-    ProposalScope,
-    ProposalStatus,
-)
+from will.autonomy.proposal_factory import build_assisted_lane_draft_proposal
 from will.autonomy.proposal_mapper import ProposalMapper
 
 
@@ -247,48 +242,17 @@ class LaneService:
             validation_run_id=validation_run_id,
         )
 
-        proposal = Proposal(
+        proposal = build_assisted_lane_draft_proposal(
+            candidate,
             goal=(
                 f"Assisted remediation of {rule} "
                 f"({len(candidate.production_set)} file(s)) via agent-authored diff"
             ),
-            actions=[
-                ProposalAction(
-                    action_id="assisted.apply_diff",
-                    parameters={
-                        "patch": candidate.patch,
-                        "patch_digest": candidate.patch_digest,
-                        "validated_base_sha": candidate.validated_base_sha,
-                        "write": True,
-                    },
-                    order=0,
-                )
-            ],
-            scope=ProposalScope(files=list(candidate.production_set)),
-            status=ProposalStatus.DRAFT,
             created_by="assisted-lane",
-            # The validation gate (#654): the candidate's real recorded
-            # verdict — never a caller-asserted True (ADR-154 D2).
-            validation_checks=candidate.validation_checks,
-            validation_results=candidate.validation_results,
-            # ADR-109 D3 — the human gate is the precondition that licenses the
-            # multi-file exception; mandatory regardless of computed risk.
-            approval_required=True,
-            constitutional_constraints={
-                "finding_ids": candidate.finding_ids,
-                "rules": candidate.rule_ids,
-                "candidate_id": candidate.candidate_id,
-                "patch_digest": candidate.patch_digest,
-                "validated_base_sha": candidate.validated_base_sha,
-                # The candidate's own construction timestamp — closes the
-                # remaining D2 evidence gap: every other frozen-contract
-                # field was already durably carried into the proposal, but
-                # created_at was not, so the candidate could not be fully
-                # reconstructed from proposal evidence alone.
-                "candidate_created_at": candidate.created_at.isoformat(),
+            extra_constraints={
                 # Marks the proposal as assisted-lane so reject revives the
                 # finding to indeterminate+human (ADR-109 D4), not the
-                # autonomous awaiting_reaudit path.
+                # autonomous awaiting_reaudit path — see proposal_lineage.py.
                 "assisted_lane": True,
             },
         )

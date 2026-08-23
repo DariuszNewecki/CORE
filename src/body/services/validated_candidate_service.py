@@ -46,6 +46,7 @@ async def build_validated_candidate(
     rule_ids: list[str],
     patch: str,
     validation_run_id: str,
+    subject_files: list[str] | None = None,
 ) -> ValidatedRemediationCandidate:
     """Construct a ``ValidatedRemediationCandidate`` from a passed validation run.
 
@@ -58,11 +59,23 @@ async def build_validated_candidate(
     the exact commit SHA of the hermetic worktree the run validated against
     (ADR-154 D2), not a later read of production HEAD.
 
+    ADR-154 D3 hardening: *rule_ids* must exactly match the set the named
+    run actually validated (``data['finding_rules']``, populated by
+    ``assisted.validate_diff`` itself — never caller-asserted). Without this
+    check a caller could validate rules A+B and construct a candidate
+    claiming only A (understating what was checked) or claiming A+C
+    (overstating it — C was never validated). Either way the candidate would
+    misrepresent the gate ADR-109 approval keys on. *subject_files*, when
+    supplied, is checked the same way against the run's persisted
+    ``data['subject_files']`` — which original finding subjects the run
+    treated as guarded.
+
     Raises:
         CandidateConstructionError: the named run does not exist, is not an
             ``assisted.validate_diff`` run, did not complete successfully,
-            the supplied patch does not match the validated bytes, or the
-            run recorded no ``validated_base_sha``.
+            the supplied patch does not match the validated bytes, the run
+            recorded no ``validated_base_sha``, or *rule_ids*/*subject_files*
+            do not exactly match what the run actually validated.
     """
     async with service_registry.session() as session:
         row = (
@@ -112,6 +125,24 @@ async def build_validated_candidate(
             f"Validation run {validation_run_id} recorded no "
             "validated_base_sha; cannot bind approval to a base commit."
         )
+
+    persisted_rule_ids = set(data.get("finding_rules") or [])
+    if set(rule_ids) != persisted_rule_ids:
+        raise CandidateConstructionError(
+            f"Run {validation_run_id} validated rule set "
+            f"{sorted(persisted_rule_ids)!r} but caller supplied "
+            f"{sorted(set(rule_ids))!r} — a candidate must claim exactly "
+            "the rules the run actually validated, no more and no fewer."
+        )
+
+    if subject_files is not None:
+        persisted_subject_files = set(data.get("subject_files") or [])
+        if set(subject_files) != persisted_subject_files:
+            raise CandidateConstructionError(
+                f"Run {validation_run_id} validated subject_files "
+                f"{sorted(persisted_subject_files)!r} but caller supplied "
+                f"{sorted(set(subject_files))!r}."
+            )
 
     validation_results: dict[str, bool] = data.get("validation_results") or {}
 

@@ -38,6 +38,7 @@ upward-borrowed Will import.
 
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import text
@@ -149,5 +150,131 @@ async def submit_assisted_lane_proposal(
             "deferred atomically",
             proposal_id,
             len(deferred_ids),
+        )
+        return proposal_id
+
+
+# ID: d5c6b1b9-a6d9-48db-aa6d-5f4260686553
+async def submit_ceremony_proposal(
+    proposal_model: AutonomousProposal,
+    finding_ids: list[str],
+    expected_worker_uuid: uuid.UUID,
+    expected_rule_ids: list[str],
+) -> str:
+    """Atomically persist *proposal_model* and defer every id in
+    *finding_ids* to it — the ceremony-lane analogue of
+    ``submit_assisted_lane_proposal`` (ADR-154 D3/D3b).
+
+    Same single-transaction shape (add + flush + one compare-and-swap
+    UPDATE...RETURNING + commit once), a genuinely different eligibility
+    predicate: ceremony findings live at ``status='claimed'`` with a real
+    worker ``claimed_by`` UUID (``ViolationExecutorWorker``/
+    ``RemediatorWorker`` claim machinery), never
+    ``indeterminate+human`` — the assisted-lane governor-inbox shape does
+    not apply here. Two checks the assisted-lane predicate has no
+    equivalent for, both required by ADR-154 D5's eligibility guard:
+
+    - ``claimed_by`` must equal *expected_worker_uuid* — not merely *some*
+      worker. A finding reassigned to a different worker between claim and
+      submission (e.g. released and re-claimed after this worker stalled)
+      is no longer this submission's to defer; deferring it anyway would
+      silently steal another worker's in-progress claim.
+    - the source findings' ``payload->>'rule'`` set must exactly equal
+      *expected_rule_ids* — the candidate's own validated rule set (see
+      ``validated_candidate_service.build_validated_candidate``'s matching
+      check). A candidate must be built from exactly the findings it
+      claims to fix, not a superset or subset of them.
+
+    ``resolution_mechanism`` is deliberately NOT touched by the deferral
+    UPDATE — ceremony findings are born (ADR-091 D2's invariant) and stay
+    ``'reaudit'`` while deferred, so an execution failure later reaches the
+    existing generic ``revive_findings_for_failed_proposal`` (ADR-038
+    circuit-breaker) path exactly as an ordinary autonomous proposal would.
+    Only an explicit governor rejection moves a ceremony finding to
+    ``indeterminate+human``, via the separate
+    ``revive_ceremony_findings_for_rejected_proposal`` operation — a
+    different lifecycle event with a different destination, deliberately
+    not conflated with this deferral.
+
+    If any row is missing, not ``entry_type='finding'``, not
+    ``status='claimed'``, claimed by a different worker, or the rule set
+    does not match, the entire transaction — proposal included — rolls
+    back and no partial state is left: no proposal row, no finding
+    transitioned. The external-assisted submission path
+    (``submit_assisted_lane_proposal``) is untouched by this function.
+
+    Returns the proposal id, but only after a successful commit.
+
+    Raises:
+        ProposalSubmissionError: *finding_ids* was empty, fewer findings
+            were deferred than requested (stale claim/status/ownership), or
+            the deferred findings' rule set did not match
+            *expected_rule_ids*.
+    """
+    if not finding_ids:
+        raise ProposalSubmissionError(
+            "submit_ceremony_proposal requires at least one finding_id"
+        )
+
+    async with service_registry.session() as session:
+        async with session.begin():
+            session.add(proposal_model)
+            await session.flush()
+            proposal_id = str(proposal_model.proposal_id)
+
+            result = await session.execute(
+                text(
+                    """
+                    UPDATE core.blackboard_entries
+                    SET status = 'deferred_to_proposal',
+                        resolved_at = now(),
+                        updated_at = now(),
+                        payload = payload || jsonb_build_object(
+                            'proposal_id', cast(:proposal_id as text)
+                        )
+                    WHERE id = ANY(cast(:ids as uuid[]))
+                      AND entry_type = 'finding'
+                      AND status = 'claimed'
+                      AND claimed_by = cast(:expected_worker_uuid as uuid)
+                    RETURNING id, payload->>'rule' AS rule
+                    """
+                ),
+                {
+                    "proposal_id": proposal_id,
+                    "ids": finding_ids,
+                    "expected_worker_uuid": str(expected_worker_uuid),
+                },
+            )
+            rows = result.fetchall()
+            deferred_ids = {str(row[0]) for row in rows}
+
+            if len(deferred_ids) != len(finding_ids):
+                stale = sorted(set(finding_ids) - deferred_ids)
+                raise ProposalSubmissionError(
+                    f"{len(stale)}/{len(finding_ids)} finding(s) no longer "
+                    "eligible for ceremony deferral (not entry_type='finding' "
+                    f"AND status='claimed' AND claimed_by={expected_worker_uuid} "
+                    f"at submission time): {stale}. Proposal not created — "
+                    "submission is all-or-nothing (ADR-154 D3b)."
+                )
+
+            actual_rules = {row[1] for row in rows if row[1]}
+            expected_rules = set(expected_rule_ids)
+            if actual_rules != expected_rules:
+                raise ProposalSubmissionError(
+                    f"Source findings' rule set {sorted(actual_rules)!r} does "
+                    "not match the candidate's validated rule set "
+                    f"{sorted(expected_rules)!r} — a candidate must be built "
+                    "from exactly the findings it claims to fix. Proposal "
+                    "not created."
+                )
+
+        # session.begin() committed on clean exit — proposal_id is now durable.
+        logger.info(
+            "proposal_submission: ceremony proposal %s committed with %d "
+            "finding(s) deferred atomically (worker=%s)",
+            proposal_id,
+            len(deferred_ids),
+            expected_worker_uuid,
         )
         return proposal_id

@@ -321,6 +321,79 @@ class BlackboardProposalService:
             "revived_subjects": [str(row[1]) for row in rows],
         }
 
+    # ID: a9f008d0-8cdb-49ae-8929-c0328c34c4b4
+    async def revive_ceremony_findings_for_rejected_proposal(
+        self, proposal_id: str, reason: str
+    ) -> dict[str, Any] | None:
+        """Revive a ceremony finding when its DRAFT proposal is explicitly
+        rejected by the governor (ADR-154 D3).
+
+        The ceremony analogue of ``revive_delegated_findings_for_rejected_
+        proposal`` — same destination state (indeterminate+human), for the
+        same reason (an explicit human decision must not silently re-enter
+        the autonomous generate-and-retry loop, and must not be
+        rediscoverable as a fresh 'open' finding that would just regenerate
+        the same rejected diff). Cannot reuse that method: its predicate
+        requires ``resolution_mechanism = 'human'``, which a ceremony
+        finding never has — it is born (and stays, while deferred)
+        ``resolution_mechanism = 'reaudit'`` (its birth value; see
+        ``indeterminate_human_checks.py``'s module docstring). Matching on
+        'human' would find zero rows and silently strand the finding at
+        'deferred_to_proposal' forever.
+
+        Deliberately distinct from ``revive_findings_for_failed_proposal``
+        (the EXECUTION-failure path a ceremony proposal shares with the
+        plain autonomous lane, per ADR-038): rejection is a human decision
+        about the concrete diff, not a machine failure, and ADR-154 D3
+        settles that a rejected ceremony candidate must not simply return
+        to the reaudit/circuit-breaker loop — it goes to the governor
+        inbox, same as a rejected external-assisted candidate.
+
+        Sets ``resolution_mechanism = 'human'`` explicitly (the transition
+        away from 'reaudit' this rejection causes) and clears the worker
+        claim columns — the deferred finding is no longer any worker's
+        claimed work; a human now owns the next decision.
+
+        Returns None if nothing matched; otherwise a dict with
+        ``proposal_id``, ``reason``, ``revived_count``,
+        ``revived_finding_ids``, ``revived_subjects`` — the same key shape
+        as the other revival methods.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                update_result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'indeterminate',
+                            resolution_mechanism = 'human',
+                            claimed_by = NULL,
+                            claimed_at = NULL,
+                            resolved_at = now(),
+                            updated_at = now()
+                        WHERE entry_type = 'finding'
+                          AND resolution_mechanism = 'reaudit'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        RETURNING id, subject
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                rows = update_result.fetchall()
+
+        if not rows:
+            return None
+        return {
+            "proposal_id": proposal_id,
+            "reason": reason,
+            "revived_count": len(rows),
+            "revived_finding_ids": [str(row[0]) for row in rows],
+            "revived_subjects": [str(row[1]) for row in rows],
+        }
+
     # ID: 5e2d8f1a-94c3-4b07-a8f2-3c7e9b1d6a45
     async def resolve_entries_for_proposal(
         self, entry_ids: list[str], proposal_id: str

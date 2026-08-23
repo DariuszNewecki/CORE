@@ -15,15 +15,25 @@ Three operations:
   more findings were revived. The post flows through the passed-in Worker
   so the report carries Worker attribution per ADR-011.
 
-  Two lineages, two distinct revival targets — deliberately not the same
-  function, even though both eventually land findings back at a
-  resumable state:
+  Three lineages (see will.autonomy.proposal_lineage), two distinct
+  revival targets on EXECUTION failure — deliberately not one function per
+  lineage, because ceremony deliberately shares the autonomous target here
+  (it diverges only on explicit rejection — see proposal_service.reject):
 
-  * Autonomous proposals (the ADR-035/ADR-010 mapped-remediation lane):
-    BlackboardService.revive_findings_for_failed_proposal — flips status to
-    'awaiting_reaudit' (ADR-045), passes the ADR-104 D9 remediation-attempt
-    cap so a finding that fails this many times is abandoned instead of
-    revived forever.
+  * Autonomous proposals (the ADR-035/ADR-010 mapped-remediation lane) AND
+    ceremony proposals (ADR-154; constitutional_constraints
+    ['proposal_origin'] == 'ceremony') whose approved candidate failed at
+    EXECUTION time both use BlackboardService.revive_findings_for_failed_proposal
+    — flips status to 'awaiting_reaudit' (ADR-045), passes the ADR-104 D9
+    remediation-attempt cap so a finding that fails this many times is
+    abandoned instead of revived forever. This is correct for ceremony
+    findings specifically because they are born, and stay while deferred,
+    resolution_mechanism='reaudit' — the same predicate
+    revive_findings_for_failed_proposal already requires. A ceremony
+    proposal's EXPLICIT REJECTION is a different lifecycle event with a
+    different destination (indeterminate+human, via
+    revive_ceremony_findings_for_rejected_proposal) — see
+    proposal_service.reject, not this module.
   * Assisted-lane proposals (constitutional_constraints['assisted_lane'],
     ADR-109) whose approved candidate failed at EXECUTION time (distinct
     from an explicit governor rejection — see
@@ -62,18 +72,19 @@ from typing import Any
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.autonomy.proposal_lineage import ProposalLineage, proposal_lineage
 
 
 logger = getLogger(__name__)
 
 
-async def _is_assisted_lane_proposal(proposal_id: str) -> bool:
-    """Return True iff *proposal_id* carries constitutional_constraints
-    ['assisted_lane'] — the sole signal distinguishing the two revival
-    lineages. Fail-closed to False (the autonomous path, the historical
+async def _proposal_revival_lineage(proposal_id: str) -> ProposalLineage:
+    """Classify *proposal_id*'s revival lineage via ``proposal_lineage()``
+    (ADR-154 D3) — the explicit three-way read, not a bare truthy check on
+    ``assisted_lane`` alone. Fail-closed to "autonomous" (the historical
     default) on any read error so a lookup hiccup degrades to existing
-    behavior rather than silently routing an autonomous proposal's
-    findings into the assisted-lane predicate, which would simply match
+    behavior rather than silently routing an assisted-lane or ceremony
+    proposal's findings into the wrong predicate, which would simply match
     zero rows and mask the failure differently."""
     from body.services.service_registry import service_registry
     from will.autonomy.proposal_repository import ProposalRepository
@@ -88,11 +99,11 @@ async def _is_assisted_lane_proposal(proposal_id: str) -> bool:
             proposal_id,
             fetch_err,
         )
-        return False
+        return "autonomous"
 
     if proposal is None:
-        return False
-    return bool(proposal.constitutional_constraints.get("assisted_lane"))
+        return "autonomous"
+    return proposal_lineage(proposal.constitutional_constraints)
 
 
 async def _revive_autonomous(proposal_id: str, reason: str) -> dict[str, Any] | None:
@@ -156,22 +167,27 @@ async def revive_and_report(
 
     Implements CORE-Finding.md §7a steps 1-3:
       1+2 (state transition) — delegated to
-          BlackboardService.revive_findings_for_failed_proposal
-          (autonomous) or .revive_delegated_findings_for_failed_proposal
-          (assisted-lane) — see module docstring for the lineage split.
+          BlackboardService.revive_findings_for_failed_proposal (autonomous
+          AND ceremony — see module docstring and ADR-154 D3: a ceremony
+          proposal's EXECUTION failure follows the same ADR-038 circuit-
+          breaker path as a plain autonomous proposal, because ceremony
+          findings stay resolution_mechanism='reaudit' while deferred) or
+          .revive_delegated_findings_for_failed_proposal (assisted-lane) —
+          see module docstring for the lineage split.
       3 (revival report)     — posted here via worker.post_report when one
                                or more findings were revived, using the
                                same proposal.failure.revival::<id> shape
-                               regardless of lineage (both revival dicts
+                               regardless of lineage (all revival dicts
                                share the same key shape by design).
 
     The ADR-104 D9 remediation-attempt cap (a finding that has now failed
     remediation that many times is abandoned (terminal Type-B) instead of
     revived, with a terminal
     ``blackboard.remediation_cap_reached::<finding_subject>`` observation
-    per ``worker_only_inserts``) applies ONLY to the autonomous lineage.
-    The governor-reject path (proposal_service.reject) also never passes
-    it — a human decision is not a remediation failure — and neither does
+    per ``worker_only_inserts``) applies to the autonomous AND ceremony
+    lineages alike (both revive via the same capped call). The
+    governor-reject path (proposal_service.reject) never passes it — a
+    human decision is not a remediation failure — and neither does
     assisted-lane execution failure, for the same reason (governor
     decision, 2026-08-23): a human delegated the work; the delegation does
     not expire because one attempt failed to execute.
@@ -179,9 +195,12 @@ async def revive_and_report(
     A zero-revival, zero-abandon outcome is legitimate (the proposal had no
     deferred findings) and is logged silently; nothing is posted then.
     """
-    if await _is_assisted_lane_proposal(proposal_id):
+    lineage = await _proposal_revival_lineage(proposal_id)
+    if lineage == "assisted_lane":
         revival = await _revive_assisted_lane(proposal_id, reason)
     else:
+        # "ceremony" and "autonomous" share the same execution-failure
+        # revival target (ADR-038) — see the docstring above for why.
         revival = await _revive_autonomous(proposal_id, reason)
 
     if not revival:

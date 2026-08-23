@@ -29,6 +29,7 @@ Two implementations:
 
 from __future__ import annotations
 
+import uuid
 from typing import Any, Protocol
 
 from shared.logger import getLogger
@@ -79,6 +80,21 @@ class RemediationBlackboard(Protocol):
         reason: str,
     ) -> None: ...
 
+    @property
+    # ID: 4c928475-acdd-48a8-97c7-95dd7b9a58a2
+    def worker_uuid(self) -> uuid.UUID | None:
+        """The real worker identity backing this blackboard, or None.
+
+        ADR-154 D3: the atomic ceremony proposal-submission path must
+        verify each claimed finding is still owned by the *expected*
+        worker, not merely by some worker — this is how the caller
+        supplies that expectation. None signals "no real worker identity"
+        (CLI file-mode's NullRemediationBlackboard, per ADR-154 D3a) —
+        callers must treat that as "cannot create a proposal here", not as
+        a claim check to skip.
+        """
+        ...
+
 
 # ID: 7dc3a952-fbaa-4543-8de8-04c88486d610
 class WorkerRemediationBlackboard:
@@ -93,6 +109,18 @@ class WorkerRemediationBlackboard:
     def __init__(self, worker: _Poster, core_context: Any) -> None:
         self._worker = worker
         self._ctx = core_context
+
+    @property
+    # ID: 7628dac4-6fc6-46cf-a44d-9aaed7760384
+    def worker_uuid(self) -> uuid.UUID | None:
+        """The wrapped Worker's genuine identity (Worker.worker_uuid).
+
+        getattr-defensive: _Poster only requires post_report/
+        post_observation, so a caller satisfying that narrower protocol
+        without a real worker_uuid attribute degrades to None rather than
+        raising — callers must already treat None as "no proposal here".
+        """
+        return getattr(self._worker, "worker_uuid", None)
 
     # ID: 55efc059-9953-4689-9e27-c16f96cee474
     async def post_report(self, subject: str, payload: dict[str, Any]) -> Any:
@@ -155,6 +183,13 @@ class NullRemediationBlackboard:
     Consequences for why this is a deliberate, recorded behavior change
     rather than an oversight.
     """
+
+    @property
+    # ID: 5a683f43-f46d-44a2-bf76-d43bca8ed21f
+    def worker_uuid(self) -> uuid.UUID | None:
+        """Always None — CLI file-mode has no real worker identity
+        (ADR-154 D3a: candidate-export-only, no proposal path)."""
+        return None
 
     # ID: 9019428b-837e-4ef1-807e-d43dd38711b6
     async def post_report(self, subject: str, payload: dict[str, Any]) -> None:

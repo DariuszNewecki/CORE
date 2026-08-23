@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+from contextlib import ExitStack
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,10 +10,21 @@ from will.remediation.ceremony import RemediationCeremony
 from will.remediation.models import _RemediationPlan
 
 
-def _make_ceremony(write: bool = False) -> RemediationCeremony:
+_WORKER_UUID = uuid.uuid4()
+
+
+def _make_ceremony(
+    write: bool = False, worker_uuid: uuid.UUID | None = None
+) -> RemediationCeremony:
+    """worker_uuid defaults to None (ADR-154 D3a shape: no real worker
+    identity) so every pre-D3 test in this file keeps exercising the legacy
+    dry-run/write branches it was written against, unchanged. D3-specific
+    tests pass worker_uuid=_WORKER_UUID explicitly to reach
+    _create_ceremony_draft instead."""
     ctx = MagicMock()
     ctx.action_executor = AsyncMock()
     blackboard = AsyncMock()
+    blackboard.worker_uuid = worker_uuid
     return RemediationCeremony(
         core_context=ctx,
         target_rule="rule.a",
@@ -283,3 +296,225 @@ async def test_execute_file_validate_diff_called_with_baseline_sha_and_rule_ids(
             "base_sha": "base-sha",
         },
     )
+
+
+# --- ADR-154 D3: canonical worker-backed ceremony -> human-gated DRAFT ---
+
+
+def _mk_candidate(**overrides):
+    from datetime import UTC, datetime
+
+    from shared.models.validated_remediation_candidate import (
+        _CONSTRUCTOR_TOKEN,
+        ValidatedRemediationCandidate,
+    )
+
+    defaults = dict(
+        candidate_id="cand-1",
+        patch="--- a/x\n+++ b/x\n",
+        patch_digest="digest-1",
+        production_set=["pkg/mod.py"],
+        validated_base_sha="base-sha",
+        validation_checks=["patch_applies"],
+        validation_results={"patch_applies": True},
+        finding_ids=["f1"],
+        rule_ids=["rule.a"],
+        created_at=datetime.now(UTC),
+        _construction_token=_CONSTRUCTOR_TOKEN,
+    )
+    defaults.update(overrides)
+    return ValidatedRemediationCandidate(**defaults)
+
+
+def _enter_passing_mocks(
+    stack: ExitStack, ceremony, validation_run_id: str = "run-1"
+) -> None:
+    """Enter the common patch set (everything up through a passing
+    assisted.validate_diff) into *stack*."""
+    stack.enter_context(
+        patch.object(ceremony, "_check_atomic_action_coverage", return_value=None)
+    )
+    stack.enter_context(
+        patch.object(ceremony, "_invoke_llm", new=AsyncMock(return_value="fixed"))
+    )
+    stack.enter_context(
+        patch.object(ceremony, "_pack_crate", new=AsyncMock(return_value="crate-1"))
+    )
+    stack.enter_context(
+        patch.object(ceremony, "_align_staged_file", new=AsyncMock(return_value=None))
+    )
+    stack.enter_context(
+        patch.object(ceremony, "_run_canary", new=AsyncMock(return_value=True))
+    )
+    stack.enter_context(
+        patch.object(
+            ceremony,
+            "_generate_patch",
+            new=AsyncMock(return_value="--- a/x\n+++ b/x\n"),
+        )
+    )
+    stack.enter_context(
+        _patch_submit_and_persist_fix(ok=True, run_id=validation_run_id)
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_file_worker_backed_creates_draft_and_skips_legacy_paths() -> (
+    None
+):
+    """A canonical worker-backed ceremony (real worker_uuid) with passing
+    validation creates a DRAFT via the atomic submission path and returns
+    without ever reaching the legacy dry-run or write/apply/commit
+    branches — regardless of self._write."""
+    ceremony = _make_ceremony(write=True, worker_uuid=_WORKER_UUID)
+    candidate = _mk_candidate()
+
+    with ExitStack() as stack:
+        _enter_passing_mocks(stack, ceremony)
+        build_mock = stack.enter_context(
+            patch(
+                "will.remediation.ceremony.build_validated_candidate",
+                new=AsyncMock(return_value=candidate),
+            )
+        )
+        submit_mock = stack.enter_context(
+            patch(
+                "will.remediation.ceremony.submit_ceremony_proposal",
+                new=AsyncMock(return_value="proposal-1"),
+            )
+        )
+        result = await ceremony._execute_file("pkg/mod.py", _FINDINGS, _plan())
+
+    assert result is True
+    build_mock.assert_awaited_once()
+    assert build_mock.await_args.kwargs["finding_ids"] == ["f1"]
+    assert build_mock.await_args.kwargs["rule_ids"] == ["rule.a"]
+    assert build_mock.await_args.kwargs["subject_files"] == ["pkg/mod.py"]
+
+    submit_mock.assert_awaited_once()
+    assert submit_mock.await_args.kwargs["finding_ids"] == ["f1"]
+    assert submit_mock.await_args.kwargs["expected_worker_uuid"] == _WORKER_UUID
+    assert submit_mock.await_args.kwargs["expected_rule_ids"] == ["rule.a"]
+
+    # Never reaches the legacy write/dry-run terminus.
+    ceremony._ctx.git_service.commit_paths.assert_not_called()
+    ceremony._blackboard.post_observation.assert_not_called()
+    ceremony._blackboard.mark_findings.assert_not_called()
+
+    report_call = ceremony._blackboard.post_report.await_args
+    assert report_call.kwargs["payload"]["proposal_id"] == "proposal-1"
+    assert report_call.kwargs["payload"]["candidate_id"] == "cand-1"
+
+
+@pytest.mark.asyncio
+async def test_execute_file_worker_backed_dry_run_also_creates_draft() -> None:
+    """Proposal creation must not depend on the legacy write flag — a
+    dry-run-mode ceremony with a real worker identity still creates a
+    DRAFT, not the discovery-only dry-run observation."""
+    ceremony = _make_ceremony(write=False, worker_uuid=_WORKER_UUID)
+    candidate = _mk_candidate()
+
+    with ExitStack() as stack:
+        _enter_passing_mocks(stack, ceremony)
+        stack.enter_context(
+            patch(
+                "will.remediation.ceremony.build_validated_candidate",
+                new=AsyncMock(return_value=candidate),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "will.remediation.ceremony.submit_ceremony_proposal",
+                new=AsyncMock(return_value="proposal-2"),
+            )
+        )
+        result = await ceremony._execute_file("pkg/mod.py", _FINDINGS, _plan())
+
+    assert result is True
+    ceremony._blackboard.post_observation.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_execute_file_candidate_construction_failure_aborts() -> None:
+    from shared.models.validated_remediation_candidate import (
+        CandidateConstructionError,
+    )
+
+    ceremony = _make_ceremony(write=True, worker_uuid=_WORKER_UUID)
+
+    with ExitStack() as stack:
+        _enter_passing_mocks(stack, ceremony)
+        stack.enter_context(
+            patch(
+                "will.remediation.ceremony.build_validated_candidate",
+                new=AsyncMock(side_effect=CandidateConstructionError("boom")),
+            )
+        )
+        submit_mock = stack.enter_context(
+            patch("will.remediation.ceremony.submit_ceremony_proposal", new=AsyncMock())
+        )
+        result = await ceremony._execute_file("pkg/mod.py", _FINDINGS, _plan())
+
+    assert result is False
+    submit_mock.assert_not_called()
+    post_failed_call = ceremony._blackboard.post_failed.await_args
+    assert "Candidate construction failed" in post_failed_call.args[4]
+
+
+@pytest.mark.asyncio
+async def test_execute_file_ceremony_submission_failure_does_not_touch_findings() -> (
+    None
+):
+    """A failed atomic submission must not call mark_findings at all — the
+    submission is all-or-nothing and changes nothing in the DB on failure,
+    so there is nothing to release/abandon, and doing so unconditionally
+    risks mutating a finding that now belongs to a different worker."""
+    from body.services.proposal_submission_service import ProposalSubmissionError
+
+    ceremony = _make_ceremony(write=True, worker_uuid=_WORKER_UUID)
+    candidate = _mk_candidate()
+
+    with ExitStack() as stack:
+        _enter_passing_mocks(stack, ceremony)
+        stack.enter_context(
+            patch(
+                "will.remediation.ceremony.build_validated_candidate",
+                new=AsyncMock(return_value=candidate),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "will.remediation.ceremony.submit_ceremony_proposal",
+                new=AsyncMock(side_effect=ProposalSubmissionError("stale claim")),
+            )
+        )
+        result = await ceremony._execute_file("pkg/mod.py", _FINDINGS, _plan())
+
+    assert result is False
+    ceremony._blackboard.mark_findings.assert_not_called()
+    post_failed_call = ceremony._blackboard.post_failed.await_args
+    assert "Ceremony proposal submission failed" in post_failed_call.args[4]
+
+
+@pytest.mark.asyncio
+async def test_execute_file_file_mode_shape_still_reaches_legacy_write() -> None:
+    """worker_uuid=None (CLI file-mode's NullRemediationBlackboard shape,
+    ADR-154 D3a) must still reach the legacy write terminus — candidate-
+    export-only, no proposal ever attempted."""
+    ceremony = _make_ceremony(write=True, worker_uuid=None)
+
+    with ExitStack() as stack:
+        _enter_passing_mocks(stack, ceremony)
+        submit_mock = stack.enter_context(
+            patch("will.remediation.ceremony.submit_ceremony_proposal", new=AsyncMock())
+        )
+        mock_svc = stack.enter_context(
+            patch("body.services.crate_processing_service.CrateProcessingService")
+        )
+        mock_svc.return_value.apply_and_finalize_crate = AsyncMock(return_value=None)
+        result = await ceremony._execute_file("pkg/mod.py", _FINDINGS, _plan())
+
+    assert result is True
+    submit_mock.assert_not_called()
+    mock_svc.return_value.apply_and_finalize_crate.assert_awaited_once_with("crate-1")
+    ceremony._ctx.git_service.commit_paths.assert_called_once()

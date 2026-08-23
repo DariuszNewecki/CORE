@@ -24,6 +24,7 @@ from body.services.service_registry import service_registry
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.autonomy.proposal import Proposal, ProposalScope, ProposalStatus
+from will.autonomy.proposal_lineage import proposal_lineage
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
 
@@ -157,7 +158,7 @@ class ProposalService:
     async def reject(self, proposal_id: str, reason: str) -> int:
         """Reject proposal and revive deferred findings (ADR-010 §7a).
 
-        Two revival paths by proposal lineage:
+        Three revival paths by proposal lineage (will.autonomy.proposal_lineage):
 
         - Assisted-lane proposals (ADR-109; ``constitutional_constraints
           ['assisted_lane']``) revive their delegated finding straight back to
@@ -165,8 +166,21 @@ class ProposalService:
           Rejecting the agent's diff does not rescind the delegation (ADR-109
           D4). The generic path would never match these (it requires
           ``resolution_mechanism='reaudit'``), so they must route here.
-        - Autonomous proposals revive deferred findings to ``awaiting_reaudit``
-          for the audit sensor to re-adjudicate (ADR-045).
+        - Ceremony proposals (ADR-154; ``constitutional_constraints
+          ['proposal_origin'] == 'ceremony'``) ALSO land at
+          ``indeterminate+human`` on explicit rejection — same destination as
+          assisted-lane, different Body operation (
+          ``revive_ceremony_findings_for_rejected_proposal``), because a
+          ceremony finding's ``resolution_mechanism`` is ``'reaudit'`` at
+          deferral time, not ``'human'`` — the assisted-lane helper's
+          predicate would match zero rows. This is deliberately NOT the same
+          destination ceremony execution-failure uses (ADR-038
+          awaiting_reaudit, see proposal_consumer_revival.py) — an explicit
+          human rejection must not silently re-enter the autonomous
+          generate-and-retry loop.
+        - Autonomous proposals (the historical default lineage) revive
+          deferred findings to ``awaiting_reaudit`` for the audit sensor to
+          re-adjudicate (ADR-045).
 
         Returns revived_count (0 if no findings were deferred).
         """
@@ -174,10 +188,16 @@ class ProposalService:
         proposal = await self._repository.get(proposal_id)
         bb_service = await service_registry.get_blackboard_service()
 
-        if proposal is not None and proposal.constitutional_constraints.get(
-            "assisted_lane"
-        ):
+        lineage = proposal_lineage(
+            proposal.constitutional_constraints if proposal is not None else None
+        )
+        if lineage == "assisted_lane":
             revival = await bb_service.revive_delegated_findings_for_rejected_proposal(
+                proposal_id=proposal_id,
+                reason=reason,
+            )
+        elif lineage == "ceremony":
+            revival = await bb_service.revive_ceremony_findings_for_rejected_proposal(
                 proposal_id=proposal_id,
                 reason=reason,
             )
