@@ -16,7 +16,7 @@ always refuse). The ``_touches_audit_engine`` tests are updated accordingly.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from body.atomic.assisted_actions import (
     _EngineTouchResult,
@@ -205,3 +205,97 @@ async def test_apply_diff_refuses_without_git_service() -> None:
     result = await fn(patch="--- a/x\n+++ b/x\n", core_context=ctx)
     assert result.ok is False
     assert "git_service" in result.data["error"]
+
+
+# --- action_assisted_apply_diff base-SHA fail-closed check (ADR-154 D2) ---
+
+
+async def test_apply_diff_refuses_without_validated_base_sha() -> None:
+    fn = action_assisted_apply_diff.__wrapped__
+    result = await fn(
+        patch="--- a/x\n+++ b/x\n", validated_base_sha=None, core_context=MagicMock()
+    )
+    assert result.ok is False
+    assert "validated_base_sha" in result.data["error"]
+
+
+async def test_apply_diff_refuses_on_intervening_commit() -> None:
+    """A repository whose HEAD has moved since validation (an intervening
+    commit) must refuse — never apply against a tree the candidate was not
+    actually validated against."""
+    fn = action_assisted_apply_diff.__wrapped__
+    ctx = MagicMock()
+    ctx.git_service.get_current_commit.return_value = "actual-head-sha"
+
+    with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
+        result = await fn(
+            patch="--- a/x\n+++ b/x\n",
+            validated_base_sha="validated-sha",
+            core_context=ctx,
+        )
+
+    assert result.ok is False
+    assert result.data["applied"] is False
+    assert result.data["validated_base_sha"] == "validated-sha"
+    assert result.data["executing_sha"] == "actual-head-sha"
+    assert "Base-SHA mismatch" in result.data["error"]
+    # Must refuse before ever attempting to apply.
+    run_git.assert_not_called()
+
+
+async def test_apply_diff_applies_when_head_matches_validated_base_sha() -> None:
+    fn = action_assisted_apply_diff.__wrapped__
+    ctx = MagicMock()
+    ctx.git_service.get_current_commit.return_value = "same-sha"
+    ctx.git_service.repo_path = "/repo"
+
+    with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
+        run_git.return_value = MagicMock(returncode=0, stderr="")
+        result = await fn(
+            patch="--- a/x\n+++ b/x\n",
+            validated_base_sha="same-sha",
+            core_context=ctx,
+        )
+
+    assert result.ok is True
+    assert result.data["applied"] is True
+    run_git.assert_called_once()
+
+
+# --- action_assisted_validate_diff records validated_base_sha (ADR-154 D2) ---
+
+
+async def test_validate_diff_records_validated_base_sha_for_passing_run() -> None:
+    """The worktree's actual commit SHA — captured at worktree creation, not a
+    later HEAD read — is recorded on a passing run so a subsequent apply can
+    fail closed against it."""
+    fn = action_assisted_validate_diff.__wrapped__
+
+    worktree = MagicMock()
+    worktree.repo_path = "/tmp/fake-worktree"
+    worktree.get_current_commit.return_value = "worktree-sha-123"
+
+    ctx = MagicMock()
+    ctx.git_service.create_worktree.return_value = worktree
+
+    def _run_git(_wt_path, *args, **kwargs):
+        if args[:1] == ("apply",):
+            return MagicMock(returncode=0, stderr="")
+        if args[:2] == ("diff", "--name-only"):
+            # A non-Python touched file keeps ruff/engine-touch/test routing
+            # trivial (all short-circuit to True with no further subprocess
+            # or DB-backed calls) so this stays a focused unit test.
+            return MagicMock(stdout="README.md\n")
+        raise AssertionError(f"unexpected git invocation: {args}")
+
+    with patch("body.atomic.assisted_actions.ToolRunner.run_git", side_effect=_run_git):
+        result = await fn(
+            patch="--- a/README.md\n+++ b/README.md\n",
+            finding_rule="purity.no_orphan_files",
+            subject_files=None,
+            core_context=ctx,
+        )
+
+    assert result.ok is True
+    assert result.data["validated_base_sha"] == "worktree-sha-123"
+    worktree.cleanup.assert_called_once()

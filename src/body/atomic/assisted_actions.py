@@ -203,6 +203,11 @@ async def action_assisted_validate_diff(
 
     worktree = core_context.git_service.create_worktree("HEAD")
     wt_path = Path(worktree.repo_path)
+    # ADR-154 D2: the exact commit SHA of the hermetic worktree this run
+    # validates against — captured immediately at worktree creation, never
+    # re-derived from a later read of production HEAD. This is the value
+    # assisted.apply_diff must later match before it is allowed to apply.
+    validated_base_sha = worktree.get_current_commit()
     checks: dict[str, bool] = {}
     touched: list[str] = []
     subprocess_error: str | None = None
@@ -366,6 +371,10 @@ async def action_assisted_validate_diff(
             # who edits the diff after validating cannot ride a stale PASS
             # into the approval queue (ADR-109 mechanism §4).
             "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
+            # ADR-154 D2: the exact worktree commit this run validated
+            # against — assisted.apply_diff fails closed unless the
+            # executing repository's HEAD still equals this value.
+            "validated_base_sha": validated_base_sha,
         }
         if subprocess_error is not None:
             result_data["subprocess_error"] = subprocess_error
@@ -404,6 +413,7 @@ async def action_assisted_validate_diff(
 async def action_assisted_apply_diff(
     *,
     patch: str | None = None,
+    validated_base_sha: str | None = None,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
@@ -414,8 +424,20 @@ async def action_assisted_apply_diff(
     earlier and is decoupled from this action. This action NEVER validates —
     it assumes the governor's approval is the authorization.
 
+    ADR-154 D2 fail-closed base-SHA check: *validated_base_sha* is the exact
+    worktree commit the candidate's ``assisted.validate_diff`` run validated
+    against (frozen into the proposal at draft-creation time). This action
+    refuses to apply unless the repository it is actually executing against
+    (``core_context.git_service`` — the sandboxed worktree when running under
+    ``ProposalExecutor``) currently sits at exactly that commit. Any
+    intervening commit between validation and execution requires
+    revalidation and renewed approval — building against an old base and
+    propagating onto a newer tree is never silently allowed.
+
     Args:
         patch: a unified diff to apply to the main working tree.
+        validated_base_sha: the commit SHA the candidate was validated
+            against. Required — an apply with no bound base SHA is refused.
         core_context: injected by ActionExecutor; supplies ``git_service``.
     """
     started = time.perf_counter()
@@ -435,6 +457,35 @@ async def action_assisted_apply_diff(
             ok=False,
             data={
                 "error": "assisted.apply_diff requires a core_context with git_service"
+            },
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+    if not validated_base_sha:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={"error": "assisted.apply_diff requires 'validated_base_sha'"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+
+    executing_sha = core_context.git_service.get_current_commit()
+    if executing_sha != validated_base_sha:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "applied": False,
+                "error": (
+                    "Base-SHA mismatch: candidate was validated against "
+                    f"{validated_base_sha}, but the repository this action is "
+                    f"executing against is at {executing_sha}. An intervening "
+                    "commit invalidates this candidate — revalidate and "
+                    "obtain renewed approval before applying (ADR-154 D2)."
+                ),
+                "validated_base_sha": validated_base_sha,
+                "executing_sha": executing_sha,
             },
             impact=ActionImpact.WRITE_CODE,
             duration_sec=time.perf_counter() - started,

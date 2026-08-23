@@ -11,12 +11,35 @@ forwarded and the rows passed straight back.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.models.validated_remediation_candidate import (
+    CandidateConstructionError,
+    ValidatedRemediationCandidate,
+)
 from will.autonomy.lane_service import LaneProposeError, LaneService
+
+
+def _candidate(**overrides) -> ValidatedRemediationCandidate:
+    """A fully-formed candidate for tests that don't care about every field."""
+    defaults = dict(
+        candidate_id="cand-1",
+        patch="--- a/src/x.py\n+++ b/src/x.py\n",
+        patch_digest="deadbeef",
+        production_set=["src/x.py", "src/base.py"],
+        validated_base_sha="base-sha-1",
+        validation_checks=["assisted.validate_diff"],
+        validation_results={"assisted.validate_diff": True},
+        finding_ids=["f-1"],
+        rule_ids=["modularity.class_too_large"],
+        created_at=datetime(2026, 8, 23, tzinfo=UTC),
+    )
+    defaults.update(overrides)
+    return ValidatedRemediationCandidate(**defaults)
 
 
 async def test_list_delegated_findings_delegates_to_blackboard():
@@ -66,8 +89,10 @@ def _patch_proposals(create_mock: AsyncMock):
 
 
 async def test_propose_validated_diff_creates_proposal_and_defers():
-    """The happy path builds a human-gated, validation-gated, assisted-lane
-    proposal that runs assisted.apply_diff with the patch, then defers the
+    """The happy path constructs the frozen candidate via the Body-owned
+    trusted validation service, builds a human-gated, validation-gated,
+    assisted-lane proposal that runs assisted.apply_diff with the patch and
+    the candidate's validated_base_sha (ADR-154 D2), then defers the
     delegated finding to it (ADR-109 D3/D4)."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_finding = AsyncMock(
@@ -80,37 +105,52 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     )
     bb_service.defer_delegated_finding_to_proposal = AsyncMock(return_value=1)
     create = AsyncMock(return_value="prop-abc")
+    candidate = _candidate()
+    build_candidate = AsyncMock(return_value=candidate)
 
     with (
         patch(
             "will.autonomy.lane_service.service_registry.get_blackboard_service",
             AsyncMock(return_value=bb_service),
         ),
+        patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
         _patch_proposals(create),
     ):
-        proposal_id = await LaneService().propose_validated_diff(
+        proposal_id, production_set = await LaneService().propose_validated_diff(
             finding_id="f-1",
             patch="--- a/src/x.py\n+++ b/src/x.py\n",
-            production_set=["src/x.py", "src/base.py"],
+            validation_run_id="run-1",
         )
 
     assert proposal_id == "prop-abc"
+    assert production_set == candidate.production_set
 
-    # The proposal handed to create carries the lane's mandatory shape.
+    build_candidate.assert_awaited_once_with(
+        finding_ids=["f-1"],
+        rule_ids=["modularity.class_too_large"],
+        patch="--- a/src/x.py\n+++ b/src/x.py\n",
+        validation_run_id="run-1",
+    )
+
+    # The proposal handed to create carries the lane's mandatory shape,
+    # sourced from the candidate's own recorded verdict — never asserted.
     (proposal,), _ = create.call_args
     assert proposal.approval_required is True  # ADR-109 D3 — mandatory
-    assert proposal.validation_checks == ["assisted.validate_diff"]
-    assert proposal.validation_results == {"assisted.validate_diff": True}
-    assert proposal.scope.files == ["src/x.py", "src/base.py"]
+    assert proposal.validation_checks == candidate.validation_checks
+    assert proposal.validation_results == candidate.validation_results
+    assert proposal.scope.files == candidate.production_set
     assert proposal.constitutional_constraints["assisted_lane"] is True
     assert proposal.constitutional_constraints["finding_ids"] == ["f-1"]
     assert proposal.constitutional_constraints["rules"] == [
         "modularity.class_too_large"
     ]
+    assert proposal.constitutional_constraints["candidate_id"] == "cand-1"
+    assert proposal.constitutional_constraints["validated_base_sha"] == "base-sha-1"
     assert len(proposal.actions) == 1
     action = proposal.actions[0]
     assert action.action_id == "assisted.apply_diff"
-    assert action.parameters["patch"] == "--- a/src/x.py\n+++ b/src/x.py\n"
+    assert action.parameters["patch"] == candidate.patch
+    assert action.parameters["validated_base_sha"] == "base-sha-1"
 
     bb_service.defer_delegated_finding_to_proposal.assert_awaited_once_with(
         "f-1", "prop-abc"
@@ -119,24 +159,66 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
 
 async def test_propose_raises_when_finding_not_live():
     """A finding that is not a live delegated lane item (None) raises
-    LaneProposeError before any proposal is created."""
+    LaneProposeError before candidate construction or proposal creation."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_finding = AsyncMock(return_value=None)
     bb_service.defer_delegated_finding_to_proposal = AsyncMock()
     create = AsyncMock()
+    build_candidate = AsyncMock()
 
     with (
         patch(
             "will.autonomy.lane_service.service_registry.get_blackboard_service",
             AsyncMock(return_value=bb_service),
         ),
+        patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
         _patch_proposals(create),
     ):
         with pytest.raises(LaneProposeError):
             await LaneService().propose_validated_diff(
                 finding_id="missing",
                 patch="x",
-                production_set=["src/x.py"],
+                validation_run_id="run-1",
+            )
+
+    build_candidate.assert_not_awaited()
+    create.assert_not_awaited()
+    bb_service.defer_delegated_finding_to_proposal.assert_not_awaited()
+
+
+async def test_propose_propagates_candidate_construction_error():
+    """A validation run that fails ADR-154 D2's preconditions (unknown run,
+    patch mismatch, missing base SHA, ...) propagates CandidateConstructionError
+    before any proposal is created — the caller never rides a stale/asserted
+    verdict."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_finding = AsyncMock(
+        return_value={
+            "id": "f-1",
+            "subject": "s",
+            "payload": {"rule": "modularity.class_too_large"},
+            "created_at": None,
+        }
+    )
+    bb_service.defer_delegated_finding_to_proposal = AsyncMock()
+    create = AsyncMock()
+    build_candidate = AsyncMock(
+        side_effect=CandidateConstructionError("Unknown validation run: run-1")
+    )
+
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
+        _patch_proposals(create),
+    ):
+        with pytest.raises(CandidateConstructionError):
+            await LaneService().propose_validated_diff(
+                finding_id="f-1",
+                patch="x",
+                validation_run_id="run-1",
             )
 
     create.assert_not_awaited()

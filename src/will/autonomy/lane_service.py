@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Any
 
 from body.services.service_registry import service_registry
+from body.services.validated_candidate_service import build_validated_candidate
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.remediation_guidance import (
@@ -40,11 +41,6 @@ from will.autonomy.proposal_service import ProposalService
 
 
 logger = getLogger(__name__)
-
-# The action-level check the assisted-lane proposal declares. The approval
-# gate (proposal_state_manager.approve, ADR-109 #654) refuses approval until
-# this check is recorded passing in validation_results.
-_VALIDATION_CHECK = "assisted.validate_diff"
 
 
 # ID: de400506-977d-4a2f-9703-d44ee8a62a71
@@ -172,30 +168,41 @@ class LaneService:
         self,
         finding_id: str,
         patch: str,
-        production_set: list[str],
-    ) -> str:
+        validation_run_id: str,
+    ) -> tuple[str, list[str]]:
         """Turn a validated agent diff into a human-gated proposal (ADR-109 D3/D4).
 
-        Orchestration only — validation already ran (CLI-triggered
-        ``assisted.validate_diff``) and the route verified its persisted verdict
-        before calling this; ``production_set`` is the touched-file set the gate
-        reported (ADR-101 D2 commit set). This method:
+        Orchestration only. Unlike the pre-ADR-154-D2 shape, this method does
+        not trust a caller-supplied ``production_set`` or ``validation_results``
+        — it constructs the frozen ``ValidatedRemediationCandidate`` itself via
+        the Body-owned trusted validation service (ADR-154 D2), which re-reads
+        the named ``assisted.validate_diff`` run's persisted verdict and
+        confirms *patch* matches the exact bytes that were validated. This
+        method:
 
         1. confirms the finding is still a live delegated lane item (and reads
            its rule for the proposal's goal + constitutional constraints);
-        2. creates a DRAFT proposal that, on approval, runs ``assisted.apply_diff``
-           with the patch — ``approval_required=True`` is mandatory for the
-           multi-file assisted lane (ADR-109 D3, the human gate licenses the
-           ADR-035 multi-file exception), and ``validation_checks`` engages the
-           approval gate (#654) which is satisfied by the recorded
-           ``validation_results``;
-        3. defers the finding to the proposal (``indeterminate+human`` →
+        2. constructs the validated candidate (raises on any precondition
+           failure — unknown run, wrong action, failed/incomplete run, patch
+           mismatch, or missing base-SHA evidence);
+        3. creates a DRAFT proposal that, on approval, runs ``assisted.apply_diff``
+           with the patch and the candidate's ``validated_base_sha`` (the
+           fail-closed base-SHA check ADR-154 D2 requires) —
+           ``approval_required=True`` is mandatory for the multi-file assisted
+           lane (ADR-109 D3, the human gate licenses the ADR-035 multi-file
+           exception), and ``validation_checks``/``validation_results`` are
+           the candidate's real recorded verdict, not a caller assertion;
+        4. defers the finding to the proposal (``indeterminate+human`` →
            ``deferred_to_proposal``), moving it out of the inbox into tracked.
 
-        Returns the new proposal id.
+        Returns ``(proposal_id, production_set)``.
 
         Raises:
             LaneProposeError: the finding is not a live delegated lane item.
+            CandidateConstructionError: the named validation run does not
+                back a valid candidate (propagates from
+                ``build_validated_candidate`` — see that function for the
+                exact precondition failures).
         """
         bb_service = await service_registry.get_blackboard_service()
         finding = await bb_service.fetch_delegated_finding(finding_id)
@@ -208,32 +215,45 @@ class LaneService:
         payload = finding.get("payload") or {}
         rule = payload.get("rule") or payload.get("rule_id") or "unknown"
 
+        candidate = await build_validated_candidate(
+            finding_ids=[finding_id],
+            rule_ids=[rule],
+            patch=patch,
+            validation_run_id=validation_run_id,
+        )
+
         proposal = Proposal(
             goal=(
                 f"Assisted remediation of {rule} "
-                f"({len(production_set)} file(s)) via agent-authored diff"
+                f"({len(candidate.production_set)} file(s)) via agent-authored diff"
             ),
             actions=[
                 ProposalAction(
                     action_id="assisted.apply_diff",
-                    parameters={"patch": patch, "write": True},
+                    parameters={
+                        "patch": candidate.patch,
+                        "validated_base_sha": candidate.validated_base_sha,
+                        "write": True,
+                    },
                     order=0,
                 )
             ],
-            scope=ProposalScope(files=list(production_set)),
+            scope=ProposalScope(files=list(candidate.production_set)),
             status=ProposalStatus.DRAFT,
             created_by="assisted-lane",
-            # The validation gate (#654): declared check + recorded pass. The
-            # route confirmed the persisted verdict before this call, so the
-            # recorded result reflects a real assisted.validate_diff run.
-            validation_checks=[_VALIDATION_CHECK],
-            validation_results={_VALIDATION_CHECK: True},
+            # The validation gate (#654): the candidate's real recorded
+            # verdict — never a caller-asserted True (ADR-154 D2).
+            validation_checks=candidate.validation_checks,
+            validation_results=candidate.validation_results,
             # ADR-109 D3 — the human gate is the precondition that licenses the
             # multi-file exception; mandatory regardless of computed risk.
             approval_required=True,
             constitutional_constraints={
-                "finding_ids": [finding_id],
-                "rules": [rule],
+                "finding_ids": candidate.finding_ids,
+                "rules": candidate.rule_ids,
+                "candidate_id": candidate.candidate_id,
+                "patch_digest": candidate.patch_digest,
+                "validated_base_sha": candidate.validated_base_sha,
                 # Marks the proposal as assisted-lane so reject revives the
                 # finding to indeterminate+human (ADR-109 D4), not the
                 # autonomous awaiting_reaudit path.
@@ -248,10 +268,12 @@ class LaneService:
             finding_id, proposal_id
         )
         logger.info(
-            "Assisted lane: finding %s -> proposal %s (deferred=%d, files=%d)",
+            "Assisted lane: finding %s -> proposal %s (deferred=%d, files=%d, "
+            "candidate=%s)",
             finding_id,
             proposal_id,
             deferred,
-            len(production_set),
+            len(candidate.production_set),
+            candidate.candidate_id,
         )
-        return proposal_id
+        return proposal_id, candidate.production_set

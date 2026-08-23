@@ -4,13 +4,18 @@
 
 Covers GET /lane (list delegated findings). Mocks the Will-layer
 LaneService the route routes through; the route runs no action and owns no
-session, so the only collaborator to stub is list_delegated_findings.
+session — ADR-154 D2 moved the former inline `core.fix_runs` re-read out of
+this module entirely, into the Body-owned trusted validation service reached
+via LaneService. `propose` tests here only cover the route's job: call
+LaneService and map its outcome (success, CandidateConstructionError,
+LaneProposeError) to the right HTTP response. The privileged-verification
+behavior itself is covered by
+`tests/body/services/test_validated_candidate_service.py`.
 """
 
 from __future__ import annotations
 
-import hashlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -22,6 +27,8 @@ from api.v1.lane_routes import (
     next_delegated_finding,
     propose_diff,
 )
+from shared.models.validated_remediation_candidate import CandidateConstructionError
+from will.autonomy.lane_service import LaneProposeError
 
 
 def _mk_finding(fid: str = "f-1") -> dict:
@@ -34,31 +41,6 @@ def _mk_finding(fid: str = "f-1") -> dict:
 
 
 _PATCH = "--- a/src/x.py\n+++ b/src/x.py\n"
-
-
-def _session_returning(row: dict | None) -> AsyncMock:
-    """A session stub whose execute().mappings().first() yields *row*."""
-    session = AsyncMock()
-    exec_result = MagicMock()
-    exec_result.mappings.return_value.first.return_value = row
-    session.execute = AsyncMock(return_value=exec_result)
-    return session
-
-
-def _fix_row(*, ok: bool, patch: str = _PATCH, production_set=None) -> dict:
-    """A core.fix_runs row mapping for a completed assisted.validate_diff run."""
-    return {
-        "fix_id": "assisted.validate_diff",
-        "status": "completed",
-        "result": {
-            "ok": ok,
-            "data": {
-                "validation_results": {"patch_applies": ok, "ruff": ok},
-                "production_set": production_set or ["src/x.py"],
-                "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
-            },
-        },
-    }
 
 
 async def test_list_delegated_wraps_findings_in_count_envelope():
@@ -86,85 +68,57 @@ async def test_list_delegated_empty_returns_zero_count():
     assert out == {"count": 0, "findings": []}
 
 
-# --- propose: the verdict gate ------------------------------------------------
+# --- propose: outcome mapping (verification itself lives in Body — ADR-154 D2) ---
 
 
-async def test_propose_rejects_unknown_validation_run():
-    """No fix_runs row for the named run → 422, no proposal created."""
+async def test_propose_rejects_candidate_construction_error():
+    """Any ADR-154 D2 precondition failure on the named validation run
+    (unknown run, wrong action, failed run, patch mismatch, missing base
+    SHA — see test_validated_candidate_service.py for each) surfaces from
+    LaneService as CandidateConstructionError; the route maps it to 422 and
+    creates nothing."""
     body = ProposeRequest(patch=_PATCH, validation_run_id="missing")
     service = AsyncMock()
+    service.propose_validated_diff = AsyncMock(
+        side_effect=CandidateConstructionError("Unknown validation run: missing")
+    )
+
     with patch("api.v1.lane_routes.LaneService", return_value=service):
         with pytest.raises(HTTPException) as exc:
-            await propose_diff(
-                finding_id="f-1", body=body, session=_session_returning(None)
-            )
+            await propose_diff(finding_id="f-1", body=body)
+
     assert exc.value.status_code == 422
-    service.propose_validated_diff.assert_not_called()
+    assert "Unknown validation run" in exc.value.detail
 
 
-async def test_propose_rejects_failed_validation():
-    """A run that did not pass cannot become a proposal (422)."""
+async def test_propose_rejects_finding_not_live():
+    """A finding that is no longer a live delegated lane item surfaces as
+    LaneProposeError; the route maps it to 409."""
     body = ProposeRequest(patch=_PATCH, validation_run_id="run-1")
     service = AsyncMock()
+    service.propose_validated_diff = AsyncMock(
+        side_effect=LaneProposeError("Finding 'f-1' is not a live delegated lane item")
+    )
+
     with patch("api.v1.lane_routes.LaneService", return_value=service):
         with pytest.raises(HTTPException) as exc:
-            await propose_diff(
-                finding_id="f-1",
-                body=body,
-                session=_session_returning(_fix_row(ok=False)),
-            )
-    assert exc.value.status_code == 422
-    service.propose_validated_diff.assert_not_called()
+            await propose_diff(finding_id="f-1", body=body)
 
-
-async def test_propose_rejects_patch_mismatch():
-    """A passing verdict bound to different bytes than submitted → 422.
-
-    Guards the realistic mistake: the agent edits the diff after validating
-    and forgets to re-validate."""
-    body = ProposeRequest(patch="DIFFERENT BYTES\n", validation_run_id="run-1")
-    service = AsyncMock()
-    with patch("api.v1.lane_routes.LaneService", return_value=service):
-        with pytest.raises(HTTPException) as exc:
-            await propose_diff(
-                finding_id="f-1",
-                body=body,
-                session=_session_returning(_fix_row(ok=True)),
-            )
-    assert exc.value.status_code == 422
-    service.propose_validated_diff.assert_not_called()
-
-
-async def test_propose_rejects_non_validate_run():
-    """A run id that points at some other action is refused (422)."""
-    body = ProposeRequest(patch=_PATCH, validation_run_id="run-1")
-    row = _fix_row(ok=True)
-    row["fix_id"] = "fix.docstrings"
-    service = AsyncMock()
-    with patch("api.v1.lane_routes.LaneService", return_value=service):
-        with pytest.raises(HTTPException) as exc:
-            await propose_diff(
-                finding_id="f-1", body=body, session=_session_returning(row)
-            )
-    assert exc.value.status_code == 422
-    service.propose_validated_diff.assert_not_called()
+    assert exc.value.status_code == 409
 
 
 async def test_propose_happy_path_creates_proposal():
-    """A passing, patch-bound verdict routes to LaneService and returns the
-    draft proposal envelope with the verified production set."""
+    """A LaneService success routes back through as the draft proposal
+    envelope with the production set LaneService (via the candidate)
+    reported — the route asserts nothing about validation itself."""
     body = ProposeRequest(patch=_PATCH, validation_run_id="run-1")
     service = AsyncMock()
-    service.propose_validated_diff = AsyncMock(return_value="prop-xyz")
+    service.propose_validated_diff = AsyncMock(
+        return_value=("prop-xyz", ["src/x.py", "src/base.py"])
+    )
 
     with patch("api.v1.lane_routes.LaneService", return_value=service):
-        out = await propose_diff(
-            finding_id="f-1",
-            body=body,
-            session=_session_returning(
-                _fix_row(ok=True, production_set=["src/x.py", "src/base.py"])
-            ),
-        )
+        out = await propose_diff(finding_id="f-1", body=body)
 
     assert out == {
         "proposal_id": "prop-xyz",
@@ -175,7 +129,7 @@ async def test_propose_happy_path_creates_proposal():
     service.propose_validated_diff.assert_awaited_once_with(
         finding_id="f-1",
         patch=_PATCH,
-        production_set=["src/x.py", "src/base.py"],
+        validation_run_id="run-1",
     )
 
 
