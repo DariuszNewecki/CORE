@@ -413,6 +413,7 @@ async def action_assisted_validate_diff(
 async def action_assisted_apply_diff(
     *,
     patch: str | None = None,
+    patch_digest: str | None = None,
     validated_base_sha: str | None = None,
     core_context: CoreContext | None = None,
     **kwargs: Any,
@@ -424,18 +425,32 @@ async def action_assisted_apply_diff(
     earlier and is decoupled from this action. This action NEVER validates —
     it assumes the governor's approval is the authorization.
 
-    ADR-154 D2 fail-closed base-SHA check: *validated_base_sha* is the exact
-    worktree commit the candidate's ``assisted.validate_diff`` run validated
-    against (frozen into the proposal at draft-creation time). This action
-    refuses to apply unless the repository it is actually executing against
-    (``core_context.git_service`` — the sandboxed worktree when running under
-    ``ProposalExecutor``) currently sits at exactly that commit. Any
-    intervening commit between validation and execution requires
-    revalidation and renewed approval — building against an old base and
-    propagating onto a newer tree is never silently allowed.
+    ADR-154 D2 fail-closed checks — approval binds the tuple
+    ``patch_digest + production_set + validated_base_sha``; this action
+    actively re-verifies the two members of that tuple whose truth is
+    determined only at execution time (the third, ``production_set``, is
+    ADR-101 D2's commit-set concern, not this action's):
+
+    - *validated_base_sha*: the exact worktree commit the candidate's
+      ``assisted.validate_diff`` run validated against (frozen into the
+      proposal at draft-creation time). Refuses unless the repository this
+      action is actually executing against (``core_context.git_service`` —
+      the sandboxed worktree when running under ``ProposalExecutor``)
+      currently sits at exactly that commit. An intervening commit between
+      validation and execution requires revalidation and renewed approval —
+      building against an old base and propagating onto a newer tree is
+      never silently allowed.
+    - *patch_digest*: sha256 of *patch*, recorded at candidate-construction
+      time (never caller-supplied — ADR-154 D2). Refuses unless
+      ``sha256(patch)`` still equals it, so that even a code path that
+      re-serialises or otherwise alters the frozen ``patch`` bytes between
+      proposal creation and execution cannot silently apply something other
+      than what the governor actually approved.
 
     Args:
         patch: a unified diff to apply to the main working tree.
+        patch_digest: sha256 of *patch* recorded at validation time.
+            Required — an apply with no bound digest is refused.
         validated_base_sha: the commit SHA the candidate was validated
             against. Required — an apply with no bound base SHA is refused.
         core_context: injected by ActionExecutor; supplies ``git_service``.
@@ -469,6 +484,14 @@ async def action_assisted_apply_diff(
             impact=ActionImpact.WRITE_CODE,
             duration_sec=time.perf_counter() - started,
         )
+    if not patch_digest:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={"error": "assisted.apply_diff requires 'patch_digest'"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
 
     executing_sha = core_context.git_service.get_current_commit()
     if executing_sha != validated_base_sha:
@@ -486,6 +509,27 @@ async def action_assisted_apply_diff(
                 ),
                 "validated_base_sha": validated_base_sha,
                 "executing_sha": executing_sha,
+            },
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+
+    actual_digest = hashlib.sha256(patch.encode("utf-8")).hexdigest()
+    if actual_digest != patch_digest:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "applied": False,
+                "error": (
+                    "Patch-digest mismatch: the approved candidate was bound "
+                    f"to digest {patch_digest}, but the patch bytes reaching "
+                    f"apply hash to {actual_digest}. The approved evidence no "
+                    "longer matches what would be applied — refusing "
+                    "(ADR-154 D2)."
+                ),
+                "patch_digest": patch_digest,
+                "actual_digest": actual_digest,
             },
             impact=ActionImpact.WRITE_CODE,
             duration_sec=time.perf_counter() - started,

@@ -232,6 +232,7 @@ class LaneService:
                     action_id="assisted.apply_diff",
                     parameters={
                         "patch": candidate.patch,
+                        "patch_digest": candidate.patch_digest,
                         "validated_base_sha": candidate.validated_base_sha,
                         "write": True,
                     },

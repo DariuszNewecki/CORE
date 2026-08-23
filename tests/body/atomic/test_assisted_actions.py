@@ -16,6 +16,7 @@ always refuse). The ``_touches_audit_engine`` tests are updated accordingly.
 
 from __future__ import annotations
 
+import hashlib
 from unittest.mock import MagicMock, patch
 
 from body.atomic.assisted_actions import (
@@ -207,16 +208,31 @@ async def test_apply_diff_refuses_without_git_service() -> None:
     assert "git_service" in result.data["error"]
 
 
-# --- action_assisted_apply_diff base-SHA fail-closed check (ADR-154 D2) ---
+# --- action_assisted_apply_diff base-SHA / patch-digest fail-closed checks (ADR-154 D2) ---
+
+_APPLY_PATCH = "--- a/x\n+++ b/x\n"
+_APPLY_PATCH_DIGEST = hashlib.sha256(_APPLY_PATCH.encode("utf-8")).hexdigest()
 
 
 async def test_apply_diff_refuses_without_validated_base_sha() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     result = await fn(
-        patch="--- a/x\n+++ b/x\n", validated_base_sha=None, core_context=MagicMock()
+        patch=_APPLY_PATCH, validated_base_sha=None, core_context=MagicMock()
     )
     assert result.ok is False
     assert "validated_base_sha" in result.data["error"]
+
+
+async def test_apply_diff_refuses_without_patch_digest() -> None:
+    fn = action_assisted_apply_diff.__wrapped__
+    result = await fn(
+        patch=_APPLY_PATCH,
+        validated_base_sha="some-sha",
+        patch_digest=None,
+        core_context=MagicMock(),
+    )
+    assert result.ok is False
+    assert "patch_digest" in result.data["error"]
 
 
 async def test_apply_diff_refuses_on_intervening_commit() -> None:
@@ -229,8 +245,9 @@ async def test_apply_diff_refuses_on_intervening_commit() -> None:
 
     with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
         result = await fn(
-            patch="--- a/x\n+++ b/x\n",
+            patch=_APPLY_PATCH,
             validated_base_sha="validated-sha",
+            patch_digest=_APPLY_PATCH_DIGEST,
             core_context=ctx,
         )
 
@@ -243,7 +260,32 @@ async def test_apply_diff_refuses_on_intervening_commit() -> None:
     run_git.assert_not_called()
 
 
-async def test_apply_diff_applies_when_head_matches_validated_base_sha() -> None:
+async def test_apply_diff_refuses_on_patch_digest_mismatch() -> None:
+    """Even with a matching base SHA, patch bytes that no longer hash to the
+    approved digest must refuse — the approved evidence no longer matches
+    what would actually be applied (ADR-154 D2)."""
+    fn = action_assisted_apply_diff.__wrapped__
+    ctx = MagicMock()
+    ctx.git_service.get_current_commit.return_value = "same-sha"
+
+    with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
+        result = await fn(
+            patch=_APPLY_PATCH,
+            validated_base_sha="same-sha",
+            patch_digest="not-the-real-digest",
+            core_context=ctx,
+        )
+
+    assert result.ok is False
+    assert result.data["applied"] is False
+    assert result.data["patch_digest"] == "not-the-real-digest"
+    assert result.data["actual_digest"] == _APPLY_PATCH_DIGEST
+    assert "Patch-digest mismatch" in result.data["error"]
+    # Must refuse before ever attempting to apply.
+    run_git.assert_not_called()
+
+
+async def test_apply_diff_applies_when_base_sha_and_digest_both_match() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     ctx = MagicMock()
     ctx.git_service.get_current_commit.return_value = "same-sha"
@@ -252,8 +294,9 @@ async def test_apply_diff_applies_when_head_matches_validated_base_sha() -> None
     with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
         run_git.return_value = MagicMock(returncode=0, stderr="")
         result = await fn(
-            patch="--- a/x\n+++ b/x\n",
+            patch=_APPLY_PATCH,
             validated_base_sha="same-sha",
+            patch_digest=_APPLY_PATCH_DIGEST,
             core_context=ctx,
         )
 

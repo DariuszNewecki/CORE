@@ -28,6 +28,7 @@ from sqlalchemy import text
 from body.services.service_registry import service_registry
 from shared.logger import getLogger
 from shared.models.validated_remediation_candidate import (
+    _CONSTRUCTOR_TOKEN,
     CandidateConstructionError,
     ValidatedRemediationCandidate,
 )
@@ -134,4 +135,5 @@ async def build_validated_candidate(
         finding_ids=list(finding_ids),
         rule_ids=list(rule_ids),
         created_at=datetime.now(UTC),
+        _construction_token=_CONSTRUCTOR_TOKEN,
     )

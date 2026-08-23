@@ -18,6 +18,7 @@ import pytest
 
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.models.validated_remediation_candidate import (
+    _CONSTRUCTOR_TOKEN,
     CandidateConstructionError,
     ValidatedRemediationCandidate,
 )
@@ -25,7 +26,14 @@ from will.autonomy.lane_service import LaneProposeError, LaneService
 
 
 def _candidate(**overrides) -> ValidatedRemediationCandidate:
-    """A fully-formed candidate for tests that don't care about every field."""
+    """A fully-formed candidate for tests that don't care about every field.
+
+    LaneService never constructs a candidate itself in production — it only
+    ever receives one back from build_validated_candidate (mocked here) — so
+    reaching for the real construction token in a test fixture is legitimate:
+    it exercises the same privileged path the real service uses, rather than
+    working around it.
+    """
     defaults = dict(
         candidate_id="cand-1",
         patch="--- a/src/x.py\n+++ b/src/x.py\n",
@@ -39,7 +47,9 @@ def _candidate(**overrides) -> ValidatedRemediationCandidate:
         created_at=datetime(2026, 8, 23, tzinfo=UTC),
     )
     defaults.update(overrides)
-    return ValidatedRemediationCandidate(**defaults)
+    return ValidatedRemediationCandidate(
+        **defaults, _construction_token=_CONSTRUCTOR_TOKEN
+    )
 
 
 async def test_list_delegated_findings_delegates_to_blackboard():
@@ -150,6 +160,7 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     action = proposal.actions[0]
     assert action.action_id == "assisted.apply_diff"
     assert action.parameters["patch"] == candidate.patch
+    assert action.parameters["patch_digest"] == "deadbeef"
     assert action.parameters["validated_base_sha"] == "base-sha-1"
 
     bb_service.defer_delegated_finding_to_proposal.assert_awaited_once_with(

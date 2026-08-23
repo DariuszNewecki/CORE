@@ -13,8 +13,10 @@ entirely from that row — never from caller-supplied validation_results.
 from __future__ import annotations
 
 import hashlib
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -197,3 +199,59 @@ async def test_candidate_is_frozen():
 
     with pytest.raises(AttributeError):
         candidate.patch = "tampered"
+
+
+# --- privileged construction is structural, not merely documented (ADR-154 D2) ---
+
+
+def _dummy_kwargs() -> dict:
+    return dict(
+        candidate_id="forged",
+        patch="x",
+        patch_digest="y",
+        production_set=[],
+        validated_base_sha="z",
+        validation_checks=[],
+        validation_results={},
+        finding_ids=[],
+        rule_ids=[],
+        created_at=datetime.now(),
+    )
+
+
+def test_direct_construction_without_token_raises():
+    """A caller that imports the dataclass and manufactures a candidate
+    directly — asserting validation happened without ever going through
+    build_validated_candidate — is rejected at construction time, not
+    merely discouraged by convention or documentation."""
+    with pytest.raises(CandidateConstructionError):
+        ValidatedRemediationCandidate(**_dummy_kwargs(), _construction_token=object())
+
+
+def test_direct_construction_with_no_token_at_all_raises():
+    """The token is a required field — omitting it entirely is a TypeError
+    (missing argument), not a silent default-to-unprivileged."""
+    with pytest.raises(TypeError):
+        ValidatedRemediationCandidate(**_dummy_kwargs())  # type: ignore[call-arg]
+
+
+def test_no_production_code_constructs_candidate_outside_trusted_service():
+    """Static boundary sweep: outside the two files that define/construct
+    the type, no production module in src/ may call
+    ValidatedRemediationCandidate(...) directly. Complements the runtime
+    _construction_token guard — catches future drift at test time, before
+    any code path exercises the bad call and hits the runtime raise."""
+    src_root = Path(__file__).resolve().parents[3] / "src"
+    allowed = {
+        src_root / "body" / "services" / "validated_candidate_service.py",
+        src_root / "shared" / "models" / "validated_remediation_candidate.py",
+    }
+    pattern = re.compile(r"\bValidatedRemediationCandidate\s*\(")
+
+    offenders = [
+        str(path)
+        for path in src_root.rglob("*.py")
+        if path not in allowed and pattern.search(path.read_text(encoding="utf-8"))
+    ]
+
+    assert offenders == [], f"unauthorized construction site(s): {offenders}"
