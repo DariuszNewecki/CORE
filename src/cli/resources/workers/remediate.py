@@ -4,18 +4,28 @@ Remediation pipeline command.
 
 Chains AuditViolationSensor → ViolationRemediator for a given audit rule.
 
+ADR-154 D3: --write no longer applies a fix to src/ and commits it
+directly for either mode. Rule mode's claimed, canonical findings now get
+an automatic human-gated DRAFT proposal (approval required before any
+production mutation — see ProposalService.approve, reachable via the
+GET/POST /v1/proposals API; no CLI surface for listing/approving
+proposals exists yet as of this writing). File mode's findings are
+synthetic (no durable blackboard lineage) and stay candidate-export-only
+regardless of --write — no proposal, no apply, no commit (ADR-154 D3a).
+
 Usage:
     # Dry-run (default) — sense violations, run LLM + Canary, post proposed
     # fixes to blackboard for review. Nothing written to src/.
     core-admin workers remediate purity.no_ast_duplication
 
-    # Write mode — apply fixes, commit
+    # Write mode — validates the fix and creates a human-gated DRAFT
+    # proposal; nothing is applied until the proposal is approved.
     core-admin workers remediate purity.no_ast_duplication --write
 
     # Sense only — just post findings to blackboard, no LLM
     core-admin workers remediate purity.no_ast_duplication --sense-only
 
-    # File mode — audit a single file across all rules, then remediate
+    # File mode — candidate-export-only; --write has no production effect.
     core-admin workers remediate --file src/body/workers/violation_remediator.py
     core-admin workers remediate --file src/body/workers/violation_remediator.py --write
 """
@@ -52,7 +62,12 @@ async def remediate_cmd(
     write: bool = typer.Option(
         False,
         "--write",
-        help="Apply fixes to src/ and commit. Default is dry-run: LLM + Canary run but nothing is written.",
+        help=(
+            "Rule mode: validate the fix and create a human-gated DRAFT "
+            "proposal (ADR-154 D3) — nothing is applied until approved. "
+            "File mode: no effect — candidate-export-only (ADR-154 D3a). "
+            "Default is dry-run: LLM + Canary run but nothing is written."
+        ),
     ),
     sense_only: bool = typer.Option(
         False,
@@ -75,20 +90,25 @@ async def remediate_cmd(
     Default (dry-run): sensor finds violations → LLM proposes fix →
     Canary validates → proposed fix posted to blackboard for review.
 
-    With --write: same pipeline but fix is applied to src/ and committed.
+    With --write (rule mode only — ADR-154 D3): same pipeline, but a
+    passing candidate automatically creates a human-gated DRAFT proposal.
+    No fix is applied to src/ or committed until the proposal is approved
+    (currently via the /v1/proposals API — no CLI surface for this yet).
 
     With --sense-only: only the sensor runs — violations are posted to
     the blackboard but no LLM is invoked.
 
     With --file: run a full audit scoped to a single file across all rules,
-    then feed findings directly into ViolationRemediator (bypasses sensor
+    then feed findings directly into RemediationCeremony (bypasses sensor
     and blackboard). Mutually exclusive with rule and --sense-only.
+    File-mode findings are synthetic — candidate-export-only (ADR-154
+    D3a): --write has no production-mutation effect here.
 
     Examples:
         # Dry-run — review proposed fixes on the blackboard first
         core-admin workers remediate purity.no_ast_duplication
 
-        # Apply fixes
+        # Validate + create a DRAFT proposal for governor approval
         core-admin workers remediate purity.no_ast_duplication --write
 
         # Just sense — populate blackboard, no LLM
@@ -201,6 +221,22 @@ async def _run_file_pipeline(
     # D2/Consequences): unlike before, this path now posts nothing to the
     # blackboard at all — no worker.heartbeat, no dry_run_complete
     # observation. Console output below (unchanged) is the only feedback.
+    # ADR-154 D3a (governor correction, 2026-08-23): file-mode findings are
+    # synthetic (no durable blackboard lineage), so RemediationCeremony now
+    # stays candidate-export-only for this path regardless of *write* — it
+    # never applies or commits and never creates a proposal. --write is
+    # still accepted (not an error) but has no production-mutation effect
+    # here; ceremony itself refuses to reach apply/commit for
+    # NullRemediationBlackboard callers. Warn explicitly so a caller who
+    # passed --write expecting the old "applies and commits" behavior is
+    # not misled by silence.
+    if write:
+        logger.warning(
+            "--write has no effect in --file mode (ADR-154 D3a): file-mode "
+            "findings are synthetic and cannot back a proposal, so this run "
+            "stays candidate-export-only — nothing will be applied or "
+            "committed."
+        )
     ceremony = RemediationCeremony(
         core_context=core_context,
         target_rule=target_rule,
@@ -211,22 +247,13 @@ async def _run_file_pipeline(
     logger.info("Remediation complete.")
 
     console.print()
-    if write:
-        logger.info(
-            "Pipeline complete in WRITE mode. "
-            "Fixes applied and committed. Run audit to verify:"
-        )
-        logger.info("  core-admin code audit")
-    else:
-        logger.info(
-            "Pipeline complete in DRY-RUN mode. "
-            "Proposed fixes are on the blackboard. Review them:"
-        )
-        logger.info(
-            "  core-admin workers blackboard --filter 'audit.remediation.dry_run'"
-        )
-        logger.info("\nWhen satisfied, apply with:")
-        logger.info("  core-admin workers remediate --file %s --write", file_path)
+    logger.info(
+        "Candidate-export-only (ADR-154 D3a): the validated patch, if any, "
+        "was logged for inspection — nothing was applied or committed. "
+        "To actually apply a fix, use canonical worker/rule-mode "
+        "remediation instead:"
+    )
+    logger.info("  core-admin workers remediate <rule> --write")
 
 
 def _filter_findings_for_file(
@@ -320,11 +347,19 @@ async def _run_rule_pipeline(
     logger.info("Remediator complete.")
     console.print()
     if write:
+        # ADR-154 D3: rule mode is worker-backed (a real claimed-by
+        # identity), so a passing candidate now creates a human-gated
+        # DRAFT proposal instead of applying/committing directly — nothing
+        # is live until the proposal is approved.
         logger.info(
-            "Pipeline complete in WRITE mode. "
-            "Fixes applied and committed. Run audit to verify:"
+            "Pipeline complete in WRITE mode. Any validated fix now awaits "
+            "governor approval as a DRAFT proposal. No CLI surface for "
+            "listing/approving proposals exists yet — use the /v1/proposals "
+            "API, or check the blackboard report each DRAFT creation posts:"
         )
-        logger.info("  core-admin code audit")
+        logger.info(
+            "  core-admin workers blackboard --filter 'audit.remediation.draft_created'"
+        )
     else:
         logger.info(
             "Pipeline complete in DRY-RUN mode. "

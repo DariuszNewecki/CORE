@@ -483,14 +483,8 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         # self._write — proposal creation is not production mutation, so
         # it must not depend on the legacy write flag. Once a DRAFT is
         # created (or its creation fails), this method returns without
-        # ever reaching the dry-run observation or the write-mode
-        # apply/commit branches below — a canonical passing ceremony must
-        # never reach direct apply/commit again (D4 deletes that branch
-        # outright; until then it stays physically present but structurally
-        # unreachable from this terminus). worker_uuid is None only for
-        # CLI file-mode's NullRemediationBlackboard (ADR-154 D3a) — its
-        # synthetic findings have no canonical lineage, so it falls through
-        # to the unchanged legacy branches below (candidate-export-only).
+        # ever reaching the legacy dry-run/write branches — a canonical
+        # passing ceremony must never reach direct apply/commit again.
         worker_uuid = self._blackboard.worker_uuid
         if worker_uuid is not None:
             return await self._create_ceremony_draft(
@@ -503,6 +497,45 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 worker_uuid,
             )
 
+        # ADR-154 D3a (governor correction, 2026-08-23): worker_uuid is
+        # None only for CLI file-mode's NullRemediationBlackboard —
+        # synthetic, non-canonical findings with no durable blackboard
+        # lineage. The settled D3a decision is candidate-export-only:
+        # file-mode may not create a proposal (D5's eligibility guard
+        # already forecloses that) AND may not reach direct apply/commit
+        # either, regardless of self._write. An earlier version of this
+        # method fell through to the legacy dry-run/write branches here,
+        # which meant `--file ... --write` still applied and committed
+        # directly — exactly the authority D3a exists to remove. That
+        # legacy code is relocated to _legacy_dry_run_and_write below
+        # (kept defined, physically present, for D4 to delete
+        # structurally) — no caller reaches it anymore.
+        return await self._export_candidate_only(
+            file_path, findings, plan, rule_ids, patch, validation_run_id
+        )
+
+    async def _legacy_dry_run_and_write(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+        plan: _RemediationPlan,
+        crate_id: str,
+        canary_passed: bool,
+        proposed_fix: str,
+    ) -> bool:
+        """Dead code as of ADR-154 D3 — no caller reaches this anymore.
+
+        Every _execute_file path now returns before this method could be
+        called: worker-backed ceremonies via _create_ceremony_draft,
+        file-mode via _export_candidate_only (ADR-154 D3a,
+        candidate-export-only). Preserved verbatim rather than deleted —
+        D4 owns removing this method, the CLI --write flag, and the
+        worker-declaration crate.apply/git.commit authority together, per
+        ADR-154's own text ("remove write from RemediationCeremony...
+        delete the write behavioural branch, apply_and_finalize_crate, and
+        the direct commit_paths call"). Left here so D4 is a deletion, not
+        a rewrite.
+        """
         if not self._write:
             await self._blackboard.post_observation(
                 subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
@@ -515,12 +548,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                     "proposed_fix": proposed_fix,
                     "violations_count": len(findings),
                     "architectural_context": plan.architectural_context,
-                    # D3 needs this to construct a ValidatedRemediationCandidate
-                    # (build_validated_candidate re-reads this exact
-                    # core.fix_runs row — never trusts an in-memory verdict).
-                    "validation_run_id": validation_run_id,
-                    "patch": patch,
-                    "finding_rules": rule_ids,
                     "message": (
                         "Dry-run complete. Canary passed. "
                         "Review 'proposed_fix' and 'architectural_context' "
@@ -603,7 +630,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 "baseline_sha": plan.baseline_sha,
                 "violations_fixed": len(findings),
                 "architectural_context": plan.architectural_context,
-                "validation_run_id": validation_run_id,
             },
         )
         await self._blackboard.mark_findings(findings, "resolved")
@@ -726,5 +752,91 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             file_path,
             len(findings),
             rule_ids,
+        )
+        return True
+
+    async def _export_candidate_only(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+        plan: _RemediationPlan,
+        rule_ids: list[str],
+        patch: str,
+        validation_run_id: str,
+    ) -> bool:
+        """ADR-154 D3a candidate-export-only terminus.
+
+        Called only when ``self._blackboard.worker_uuid`` is None — i.e.
+        only for CLI file-mode's ``NullRemediationBlackboard``, whose
+        findings are synthetic UUIDs with no durable blackboard lineage.
+        Builds the privileged ``ValidatedRemediationCandidate`` purely for
+        inspection: never constructs or submits a proposal (the candidate's
+        ``finding_ids`` here are file-mode's synthetic UUIDs — diagnostic
+        metadata only, never real lineage a submission could defer), and
+        never reaches ``apply_and_finalize_crate``/``commit_paths``
+        regardless of ``self._write``. This is the fix for a real D3
+        defect the governor caught: without this terminus, worker_uuid
+        being None simply fell through to ``_legacy_dry_run_and_write``,
+        so ``--file ... --write`` still applied and committed directly —
+        exactly the authority D3a's candidate-export-only decision exists
+        to remove.
+
+        ``NullRemediationBlackboard``'s methods are true no-ops (ADR-153),
+        so this posts nothing anywhere — matching the pre-D3 file-mode
+        dry-run terminus, which also posted nothing for the same reason.
+        The candidate's fields (patch, patch_digest, validated_base_sha,
+        production_set) are still constructed and logged for local
+        operator visibility even though nothing durable is written.
+        """
+        try:
+            candidate = await build_validated_candidate(
+                finding_ids=[str(f["id"]) for f in findings],
+                rule_ids=rule_ids,
+                patch=patch,
+                validation_run_id=validation_run_id,
+                subject_files=[file_path],
+            )
+        except CandidateConstructionError as exc:
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                f"Candidate construction failed: {exc}",
+            )
+            return False
+
+        await self._blackboard.post_observation(
+            subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
+            payload={
+                "file_path": file_path,
+                "rule": self._target_rule,
+                "candidate_id": candidate.candidate_id,
+                "patch": candidate.patch,
+                "patch_digest": candidate.patch_digest,
+                "validated_base_sha": candidate.validated_base_sha,
+                "production_set": candidate.production_set,
+                "validation_run_id": validation_run_id,
+                "rule_ids": rule_ids,
+                "violations_count": len(findings),
+                "architectural_context": plan.architectural_context,
+                "message": (
+                    "Candidate-export-only (ADR-154 D3a): CLI file-mode "
+                    "findings are synthetic and have no canonical "
+                    "blackboard lineage, so this candidate cannot back a "
+                    "proposal. Nothing was written or committed. Submit "
+                    "through a canonical worker/rule-mode ceremony, or the "
+                    "assisted lane, if this fix should be applied."
+                ),
+            },
+            status="dry_run_complete",
+        )
+        await self._blackboard.mark_findings(findings, "abandoned")
+        logger.info(
+            "RemediationCeremony: [CANDIDATE-EXPORT] %s - assisted.validate_diff "
+            "passed, candidate %s ready for inspection (no proposal, no write, "
+            "no commit).",
+            file_path,
+            candidate.candidate_id,
         )
         return True
