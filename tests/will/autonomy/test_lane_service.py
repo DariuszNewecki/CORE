@@ -10,12 +10,12 @@ forwarded and the rows passed straight back.
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.services.proposal_submission_service import ProposalSubmissionError
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.models.validated_remediation_candidate import (
     _CONSTRUCTOR_TOKEN,
@@ -86,24 +86,14 @@ async def test_get_delegated_finding_delegates_to_blackboard():
     bb_service.fetch_delegated_finding.assert_awaited_once_with("f-9")
 
 
-def _patch_proposals(create_mock: AsyncMock):
-    """Patch ProposalService.open() to yield a stub service exposing create."""
-    service = AsyncMock()
-    service.create = create_mock
-
-    @asynccontextmanager
-    async def _open():
-        yield service
-
-    return patch("will.autonomy.lane_service.ProposalService.open", _open)
-
-
 async def test_propose_validated_diff_creates_proposal_and_defers():
     """The happy path constructs the frozen candidate via the Body-owned
     trusted validation service, builds a human-gated, validation-gated,
     assisted-lane proposal that runs assisted.apply_diff with the patch and
-    the candidate's validated_base_sha (ADR-154 D2), then defers the
-    delegated finding to it (ADR-109 D3/D4)."""
+    the candidate's validated_base_sha/patch_digest (ADR-154 D2), then hands
+    the whole proposal + finding_ids to the atomic submission service
+    (ADR-154 D3b) — proposal persistence and finding deferral are no longer
+    two separate calls/sessions."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_finding = AsyncMock(
         return_value={
@@ -113,10 +103,9 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
             "created_at": None,
         }
     )
-    bb_service.defer_delegated_finding_to_proposal = AsyncMock(return_value=1)
-    create = AsyncMock(return_value="prop-abc")
     candidate = _candidate()
     build_candidate = AsyncMock(return_value=candidate)
+    submit = AsyncMock(return_value="prop-abc")
 
     with (
         patch(
@@ -124,7 +113,7 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
             AsyncMock(return_value=bb_service),
         ),
         patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
-        _patch_proposals(create),
+        patch("will.autonomy.lane_service.submit_assisted_lane_proposal", submit),
     ):
         proposal_id, production_set = await LaneService().propose_validated_diff(
             finding_id="f-1",
@@ -142,9 +131,11 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
         validation_run_id="run-1",
     )
 
-    # The proposal handed to create carries the lane's mandatory shape,
-    # sourced from the candidate's own recorded verdict — never asserted.
-    (proposal,), _ = create.call_args
+    # The proposal handed to the atomic submission service carries the
+    # lane's mandatory shape, sourced from the candidate's own recorded
+    # verdict — never asserted — and finding_ids travels as a set (D3b).
+    (proposal,), kwargs = submit.call_args
+    assert kwargs["finding_ids"] == ["f-1"]
     assert proposal.approval_required is True  # ADR-109 D3 — mandatory
     assert proposal.validation_checks == candidate.validation_checks
     assert proposal.validation_results == candidate.validation_results
@@ -156,6 +147,12 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     ]
     assert proposal.constitutional_constraints["candidate_id"] == "cand-1"
     assert proposal.constitutional_constraints["validated_base_sha"] == "base-sha-1"
+    # The remaining D2 evidence gap: the candidate's own created_at must be
+    # durably carried into the proposal too (no separate candidate table).
+    assert (
+        proposal.constitutional_constraints["candidate_created_at"]
+        == candidate.created_at.isoformat()
+    )
     assert len(proposal.actions) == 1
     action = proposal.actions[0]
     assert action.action_id == "assisted.apply_diff"
@@ -163,19 +160,14 @@ async def test_propose_validated_diff_creates_proposal_and_defers():
     assert action.parameters["patch_digest"] == "deadbeef"
     assert action.parameters["validated_base_sha"] == "base-sha-1"
 
-    bb_service.defer_delegated_finding_to_proposal.assert_awaited_once_with(
-        "f-1", "prop-abc"
-    )
-
 
 async def test_propose_raises_when_finding_not_live():
     """A finding that is not a live delegated lane item (None) raises
-    LaneProposeError before candidate construction or proposal creation."""
+    LaneProposeError before candidate construction or atomic submission."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_finding = AsyncMock(return_value=None)
-    bb_service.defer_delegated_finding_to_proposal = AsyncMock()
-    create = AsyncMock()
     build_candidate = AsyncMock()
+    submit = AsyncMock()
 
     with (
         patch(
@@ -183,7 +175,7 @@ async def test_propose_raises_when_finding_not_live():
             AsyncMock(return_value=bb_service),
         ),
         patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
-        _patch_proposals(create),
+        patch("will.autonomy.lane_service.submit_assisted_lane_proposal", submit),
     ):
         with pytest.raises(LaneProposeError):
             await LaneService().propose_validated_diff(
@@ -193,15 +185,14 @@ async def test_propose_raises_when_finding_not_live():
             )
 
     build_candidate.assert_not_awaited()
-    create.assert_not_awaited()
-    bb_service.defer_delegated_finding_to_proposal.assert_not_awaited()
+    submit.assert_not_awaited()
 
 
 async def test_propose_propagates_candidate_construction_error():
     """A validation run that fails ADR-154 D2's preconditions (unknown run,
     patch mismatch, missing base SHA, ...) propagates CandidateConstructionError
-    before any proposal is created — the caller never rides a stale/asserted
-    verdict."""
+    before any submission is attempted — the caller never rides a
+    stale/asserted verdict."""
     bb_service = AsyncMock()
     bb_service.fetch_delegated_finding = AsyncMock(
         return_value={
@@ -211,11 +202,10 @@ async def test_propose_propagates_candidate_construction_error():
             "created_at": None,
         }
     )
-    bb_service.defer_delegated_finding_to_proposal = AsyncMock()
-    create = AsyncMock()
     build_candidate = AsyncMock(
         side_effect=CandidateConstructionError("Unknown validation run: run-1")
     )
+    submit = AsyncMock()
 
     with (
         patch(
@@ -223,7 +213,7 @@ async def test_propose_propagates_candidate_construction_error():
             AsyncMock(return_value=bb_service),
         ),
         patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
-        _patch_proposals(create),
+        patch("will.autonomy.lane_service.submit_assisted_lane_proposal", submit),
     ):
         with pytest.raises(CandidateConstructionError):
             await LaneService().propose_validated_diff(
@@ -232,8 +222,46 @@ async def test_propose_propagates_candidate_construction_error():
                 validation_run_id="run-1",
             )
 
-    create.assert_not_awaited()
-    bb_service.defer_delegated_finding_to_proposal.assert_not_awaited()
+    submit.assert_not_awaited()
+
+
+async def test_propose_translates_submission_error_to_lane_propose_error():
+    """A late-discovered ineligibility — a finding that stopped being a live
+    lane item between the initial check and the atomic submission race
+    window — surfaces from submit_assisted_lane_proposal as
+    ProposalSubmissionError (ADR-154 D3b) and is translated to
+    LaneProposeError so the API route's existing 409 mapping still applies;
+    no new route-level exception handling is needed."""
+    bb_service = AsyncMock()
+    bb_service.fetch_delegated_finding = AsyncMock(
+        return_value={
+            "id": "f-1",
+            "subject": "s",
+            "payload": {"rule": "modularity.class_too_large"},
+            "created_at": None,
+        }
+    )
+    build_candidate = AsyncMock(return_value=_candidate())
+    submit = AsyncMock(
+        side_effect=ProposalSubmissionError(
+            "1/1 finding(s) no longer eligible for deferral"
+        )
+    )
+
+    with (
+        patch(
+            "will.autonomy.lane_service.service_registry.get_blackboard_service",
+            AsyncMock(return_value=bb_service),
+        ),
+        patch("will.autonomy.lane_service.build_validated_candidate", build_candidate),
+        patch("will.autonomy.lane_service.submit_assisted_lane_proposal", submit),
+    ):
+        with pytest.raises(LaneProposeError, match="no longer eligible"):
+            await LaneService().propose_validated_diff(
+                finding_id="f-1",
+                patch="x",
+                validation_run_id="run-1",
+            )
 
 
 async def test_next_delegated_finding_returns_fifo_head_with_bundle():

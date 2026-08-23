@@ -23,6 +23,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from body.services.proposal_submission_service import (
+    ProposalSubmissionError,
+    submit_assisted_lane_proposal,
+)
 from body.services.service_registry import service_registry
 from body.services.validated_candidate_service import build_validated_candidate
 from shared.infrastructure.intent.errors import GovernanceError
@@ -37,7 +41,6 @@ from will.autonomy.proposal import (
     ProposalScope,
     ProposalStatus,
 )
-from will.autonomy.proposal_service import ProposalService
 
 
 logger = getLogger(__name__)
@@ -180,25 +183,38 @@ class LaneService:
         confirms *patch* matches the exact bytes that were validated. This
         method:
 
-        1. confirms the finding is still a live delegated lane item (and reads
-           its rule for the proposal's goal + constitutional constraints);
+        1. confirms the finding is still a live delegated lane item (fast
+           pre-check for a clean error message — the authoritative check is
+           the atomic re-verification in step 4) and reads its rule for the
+           proposal's goal + constitutional constraints;
         2. constructs the validated candidate (raises on any precondition
            failure — unknown run, wrong action, failed/incomplete run, patch
            mismatch, or missing base-SHA evidence);
-        3. creates a DRAFT proposal that, on approval, runs ``assisted.apply_diff``
-           with the patch and the candidate's ``validated_base_sha`` (the
-           fail-closed base-SHA check ADR-154 D2 requires) —
-           ``approval_required=True`` is mandatory for the multi-file assisted
-           lane (ADR-109 D3, the human gate licenses the ADR-035 multi-file
-           exception), and ``validation_checks``/``validation_results`` are
-           the candidate's real recorded verdict, not a caller assertion;
-        4. defers the finding to the proposal (``indeterminate+human`` →
-           ``deferred_to_proposal``), moving it out of the inbox into tracked.
+        3. builds the DRAFT proposal that, on approval, runs
+           ``assisted.apply_diff`` with the patch and the candidate's
+           ``validated_base_sha``/``patch_digest`` (the fail-closed checks
+           ADR-154 D2 requires) — ``approval_required=True`` is mandatory
+           for the multi-file assisted lane (ADR-109 D3, the human gate
+           licenses the ADR-035 multi-file exception), and
+           ``validation_checks``/``validation_results`` are the candidate's
+           real recorded verdict, not a caller assertion;
+        4. atomically persists the proposal and defers the finding to it in
+           one Body-owned transaction (ADR-154 D3b — see
+           ``submit_assisted_lane_proposal``), re-verifying eligibility
+           inside that same transaction. This is also the fix for a live
+           defect this method carried before ADR-154 D3b: the previous
+           two-session create-then-defer sequence never committed the
+           proposal at all (``ProposalRepository.create()`` only flushes),
+           so the finding could be durably deferred to a proposal_id that
+           was never actually persisted.
 
         Returns ``(proposal_id, production_set)``.
 
         Raises:
-            LaneProposeError: the finding is not a live delegated lane item.
+            LaneProposeError: the finding is not a live delegated lane item
+                — either at the initial check, or (via
+                ``ProposalSubmissionError``) discovered stale at the atomic
+                submission step.
             CandidateConstructionError: the named validation run does not
                 back a valid candidate (propagates from
                 ``build_validated_candidate`` — see that function for the
@@ -255,6 +271,12 @@ class LaneService:
                 "candidate_id": candidate.candidate_id,
                 "patch_digest": candidate.patch_digest,
                 "validated_base_sha": candidate.validated_base_sha,
+                # The candidate's own construction timestamp — closes the
+                # remaining D2 evidence gap: every other frozen-contract
+                # field was already durably carried into the proposal, but
+                # created_at was not, so the candidate could not be fully
+                # reconstructed from proposal evidence alone.
+                "candidate_created_at": candidate.created_at.isoformat(),
                 # Marks the proposal as assisted-lane so reject revives the
                 # finding to indeterminate+human (ADR-109 D4), not the
                 # autonomous awaiting_reaudit path.
@@ -262,18 +284,18 @@ class LaneService:
             },
         )
 
-        async with ProposalService.open() as proposals:
-            proposal_id = await proposals.create(proposal)
+        try:
+            proposal_id = await submit_assisted_lane_proposal(
+                proposal, finding_ids=[finding_id]
+            )
+        except ProposalSubmissionError as exc:
+            raise LaneProposeError(str(exc)) from exc
 
-        deferred = await bb_service.defer_delegated_finding_to_proposal(
-            finding_id, proposal_id
-        )
         logger.info(
-            "Assisted lane: finding %s -> proposal %s (deferred=%d, files=%d, "
-            "candidate=%s)",
+            "Assisted lane: finding %s -> proposal %s committed atomically "
+            "(files=%d, candidate=%s)",
             finding_id,
             proposal_id,
-            deferred,
             len(candidate.production_set),
             candidate.candidate_id,
         )
