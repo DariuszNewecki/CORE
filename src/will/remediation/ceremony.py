@@ -247,6 +247,25 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             context_text=context_text,
         )
 
+    def _collect_rule_ids(self, findings: list[dict[str, Any]]) -> list[str] | None:
+        """Deduplicated, stably sorted rule ids from *findings*' payloads.
+
+        Returns None if any finding has no resolvable rule id. Such a
+        finding must never contribute a fabricated ``"unknown"`` entry to
+        the set validated by ``assisted.validate_diff`` — that fallback is
+        safe only when building a human-readable label (as
+        ``ViolationExecutorWorker._process_file`` and file-mode's
+        ``remediate.py`` already do for logging/commit-message purposes),
+        never as a member of the actual validated rule set (ADR-154 D1).
+        """
+        rule_ids: set[str] = set()
+        for finding in findings:
+            rule = (finding.get("payload") or {}).get("rule")
+            if not rule:
+                return None
+            rule_ids.add(str(rule))
+        return sorted(rule_ids)
+
     def _build_violations_summary(self, findings: list[dict[str, Any]]) -> str:
         """Produce a JSON summary of violations for the LLM prompt."""
         violations = []
@@ -378,6 +397,56 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 self._target_rule,
                 self._write,
                 f"Canary failed for crate {crate_id}",
+            )
+            return False
+
+        # ADR-154 D1: patch generation + assisted.validate_diff safety gate.
+        # Fail-closed — once this gate is invoked, a failed verdict must
+        # never fall through into the legacy apply/commit branches below,
+        # in either dry-run or write mode. A gate whose failure can be
+        # silently bypassed is worse than no gate: it manufactures the
+        # appearance of a check without its substance.
+        rule_ids = self._collect_rule_ids(findings)
+        if rule_ids is None:
+            await self._blackboard.mark_findings(findings, "abandoned")
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                "One or more findings have no resolvable rule id; cannot validate.",
+            )
+            return False
+
+        patch = await self._generate_patch(file_path, crate_id, plan.baseline_sha)
+        if not patch:
+            await self._blackboard.mark_findings(findings, "abandoned")
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                "Empty or unavailable candidate diff — nothing to validate.",
+            )
+            return False
+
+        validate_result = await self._ctx.action_executor.execute(
+            "assisted.validate_diff",
+            write=True,
+            patch=patch,
+            finding_rules=rule_ids,
+            subject_files=[file_path],
+            base_sha=plan.baseline_sha,
+        )
+        if not validate_result.ok:
+            await self._blackboard.mark_findings(findings, "abandoned")
+            await self._blackboard.post_failed(
+                file_path,
+                findings,
+                self._target_rule,
+                self._write,
+                "assisted.validate_diff failed: "
+                f"{validate_result.data.get('error', 'validation did not pass')}",
             )
             return False
 

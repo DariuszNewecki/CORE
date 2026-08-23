@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -35,3 +37,142 @@ async def test_CrateCanaryMixin():
         intent="Fix test-rule violations in test.py via autonomous remediation",
         payload_files={"test.py": "fixed source"},
     )
+
+
+# --- _generate_patch (ADR-154 D1) ---
+
+
+def _init_git_repo(path: Path, file_path: str, content: str) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t.com"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True)
+    target = path / file_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    subprocess.run(["git", "add", file_path], cwd=path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "baseline"], cwd=path, check=True)
+
+
+def _stage_crate_file(
+    repo_root: Path, crate_id: str, file_path: str, content: str
+) -> None:
+    staged = repo_root / "var" / "workflows" / "crates" / "inbox" / crate_id / file_path
+    staged.parent.mkdir(parents=True, exist_ok=True)
+    staged.write_text(content, encoding="utf-8")
+
+
+def _init_bare_git_repo(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+
+
+def _git_apply(repo_dir: Path, patch_text: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "apply", "--whitespace=nowarn"],
+        cwd=repo_dir,
+        input=patch_text,
+        text=True,
+        capture_output=True,
+    )
+
+
+@pytest.mark.asyncio
+# ID: 3e9d6a0b-2c9d-49a2-8f6a-5f2c2e5b9d0e
+async def test_generate_patch_reproduces_aligned_bytes_via_git_apply(tmp_path) -> None:
+    """Byte-equivalence proof (ADR-154 D1): applying the generated patch to a
+    fresh checkout at baseline reproduces exactly the staged aligned bytes —
+    not an approximation reconstructed from the raw LLM output."""
+    file_path = "pkg/mod.py"
+    original = "x = 1\n"
+    aligned = "x = 2\n"
+
+    repo_root = tmp_path / "repo"
+    _stage_crate_file(repo_root, "crate-1", file_path, aligned)
+
+    worktree_dir = tmp_path / "worktree"
+    _init_git_repo(worktree_dir, file_path, original)
+
+    mixin = ConcreteCrateCanaryMixin()
+    mixin._ctx.git_service.repo_path = repo_root
+    worktree_mock = MagicMock()
+    worktree_mock.repo_path = str(worktree_dir)
+    mixin._ctx.git_service.create_worktree.return_value = worktree_mock
+
+    patch_text = await mixin._generate_patch(file_path, "crate-1", "baseline-sha")
+
+    assert patch_text
+    mixin._ctx.git_service.create_worktree.assert_called_once_with("baseline-sha")
+    worktree_mock.cleanup.assert_called_once()
+
+    apply_dir = tmp_path / "apply-target"
+    _init_git_repo(apply_dir, file_path, original)
+    result = _git_apply(apply_dir, patch_text)
+    assert result.returncode == 0, result.stderr
+    assert (apply_dir / file_path).read_text(encoding="utf-8") == aligned
+
+
+@pytest.mark.asyncio
+# ID: 6a2b8e4f-7c1d-4e9a-9b3f-1d8c6a4e2f0b
+async def test_generate_patch_empty_diff_returns_none(tmp_path) -> None:
+    """No byte change (aligned == baseline) must yield an empty diff, and the
+    method must surface that as None — never a falsely 'successful' patch."""
+    file_path = "pkg/mod.py"
+    same = "x = 1\n"
+
+    repo_root = tmp_path / "repo"
+    _stage_crate_file(repo_root, "crate-1", file_path, same)
+
+    worktree_dir = tmp_path / "worktree"
+    _init_git_repo(worktree_dir, file_path, same)
+
+    mixin = ConcreteCrateCanaryMixin()
+    mixin._ctx.git_service.repo_path = repo_root
+    worktree_mock = MagicMock()
+    worktree_mock.repo_path = str(worktree_dir)
+    mixin._ctx.git_service.create_worktree.return_value = worktree_mock
+
+    patch_text = await mixin._generate_patch(file_path, "crate-1", "baseline-sha")
+
+    assert patch_text is None
+    worktree_mock.cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+# ID: 9c4f1a8e-3b7d-4a6c-8e2f-0d5a9c1b7e3f
+async def test_generate_patch_missing_staged_file_returns_none(tmp_path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+
+    mixin = ConcreteCrateCanaryMixin()
+    mixin._ctx.git_service.repo_path = repo_root
+
+    patch_text = await mixin._generate_patch("pkg/mod.py", "crate-missing", "sha")
+
+    assert patch_text is None
+    mixin._ctx.git_service.create_worktree.assert_not_called()
+
+
+@pytest.mark.asyncio
+# ID: 1f6d8b2a-4e9c-4b3f-9a7d-2c5e8f0a6b4d
+async def test_generate_patch_missing_baseline_file_returns_none(tmp_path) -> None:
+    """The staged file exists but the target path is absent at *baseline_sha*
+    in the worktree — must fail closed, not diff against a nonexistent
+    baseline."""
+    file_path = "pkg/mod.py"
+    repo_root = tmp_path / "repo"
+    _stage_crate_file(repo_root, "crate-1", file_path, "x = 2\n")
+
+    worktree_dir = tmp_path / "worktree"
+    _init_bare_git_repo(worktree_dir)
+
+    mixin = ConcreteCrateCanaryMixin()
+    mixin._ctx.git_service.repo_path = repo_root
+    worktree_mock = MagicMock()
+    worktree_mock.repo_path = str(worktree_dir)
+    mixin._ctx.git_service.create_worktree.return_value = worktree_mock
+
+    patch_text = await mixin._generate_patch(file_path, "crate-1", "baseline-sha")
+
+    assert patch_text is None
+    worktree_mock.cleanup.assert_called_once()

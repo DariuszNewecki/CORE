@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from pathlib import Path
 
+from body.atomic.tool_runner import ToolRunner
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -137,6 +139,68 @@ class CrateCanaryMixin(HostBase):
         except Exception as exc:
             logger.warning("RemediationCeremony: Canary error - %s", exc)
             return False
+
+    async def _generate_patch(
+        self, file_path: str, crate_id: str, baseline_sha: str
+    ) -> str | None:
+        """Generate a unified diff from *baseline_sha* to the aligned staged bytes.
+
+        Reads the staged crate file at ``crate.path / file_path`` — the exact
+        same on-disk path ``_run_canary`` reads from (via
+        ``CrateProcessingService.validate_crate_by_id``) and the exact same
+        path ``apply_and_finalize_crate`` reads from when applying to
+        production. ``_align_staged_file`` already rewrote that path in place
+        before Canary ran, so this method never touches the raw LLM
+        ``proposed_fix`` string — it reads the identical bytes Canary
+        validated, guaranteeing the generated patch represents exactly what
+        was validated, not a separately-reconstructed approximation (ADR-154
+        D1).
+
+        Uses a hermetic worktree pinned to *baseline_sha* (never floating
+        ``HEAD``) so the patch's base commit is the same commit
+        ``assisted.validate_diff`` is told to validate against — see that
+        action's ``base_sha`` parameter. Generating against a drifted HEAD
+        could let ``git apply`` succeed on different surrounding content than
+        Canary actually validated.
+
+        Returns None if the staged file is missing, if *file_path* does not
+        exist at *baseline_sha* (ceremony only ever remediates pre-existing
+        files, so this should not occur in practice), or if the resulting
+        diff is empty (the fix produced no byte change) — callers must treat
+        an empty patch as a no-op validation failure, not as an implicit
+        success or an implicit abandon.
+        """
+        staged = (
+            PathResolver(self._ctx.git_service.repo_path).workflows_dir
+            / "crates"
+            / "inbox"
+            / crate_id
+            / file_path
+        )
+        if not staged.exists():
+            logger.warning(
+                "RemediationCeremony: staged file not found for patch generation - %s",
+                staged,
+            )
+            return None
+
+        aligned_bytes = staged.read_text(encoding="utf-8")
+        worktree = self._ctx.git_service.create_worktree(baseline_sha)
+        try:
+            wt_path = Path(worktree.repo_path)
+            target = wt_path / file_path
+            if not target.exists():
+                logger.warning(
+                    "RemediationCeremony: %s missing at baseline %s in patch worktree",
+                    file_path,
+                    baseline_sha,
+                )
+                return None
+            target.write_text(aligned_bytes, encoding="utf-8")
+            result = ToolRunner.run_git(wt_path, "diff", "--", file_path)
+            return result.stdout or None
+        finally:
+            worktree.cleanup()
 
     def _archive_rollback(
         self,

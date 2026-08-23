@@ -82,6 +82,41 @@ def _rule_cleared(
     return not (guarded & flagged)
 
 
+def _finding_base_rule(check_id: str) -> str:
+    """Strip rule_executor's crash-path suffixes to recover the owning rule id.
+
+    ``rule_executor.execute_rule`` enforces ``finding.check_id == rule.rule_id``
+    for genuine findings (issue #485's restored invariant), but a rule that
+    raises during evaluation is instead recorded with a
+    ``f"{rule.rule_id}.enforcement_failure"``/``".engine_missing"`` check_id.
+    Attribution must still land on the owning rule so a crashing rule reads
+    as "did not clear" for that rule, not as an orphaned finding no rule
+    claims.
+    """
+    for suffix in (".enforcement_failure", ".engine_missing"):
+        if check_id.endswith(suffix):
+            return check_id[: -len(suffix)]
+    return check_id
+
+
+def _findings_by_rule(
+    findings: list[dict[str, Any]], rule_ids: list[str]
+) -> dict[str, list[dict[str, Any]]]:
+    """Partition a multi-rule audit's findings back out per rule id.
+
+    Safe because ``run_filtered_audit(rule_ids=rule_ids, ...)`` only ever
+    executes the requested rules, and every finding it returns carries a
+    ``check_id`` attributable to exactly one of them via
+    ``_finding_base_rule``.
+    """
+    by_rule: dict[str, list[dict[str, Any]]] = {rid: [] for rid in rule_ids}
+    for finding in findings:
+        base_rule = _finding_base_rule(str(finding.get("check_id") or ""))
+        if base_rule in by_rule:
+            by_rule[base_rule].append(finding)
+    return by_rule
+
+
 # ID: b54c7365-2961-4ac0-9736-e7c42bb522cc
 class _EngineTouchResult(NamedTuple):
     """Partition of engine-touching files by subprocess-serviceability.
@@ -145,47 +180,65 @@ def _touches_audit_engine(
 async def action_assisted_validate_diff(
     *,
     patch: str | None = None,
-    finding_rule: str | None = None,
+    finding_rules: list[str] | None = None,
     subject_files: list[str] | None = None,
+    base_sha: str | None = None,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
-    """Assisted Remediation Lane safety gate (ADR-109 #654, ADR-141).
+    """Assisted Remediation Lane safety gate (ADR-109 #654, ADR-141, ADR-154 D1).
 
     Args:
         patch: a unified diff (the agent's candidate change) to validate.
-        finding_rule: the rule id the delegated finding fired on; the gate
-            requires this rule to NO LONGER flag the finding's subject (or any
-            touched file).
+        finding_rules: the complete set of rule ids the backing finding(s)
+            fired on; the gate requires EVERY one of these rules to NO LONGER
+            flag the finding's subject (or any touched file). Callers must
+            pass the full canonical set — this action does not know, and
+            cannot verify, whether a caller silently narrowed it.
         subject_files: the file(s) the delegated finding fired on. Required for
             findings whose fix lives in a different file than the subject (e.g.
             a detector-bug fix, where the engine is patched but the flagged file
             is unchanged): the gate confirms the rule no longer flags the
             subject, which a touched-files-only check could not.
+        base_sha: the exact commit the candidate patch was generated against.
+            The validation worktree is created at this SHA rather than
+            floating "HEAD", so a caller that captured a base commit earlier
+            (e.g. RemediationCeremony's ``plan.baseline_sha``) validates
+            against precisely that commit, not whatever HEAD has drifted to
+            since. Callers with no captured base (the external-agent Lane 1b
+            path, which has none until it dispatches this action) may omit it
+            — the worktree then floats to current HEAD, unchanged from prior
+            behavior.
         core_context: injected by ActionExecutor; supplies ``git_service``
             for worktree creation and ``file_handler`` for var/tmp writes.
 
-    Returns an ``ActionResult`` whose ``data['validation_results']`` is a
+    Returns an ``ActionResult`` whose ``data['validation_results']`` is a flat
     ``{check: bool}`` map and whose ``ok`` is the AND of every check. A
-    failing verdict means the diff is not approvable. ``data['production_set']``
+    failing verdict means the diff is not approvable. Per-rule audit evidence
+    uses explicit keys ``f"audit_rule_cleared:{rule_id}"`` (or
+    ``f"subprocess_audit:{rule_id}"`` on the engine-touch path) — one entry
+    per rule in *finding_rules*, so a passing verdict is traceable to every
+    individual rule clearing, not just an aggregate. ``data['production_set']``
     lists the touched repo-relative paths (the eventual commit set, ADR-101 D2).
 
     Engine-touching diffs (ADR-141):
     - Graph-dependent engine touch (knowledge_gate.py): ``not_graph_engine=False``,
       immediate refusal.
     - Graph-independent engine touch (all other 15): ``not_graph_engine=True``,
-      ``subprocess_audit`` replaces the in-process ``audit_rule_cleared`` check.
-    - No engine touch: normal in-process ``audit_rule_cleared`` check.
+      per-rule ``subprocess_audit:<rule_id>`` replaces the in-process
+      ``audit_rule_cleared:<rule_id>`` checks.
+    - No engine touch: normal in-process ``audit_rule_cleared:<rule_id>`` checks.
     """
     started = time.perf_counter()
     aid = "assisted.validate_diff"
 
-    if not patch or not finding_rule:
+    rule_ids = sorted(set(finding_rules or []))
+    if not patch or not rule_ids:
         return ActionResult(
             action_id=aid,
             ok=False,
             data={
-                "error": "assisted.validate_diff requires 'patch' and 'finding_rule'"
+                "error": "assisted.validate_diff requires 'patch' and 'finding_rules'"
             },
             impact=ActionImpact.WRITE_DATA,
             duration_sec=time.perf_counter() - started,
@@ -201,7 +254,7 @@ async def action_assisted_validate_diff(
             duration_sec=time.perf_counter() - started,
         )
 
-    worktree = core_context.git_service.create_worktree("HEAD")
+    worktree = core_context.git_service.create_worktree(base_sha or "HEAD")
     wt_path = Path(worktree.repo_path)
     # ADR-154 D2: the exact commit SHA of the hermetic worktree this run
     # validates against — captured immediately at worktree creation, never
@@ -298,7 +351,7 @@ async def action_assisted_validate_diff(
                 json.dumps(
                     {
                         "worktree_path": str(wt_path),
-                        "rule_id": finding_rule,
+                        "rule_ids": rule_ids,
                         "subject_files": subject_files or [],
                     }
                 ),
@@ -316,11 +369,14 @@ async def action_assisted_validate_diff(
 
             if sub_result.get("ok"):
                 sub_findings = sub_result.get("findings") or []
-                checks["subprocess_audit"] = _rule_cleared(
-                    sub_findings, subject_files, touched_py
-                )
+                sub_by_rule = _findings_by_rule(sub_findings, rule_ids)
+                for rid in rule_ids:
+                    checks[f"subprocess_audit:{rid}"] = _rule_cleared(
+                        sub_by_rule[rid], subject_files, touched_py
+                    )
             else:
-                checks["subprocess_audit"] = False
+                for rid in rule_ids:
+                    checks[f"subprocess_audit:{rid}"] = False
                 subprocess_error = sub_result.get("error")
 
         else:
@@ -328,7 +384,11 @@ async def action_assisted_validate_diff(
             #     Run at FULL scope (files=None): run_filtered_audit skips
             #     context-level rules under a file filter, so a file-scoped check
             #     would pass knowledge_gate rules vacuously. _rule_cleared then
-            #     confirms none of the guarded files is still flagged.
+            #     confirms none of the guarded files is still flagged. One audit
+            #     invocation covers every rule in rule_ids — rule_executor
+            #     enforces check_id == rule.rule_id (issue #485), so
+            #     _findings_by_rule can attribute each returned finding back to
+            #     its owning rule without a separate call per rule.
             guarded = bool((subject_files or []) or touched_py)
             if guarded:
                 from mind.governance.audit_context import AuditorContext
@@ -337,13 +397,16 @@ async def action_assisted_validate_diff(
                 actx = AuditorContext(wt_path)
                 await actx.load_knowledge_graph()
                 findings, _, _ = await run_filtered_audit(
-                    actx, rule_ids=[finding_rule], files=None
+                    actx, rule_ids=rule_ids, files=None
                 )
-                checks["audit_rule_cleared"] = _rule_cleared(
-                    findings, subject_files, touched_py
-                )
+                by_rule = _findings_by_rule(findings, rule_ids)
+                for rid in rule_ids:
+                    checks[f"audit_rule_cleared:{rid}"] = _rule_cleared(
+                        by_rule[rid], subject_files, touched_py
+                    )
             else:
-                checks["audit_rule_cleared"] = True
+                for rid in rule_ids:
+                    checks[f"audit_rule_cleared:{rid}"] = True
 
         # 4. Mapped tests for the touched sources must pass (when they exist).
         from shared.infrastructure.intent.test_coverage_paths import (
@@ -364,7 +427,7 @@ async def action_assisted_validate_diff(
         result_data: dict[str, Any] = {
             "validation_results": checks,
             "production_set": touched,
-            "finding_rule": finding_rule,
+            "finding_rules": rule_ids,
             "tests_run": existing_tests,
             # Bind this verdict to the exact bytes validated. `lane propose`
             # re-checks this hash against the patch it submits, so an agent

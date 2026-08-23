@@ -44,7 +44,7 @@ from mind.governance.filtered_audit import run_filtered_audit  # noqa: E402
 async def _main():
     actx = AuditorContext(Path(_data["worktree_path"]), stateless=True)
     findings, _, _ = await run_filtered_audit(
-        actx, rule_ids=[_data["rule_id"]], files=None
+        actx, rule_ids=_data["rule_ids"], files=None
     )
     return findings
 
