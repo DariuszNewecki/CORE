@@ -190,16 +190,31 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
 ) -> None:
     # This test is the first to spawn real subprocesses from inside a real
     # RemediationCeremony run (poetry run black/ruff in _align_staged_file).
-    # Under `pytest --cov`, pytest-cov injects COVERAGE_PROCESS_START into
-    # os.environ so any Python subprocess auto-starts its own coverage
-    # recording — but those subprocess-collected files default to
-    # statement-only (has_arcs=0), which coverage.py's combine step then
-    # refuses to merge with this repo's branch-mode (has_arcs=1) data,
-    # crashing pytest-cov's finish() after the run already passed. Test-only
-    # fix: no production code involved, no coverage of anything is lost
-    # (nothing under test runs inside these subprocesses — poetry/black/ruff
-    # are formatting tools, not src/ code the coverage gate measures).
-    monkeypatch.delenv("COVERAGE_PROCESS_START", raising=False)
+    # pytest-cov's own subprocess-coverage support (pytest_cov/embed.py,
+    # gated on COV_CORE_DATAFILE — NOT the plain `coverage` package's
+    # COVERAGE_PROCESS_START; confirmed by reading pytest_cov/engine.py and
+    # embed.py directly) makes any Python subprocess auto-record its own
+    # coverage data once COV_CORE_DATAFILE is set. But COV_CORE_BRANCH is
+    # only set when pytest-cov's separate --cov-branch CLI flag is passed
+    # (confirmed empirically: absent from os.environ here even though
+    # pyproject.toml's [tool.coverage.run] branch = true governs the main
+    # process directly via the coverage config file, a different
+    # mechanism) — so any subprocess-recorded data is always statement-only
+    # (has_arcs=0), which coverage.py's combine step then refuses to merge
+    # with this repo's branch-mode (has_arcs=1) main data, crashing
+    # pytest-cov's finish() after the run has already passed. Test-only
+    # fix, the same five vars pytest-cov's own engine.py removes on
+    # teardown: no production code involved, no coverage of anything lost
+    # (poetry/black/ruff are formatting tools, not src/ code the coverage
+    # gate measures).
+    for _var in (
+        "COV_CORE_SOURCE",
+        "COV_CORE_CONFIG",
+        "COV_CORE_DATAFILE",
+        "COV_CORE_BRANCH",
+        "COV_CORE_CONTEXT",
+    ):
+        monkeypatch.delenv(_var, raising=False)
 
     core_context = _make_context(repo)
     baseline_sha = core_context.git_service.get_current_commit()
