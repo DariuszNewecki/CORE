@@ -186,7 +186,21 @@ async def _fetch_finding_status(finding_id: str) -> str | None:
 async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequence(
     repo: Path,
     db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # This test is the first to spawn real subprocesses from inside a real
+    # RemediationCeremony run (poetry run black/ruff in _align_staged_file).
+    # Under `pytest --cov`, pytest-cov injects COVERAGE_PROCESS_START into
+    # os.environ so any Python subprocess auto-starts its own coverage
+    # recording — but those subprocess-collected files default to
+    # statement-only (has_arcs=0), which coverage.py's combine step then
+    # refuses to merge with this repo's branch-mode (has_arcs=1) data,
+    # crashing pytest-cov's finish() after the run already passed. Test-only
+    # fix: no production code involved, no coverage of anything is lost
+    # (nothing under test runs inside these subprocesses — poetry/black/ruff
+    # are formatting tools, not src/ code the coverage gate measures).
+    monkeypatch.delenv("COVERAGE_PROCESS_START", raising=False)
+
     core_context = _make_context(repo)
     baseline_sha = core_context.git_service.get_current_commit()
     target_path = repo / _FILE_PATH
