@@ -91,9 +91,10 @@ async def test_run_canary_validation_snapshot_preserves_symlinks(
 ):
     """Regression test for the sandbox-ballooning bug (2026-07-11): the repo
     snapshot step must copy a real symlink (e.g. the repo-root ``ITAM ->
-    /mnt/vector_db/YPTO/ITAM`` link) as a symlink, not dereference it and
-    copy the target directory's full content. That dereferencing turned two
-    ~6M sandboxes into 1.3G each. See
+    /mnt/vector_db/<organization-redacted>/ITAM`` link; see ADR-147 for the
+    incident record, organization-identifying path segment redacted) as a
+    symlink, not dereference it and copy the target directory's full content.
+    That dereferencing turned two ~6M sandboxes into 1.3G each. See
     src/body/services/crate_processing_service.py:174
     (``shutil.copytree(..., symlinks=True, ...)``).
     """

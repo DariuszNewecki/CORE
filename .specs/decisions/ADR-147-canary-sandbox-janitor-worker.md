@@ -43,10 +43,10 @@ any other future hard-kill (OOM, `kill -9`, container eviction).
 A second, independent bug compounded the damage: the snapshot's directory copy used
 `shutil.copytree(item, dst, symlinks=False, ...)`, which *follows* symlinks and copies
 their target's content instead of recreating the link. The repo-root `ITAM` symlink
-(`-> /mnt/vector_db/YPTO/ITAM`) was thereby fully dereferenced into two of the orphaned
-sandboxes, ballooning them to ~1.3G each against a normal ~6M sandbox size. Fixed in the
-same change (`symlinks=True`); it multiplies the damage of any future orphan but is not
-itself the retention gap this ADR addresses.
+(`-> /mnt/vector_db/<organization-redacted>/ITAM`) was thereby fully dereferenced into
+two of the orphaned sandboxes, ballooning them to ~1.3G each against a normal ~6M
+sandbox size. Fixed in the same change (`symlinks=True`); it multiplies the damage of
+any future orphan but is not itself the retention gap this ADR addresses.
 
 ## Decision
 
@@ -136,3 +136,12 @@ reclaimed.
   - `FileHandler.copy_repo_snapshot` (`src/body/infrastructure/storage/file_handler.py`)
     has the same `shutil.copytree` pattern without `symlinks=True` as the bug fixed here,
     at a different call site. Not touched by this change.
+
+## Editorial note (2026-08-24)
+
+The organization-identifying path segment in the `ITAM` symlink target (Context) has
+been redacted to `<organization-redacted>` for confidentiality. `ITAM` itself is the
+tool/workspace name, not organization-identifying, and is retained unchanged, as is the
+rest of the incident record (the symlink name, the dereferencing bug, the sandbox sizes,
+and the fix). Only the organization identifier is redacted; the incident semantics are
+unchanged.

@@ -1,13 +1,13 @@
-"""GRC gap-analysis over the neutralized governance corpus — deterministic lane.
+"""GRC gap-analysis over the synthetic governance corpus — deterministic lane.
 
-Runs the real `nist_800_171` catalog against the `governance_corpus` fixture
-(neutralized derivatives of real governance documents) with **no LLM wired**,
-so it is fully deterministic and CI-safe:
+Runs the real `nist_800_171` catalog against the `synthetic_corpus` fixture
+(entirely synthetic documents, written from the catalog's own requirement
+statements) with **no LLM wired**, so it is fully deterministic and CI-safe:
 
-- the `regex_gate` "doc_finalized" lane fires on `enterprise-patching-policy.md`
+- the `regex_gate` "doc_finalized" lane fires on `remote-access-policy.md`
   (which retains `TBD` / `DRAFT` placeholders) → a **proven** gap;
-- the `grc_judge` judged lanes degrade honestly to `pending_ai` (no client),
-  never a fabricated verdict — exercising the honest-fallback path end to end.
+- the `grc_judge` judged lanes degrade honestly to `pending_ai`, never a
+  fabricated verdict — exercising the honest-fallback path end to end.
 
 The judged-lane *content* (real AI verdicts) is demo-only and exercised live,
 not in CI, because it requires a remote LLM.
@@ -21,7 +21,7 @@ from body.services.grc import GRCGapAnalysisService, load_catalog
 from shared.models import EvidenceClass
 
 
-_CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "governance_corpus"
+_CORPUS = Path(__file__).parents[3] / "fixtures" / "grc" / "synthetic_corpus"
 
 
 async def test_proven_gap_on_unfinalized_document() -> None:
@@ -36,8 +36,8 @@ async def test_proven_gap_on_unfinalized_document() -> None:
     assert finalized.status == "deficient"
     assert finalized.evidence_class is EvidenceClass.PROVEN
     assert finalized.evidence, "expected at least one placeholder finding"
-    # the gap is anchored on the unfinalized patching policy, not the clean docs
-    assert any("patching" in f.document for f in finalized.evidence)
+    # the gap is anchored on the unfinalized remote-access policy, not the clean docs
+    assert any("remote-access" in f.document for f in finalized.evidence)
 
 
 async def test_judged_lane_degrades_honestly_without_llm() -> None:
