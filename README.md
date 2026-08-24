@@ -148,7 +148,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n255 rules • 15 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n256 rules • 15 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -242,7 +242,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-255 rules across 58 rule documents. 247 are mapped to enforcement engines; the other 8 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
+256 rules across 58 rule documents. 248 are mapped to enforcement engines; the other 8 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
 
 ---
 

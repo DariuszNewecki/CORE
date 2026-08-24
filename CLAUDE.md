@@ -148,7 +148,7 @@ artifact, not a bug.
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 37 blocking + 27 reporting + 12 advisory = 76.
+the other two surface findings. At digest time: 38 blocking + 27 reporting + 12 advisory = 77.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -183,6 +183,7 @@ digest has drifted — surface it to the governor.
 - `architecture.boundary.file_handler_access` (mind|will) — Only Body and infrastructure MAY instantiate `FileHandler` directly; Will and Mind delegate file operations to Body services.
 - `architecture.boundary.llm_client_access` (body|mind) — Only Will and autonomous services MAY import LLM client infrastructure; Body MUST NOT make AI decisions, Mind MUST NOT invoke AI.
 - `architecture.boundary.embedding_access` (body|mind|will|cli) — Embedding capability MUST go through `CognitiveEmbedderAdapter` (Vectorizer role, DB-backed registry). Direct import of `EmbeddingService` or `build_embedder_from_env` from `shared.utils.embedding_utils` is prohibited outside `src/shared/`.
+- `architecture.boundary.remediation_write_access` (`src/will/remediation/**`) — Candidate-only remediation modules MUST NOT directly import Git-commit service infrastructure (`GitService`); production mutation occurs only through the proposal-gated path (ADR-154 D4).
 - `architecture.shared.no_layer_imports` (`src/shared/**`) — Shared MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (Historical excludes all closed — last non-test exclude removed per ADR-126 Stage 3, `c968b6d9`; only test globs remain in the mapping. No new excludes without a companion closure ADR per ADR-049 D3.)
 
 **Channels**
