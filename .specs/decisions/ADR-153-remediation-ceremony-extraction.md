@@ -446,3 +446,34 @@ violation is gone, not permitted.
 - `src/will/workers/violation_remediator_body/_host.py` — the existing
   typing-only host contract pattern this ADR's `RemediationBlackboard`
   Protocol extends rather than replaces.
+
+---
+
+## Governor decision — ADR-154 D4 correction (2026-08-24)
+
+Current-state correction, not a revision of what this ADR historically
+decided. This ADR's consumer analysis (above) describes `_execute_file` as
+ending in "apply, git commit," and CLI rule-mode (consumer #2) as
+constructing `ViolationRemediator(core_context=..., target_rule=...,
+write=...)`. Both descriptions are now stale as of ADR-154 D4's structural
+retirement of the ceremony's direct-write terminus:
+
+- `RemediationCeremony` is candidate-only. Its former direct apply/
+  Git-commit terminus (`apply_and_finalize_crate` / `commit_paths`,
+  reached through the `write` constructor flag) has been structurally
+  removed, not merely disabled — the `write` parameter this ADR's consumer
+  analysis describes no longer exists on `RemediationCeremony`,
+  `ViolationExecutorWorker`, or `ViolationRemediator`.
+- Canonical worker-backed remediation (executor-delegate and CLI
+  rule-mode, consumers #1 and #2 above) now terminates in an automatic
+  human-gated DRAFT proposal once Canary and `assisted.validate_diff`
+  both pass (ADR-154 D3/D5).
+- CLI file-mode (consumer #3 above) remains candidate-export-only
+  (ADR-154 D3a) — a validated candidate is built and logged for
+  inspection, never applied, never committed, never submitted as a
+  proposal.
+- Production application now occurs only through the governed proposal
+  execution path (`ProposalExecutor` / `SandboxLifecycle`), never through
+  this ceremony.
+
+See ADR-154 for the full decision and its D1–D5 record.

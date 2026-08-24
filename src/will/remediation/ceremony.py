@@ -17,10 +17,23 @@ it takes a RemediationBlackboard (ADR-153 D2) instead of being a Worker
 itself, so posting/marking is attributed to whichever real identity the
 caller supplies — never borrowed via a caller_uuid substitution.
 
+ADR-154 D4: the ceremony is now candidate-only. It never applies a fix to
+live src/ and never commits — the direct apply/commit terminus (formerly
+gated by a `write` flag) has been structurally removed, not merely
+disabled. A canonical worker-backed ceremony (real blackboard worker
+identity) ends in an automatic human-gated DRAFT proposal once
+Canary and assisted.validate_diff both pass (ADR-154 D3/D5). CLI
+file-mode (no real worker identity) ends in candidate-export-only
+(ADR-154 D3a) — a validated candidate is built and logged for
+inspection, never submitted as a proposal. Production mutation happens
+only after DRAFT approval, through ProposalExecutor/SandboxLifecycle —
+never through this ceremony.
+
 Phase discipline (unchanged from the original):
   RUNTIME phase  — _plan_file():  read source, build architectural context,
                                   validate confidence, decide whether to proceed.
-  EXECUTION phase — _execute_file(): LLM invocation, Crate, Canary, apply, commit.
+  EXECUTION phase — _execute_file(): LLM invocation, Crate, Canary, validate,
+                                     candidate construction, DRAFT/export.
 """
 
 from __future__ import annotations
@@ -69,13 +82,17 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
     """
     The full per-file remediation ceremony: build architectural context,
     invoke RemoteCoder (Grok) via PromptModel to produce a fix, then run
-    the Crate/Canary/apply/commit ceremony.
+    the Crate/Canary ceremony and validate the resulting diff.
 
-    In dry-run mode (write=False): planning, LLM, and Canary run,
-    nothing is applied, proposed fix is posted via the blackboard
-    parameter's post_observation for human review.
-
-    In write mode (write=True): full ceremony - apply + git commit.
+    Candidate-only (ADR-154 D4): this ceremony never applies a fix to live
+    src/ and never commits. A canonical worker-backed ceremony (real
+    blackboard worker identity) that passes Canary and
+    assisted.validate_diff creates an automatic human-gated DRAFT proposal
+    (ADR-154 D3/D5). CLI file-mode (no real worker identity) stays
+    candidate-export-only (ADR-154 D3a) — the validated candidate is built
+    and logged for inspection, never submitted as a proposal. Production
+    mutation happens only after DRAFT approval, through
+    ProposalExecutor/SandboxLifecycle.
 
     One Crate per file - all violations in a file are fixed in a single
     LLM invocation to preserve coherence and minimise API cost.
@@ -83,7 +100,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
     Args:
         core_context: Initialized CoreContext.
         target_rule: Only process findings for this rule ID.
-        write: If False, dry-run mode - no src/ writes, no commits.
         blackboard: Where to post and mark outcomes (ADR-153 D2) — the
             caller's own identity (WorkerRemediationBlackboard) or a
             declared no-op (NullRemediationBlackboard).
@@ -93,12 +109,10 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         self,
         core_context: Any,
         target_rule: str | None,
-        write: bool,
         blackboard: RemediationBlackboard,
     ) -> None:
         self._ctx = core_context
         self._target_rule = target_rule
-        self._write = write
         self._blackboard = blackboard
         self._interpretation_service = RemediationInterpretationService()
 
@@ -131,7 +145,8 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         Orchestrate the two-phase ceremony for a single file.
 
         RUNTIME phase:  _plan_file()    — read, interpret, gate confidence
-        EXECUTION phase: _execute_file() — LLM, crate, canary, apply, commit
+        EXECUTION phase: _execute_file() — LLM, crate, canary, validate,
+                          candidate construction, DRAFT/export
         """
         plan = await self._plan_file(file_path, findings)
         if plan is None:
@@ -150,12 +165,11 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
     ) -> _RemediationPlan | None:
         """
         RUNTIME phase: read the source file and build the architectural
-        context package. Validates confidence before returning.
+        context package.
 
         Returns None (and marks findings indeterminate) if:
         - the source file cannot be read
         - the architectural context service raises
-        - role confidence is below threshold in write mode
 
         This method intentionally performs NO execution-phase actions.
         """
@@ -175,7 +189,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Cannot read file: {exc}",
             )
             return None
@@ -209,7 +222,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Architectural context indeterminate: {exc}",
             )
             return None
@@ -217,26 +229,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         role_confidence = (
             architectural_context.get("file_role", {}).get("confidence", 0.0) or 0.0
         )
-        if self._write and role_confidence < _CFG.min_role_confidence:
-            logger.warning(
-                "RemediationCeremony: role confidence %.2f < %.2f for %s "
-                "[indeterminate in write mode — halting]",
-                role_confidence,
-                _CFG.min_role_confidence,
-                file_path,
-            )
-            await self._blackboard.mark_findings(findings, "indeterminate")
-            await self._blackboard.post_failed(
-                file_path,
-                findings,
-                self._target_rule,
-                self._write,
-                (
-                    f"Role confidence {role_confidence:.2f} below write threshold "
-                    f"{_CFG.min_role_confidence}. Human review required."
-                ),
-            )
-            return None
 
         logger.info(
             "RemediationCeremony: plan ready for %s "
@@ -347,7 +339,8 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         plan: _RemediationPlan,
     ) -> bool:
         """
-        EXECUTION phase: LLM proposal, Crate, Canary, apply, commit.
+        EXECUTION phase: LLM proposal, Crate, Canary, patch validation,
+        candidate construction, DRAFT/export.
 
         plan.architectural_context is passed to the LLM as advisory
         evidence, labelled explicitly as 'architectural_context' — not as
@@ -371,9 +364,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             await bb.release_claimed_entries(finding_ids)
             return False
 
-        if self._write:
-            self._archive_rollback(file_path, plan.original_source, plan.baseline_sha)
-
         proposed_fix = await self._invoke_llm(
             file_path=file_path,
             source_code=plan.original_source,
@@ -384,7 +374,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         if proposed_fix is None:
             await self._blackboard.mark_findings(findings, "abandoned")
             await self._blackboard.post_failed(
-                file_path, findings, self._target_rule, self._write, "LLM fix failed"
+                file_path, findings, self._target_rule, "LLM fix failed"
             )
             return False
 
@@ -395,7 +385,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 "Crate creation failed",
             )
             return False
@@ -409,17 +398,16 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Canary failed for crate {crate_id}",
             )
             return False
 
         # ADR-154 D1: patch generation + assisted.validate_diff safety gate.
         # Fail-closed — once this gate is invoked, a failed verdict must
-        # never fall through into the legacy apply/commit branches below,
-        # in either dry-run or write mode. A gate whose failure can be
-        # silently bypassed is worse than no gate: it manufactures the
-        # appearance of a check without its substance.
+        # never fall through into candidate/DRAFT construction below. A
+        # gate whose failure can be silently bypassed is worse than no
+        # gate: it manufactures the appearance of a check without its
+        # substance.
         rule_ids = self._collect_rule_ids(findings)
         if rule_ids is None:
             await self._blackboard.mark_findings(findings, "abandoned")
@@ -427,7 +415,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 "One or more findings have no resolvable rule id; cannot validate.",
             )
             return False
@@ -439,7 +426,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 "Empty or unavailable candidate diff — nothing to validate.",
             )
             return False
@@ -471,7 +457,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 "assisted.validate_diff failed "
                 f"(validation_run_id={validation_run_id}): "
                 f"{validate_result.data.get('error', 'validation did not pass')}",
@@ -479,12 +464,9 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             return False
 
         # ADR-154 D3/D5: canonical worker/rule-mode findings get an
-        # automatic human-gated DRAFT proposal here, regardless of
-        # self._write — proposal creation is not production mutation, so
-        # it must not depend on the legacy write flag. Once a DRAFT is
-        # created (or its creation fails), this method returns without
-        # ever reaching the legacy dry-run/write branches — a canonical
-        # passing ceremony must never reach direct apply/commit again.
+        # automatic human-gated DRAFT proposal here. Once a DRAFT is
+        # created (or its creation fails), this method returns — a
+        # canonical passing ceremony never applies or commits.
         worker_uuid = self._blackboard.worker_uuid
         if worker_uuid is not None:
             return await self._create_ceremony_draft(
@@ -497,150 +479,14 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 worker_uuid,
             )
 
-        # ADR-154 D3a (governor correction, 2026-08-23): worker_uuid is
-        # None only for CLI file-mode's NullRemediationBlackboard —
-        # synthetic, non-canonical findings with no durable blackboard
-        # lineage. The settled D3a decision is candidate-export-only:
-        # file-mode may not create a proposal (D5's eligibility guard
-        # already forecloses that) AND may not reach direct apply/commit
-        # either, regardless of self._write. An earlier version of this
-        # method fell through to the legacy dry-run/write branches here,
-        # which meant `--file ... --write` still applied and committed
-        # directly — exactly the authority D3a exists to remove. That
-        # legacy code is relocated to _legacy_dry_run_and_write below
-        # (kept defined, physically present, for D4 to delete
-        # structurally) — no caller reaches it anymore.
+        # ADR-154 D3a: worker_uuid is None only for CLI file-mode's
+        # NullRemediationBlackboard — synthetic, non-canonical findings
+        # with no durable blackboard lineage. File-mode is
+        # candidate-export-only: it may not create a proposal (D5's
+        # eligibility guard already forecloses that).
         return await self._export_candidate_only(
             file_path, findings, plan, rule_ids, patch, validation_run_id
         )
-
-    async def _legacy_dry_run_and_write(
-        self,
-        file_path: str,
-        findings: list[dict[str, Any]],
-        plan: _RemediationPlan,
-        crate_id: str,
-        canary_passed: bool,
-        proposed_fix: str,
-    ) -> bool:
-        """Dead code as of ADR-154 D3 — no caller reaches this anymore.
-
-        Every _execute_file path now returns before this method could be
-        called: worker-backed ceremonies via _create_ceremony_draft,
-        file-mode via _export_candidate_only (ADR-154 D3a,
-        candidate-export-only). Preserved verbatim rather than deleted —
-        D4 owns removing this method, the CLI --write flag, and the
-        worker-declaration crate.apply/git.commit authority together, per
-        ADR-154's own text ("remove write from RemediationCeremony...
-        delete the write behavioural branch, apply_and_finalize_crate, and
-        the direct commit_paths call"). Left here so D4 is a deletion, not
-        a rewrite.
-        """
-        if not self._write:
-            await self._blackboard.post_observation(
-                subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
-                payload={
-                    "file_path": file_path,
-                    "rule": self._target_rule,
-                    "crate_id": crate_id,
-                    "baseline_sha": plan.baseline_sha,
-                    "canary_passed": canary_passed,
-                    "proposed_fix": proposed_fix,
-                    "violations_count": len(findings),
-                    "architectural_context": plan.architectural_context,
-                    "message": (
-                        "Dry-run complete. Canary passed. "
-                        "Review 'proposed_fix' and 'architectural_context' "
-                        "then re-run with write=True."
-                    ),
-                },
-                status="dry_run_complete",
-            )
-            # Source findings are marked 'abandoned', not 'dry_run_complete':
-            # the dry-run candidate report (posted above) carries all the fix
-            # information; the source findings represent a violation that was
-            # NOT fixed, so sensors must be free to re-detect on the next
-            # cycle. Per #265 (and aligned with #263 — abandoned is the
-            # re-emittable terminal status).
-            await self._blackboard.mark_findings(findings, "abandoned")
-            logger.info(
-                "RemediationCeremony: [DRY-RUN] %s - canary passed, fix ready.",
-                file_path,
-            )
-            return True
-
-        # --- write mode: apply then commit ---
-
-        try:
-            from body.services.crate_processing_service import CrateProcessingService
-
-            service = CrateProcessingService(self._ctx)
-            await service.apply_and_finalize_crate(crate_id)
-        except Exception as exc:
-            logger.warning(
-                "RemediationCeremony: apply_and_finalize failed for %s - %s",
-                crate_id,
-                exc,
-            )
-            await self._blackboard.mark_findings(findings, "abandoned")
-            await self._blackboard.post_failed(
-                file_path,
-                findings,
-                self._target_rule,
-                self._write,
-                f"Apply failed: {exc}",
-            )
-            return False
-
-        # Commit MUST succeed before findings are marked resolved.
-        # A failed commit means the repo and the blackboard would disagree
-        # about whether the fix is live. That is a data integrity failure.
-        # Scope the commit to this file only — autonomous workers must
-        # use commit_paths() so unrelated working-tree changes are never
-        # swept into a worker's commit.
-        try:
-            self._ctx.git_service.commit_paths(
-                [file_path],
-                f"fix({self._target_rule}): autonomous remediation in {file_path}",
-            )
-        except RuntimeError as exc:
-            logger.error(
-                "RemediationCeremony: git commit FAILED for %s - %s "
-                "[marking abandoned — fix is applied but uncommitted]",
-                file_path,
-                exc,
-            )
-            await self._blackboard.mark_findings(findings, "abandoned")
-            await self._blackboard.post_failed(
-                file_path,
-                findings,
-                self._target_rule,
-                self._write,
-                f"Git commit failed after apply: {exc}. "
-                "Fix is applied to disk but NOT committed. Manual intervention required.",
-            )
-            return False
-
-        await self._blackboard.post_report(
-            subject=f"{_COMPLETE_SUBJECT}::{file_path}",
-            payload={
-                "file_path": file_path,
-                "rule": self._target_rule,
-                "crate_id": crate_id,
-                "baseline_sha": plan.baseline_sha,
-                "violations_fixed": len(findings),
-                "architectural_context": plan.architectural_context,
-            },
-        )
-        await self._blackboard.mark_findings(findings, "resolved")
-
-        logger.info(
-            "RemediationCeremony: [WRITE] applied %s (crate=%s, rule=%s)",
-            file_path,
-            crate_id,
-            self._target_rule,
-        )
-        return True
 
     # -------------------------------------------------------------------------
     # ADR-154 D3 — candidate -> privileged candidate -> human-gated DRAFT
@@ -695,7 +541,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Candidate construction failed: {exc}",
             )
             return False
@@ -723,7 +568,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Ceremony proposal submission failed: {exc}",
             )
             return False
@@ -773,20 +617,14 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         inspection: never constructs or submits a proposal (the candidate's
         ``finding_ids`` here are file-mode's synthetic UUIDs — diagnostic
         metadata only, never real lineage a submission could defer), and
-        never reaches ``apply_and_finalize_crate``/``commit_paths``
-        regardless of ``self._write``. This is the fix for a real D3
-        defect the governor caught: without this terminus, worker_uuid
-        being None simply fell through to ``_legacy_dry_run_and_write``,
-        so ``--file ... --write`` still applied and committed directly —
-        exactly the authority D3a's candidate-export-only decision exists
-        to remove.
+        never applies or commits (ADR-154 D4: that terminus no longer
+        exists anywhere in this ceremony).
 
         ``NullRemediationBlackboard``'s methods are true no-ops (ADR-153),
-        so this posts nothing anywhere — matching the pre-D3 file-mode
-        dry-run terminus, which also posted nothing for the same reason.
-        The candidate's fields (patch, patch_digest, validated_base_sha,
-        production_set) are still constructed and logged for local
-        operator visibility even though nothing durable is written.
+        so this posts nothing anywhere. The candidate's fields (patch,
+        patch_digest, validated_base_sha, production_set) are still
+        constructed and logged for local operator visibility even though
+        nothing durable is written.
         """
         try:
             candidate = await build_validated_candidate(
@@ -801,7 +639,6 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 findings,
                 self._target_rule,
-                self._write,
                 f"Candidate construction failed: {exc}",
             )
             return False

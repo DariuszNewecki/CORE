@@ -17,23 +17,25 @@ mandate:
   responsibility: >
     For each open audit violation finding, build a deterministic architectural
     context package (evidence only, not authority) for the violating file,
-    invoke RemoteCoder via PromptModel to produce a fix, validate via
-    Crate/Canary ceremony, and apply to live src/ with a git commit.
+    invoke RemoteCoder via PromptModel to produce a fix, and validate it via
+    Crate/Canary ceremony and assisted.validate_diff, producing an immutable
+    validated candidate. A canonical passing candidate automatically creates
+    a human-gated DRAFT proposal (ADR-154 D3/D5) — production application
+    happens only after governor approval, through ProposalExecutor /
+    SandboxLifecycle, never directly from this worker.
     Also supports file-mode operation: accepts findings injected directly from
     a file-scoped full audit (bypassing the Blackboard sensor), enabling
-    diagnosis-first remediation of a single file across all rules.
+    diagnosis-first candidate export for a single file across all rules
+    (candidate-export-only, ADR-154 D3a).
   phase: execution
   permitted_tools:
     - llm.remote_coder
     - file.read
     - crate.create
     - canary.validate
-    - crate.apply
-    - git.commit
   scope:
     paths:
       - "src/**"
-      - "var/mind/rollbacks/**"
     domains:
       - compliance
       - remediation

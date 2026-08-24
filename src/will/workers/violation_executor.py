@@ -43,7 +43,7 @@ Constitutional standing:
 - Class:            acting
 - Phase:            execution
 - Permitted tools:  llm.remote_coder, file.read, crate.create,
-                    canary.validate, crate.apply, git.commit
+                    canary.validate
 - Approval:         true (inherited from the RemediationCeremony ceremony)
 
 LAYER: will/workers — acting worker. Runs the extracted execution ceremony
@@ -85,15 +85,13 @@ class ViolationExecutorWorker(Worker):
 
     Args:
         core_context: Initialized CoreContext.
-        write: If False, dry-run mode — ceremony runs but no files are changed.
     """
 
     declaration_name = "violation_executor"
 
-    def __init__(self, core_context: Any, write: bool = False) -> None:
+    def __init__(self, core_context: Any) -> None:
         super().__init__()
         self._ctx = core_context
-        self._write = write
         # Constitutional blast bound — per-cycle files-rewritten cap.
         # MUST be declared in the worker YAML at
         # `mandate.schedule.files_per_cycle_max`. Missing declaration is a
@@ -121,8 +119,7 @@ class ViolationExecutorWorker(Worker):
         # Step 1: Heartbeat
         await self.post_heartbeat()
 
-        mode = "WRITE" if self._write else "DRY-RUN"
-        logger.info("ViolationExecutorWorker: starting [%s]", mode)
+        logger.info("ViolationExecutorWorker: starting")
 
         cap_n = load_operational_config().blackboard.remediation_cap_n
 
@@ -142,7 +139,6 @@ class ViolationExecutorWorker(Worker):
             await self.post_report(
                 subject="violation_executor.run.complete",
                 payload={
-                    "write": self._write,
                     "message": "No open unmapped violation findings.",
                     "mapped_rule_count": len(mapped_rule_ids),
                 },
@@ -153,9 +149,8 @@ class ViolationExecutorWorker(Worker):
             return
 
         logger.info(
-            "ViolationExecutorWorker: claimed %d unmapped finding(s) [%s].",
+            "ViolationExecutorWorker: claimed %d unmapped finding(s).",
             len(findings),
-            mode,
         )
 
         # Step 2 (group): Group by file_path
@@ -172,10 +167,9 @@ class ViolationExecutorWorker(Worker):
             by_file.setdefault(file_path, []).append(finding)
 
         logger.info(
-            "ViolationExecutorWorker: %d finding(s) across %d file(s) [%s].",
+            "ViolationExecutorWorker: %d finding(s) across %d file(s).",
             len(findings),
             len(by_file),
-            mode,
         )
 
         # Blast-bound rail: cap files-per-cycle (2026-05-24 hardening sweep).
@@ -250,7 +244,6 @@ class ViolationExecutorWorker(Worker):
         await self.post_report(
             subject="violation_executor.run.complete",
             payload={
-                "write": self._write,
                 "claimed": len(findings),
                 "files": len(by_file),
                 "succeeded": succeeded,
@@ -265,9 +258,8 @@ class ViolationExecutorWorker(Worker):
             },
         )
         logger.info(
-            "ViolationExecutorWorker: done [%s] — %d succeeded, %d failed, "
+            "ViolationExecutorWorker: done — %d succeeded, %d failed, "
             "%d capped, %d candidates.",
-            mode,
             succeeded,
             failed,
             capped,
@@ -342,7 +334,6 @@ class ViolationExecutorWorker(Worker):
             ceremony = RemediationCeremony(
                 core_context=self._ctx,
                 target_rule=target_rule,
-                write=self._write,
                 blackboard=blackboard,
             )
             ok = await ceremony.process_file(file_path, findings)

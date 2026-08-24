@@ -19,16 +19,18 @@ identity:
 mandate:
   responsibility: >
     For a single declared target_rule, claim open violation findings, build
-    architectural context, invoke RemoteCoder, validate via Crate/Canary, and
-    apply the fix with a git commit. Supports dry-run mode.
+    architectural context, invoke RemoteCoder, and validate via Crate/Canary
+    and assisted.validate_diff, producing an immutable validated candidate.
+    A passing candidate automatically creates a human-gated DRAFT proposal
+    (ADR-154 D3/D5) — production application happens only after governor
+    approval, through ProposalExecutor/SandboxLifecycle, never directly from
+    this worker.
   phase: execution
   permitted_tools:
     - llm.remote_coder
     - file.read
     - crate.create
     - canary.validate
-    - crate.apply
-    - git.commit
   approval_required: true
 
 implementation:

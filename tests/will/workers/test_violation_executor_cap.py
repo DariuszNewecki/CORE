@@ -32,7 +32,6 @@ def _make_worker() -> object:
     w = object.__new__(ViolationExecutorWorker)
     w._ctx = MagicMock()
     w._ctx.git_service = MagicMock()
-    w._write = False
     w._files_per_cycle_max = 10
     w._declaration = {}
     w._worker_uuid = "worker-uuid-vex"

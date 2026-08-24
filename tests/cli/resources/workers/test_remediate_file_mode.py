@@ -7,6 +7,11 @@ it constructs `RemediationCeremony` directly with a `NullRemediationBlackboard`
 and never touches `ViolationRemediator` at all — this is a deliberate,
 recorded behavior change: file mode now posts nothing to the blackboard.
 
+ADR-154 D4: `RemediationCeremony` no longer takes a `write` argument at
+all — the CLI's `--write` flag was retired along with the ceremony's
+direct apply/commit terminus. File mode is unconditionally
+candidate-export-only (ADR-154 D3a).
+
 Tests drive Mocks for the auditor/session/ceremony layers. No DB, no LLM.
 """
 
@@ -106,14 +111,14 @@ async def test_run_file_pipeline_uses_ceremony_with_null_blackboard(tmp_path):
             return_value=ceremony_instance,
         ) as ceremony_cls,
     ):
-        await _run_file_pipeline(core_context, "src/a.py", write=False)
+        await _run_file_pipeline(core_context, "src/a.py")
 
     null_blackboard_cls.assert_called_once_with()
     ceremony_cls.assert_called_once()
     _, kwargs = ceremony_cls.call_args
     assert kwargs["core_context"] is core_context
     assert kwargs["target_rule"] == "rule.a"
-    assert kwargs["write"] is False
+    assert "write" not in kwargs
     assert kwargs["blackboard"] is null_blackboard_sentinel
 
     ceremony_instance.process_file.assert_awaited_once()
@@ -125,11 +130,10 @@ async def test_run_file_pipeline_uses_ceremony_with_null_blackboard(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_run_file_pipeline_write_true_still_uses_ceremony_write_flag(tmp_path):
-    """ADR-154 D3a correction: --write is still forwarded to
-    RemediationCeremony as write=True (ceremony itself refuses to reach
-    apply/commit for a NullRemediationBlackboard caller) — the CLI does
-    not need to suppress the flag, only stop claiming it applies anything."""
+async def test_run_file_pipeline_always_candidate_export_only(tmp_path):
+    """ADR-154 D4: there is no --write flag left to vary — file mode is
+    unconditionally candidate-export-only, and the pipeline's closing
+    guidance states that plainly."""
     target = tmp_path / "src" / "a.py"
     target.parent.mkdir(parents=True)
     target.write_text("x = 1\n")
@@ -161,70 +165,16 @@ async def test_run_file_pipeline_write_true_still_uses_ceremony_write_flag(tmp_p
         patch(
             "will.remediation.RemediationCeremony",
             return_value=ceremony_instance,
-        ) as ceremony_cls,
+        ),
         patch("cli.resources.workers.remediate.logger") as mock_logger,
     ):
-        await _run_file_pipeline(core_context, "src/a.py", write=True)
+        await _run_file_pipeline(core_context, "src/a.py")
 
-    _, kwargs = ceremony_cls.call_args
-    assert kwargs["write"] is True
-
-    # 3. Must never repeat the old false claim, and must state the
-    # accurate candidate-export-only behavior instead.
     all_messages = " ".join(
         str(call.args[0]).lower() for call in mock_logger.info.call_args_list
     )
     assert "fixes applied and committed" not in all_messages
     assert "candidate-export-only" in all_messages
-
-    # The explicit --write-has-no-effect warning must have fired.
-    warning_messages = " ".join(
-        str(call.args[0]).lower() for call in mock_logger.warning.call_args_list
-    )
-    assert "no effect" in warning_messages
-
-
-@pytest.mark.asyncio
-async def test_run_file_pipeline_write_false_no_write_warning(tmp_path):
-    """1. write=False -> no spurious --write warning, still candidate-only."""
-    target = tmp_path / "src" / "a.py"
-    target.parent.mkdir(parents=True)
-    target.write_text("x = 1\n")
-
-    core_context = _make_core_context(tmp_path)
-
-    auditor_instance = MagicMock()
-    auditor_instance.run_full_audit_async = AsyncMock(
-        return_value={
-            "findings": [
-                {"file_path": "src/a.py", "check_id": "rule.a", "message": "bad"}
-            ]
-        }
-    )
-
-    ceremony_instance = MagicMock()
-    ceremony_instance.process_file = AsyncMock(return_value=True)
-
-    with (
-        patch(
-            "cli.resources.workers.remediate.get_session",
-            side_effect=_null_session,
-        ),
-        patch(
-            "mind.governance.auditor.ConstitutionalAuditor",
-            return_value=auditor_instance,
-        ),
-        patch("will.remediation.NullRemediationBlackboard", return_value=object()),
-        patch(
-            "will.remediation.RemediationCeremony",
-            return_value=ceremony_instance,
-        ) as ceremony_cls,
-        patch("cli.resources.workers.remediate.logger") as mock_logger,
-    ):
-        await _run_file_pipeline(core_context, "src/a.py", write=False)
-
-    _, kwargs = ceremony_cls.call_args
-    assert kwargs["write"] is False
     mock_logger.warning.assert_not_called()
 
 
@@ -250,6 +200,6 @@ async def test_run_file_pipeline_no_findings_skips_ceremony(tmp_path):
         ),
         patch("will.remediation.RemediationCeremony") as ceremony_cls,
     ):
-        await _run_file_pipeline(core_context, "src/clean.py", write=False)
+        await _run_file_pipeline(core_context, "src/clean.py")
 
     ceremony_cls.assert_not_called()

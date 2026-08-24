@@ -76,7 +76,6 @@ class RemediationBlackboard(Protocol):
         file_path: str,
         findings: list[dict[str, Any]],
         target_rule: str | None,
-        write: bool,
         reason: str,
     ) -> None: ...
 
@@ -153,7 +152,6 @@ class WorkerRemediationBlackboard:
         file_path: str,
         findings: list[dict[str, Any]],
         target_rule: str | None,
-        write: bool,
         reason: str,
     ) -> None:
         """Post a failure record to the blackboard.
@@ -168,7 +166,6 @@ class WorkerRemediationBlackboard:
                 "file_path": file_path,
                 "rule": target_rule,
                 "reason": reason,
-                "write": write,
                 "finding_ids": [finding["id"] for finding in findings],
             },
         )
@@ -211,7 +208,6 @@ class NullRemediationBlackboard:
         file_path: str,
         findings: list[dict[str, Any]],
         target_rule: str | None,
-        write: bool,
         reason: str,
     ) -> None:
         return None

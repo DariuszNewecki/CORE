@@ -16,11 +16,11 @@ worker's own, genuinely-registered identity. No caller_uuid substitution
 — nobody instantiates this class on another worker's behalf anymore.
 
 Constitutional standing:
-- Declaration:      .intent/workers/violation_remediator.yaml
+- Declaration:      .intent/workers/violation_remediator_body.yaml
 - Class:            acting
 - Phase:            execution
 - Permitted tools:  llm.remote_coder, file.read, crate.create,
-                    canary.validate, crate.apply, git.commit
+                    canary.validate
 - Approval:         true
 
 LAYER: body/workers - acting worker. Receives CoreContext via constructor
@@ -52,16 +52,14 @@ class ViolationRemediator(Worker):
     and runs the extracted remediation ceremony (RemediationCeremony) for
     each violating file.
 
-    In dry-run mode (write=False): planning, LLM, and Canary run,
-    nothing is applied, proposed fix is posted to the blackboard for human
-    review.
-
-    In write mode (write=True): full ceremony - apply + git commit.
+    Candidate-only (ADR-154 D4): the ceremony never applies a fix to live
+    src/ and never commits. A passing candidate creates an automatic
+    human-gated DRAFT proposal (ADR-154 D3/D5) — nothing is live until the
+    proposal is approved.
 
     Args:
         core_context: Initialized CoreContext.
         target_rule: Only process findings for this rule ID.
-        write: If False, dry-run mode - no src/ writes, no commits.
     """
 
     declaration_name = "violation_remediator_body"
@@ -70,12 +68,10 @@ class ViolationRemediator(Worker):
         self,
         core_context: Any,
         target_rule: str | None = None,
-        write: bool = False,
     ) -> None:
         super().__init__()
         self._ctx = core_context
         self._target_rule = target_rule
-        self._write = write
 
     # ID: 83141abe-9611-497f-a14c-29c5cf04d305
     async def run(self) -> None:
@@ -85,10 +81,8 @@ class ViolationRemediator(Worker):
         """
         await self.post_heartbeat()
 
-        mode = "WRITE" if self._write else "DRY-RUN"
         logger.info(
-            "ViolationRemediator: starting [%s] for rule '%s'",
-            mode,
+            "ViolationRemediator: starting for rule '%s'",
             self._target_rule,
         )
 
@@ -99,7 +93,6 @@ class ViolationRemediator(Worker):
                 subject="violation_remediator.run.complete",
                 payload={
                     "rule": self._target_rule,
-                    "write": self._write,
                     "processed": 0,
                     "message": "No open violation findings to remediate.",
                 },
@@ -122,16 +115,13 @@ class ViolationRemediator(Worker):
             by_file.setdefault(file_path, []).append(finding)
 
         logger.info(
-            "ViolationRemediator: %d findings across %d files [%s].",
+            "ViolationRemediator: %d findings across %d files.",
             len(findings),
             len(by_file),
-            mode,
         )
 
         blackboard = WorkerRemediationBlackboard(self, self._ctx)
-        ceremony = RemediationCeremony(
-            self._ctx, self._target_rule, self._write, blackboard
-        )
+        ceremony = RemediationCeremony(self._ctx, self._target_rule, blackboard)
 
         succeeded = 0
         failed = 0
@@ -147,15 +137,13 @@ class ViolationRemediator(Worker):
             subject="violation_remediator.run.complete",
             payload={
                 "rule": self._target_rule,
-                "write": self._write,
                 "succeeded": succeeded,
                 "failed": failed,
-                "message": f"[{mode}] {succeeded} files processed, {failed} failed.",
+                "message": f"{succeeded} files processed, {failed} failed.",
             },
         )
         logger.info(
-            "ViolationRemediator: [%s] %d succeeded, %d failed.",
-            mode,
+            "ViolationRemediator: %d succeeded, %d failed.",
             succeeded,
             failed,
         )

@@ -3,9 +3,9 @@
 
 The mixins in this package (CrateCanary, Context, LLM) are only ever
 combined into :class:`RemediationCeremony`, which sets ``_ctx`` /
-``_target_rule`` / ``_write`` in ``__init__``. This module gives mypy a
-static view of that host surface so each mixin type-checks in isolation
-instead of reporting ``attr-defined`` on attributes the host supplies.
+``_target_rule`` in ``__init__``. This module gives mypy a static view of
+that host surface so each mixin type-checks in isolation instead of
+reporting ``attr-defined`` on attributes the host supplies.
 
 Zero runtime effect: at runtime ``HostBase`` is ``object``, so the mixins
 are plain mixins and the real composition is supplied by
@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
         _ctx: Any
         _target_rule: str | None
-        _write: bool
         _blackboard: RemediationBlackboard
 
     HostBase = _CeremonyHost

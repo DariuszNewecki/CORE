@@ -2,14 +2,13 @@
 """
 Crate/Canary ceremony helpers for RemediationCeremony.
 
-Responsibility: pack Crate, align staged file, run Canary, archive rollback.
+Responsibility: pack Crate, align staged file, run Canary, generate patch.
 No LLM calls. No Blackboard writes.
 """
 
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
 from pathlib import Path
 
 from body.atomic.tool_runner import ToolRunner
@@ -222,33 +221,3 @@ class CrateCanaryMixin(HostBase):
             return result.stdout or None
         finally:
             worktree.cleanup()
-
-    def _archive_rollback(
-        self,
-        file_path: str,
-        original_source: str,
-        baseline_sha: str,
-    ) -> None:
-        """Archive rollback plan to var/mind/rollbacks/ via governed FileHandler."""
-        try:
-            file_handler = self._ctx.file_handler
-            _pr = PathResolver(self._ctx.git_service.repo_path)
-            _rollbacks_rel = str(_pr.rollbacks_dir.relative_to(_pr.repo_root))
-            timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-            safe_name = file_path.replace("/", "_").replace(".", "_")
-            rel_path = f"{_rollbacks_rel}/{timestamp}-{safe_name}.json"
-
-            file_handler.ensure_dir(_rollbacks_rel)
-            file_handler.write_runtime_json(
-                rel_path,
-                {
-                    "file_path": file_path,
-                    "rule": self._target_rule,
-                    "baseline_sha": baseline_sha,
-                    "original_source": original_source,
-                    "archived_at": datetime.now(UTC).isoformat(),
-                    "worker": "violation_remediator",
-                },
-            )
-        except Exception as exc:
-            logger.warning("RemediationCeremony: rollback archive failed - %s", exc)

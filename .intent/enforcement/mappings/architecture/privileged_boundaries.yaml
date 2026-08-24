@@ -141,6 +141,32 @@ mappings:
       excludes:
         - "tests/**"
 
+  # ==========================================================================
+  # REMEDIATION WRITE ACCESS (ADR-154 D4)
+  # Rule: architecture.boundary.remediation_write_access
+  # ==========================================================================
+  # Candidate-only remediation must not gain a fresh direct-import route to
+  # Git-commit authority. CrateProcessingService is NOT listed here — it is
+  # legitimately imported by crate_canary.py for validate_crate_by_id(); the
+  # companion call-site boundary test
+  # (tests/will/remediation/test_no_live_mutation_call_sites.py) is what
+  # actually forbids apply_and_finalize_crate()/commit_paths() call sites,
+  # since import-boundary scanning cannot see DI/attribute-based access
+  # (self._ctx.git_service.commit_paths(...) has no import to detect).
+
+  architecture.boundary.remediation_write_access:
+    engine: ast_gate
+    params:
+      check_type: runtime_import_boundary
+      forbidden:
+        - "shared.infrastructure.git_service.GitService"
+    scope:
+      applies_to:
+        - "src/will/remediation/**/*.py"
+      excludes:
+        - "src/will/remediation/**/test_*.py"
+        - "tests/**"
+
 # ==============================================================================
 # Meta: This mapping enforces constitutional boundaries by preventing
 # direct infrastructure primitive imports. Violations indicate architectural
