@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from body.atomic.document.gap_analysis_action import action_run_gap_analysis
+from body.services.grc.catalog_resolver import CatalogPublicationUnknownError
 from shared.action_types import ActionResult
 from shared.governance_token import authorize_execution
 from shared.models.grc_verdict import (
@@ -143,3 +144,70 @@ async def test_run_gap_analysis_relative_corpus_root_no_context_raises() -> None
             write=False,
             core_context=None,
         )
+
+
+# ID: 3d9a5e2c-7b1e-4b6a-9c3f-5e0d2a8f4c6b
+async def test_run_gap_analysis_no_catalog_names_uses_published_filter(
+    tmp_path: Path,
+) -> None:
+    """ADR-121 D3: catalog_names=None resolves via discover_published_catalogs."""
+    corpus_dir = tmp_path / "docs"
+    corpus_dir.mkdir()
+
+    with (
+        patch(
+            "body.atomic.document.gap_analysis_action.discover_published_catalogs",
+            return_value={"nist_800_171": tmp_path / "nist_800_171.yaml"},
+        ) as mock_published,
+        patch(
+            "body.atomic.document.gap_analysis_action.discover_catalogs"
+        ) as mock_unfiltered,
+        patch(
+            "body.services.grc.gap_analysis_service.DocumentCorpusAnalysisService.run",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "body.atomic.document.gap_analysis_action.load_catalog",
+            return_value=[],
+        ),
+        authorize_execution("document.gap_analysis"),
+    ):
+        result: ActionResult = await action_run_gap_analysis(
+            corpus_root=str(corpus_dir),
+            catalog_names=None,
+            write=False,
+        )
+
+    mock_published.assert_called_once()
+    mock_unfiltered.assert_not_called()
+    assert result.ok is True
+    assert "nist_800_171" in result.data["catalogs_run"]
+
+
+# ID: 9c1e5a3d-2f7b-4d6a-8e0c-3b5f9a1d7e4c
+async def test_run_gap_analysis_publication_unknown_returns_ok_false(
+    tmp_path: Path,
+) -> None:
+    """ADR-121 D3: catalog_names=None + unknown publication status → ok=False
+    with the specific diagnostic, not a generic "no catalogs" message and not
+    a silent empty-result run."""
+    corpus_dir = tmp_path / "docs"
+    corpus_dir.mkdir()
+
+    with (
+        patch(
+            "body.atomic.document.gap_analysis_action.discover_published_catalogs",
+            side_effect=CatalogPublicationUnknownError(
+                "1 catalog(s) found, but no inventory.yaml is present"
+            ),
+        ),
+        authorize_execution("document.gap_analysis"),
+    ):
+        result: ActionResult = await action_run_gap_analysis(
+            corpus_root=str(corpus_dir),
+            catalog_names=None,
+            write=False,
+        )
+
+    assert result.ok is False
+    assert "inventory.yaml" in result.data["error"]

@@ -32,6 +32,20 @@ logger = getLogger(__name__)
 _CATALOG_FILENAME = "catalog.yaml"
 
 
+# ID: 738f5685-dd95-4487-ae61-05e63cc141f9
+class CatalogPublicationUnknownError(RuntimeError):
+    """Catalogs were found, but publication status could not be established (ADR-121 D3).
+
+    Distinct from "no catalogs exist" (a legitimate, silent empty result):
+    catalog.yaml files are present on disk, but ``inventory.yaml`` is absent or
+    unreadable, so CORE cannot tell which of them are ``published``. Treating
+    unknown status as published would be fail-open — the opposite of the
+    honesty posture GRC gap-analysis exists to enforce — so
+    ``discover_published_catalogs`` raises instead of silently degrading to
+    "run everything" or silently degrading to an indistinguishable empty dict.
+    """
+
+
 # ID: fa063c13-756d-4a3f-9f16-958678d1beca
 def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
     """Resolve the GRC catalog corpus root.
@@ -69,6 +83,63 @@ def discover_catalogs(catalog_root: Path | None = None) -> dict[str, Path]:
         framework = path.parent.name
         found.setdefault(framework, path)
     return found
+
+
+# ID: b530e8d0-bda8-4272-9900-2ac299cca3c5
+def discover_published_catalogs(catalog_root: Path | None = None) -> dict[str, Path]:
+    """Map *published*-status framework names to their ``catalog.yaml`` (ADR-121 D3).
+
+    ``catalog_names: []`` ("run every available catalog") must not silently pull
+    in a framework still being authored or awaiting source verification —
+    ``discover_catalogs()`` alone doesn't know about publication status, only
+    filesystem presence. This filters that result against
+    ``<catalog_root>/inventory.yaml`` (ADR-116 D7's framework registry),
+    keeping only entries whose ``status`` is ``published``.
+
+    When no catalogs are discovered at all, that's returned as-is — an empty
+    result, no ambiguity. But when catalogs *are* discovered and
+    ``inventory.yaml`` is absent or unreadable, publication status is
+    genuinely unknown, and unknown MUST NOT be treated as published: this
+    raises ``CatalogPublicationUnknownError`` rather than fail-open ("run
+    everything") or fail-silent (an empty dict indistinguishable from "nothing
+    exists"). Callers decide how to surface that to their own audience.
+
+    An explicit ``catalog_names`` list is the project's own opt-in and bypasses
+    this gate entirely (callers apply it against ``discover_catalogs()``
+    directly, never through this function).
+    """
+    available = discover_catalogs(catalog_root)
+    if not available:
+        return available
+
+    root = resolve_catalog_root(catalog_root)
+    inventory_path = root / "inventory.yaml"
+    if not inventory_path.is_file():
+        raise CatalogPublicationUnknownError(
+            f"{len(available)} catalog(s) found at {root} "
+            f"({sorted(available)}), but no inventory.yaml is present to "
+            "establish publication status. Refusing to run catalogs of "
+            "unknown publication status."
+        )
+
+    import yaml
+
+    try:
+        data = yaml.safe_load(inventory_path.read_text(encoding="utf-8")) or {}
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as e:
+        raise CatalogPublicationUnknownError(
+            f"{len(available)} catalog(s) found at {root} "
+            f"({sorted(available)}), but {inventory_path} could not be read "
+            f"to establish publication status ({e}). Refusing to run "
+            "catalogs of unknown publication status."
+        ) from e
+
+    published = {
+        entry["id"]
+        for entry in (data.get("frameworks") or [])
+        if isinstance(entry, dict) and entry.get("status") == "published"
+    }
+    return {name: path for name, path in available.items() if name in published}
 
 
 # ID: dff8b271-07fe-4350-a451-93f552ad4767

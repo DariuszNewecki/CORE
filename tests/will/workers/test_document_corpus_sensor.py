@@ -15,6 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+from body.services.grc.catalog_resolver import CatalogPublicationUnknownError
 from shared.models.grc_verdict import (
     Applicability,
     EvidenceClass,
@@ -207,3 +208,75 @@ async def test_document_corpus_sensor_posts_gap_findings(tmp_path: Path) -> None
         fc["payload"]["status"] == RequirementStatus.NOT_COVERED.value
         for fc in finding_calls
     )
+
+
+# ── D3: published-only discovery when catalog_names is empty ─────────────────
+
+
+# ID: 6c2e0a9d-6c5d-4a5a-9f7f-3f2b3b0d6a2e
+def test_discover_active_catalogs_empty_names_uses_published_filter(
+    tmp_path: Path,
+) -> None:
+    """ADR-121 D3: empty catalog_names resolves via discover_published_catalogs,
+    not the unfiltered discover_catalogs."""
+    sensor = _make_sensor(corpus_root=str(tmp_path), catalog_names=[])
+
+    with patch(
+        "body.services.grc.catalog_resolver.discover_published_catalogs",
+        return_value={"nist_800_171": tmp_path / "nist_800_171.yaml"},
+    ) as mock_published:
+        result = sensor._discover_active_catalogs(None)
+
+    mock_published.assert_called_once_with(None)
+    assert result == ["nist_800_171"]
+
+
+# ID: 8f0d9a1c-3b3e-4b9c-8a1d-2e6f6c0a5d3f
+def test_discover_active_catalogs_explicit_names_bypasses_published_filter(
+    tmp_path: Path,
+) -> None:
+    """Explicit catalog_names is the project's own opt-in — not publish-gated."""
+    sensor = _make_sensor(
+        corpus_root=str(tmp_path), catalog_names=["draft_catalog"]
+    )
+
+    with (
+        patch(
+            "body.services.grc.catalog_resolver.discover_catalogs",
+            return_value={"draft_catalog": tmp_path / "draft_catalog.yaml"},
+        ),
+        patch(
+            "body.services.grc.catalog_resolver.discover_published_catalogs"
+        ) as mock_published,
+    ):
+        result = sensor._discover_active_catalogs(None)
+
+    mock_published.assert_not_called()
+    assert result == ["draft_catalog"]
+
+
+# ID: 5a1f9e2c-4b8d-4a2e-9c1f-7e3d6b0a8c5f
+async def test_run_publication_unknown_skips_scan_without_crashing(
+    tmp_path: Path,
+) -> None:
+    """Empty catalog_names + unknown publication status → sensor logs a
+    distinct skip and never raises out of run() (ADR-121 D2: never crash
+    the daemon)."""
+    sensor = _make_sensor(corpus_root=str(tmp_path), catalog_names=[])
+
+    async def fake_heartbeat() -> None:
+        pass
+
+    sensor.post_heartbeat = fake_heartbeat  # type: ignore[method-assign]
+    sensor.post_artifact_finding = AsyncMock()  # type: ignore[method-assign]
+
+    with patch.object(
+        DocumentCorpusSensor,
+        "_discover_active_catalogs",
+        side_effect=CatalogPublicationUnknownError(
+            "1 catalog(s) found, but no inventory.yaml is present"
+        ),
+    ):
+        await sensor.run()  # must not raise
+
+    sensor.post_artifact_finding.assert_not_called()

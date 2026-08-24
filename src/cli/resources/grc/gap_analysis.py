@@ -21,7 +21,7 @@ from rich.console import Console
 from rich.table import Table
 
 from body.services.grc import (
-    GRCGapAnalysisService,
+    DocumentCorpusAnalysisService,
     build_framework_descriptor,
     load_catalog,
     load_catalog_meta,
@@ -209,7 +209,7 @@ async def gap_analysis(
             "'verdict unavailable'.[/dim]"
         )
 
-    service = GRCGapAnalysisService(
+    service = DocumentCorpusAnalysisService(
         llm_client=llm_client, embedding_client=embedding_client
     )
 

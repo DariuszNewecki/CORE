@@ -23,4 +23,4 @@ crawler_indexed: false       # DocumentCorpusSensor handles enumeration; repo_cr
 supported_sensors:
   - document_corpus_sensor
 supported_actions:
-  - document.run.gap_analysis
+  - document.gap_analysis

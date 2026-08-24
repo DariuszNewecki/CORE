@@ -2,15 +2,26 @@
 kind: adr
 id: ADR-121
 title: 'ADR-121 — T5b: Document corpus Repository type — domain-agnostic governed document corpus'
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-121-t5b-grc-document-repository-type.md -->
 
 # ADR-121 — T5b: Document corpus Repository type
 
-**Status:** Proposed
-**Date:** 2026-06-21
+**Status:** Accepted — 2026-08-24
+**Date:** 2026-06-21 (proposed); accepted 2026-08-24
+**Reconciliation (2026-08-24):** a governor-initiated D1–Dn implementation-conformance review
+found this ADR's text diverged from what actually shipped on D2 (worker placement, config
+location) and D4 (action ID). A second pass, prompted by the same review, corrected D3's
+`catalog_names: []` semantics from fail-open (silently running everything when publication status
+is unknown) to fail-closed (`CatalogPublicationUnknownError`) — a Governor-directed honesty
+correction to the implementation itself, not just the text. D2, D3, and D4 below carry dated
+reconciliation notes preserving the original (superseded) text rather than silently rewriting
+over it. This reconciliation was itself a text/behavior correction, not the acceptance decision.
+**Acceptance (2026-08-24):** with D1–D7 and the verification-criteria matrix confirmed conformant
+to the reconciled implementation (65/65 applicable tests passing, ruff/mypy clean, constitutional
+audit PASS), the Governor accepted this ADR as-is — status moves from Proposed to **Accepted**.
 **Grounding papers:** `CORE-BYOR.md` §3 (Repository seam — artifact corpus + typed sensor), §7
   (GRC as first non-code Repository type; honesty guardrail), §9.3 (regulation→Intent representation
   — the GRC second domain, T5b).
@@ -110,7 +121,7 @@ crawler_indexed: false       # DocumentCorpusSensor handles enumeration; repo_cr
 
 supported_sensors:
   - document_corpus_sensor
-supported_actions: []        # populated when document.run.gap_analysis ships (D4/D5 below)
+supported_actions: []        # populated when document.gap_analysis ships (D4/D5 below)
 ```
 
 **`crawler_indexed: false`** — the repo crawler walks project source trees. A customer's document
@@ -123,7 +134,26 @@ vector record enables domain-scoped retrieval when needed.
 
 ### D2 — `DocumentCorpusSensor` Worker design (F-42 binding)
 
-A new `Worker` subclass, `DocumentCorpusSensor`, in `src/body/workers/document_corpus_sensor.py`:
+**Reconciliation note (2026-08-24 — Governor decision, ADR-121 D1–Dn conformance review).**
+As originally written (2026-06-21), D2 below specified Body placement: *"A new `Worker`
+subclass, `DocumentCorpusSensor`, in `src/body/workers/document_corpus_sensor.py`."* That text
+was a governance-authoring error, not implementation drift — `DocumentCorpusSensor` shipped at
+`src/will/workers/document_corpus_sensor.py` from the initial implementation commit (`a9b19264`,
+2026-06-21) onward, whose own commit message already states "Will layer." This is consistent
+with 37 of 39 worker declarations in the fleet and with the constitutional rule
+`architecture.layers.no_body_to_will`, which names `will.workers` as a recognized Will sub-path.
+The Governor confirmed Will as the approved architecture; D2's text below is corrected to match
+the shipped implementation. Similarly, the worker declaration's `corpus_root`/`catalog_root`/
+`catalog_names` fields below now show the `config:` block they actually live in — moved there
+from `mandate.scope` in commit `5aa900e4` (2026-06-23) because `mandate.scope`'s JSON schema
+carries `additionalProperties: false` and rejected them; `config:` is ratified here as the
+correct, narrow home for this worker's settings, not a fleet-wide convention change. At the time
+this note was written, **ADR-121 remained `status: proposed`** — this note recorded a text
+correction reconciling the ADR with what was already shipped and governor-approved, distinct from
+acceptance. Acceptance followed separately, once all reconciliation was complete — see the
+Acceptance note at the top of this document.
+
+A `Worker` subclass, `DocumentCorpusSensor`, in `src/will/workers/document_corpus_sensor.py`:
 
 ```
 declaration_name = "document_corpus_sensor"
@@ -133,20 +163,23 @@ mandate.scope.artifact_type: [document_corpus]
 
 **What it does per run:**
 
-1. Reads `corpus_root` from `self.mandate["scope"]["corpus_root"]`. If absent or empty, logs a
+1. Reads `corpus_root` from the declaration's `config.corpus_root`. If absent or empty, logs a
    warning and posts `post_heartbeat()` — the sensor is declared but unconfigured. Does **not**
    raise or fail the daemon; other sensors continue.
-2. Reads `catalog_root` from `self.mandate["scope"]["catalog_root"]`. If absent, falls back to
+2. Reads `catalog_root` from `config.catalog_root`. If absent, falls back to
    `settings.paths.grc_catalogs_dir` (backward-compatible default for the GRC first instance).
    Any domain pointing its own catalog tree sets this field explicitly.
-3. Reads `catalog_names` from `self.mandate["scope"]["catalog_names"]` (list of strings). If
+3. Reads `catalog_names` from `config.catalog_names` (list of strings). If
    empty, resolves all frameworks with `status == "published"` from `<catalog_root>/inventory.yaml`
-   — automatic coverage of all catalogs available at the configured root.
+   via `catalog_resolver.discover_published_catalogs()` — automatic coverage of every catalog
+   available at the configured root that has actually been published, not merely authored.
+   An explicit `catalog_names` list bypasses this gate (the project's own opt-in).
 4. For each active catalog: loads it via `load_catalog(name, catalog_root=...)`, instantiates
    `DocumentCorpusAnalysisService` (renamed from `GRCGapAnalysisService`, D7), calls
    `await service.run(corpus_root, catalog)`, receives `list[RequirementVerdict]`.
-5. For each `RequirementVerdict` with `status != "covered"` posts a finding via
-   `self.post_finding(subject, payload)` — subject format per D6.
+5. For each `RequirementVerdict` with a gap status posts a finding via
+   `self.post_artifact_finding(artifact_type=..., sub_namespace=..., identity_key_value=...,
+   payload=...)` — subject format per D6.
 6. Posts `self.post_heartbeat()` once per run after all catalogs.
 
 **The sensor never modifies documents.** Read-only throughout (CORE-BYOR §5 parameter 3).
@@ -166,16 +199,20 @@ description: >
   gap findings to the blackboard. Domain is expressed through catalog selection.
   Project-authored configuration required (ADR-121 D3).
 
-implementation: body.workers.document_corpus_sensor.DocumentCorpusSensor
+implementation:
+  class: DocumentCorpusSensor
+  module: will.workers.document_corpus_sensor
 
 mandate:
   scope:
     artifact_type: [document_corpus]
-    corpus_root: ""          # REQUIRED: project configures path to document library
-    catalog_root: ""         # optional: overrides default (grc-catalogs/); set for non-GRC domains
-    catalog_names: []        # optional: empty = all published catalogs at catalog_root
   schedule:
     max_interval: 3600
+
+config:
+  corpus_root: ""          # REQUIRED: project configures path to document library
+  catalog_root: ""         # optional: overrides default (grc-catalogs/); set for non-GRC domains
+  catalog_names: []        # optional: empty = all published catalogs at catalog_root
 ```
 
 ### D3 — Project-authored corpus configuration convention
@@ -188,22 +225,27 @@ CORE ships the declaration with empty defaults; the project fills them in:
 mandate:
   scope:
     artifact_type: [document_corpus]
-    corpus_root: "compliance/"               # relative to repo root
-    catalog_root: ""                         # uses grc-catalogs/ default
-    catalog_names: [nist_800_171, cfr_part_11]
   schedule:
     max_interval: 7200
+config:
+  corpus_root: "compliance/"               # relative to repo root
+  catalog_root: ""                         # uses grc-catalogs/ default
+  catalog_names: [nist_800_171, cfr_part_11]
 
 # Legal domain project (future) — same sensor, different configuration
 mandate:
   scope:
     artifact_type: [document_corpus]
-    corpus_root: "/mnt/contracts"
-    catalog_root: "/mnt/legal-catalogs"      # domain-specific catalog root
-    catalog_names: [contract_review_standard]
   schedule:
     max_interval: 3600
+config:
+  corpus_root: "/mnt/contracts"
+  catalog_root: "/mnt/legal-catalogs"      # domain-specific catalog root
+  catalog_names: [contract_review_standard]
 ```
+
+(`corpus_root`/`catalog_root`/`catalog_names` live in a top-level `config:` block, not
+`mandate.scope` — see the D2 reconciliation note above for why.)
 
 **`corpus_root` resolution:** relative paths resolve from `repo_root`. Absolute paths are used
 as-is. This lets a project store its evidence corpus under a project-controlled path (`compliance/`)
@@ -213,43 +255,105 @@ without requiring an absolute mount.
 (backward-compatible default). GRC projects require no change; non-GRC domains set the field.
 
 **`catalog_names: []` semantics:** run all catalogs with `status: published` found at
-`catalog_root/inventory.yaml`. New published catalogs are automatically included. A project that
-wants to restrict which catalogs run lists only the ones it accepts.
+`catalog_root/inventory.yaml`, via `catalog_resolver.discover_published_catalogs()`. New
+published catalogs are automatically included. A project that wants to restrict which catalogs
+run lists only the ones it accepts (bypassing the publish gate — an explicit list is the
+project's own opt-in).
 
-### D4 — First non-Python atomic action: `document.run.gap_analysis` (F-43 binding)
+**Reconciliation note (2026-08-24 — Governor decision, ADR-121 D1–Dn conformance review, second
+pass).** As originally written and as first implemented, this paragraph continued: *"When
+`inventory.yaml` is absent (a non-GRC domain has no framework-registry concept), no filter
+applies and every discovered catalog runs."* That was fail-open: treating an absent or unreadable
+inventory as "everything discovered is implicitly published" cannot be reconciled with the
+honesty posture GRC gap-analysis exists to enforce (ADR-113, ADR-118 D4) — CORE must never infer
+publication where it cannot establish it. The Governor corrected this. The publication-selection
+semantics, as implemented and now normative, are:
 
-`document.run.gap_analysis` is the first atomic action carrying
+- **Explicit `catalog_names`** is authoritative project selection and bypasses automatic
+  publication discovery entirely — the project has already vouched for these catalogs by name.
+- **Empty `catalog_names`, `inventory.yaml` present and readable** — run only frameworks with
+  `status: published` in it.
+- **Empty `catalog_names`, but catalogs are discovered on disk and `inventory.yaml` is missing or
+  unreadable** — publication status cannot be established. Automatic discovery **fails closed**:
+  `catalog_resolver.discover_published_catalogs()` raises `CatalogPublicationUnknownError` rather
+  than running anything; both call sites (`DocumentCorpusSensor.run()`, `document.gap_analysis`)
+  catch it and surface a specific, non-silent diagnostic — a distinct logged skip for the sensor,
+  `ActionResult(ok=False, data={"error": ...})` for the action — never a silent empty run and
+  never "run everything."
+- **No catalogs discovered on disk at all** — an unambiguous empty result (nothing to be uncertain
+  about), returned without error, exactly as before.
+
+This is a narrow correction to D3's publication-selection semantics, not new catalog doctrine:
+it does not change what "published" means, does not touch `inventory.yaml`'s schema (ADR-116
+D7), and does not extend the publish gate to any surface beyond `catalog_names: []` resolution.
+
+**Reconciliation note (2026-08-24 — Governor decision, `config:` approval).** The D2 reconciliation
+note above already recorded *why* `corpus_root`/`catalog_root`/`catalog_names` moved from
+`mandate.scope` to a top-level `config:` block (commit `5aa900e4`: `mandate.scope`'s schema
+carries `additionalProperties: false` and rejected them). This note is the Governor's explicit
+approval of that placement, not merely an acknowledgment that it was schema-forced:
+
+`config:` is approved for `document_corpus_sensor` because `corpus_root`, `catalog_root`, and
+`catalog_names` are **worker-specific operational configuration** — parameters this worker needs
+to execute its mandate — not part of the worker's *governed* mandate/scope (which declares
+responsibility, authority, artifact-type scope, and scheduling; ADR-121 D2's `mandate.scope`
+carries only `artifact_type` today).
+
+`document_corpus_sensor` is recorded here as evidence for a possible general separation between
+**mandate** and **configuration** in the worker model:
+
+- `mandate` expresses governed responsibility, authority, scope, and scheduling;
+- `config` expresses worker-specific operational parameters needed to execute that mandate.
+
+**This decision approves that separation for `document_corpus_sensor` only.** It is explicitly
+*not* a CORE-wide worker-model convention — 38 of the fleet's other 39 worker declarations carry
+no `config:` block at all, and this ADR does not ask them to change. A general convention is
+deferred until additional worker cases provide enough evidence to justify one.
+
+### D4 — First non-Python atomic action: `document.gap_analysis` (F-43 binding)
+
+**Reconciliation note (2026-08-24 — Governor decision).** As originally written this action was
+named `document.run.gap_analysis`. It shipped, and remains registered everywhere in code and in
+`action_risk.yaml`, as **`document.gap_analysis`**. This naming mismatch left
+`document_corpus.yaml`'s `supported_actions` (D5b) declaring an action ID (`document.run.gap_analysis`)
+that was never actually registered — an asymmetry `governance.taxonomy.action_supported_by_declaration`
+(D5a) is designed to catch, and did: it was live and unresolved until this reconciliation, which
+corrects `document_corpus.yaml` to the canonical `document.gap_analysis` (see D5). D5 itself —
+the taxonomy rule and its `taxonomy_gate` branch — is unchanged; it worked as designed.
+
+`document.gap_analysis` is the first atomic action carrying
 `artifact_types: [document_corpus]` in `action_risk.yaml`. This fires the ADR-092-A trigger.
 
 **Action contract:**
 
 ```python
 @atomic_action(
-    action_id="document.run.gap_analysis",
+    action_id="document.gap_analysis",
     intent="Evaluate a document corpus against requirements catalogs; report coverage gaps",
-    impact=ActionImpact.READ,
+    impact=ActionImpact.READ_ONLY,
     policies=["document.policy.analysis_scope"],
 )
 @register_action(
-    action_id="document.run.gap_analysis",
+    action_id="document.gap_analysis",
     description="Evaluate a document corpus against one or more requirements catalogs",
     category=ActionCategory.CHECK,
     policies=["document.policy.analysis_scope"],
     requires_db=False,
     requires_vectors=False,
 )
-async def run_gap_analysis(
+async def action_run_gap_analysis(
     corpus_root: str,
     catalog_names: list[str] | None = None,
     catalog_root: str | None = None,   # None → grc-catalogs/ default
     write: bool = False,
+    core_context: Any = None,
     **kwargs: Any,
 ) -> ActionResult:
 ```
 
 `action_risk.yaml` entry:
 ```yaml
-document.run.gap_analysis:
+document.gap_analysis:
   impact_level: safe
   artifact_types: [document_corpus]
 ```
@@ -277,7 +381,7 @@ fits `ActionResult.data`.
 
 ### D5 — ADR-092-A execution (obligated by ADR-120 D4 forward marker)
 
-Same change-set as D4. The obligation fires because `document.run.gap_analysis` is the first
+Same change-set as D4. The obligation fires because `document.gap_analysis` is the first
 non-Python atomic action carrying a non-empty `artifact_types`.
 
 **D5a — Author `governance.taxonomy.action_supported_by_declaration`**
@@ -326,7 +430,7 @@ mappings:
 
 ```yaml
 supported_actions:
-  - document.run.gap_analysis
+  - document.gap_analysis
 ```
 
 **D5c — Populate `supported_actions` on `python.yaml`** (and `test.yaml` if any Python-typed
@@ -407,7 +511,9 @@ The service is the only caller in `src/cli/resources/grc/gap_analysis.py` and
 - `src/body/services/grc/__init__.py` — re-export updated; backward-compat alias
   `GRCGapAnalysisService = DocumentCorpusAnalysisService` added to avoid breaking any
   external callers (BYOR users who may import it directly)
-- `src/cli/resources/grc/gap_analysis.py` — import updated
+- `src/cli/resources/grc/gap_analysis.py` — import updated (this call site actually kept
+  importing `GRCGapAnalysisService` via the alias until the 2026-08-24 reconciliation pass
+  — see the D2 note — corrected then, not in the original change-set)
 
 The module file stays at `gap_analysis_service.py` (no file rename needed). The service's internal
 logic, public method signatures, and test coverage are unchanged.
@@ -431,11 +537,11 @@ Eight touch-points in one commit (ADR-092-A must land with D4's first action):
    `catalog_root`, `catalog_names` from mandate. Calls `DocumentCorpusAnalysisService.run()`.
 
 4. **`src/body/atomic/document/gap_analysis_action.py`** (new module) — atomic action
-   `document.run.gap_analysis` (D4). `ActionCategory.CHECK`, `impact_level: safe`,
+   `document.gap_analysis` (D4). `ActionCategory.CHECK`, `impact_level: safe`,
    `artifact_types: [document_corpus]`. Must be imported in `src/body/atomic/__init__.py`
    so `@register_action` fires at executor init.
 
-5. **`.intent/enforcement/config/action_risk.yaml`** — add entry for `document.run.gap_analysis`
+5. **`.intent/enforcement/config/action_risk.yaml`** — add entry for `document.gap_analysis`
    (D4). Update `supported_actions` on `document_corpus.yaml` (D5b) and `python.yaml` (D5c).
 
 6. **`.intent/rules/governance/action_taxonomy.json`** + **`.intent/enforcement/mappings/
@@ -470,7 +576,7 @@ Eight touch-points in one commit (ADR-092-A must land with D4's first action):
 ### Closes
 
 - **BYOR backlog T5b** — `document_corpus` artifact type (F-41), `DocumentCorpusSensor` (F-42),
-  `document.run.gap_analysis` (F-43). The three-part Repository adapter (ADR-120 D2) is complete
+  `document.gap_analysis` (F-43). The three-part Repository adapter (ADR-120 D2) is complete
   for governed document corpora. GRC is the first configured instance.
 - **ADR-092-A trigger** (ADR-120 D4 forward marker): `action_supported_by_declaration` rule
   authored; `supported_actions` populated; obligation closed.

@@ -94,7 +94,18 @@ class DocumentCorpusSensor(Worker):
         corpus_root = self._resolve_corpus_root(self._corpus_root_str)
         catalog_root = self._resolve_catalog_root(self._catalog_root_str)
 
-        active_catalogs = self._discover_active_catalogs(catalog_root)
+        from body.services.grc.catalog_resolver import CatalogPublicationUnknownError
+
+        try:
+            active_catalogs = self._discover_active_catalogs(catalog_root)
+        except CatalogPublicationUnknownError as exc:
+            logger.warning(
+                "DocumentCorpusSensor: %s Skipping scan — set catalog_names "
+                "explicitly, or add inventory.yaml at the catalog root.",
+                exc,
+            )
+            return
+
         if not active_catalogs:
             logger.warning(
                 "DocumentCorpusSensor: no catalogs available at %s; skipping scan.",
@@ -176,15 +187,27 @@ class DocumentCorpusSensor(Worker):
     def _discover_active_catalogs(self, catalog_root: Path | None) -> list[str]:
         """Return names of catalogs available at catalog_root.
 
-        If catalog_names was configured in the mandate, filter to that subset.
-        Otherwise return all available catalogs at the root (ADR-121 D3).
-        """
-        from body.services.grc.catalog_resolver import discover_catalogs
+        If catalog_names was configured, filter discovered catalogs to that
+        subset — an explicit choice, not gated by publication status. Otherwise
+        return only *published*-status catalogs at the root (ADR-121 D3): the
+        default "run everything" case must not silently include a framework
+        still being authored or awaiting source verification.
 
-        available = discover_catalogs(catalog_root)
-        if not available:
-            return []
+        Raises:
+            CatalogPublicationUnknownError: catalogs exist but publication
+                status can't be established (no/unreadable inventory.yaml) —
+                propagates to ``run()``, which handles it as a distinct,
+                logged skip rather than crashing the worker.
+        """
+        from body.services.grc.catalog_resolver import (
+            discover_catalogs,
+            discover_published_catalogs,
+        )
 
         if self._catalog_names:
+            available = discover_catalogs(catalog_root)
+            if not available:
+                return []
             return [n for n in self._catalog_names if n in available]
-        return list(available.keys())
+
+        return list(discover_published_catalogs(catalog_root).keys())

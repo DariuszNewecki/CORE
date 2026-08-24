@@ -20,7 +20,11 @@ from pathlib import Path
 from typing import Any
 
 from body.atomic.registry import ActionCategory, register_action
-from body.services.grc.catalog_resolver import discover_catalogs
+from body.services.grc.catalog_resolver import (
+    CatalogPublicationUnknownError,
+    discover_catalogs,
+    discover_published_catalogs,
+)
 from body.services.grc.gap_analysis_service import (
     DocumentCorpusAnalysisService,
     load_catalog,
@@ -82,11 +86,28 @@ async def action_run_gap_analysis(
 
     resolved_catalog_root: Path | None = Path(catalog_root) if catalog_root else None
 
-    available = discover_catalogs(resolved_catalog_root)
     if catalog_names:
+        available = discover_catalogs(resolved_catalog_root)
         active = {n: p for n, p in available.items() if n in catalog_names}
     else:
-        active = available
+        # Published-status catalogs only (ADR-121 D3) — explicit catalog_names
+        # is the project's own opt-in and bypasses this gate.
+        try:
+            active = discover_published_catalogs(resolved_catalog_root)
+        except CatalogPublicationUnknownError as exc:
+            elapsed = time.monotonic() - start
+            return ActionResult(
+                action_id="document.gap_analysis",
+                ok=False,
+                data={
+                    "corpus_root": str(resolved_corpus),
+                    "catalog_root": str(resolved_catalog_root)
+                    if resolved_catalog_root
+                    else "",
+                    "error": str(exc),
+                },
+                duration_sec=elapsed,
+            )
 
     if not active:
         elapsed = time.monotonic() - start
