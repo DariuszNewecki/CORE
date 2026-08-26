@@ -28,6 +28,7 @@ from body.services.representation_coherence_service import (
 from cli.commands.check.converters import parse_min_severity
 from cli.commands.check.formatters import (
     print_context_build_hints,
+    print_hidden_findings_hint,
     print_summary_findings,
     print_verbose_findings,
 )
@@ -227,6 +228,7 @@ async def audit_command(
             print_verbose_findings(filtered_findings)
         else:
             print_summary_findings(filtered_findings)
+    print_hidden_findings_hint(all_findings, filtered_findings, min_severity)
 
     if classify:
         print_context_build_hints(all_findings)
@@ -412,6 +414,7 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
     filtered = [f for f in all_findings if f.severity >= min_severity]
     if filtered:
         print_summary_findings(filtered)
+    print_hidden_findings_hint(all_findings, filtered, min_severity)
 
 
 async def _print_coherence_advisory(

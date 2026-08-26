@@ -116,6 +116,32 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
     console.print("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
 
 
+# ID: f3a8c1d5-6e29-4b7f-9c3a-1d8e5f2a9b04
+def print_hidden_findings_hint(
+    all_findings: list[AuditFinding],
+    filtered_findings: list[AuditFinding],
+    min_severity: AuditSeverity,
+) -> None:
+    """Tell the user how many findings the --severity floor is hiding.
+
+    The Audit Overview severity table (rendered from ``all_findings``) counts
+    every finding, including those below the floor — but neither
+    ``print_summary_findings`` nor ``print_verbose_findings`` ever sees them,
+    since callers pre-filter to ``filtered_findings`` before printing. Without
+    this, a finding count like "INFO 92" appears in the overview with no
+    itemization and no indication that lowering --severity would reveal it —
+    the existing "Run with '--verbose'" hint is misleading here, since
+    --verbose alone shows nothing for a severity already filtered out.
+    """
+    hidden = len(all_findings) - len(filtered_findings)
+    if hidden <= 0 or min_severity <= AuditSeverity.INFO:
+        return
+    console.print(
+        f"[dim]{hidden} additional finding(s) below --severity {min_severity} "
+        "are not shown. Run with --severity info --verbose to see them.[/dim]"
+    )
+
+
 # ID: 5127f2bc-b6fc-4452-9b6d-1c0d7f828043
 def print_audit_summary(
     *,
