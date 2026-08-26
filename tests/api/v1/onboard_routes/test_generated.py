@@ -69,3 +69,46 @@ class TestPromoteOnboard:
             assert exc_info.value.status_code == 500
             assert "boom" in str(exc_info.value.detail)
             mock_promote.assert_awaited_once()
+
+
+
+from api.v1.onboard_routes import onboard_project
+
+
+# ID: 73bd2a1d-77a4-4033-a38e-9e2c88482ec2
+async def test_onboard_project():
+    body = MagicMock()
+    body.path = "/tmp/external-repo"
+    body.write = True
+    body.stage = False
+
+    request = MagicMock()
+    core_context = MagicMock()
+    core_context.git_service.repo_path.resolve.return_value = Path("/tmp/core")
+    request.app.state.core_context = core_context
+
+    target_path = Path("/tmp/external-repo")
+
+    # Patch the module-level Path (note: Path imported at top of onboard_routes.
+    # The previous attempt patched with return_value=target_path but the symbol
+    # calls Path(body.path).resolve() - we need the resolved Path returned)
+    with patch("api.v1.onboard_routes.Path") as mock_path:
+        mock_path.return_value = target_path
+        # initialize_repository is imported locally inside onboard_project, so
+        # patch it at its defining module (cli.logic.byor)
+        with patch(
+            "cli.logic.byor.initialize_repository", new_callable=AsyncMock
+        ) as mock_init:
+            result = await onboard_project(body, request)
+
+    mock_init.assert_awaited_once_with(
+        context=core_context,
+        path=target_path,
+        dry_run=False,
+        stage_dir=None,
+    )
+    assert result == {
+        "path": "/tmp/external-repo",
+        "mode": "write",
+        "stage_dir": None,
+    }
