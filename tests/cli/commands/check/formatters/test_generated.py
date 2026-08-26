@@ -56,3 +56,18 @@ def test_print_migration_delta():
     assert samples[0] == "rule1, rule2"
     # V2-only sample should be sorted: "rule5, rule6, rule7"
     assert samples[1] == "rule5, rule6, rule7"
+
+
+
+from cli.commands.check.formatters import print_executed_rules
+
+
+# ID: 64a20140-0bfd-4267-b190-7fcef7cecf07
+def test_print_executed_rules():
+    with patch("cli.commands.check.formatters.console") as mock_console:
+        executed_rules = {"rule_a", "rule_b"}
+        print_executed_rules(executed_rules)
+        mock_console.print.assert_any_call("\n[dim]Executed rules:[/dim]")
+        mock_console.print.assert_any_call("  [dim]• rule_a[/dim]")
+        mock_console.print.assert_any_call("  [dim]• rule_b[/dim]")
+        assert mock_console.print.call_count == 3
