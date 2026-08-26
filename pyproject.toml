@@ -73,7 +73,7 @@ dependencies = [
     "filelock>=3.13.0,<4.0.0",
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
-    "dependency-injector>=4.42.0,<5.0.0",
+    "dependency-injector>=4.49.1,<5.0.0",
     # Rate limiting (optional Redis backend)
     "redis>=5.0,<6.0",
     # Security floors for transitive deps (pip-audit; not directly imported):
