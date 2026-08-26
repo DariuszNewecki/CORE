@@ -33,6 +33,19 @@ router = APIRouter(prefix="/secrets", tags=["Secrets"])
 
 # ID: c22aaf0c-9f69-419f-9018-57d2dde08b96
 class SecretSetRequest(BaseModel):
+    """Internal contract for storing a secret via the secret-management API.
+
+    Encapsulates the full set of parameters required to create or update a
+    secret, with optional metadata and an override flag for existing entries.
+
+    Args:
+        key: The unique identifier of the secret to store.
+        value: The secret's content to be persisted securely.
+        description: Human-readable metadata describing the secret's purpose.
+        force: When True, overwrites an existing secret with the same key
+            instead of raising a conflict.
+    """
+
     key: str
     value: str
     description: str | None = None
@@ -41,6 +54,16 @@ class SecretSetRequest(BaseModel):
 
 # ID: d8a1531a-1fb1-4b93-bbc8-8f3585f44e0a
 class SecretRotateRequest(BaseModel):
+    """
+    Data model for a request to rotate a secret's value.
+
+    Describes the replacement value to be applied when rotating a governed
+    secret, enabling substitution of the existing credential with a new one.
+
+    Args:
+        new_value: The secret string that will replace the current value.
+    """
+
     new_value: str
 
 
