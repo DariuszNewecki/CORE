@@ -45,3 +45,31 @@ async def test_vector_query():
         "count": 2,
     }
     mock_service_query.assert_awaited_once_with("some query", limit=5)
+
+
+
+import pytest
+
+from api.v1.vectors_routes import vector_status
+
+
+@pytest.mark.asyncio
+# ID: d1d15f20-9338-4a01-8ebd-2e4f0965f06f
+async def test_vector_status():
+    # Build mock request with app.state.core_context
+    mock_qdrant = MagicMock()
+    mock_collection = MagicMock()
+    mock_collection.name = "test_collection"
+    mock_collections = MagicMock()
+    mock_collections.collections = [mock_collection]
+    mock_qdrant.client.get_collections = AsyncMock(return_value=mock_collections)
+    mock_qdrant_service = MagicMock()
+    mock_qdrant_service.qdrant_service = mock_qdrant
+    mock_core_context = MagicMock()
+    mock_core_context.qdrant_service = mock_qdrant
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    result = await vector_status(mock_request)
+    assert result == {"collections": [{"name": "test_collection", "status": "active"}]}
+    mock_qdrant.client.get_collections.assert_awaited_once()
