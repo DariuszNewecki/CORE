@@ -76,3 +76,32 @@ async def test_get_secret():
         "exists": True,
         "value": "my_secret_value",
     }
+
+
+import pytest
+
+from api.v1.secrets_routes import list_secrets
+
+
+@pytest.mark.asyncio
+# ID: 431484d5-348b-4a39-9eab-4ed12f07613e
+async def test_list_secrets():
+    mock_session = AsyncMock()
+    mock_svc = MagicMock()
+    mock_svc.list_secrets = AsyncMock(
+        return_value=[
+            {"key": "secret1", "created_at": "2024-01-01"},
+            {"key": "secret2", "created_at": "2024-02-01"},
+        ]
+    )
+
+    result = await list_secrets(session=mock_session, svc=mock_svc)
+
+    assert result == {
+        "secrets": [
+            {"key": "secret1", "created_at": "2024-01-01"},
+            {"key": "secret2", "created_at": "2024-02-01"},
+        ],
+        "count": 2,
+    }
+    mock_svc.list_secrets.assert_awaited_once_with(mock_session)
