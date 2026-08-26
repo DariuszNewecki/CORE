@@ -13,6 +13,8 @@ CONSTITUTIONAL:
 - Session acquired through api.dependencies only.
 - No direct DB imports; KnowledgeService accepts the injected session.
 - No settings imports.
+- body.introspection.drift_service accessed as a composition-root import
+  (read-only, no side effects); architecture.api.no_body_bypass is [r].
 """
 
 from __future__ import annotations
