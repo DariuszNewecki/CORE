@@ -144,7 +144,7 @@ anyio = "^4.11.0"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.7.0"
 vulture = "^2.14"
-pip-audit = "^2.10.0"
+pip-audit = "^2.10.1"
 bandit = "^1.9.2"
 
 [tool.black]
