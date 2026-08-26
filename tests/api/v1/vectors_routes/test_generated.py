@@ -82,3 +82,35 @@ def test_VectorRebuildRequest():
     request = VectorRebuildRequest(collection="test_collection")
     assert request.collection == "test_collection"
     assert request.write is False
+
+
+from api.v1.vectors_routes import VectorQueryRequest
+
+
+# ID: 358e58a6-5314-4dfe-baef-ce6f073005eb
+def test_VectorQueryRequest():
+    # Test happy path initialization with defaults
+    request = VectorQueryRequest(query="What are our data retention policies?")
+    assert request.query == "What are our data retention policies?"
+    assert request.collection == "policies"
+    assert request.limit == 5
+
+    # Test with explicit parameters
+    custom_request = VectorQueryRequest(
+        query="Incident response procedures",
+        collection="security",
+        limit=10,
+    )
+    assert custom_request.query == "Incident response procedures"
+    assert custom_request.collection == "security"
+    assert custom_request.limit == 10
+
+    # Verify the schema enforces constitutional bounds on valid values
+    boundary_request = VectorQueryRequest(
+        query="test query",
+        collection="policies",
+        limit=50,
+    )
+    assert boundary_request.limit == 50
+    assert boundary_request.collection == "policies"
+    assert boundary_request.query == "test query"
