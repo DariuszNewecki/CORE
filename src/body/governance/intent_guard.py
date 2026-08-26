@@ -110,9 +110,7 @@ _CONTEXT_LEVEL_ENGINES = frozenset(
 _PASSIVE_GATE_ENGINE_NAME = "passive_gate"
 
 _AUDIT_ENGINES = (
-    _CONTEXT_LEVEL_ENGINES
-    | frozenset(PASSIVE_ALIASES)
-    | {_PASSIVE_GATE_ENGINE_NAME}
+    _CONTEXT_LEVEL_ENGINES | frozenset(PASSIVE_ALIASES) | {_PASSIVE_GATE_ENGINE_NAME}
 )
 
 # Severity value assigned to constitutional-authority violations.
