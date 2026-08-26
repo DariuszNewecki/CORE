@@ -71,7 +71,6 @@ class TestPromoteOnboard:
             mock_promote.assert_awaited_once()
 
 
-
 from api.v1.onboard_routes import onboard_project
 
 
@@ -112,3 +111,25 @@ async def test_onboard_project():
         "mode": "write",
         "stage_dir": None,
     }
+
+
+from api.v1.onboard_routes import PromoteRequest
+
+
+# ID: c914093c-4c05-4c48-98db-dad36ee920c3
+def test_PromoteRequest():
+    """Test the happy path of PromoteRequest model with a valid path."""
+    # Create a PromoteRequest instance with a typical path
+    request = PromoteRequest(path="/data/deployments/production/legacy-app.tar.gz")
+
+    # Verify the path attribute is stored correctly
+    assert request.path == "/data/deployments/production/legacy-app.tar.gz"
+
+    # Verify the model can be serialized to a dict (common Pydantic operation)
+    model_dict = request.model_dump()
+    assert model_dict == {"path": "/data/deployments/production/legacy-app.tar.gz"}
+
+    # Verify the model can be serialized to JSON
+    model_json = request.model_dump_json()
+    assert '"path"' in model_json
+    assert "/data/deployments/production/legacy-app.tar.gz" in model_json
