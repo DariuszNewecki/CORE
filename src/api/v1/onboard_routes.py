@@ -40,6 +40,18 @@ router = APIRouter(prefix="/project", tags=["Project"])
 
 # ID: 7325157d-3e9f-4448-8053-6f23261438eb
 class OnboardRequest(BaseModel):
+    """Represents a request to onboard a new file into the repository.
+
+    Both the file path and the execution mode are declared explicitly so the
+    caller can decide whether to persist changes or stage them for review.
+
+    Args:
+        path: Filesystem path to the file being onboarded.
+        write: When True, applies changes directly to the filesystem.
+               When False, performs a dry-run reporting what would change.
+        stage: When True, prepares the changes as a staged commit for review.
+    """
+
     path: str
     write: bool = False
     stage: bool = False
@@ -47,6 +59,16 @@ class OnboardRequest(BaseModel):
 
 # ID: beb108ad-659a-4928-8a52-84f81e144dd1
 class PromoteRequest(BaseModel):
+    """
+    Request to promote a file or resource from one state to a higher-priority tier.
+
+    Represents the minimal payload needed to trigger a governance-aware promotion action,
+    where the target is identified solely by its filesystem path.
+
+    Args:
+        path: Filesystem path identifying the resource to be promoted.
+    """
+
     path: str
 
 
