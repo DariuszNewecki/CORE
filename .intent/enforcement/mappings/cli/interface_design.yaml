@@ -61,10 +61,15 @@ mappings:
       # 2026-07-03 vocabulary expansion: 4 auth/admin idioms added
       # (accessibility, login, logout, whoami) covering UAC CLI surface
       # (ADR-124) that postdated the prior expansions.
+      # 2026-08-26 vocabulary expansion: 2 hyphenated domain verbs added
+      # (adopt-pack, consequence-chain) — governor-inbox findings for
+      # project.adopt-pack and demo.consequence-chain, same shape as prior
+      # additions (audit-duplicates, check-imports, fix-atomic, ...).
       allowed_verbs:
         - accept
         - accessibility
         - actions
+        - adopt-pack
         - analyze
         - approve
         - audit
@@ -81,6 +86,7 @@ mappings:
         - clarity
         - cleanup
         - complexity
+        - consequence-chain
         - coverage
         - create
         - dashboard
