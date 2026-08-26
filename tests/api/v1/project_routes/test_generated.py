@@ -44,3 +44,24 @@ async def test_generate_docs():
 
             # Assert logger.error was NOT called (happy path)
             mock_logger.error.assert_not_called()
+
+
+import pytest
+from pydantic import ValidationError
+
+from api.v1.project_routes import DocsRequest
+
+
+# ID: 5bfcd5aa-0057-4b47-9dd2-2258d0ef70bb
+def test_DocsRequest():
+    # Test default value
+    req = DocsRequest()
+    assert req.output == "docs/10_CAPABILITY_REFERENCE.md"
+
+    # Test custom output path
+    custom_req = DocsRequest(output="custom/path/docs.md")
+    assert custom_req.output == "custom/path/docs.md"
+
+    # Test validation with non-string (should fail)
+    with pytest.raises(ValidationError):
+        DocsRequest(output=123)
