@@ -105,3 +105,12 @@ async def test_list_secrets():
         "count": 2,
     }
     mock_svc.list_secrets.assert_awaited_once_with(mock_session)
+
+
+from api.v1.secrets_routes import SecretRotateRequest
+
+
+# ID: e255be69-a567-4b33-9469-f019628ff5e3
+def test_SecretRotateRequest():
+    request = SecretRotateRequest(new_value="new-secret-value")
+    assert request.new_value == "new-secret-value"
