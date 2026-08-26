@@ -114,3 +114,26 @@ from api.v1.secrets_routes import SecretRotateRequest
 def test_SecretRotateRequest():
     request = SecretRotateRequest(new_value="new-secret-value")
     assert request.new_value == "new-secret-value"
+
+
+from api.v1.secrets_routes import SecretSetRequest
+
+
+# ID: 16ac7af1-f03d-4007-94be-c0af3471622c
+def test_SecretSetRequest():
+    # Test happy path with all fields provided
+    req = SecretSetRequest(
+        key="my-secret-key",
+        value="super-secret-value",
+        description="My secret description",
+        force=True,
+    )
+    assert req.key == "my-secret-key"
+    assert req.value == "super-secret-value"
+    assert req.description == "My secret description"
+    assert req.force is True
+
+    # Test with optional fields omitted (defaults)
+    req_defaults = SecretSetRequest(key="k", value="v")
+    assert req_defaults.description is None
+    assert req_defaults.force is False
