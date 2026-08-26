@@ -42,3 +42,37 @@ async def test_delete_secret():
 
     mock_svc.delete_secret.assert_awaited_once_with(mock_session, "my_key")
     assert result == {"key": "my_key", "deleted": True}
+
+
+from api.v1.secrets_routes import get_secret
+
+
+# ID: daa542c1-e028-43bd-902a-e1531918fe6a
+async def test_get_secret():
+    mock_session = MagicMock()
+    mock_svc = AsyncMock()
+    mock_svc.get_secret = AsyncMock(return_value="my_secret_value")
+
+    with patch("api.v1.secrets_routes.get_secret", return_value=None):
+        # Test happy path without show
+        result = await get_secret("test_key", session=mock_session, svc=mock_svc)
+
+    mock_svc.get_secret.assert_awaited_once_with(
+        mock_session, "test_key", audit_context="api:get"
+    )
+    assert result == {"key": "test_key", "exists": True}
+
+    # Test happy path with show
+    with patch("api.v1.secrets_routes.get_secret", return_value=None):
+        result_with_show = await get_secret(
+            "test_key", show=True, session=mock_session, svc=mock_svc
+        )
+
+    mock_svc.get_secret.assert_awaited_with(
+        mock_session, "test_key", audit_context="api:get"
+    )
+    assert result_with_show == {
+        "key": "test_key",
+        "exists": True,
+        "value": "my_secret_value",
+    }
