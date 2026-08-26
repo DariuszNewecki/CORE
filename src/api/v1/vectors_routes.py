@@ -56,6 +56,17 @@ _COLLECTION_ALIASES: dict[str, str] = {
 
 # ID: 255a09b3-1a10-4570-b4a9-860eeff8ae85
 class VectorQueryRequest(BaseModel):
+    """Request model for vector similarity searches against a knowledge collection.
+
+    Encapsulates the search query, target collection, and result limit with
+    constitutional bounds (1–50) enforced at the schema level.
+
+    Args:
+        query: The natural-language search text to match against stored vectors.
+        collection: Name of the vector collection to query (default: "policies").
+        limit: Maximum number of results to return, constrained to 1–50.
+    """
+
     query: str
     collection: str = "policies"
     limit: int = Field(default=5, ge=1, le=50)
@@ -63,6 +74,18 @@ class VectorQueryRequest(BaseModel):
 
 # ID: cdf9bf8a-57c4-49d1-89be-656cc865f2a0
 class VectorRebuildRequest(BaseModel):
+    """Request to rebuild vector embeddings for a collection.
+
+    Represents an atomic, governed action intent to reindex or reconstruct
+    vector data within a specified collection, optionally persisting the
+    result based on write-mode.
+
+    Args:
+        collection: Name of the target collection to rebuild.
+        write: When True, persist the rebuilt vectors; when False,
+            perform a dry-run without making changes.
+    """
+
     collection: str
     write: bool = False
 
