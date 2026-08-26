@@ -139,3 +139,24 @@ def test_print_audit_summary():
     assert kwargs["title"] == "✅ test AUDIT PASSED"
     assert kwargs["style"] == "bold green"
     assert kwargs["expand"] is False
+
+
+from cli.commands.check.formatters import print_hidden_findings_hint
+
+
+# ID: 3b420928-040c-433a-9a86-96904f0318e7
+def test_print_hidden_findings_hint():
+    all_findings = [MagicMock(), MagicMock(), MagicMock()]
+    filtered_findings = [MagicMock()]
+
+    with patch("cli.commands.check.formatters.console") as mock_console:
+        # Mock AuditSeverity - use a simple object with comparison operators
+        min_severity = MagicMock()
+        min_severity.__le__ = lambda self, other: False
+        min_severity.__gt__ = lambda self, other: True
+        print_hidden_findings_hint(all_findings, filtered_findings, min_severity)
+        mock_console.print.assert_called_once()
+
+        # Test hidden count is correct
+        call_args = mock_console.print.call_args[0][0]
+        assert "2 additional finding(s)" in call_args
