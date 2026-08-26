@@ -32,6 +32,18 @@ router = APIRouter(prefix="/project", tags=["Project"])
 
 # ID: a1b808e0-9e6b-490f-ad22-468369f92cdb
 class ScoutRequest(BaseModel):
+    """
+    Request model for a scout operation targeting a filesystem path.
+
+    Encapsulates the path to explore and whether prior scout state should be
+    cleared before beginning a fresh walk.
+
+    Args:
+        path: Filesystem path the scout should examine.
+        reset: When True, discards any cached or previous scout results for
+               the given path before starting.
+    """
+
     path: str
     reset: bool = False
 
