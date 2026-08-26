@@ -59,12 +59,12 @@ class VectorQueryRequest(BaseModel):
     """Request model for vector similarity searches against a knowledge collection.
 
     Encapsulates the search query, target collection, and result limit with
-    constitutional bounds (1–50) enforced at the schema level.
+    constitutional bounds (1-50) enforced at the schema level.
 
     Args:
         query: The natural-language search text to match against stored vectors.
         collection: Name of the vector collection to query (default: "policies").
-        limit: Maximum number of results to return, constrained to 1–50.
+        limit: Maximum number of results to return, constrained to 1-50.
     """
 
     query: str
