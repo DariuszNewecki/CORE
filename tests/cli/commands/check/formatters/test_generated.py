@@ -58,7 +58,6 @@ def test_print_migration_delta():
     assert samples[1] == "rule5, rule6, rule7"
 
 
-
 from cli.commands.check.formatters import print_executed_rules
 
 
@@ -71,3 +70,37 @@ def test_print_executed_rules():
         mock_console.print.assert_any_call("  [dim]• rule_a[/dim]")
         mock_console.print.assert_any_call("  [dim]• rule_b[/dim]")
         assert mock_console.print.call_count == 3
+
+
+from cli.commands.check.formatters import print_filtered_audit_summary
+
+
+# ID: 51bd59d6-e69e-4f1c-97ca-3e02a88292a0
+def test_print_filtered_audit_summary():
+    """Test the happy path for print_filtered_audit_summary with a passing audit."""
+    stats = {
+        "total_rules": 10,
+        "filtered_rules": 5,
+        "executed_rules": 8,
+        "failed_rules": 1,
+        "total_findings": 3,
+    }
+    errors = []
+    warnings = ["warning1"]
+
+    with patch("cli.commands.check.formatters.console") as mock_console:
+        print_filtered_audit_summary(
+            passed=True,
+            stats=stats,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        # Verify the console.print was called once with a Panel
+        mock_console.print.assert_called_once()
+        call_args = mock_console.print.call_args
+        assert call_args.args[0].__class__.__name__ == "Panel"
+        panel = call_args.args[0]
+        assert panel.title == "✅ FILTERED AUDIT PASSED"
+        assert panel.style == "bold green"
+        assert panel.expand is False
