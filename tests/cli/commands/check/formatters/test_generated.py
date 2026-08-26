@@ -104,3 +104,38 @@ def test_print_filtered_audit_summary():
         assert panel.title == "✅ FILTERED AUDIT PASSED"
         assert panel.style == "bold green"
         assert panel.expand is False
+
+
+from unittest.mock import MagicMock
+
+from cli.commands.check.formatters import print_audit_summary
+
+
+# ID: 7ce53205-3627-4910-a135-12108d27d722
+def test_print_audit_summary():
+    errors = [MagicMock()]
+    warnings = [MagicMock(), MagicMock()]
+    unassigned_count = 3
+    console_mock = MagicMock()
+    panel_mock = MagicMock(return_value=MagicMock())
+
+    with (
+        patch("cli.commands.check.formatters.console", console_mock),
+        patch("cli.commands.check.formatters.Panel", panel_mock),
+    ):
+        print_audit_summary(
+            passed=True,
+            errors=errors,
+            warnings=warnings,
+            unassigned_count=unassigned_count,
+            title_prefix="test ",
+        )
+
+    console_mock.print.assert_called_once()
+
+    # Verify the panel was created with the correct arguments
+    args, kwargs = panel_mock.call_args
+    assert len(args) == 1
+    assert kwargs["title"] == "✅ test AUDIT PASSED"
+    assert kwargs["style"] == "bold green"
+    assert kwargs["expand"] is False
