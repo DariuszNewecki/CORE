@@ -166,9 +166,20 @@ class LLMGateEngine(BaseEngine):
                 else f"Semantic Violation: {result_data.get('reasoning')}"
             )
 
+            # A FAIL verdict must always carry evidence: `finding` is the
+            # LLM's preferred locus, but the prompt schema only guarantees
+            # `reasoning` is non-null. Falling through to `finding: None`
+            # produced an empty `violations` list that then got cached as a
+            # stable FAIL with zero evidence — indistinguishable from a pass
+            # and rejected downstream by rule_executor's own
+            # _empty_violation_finding fail-closed guard (#824).
             violations = (
-                [result_data.get("finding")]
-                if not is_ok and result_data.get("finding")
+                [
+                    result_data.get("finding")
+                    or result_data.get("reasoning")
+                    or "Violation reported without finding text."
+                ]
+                if not is_ok
                 else []
             )
 

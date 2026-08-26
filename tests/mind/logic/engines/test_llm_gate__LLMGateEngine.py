@@ -125,7 +125,10 @@ async def test_verify_successful_with_violation(path_resolver, tmp_py_file):
 
 
 async def test_verify_with_violation_no_finding(path_resolver, tmp_py_file):
-    """Violation True but finding None → ok=False, empty violations list."""
+    """Violation True but finding None → ok=False, falls back to reasoning
+    as the violation evidence (#824 — a FAIL verdict must never carry an
+    empty violations list; rule_executor's _empty_violation_finding guard
+    treats that as an unadjudicable ENFORCEMENT_FAILURE)."""
     engine, _ = _engine_with_mocked_prompt(
         path_resolver,
         invoke_return_value=json.dumps(
@@ -146,7 +149,31 @@ async def test_verify_with_violation_no_finding(path_resolver, tmp_py_file):
 
     assert not result.ok
     assert result.message == "Semantic Violation: Function lacks docstring"
-    assert result.violations == []
+    assert result.violations == ["Function lacks docstring"]
+    assert result.engine_id == "llm_gate"
+
+
+async def test_verify_with_violation_no_finding_no_reasoning(
+    path_resolver, tmp_py_file
+):
+    """Violation True, finding None, reasoning also empty → falls back to
+    the generic evidence string rather than an empty violations list."""
+    engine, _ = _engine_with_mocked_prompt(
+        path_resolver,
+        invoke_return_value=json.dumps(
+            {"violation": True, "reasoning": "", "finding": None}
+        ),
+    )
+    tmp_py_file.write_text("def foo(): pass", encoding="utf-8")
+    params = {
+        "instruction": "Functions must have docstrings",
+        "rationale": "Documentation is important",
+    }
+
+    result = await engine.verify(tmp_py_file, params)
+
+    assert not result.ok
+    assert result.violations == ["Violation reported without finding text."]
     assert result.engine_id == "llm_gate"
 
 
