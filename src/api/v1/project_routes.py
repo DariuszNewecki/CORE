@@ -36,6 +36,14 @@ router = APIRouter(prefix="/project", tags=["Project"])
 
 # ID: 99f391a1-4bc9-4bad-898a-5038b5645f8e
 class DocsRequest(BaseModel):
+    """
+    Pydantic model declaring the target output path for generated API reference documentation.
+
+    Args:
+        output: Filesystem or repository-relative path where the documentation
+            will be written, defaulting to the capabilities reference file.
+    """
+
     output: str = "docs/10_CAPABILITY_REFERENCE.md"
 
 
