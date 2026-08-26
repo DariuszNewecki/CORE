@@ -133,3 +133,14 @@ def test_PromoteRequest():
     model_json = request.model_dump_json()
     assert '"path"' in model_json
     assert "/data/deployments/production/legacy-app.tar.gz" in model_json
+
+
+from api.v1.onboard_routes import OnboardRequest
+
+
+# ID: 5e0e14d8-b64c-4292-9e40-12acdcb25f3f
+def test_OnboardRequest():
+    request = OnboardRequest(path="/tmp/example.py")
+    assert request.path == "/tmp/example.py"
+    assert request.write is False
+    assert request.stage is False
