@@ -47,7 +47,6 @@ async def test_vector_query():
     mock_service_query.assert_awaited_once_with("some query", limit=5)
 
 
-
 import pytest
 
 from api.v1.vectors_routes import vector_status
@@ -73,3 +72,13 @@ async def test_vector_status():
     result = await vector_status(mock_request)
     assert result == {"collections": [{"name": "test_collection", "status": "active"}]}
     mock_qdrant.client.get_collections.assert_awaited_once()
+
+
+from api.v1.vectors_routes import VectorRebuildRequest
+
+
+# ID: 70e26b57-594f-48d3-ad15-b418958a5088
+def test_VectorRebuildRequest():
+    request = VectorRebuildRequest(collection="test_collection")
+    assert request.collection == "test_collection"
+    assert request.write is False
