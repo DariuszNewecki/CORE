@@ -180,3 +180,132 @@ async def test_defer_to_proposal_records_proposal_id_and_transitions_status(
             {"id_a": entry_id_a, "id_b": entry_id_b},
         )
         await db_session.commit()
+
+
+async def test_defer_to_proposal_undercounts_honestly_when_an_entry_raced_out_of_scope(
+    db_session: AsyncSession,
+) -> None:
+    """#773 T5.2 genuinely-missing fault scenario: the deferral undercount.
+
+    `defer_entries_to_proposal`'s UPDATE is conditional on
+    `status IN ('open', 'claimed')` per entry. If a requested entry has
+    already left that status by the time the UPDATE runs (raced by another
+    worker cycle, or already resolved), that row is not touched. The
+    returned count MUST reflect only what was actually updated -- reporting
+    the full requested count regardless would be a false "everything was
+    deferred" claim, silently orphaning the untouched finding with no
+    proposal_id linkage (the exact §7a revival gap T5.3 is about).
+
+    One entry starts 'claimed' (eligible); the other starts 'resolved'
+    (already terminal — ineligible, simulating the race). Asserts the
+    return value undercounts honestly, the eligible entry transitions
+    normally, and the ineligible entry is left byte-for-byte unchanged —
+    no false proposal_id stamp on a row this call didn't actually touch.
+    """
+    await _ensure_blackboard_table(db_session)
+
+    worker = TestRemediatorWorker(declaration_name="test_remediator")
+    worker_uuid = worker._worker_uuid
+    phase = worker._phase
+
+    entry_id_eligible = uuid.uuid4()
+    entry_id_raced = uuid.uuid4()
+    proposal_id = str(uuid.uuid4())
+
+    await _ensure_worker_registry_row(db_session, worker_uuid)
+
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO core.blackboard_entries
+                (id, worker_uuid, entry_type, phase, status, subject, payload,
+                 resolution_mechanism, claimed_by, claimed_at)
+            VALUES
+                (:id, :worker_uuid, 'finding', :phase, 'claimed',
+                 :subject, cast(:payload as jsonb), 'reaudit',
+                 :worker_uuid, now())
+            """
+        ),
+        {
+            "id": entry_id_eligible,
+            "worker_uuid": worker_uuid,
+            "phase": phase,
+            "subject": "test.missing::src/test_fixture_defer_eligible.py",
+            "payload": json.dumps(
+                {
+                    "source_file": "src/test_fixture_defer_eligible.py",
+                    "rule": "test.missing",
+                }
+            ),
+        },
+    )
+    # Already resolved by something else before this defer call runs —
+    # the race condition the undercount must surface honestly.
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO core.blackboard_entries
+                (id, worker_uuid, entry_type, phase, status, subject, payload,
+                 resolution_mechanism, resolved_at)
+            VALUES
+                (:id, :worker_uuid, 'finding', :phase, 'resolved',
+                 :subject, cast(:payload as jsonb), 'reaudit', now())
+            """
+        ),
+        {
+            "id": entry_id_raced,
+            "worker_uuid": worker_uuid,
+            "phase": phase,
+            "subject": "test.missing::src/test_fixture_defer_raced.py",
+            "payload": json.dumps(
+                {
+                    "source_file": "src/test_fixture_defer_raced.py",
+                    "rule": "test.missing",
+                }
+            ),
+        },
+    )
+    await db_session.commit()
+
+    try:
+        deferred_count = await _defer_to_proposal(
+            [str(entry_id_eligible), str(entry_id_raced)], proposal_id
+        )
+        assert deferred_count == 1, (
+            f"expected an honest undercount of 1 (only the eligible entry), "
+            f"got {deferred_count}"
+        )
+
+        db_session.expire_all()
+        result = await db_session.execute(
+            text(
+                """
+                SELECT id, status, payload->>'proposal_id'
+                FROM core.blackboard_entries
+                WHERE id IN (:id_a, :id_b)
+                """
+            ),
+            {"id_a": entry_id_eligible, "id_b": entry_id_raced},
+        )
+        rows = {row[0]: (row[1], row[2]) for row in result.fetchall()}
+
+        eligible_status, eligible_proposal_id = rows[entry_id_eligible]
+        assert eligible_status == "deferred_to_proposal"
+        assert eligible_proposal_id == proposal_id
+
+        raced_status, raced_proposal_id = rows[entry_id_raced]
+        assert raced_status == "resolved", (
+            "the raced entry must be left exactly as it was — an undercount "
+            "that also silently mutates the untouched row would be worse "
+            "than the bug it's supposed to prove is honest"
+        )
+        assert raced_proposal_id is None, (
+            "no proposal_id must be stamped onto an entry this call did "
+            "not actually update"
+        )
+    finally:
+        await db_session.execute(
+            text("DELETE FROM core.blackboard_entries WHERE id IN (:id_a, :id_b)"),
+            {"id_a": entry_id_eligible, "id_b": entry_id_raced},
+        )
+        await db_session.commit()

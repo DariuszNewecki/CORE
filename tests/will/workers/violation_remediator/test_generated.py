@@ -117,7 +117,13 @@ class TestViolationRemediatorWorker:
         worker._load_open_findings.assert_not_called()
 
     async def test_run_with_findings_no_remediation(self, worker):
-        """Test run method when findings have no remediation mapping."""
+        """#773 T5.2 mock-sampling finding: this test previously exercised
+        the unmappable-finding path but asserted nothing about the outcome
+        -- a regression here (e.g. the finding silently dropped instead of
+        released, or double-counted) would have gone undetected. A rule
+        absent from the remediation map must land in `unmappable`, get
+        released (not delegated, not proposal-grouped), and be reported
+        accurately."""
         worker._load_open_findings = AsyncMock(
             return_value=[
                 {
@@ -141,6 +147,21 @@ class TestViolationRemediatorWorker:
         ) as mock_load:
             mock_load.return_value = MagicMock()
             await worker.run()
+
+        worker._release_unmappable.assert_awaited_once()
+        (released_findings,), _ = worker._release_unmappable.await_args
+        assert [f["id"] for f in released_findings] == ["finding-1"]
+        worker._mark_delegated.assert_awaited_once_with([])
+
+        worker.post_report.assert_awaited_once()
+        payload = worker.post_report.call_args.kwargs["payload"]
+        assert payload["open_findings"] == 1
+        assert payload["unmappable"] == 1
+        assert payload["action_groups"] == 0
+        assert payload["proposals_created"] == 0
+        assert payload["entries_released"] == 1
+        assert payload["entries_delegated"] == 0
+        assert payload["unmappable_rules"] == ["unknown_rule"]
 
     async def test_uncommitted_file_skips_proposal_creation(self, worker):
         """Findings whose target file is not in HEAD must not generate a proposal.
