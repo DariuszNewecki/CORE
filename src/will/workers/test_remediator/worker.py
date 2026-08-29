@@ -23,7 +23,8 @@ The autonomous test loop this participates in:
       groups findings by source_file
       calls TestGapEvaluator per source_file → GapReport
       creates one flow.build_test_for_symbol proposal per untested symbol
-      defers findings to first symbol proposal (CORE-Finding.md §7 / ADR-010)
+      releases findings back to open (see #773 T5.3 note below) — the next
+      cycle re-evaluates once a gap closes
           ↓
   ProposalConsumerWorker
       executes APPROVED proposals via ProposalExecutor
@@ -37,8 +38,21 @@ Design constraints:
 - Dedup is per (source_file, symbol_name) pair
 - File-level circuit breaker (inherited count) applies before gap evaluation
 - Per-symbol circuit breaker (proposal failures) applies per symbol
-- Defers Blackboard entries to the FIRST symbol proposal so the §7a revival
-  path in ProposalStateManager.mark_failed preserves the Finding→Proposal link
+
+#773 T5.3 (2026-08-29): this worker does NOT defer Blackboard entries to any
+symbol proposal. It previously deferred every entry for a source_file to the
+FIRST symbol proposal created that cycle — a fabricated Finding->Proposal
+link for every sibling symbol, since neither finding type carries symbol
+identity that reliably maps to one specific proposal.
+`python::test.runner.missing` is file-level by construction (no test file
+exists at all — not one symbol's concern). `python::test.runner.failure`'s
+test_name only exact-matches a symbol for auto-generated tests, and even
+then TestGapEvaluator's presence-based (not pass/fail-based) covered/gap
+split means that symbol is excluded from `gaps` and never gets a proposal
+here — failing-test repair was never in flow.build_test_for_symbol's scope
+(ADR-133: "existing passing tests are preserved"). CORE prefers an honest,
+unlinked, released finding over a false attribution; see #844 for future
+failing-test remediation and richer finding identity as its own design.
 """
 
 from __future__ import annotations
@@ -51,7 +65,6 @@ from shared.workers.base import Worker
 from ._operations import (
     _abandon_capped_findings,
     _create_symbol_proposal,
-    _defer_to_proposal,
     _get_active_symbol_proposals,
     _inherit_attempt_count,
     _load_open_findings,
@@ -100,7 +113,9 @@ class TestRemediatorWorker(Worker):
               - Dedup skip if active flow.build_test_for_symbol proposal exists
               - Per-symbol circuit breaker: skip if recent symbol failures >= cap_n
               - Create flow.build_test_for_symbol proposal
-           e. Defer findings to first created proposal
+           e. Release findings back to open (#773 T5.3 — see module docstring;
+              no finding here carries symbol identity reliable enough to
+              defer to any one specific proposal)
         4. Post blackboard report
         """
         from pathlib import Path
@@ -248,9 +263,6 @@ class TestRemediatorWorker(Worker):
                 continue
 
             # Per-symbol proposals (ADR-133 D3/D4).
-            first_proposal_id: str | None = None
-            symbols_created_this_file = 0
-
             for gap in gaps:
                 symbol_name = gap["name"]
                 symbol_kind = gap["kind"]
@@ -293,9 +305,6 @@ class TestRemediatorWorker(Worker):
 
                 if proposal_id:
                     proposals_created.append(f"{source_file}::{symbol_name}")
-                    symbols_created_this_file += 1
-                    if first_proposal_id is None:
-                        first_proposal_id = proposal_id
                     logger.info(
                         "TestRemediatorWorker: created symbol proposal '%s' for %s::%s",
                         proposal_id,
@@ -303,16 +312,38 @@ class TestRemediatorWorker(Worker):
                         symbol_name,
                     )
 
-            # Defer findings to the first symbol proposal for this source_file
-            # so the §7a revival path preserves the Finding→Proposal link.
-            if first_proposal_id:
-                if inherited > 0:
-                    await _inherit_attempt_count(entry_ids, inherited)
-                entries_deferred += await _defer_to_proposal(
-                    entry_ids, first_proposal_id
-                )
-            elif symbols_created_this_file == 0:
-                entries_released += await _release_entries(entry_ids)
+            # #773 T5.3: entries carry no reliable, exact one-to-one symbol
+            # identity that maps to a specific proposal, at either finding
+            # type. `test.runner.missing` is inherently file-level (no
+            # symbol at all — a missing test *file* isn't one symbol's
+            # concern). `test.runner.failure`'s test_name only exact-matches
+            # a symbol for auto-generated tests, and TestGapEvaluator's
+            # presence-based (not pass/fail-based) covered/gap split means
+            # that symbol is by definition excluded from `gaps` — no
+            # proposal is ever created for it here, in this or any cycle,
+            # under flow.build_test_for_symbol's current scope (ADR-133:
+            # "existing passing tests are preserved"; failing-test repair
+            # was never in scope). Deferring to any proposal — first or
+            # otherwise — would be a fabricated Finding->Proposal link.
+            # Investigation (T5.3, 2026-08-29) invalidated the "pick the
+            # right sibling proposal" premise the fan-out design assumed;
+            # correcting the false attribution, not building fan-out
+            # infrastructure the persisted data can't honestly support.
+            # See #844 for future failing-test remediation / richer finding
+            # identity as its own design.
+            #
+            # Entries are always released here — never deferred — so the
+            # next cycle re-evaluates once the relevant gap closes (a test
+            # file lands, or a symbol proposal completes). Convergence:
+            # once a proposal is created, _get_active_symbol_proposals
+            # picks it up on the *next* cycle (queried fresh at the top of
+            # run(), not updated mid-cycle) and the existing dedup check
+            # above skips re-creating it — identical in shape to the
+            # pre-existing all-dedup-skipped release path, not a new
+            # hot loop.
+            if inherited > 0:
+                await _inherit_attempt_count(entry_ids, inherited)
+            entries_released += await _release_entries(entry_ids)
 
         await self.post_report(
             subject="test_remediator.completed",

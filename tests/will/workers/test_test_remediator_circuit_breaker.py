@@ -85,11 +85,8 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
             return_value="proposal-id-1"
         ),
         "will.workers.test_remediator.worker._inherit_attempt_count": AsyncMock(),
-        "will.workers.test_remediator.worker._defer_to_proposal": AsyncMock(
-            return_value=1
-        ),
         "will.workers.test_remediator.worker._release_entries": AsyncMock(
-            return_value=0
+            return_value=1
         ),
         "body.evaluators.test_gap_evaluator.TestGapEvaluator": MagicMock(
             return_value=MagicMock(execute=AsyncMock(return_value=_gap_result))
@@ -183,7 +180,9 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
 
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     """
-    inherited < cap_n (2 < 3) → normal path: proposal created, findings deferred.
+    inherited < cap_n (2 < 3) → normal path: proposal created, findings
+    released (#773 T5.3 — never deferred; no finding here carries symbol
+    identity reliable enough to link to one specific proposal).
     """
     worker = _make_worker()
     patches = _patch_operations(
@@ -212,8 +211,11 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
         "will.workers.test_remediator.worker._create_symbol_proposal"
     ].assert_awaited_once()
     patches[
-        "will.workers.test_remediator.worker._defer_to_proposal"
-    ].assert_awaited_once()
+        "will.workers.test_remediator.worker._inherit_attempt_count"
+    ].assert_awaited_once_with(["entry-id-1"], 2)
+    patches[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-id-1"])
 
 
 async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:

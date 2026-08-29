@@ -115,6 +115,13 @@ async def _defer_to_proposal(entry_ids: list[str], proposal_id: str) -> int:
     contract (CORE-Finding.md §7 row 4, ADR-010); the §7a revival
     path in ProposalStateManager.mark_failed depends on this linkage.
 
+    #773 T5.3 (2026-08-29): not currently called by TestRemediatorWorker.run()
+    -- neither finding type it consumes (test.runner.missing/failure) carries
+    symbol identity reliable enough to defer honestly to one specific
+    proposal (see worker.py's module docstring). Kept as a correctly-tested
+    primitive for #844's future failing-test-repair design, which may
+    restore a real caller once findings carry richer identity.
+
     Returns count of entries successfully deferred. Fail-soft: if the
     service call raises, logs the error and returns 0 rather than
     propagating — matches the existing pattern of _release_entries.
