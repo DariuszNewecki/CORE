@@ -75,16 +75,16 @@ gates:
 
   - id: G5
     name: Mutation-lane equivalence and lifecycle safety
-    status: not_met                     # mandatory lane-equivalence criterion is violated
-                                        # while #818 (RemediationCeremony write=True bypass)
-                                        # remains open. Lifecycle machinery itself is sound.
-    gap: "RemediationCeremony(write=True) bypasses the governed lifecycle (#818); claim.proposal path unaudited this cycle; approval_authority population unverified"
+    status: partial                     # mandatory lane-equivalence criterion (#818) is closed;
+                                        # two non-mandatory acceptance sub-criteria remain open.
+    gap: "claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified"
     evidence:
       - "ADR-148 finalization barrier live (COMPLETED proves committed + durable consequence)"
       - "ADR-154 mutation-lane equivalence accepted"
-    history: "ADR-154 established lane equivalence as a mandatory criterion; #818 is the open bypass blocking it. Regression is history; the present verdict is not_met."
+      - "#818 closed 2026-08-24 (bd446c52/31cbfee4/dfa48512/65211a25): RemediationCeremony write=True structurally removed (D4); ADR-154 D1-D4 E2E-proven end-to-end against core_test, CI green (3911 passed)"
+    history: "ADR-154 established lane equivalence as a mandatory criterion; #818 was the open bypass and is now closed. Residual gap is the two remaining unaudited acceptance sub-criteria, not the mandatory lane-equivalence invariant."
     attestation: null
-    blocking_issues: [818]
+    blocking_issues: [799]               # inferred — claim.proposal audit + approval_authority verification not separately tracked
     urs_ref: URS-production-readiness.md#g5
 
   - id: G6
@@ -122,12 +122,13 @@ gates:
   - id: G9
     name: Enforcement integrity fails closed
     status: partial
-    gap: "Unmapped non-advisory rules can still yield PASS (#822); empty-graph vacuous-pass guard not built"
+    gap: "Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed)"
     evidence:
       - "623b745a / 4d0a316b: dispatch contracts — unsupported/undispatched check_type BLOCKs"
       - "#820 closed — Groups A, B, C complete: inert blocking rules eliminated; linkage.duplicate_ids now enforces statelessly via ast_gate (d4fd452a)"
+      - "d4694a6a closed #822 (ADR-156): ConstitutionalAuditor._determine_verdict now DEGRADEs on any_unmapped_mapping_required_rules instead of silently returning PASS; 13 new/extended tests; verified against this repo's live .intent/ (343 policies, 256 rules)"
     attestation: null
-    blocking_issues: [822]
+    blocking_issues: [799]               # inferred — skipped-rule + vacuous-empty-state fixtures not separately tracked
     urs_ref: URS-production-readiness.md#g9
 
   - id: G10
@@ -194,7 +195,7 @@ gates:
     urs_ref: URS-production-readiness.md#g15
 
 # Derived rollup (computed by the generator, NOT hand-written):
-#   met 0/15 · mostly_met 0 · partial 11 · not_met 1 (G5) ·
+#   met 0/15 · mostly_met 0 · partial 12 ·
 #   not_demonstrated 1 (G4) · not_started 2 (G8,G11)
 #   -> overall_verdict: NOT ATTESTED. No composite score.
 

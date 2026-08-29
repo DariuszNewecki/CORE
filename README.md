@@ -267,7 +267,7 @@ CORE does not claim a status it has not earned. The gates are defined in [URS-pr
 
 **Production readiness: NOT ATTESTED.** All gates must hold simultaneously, and each `met` gate must carry dated, human-signed evidence. There is no composite score.
 
-Progress: **0/15 met** · 11 partial · 1 not met · 1 not demonstrated · 2 not started.
+Progress: **0/15 met** · 12 partial · 1 not demonstrated · 2 not started.
 
 | Gate | Status | Primary gap |
 |------|--------|-------------|
@@ -275,11 +275,11 @@ Progress: **0/15 met** · 11 partial · 1 not met · 1 not demonstrated · 2 not
 | G2 — Constitutional enforcement is deterministic and regression-tested | ⚠️ partial | Per-rule known-violating + known-compliant fixtures not universally applied |
 | G3 — Layer integrity is machine-enforced and blocking | ⚠️ partial | Several layer rules at reporting severity (no_body_to_will, will.no_direct_database_access); reporting-only set not formally documented |
 | G4 — Autonomous loop reliability demonstrated by soak | ❌ not demonstrated | No 72h soak run; two loop bugs fixed 2026-07-05 |
-| G5 — Mutation-lane equivalence and lifecycle safety | ❌ not met | RemediationCeremony(write=True) bypasses the governed lifecycle (#818); claim.proposal path unaudited this cycle; approval_authority population unverified |
+| G5 — Mutation-lane equivalence and lifecycle safety | ⚠️ partial | claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified |
 | G6 — Risk model is governed, correct, and regression-tested | ⚠️ partial | else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited |
 | G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
 | G8 — Integration tests for the governed mutation chain | ⬜ not started | No end-to-end integration test of the governed mutation chain (cognitive delegate -> write -> sandbox -> evidence). Integration INFRASTRUCTURE exists — the specific chain test does not. |
-| G9 — Enforcement integrity fails closed | ⚠️ partial | Unmapped non-advisory rules can still yield PASS (#822); empty-graph vacuous-pass guard not built |
+| G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
 | G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
 | G11 — Upgrade and migration safety | ⬜ not started | Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap. |
 | G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |
