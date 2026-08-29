@@ -171,7 +171,10 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Mutating commands MUST require --write flag or confirmation
+  # LAW: Mutating commands MUST be declared dangerous and require --write.
+  # Confirmation MAY be added as an additional safeguard but MUST NOT
+  # replace --write (#824 — corrects the earlier "or confirmation" prose,
+  # which the gate below never actually accepted as an alternative).
   cli.dangerous_explicit:
     engine: cli_gate
     params:

@@ -209,6 +209,49 @@ class TestDangerousExplicitCheck:
         cmd3_findings = [f for f in result if f.context["command_name"] == "cmd3"]
         assert len(cmd3_findings) == 2
 
+    def test_confirmation_shaped_field_does_not_substitute_for_write(
+        self, check: DangerousExplicitCheck
+    ) -> None:
+        """#824: interactive confirmation MAY be an additional safeguard but
+        MUST NOT replace --write. A command carrying a confirmation-shaped
+        field but lacking dangerous=True and the write param is still a
+        violation on both counts -- the check has no alternate acceptance
+        path for confirmation, by design."""
+        commands = [
+            {
+                "behavior": "mutate",
+                "name": "confirm_only",
+                "dangerous": False,
+                "params_list": ["yes", "interactive"],
+                "requires_confirmation": True,
+                "file_path": "/tmp/confirm_only.sh",
+            }
+        ]
+        result = check.verify(commands, {})
+        assert len(result) == 2
+        missing = {f.context["missing"] for f in result}
+        assert missing == {"dangerous", "write_param"}
+
+    def test_dangerous_and_write_satisfy_the_contract_even_with_confirmation(
+        self, check: DangerousExplicitCheck
+    ) -> None:
+        """#824: confirmation as an ADDITIONAL safeguard alongside a correctly
+        declared dangerous=True + write command produces no findings -- the
+        corrected rule permits confirmation as a supplement, never as a
+        substitute."""
+        commands = [
+            {
+                "behavior": "mutate",
+                "name": "belt_and_suspenders",
+                "dangerous": True,
+                "params_list": ["write", "yes"],
+                "requires_confirmation": True,
+                "file_path": "/tmp/belt_and_suspenders.sh",
+            }
+        ]
+        result = check.verify(commands, {})
+        assert result == []
+
     def test_command_with_no_name_and_no_file_path(
         self, check: DangerousExplicitCheck
     ) -> None:

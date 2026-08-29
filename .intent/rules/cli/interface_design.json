@@ -36,11 +36,11 @@
         },
         {
             "id": "cli.dangerous_explicit",
-            "statement": "Commands that mutate state MUST require --write flag or interactive confirmation.",
+            "statement": "Mutating commands MUST be declared dangerous and MUST require an explicit --write flag. Interactive confirmation MAY be added as an additional safeguard, but MUST NOT replace --write.",
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "runtime",
-            "rationale": "Prevents accidental data loss and provides audit trail for mutations."
+            "rationale": "Prevents accidental data loss and provides audit trail for mutations. --write is explicit, deterministic, machine-checkable, and behaves identically for humans, scripts, and agents; interactive confirmation is runtime UI behavior with no governed mechanism to prove it occurs before mutation, cannot be bypassed, or behaves safely without a TTY (#824)."
         },
         {
             "id": "cli.async_execution",

@@ -40,7 +40,7 @@
         },
         {
             "id": "cli.command.dangerous_marking",
-            "statement": "Commands that mutate system state MUST mark dangerous=True to require explicit --write flag or confirmation.",
+            "statement": "Commands that mutate system state MUST mark dangerous=True to require an explicit --write flag. Confirmation MAY be added as an additional safeguard, but MUST NOT replace --write (#824).",
             "authority": "policy",
             "phase": "load",
             "enforcement": "reporting"

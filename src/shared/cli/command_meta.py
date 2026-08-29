@@ -112,7 +112,9 @@ class CommandMeta:
     """Logical grouping: 'inspection', 'governance', 'maintenance'"""
 
     dangerous: bool = False
-    """Whether command mutates state (requires --write flag or confirmation)"""
+    """Whether command mutates state (requires an explicit --write flag; see
+    cli.dangerous_explicit — confirmation may be an additional safeguard but
+    never a substitute for --write, #824)"""
 
     experimental: bool = False
     """Whether command is not yet production-ready. Experimental commands are
