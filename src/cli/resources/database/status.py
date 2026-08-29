@@ -7,7 +7,9 @@ Shows health metrics, connection status, and diagnostics.
 
 from __future__ import annotations
 
+import json
 import logging
+import sys
 
 import typer
 from rich.console import Console
@@ -49,30 +51,40 @@ async def database_status(
         # JSON output for scripting
         core-admin database status --format json
     """
-    console.print("[bold cyan]📊 Database Status[/bold cyan]")
-    console.print()
     try:
         from shared.infrastructure.repositories.db.status_service import (
             status as db_status,
         )
 
         report = await db_status()
-        if format == "json":
-            import json
-
-            result = {
-                "connected": report.is_connected,
-                "version": report.db_version,
-                "applied_migrations": list(report.applied_migrations),
-                "pending_migrations": report.pending_migrations,
-            }
-            console.print(json.dumps(result, indent=2, default=str))
-            return
-        _display_status_table(report, detailed)
     except Exception as e:
         logger.error("Database status check failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]")
+        if format == "json":
+            # Raw stdout write, not console.print: Rich's markup parser strips
+            # bracket-like content and line-wraps long values, either of which
+            # can silently corrupt or invalidate a JSON payload (#841).
+            sys.stdout.write(
+                json.dumps({"connected": False, "error": str(e)}, indent=2) + "\n"
+            )
+        else:
+            console.print("[bold cyan]📊 Database Status[/bold cyan]")
+            console.print()
+            console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)
+
+    if format == "json":
+        result = {
+            "connected": report.is_connected,
+            "version": report.db_version,
+            "applied_migrations": list(report.applied_migrations),
+            "pending_migrations": report.pending_migrations,
+        }
+        sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
+        return
+
+    console.print("[bold cyan]📊 Database Status[/bold cyan]")
+    console.print()
+    _display_status_table(report, detailed)
 
 
 def _display_status_table(report, detailed: bool) -> None:
