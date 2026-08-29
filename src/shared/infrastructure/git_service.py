@@ -513,8 +513,18 @@ class GitService:
 
         Runs ``git diff --name-only <pre_sha> <post_sha>``. Returns None
         rather than raising so callers can skip on failure without posting
-        false-positive findings. Used by CommitAuthorshipAuditWorker
-        (ADR-129 D4).
+        false-positive findings.
+
+        This is a *range* diff: it includes every commit reachable between
+        the two SHAs, not just one. #811 -- ADR-101 D1's authorship
+        invariant binds to a single commit's diff ("every commit's diff
+        contains only bytes its author produced"), and ADR-101 D2 / D7
+        establish that a proposal produces at most one commit. Use
+        :meth:`diff_file_names_for_commit` when the two SHAs are not
+        guaranteed adjacent -- e.g. auditing a proposal's own commit for
+        authorship contamination, where an unrelated commit landing between
+        capture of ``pre_sha`` and the proposal's own ``post_sha`` must not
+        be misattributed to the proposal.
         """
         rc, stdout, stderr = await self._run_async(
             ["diff", "--name-only", pre_sha, post_sha]
@@ -524,6 +534,32 @@ class GitService:
                 "GitService.diff_file_names: git diff failed for %s..%s: %s",
                 pre_sha,
                 post_sha,
+                stderr.strip(),
+            )
+            return None
+        return [f for f in stdout.strip().splitlines() if f]
+
+    # ID: c8dc070c-86a7-446b-b376-67dfc692599e
+    async def diff_file_names_for_commit(self, sha: str) -> list[str] | None:
+        """Return paths changed by exactly one commit, or None on git failure.
+
+        Runs ``git diff --name-only <sha>^ <sha>`` -- the commit's own diff
+        against its immediate parent, regardless of how many other commits
+        exist between it and some earlier reference SHA. #811: unlike
+        :meth:`diff_file_names`, this cannot include bytes from a commit
+        that merely landed nearby in history; it can only ever report the
+        one commit's own tree delta, matching ADR-101 D1's per-commit
+        authorship invariant exactly.
+        """
+        rc, stdout, stderr = await self._run_async(
+            ["diff", "--name-only", f"{sha}^", sha]
+        )
+        if rc != 0:
+            logger.warning(
+                "GitService.diff_file_names_for_commit: git diff failed for "
+                "%s^..%s: %s",
+                sha,
+                sha,
                 stderr.strip(),
             )
             return None
@@ -645,10 +681,14 @@ class GitService:
             )
 
         if not path.exists():
-            raise ValueError(f"marker_checked cleanup refused: target does not exist: {path}")
+            raise ValueError(
+                f"marker_checked cleanup refused: target does not exist: {path}"
+            )
 
         if path.is_symlink():
-            raise ValueError(f"marker_checked cleanup refused: target is a symlink: {path}")
+            raise ValueError(
+                f"marker_checked cleanup refused: target is a symlink: {path}"
+            )
 
         resolved = path.resolve()
         expected = (expected_root.resolve() / "runs" / run_id).resolve()

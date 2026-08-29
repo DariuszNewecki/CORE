@@ -6,9 +6,10 @@ extended with ADR-148 D5 finalization integrity.
 Two independent audits share this worker's cadence and blackboard-posting
 pattern (same service-registry access, same dedup-by-open-subject shape):
 
-1. Authorship integrity (ADR-129 D4, original). For each autonomous commit
-   in the recent consequence log, verifies that the actual git diff
-   (files_changed between pre- and post-execution SHAs) is a subset of the
+1. Authorship integrity (ADR-129 D4, original; scoped to a single commit's
+   own diff per #811). For each autonomous commit in the recent consequence
+   log, verifies that the actual git diff (the proposal's own commit,
+   post_execution_sha against its immediate parent) is a subset of the
    declared production set (declared_production). Any path in the diff that
    is NOT in declared_production indicates staging contamination: bytes
    from a concurrent session were swept into the autonomous commit,
@@ -41,8 +42,8 @@ Constitutional standing:
 - Approval: false
 
 DB access via Body service registry only (Will pattern per ADR-019 D1).
-Git diff via GitService.diff_file_names (shared sanctuary; no direct
-subprocess in Will per governance.dangerous_execution_primitives).
+Git diff via GitService.diff_file_names_for_commit (shared sanctuary; no
+direct subprocess in Will per governance.dangerous_execution_primitives).
 """
 
 from __future__ import annotations
@@ -138,7 +139,13 @@ class CommitAuthorshipAuditWorker(Worker):
                 continue
 
             checked += 1
-            actual_diff = await git_service.diff_file_names(pre_sha, post_sha)
+            # #811: the proposal's own commit only, not the full pre_sha..
+            # post_sha range — an unrelated commit landing between capture
+            # of pre_sha and this proposal's own commit must not be
+            # misattributed to the proposal (ADR-101 D1 binds per-commit;
+            # ADR-101 D2/D7 establish a proposal produces at most one
+            # commit, so post_sha's own diff is authoritative).
+            actual_diff = await git_service.diff_file_names_for_commit(post_sha)
             if actual_diff is None:
                 # git failure — don't post a false positive, just skip.
                 continue
