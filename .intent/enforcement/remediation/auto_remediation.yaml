@@ -294,7 +294,7 @@ mappings:
     status: DELEGATE
 
   architecture.api.response_must_use_declared_schema:
-    action: fix.body_ui
+    action: fix.modularity
     confidence: 0.40
     description: >
       API route missing explicit response_model. Requires authoring a
