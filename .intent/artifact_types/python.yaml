@@ -40,10 +40,8 @@ supported_sensors:        # ADR-091 D4 — authored set; introspected via taxono
   - test_runner_sensor
 supported_actions:      # ADR-092-A (triggered by ADR-121 T5b)
   - build.tests
-  - check.body_contracts
   - check.imports
   - fix.atomic_actions
-  - fix.body_ui
   - fix.capability_tagging
   - fix.docstrings
   - fix.duplicate_ids
@@ -55,7 +53,6 @@ supported_actions:      # ADR-092-A (triggered by ADR-121 T5b)
   - fix.modularity
   - fix.path_resolver
   - fix.placeholders
-  - fix.purge_legacy_tags
   - fix.settings_access
   - fix.vulture_heal
   - test.execute

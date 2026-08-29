@@ -78,17 +78,11 @@ actions:
   build.tests:
     impact_level: safe
     artifact_types: [python]
-  check.body_contracts:
-    impact_level: safe
-    artifact_types: [python]
   check.imports:
     impact_level: safe
     artifact_types: [python]
   fix.atomic_actions:
     impact_level: moderate
-    artifact_types: [python]
-  fix.body_ui:
-    impact_level: dangerous
     artifact_types: [python]
   fix.capability_tagging:
     impact_level: moderate
@@ -122,9 +116,6 @@ actions:
     artifact_types: [python]
   fix.placeholders:
     impact_level: safe
-    artifact_types: [python]
-  fix.purge_legacy_tags:
-    impact_level: dangerous
     artifact_types: [python]
   fix.settings_access:
     impact_level: dangerous
