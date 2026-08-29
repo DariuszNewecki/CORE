@@ -5,6 +5,15 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: >-
+          Commit SHA to check out and test. Optional — omit to test the
+          ref used to trigger this dispatch. Lets hosted CI run against an
+          arbitrary commit (e.g. on a branch that never targets main)
+          without a throwaway PR (#827).
+        required: false
 
 permissions:
   contents: read
@@ -16,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v7

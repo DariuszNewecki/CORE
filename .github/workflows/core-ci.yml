@@ -6,6 +6,15 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: >-
+          Commit SHA to check out and test. Optional — omit to test the
+          ref used to trigger this dispatch. Lets hosted CI run against an
+          arbitrary commit (e.g. on a branch that never targets main or
+          develop) without a throwaway PR (#827).
+        required: false
 
 permissions:
   contents: read
@@ -20,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
       - name: Re-derive README quantitative claims from source
         run: bash scripts/check_readme_counts.sh
 
@@ -32,6 +43,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -49,6 +62,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -92,6 +107,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v7
