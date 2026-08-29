@@ -286,6 +286,40 @@ async def test_offline_github_annotations_emits_workflow_commands(
     assert exc_info.value.exit_code == EXIT_FINDINGS
 
 
+async def test_offline_json_output_stays_parseable_when_a_log_record_fires(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """--format=json stdout parses even when the crash path logs (#828).
+
+    `_run_offline_audit` calls `logger.exception(...)` before emitting the
+    JSON error payload. Before #828's fix, the root logger's default
+    handlers wrote to stdout, so this log record would land ahead of the
+    JSON payload on the same stream and break `json.loads` on the combined
+    output — exactly the defect this test guards against.
+    """
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="high",
+                output_format="json",
+            )
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.out)
+    assert parsed["verdict"] == "ERROR"
+    assert "internal error" in parsed["error"]
+    assert exc_info.value.exit_code == EXIT_INTERNAL_ERROR
+
+
 async def test_offline_github_annotations_error_envelope_on_config_error(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

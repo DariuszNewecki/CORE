@@ -270,8 +270,6 @@ async def _run_offline_audit(
     target: when set, audits the given directory instead of the cwd-derived
     repo (#688). Must be a path containing a .intent/ tree.
     """
-    structured = output_format in {"json", "github-annotations", "codeclimate"}
-
     try:
         if target is not None:
             from pathlib import Path as _Path

@@ -121,15 +121,17 @@ def _configure_root_logger(
     if handlers is None:
         handlers = []
         if _LOG_FORMAT_TYPE == "json":
-            handler = logging.StreamHandler(sys.stdout)
+            handler = logging.StreamHandler(sys.stderr)
             handler.setFormatter(JsonFormatter())
             handlers.append(handler)
         else:
             try:
+                from rich.console import Console
                 from rich.logging import RichHandler
 
                 handlers.append(
                     RichHandler(
+                        console=Console(stderr=True),
                         rich_tracebacks=True,
                         show_time=True,
                         show_level=True,
