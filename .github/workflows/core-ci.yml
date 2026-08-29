@@ -200,7 +200,14 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: poetry run pip-audit
 
+      # #773 T5.1: this job provisions a real ephemeral Postgres above
+      # (services: postgres) -- DB reachability here is a guaranteed
+      # precondition, not best-effort. If it's ever unreachable, that's an
+      # infrastructure fault that must fail the run outright rather than
+      # silently skip the entire DB-backed test population.
       - name: Run tests with coverage (XML for Codecov)
+        env:
+          CORE_REQUIRE_DB_TESTS: "1"
         run: |
           poetry run pytest \
             --cov=src \

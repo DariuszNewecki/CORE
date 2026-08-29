@@ -43,26 +43,26 @@ async def _truncate_core_tables_between_tests() -> AsyncGenerator[None, None]:
     reachable, _ = _db_reachability()
     if not reachable:
         return
-    try:
-        async with get_session() as session:
-            # Tables that accumulate during test runs. Config/registry tables
-            # (system_config, llm_resources, cognitive_roles) are excluded —
-            # tests read them and cleaning them would break subsequent tests.
-            # CASCADE propagates to FK-dependent tables (e.g. proposal_consequences
-            # from autonomous_proposals).
-            await session.execute(
-                text(
-                    "TRUNCATE TABLE "
-                    "core.blackboard_entries, "
-                    "core.autonomous_proposals, "
-                    "core.audit_runs, "
-                    "core.decision_traces "
-                    "CASCADE"
-                )
+    # #773 T5.1: a swallowed cleanup failure is never honest — it means the
+    # next test runs against unknown, potentially test-polluted state, and
+    # the suite reports it as if nothing happened. Let it fail loudly.
+    async with get_session() as session:
+        # Tables that accumulate during test runs. Config/registry tables
+        # (system_config, llm_resources, cognitive_roles) are excluded —
+        # tests read them and cleaning them would break subsequent tests.
+        # CASCADE propagates to FK-dependent tables (e.g. proposal_consequences
+        # from autonomous_proposals).
+        await session.execute(
+            text(
+                "TRUNCATE TABLE "
+                "core.blackboard_entries, "
+                "core.autonomous_proposals, "
+                "core.audit_runs, "
+                "core.decision_traces "
+                "CASCADE"
             )
-            await session.commit()
-    except Exception:
-        pass
+        )
+        await session.commit()
 
 
 # --- Skip DB-backed tests when the database is unreachable ----------------------
@@ -112,3 +112,40 @@ def _skip_db_tests_when_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     # raising=True: fail loudly if `_get_state` is ever renamed, rather than
     # silently no-op'ing and letting the hang return unnoticed.
     monkeypatch.setattr(session_manager, "_get_state", _unreachable, raising=True)
+
+
+# --- #773 T5.1 — explicit CI/release mode: required DB infra must be up ---------
+#
+# The skip fixture above is the correct, honest behavior for local development:
+# a contributor without LAN Postgres access gets a visibly-skipped DB suite, not
+# a hang or a false pass. But the same skip, unnoticed, is dishonest in a release
+# gate that's supposed to prove the DB-backed test population actually ran —
+# "mostly green" would silently mean "the DB tests never executed."
+#
+# CORE_REQUIRE_DB_TESTS=1 (set only in core-ci.yml's `validate` job, which
+# provisions a real ephemeral Postgres via `services:`) makes an unreachable
+# database an immediate, whole-session failure instead of a per-test skip. This
+# does not touch the skip fixture above or any other pytest skip in the suite —
+# it only converts the one specific "DB required but unreachable" case, and only
+# when explicitly opted into. Runs once, before any test's own fixtures, so a
+# down database aborts fast with one clear message rather than reporting
+# hundreds of individually skipped (or, without this, silently-hung) tests.
+
+
+def _require_db_tests() -> bool:
+    return os.environ.get("CORE_REQUIRE_DB_TESTS", "") == "1"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _require_db_infrastructure_in_release_mode() -> None:
+    if not _require_db_tests():
+        return
+    reachable, reason = _db_reachability()
+    if reachable:
+        return
+    pytest.exit(
+        "CORE_REQUIRE_DB_TESTS=1 but the database is unreachable "
+        f"({reason}) — refusing to run: a skip here would silently hide "
+        "the entire DB-backed test population from this release gate.",
+        returncode=1,
+    )
