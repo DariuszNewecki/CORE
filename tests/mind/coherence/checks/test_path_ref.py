@@ -75,3 +75,53 @@ class TestPathRefCheck:
             candidates = _run(check)
         assert len(candidates) == 1
         assert ".intent/phases/missing.yaml" in candidates[0].claim
+
+    def test_silent_for_glob_pattern(self, tmp_path: Path) -> None:
+        """A glob documenting a convention can never 'exist' — must not fire (#832)."""
+        doc = tmp_path / "test.md"
+        doc.write_text(
+            "every worker declares itself at `.intent/workers/*.yaml` per ADR-X"
+        )
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert candidates == []
+
+    def test_silent_for_double_star_glob(self, tmp_path: Path) -> None:
+        doc = tmp_path / "test.md"
+        doc.write_text("scans `.specs/**/*.md` and `.intent/**/*.yaml` for references")
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert candidates == []
+
+    def test_silent_for_angle_bracket_placeholder(self, tmp_path: Path) -> None:
+        doc = tmp_path / "test.md"
+        doc.write_text("named per convention `.specs/decisions/<adr-slug>.md`")
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert candidates == []
+
+    def test_silent_for_brace_placeholder(self, tmp_path: Path) -> None:
+        doc = tmp_path / "test.md"
+        doc.write_text("either `src/{body,mind,will}/shared.py` may apply")
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert candidates == []
+
+    def test_still_emits_for_genuinely_dead_literal_path_alongside_a_glob(
+        self, tmp_path: Path
+    ) -> None:
+        """The glob/placeholder exclusion must not swallow real dead-path findings."""
+        doc = tmp_path / "test.md"
+        doc.write_text(
+            "conventions live at `.intent/workers/*.yaml`, see also "
+            "`.specs/papers/Nonexistent.md` for background"
+        )
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert len(candidates) == 1
+        assert ".specs/papers/Nonexistent.md" in candidates[0].claim

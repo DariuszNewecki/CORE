@@ -20,6 +20,13 @@ from .base import CoherenceCandidate
 
 _BACKTICK_PATH = re.compile(r"`(\.(?:specs|intent|src)/[^`]+)`")
 
+# Glob wildcards and template placeholders: a match containing any of these
+# documents a *convention* or *family of files* ("every worker declares
+# itself at `.intent/workers/*.yaml`"), not a specific file — it can never
+# "exist on the filesystem" by definition, so it can never be a real
+# PATH_REF finding (#832).
+_GLOB_OR_PLACEHOLDER_CHARS = frozenset("*<>{}")
+
 
 # ID: 2a23bd4c-81be-4af3-9391-aadfcad40a0d
 class PathRefCheck:
@@ -46,6 +53,8 @@ class PathRefCheck:
                 if ref in seen:
                     continue
                 seen.add(ref)
+                if _GLOB_OR_PLACEHOLDER_CHARS.intersection(ref):
+                    continue
                 if (self._repo_root / ref).exists():
                     continue
                 candidates.append(
