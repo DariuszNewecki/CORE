@@ -145,8 +145,22 @@
           - "subprocess.Popen"
           - "subprocess.call"
           - "subprocess.run"
-          - "os.getenv"
-          - "os.environ"
+          # os.getenv / os.environ removed 2026-08-29 (#810): a config read
+          # executes nothing, so it was never the risk this rule is named
+          # for (eval/exec/compile/os.system/subprocess run arbitrary code;
+          # os.environ.get(...) reads a string). The rule's own canonical
+          # statement in governance_basics.json never named env reads
+          # either -- only "eval, exec, compile, subprocess". Their
+          # presence here was a mapping-level over-broadening that had
+          # already accumulated an "acceptable" excludes carve-out list
+          # (see MINOR ENV READS below, now dead code for this reason and
+          # left as historical record rather than pruned) rather than being
+          # corrected at the source. No existing rule depends on env reads
+          # appearing in *this* forbidden list: data.security.no_raw_secrets
+          # governs hardcoded literal secret values (a different concern),
+          # and architecture.boundary.settings_access governs importing the
+          # Settings object, not raw os.environ access. Removing these two
+          # entries leaves both of those enforced exactly as before.
           # Added: bare-import form of subprocess.Popen (distinctive name, low collision risk)
           - "Popen"
           # Added: subprocess family variants
