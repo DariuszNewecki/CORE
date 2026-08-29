@@ -1788,6 +1788,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-155-isolated-consequence-chain-demo.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-156-audit-verdict-unmapped-rules-degraded.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml

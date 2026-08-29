@@ -38,11 +38,15 @@ logger = getLogger(__name__)
 class AuditVerdict(Enum):
     """Three-state audit verdict.
 
-    PASS: All checked rules passed. No crashes. No unmapped blocking rules.
+    PASS: All checked rules passed. No crashes. No unmapped rules that
+          require an enforcement mapping (see
+          shared.infrastructure.intent.rule_registry.
+          rule_requires_enforcement_mapping).
     FAIL: One or more blocking rules found violations in the code.
     DEGRADED: Audit infrastructure itself failed — some rules crashed,
-              could not be checked, or are unmapped. The compliance status
-              is UNKNOWN and must be treated as non-compliant until fixed.
+              could not be checked, or are unmapped despite requiring an
+              enforcement mapping. The compliance status is UNKNOWN and
+              must be treated as non-compliant until fixed.
 
     The distinction matters:
     - FAIL means "your code is non-compliant."
@@ -158,6 +162,12 @@ class ConstitutionalAuditor:
             return AuditVerdict.DEGRADED
 
         if "stats_error" in policy["degraded_on"] and stats.get("stats_error"):
+            return AuditVerdict.DEGRADED
+
+        if (
+            "any_unmapped_mapping_required_rules" in policy["degraded_on"]
+            and stats.get("unmapped_rules", 0) > 0
+        ):
             return AuditVerdict.DEGRADED
 
         fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}

@@ -7,7 +7,9 @@
 # Loader:      src/shared/infrastructure/intent/audit_verdict.py
 #
 # This file is the governance authority over audit verdict semantics.
-# Changing verdict semantics is a .intent/ edit, not a src/ edit.
+# Verdict semantics are governed here. Source code may change only as
+# necessary to interpret and execute vocabulary authorized by this
+# policy and its governing ADRs.
 #
 # ─────────────────────────────────────────────────────────────────────
 # What each verdict guarantees
@@ -75,13 +77,26 @@ ignored_finding_types:
   - ENFORCEMENT_FAILURE
 
 # Preconditions that force DEGRADED regardless of finding severities.
-# any_crashed_rules → crashed_rule_ids set is non-empty.
-# stats_error       → get_dynamic_execution_stats() threw internally;
-#                     execution coverage is unknown. A zeroed stats
-#                     panel does not mean zero rules ran — it means
-#                     the stats computation itself failed. Compliance
-#                     status cannot be asserted when coverage is
-#                     unquantifiable.
+# any_crashed_rules                   → crashed_rule_ids set is non-empty.
+# stats_error                         → get_dynamic_execution_stats() threw
+#                                        internally; execution coverage is
+#                                        unknown. A zeroed stats panel does
+#                                        not mean zero rules ran — it means
+#                                        the stats computation itself failed.
+#                                        Compliance status cannot be
+#                                        asserted when coverage is
+#                                        unquantifiable.
+# any_unmapped_mapping_required_rules → stats["unmapped_rules"] > 0. One or
+#                                        more rules that canonically require
+#                                        an enforcement mapping (per
+#                                        shared.infrastructure.intent.
+#                                        rule_registry.
+#                                        rule_requires_enforcement_mapping)
+#                                        have none. Compliance for those
+#                                        rules cannot be checked, so it is
+#                                        unknown, not known-bad — DEGRADED,
+#                                        not FAIL. See ADR-156.
 degraded_on:
   - any_crashed_rules
   - stats_error
+  - any_unmapped_mapping_required_rules
