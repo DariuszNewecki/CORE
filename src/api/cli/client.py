@@ -239,11 +239,6 @@ class CoreApiClient:
         """POST /v1/quality/imports — see QualityClient.quality_imports."""
         return await self.quality.quality_imports(*args, **kwargs)
 
-    # ID: e2563ebe-4fc9-45aa-91bc-a362ce637e95
-    async def quality_body_ui(self, *args: Any, **kwargs: Any) -> dict:
-        """POST /v1/quality/body-ui — see QualityClient.quality_body_ui."""
-        return await self.quality.quality_body_ui(*args, **kwargs)
-
     # ID: 4e6f1a2b-8c3d-47e9-a5b1-2d3f4c5a6b7d
     async def quality_policy_coverage(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/quality/policy-coverage — see QualityClient.quality_policy_coverage."""

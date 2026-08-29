@@ -30,14 +30,12 @@ COMMAND_CONFIG = {
     "clarity": {"category": "refactoring", "dangerous": True},
     "complexity": {"category": "refactoring", "dangerous": True},
     "ids": {"category": "metadata", "dangerous": True},
-    "purge-legacy-tags": {"category": "cleanup", "dangerous": True},
     "policy-ids": {"category": "metadata", "dangerous": True},
     "tags": {"category": "metadata", "dangerous": True},
     "knowledge-graph": {"category": "database", "dangerous": False},
     "duplicate-ids": {"category": "metadata", "dangerous": True},
     "vector-sync": {"category": "database", "dangerous": True},
     "atomic-actions": {"category": "compliance", "dangerous": True},
-    "body-ui": {"category": "governance", "dangerous": True},
     "imports": {"category": "formatting", "dangerous": False},
 }
 
@@ -70,7 +68,6 @@ def fix_callback(
 import cli.commands.fix.all_commands
 import cli.commands.fix.atomic_actions
 import cli.commands.fix.audit
-import cli.commands.fix.body_ui
 
 # import cli.commands.fix.clarity
 import cli.commands.fix.code_style

@@ -70,8 +70,6 @@ def _register_diagnostic_commands():
         if callable(attr) and hasattr(attr, "__name__"):
             if attr.__name__ == "diagnostics_cmd":
                 check_app.command("diagnostics")(attr)
-            elif attr.__name__ == "check_body_ui_cmd":
-                check_app.command("body-ui")(attr)
 
 
 def _register_quality_gates_commands():

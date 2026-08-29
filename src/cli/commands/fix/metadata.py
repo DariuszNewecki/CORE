@@ -4,7 +4,6 @@ Metadata-related self-healing commands for the 'fix' CLI group.
 
 Provides:
 - fix ids (Assign stable UUIDs)
-- fix purge-legacy-tags
 - fix policy-ids
 - fix tags (Capability tagging)
 - fix duplicate-ids
@@ -37,7 +36,6 @@ __all__ = [
     "fix_duplicate_ids_command",
     "fix_placeholders_command",
     "fix_tags_command",
-    "purge_legacy_tags_command",
 ]
 
 
@@ -60,27 +58,6 @@ async def _dispatch_and_poll(
         console.print(f"[red]{fix_id} failed: {final.get('error') or final}[/red]")
         raise typer.Exit(1)
     return final
-
-
-@fix_app.command(
-    "purge-legacy-tags",
-    help="Removes obsolete tag formats (e.g. old 'Tag:' or 'Metadata:' lines).",
-)
-@core_command(dangerous=True, confirmation=True)
-# ID: ab1c0d74-ec6c-45b4-a909-2a43eb9b8d41
-async def purge_legacy_tags_command(
-    ctx: typer.Context,
-    write: bool = typer.Option(
-        False, "--write", help="Apply changes (remove the lines)."
-    ),
-) -> None:
-    """Remove obsolete tag formats from Python files."""
-    _ = ctx
-    final = await _dispatch_and_poll("fix.purge_legacy_tags", write=write)
-    data = (final.get("result") or {}).get("data", {})
-    removed = data.get("removed", 0)
-    mode = "removed" if write else "would be removed (dry-run)"
-    console.print(f"[bold green]Obsolete tags {mode}: {removed}[/bold green]")
 
 
 @fix_app.command(

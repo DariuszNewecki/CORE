@@ -5,12 +5,6 @@ Atomic Actions - Constitutional Action System
 
 from __future__ import annotations
 
-# Side-effect import: registers fix.body_ui in the action registry.
-# Implementation lives in body.self_healing (LLM-driven fixer) but the
-# registration call must execute at body.atomic.* import time so the
-# registry sees the action when fix_routes validates fix_ids.
-import body.self_healing.body_ui_fixer
-
 # Import modules to trigger registration
 from body.atomic import (
     assisted_actions,

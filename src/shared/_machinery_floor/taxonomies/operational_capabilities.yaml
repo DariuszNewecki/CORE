@@ -66,16 +66,6 @@ capabilities:
       modify: []
       delete: []
 
-  check.body_contracts:
-    description: Structural verification that body/ contracts match their .intent/enforcement/contracts/ declarations. Read-only.
-    risk: safe
-    fs_profile:
-      read:
-        - {path_pattern: ".intent/enforcement/contracts/**", modes: [dev, live]}
-      create: []
-      modify: []
-      delete: []
-
   check.imports:
     description: Static analysis of import structure against .intent/rules/code/imports.json. Read-only.
     risk: safe
@@ -143,17 +133,6 @@ capabilities:
       create: []
       modify:
         - {path_pattern: "src/**/*.py", modes: [dev, live]}
-      delete: []
-
-  fix.body_ui:
-    description: Body-layer UI/CLI rendering separation fixer — moves Rich rendering out of body/.
-    risk: dangerous
-    artifact_type: [python]
-    fs_profile:
-      read: []
-      create: []
-      modify:
-        - {path_pattern: "src/body/**/*.py", modes: [dev, live]}
       delete: []
 
   fix.capability_tagging:
@@ -280,17 +259,6 @@ capabilities:
   fix.placeholders:
     description: Replaces TBD/placeholder literals with finalized values; rule consumed at invocation time (parameterized).
     risk: safe
-    artifact_type: [python]
-    fs_profile:
-      read: []
-      create: []
-      modify:
-        - {path_pattern: "src/**/*.py", modes: [dev, live]}
-      delete: []
-
-  fix.purge_legacy_tags:
-    description: Removes legacy decorator/tag lines per pattern argument (parameterized; mechanical line removal).
-    risk: dangerous
     artifact_type: [python]
     fs_profile:
       read: []

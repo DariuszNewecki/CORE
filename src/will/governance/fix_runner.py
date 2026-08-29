@@ -22,10 +22,9 @@ This module is the sanctioned bridge for the /fix and /quality surfaces:
   for POST /fix/ir. Bypasses fix_runs — the operation is a one-shot
   filesystem write that completes inline.
 
-* `run_quality_imports` / `run_quality_body_ui` — synchronous helpers
-  for POST /quality/imports and POST /quality/body-ui. Return the
-  inline ADR-055 D3 shape `{status, violations}` without touching
-  fix_runs.
+* `run_quality_imports` — synchronous helper for POST /quality/imports.
+  Returns the inline ADR-055 D3 shape `{status, violations}` without
+  touching fix_runs.
 * `run_and_persist_quality` — fire-and-forget runner for POST
   /quality/lint, /quality/tests, /quality/system, /quality/gates. All
   four share the kind='quality_check' fix_runs row; the caller picks
@@ -65,7 +64,6 @@ __all__ = [
     "run_and_persist_flow",
     "run_and_persist_modularity",
     "run_and_persist_quality",
-    "run_quality_body_ui",
     "run_quality_imports",
 ]
 
@@ -598,32 +596,6 @@ async def run_quality_policy_coverage(context: CoreContext) -> dict:
         "summary": report.summary,
         "records": report.records,
         "exit_code": report.exit_code,
-    }
-
-
-# ID: 59c8771b-19bc-4933-ae34-9b8da796c9ca
-async def run_quality_body_ui(
-    context: CoreContext,
-    target_files: list[str] | None,
-) -> dict:
-    """Run the Body-layer UI contract check synchronously.
-
-    Wraps body.governance.body_contracts_service.check_body_contracts.
-    `target_files` is accepted but not yet honored by the backend.
-    """
-    from body.governance.body_contracts_service import check_body_contracts
-
-    if target_files:
-        logger.info(
-            "run_quality_body_ui: target_files supplied but backend "
-            "currently scans the full body/ layer — argument ignored"
-        )
-
-    repo_root = context.git_service.repo_path
-    result = await check_body_contracts(repo_root=repo_root)
-    return {
-        "status": "ok" if result.ok else "failed",
-        "violations": result.data.get("violations", []),
     }
 
 

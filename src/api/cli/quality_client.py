@@ -34,15 +34,6 @@ class QualityClient:
             json={"target_files": target_files or []},
         )
 
-    # ID: 49bfd745-751c-4e87-8fc5-175acca51511
-    async def quality_body_ui(self, target_files: list[str] | None = None) -> dict:
-        """POST /v1/quality/body-ui — synchronous Body-layer UI contract check."""
-        return await self._facade._request(
-            "POST",
-            "/v1/quality/body-ui",
-            json={"target_files": target_files or []},
-        )
-
     # ID: 48a167ac-14f3-4b84-9b73-94eaf4a430d0
     async def quality_policy_coverage(self) -> dict:
         """POST /v1/quality/policy-coverage — sync constitutional policy-coverage audit.

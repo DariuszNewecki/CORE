@@ -17,7 +17,6 @@ import typer
 
 from cli.logic.diagnostics_policy import policy_coverage
 from cli.logic.diagnostics_registry import (
-    check_legacy_tags,
     cli_registry,
     manifest_hygiene,
 )
@@ -29,4 +28,3 @@ app = typer.Typer(help="System integrity checks and constitutional auditing.")
 app.command("policy-coverage", help="Audits constitution coverage.")(policy_coverage)
 app.command("manifest-hygiene", help="Checks capability manifests.")(manifest_hygiene)
 app.command("cli-registry", help="Validates CLI registry schema.")(cli_registry)
-app.command("legacy-tags", help="Scans for obsolete tags.")(check_legacy_tags)

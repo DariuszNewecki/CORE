@@ -341,7 +341,15 @@ never matched an actual route-function name is itself flagged — a stale entry
 but nothing validates it" gap ADR-152 D4 closed for `governed_exclusions`
 entries. Keeps the marker from silently rotting.
 
-### The 11 routes, with one-line read-shaped rationales
+### The 10 routes, with one-line read-shaped rationales
+
+**Retirement note (architectural retirement, current main):** `quality_body_ui`
+(`/v1/quality/body-ui`) was removed along with its backing
+`body_contracts_service`/`fix.body_ui` machinery — the checker enforced
+`body.*` policy semantics archived at `ca398a2e` and never had a valid
+current-law successor. Its row is struck from this table rather than left
+describing a route that no longer exists; the surrounding gating decision
+for the other 10 routes is unaffected.
 
 | Route | File | Why read-shaped |
 |---|---|---|
@@ -350,7 +358,6 @@ entries. Keeps the marker from silently rotting.
 | `request_coverage_report` | `coverage_routes.py` | Runs `pytest --cov`, persists report output to `core.coverage_runs`. No source files touched. |
 | `lint_endpoint` | `lint_routes.py` | Runs `black --check` + `ruff check` only — no `--fix` path exists on this route. |
 | `quality_imports` | `quality_routes.py` | Wraps `action_check_imports`, a pure import-resolution scan. |
-| `quality_body_ui` | `quality_routes.py` | Wraps `check_body_contracts`, a read-only Body-layer contract scan. |
 | `quality_policy_coverage` | `quality_routes.py` | `PolicyCoverageService.run()` is a read-only audit report. |
 | `quality_tests` | `quality_routes.py` | Runs `pytest -q --no-cov` only. |
 | `quality_system` | `quality_routes.py` | Runs `ruff check src/` (no `--fix`) + pytest — analysis only. |

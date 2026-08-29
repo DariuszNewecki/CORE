@@ -38,7 +38,6 @@ actions:
   file.read: safe
   file.tag_metadata: safe
   fix.atomic_actions: moderate
-  fix.body_ui: dangerous
   fix.capability_tagging: moderate
   fix.docstrings: moderate
   fix.duplicate_ids: moderate
@@ -50,7 +49,6 @@ actions:
   fix.modularity: moderate
   fix.path_resolver: moderate
   fix.placeholders: safe
-  fix.purge_legacy_tags: dangerous
   fix.settings_access: dangerous
   fix.vulture_heal: dangerous
   log.archive_partitions: moderate

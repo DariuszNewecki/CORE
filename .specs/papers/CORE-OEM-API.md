@@ -181,14 +181,13 @@ The autonomous-proposal queue surface. F-34 (web dashboard) is the direct sideca
 | POST | `/v1/proposals/{proposal_id}/reject` | **public** | Reject. F-34 governor action. |
 | POST | `/v1/proposals` | **public** | Create a proposal (rare; mostly worker-internal but available to sidecars that want to file via API). |
 
-### 3.14 `/v1/quality` (7 endpoints)
+### 3.14 `/v1/quality` (6 endpoints)
 
 The async-dispatch quality-gate surface (mypy / pytest / pip-audit / ruff / radon / vulture). Each endpoint queues a background gate run.
 
 | Method | Path | Class | Rationale |
 |---|---|---|---|
 | POST | `/v1/quality/imports` | **internal** | Imports-resolution gate. CI-internal. |
-| POST | `/v1/quality/body-ui` | **internal** | Body-UI rendering check. CI-internal. |
 | POST | `/v1/quality/policy-coverage` | **internal** | Constitutional policy-coverage audit. CI-internal. |
 | POST | `/v1/quality/lint` | **internal** | Lint gate dispatch. CI-internal. |
 | POST | `/v1/quality/tests` | **internal** | Test gate dispatch. CI-internal. |

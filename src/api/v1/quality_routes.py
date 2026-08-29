@@ -5,9 +5,9 @@ Quality API endpoints (ADR-055 Phase 2, D3).
 
 The /quality namespace divides into two execution models:
 
-* Synchronous (POST /quality/imports, POST /quality/body-ui) — fast
-  inline checks. The route awaits the backend, shapes the ADR-055 D3
-  response `{status, violations}`, returns 200. No fix_runs row.
+* Synchronous (POST /quality/imports) — fast inline checks. The route
+  awaits the backend, shapes the ADR-055 D3 response
+  `{status, violations}`, returns 200. No fix_runs row.
 
 * Asynchronous (POST /quality/lint, POST /quality/tests,
   POST /quality/system, POST /quality/gates) — subprocess-backed.
@@ -48,7 +48,6 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
     run_and_persist_quality,
-    run_quality_body_ui,
     run_quality_imports,
     run_quality_policy_coverage,
 )
@@ -71,7 +70,6 @@ router = APIRouter(
 # path (ruff check src/ --fix when payload.fix=True).
 INTENTIONALLY_UNGATED: dict[str, str] = {
     "quality_imports": "Read-shaped: wraps action_check_imports, a pure import-resolution scan.",
-    "quality_body_ui": "Read-shaped: wraps check_body_contracts, a read-only Body-layer contract scan.",
     "quality_policy_coverage": "Read-shaped: PolicyCoverageService.run() is a read-only audit report.",
     "quality_tests": "Read-shaped: runs `pytest -q --no-cov` only, no mutation.",
     "quality_system": "Read-shaped: runs `ruff check src/` (no --fix) + pytest — analysis only.",
@@ -179,17 +177,6 @@ async def quality_imports(
 ) -> dict:
     """Run the import-resolution check inline. Returns {status, violations}."""
     return await run_quality_imports(payload.target_files)
-
-
-@router.post("/body-ui")
-# ID: b9aea824-c569-4243-9eaf-4fc55b895202
-async def quality_body_ui(
-    request: Request,
-    payload: QualityTargetRequest = Body(default_factory=QualityTargetRequest),
-) -> dict:
-    """Run the Body-layer UI contract check inline. Returns {status, violations}."""
-    core_context: CoreContext = request.app.state.core_context
-    return await run_quality_body_ui(core_context, payload.target_files)
 
 
 @router.post("/policy-coverage")

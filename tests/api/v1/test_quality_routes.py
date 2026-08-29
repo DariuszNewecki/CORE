@@ -2,10 +2,10 @@
 
 """Unit tests for quality_routes — ADR-055 Phase 2 D3.
 
-Sync endpoints (/quality/imports, /quality/body-ui) are pass-throughs
-to the will.governance.fix_runner facade; tests stub the facade
-functions and confirm the route shapes the inline response and
-forwards the target_files parameter.
+Sync endpoints (/quality/imports) are pass-throughs to the
+will.governance.fix_runner facade; tests stub the facade functions and
+confirm the route shapes the inline response and forwards the
+target_files parameter.
 
 Async endpoints (/quality/lint, /quality/tests, /quality/system,
 /quality/gates) follow the same INSERT-then-schedule pattern as the
@@ -30,7 +30,6 @@ from api.v1.quality_routes import (
     QualityLintRequest,
     QualityTargetRequest,
     QualityTestsRequest,
-    quality_body_ui,
     quality_gates,
     quality_imports,
     quality_lint,
@@ -74,45 +73,6 @@ async def test_quality_imports_failed_path_propagates_violations():
     mock.assert_awaited_once_with(["src/x.py"])
     assert out["status"] == "failed"
     assert out["violations"] == violations
-
-
-async def test_quality_body_ui_ok_path_returns_status_ok():
-    """No violations → status='ok' with the CoreContext forwarded."""
-    request = MagicMock()
-    sentinel_ctx = MagicMock()
-    request.app.state.core_context = sentinel_ctx
-
-    with patch(
-        "api.v1.quality_routes.run_quality_body_ui",
-        AsyncMock(return_value={"status": "ok", "violations": []}),
-    ) as mock:
-        out = await quality_body_ui(
-            request=request,
-            payload=QualityTargetRequest(target_files=None),
-        )
-
-    mock.assert_awaited_once_with(sentinel_ctx, None)
-    assert out == {"status": "ok", "violations": []}
-
-
-async def test_quality_body_ui_failed_path_propagates_violations():
-    """Violations from the facade propagate unchanged."""
-    request = MagicMock()
-    request.app.state.core_context = MagicMock()
-    violations = [{"file": "src/body/x.py", "rule": "print", "line": 12}]
-
-    with patch(
-        "api.v1.quality_routes.run_quality_body_ui",
-        AsyncMock(return_value={"status": "failed", "violations": violations}),
-    ) as mock:
-        out = await quality_body_ui(
-            request=request,
-            payload=QualityTargetRequest(target_files=["src/body/x.py"]),
-        )
-
-    assert mock.await_count == 1
-    assert mock.await_args.args[1] == ["src/body/x.py"]
-    assert out == {"status": "failed", "violations": violations}
 
 
 # ----------------------------------------------------------------------
@@ -308,7 +268,7 @@ async def test_quality_check_row_is_readable_via_fix_runs_get():
 def test_mutation_routes_carry_governor_gate():
     """#808/#770: quality_lint is the only quality_* route with a live
     --fix path (ruff check src/ --fix when payload.fix=True) -- a real
-    mutation, governor-gated. The read-only checks (imports/body-ui/
+    mutation, governor-gated. The read-only checks (imports/
     policy-coverage/tests/system/gates) stay open."""
     from api.dependencies import require_governor
     from api.v1.quality_routes import router
@@ -320,7 +280,6 @@ def test_mutation_routes_carry_governor_gate():
     }
     assert gated_by_route[("POST", "/quality/lint")] is True
     assert gated_by_route[("POST", "/quality/imports")] is False
-    assert gated_by_route[("POST", "/quality/body-ui")] is False
     assert gated_by_route[("POST", "/quality/policy-coverage")] is False
     assert gated_by_route[("POST", "/quality/tests")] is False
     assert gated_by_route[("POST", "/quality/system")] is False
