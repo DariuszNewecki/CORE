@@ -51,7 +51,10 @@ gates:
     gap: Per-rule known-violating + known-compliant fixtures not universally applied
     evidence: []
     attestation: null
-    blocking_issues: [773]
+    blocking_issues: [842]               # corrected 2026-08-29 — was [773], but G2's
+                                          # gap never appeared in #773's text; #842 is
+                                          # the dedicated issue (blocker-link fix only,
+                                          # gap/status unchanged)
     urs_ref: URS-production-readiness.md#g2
 
   - id: G3
@@ -116,7 +119,12 @@ gates:
     evidence:
       - "CI provisions PostgreSQL + Qdrant; 33 @pytest.mark.integration tests exist (infra present)"
     attestation: null
-    blocking_issues: [773]
+    blocking_issues: [843]               # corrected 2026-08-29 — was [773], but G8's
+                                          # gap is a positive green-path proof concern,
+                                          # different in kind from #773's three
+                                          # failure/edge-case-honesty subscopes; #843 is
+                                          # the dedicated issue (blocker-link fix only,
+                                          # gap/status unchanged)
     urs_ref: URS-production-readiness.md#g8
 
   - id: G9
