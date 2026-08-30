@@ -25,6 +25,34 @@ mappings:
         - "**/__init__.py"
         - "tests/**/*.py"
 
+  # LAW: A new/replacement comment line must not exceed the configured length
+  # ceiling. Split out from comment_insert/comment_replace (#842 truth
+  # correction) -- GATE 2 of verify_metadata_only_diff (the same check_type
+  # metadata_only_diff invoked above) is a single mechanism keyed on
+  # max_comment_length that does not itself distinguish insert from replace,
+  # so one rule maps to it rather than two mirrored ones. Value must match
+  # operational_config.yaml's metadata_max_comment_length (SSOT for the
+  # actual default consumed by body.atomic.metadata_ops.action_tag_metadata).
+  #
+  # NOTE (#842): ast_gate.verify()'s check_type=="metadata_only_diff" branch
+  # is a deliberate audit-time no-op ("enforced at action execution time, not
+  # audit time") -- the real proof is GATE 1/GATE 2 inside
+  # verify_metadata_only_diff, invoked directly by action_tag_metadata at the
+  # point of mutation. As of this mapping, that mechanism has zero test
+  # coverage (no fixture pair exists for either gate) -- flagged for #842's
+  # fixture-filling phase, not yet closed.
+  metadata.operations.comment_length_limit:
+    engine: ast_gate
+    params:
+      check_type: metadata_only_diff
+      max_comment_length: 120
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+
   # ===========================================================================
   # ADVISORY DECLARATIONS
   # Permissive rules — they grant permission, not restrict.
@@ -35,8 +63,9 @@ mappings:
     engine: advisory
     params:
       note: >
-        Permissive declaration. WRITE_METADATA actions MAY insert comment lines.
-        Enforced at action-layer by convention, not by engine.
+        Permissive declaration. WRITE_METADATA actions MAY insert comment
+        lines. The length ceiling on new comments is a separate rule,
+        metadata.operations.comment_length_limit -- not this permission.
     scope:
       applies_to:
         - "src/**/*.py"
@@ -45,8 +74,9 @@ mappings:
     engine: advisory
     params:
       note: >
-        Permissive declaration. WRITE_METADATA actions MAY replace comment lines.
-        Enforced at action-layer by convention, not by engine.
+        Permissive declaration. WRITE_METADATA actions MAY replace comment
+        lines. The length ceiling on replacement comments is a separate rule,
+        metadata.operations.comment_length_limit -- not this permission.
     scope:
       applies_to:
         - "src/**/*.py"
