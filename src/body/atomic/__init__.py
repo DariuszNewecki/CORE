@@ -16,6 +16,7 @@ from body.atomic import (
     document,
     file_ops,
     fix,
+    llm_resource_authoring_actions,
     log_actions,
     metadata_ops,
     modularity_fix,
@@ -52,6 +53,7 @@ from body.atomic.fix import (
 from body.atomic.fix import (
     action_format_code as action_fix_format,
 )
+from body.atomic.llm_resource_authoring_actions import action_author_llm_resource
 from body.atomic.log_actions import (
     action_archive_log_partitions,
     action_maintain_log_partitions,
@@ -71,6 +73,7 @@ __all__ = [
     "action_archive_log_partitions",
     "action_assisted_apply_diff",
     "action_assisted_validate_diff",
+    "action_author_llm_resource",
     "action_build_test_for_symbol",
     "action_build_tests",
     "action_check_imports",

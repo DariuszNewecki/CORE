@@ -41,6 +41,7 @@ actions:
   admin.meta: safe
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
+  author.llm_resource: moderate
   claim.proposal: safe
   cleanup.action_results: moderate
   cleanup.agent_memory: moderate

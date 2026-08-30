@@ -35,6 +35,7 @@ from cli.resources.demo import app as demo_app
 from cli.resources.dev import app as dev_app
 from cli.resources.grc import app as grc_app
 from cli.resources.intent import app as intent_app
+from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.project import app as project_app
 from cli.resources.runtime import app as runtime_app
 from cli.resources.symbols import app as symbols_app
@@ -74,6 +75,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(demo_app, name="demo")
     app_instance.add_typer(intent_app, name="intent")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
+    app_instance.add_typer(llm_resources_app, name="llm-resources")
     app_instance.add_typer(refactor_app, name="refactor")
     app_instance.add_typer(tools_app, name="tools")
     app_instance.add_typer(daemon_app, name="daemon")

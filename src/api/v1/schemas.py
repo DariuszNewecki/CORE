@@ -50,6 +50,22 @@ class CognitiveRoleProjectionResponse(BaseModel):
     duration_sec: float
 
 
+# ── llm_resources authoring (#821 Unit 3) ──────────────────────────────────────
+
+
+# ID: 3f7c1e5a-9d2b-4c6e-a0f4-8b2d6a0c4e8f
+class LlmResourceAuthoringResponse(BaseModel):
+    """Response for POST /v1/llm-resources/author.
+
+    `data` carries the ActionResult.data shape from `author.llm_resource`:
+    valid, violations, dry_run, and (on a successful write) `resource`.
+    """
+
+    ok: bool
+    data: dict[str, Any]
+    duration_sec: float
+
+
 # ── Audit runs ────────────────────────────────────────────────────────────────
 
 

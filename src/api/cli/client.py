@@ -36,6 +36,7 @@ from api.cli.inspect_client import InspectClient
 from api.cli.integration_client import IntegrationClient
 from api.cli.integrity_client import IntegrityClient
 from api.cli.lane_client import LaneClient
+from api.cli.llm_resources_client import LlmResourcesClient
 from api.cli.project_client import ProjectClient
 from api.cli.proposals_client import ProposalsClient
 from api.cli.quality_client import QualityClient
@@ -85,6 +86,7 @@ class CoreApiClient:
         self.daemon = DaemonClient(self)
         self.integrity = IntegrityClient(self)
         self.lane = LaneClient(self)
+        self.llm_resources = LlmResourcesClient(self)
         self.secrets = SecretsClient(self)
         self.symbols = SymbolsClient(self)
         self.vectors = VectorsClient(self)
