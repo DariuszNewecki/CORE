@@ -26,6 +26,7 @@ from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
 from cli.resources.code import app as code_app
+from cli.resources.cognitive_roles import app as cognitive_roles_app
 from cli.resources.coherence import app as coherence_app
 from cli.resources.constitution import app as constitution_app
 from cli.resources.context import app as context_app
@@ -58,6 +59,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     """
     app_instance.add_typer(admin_app, name="admin")
     app_instance.add_typer(code_app, name="code")
+    app_instance.add_typer(cognitive_roles_app, name="cognitive-roles")
     app_instance.add_typer(context_app, name="context")
     app_instance.add_typer(database_app, name="database")
     app_instance.add_typer(runtime_app, name="runtime")

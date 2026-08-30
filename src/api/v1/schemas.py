@@ -33,6 +33,23 @@ class AsyncDispatchResponse(BaseModel):
     href: str
 
 
+# ── Cognitive-role projection (#821 Unit 2) ────────────────────────────────────
+
+
+# ID: b3e7c1a9-4f8d-4b2e-9a6c-1d7f3e8b2c5a
+class CognitiveRoleProjectionResponse(BaseModel):
+    """Response for POST /v1/cognitive-roles/project.
+
+    `data` carries the ActionResult.data shape from `project.cognitive_roles`:
+    in_sync, drift, db_only_roles, yaml_only_roles, non_canonical, dry_run,
+    and (when write=True) applied/blocked.
+    """
+
+    ok: bool
+    data: dict[str, Any]
+    duration_sec: float
+
+
 # ── Audit runs ────────────────────────────────────────────────────────────────
 
 

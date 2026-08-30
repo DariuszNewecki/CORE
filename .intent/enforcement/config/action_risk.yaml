@@ -54,6 +54,7 @@ actions:
   log.maintain_partitions: safe
   logging.reconfigure: safe
   manage.define_symbols: moderate
+  project.cognitive_roles: moderate
   remediate.cognitive_role: moderate
   sync.db: moderate
   sync.knowledge_graph: moderate

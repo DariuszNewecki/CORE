@@ -28,6 +28,7 @@ import httpx
 
 from api.cli.audit_client import AuditClient
 from api.cli.census_client import CensusClient
+from api.cli.cognitive_roles_client import CognitiveRolesClient
 from api.cli.coverage_client import CoverageClient
 from api.cli.daemon_client import DaemonClient
 from api.cli.fix_client import FixClient
@@ -79,6 +80,7 @@ class CoreApiClient:
         self.proposals = ProposalsClient(self)
         self.integration = IntegrationClient(self)
         self.census = CensusClient(self)
+        self.cognitive_roles = CognitiveRolesClient(self)
         self.sync = SyncClient(self)
         self.daemon = DaemonClient(self)
         self.integrity = IntegrityClient(self)

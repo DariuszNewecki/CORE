@@ -30,6 +30,7 @@ from api.errors import register_exception_handlers
 from api.v1 import (
     audit_routes,
     census_routes,
+    cognitive_role_routes,
     coverage_routes,
     daemon_routes,
     development_routes,
@@ -197,6 +198,7 @@ def create_app(lifespan=None) -> FastAPI:
     v1.include_router(inspect_routes.search_router, tags=["Inspect"])
     v1.include_router(census_routes.router, tags=["Census"])
     v1.include_router(sync_routes.router, tags=["Sync"])
+    v1.include_router(cognitive_role_routes.router, tags=["CognitiveRoles"])
     v1.include_router(integrity_routes.router, tags=["Integrity"])
     v1.include_router(daemon_routes.router, tags=["Daemon"])
     app.include_router(v1)

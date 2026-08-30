@@ -11,6 +11,7 @@ from body.atomic import (
     build_test_for_symbol_action,
     build_tests_action,
     check_actions,
+    cognitive_role_projection_actions,
     crate_ops,
     document,
     file_ops,
@@ -31,6 +32,9 @@ from body.atomic.assisted_actions import (
 from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
 from body.atomic.build_tests_action import action_build_tests
 from body.atomic.check_actions import action_check_imports
+from body.atomic.cognitive_role_projection_actions import (
+    action_project_cognitive_roles,
+)
 from body.atomic.crate_ops import action_create_crate
 from body.atomic.document.gap_analysis_action import action_run_gap_analysis
 from body.atomic.file_ops import (
@@ -79,6 +83,7 @@ __all__ = [
     "action_fix_logging",
     "action_fix_modularity",
     "action_maintain_log_partitions",
+    "action_project_cognitive_roles",
     "action_read_file",
     "action_refactor_apply_split",
     "action_registry",
