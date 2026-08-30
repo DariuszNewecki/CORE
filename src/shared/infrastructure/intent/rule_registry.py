@@ -16,7 +16,7 @@ Pattern:
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -89,11 +89,49 @@ def get_rule_registry() -> dict[str, str]:
 # ID: 6c8bcb47-f8a4-4397-b2c8-2cf11b8bd2fd
 def _load_rule_file(path: Path, index: dict[str, str]) -> None:
     """Parse one rule document JSON and populate *index* with its rule IDs."""
+    for rule_id, _enforcement in _iter_rule_records(path):
+        index[rule_id] = rule_id
+
+
+# ID: b2508f32-9629-4d95-b44f-2fdf80a87809
+def _iter_rule_records(path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (rule_id, enforcement) pairs declared in one rule document JSON."""
     try:
         doc: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
         for rule in doc.get("rules", []):
             rule_id = rule.get("id")
             if isinstance(rule_id, str) and rule_id:
-                index[rule_id] = rule_id
+                yield rule_id, str(rule.get("enforcement", ""))
     except Exception as exc:
         logger.warning("RuleRegistry: could not parse %s: %s", path, exc)
+
+
+@lru_cache(maxsize=1)
+# ID: 6484fa19-9f92-49ce-bf34-3345550228ca
+def get_rule_enforcement_map() -> dict[str, str]:
+    """Return every known rule ID mapped to its declared enforcement tier.
+
+    Companion to get_rule_registry() — same scan of .intent/rules/**/*.json,
+    keyed to enforcement instead of identity. Used by G2 registry consumers
+    (the blocking-rule census) that need the enforcement tier without
+    re-parsing the rule corpus themselves.
+    """
+    try:
+        repo = get_intent_repository()
+        rules_root: Path = repo.root / "rules"
+        if not rules_root.exists():
+            logger.warning("RuleRegistry: .intent/rules/ not found at %s", rules_root)
+            return {}
+        index: dict[str, str] = {}
+        for path in sorted(rules_root.rglob("*.json")):
+            for rule_id, enforcement in _iter_rule_records(path):
+                index[rule_id] = enforcement
+        logger.debug(
+            "RuleRegistry: loaded enforcement tiers for %d rule IDs from %s",
+            len(index),
+            rules_root,
+        )
+        return index
+    except Exception as exc:
+        logger.error("RuleRegistry: failed to build enforcement map: %s", exc)
+        return {}

@@ -1,0 +1,645 @@
+# .specs/verification/g2_blocking_rule_registry.yaml
+#
+# URS-production-readiness.md G2 census + ratchet (#842 Unit A).
+#
+# Every rule with enforcement: "blocking" across .intent/rules/**/*.json,
+# one row each, no more and no fewer. Generated from the same production
+# loaders the enforcing test uses
+# (shared.infrastructure.intent.rule_registry.get_rule_enforcement_map +
+# mind.governance.enforcement_loader.EnforcementMappingLoader) so the
+# registry and the live rule/mapping corpus cannot silently diverge --
+# tests/mind/governance/test_g2_blocking_rule_registry.py enforces exact
+# agreement on every CI run. See #842 for the full census methodology.
+#
+# Fields:
+#   rule_id           - .intent/rules/**/*.json rule id
+#   engine            - live .intent/enforcement/mappings/**/*.yaml engine
+#   mechanism_class   - engine_mapped | passive_gate_class_a |
+#                       passive_gate_class_b | advisory_mapped
+#                       (advisory_mapped = mapped engine: advisory, i.e.
+#                       no engine dispatch; ADR-142 attestation_class for
+#                       passive_gate rows)
+#   violating_fixture - test reference proving the block fires; null until
+#                       depth-verified (subsequent #842 units)
+#   compliant_fixture - test reference proving no false positive; null
+#                       until depth-verified
+#   state             - unverified | gap | decision_required | verified
+#                       unverified: default, not yet assessed by this
+#                       program. gap / decision_required: reserved for
+#                       later units' classification pass -- not assigned
+#                       here. verified: both fixture refs present and
+#                       confirmed real (not a literal-ID-mention proxy).
+
+entries:
+  - rule_id: "ai.cognitive_role.no_hardcoded_string"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.artifact.no_provider_leak"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.artifact.required_fields"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.artifact.role_abstraction"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.governed_prompt_must_have_anchor"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.model_artifact_required"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.model_required"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.output_validation_required"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "ai.prompt.system_prompt_required"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.api.route_module_must_declare_exposure"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.api.router_exposure_must_match_dependencies"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.artifact_discovery_through_registry"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.blackboard.indeterminate_requires_human_mechanism"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.blackboard.reaudit_requires_reaudit_mechanism"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.blackboard.worker_only_inserts"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.database_session_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.embedding_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.file_handler_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.llm_client_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.remediation_write_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.boundary.settings_access"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.channels.api_structured_output_only"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.channels.logic_logger_only"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.constitution_read_only"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.flows.atomic_action_must_not_compose"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.flows.flow_declared_in_intent"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.flows.flow_must_not_create_proposals"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.flows.flow_must_not_post_to_blackboard"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.flows.flow_must_propagate_write_false"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.meta_read_only"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.no_module_async_engine"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.path_access.no_hardcoded_runtime_dirs"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.patterns.action_pattern"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.shared.no_layer_imports"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "architecture.workers.no_direct_worker_import"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "async.no_manual_loop_run"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.fix_action_scope"
+    engine: "advisory"
+    mechanism_class: "advisory_mapped"
+    violating_fixture: "tests/body/atomic/test_atomic_actions__fix_action_scope.py::test_fix_imports_never_selects_resolution_codes"
+    compliant_fixture: "tests/body/atomic/test_atomic_actions__fix_action_scope.py::test_fix_imports_and_check_imports_select_sets_are_disjoint"
+    state: "verified"
+  - rule_id: "atomic_actions.impact_level_must_be_governed"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.must_accept_kwargs"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.must_have_decorator"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.must_return_action_result"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.no_governance_bypass"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "atomic_actions.result_must_be_structured"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "autonomy.conservation.min_preservation_ratio"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "autonomy.lanes.boundary_enforcement"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "autonomy.remediation.min_confidence_floor"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "capability.taxonomy.no_model_specific_names"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "capability.taxonomy.resources_provide_canonical_capabilities"
+    engine: "knowledge_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "capability.taxonomy.roles_require_canonical_capabilities"
+    engine: "knowledge_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.async_execution"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.command.no_duplicates"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.dangerous_explicit"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.discovery_strict"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.no_layer_exposure"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "cli.resource_first"
+    engine: "cli_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.imports.generated_must_resolve"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.imports.generated_no_relative"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.imports.must_resolve"
+    engine: "workflow_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.imports.no_stale_namespace"
+    engine: "workflow_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.tests.no_global_module_mutation"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.tests.no_imported_symbol_redeclared"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.tests.no_magicmock_on_await"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.tests.no_placeholder_test_body"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "code.tests.no_unresolved_free_names"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_b"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "data.security.no_raw_secrets"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "data.ssot.database_primacy"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.constitution.read_only"
+    engine: "glob_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.fs_operations.no_direct_yaml_import"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.intent_artifact_encoding.ascii_only"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.logic_mutation.governed"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.mutation_surface.filehandler_required"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.namespace.classification_complete"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.passive_gate.enforced_by_must_resolve"
+    engine: "contracts_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.quarantine.namespace_has_drainer"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.remediation.active_routing_claimed_by_action"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.remediation.all_rules_mapped"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.taxonomy.operational_capabilities_decorator_backing"
+    engine: "taxonomy_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.taxonomy.self_resolve_resolver_owned"
+    engine: "taxonomy_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.taxonomy.sensor_supported_by_declaration"
+    engine: "taxonomy_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary.authoritative_source_must_be_paper"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary.canonical_format_must_validate"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary.no_direct_json_import"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary.projection_must_match_canonical"
+    engine: "artifact_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary_registers.diagnostic_fields_must_be_uppercase"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "governance.vocabulary_registers.operational_fields_must_be_lowercase"
+    engine: "python_runtime"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "linkage.assign_ids"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "linkage.duplicate_ids"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "metadata.operations.comment_length_limit"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "metadata.semantic_preservation"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "modularity.needs_refactor"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "planning.conceptual_only"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "planning.file_path_validation"
+    engine: "regex_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "planning.no_code_generation"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "planning.trace_mandatory"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "proposal_lifecycle.approval.authority_required"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "proposal_lifecycle.claim.authority_required"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "proposal_lifecycle.claim.idempotency_guard"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "proposal_lifecycle.transitions.valid_sequence"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "purity.no_metadata_decorators"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "purity.tempfile_default_dir"
+    engine: "ast_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "quality.type_safety"
+    engine: "workflow_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
+  - rule_id: "runtime.worker_max_interval_within_observed"
+    engine: "runtime_gate"
+    mechanism_class: "engine_mapped"
+    violating_fixture: null
+    compliant_fixture: null
+    state: "unverified"
