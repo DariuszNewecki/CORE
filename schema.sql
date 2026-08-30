@@ -4,7 +4,7 @@
 
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -73,6 +73,13 @@ FROM core.symbols s, core.decorator_registry dr
 WHERE s.symbol_path = ''body.cli.check:audit''
   AND dr.decorator_name = ''core_command'';
 ';
+
+
+--
+-- Name: core_archive; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA core_archive;
 
 
 --
@@ -895,6 +902,27 @@ COMMENT ON TABLE core.blackboard_entries IS 'Constitutional coordination ledger.
 
 
 --
+-- Name: COLUMN blackboard_entries.occurrence_count; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.blackboard_entries.occurrence_count IS 'Number of times this standing finding was observed (dedup upsert increments). first observation = 1.';
+
+
+--
+-- Name: COLUMN blackboard_entries.first_payload; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.blackboard_entries.first_payload IS 'Payload captured at first observation; retained across dedup updates (original history). NULL for pre-migration rows and non-findings.';
+
+
+--
+-- Name: COLUMN blackboard_entries.last_seen_at; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.blackboard_entries.last_seen_at IS 'Last OBSERVATION time (sensor (re)post). Set only by the dedup upsert, never by the updated_at touch trigger. Staleness and recovered-target logic key on this, not updated_at (which is generic mutation time).';
+
+
+--
 -- Name: capabilities; Type: TABLE; Schema: core; Owner: -
 --
 
@@ -1041,7 +1069,7 @@ CREATE TABLE core.cognitive_roles (
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT cognitive_roles_required_capabilities_check CHECK ((jsonb_typeof(required_capabilities) = 'array'::text)),
-    CONSTRAINT cognitive_roles_role_check CHECK ((role = ANY (ARRAY['Architect'::text, 'AutonomousDeveloper'::text, 'CapabilityTagger'::text, 'CodeReviewer'::text, 'Coder'::text, 'ConstitutionalCoherenceAnalyst'::text, 'DocstringWriter'::text, 'Human'::text, 'LocalCoder'::text, 'LocalReasoner'::text, 'Planner'::text, 'RemoteCoder'::text, 'StrategicAuditor'::text, 'Vectorizer'::text])))
+    CONSTRAINT cognitive_roles_role_check CHECK ((role = ANY (ARRAY['Architect'::text, 'CapabilityTagger'::text, 'CodeReviewer'::text, 'Coder'::text, 'ConstitutionalCoherenceAnalyst'::text, 'DocstringWriter'::text, 'LocalCoder'::text, 'LocalReasoner'::text, 'Planner'::text, 'RemoteCoder'::text, 'Vectorizer'::text])))
 );
 
 
@@ -1060,7 +1088,7 @@ CREATE TABLE core.coherence_candidates (
     triage_note text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     triaged_at timestamp with time zone,
-    CONSTRAINT coherence_candidates_relation_check CHECK ((relation = ANY (ARRAY['R1_SCOPED'::text, 'SAMECONCERN'::text, 'ROW2_GROUNDING'::text, 'ROW3_CITATION'::text, 'ROW4_NAMING'::text, 'SPECGAP'::text, 'VOCABULARY'::text, 'R1'::text, 'R2'::text, 'R3'::text, 'R4'::text, 'DISPATCH_PARITY'::text]))),
+    CONSTRAINT coherence_candidates_relation_check CHECK ((relation = ANY (ARRAY['R1_SCOPED'::text, 'SAMECONCERN'::text, 'ROW2_GROUNDING'::text, 'ROW3_CITATION'::text, 'ROW4_NAMING'::text, 'SPECGAP'::text, 'VOCABULARY'::text, 'R1'::text, 'R2'::text, 'R3'::text, 'R4'::text, 'DISPATCH_PARITY'::text, 'PATH_REF'::text, 'INTENT_BINDING'::text, 'CROSS_NS_DIRECTION'::text]))),
     CONSTRAINT coherence_candidates_triage_decision_check CHECK ((triage_decision = ANY (ARRAY['unreviewed'::text, 'confirmed'::text, 'dismissed'::text, 'deferred'::text])))
 );
 
@@ -2772,6 +2800,27 @@ COMMENT ON TABLE core.system_health_log IS 'Append-only strategic memory. One ro
 
 
 --
+-- Name: task_assignee_roles; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.task_assignee_roles (
+    role text NOT NULL,
+    kind text NOT NULL,
+    description text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT task_assignee_roles_kind_check CHECK ((kind = ANY (ARRAY['actor'::text, 'cognitive'::text])))
+);
+
+
+--
+-- Name: TABLE task_assignee_roles; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.task_assignee_roles IS 'Operational registry of every value legitimately assignable to core.tasks.assigned_role (#821). kind=actor rows (AutonomousDeveloper, Human, StrategicAuditor) are task-assignee values with no LLM capability; kind=cognitive rows mirror core.cognitive_roles by name only -- capabilities remain governed exclusively there, never duplicated here.';
+
+
+--
 -- Name: tasks; Type: TABLE; Schema: core; Owner: -
 --
 
@@ -2875,20 +2924,21 @@ CREATE VIEW core.v_agent_context AS
 --
 
 CREATE VIEW core.v_agent_workload AS
- SELECT cr.role,
-    cr.is_active,
+ SELECT tar.role,
+    COALESCE(cr.is_active, tar.is_active) AS is_active,
     count(t.id) FILTER (WHERE (t.status = 'executing'::text)) AS active_tasks,
     count(t.id) FILTER (WHERE (t.status = 'pending'::text)) AS queued_tasks,
     count(t.id) FILTER (WHERE (t.status = 'blocked'::text)) AS blocked_tasks,
     ( SELECT rra.resource
            FROM core.role_resource_assignments rra
-          WHERE ((rra.role = cr.role) AND (rra.is_active = true))
+          WHERE ((rra.role = tar.role) AND (rra.is_active = true))
           ORDER BY rra.priority
          LIMIT 1) AS assigned_resource
-   FROM (core.cognitive_roles cr
-     LEFT JOIN core.tasks t ON (((t.assigned_role = cr.role) AND (t.status = ANY (ARRAY['pending'::text, 'executing'::text, 'blocked'::text])))))
-  GROUP BY cr.role, cr.is_active
-  ORDER BY cr.role;
+   FROM ((core.task_assignee_roles tar
+     LEFT JOIN core.cognitive_roles cr ON ((cr.role = tar.role)))
+     LEFT JOIN core.tasks t ON (((t.assigned_role = tar.role) AND (t.status = ANY (ARRAY['pending'::text, 'executing'::text, 'blocked'::text])))))
+  GROUP BY tar.role, COALESCE(cr.is_active, tar.is_active)
+  ORDER BY tar.role;
 
 
 --
@@ -4086,6 +4136,14 @@ ALTER TABLE ONLY core.system_health_log
 
 
 --
+-- Name: task_assignee_roles task_assignee_roles_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.task_assignee_roles
+    ADD CONSTRAINT task_assignee_roles_pkey PRIMARY KEY (role);
+
+
+--
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -4481,19 +4539,6 @@ CREATE INDEX idx_blackboard_status ON core.blackboard_entries USING btree (statu
 --
 
 CREATE INDEX idx_blackboard_subject_status ON core.blackboard_entries USING btree (subject, status);
-
-
---
--- Name: uq_active_finding_identity; Type: INDEX; Schema: core; Owner: -
--- Active-finding dedup: at most one non-terminal finding per
--- (subject, resolution_mechanism). DB-enforces the canonical active-finding
--- identity so a sensor re-emitting a standing condition upserts one row rather
--- than manufacturing duplicate open rows (the ledger-design defect, #820-era
--- diagnosis). On the live DB this index is created only AFTER reconciliation
--- collapses existing duplicates (see infra migration); a fresh schema has none.
---
-
-CREATE UNIQUE INDEX uq_active_finding_identity ON core.blackboard_entries USING btree (subject, resolution_mechanism) WHERE ((entry_type = 'finding'::text) AND (status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text])));
 
 
 --
@@ -5617,6 +5662,13 @@ CREATE INDEX sync_runs_sync_type_idx ON core.sync_runs USING btree (sync_type);
 
 
 --
+-- Name: uq_active_finding_identity; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_active_finding_identity ON core.blackboard_entries USING btree (subject, resolution_mechanism) WHERE ((entry_type = 'finding'::text) AND (status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text])));
+
+
+--
 -- Name: llm_exchange_log_2026_05_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: -
 --
 
@@ -6304,11 +6356,11 @@ ALTER TABLE ONLY core.symbol_vector_links
 
 
 --
--- Name: tasks tasks_assigned_role_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
+-- Name: tasks tasks_assigned_role_registry_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
 --
 
 ALTER TABLE ONLY core.tasks
-    ADD CONSTRAINT tasks_assigned_role_fkey FOREIGN KEY (assigned_role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT tasks_assigned_role_registry_fkey FOREIGN KEY (assigned_role) REFERENCES core.task_assignee_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
