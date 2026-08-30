@@ -82,9 +82,12 @@ def test_preset_core_env_selects_intended_environment() -> None:
 
 
 def test_absent_overrides_load_normal_defaults() -> None:
-    """With nothing preset, behavior must be unchanged: CORE_ENV defaults to
-    'development' and DATABASE_URL comes from .env (the live 'core' DB, not
-    core_test)."""
+    """With nothing preset, behavior must be unchanged: CORE_ENV always
+    defaults to 'development' (Settings' own field default, independent of
+    .env). DATABASE_URL's expected value depends on whether a real .env is
+    present -- it's gitignored, so a from-scratch clone or CI checkout has
+    none, and the fix must not require one to exist; a dev machine with .env
+    configured must still see .env's value flow through as a true default."""
     result = _run(
         {},
         "from shared.config import settings\n"
@@ -94,7 +97,10 @@ def test_absent_overrides_load_normal_defaults() -> None:
     assert result.returncode == 0, result.stderr
     core_env, db_name = result.stdout.strip().splitlines()
     assert core_env == "development"
-    assert db_name == "core"
+    if (REPO_ROOT / ".env").exists():
+        assert db_name == "core"
+    else:
+        assert db_name == "None"
 
 
 @pytest.mark.parametrize("core_env_value", ["TEST", "PROD", "PRODUCTION"])

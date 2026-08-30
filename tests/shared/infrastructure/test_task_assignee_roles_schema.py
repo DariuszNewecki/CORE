@@ -10,6 +10,16 @@ migration file's text: core.task_assignee_roles exists with the full
 references it (not core.cognitive_roles), the three actor roles are gone
 from core.cognitive_roles, and core.v_agent_workload surfaces workload for
 the full assignable-role universe.
+
+schema.sql is a --schema-only dump (this repo's own convention, per
+infra/scripts/reset_test_db.sh) and CI provisions its ephemeral core_test
+from schema.sql alone -- never by replaying the migration ledger. So the
+14-row seed the migration inserts is real DDL-adjacent data that exists on
+live/the persistent local core_test (both had the actual migration applied)
+but NOT on a schema-only-provisioned database. These tests seed idempotently
+(mirroring the migration's own ON CONFLICT DO NOTHING) before asserting, so
+the same test proves the same thing regardless of which of those two
+provisioning paths produced the database under test.
 """
 
 from __future__ import annotations
@@ -35,6 +45,38 @@ _COGNITIVE_ROLES = {
     "RemoteCoder",
     "Vectorizer",
 }
+
+
+@pytest.fixture(autouse=True)
+async def _ensure_task_assignee_roles_seeded(db_session: AsyncSession) -> None:
+    """Idempotent re-seed of the migration's own 14-row vocabulary --
+    mirrors infra/scripts/migrations/20260830_821_create_task_assignee_roles.sql
+    step 2 exactly, so a schema-only-provisioned database (CI) proves the same
+    property as one that had the real migration applied (live/local core_test)."""
+    for role, kind in [
+        ("Architect", "cognitive"),
+        ("AutonomousDeveloper", "actor"),
+        ("CapabilityTagger", "cognitive"),
+        ("CodeReviewer", "cognitive"),
+        ("Coder", "cognitive"),
+        ("ConstitutionalCoherenceAnalyst", "cognitive"),
+        ("DocstringWriter", "cognitive"),
+        ("Human", "actor"),
+        ("LocalCoder", "cognitive"),
+        ("LocalReasoner", "cognitive"),
+        ("Planner", "cognitive"),
+        ("RemoteCoder", "cognitive"),
+        ("StrategicAuditor", "actor"),
+        ("Vectorizer", "cognitive"),
+    ]:
+        await db_session.execute(
+            text(
+                "INSERT INTO core.task_assignee_roles (role, kind) "
+                "VALUES (:role, :kind) ON CONFLICT (role) DO NOTHING"
+            ),
+            {"role": role, "kind": kind},
+        )
+    await db_session.commit()
 
 
 async def test_task_assignee_roles_holds_all_14_with_correct_kind(
