@@ -198,6 +198,19 @@ class Settings(BaseSettings):
             "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None
         )
 
+        # Explicit process-environment values must survive the dotenv cascade
+        # below. load_dotenv(override=True) previously won unconditionally,
+        # so a caller-set DATABASE_URL or CORE_ENV was silently discarded --
+        # .env's own CORE_ENV="development" clobbered a caller's CORE_ENV=TEST
+        # before it was ever read, routing _get_env_file_name back to .env
+        # instead of the intended .env.test (#845). Snapshotting here and
+        # restoring after every override=True load makes dotenv files
+        # defaults-only for anything the process already set, while leaving
+        # the existing file-vs-file cascade (.env -> .creds override .env ->
+        # env-specific file overrides both) and default-development behavior
+        # (nothing preset) unchanged.
+        preset_env = dict(os.environ)
+
         if is_testing:
             os.environ["CORE_ENV"] = "TEST"
 
@@ -214,6 +227,7 @@ class Settings(BaseSettings):
             creds_path = REPO_ROOT / ".creds"
             if creds_path.exists():
                 load_dotenv(dotenv_path=creds_path, override=True)
+            os.environ.update(preset_env)
 
         super().__init__(**values)
 
@@ -222,6 +236,7 @@ class Settings(BaseSettings):
 
         if env_path.exists():
             load_dotenv(dotenv_path=env_path, override=True)
+            os.environ.update(preset_env)
             super().__init__(**values)
 
     def _get_env_file_name(self, core_env: str) -> str:
