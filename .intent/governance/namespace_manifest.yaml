@@ -1307,6 +1307,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/verification/CORE-Scout-External-Validation-click.md
     governance_namespace: project::core
+  - path: .specs/verification/g2_blocking_rule_registry.yaml
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/state/** — CORE recon, diagnostics, handoffs, snapshots.
