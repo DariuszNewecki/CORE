@@ -27,6 +27,7 @@
 actions:
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
+  author.llm_resource: moderate
   build.test_for_symbol: safe
   build.tests: safe
   check.imports: safe
@@ -53,6 +54,7 @@ actions:
   fix.vulture_heal: dangerous
   log.archive_partitions: moderate
   log.maintain_partitions: safe
+  project.cognitive_roles: moderate
   refactor.apply_split: dangerous
   remediate.cognitive_role: moderate
   sync.db: moderate
