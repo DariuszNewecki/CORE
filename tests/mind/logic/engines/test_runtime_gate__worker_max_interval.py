@@ -24,9 +24,6 @@ from mind.logic.engines.runtime_gate import (
 )
 
 
-pytestmark = [pytest.mark.integration]
-
-
 def _write_worker_yaml(
     workers_dir: Path,
     stem: str,

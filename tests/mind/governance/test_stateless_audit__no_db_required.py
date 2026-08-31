@@ -12,12 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from mind.governance.audit_context import AuditorContext
-
-
-pytestmark = [pytest.mark.integration]
 
 
 async def test_stateless_context_skips_knowledge_graph_load() -> None:

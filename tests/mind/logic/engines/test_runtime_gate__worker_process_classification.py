@@ -34,8 +34,6 @@ from mind.logic.engines.runtime_gate import (
 )
 
 
-pytestmark = [pytest.mark.integration]
-
 _WORKER_UUID = "11111111-2222-3333-4444-555555555555"
 
 
@@ -249,8 +247,8 @@ async def test_deescalation_fires_with_heartbeat_proof(tmp_path: Path) -> None:
     ctx = _ctx(
         tmp_path,
         [
-            _FakeResult([_hb_row(15)]),           # heartbeat count query
-            _sample_rows([0.4, 0.5, 0.3, 0.6]),   # loop-hold samples
+            _FakeResult([_hb_row(15)]),  # heartbeat count query
+            _sample_rows([0.4, 0.5, 0.3, 0.6]),  # loop-hold samples
         ],
     )
     out = await _check_worker_process_classification(ctx)
@@ -282,7 +280,7 @@ async def test_deescalation_no_samples_fires(tmp_path: Path) -> None:
         tmp_path,
         [
             _FakeResult([_hb_row(20)]),  # 20 heartbeats
-            _sample_rows([]),            # no loop-hold samples at all
+            _sample_rows([]),  # no loop-hold samples at all
         ],
     )
     out = await _check_worker_process_classification(ctx)
@@ -306,7 +304,7 @@ async def test_deescalation_insufficient_heartbeats_skips(tmp_path: Path) -> Non
     ctx = _ctx(
         tmp_path,
         [
-            _FakeResult([_hb_row(5)]),    # below min_active_heartbeats (10)
+            _FakeResult([_hb_row(5)]),  # below min_active_heartbeats (10)
             # No second call expected — loop skips before samples query
         ],
     )
@@ -324,8 +322,8 @@ async def test_deescalation_still_loud_no_finding(tmp_path: Path) -> None:
     ctx = _ctx(
         tmp_path,
         [
-            _FakeResult([_hb_row(50)]),               # plenty of heartbeats
-            _sample_rows([0.3, 0.5, 1.5, 0.2, 0.8]), # 168h max = 1.5s > 1.0s gate
+            _FakeResult([_hb_row(50)]),  # plenty of heartbeats
+            _sample_rows([0.3, 0.5, 1.5, 0.2, 0.8]),  # 168h max = 1.5s > 1.0s gate
         ],
     )
     out = await _check_worker_process_classification(ctx)
