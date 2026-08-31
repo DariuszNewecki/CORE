@@ -18,19 +18,19 @@ mappings:
         # by surfacing remove_file's own abs_path.unlink as a violation.
         - "src/body/infrastructure/storage/file_handler.py" # IS the governed surface (moved from shared by ADR-126)
         # Excludes mirrored from governance.logic_mutation.governed in
-        # governance_basics.yaml — both rules use no_direct_writes and
+        # governance_basics.yaml -- both rules use no_direct_writes and
         # must share the same sanctuary set or one will fire spuriously.
         # Alignment completed 2026-05-31 as Phase 1 of #489 phased re-plan
         # (taxonomy-inert; the gain is loop-honest exclude parity, not
         # behavioral, since the OLD check does not fire on the new write
-        # surfaces these three files contain — that gain lands in Phase 2
+        # surfaces these three files contain -- that gain lands in Phase 2
         # after the #507 drain).
         - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
         - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
         - "src/shared/path_utils.py" # Path resolution utilities
         - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
         - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
-        # --- ADDED 2026-05-31 (#507 Phase 2 drain — Tier 2 authority-scoped exclusions) ---
+        # --- ADDED 2026-05-31 (#507 Phase 2 drain -- Tier 2 authority-scoped exclusions) ---
         # Each entry mirrored in governance_basics.yaml's excludes set.
         # Per-line rationale; see #507 for the full disposition table.
         - "src/body/governance/key_management_service.py" # Security-sanctuary: chmod 0600 on private keying material; FileHandler exposes no chmod primitive
@@ -44,7 +44,7 @@ mappings:
         - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
         # --- ADDED 2026-07-13 (#779) ---
         # Mirrored in governance_basics.yaml's excludes set.
-        - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* — work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
+        - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* -- work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
         # --- ADDED 2026-07-23 (ADR-155 isolated consequence-chain demo, Phase 1) ---
         # Mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/demo/isolation.py" # ADR-155 D3: writes run-identity marker + isolation-fingerprint records under CORE_DEMO_STATE_DIR (outside any repo root); FileHandler is repo-bound and refuses out-of-repo paths

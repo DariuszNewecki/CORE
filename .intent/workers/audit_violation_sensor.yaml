@@ -3,14 +3,14 @@ kind: worker
 
 metadata:
   id: workers.audit_violation_sensor
-  title: Audit Violation Sensor (base — no namespace)
+  title: Audit Violation Sensor (base -- no namespace)
   version: "1.1.0"
   authority: policy
   status: paused
   rationale: >
     This is the base declaration with no rule_namespace. It is kept as a
     reference and for explicit call-site instantiation (e.g. core-admin workers
-    remediate). The daemon does not start this directly — it starts the
+    remediate). The daemon does not start this directly -- it starts the
     per-namespace declarations instead (audit_sensor_purity.yaml,
     audit_sensor_architecture.yaml, audit_sensor_logic.yaml,
     audit_sensor_modularity.yaml). Those are the active entries that back

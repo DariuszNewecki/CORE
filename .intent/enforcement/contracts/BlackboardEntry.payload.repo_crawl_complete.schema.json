@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.blackboard_entry.payload.repo_crawl_complete.schema.json",
-    "title": "BlackboardEntry.payload — repo.crawl.complete shape",
+    "title": "BlackboardEntry.payload -- repo.crawl.complete shape",
     "description": "JSON Schema for the payload JSONB column when entry_type='report' and subject='repo.crawl.complete'. Posted by RepoCrawlerWorker (src/will/workers/repo_crawler.py) via post_report() on a successful crawl cycle. The payload is the stats dict produced by CrawlOrchestrator.run_crawl() (src/body/services/crawl_service/orchestrator.py) plus a completed_at timestamp. Authority: ADR-056 Wave 1; ADR-011; RepoCrawlerWorker is the sole emitter. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["files_scanned", "completed_at"],
@@ -20,7 +20,7 @@
         "symbols_linked": {
             "type": "integer",
             "minimum": 0,
-            "description": "Number of symbol→symbol edges created or refreshed in the knowledge graph."
+            "description": "Number of symbol->symbol edges created or refreshed in the knowledge graph."
         },
         "edges_created": {
             "type": "integer",

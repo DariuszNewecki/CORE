@@ -442,9 +442,9 @@ entries:
   - rule_id: "governance.intent_artifact_encoding.ascii_only"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_ascii_only_fires_on_em_dash"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_ascii_only_clean_for_plain_ascii"
+    state: "verified"
   - rule_id: "governance.logic_mutation.governed"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"

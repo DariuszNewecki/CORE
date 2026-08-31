@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.agent_decision",
-        "title": "AgentDecision — agent decision persistence record",
+        "title": "AgentDecision -- agent decision persistence record",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Decisions made by agents, stored in core.agent_decisions (src/shared/infrastructure/database/models/learning.py). SQLAlchemy ORM class. __tablename__ and __table_args__ are ClassVar metaclass annotations included in properties to suppress false-positive undeclared-field findings from the AST gate (same pattern as BlackboardEntry) — these are not data fields. options_considered is JSONB with no Python class governing its shape (fourth JSONB-only shape gap alongside ProposalConsequence, ConstitutionalViolationPayload, WorkerDeclaration). confidence is Numeric(3, 2) — allows 0.00–9.99 but semantic range is 0.0–1.0; no CHECK constraint. AgentMemory (sibling ORM class) carries memory_type with comment-documented vocabulary (fact/observation/decision/pattern/error) — not enum-typed. Authority: ADR-056 Wave 3 Session 1.",
+    "description": "Decisions made by agents, stored in core.agent_decisions (src/shared/infrastructure/database/models/learning.py). SQLAlchemy ORM class. __tablename__ and __table_args__ are ClassVar metaclass annotations included in properties to suppress false-positive undeclared-field findings from the AST gate (same pattern as BlackboardEntry) -- these are not data fields. options_considered is JSONB with no Python class governing its shape (fourth JSONB-only shape gap alongside ProposalConsequence, ConstitutionalViolationPayload, WorkerDeclaration). confidence is Numeric(3, 2) -- allows 0.00-9.99 but semantic range is 0.0-1.0; no CHECK constraint. AgentMemory (sibling ORM class) carries memory_type with comment-documented vocabulary (fact/observation/decision/pattern/error) -- not enum-typed. Authority: ADR-056 Wave 3 Session 1.",
     "governed_classes": [
         "AgentDecision"
     ],
@@ -25,11 +25,11 @@
     "properties": {
         "__tablename__": {
             "type": "string",
-            "description": "SQLAlchemy ClassVar — table name 'agent_decisions'. Not a data field; included to suppress AST gate false positives (issue #368)."
+            "description": "SQLAlchemy ClassVar -- table name 'agent_decisions'. Not a data field; included to suppress AST gate false positives (issue #368)."
         },
         "__table_args__": {
             "type": "object",
-            "description": "SQLAlchemy ClassVar — table arguments (schema: core). Not a data field; included to suppress AST gate false positives (issue #368)."
+            "description": "SQLAlchemy ClassVar -- table arguments (schema: core). Not a data field; included to suppress AST gate false positives (issue #368)."
         },
         "id": {
             "type": "string",
@@ -45,7 +45,7 @@
         },
         "options_considered": {
             "type": "object",
-            "description": "JSONB payload of options evaluated at this decision point (Mapped[dict]). Shape is ungoverned — no Python class exists for options_considered sub-structure (JSONB gap #4)."
+            "description": "JSONB payload of options evaluated at this decision point (Mapped[dict]). Shape is ungoverned -- no Python class exists for options_considered sub-structure (JSONB gap #4)."
         },
         "chosen_option": {
             "type": "string",
@@ -57,11 +57,11 @@
         },
         "confidence": {
             "type": "number",
-            "description": "Agent confidence in the decision (Numeric(3, 2)). Semantic range 0.0–1.0; DB type permits 0.00–9.99 with no CHECK constraint."
+            "description": "Agent confidence in the decision (Numeric(3, 2)). Semantic range 0.0-1.0; DB type permits 0.00-9.99 with no CHECK constraint."
         },
         "was_correct": {
             "type": "boolean",
-            "description": "Whether the decision proved correct in hindsight (bool | None). Nullable — populated by feedback loop."
+            "description": "Whether the decision proved correct in hindsight (bool | None). Nullable -- populated by feedback loop."
         },
         "decided_at": {
             "type": "string",

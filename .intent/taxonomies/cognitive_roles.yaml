@@ -6,10 +6,10 @@ description: >
   Canonical declaration of cognitive roles in CORE. A cognitive role is a
   stable responsibility within the system: it states why cognition is
   required, not how it is executed. This file is the authoritative source of
-  the cognitive-role name set and required_capabilities — the values
+  the cognitive-role name set and required_capabilities -- the values
   referenced by the `role` field in var/prompts/**/model.yaml, by the
   core.cognitive_roles table, and by every foreign key that points at it.
-  required_capabilities is a Role-layer concern (paper §2.2, §3): it declares
+  required_capabilities is a Role-layer concern (paper S2.2, S3): it declares
   what technical abilities the role requires, used as the matching predicate
   against resource provided_capabilities. Model/provider bindings and
   specialization are Resource-layer concerns managed outside this file.

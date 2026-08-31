@@ -15,7 +15,7 @@ metadata:
     Replaces vector_sync_worker (deprecated under ADR-018 D1).
 
     Under ADR-070 D8 (2026-05-24) also declared writer-as-sensor for
-    the `repo_artifacts ↔ filesystem` projection pair (see
+    the `repo_artifacts <-> filesystem` projection pair (see
     .intent/governance/projections.yaml). The walk's reap step posts
     `coherence.repo_artifacts.drift` findings inline (no proposal
     pipeline) when rows are removed.
@@ -31,7 +31,7 @@ mandate:
     register all non-Python artifacts into core.repo_artifacts,
     and cross-reference artifacts to symbols in core.artifact_symbol_links.
     Skips unchanged files via SHA256 content hash. Never follows symlinks.
-    Does not embed — embedding is delegated to RepoEmbedderWorker.
+    Does not embed -- embedding is delegated to RepoEmbedderWorker.
   phase: audit
   permitted_tools:
     - file.read

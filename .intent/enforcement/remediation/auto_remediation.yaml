@@ -11,26 +11,26 @@
 #                will/workers/violation_remediator.py (ViolationRemediatorWorker)
 #
 # CONFIDENCE TIERS:
-#   >= 0.90  → safe_only mode (deterministic, zero reasoning required)
-#   >= 0.70  → medium_risk mode (deterministic with light validation)
-#   >= 0.50  → all_deterministic mode (requires handler to be confirmed working)
-#   < 0.50   → NOT dispatched; handler stub must be implemented first
+#   >= 0.90  -> safe_only mode (deterministic, zero reasoning required)
+#   >= 0.70  -> medium_risk mode (deterministic with light validation)
+#   >= 0.50  -> all_deterministic mode (requires handler to be confirmed working)
+#   < 0.50   -> NOT dispatched; handler stub must be implemented first
 #
 # RISK CLASSIFICATION:
 #   The authoritative source for action risk is
 #   .intent/enforcement/config/action_risk.yaml (impact_level: safe / moderate
 #   / dangerous), consumed by ActionRegistry and used by
 #   will/autonomy/proposal.py::Proposal.compute_risk(). Per-entry `risk:`
-#   fields were removed in #582 — they were never read by the classifier and
+#   fields were removed in #582 -- they were never read by the classifier and
 #   the attached `fix_risk` value in audit_analyzer was dead data.
 #
 # HANDLER STATUS KEY:
-#   ACTIVE   → action confirmed in atomic action registry
-#   DELEGATE → non-automatable; ViolationRemediatorWorker routes to governor
+#   ACTIVE   -> action confirmed in atomic action registry
+#   DELEGATE -> non-automatable; ViolationRemediatorWorker routes to governor
 #              inbox as an indeterminate finding requiring human decision.
 #              Confidence set below MIN_CONFIDENCE (0.80); included in the
 #              active map so ViolationExecutorWorker cannot claim it as unmapped.
-#   PENDING  → action does not yet exist in registry; confidence set below
+#   PENDING  -> action does not yet exist in registry; confidence set below
 #              MIN_CONFIDENCE (0.80) to prevent dispatch until implemented.
 #              Excluded from the active map entirely (loader skips PENDING).
 #
@@ -57,7 +57,7 @@
 
 mappings:
   # ===========================================================================
-  # TIER 1: ACTIVE — safe_only (confidence >= 0.90)
+  # TIER 1: ACTIVE -- safe_only (confidence >= 0.90)
   # Deterministic, fully reversible, no reasoning required.
   # ===========================================================================
 
@@ -126,7 +126,7 @@ mappings:
     confidence: 0.92
     description: >
       File would be reformatted by ruff format. Deterministic, fully reversible.
-      Same handler as style.formatter_required — two rule IDs, one action.
+      Same handler as style.formatter_required -- two rule IDs, one action.
     status: ACTIVE
 
   purity.docstrings.required:
@@ -144,7 +144,7 @@ mappings:
     status: ACTIVE
 
   # ===========================================================================
-  # TIER 2: ACTIVE — high risk (confidence >= 0.85)
+  # TIER 2: ACTIVE -- high risk (confidence >= 0.85)
   # LLM-assisted structural changes. Logic Conservation Gate required.
   # Proposals created automatically. Human approval required before execution.
   # ===========================================================================
@@ -169,7 +169,7 @@ mappings:
     status: ACTIVE
 
   # ===========================================================================
-  # TIER 2b: ACTIVE — flow-based (confidence >= 0.85)
+  # TIER 2b: ACTIVE -- flow-based (confidence >= 0.85)
   # Dispatched via FlowExecutor. Proposals require human approval before
   # execution (compute_risk() classifies flows as "moderate" universally).
   # ===========================================================================
@@ -194,7 +194,7 @@ mappings:
     status: ACTIVE
 
   # ===========================================================================
-  # TIER 3a: DELEGATE — human routing required
+  # TIER 3a: DELEGATE -- human routing required
   # Non-automatable violations. ViolationRemediatorWorker routes these to the
   # governor inbox as indeterminate findings. Confidence below MIN_CONFIDENCE
   # (0.80) to prevent proposal dispatch. Included in active map so
@@ -206,7 +206,7 @@ mappings:
     confidence: 0.40
     description: >
       ADR-007 + ADR-095 D1: class-level refactors are architectural
-      judgment — non-automatable. The action: field is a placeholder
+      judgment -- non-automatable. The action: field is a placeholder
       to satisfy ADR-066's mapping invariant; DELEGATE status prevents
       autonomous remediation. Routed to governor inbox.
     status: DELEGATE
@@ -215,7 +215,7 @@ mappings:
     action: fix.logging
     confidence: 0.40
     description: >
-      Logger used for presentation output — Rich objects or strings
+      Logger used for presentation output -- Rich objects or strings
       containing Rich markup passed to logger.* calls. Correct
       remediation is the inverse direction of fix.logging: convert
       logger.* back to console.print where the content carries Rich
@@ -223,7 +223,7 @@ mappings:
       only safe path (precedent: #371's 8-batch hand migration of 113
       sites across src/cli/). Routed to governor inbox as DELEGATE.
       Confidence below MIN_CONFIDENCE (0.80) prevents dispatch.
-      Explicitly mapped — not unmapped — to halt the abandoned-finding
+      Explicitly mapped -- not unmapped -- to halt the abandoned-finding
       re-emission loop that previously occurred when the rule had no
       entry at all (peak: 1,558 abandoned findings in 48h from two
       files before #343/#344 deletion).
@@ -234,7 +234,7 @@ mappings:
     confidence: 0.40
     description: >
       Governed prompt system.txt lacks a '# CONSTITUTIONAL' section naming
-      the enforced policies/ADR clauses. Content is semantic — only the
+      the enforced policies/ADR clauses. Content is semantic -- only the
       governor knows which clauses apply to a given prompt. Non-automatable.
       Routed to governor inbox as DELEGATE.
     status: DELEGATE
@@ -244,7 +244,7 @@ mappings:
     confidence: 0.40
     description: >
       A governed prompt (system.txt or user.txt) changed without ratification.
-      Review decision — approve or revert — belongs to the governor.
+      Review decision -- approve or revert -- belongs to the governor.
       Non-automatable. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
@@ -255,7 +255,7 @@ mappings:
       The test_generation CognitiveFlowDelegate's AcceptanceCondition is
       missing PytestAcceptanceCondition from its composite. Restoring the
       runtime gate requires understanding the delegate's construction site
-      and ADR-140 D9's wiring — governor decision. Non-automatable.
+      and ADR-140 D9's wiring -- governor decision. Non-automatable.
     status: DELEGATE
 
   # architecture.api.must_route_through_will entry removed (#820 Group B):
@@ -299,7 +299,7 @@ mappings:
     description: >
       API route missing explicit response_model. Requires authoring a
       Pydantic schema in api/v1/schemas.py and wiring response_model=
-      to the route decorator — non-automatable, human review required.
+      to the route decorator -- non-automatable, human review required.
       Tracked in #727.
     status: DELEGATE
 
@@ -503,7 +503,7 @@ mappings:
     action: build.tests
     confidence: 0.35
     description: >
-      Test function has no observable assertion — no assert, no pytest.raises,
+      Test function has no observable assertion -- no assert, no pytest.raises,
       no mock.assert_* call. Correct remediation requires regenerating the test
       with proper assertions, which demands understanding the contract under
       test. build.tests could regenerate but would face the same context
@@ -642,7 +642,7 @@ mappings:
     confidence: 0.40
     description: >
       Meta-governance: an active reporting rule has no
-      auto_remediation.yaml entry — the invariant established by
+      auto_remediation.yaml entry -- the invariant established by
       ADR-066 is violated. Resolution: add a DELEGATE or PENDING entry
       for the unmapped rule. Non-automatable; requires governor review
       of the rule registry.
@@ -653,7 +653,7 @@ mappings:
     confidence: 0.40
     description: >
       A file under .intent/ or .specs/ has no entry in
-      .intent/governance/namespace_manifest.yaml — the
+      .intent/governance/namespace_manifest.yaml -- the
       framework/project classification invariant established by
       ADR-075 D7 is violated. Classification is a property of an
       artifact's purpose, not its file type (D5), so the manifest
@@ -672,13 +672,13 @@ mappings:
     description: >
       The filesystem-operation taxonomy at
       .intent/taxonomies/filesystem_operations.yaml is out of
-      sync with the runtime FS surface — either a pathlib.Path
+      sync with the runtime FS surface -- either a pathlib.Path
       public method exists in the interpreter but is not
       classified, a curated `watched` entry no longer resolves to
       a callable in its module (stdlib rename/removal or
       third-party absence), or the declared python_version no
       longer matches runtime sys.version_info major.minor (ADR-077
-      §3 + §5). Resolution: governor reviews the surfaced gap and
+      S3 + S5). Resolution: governor reviews the surfaced gap and
       either classifies the new call (read / traverse / parse /
       write / neutral per fs_audit_op_class.enum), removes the
       stale watched entry, or refreshes the python_version
@@ -686,7 +686,7 @@ mappings:
       interpreter. Classification is a governance decision
       (the same name can be read or write depending on call
       semantics); no heuristic can substitute. Non-automatable
-      per ADR-077 §3; routed to governor inbox as DELEGATE.
+      per ADR-077 S3; routed to governor inbox as DELEGATE.
       Explicitly mapped to satisfy the ADR-066 unmapped-rules
       invariant.
     status: DELEGATE
@@ -697,7 +697,7 @@ mappings:
     description: >
       Meta-governance: a subject namespace has rows in awaiting_reaudit
       but no drainer is registered in
-      .intent/enforcement/quarantine/drainer_registry.yaml — the
+      .intent/enforcement/quarantine/drainer_registry.yaml -- the
       invariant established by ADR-072 is violated. Resolution: either
       implement a drainer worker for the namespace (mirroring
       AuditViolationSensor's release-pass and TestRunnerSensor's D5
@@ -714,7 +714,7 @@ mappings:
       ViolationExecutorWorker reached its per-cycle files-rewritten cap
       (declared in .intent/workers/violation_executor.yaml
       mandate.schedule.files_per_cycle_max). The excess findings have
-      been released back to `open` for the next cycle — work is paced,
+      been released back to `open` for the next cycle -- work is paced,
       not lost. The OPEN finding under this rule is the audit-trail
       record that the rate limit fired; no autonomous proposal is
       dispatched. Operator action: amend the cap if too low,
@@ -739,7 +739,7 @@ mappings:
       (proposed reap above hard/fraction cap, or walker enumerated
       suspiciously few files); the reap was SKIPPED pending governor
       inspection of `payload.sample_paths`. Either way no proposal is
-      dispatched — the writer is constitutionally permitted to mutate
+      dispatched -- the writer is constitutionally permitted to mutate
       the projection but only under bounded conditions, and the OPEN
       case explicitly routes to governor decision rather than
       autonomous action. This DELEGATE entry satisfies the ADR-066
@@ -748,7 +748,7 @@ mappings:
     status: DELEGATE
 
   # ===========================================================================
-  # TIER 3b: PENDING — action implementation required
+  # TIER 3b: PENDING -- action implementation required
   # Documented for roadmap visibility only. Will not be dispatched.
   # Excluded from the active map at loader time (loader skips PENDING).
   # ===========================================================================
@@ -758,7 +758,7 @@ mappings:
     confidence: 0.10
     description: >
       ADR-129 D5: a contaminated autonomous commit (diff outside declared
-      production set) requires governor investigation — git history rewrite
+      production set) requires governor investigation -- git history rewrite
       with proper attribution, or documented acceptance as exception. No
       autonomous remediation action exists. PENDING satisfies ADR-066
       (governance.remediation.all_rules_mapped). action: field is a
@@ -770,7 +770,7 @@ mappings:
     confidence: 0.10
     description: >
       ADR-148 D5: a completed proposal missing its durable consequence
-      record requires governor investigation — the invariant should be
+      record requires governor investigation -- the invariant should be
       unreachable given the D2/D4 code paths, so a flagged row indicates a
       bug or race that needs root-causing, not a mechanical fix. No
       autonomous remediation action exists. PENDING satisfies ADR-066
@@ -784,7 +784,7 @@ mappings:
     description: >
       ADR-148 D7 (#790): a completed proposal whose consequence record was
       synthesized by the stuck_finalizing roll-forward carries fabricated,
-      empty evidence (no real pre/post SHA, no real changed_files) —
+      empty evidence (no real pre/post SHA, no real changed_files) --
       recovering it means a human reading the proposal's own commit
       (discoverable via its fix({proposal_id}) commit message) to backfill
       the real evidence, not a mechanical fix. No autonomous remediation
@@ -798,7 +798,7 @@ mappings:
     confidence: 0.10
     description: >
       ADR-151 D4: dead-shim findings resolve by governed verify-then-delete
-      — a dynamic-dispatch/config re-verification precedes removal, and
+      -- a dynamic-dispatch/config re-verification precedes removal, and
       autonomous remediation is deliberately deferred until the sensor's
       false-positive rate is measured (D3). First cycles route to the
       governor / Claude Code, mirroring the #804 procedure. PENDING
@@ -820,7 +820,7 @@ mappings:
     confidence: 0.85
     description: >
       Hardcoded runtime directory name in path construction. Route through
-      PathResolver or FileHandler. Deterministic AST rewrite — each site
+      PathResolver or FileHandler. Deterministic AST rewrite -- each site
       replaces a string literal with a PathResolver property access. Human
       approval required before execution. See ADR-031, #272.
     status: ACTIVE
@@ -859,7 +859,7 @@ mappings:
   # and both rules will surface the same finding set. Mapping added
   # 2026-05-31 in Phase 1 (taxonomy-inert; this rule does not currently
   # fire under the OLD check, so the mapping is dormant). Closes a
-  # pre-existing #418 invariant gap — the rule was emitting blocking
+  # pre-existing #418 invariant gap -- the rule was emitting blocking
   # findings on revival flows without a registered remediator.
   governance.logic_mutation.governed:
     action: fix.layer_violation
@@ -998,7 +998,7 @@ mappings:
     status: PENDING
 
   # ADR-102 (#612, #613, #614): cross-cutting contracts_gate meta-rules.
-  # Not auto-fixable — each fires when a contract's bind is structurally
+  # Not auto-fixable -- each fires when a contract's bind is structurally
   # suspect (layer-incoherent, asymmetric finding counts, iceberg cluster).
   # Resolution requires architectural judgment: retire the contract,
   # narrow governed_classes, or reshape the rule's scope. Routed to
@@ -1012,7 +1012,7 @@ mappings:
       requiring worker_uuid binds a class whose instantiation sites
       are exclusively in a layer constitutionally forbidden from
       blackboard attribution (Mind, today). Resolution requires
-      architectural judgment — retire the contract or remove the
+      architectural judgment -- retire the contract or remove the
       class from governed_classes. Routed to governor inbox as
       DELEGATE.
     status: DELEGATE
@@ -1024,7 +1024,7 @@ mappings:
       Cross-cutting contract-scope rule (#619). Fires when a contract
       requiring worker_uuid binds a class that never co-occurs with a
       Worker persistence write method in any src/ function scope. The
-      attribution requirement is declared but never satisfied — either
+      attribution requirement is declared but never satisfied -- either
       retire the contract binding or verify the class IS reaching
       post_finding() via a path the AST walk misses. Architectural
       judgment required. Routed to governor inbox as DELEGATE.
@@ -1036,7 +1036,7 @@ mappings:
     description: >
       Cross-cutting contract-scope rule (#613). Fires when a class is
       governed by multiple schema_conformance rules with asymmetric
-      finding counts (some 0, some >0) — the high-firing rule's
+      finding counts (some 0, some >0) -- the high-firing rule's
       binding is suspect, not the class's shape. Resolution requires
       architectural judgment about the suspect contract's scope.
       Routed to governor inbox as DELEGATE.
@@ -1048,7 +1048,7 @@ mappings:
     description: >
       Cross-cutting contract-scope rule (#614). Fires on iceberg-shape
       finding clusters (many findings on few files for one
-      schema_conformance rule) — signals the rule's binding may itself
+      schema_conformance rule) -- signals the rule's binding may itself
       be the bug. Resolution requires investigating the rule's
       governed_classes vs the affected classes' operational role.
       Routed to governor inbox as DELEGATE.
@@ -1263,7 +1263,7 @@ mappings:
       to be built.
     status: PENDING
 
-  # --- ADDED 2026-07-13 (#781) — API request-DTO conformance rules ---
+  # --- ADDED 2026-07-13 (#781) -- API request-DTO conformance rules ---
   # ADR-056 Wave 3 (API DTOs) added these *_request_conforms rules but their
   # remediation entries were never created, tripping
   # governance.remediation.all_rules_mapped. Each is the same structural
@@ -1468,7 +1468,7 @@ mappings:
     confidence: 0.40
     description: >
       A capability id in .intent/taxonomies/operational_capabilities.yaml
-      has no matching @atomic_action decoration in src/ — a phantom that
+      has no matching @atomic_action decoration in src/ -- a phantom that
       cannot be authorized by the ADR-079 chokepoint. Resolution is a
       governor decision: either strip the YAML entry (the capability does
       not represent a real authority), or decorate the underlying function
@@ -1482,7 +1482,7 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      ADR-091 D4: sensor↔artifact_type symmetry rule. Every sensor worker
+      ADR-091 D4: sensor<->artifact_type symmetry rule. Every sensor worker
       declared in .intent/workers/ must be listed under at least one
       artifact_type's supported_sensors, and every supported_sensors entry
       must resolve to an existing sensor worker declaration. Asymmetric
@@ -1502,7 +1502,7 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      ADR-092-A (F-43): action↔artifact_type symmetry rule. Every atomic
+      ADR-092-A (F-43): action<->artifact_type symmetry rule. Every atomic
       action declaring artifact_types in action_risk.yaml must appear in
       the artifact_type's supported_actions array, and every
       supported_actions entry must correspond to a registered action with
@@ -1514,7 +1514,7 @@ mappings:
       governance.taxonomy.sensor_supported_by_declaration (F-42).
       Explicitly mapped to satisfy the ADR-066 unmapped-rules invariant.
       Promotion path: ADR-092-A Phase 7 lifts from reporting to blocking
-      once the F-41⟺F-42⟺F-43 triad stabilizes; mapping stays DELEGATE.
+      once the F-41<=>F-42<=>F-43 triad stabilizes; mapping stays DELEGATE.
     status: DELEGATE
 
   purity.tempfile_default_dir:
@@ -1531,7 +1531,7 @@ mappings:
     status: PENDING
 
   # ===========================================================================
-  # ADR-066 INVARIANT STUBS — added 2026-07-02 to close #739
+  # ADR-066 INVARIANT STUBS -- added 2026-07-02 to close #739
   # 97 rules lacked a mapping entry. All confidence < MIN_CONFIDENCE (0.80);
   # no proposals dispatched. DELEGATE routes to governor inbox; PENDING
   # reserves the action name for a future implementation.
@@ -1545,7 +1545,7 @@ mappings:
     description: >
       A PromptModel artifact names a specific LLM provider rather than a
       governed role abstraction. Resolution requires renaming to a role
-      declared in .intent/ — a semantic decision the governor must make.
+      declared in .intent/ -- a semantic decision the governor must make.
       Non-automatable. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
@@ -1554,7 +1554,7 @@ mappings:
     confidence: 0.40
     description: >
       A PromptModel manifest is missing required fields. The correct values
-      depend on the prompt's semantic purpose — a governor decision.
+      depend on the prompt's semantic purpose -- a governor decision.
       Non-automatable. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
@@ -1564,7 +1564,7 @@ mappings:
     description: >
       A PromptModel references a role name not declared in .intent/. Resolution
       requires declaring the role in .intent/ or renaming to an existing governed
-      role — governor must pick the path. Non-automatable.
+      role -- governor must pick the path. Non-automatable.
     status: DELEGATE
 
   ai.prompt.governed_prompt_must_have_anchor:
@@ -1582,14 +1582,14 @@ mappings:
     description: >
       An AI call has a PromptModel class but no corresponding manifest artifact.
       Authoring the manifest requires semantic knowledge of the prompt's
-      governance contract — governor must supply the values. Non-automatable.
+      governance contract -- governor must supply the values. Non-automatable.
     status: DELEGATE
 
   ai.prompt.model_required:
     action: fix.placeholders
     confidence: 0.40
     description: >
-      An AI call is made without a governed PromptModel — an inline prompt
+      An AI call is made without a governed PromptModel -- an inline prompt
       that bypasses constitutional standards. Refactoring requires authoring
       a PromptModel and manifest, a structural decision the governor must make.
       Non-automatable.
@@ -1609,7 +1609,7 @@ mappings:
     confidence: 0.40
     description: >
       A PromptModel has no system prompt. The system prompt communicates
-      constitutional policy to the AI — authoring it is a governor
+      constitutional policy to the AI -- authoring it is a governor
       responsibility. Non-automatable.
     status: DELEGATE
 
@@ -1621,7 +1621,7 @@ mappings:
     description: >
       A *_routes.py module is missing a ROUTER_EXPOSURE module-level
       declaration. Adding it requires a governor decision on whether the
-      route is 'governor-only' or 'user-facing' — non-automatable.
+      route is 'governor-only' or 'user-facing' -- non-automatable.
     status: DELEGATE
 
   architecture.api.router_exposure_must_match_dependencies:
@@ -1630,7 +1630,7 @@ mappings:
     description: >
       API router ROUTER_EXPOSURE declaration does not match actual enforcement
       dependencies. Correcting requires understanding the route's security
-      posture — governor decision. Non-automatable.
+      posture -- governor decision. Non-automatable.
     status: DELEGATE
 
   architecture.api.sensitive_route_must_be_gated:
@@ -1639,7 +1639,7 @@ mappings:
     description: >
       A mutation-verb route on a user-facing module lacks a require_governor
       gate. Adding one requires a governor decision on whether the route is
-      genuinely sensitive or intentionally ungated (#770) — same class as
+      genuinely sensitive or intentionally ungated (#770) -- same class as
       router_exposure_must_match_dependencies. Non-automatable.
     status: DELEGATE
 
@@ -1649,7 +1649,7 @@ mappings:
     description: >
       Hardcoded extension globs are used for artifact discovery instead of
       consulting the artifact_type registry. Migrating requires identifying
-      the correct registry entry per ADR-090 D4 — governor decision.
+      the correct registry entry per ADR-090 D4 -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1659,7 +1659,7 @@ mappings:
     description: >
       A status transition to 'indeterminate' is missing
       resolution_mechanism='human' per ADR-091 D2 Amendment. The correct
-      mechanism depends on the finding's semantics — governor decision.
+      mechanism depends on the finding's semantics -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1669,7 +1669,7 @@ mappings:
     description: >
       An UPDATE to status='indeterminate' for reaudit is missing
       resolution_mechanism='reaudit' per ADR-091 D2. Correcting requires
-      understanding the reaudit intent — governor decision. Non-automatable.
+      understanding the reaudit intent -- governor decision. Non-automatable.
     status: DELEGATE
 
   architecture.blackboard.worker_only_inserts:
@@ -1678,7 +1678,7 @@ mappings:
     description: >
       INSERT against core.blackboard_entries originates outside the Worker
       base class. Fix requires routing through self.post_finding() /
-      post_report() / post_heartbeat() — architectural refactor. Governor
+      post_report() / post_heartbeat() -- architectural refactor. Governor
       decision on scope. Non-automatable.
     status: DELEGATE
 
@@ -1688,7 +1688,7 @@ mappings:
     description: >
       Direct import of get_session / AsyncSession in Mind or Will layer
       violates constitutional separation. Refactoring requires designing
-      the DI chain for the affected component — governor decision.
+      the DI chain for the affected component -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1698,7 +1698,7 @@ mappings:
     description: >
       Direct import of EmbeddingService or build_embedder_from_env outside
       src/shared/. All embedding must route through CognitiveEmbedderAdapter.
-      Refactoring requires rerouting the caller — architectural change.
+      Refactoring requires rerouting the caller -- architectural change.
       Governor decision. Non-automatable.
     status: DELEGATE
 
@@ -1708,7 +1708,7 @@ mappings:
     description: >
       FileHandler instantiated directly in Will or Mind layer. File operations
       are execution; Mind/Will must delegate to Body services. Refactoring
-      requires identifying the correct Body service — governor decision.
+      requires identifying the correct Body service -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1718,7 +1718,7 @@ mappings:
     description: >
       LLM client infrastructure imported in Body or Mind layer. Only Will and
       autonomous services may invoke AI. Refactoring requires moving the
-      decision to Will — architectural change. Governor decision.
+      decision to Will -- architectural change. Governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1728,7 +1728,7 @@ mappings:
     description: >
       Settings imported directly in Body, Mind, or Will. Only infrastructure
       and bootstrap may import Settings directly; others use DI or env
-      abstraction. Refactoring requires threading config through DI —
+      abstraction. Refactoring requires threading config through DI --
       governor decision. Non-automatable.
     status: DELEGATE
 
@@ -1740,7 +1740,7 @@ mappings:
     description: >
       API module uses terminal-oriented rendering instead of structured
       response mechanisms. Refactoring requires redesigning the response
-      shape — governor decision. Non-automatable.
+      shape -- governor decision. Non-automatable.
     status: DELEGATE
 
   architecture.channels.logic_logger_only:
@@ -1749,7 +1749,7 @@ mappings:
     description: >
       Non-UI runtime module uses a channel other than the CORE standard
       logger (e.g. Rich console, print). Correct fix replaces the non-logger
-      call with the standard logger — inverse of logger_not_presentation.
+      call with the standard logger -- inverse of logger_not_presentation.
       Governor routes which sites to fix. Non-automatable. DELEGATE.
     status: DELEGATE
 
@@ -1761,7 +1761,7 @@ mappings:
     description: >
       An @atomic_action calls ActionExecutor.execute() internally, composing
       other registered AtomicActions. Composition belongs in Flows. Refactoring
-      requires extracting into a named Flow — governor decision.
+      requires extracting into a named Flow -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1771,7 +1771,7 @@ mappings:
     description: >
       A Python-data-structure Flow exists without a .intent/flows/*.yaml
       declaration or FlowRegistry entry. Authoring the declaration requires
-      semantic knowledge of the flow's steps — governor decision.
+      semantic knowledge of the flow's steps -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1781,7 +1781,7 @@ mappings:
     description: >
       A Flow creates, submits, or approves Proposal objects. Proposal creation
       belongs to Workers. Refactoring requires moving the Proposal creation
-      upstream — governor decision. Non-automatable.
+      upstream -- governor decision. Non-automatable.
     status: DELEGATE
 
   architecture.flows.flow_must_not_post_to_blackboard:
@@ -1790,7 +1790,7 @@ mappings:
     description: >
       A Flow calls post_finding(), post_report(), post_heartbeat(), or writes
       core.blackboard_entries. Flows have no blackboard presence. Refactoring
-      requires routing through the owning Worker — governor decision.
+      requires routing through the owning Worker -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1800,7 +1800,7 @@ mappings:
     description: >
       FlowExecutor does not propagate write=False to every step, violating
       the dry-run guarantee. Fix requires threading the write flag through
-      the executor's step dispatch — architectural change. Non-automatable.
+      the executor's step dispatch -- architectural change. Non-automatable.
     status: DELEGATE
 
   architecture.flows.worker_must_not_hardwire_sequence:
@@ -1809,7 +1809,7 @@ mappings:
     description: >
       A Worker.run() contains an explicit ordered sequence of
       ActionExecutor.execute() calls extractable into a named Flow. Extracting
-      requires authoring .intent/flows/*.yaml and registry wiring — governor
+      requires authoring .intent/flows/*.yaml and registry wiring -- governor
       decision. Advisory; non-automatable.
     status: DELEGATE
 
@@ -1820,7 +1820,7 @@ mappings:
     confidence: 0.40
     description: >
       Intent schema or META artifact is mutated at runtime. .intent/META is
-      constitutionally read-only. Fix requires removing the mutation —
+      constitutionally read-only. Fix requires removing the mutation --
       architectural change decided by the governor. Non-automatable.
     status: DELEGATE
 
@@ -1830,7 +1830,7 @@ mappings:
     description: >
       An async execution engine is instantiated at module import time. Must
       be deferred to runtime (function scope or class constructor). Refactoring
-      requires identifying the correct initialization point — governor decision.
+      requires identifying the correct initialization point -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1840,7 +1840,7 @@ mappings:
     description: >
       A command action does not use @atomic_action or lacks a write parameter
       defaulting to False. Structural compliance requires authoring the decorator
-      with correct metadata and wiring the write flag — semantic context needed.
+      with correct metadata and wiring the write flag -- semantic context needed.
       Pending a higher-confidence handler in fix.atomic_actions.
     status: PENDING
 
@@ -1850,7 +1850,7 @@ mappings:
     description: >
       A module in src/shared/ imports from src/mind/, src/body/, or src/will/.
       Shared must be layer-independent substrate. Removing the import requires
-      finding an alternative path or moving the dependency — governor decision.
+      finding an alternative path or moving the dependency -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -1860,7 +1860,7 @@ mappings:
     description: >
       A Worker imports another Worker class directly, enabling inter-worker
       calls that violate the blackboard-only communication rule. Fix requires
-      communicating via the Blackboard instead — architectural refactor.
+      communicating via the Blackboard instead -- architectural refactor.
       Governor decision. Non-automatable.
     status: DELEGATE
 
@@ -1872,7 +1872,7 @@ mappings:
     description: >
       Logic module calls asyncio.run() or manually creates an event loop. Must
       use the framework's loop management. Fix requires identifying the correct
-      async entrypoint — governor decision. Non-automatable.
+      async entrypoint -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- Atomic actions (6 rules) --
@@ -1892,7 +1892,7 @@ mappings:
     description: >
       An @atomic_action embeds its impact_level inline in src/ instead of
       declaring it in .intent/enforcement/config/action_risk.yaml. Moving it
-      requires authoring the action_risk.yaml entry — impact classification is
+      requires authoring the action_risk.yaml entry -- impact classification is
       a governance call. Governor decision. Non-automatable.
     status: DELEGATE
 
@@ -1912,7 +1912,7 @@ mappings:
     description: >
       A function registered with @register_action is missing @atomic_action
       with required metadata (action_id, intent, impact, policies). Adding the
-      decorator requires knowing the correct governance metadata — governor must
+      decorator requires knowing the correct governance metadata -- governor must
       supply the values. Pending a handler that can derive or prompt for metadata.
     status: PENDING
 
@@ -1922,7 +1922,7 @@ mappings:
     description: >
       An @atomic_action returns a type other than ActionResult (e.g. a tuple)
       to bypass governance validation. Fix requires replacing the return with
-      a properly structured ActionResult — semantic change. Governor must decide
+      a properly structured ActionResult -- semantic change. Governor must decide
       the correct data payload. Non-automatable.
     status: DELEGATE
 
@@ -1931,7 +1931,7 @@ mappings:
     confidence: 0.40
     description: >
       ActionResult.data is not a dict with string keys. Restructuring the data
-      payload requires knowing the action's semantic output — governor must decide
+      payload requires knowing the action's semantic output -- governor must decide
       the correct schema. Pending a handler that can wrap primitive returns into
       a keyed dict.
     status: PENDING
@@ -1942,9 +1942,9 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      An autonomy operation falls below the minimum preservation ratio — too
+      An autonomy operation falls below the minimum preservation ratio -- too
       much existing code removed relative to what is produced. Resolution requires
-      reviewing the operation's scope — governor decision. Non-automatable.
+      reviewing the operation's scope -- governor decision. Non-automatable.
     status: DELEGATE
 
   autonomy.lanes.boundary_enforcement:
@@ -1952,7 +1952,7 @@ mappings:
     confidence: 0.40
     description: >
       An operation crosses permitted autonomous/assisted/governor lane boundaries.
-      Resolution requires rerouting the operation to the correct lane — governor
+      Resolution requires rerouting the operation to the correct lane -- governor
       decision. Non-automatable.
     status: DELEGATE
 
@@ -1962,7 +1962,7 @@ mappings:
     description: >
       A remediation dispatch targets an entry with confidence below MIN_CONFIDENCE
       (0.80). Resolution requires either raising confidence (implementing the
-      handler) or suppressing the dispatch — governor decision. Non-automatable.
+      handler) or suppressing the dispatch -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- Capability taxonomy (3 rules) --
@@ -1975,7 +1975,7 @@ mappings:
     confidence: 0.40
     description: >
       A capability name encodes a model-specific identifier (provider or model
-      id). Resolution requires abstracting to a role-based name — governor
+      id). Resolution requires abstracting to a role-based name -- governor
       decision on the correct abstraction. Non-automatable.
     status: DELEGATE
 
@@ -1985,7 +1985,7 @@ mappings:
     description: >
       A resource declaration does not provide a canonical capability from
       operational_capabilities.yaml. Resolution requires updating the resource
-      manifest — governor decision. Non-automatable.
+      manifest -- governor decision. Non-automatable.
     status: DELEGATE
 
   capability.taxonomy.roles_require_canonical_capabilities:
@@ -1994,7 +1994,7 @@ mappings:
     description: >
       A role declaration requires a capability not in the canonical taxonomy.
       Resolution requires adding the capability to the taxonomy or adjusting the
-      role manifest — governor decision. Non-automatable.
+      role manifest -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- CLI (6 rules) --
@@ -2005,7 +2005,7 @@ mappings:
     description: >
       A CLI command does not use the framework's async execution wrapper
       (@core_command or equivalent). Fix requires refactoring the command to
-      use the correct entrypoint — governor decision on scope. Non-automatable.
+      use the correct entrypoint -- governor decision on scope. Non-automatable.
     status: DELEGATE
 
   cli.command.no_duplicates:
@@ -2013,7 +2013,7 @@ mappings:
     confidence: 0.40
     description: >
       Duplicate CLI command name detected. Resolution requires deciding which
-      command to rename or remove — governor decision. Non-automatable.
+      command to rename or remove -- governor decision. Non-automatable.
     status: DELEGATE
 
   cli.dangerous_explicit:
@@ -2021,7 +2021,7 @@ mappings:
     confidence: 0.40
     description: >
       A mutating CLI command is missing dangerous=True in @core_command. Fix
-      requires confirming the command is mutating and setting the flag —
+      requires confirming the command is mutating and setting the flag --
       governor decision on the danger classification. Non-automatable.
     status: DELEGATE
 
@@ -2029,9 +2029,9 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      CLI command discovery failure — a registered command fails to import at
+      CLI command discovery failure -- a registered command fails to import at
       startup. Fix requires resolving the import or correcting the registration
-      — governor decision on the correct fix path. Non-automatable.
+      -- governor decision on the correct fix path. Non-automatable.
     status: DELEGATE
 
   cli.no_layer_exposure:
@@ -2039,7 +2039,7 @@ mappings:
     confidence: 0.40
     description: >
       A CLI command name exposes internal architecture layer naming. Resolution
-      requires renaming to a user-facing term — governor decides the correct
+      requires renaming to a user-facing term -- governor decides the correct
       naming. Non-automatable.
     status: DELEGATE
 
@@ -2079,7 +2079,7 @@ mappings:
     description: >
       A source file contains an import that does not resolve at runtime. Fixing
       requires understanding the correct import path or removing the dependency
-      — semantic decision. Pending a resolver-aware handler in fix.imports.
+      -- semantic decision. Pending a resolver-aware handler in fix.imports.
     status: PENDING
 
   # -- Code tests (3 rules) --
@@ -2089,8 +2089,8 @@ mappings:
     confidence: 0.40
     description: >
       A test file mutates module-level state at module scope (e.g. replaces
-      yaml.safe_load globally — #572 batch 13 pattern). Fix requires scoping
-      the mutation to a fixture with proper teardown — semantic test refactor.
+      yaml.safe_load globally -- #572 batch 13 pattern). Fix requires scoping
+      the mutation to a fixture with proper teardown -- semantic test refactor.
       Governor decision. Non-automatable.
     status: DELEGATE
 
@@ -2099,8 +2099,8 @@ mappings:
     confidence: 0.40
     description: >
       A generated test redefines an imported symbol as a speculative stub
-      (#572 batch 19/20 pattern — context-budget exhaustion). Fix requires
-      removing the redundant definition and using the real import — governor
+      (#572 batch 19/20 pattern -- context-budget exhaustion). Fix requires
+      removing the redundant definition and using the real import -- governor
       reviews generated tests. Non-automatable.
     status: DELEGATE
 
@@ -2109,7 +2109,7 @@ mappings:
     confidence: 0.40
     description: >
       A generated test file references names that are not imported (e.g.
-      MagicMock without import — #572 batch 19 pattern). Fix requires adding
+      MagicMock without import -- #572 batch 19 pattern). Fix requires adding
       the missing imports or correcting the free name. Currently routed to
       governor for review; pending a handler.
     status: DELEGATE
@@ -2121,7 +2121,7 @@ mappings:
     confidence: 0.40
     description: >
       A raw secret (API key, password, credential) is embedded in source code
-      or configuration. Removal and rotation requires human action — the governor
+      or configuration. Removal and rotation requires human action -- the governor
       must decide the correct secret management approach. Non-automatable.
     status: DELEGATE
 
@@ -2131,7 +2131,7 @@ mappings:
     description: >
       Data is stored or managed outside the canonical database (SSOT primacy
       violation). Resolution requires migrating the data or aligning the access
-      pattern — governor decision. Non-automatable.
+      pattern -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- Governance (13 rules) --
@@ -2141,7 +2141,7 @@ mappings:
     confidence: 0.40
     description: >
       The constitutional intent directory is mutated at runtime. .intent/ is
-      constitutionally immutable. Fix requires removing the mutation — governor
+      constitutionally immutable. Fix requires removing the mutation -- governor
       must identify and remove the write site. Non-automatable.
     status: DELEGATE
 
@@ -2150,7 +2150,7 @@ mappings:
     confidence: 0.40
     description: >
       Code uses yaml.safe_load/json.load directly on filesystem_operations.yaml
-      instead of the governed loader. Fix requires routing through the loader —
+      instead of the governed loader. Fix requires routing through the loader --
       architectural change. Governor decision. Non-automatable.
     status: DELEGATE
 
@@ -2169,7 +2169,7 @@ mappings:
     confidence: 0.40
     description: >
       A governance artifact is missing required intent metadata fields. Filling
-      them requires understanding the artifact's governance context — governor
+      them requires understanding the artifact's governance context -- governor
       decision. Advisory; non-automatable.
     status: DELEGATE
 
@@ -2179,7 +2179,7 @@ mappings:
     description: >
       A precondition evaluation is bypassed rather than blocked. Fail-closed
       rule: unresolvable preconditions must block. Fix requires implementing the
-      precondition or converting to a block — governor decision. Advisory;
+      precondition or converting to a block -- governor decision. Advisory;
       non-automatable.
     status: DELEGATE
 
@@ -2189,7 +2189,7 @@ mappings:
     description: >
       An auto_remediation.yaml entry claims an action but the action's
       remediates=[] (reset by ADR-095 D5). The routing claim is dead. Resolution
-      requires assigning a real action or converting to DELEGATE — governor
+      requires assigning a real action or converting to DELEGATE -- governor
       decision per ADR-095. Non-automatable.
     status: DELEGATE
 
@@ -2199,7 +2199,7 @@ mappings:
     description: >
       A self_resolve finding is emitted by a worker/service that does not own
       the resolver per ADR-091 D2 Revision B. The correct resolver ownership
-      must be declared or emission rerouted — governor decision. Non-automatable.
+      must be declared or emission rerouted -- governor decision. Non-automatable.
     status: DELEGATE
 
   governance.exemption_debt.declared:
@@ -2210,7 +2210,7 @@ mappings:
       malformed, or a closure_type=deadline entry has entered its warning
       or lapsed stage. Resolution requires either correcting the entry's
       metadata, authoring/accepting its closure ADR, or removing the entry
-      once the underlying violation is fixed — governor decision.
+      once the underlying violation is fixed -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -2220,7 +2220,7 @@ mappings:
     description: >
       A vocabulary term's authoritative_paper field is missing or does not
       resolve to an existing .specs/papers/ document. Resolution requires
-      identifying the correct paper or authoring it — governor decision.
+      identifying the correct paper or authoring it -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -2230,7 +2230,7 @@ mappings:
     description: >
       The canonical section of CORE-Vocabulary.md fails format validation. The
       grammar is the regen contract; a malformed section prevents projection
-      updates. Fix requires correcting the Markdown structure — governor decision.
+      updates. Fix requires correcting the Markdown structure -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -2239,7 +2239,7 @@ mappings:
     confidence: 0.40
     description: >
       Code reads vocabulary.json directly instead of through the governed loader.
-      Fix requires routing through the loader — architectural change. Governor
+      Fix requires routing through the loader -- architectural change. Governor
       decision. Non-automatable.
     status: DELEGATE
 
@@ -2250,7 +2250,7 @@ mappings:
       vocabulary.json has diverged from the canonical section in
       CORE-Vocabulary.md. Fix requires regenerating the projection from the
       canonical source. Mechanical but requires confirming the canonical is
-      correct first — governor review. Non-automatable in current form.
+      correct first -- governor review. Non-automatable in current form.
     status: DELEGATE
 
   governance.vocabulary_registers.diagnostic_fields_must_be_uppercase:
@@ -2259,7 +2259,7 @@ mappings:
     description: >
       A diagnostic register field (audit_severity, finding type) is lowercase
       where UPPERCASE is required per ADR-059 D2. Fix requires renaming across
-      all producer/consumer sites — governor decision on blast radius.
+      all producer/consumer sites -- governor decision on blast radius.
       Non-automatable.
     status: DELEGATE
 
@@ -2269,7 +2269,7 @@ mappings:
     description: >
       An operational register field is uppercase where lowercase is required
       (routing keys must be lowercased across Python, YAML, JSON, SQL). Fix
-      requires renaming across all sites — governor decision on blast radius.
+      requires renaming across all sites -- governor decision on blast radius.
       Non-automatable.
     status: DELEGATE
 
@@ -2279,7 +2279,7 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      Rule retired to advisory per a919f9cc — original statement was ambiguous
+      Rule retired to advisory per a919f9cc -- original statement was ambiguous
       between import-time session creation and global-scope session usage.
       Current reading: advisory signal only; no autonomous fix applicable.
       Mapped as DELEGATE to satisfy the ADR-066 invariant and prevent
@@ -2292,7 +2292,7 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      A metadata operation deletes a comment. Comment deletions are semantic —
+      A metadata operation deletes a comment. Comment deletions are semantic --
       the governor must confirm whether the comment should be removed or
       preserved. Non-automatable.
     status: DELEGATE
@@ -2310,7 +2310,7 @@ mappings:
     confidence: 0.40
     description: >
       A metadata operation replaces a comment. Replacement content is semantic
-      — governor must author the correct text. Non-automatable.
+      -- governor must author the correct text. Non-automatable.
     status: DELEGATE
 
   metadata.operations.docstring_insert:
@@ -2318,7 +2318,7 @@ mappings:
     confidence: 0.40
     description: >
       A metadata operation inserts a docstring. Docstring content is semantic
-      documentation — governor must author it. Non-automatable.
+      documentation -- governor must author it. Non-automatable.
     status: DELEGATE
 
   metadata.operations.docstring_replace:
@@ -2326,7 +2326,7 @@ mappings:
     confidence: 0.40
     description: >
       A metadata operation replaces a docstring. Replacement content is semantic
-      — governor must review and author. Non-automatable.
+      -- governor must review and author. Non-automatable.
     status: DELEGATE
 
   metadata.scope.universal:
@@ -2334,7 +2334,7 @@ mappings:
     confidence: 0.40
     description: >
       A metadata operation claims universal scope beyond what is permitted. Scope
-      restriction requires understanding the operation's semantic boundary —
+      restriction requires understanding the operation's semantic boundary --
       governor decision. Non-automatable.
     status: DELEGATE
 
@@ -2342,7 +2342,7 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      A metadata operation fails the semantic preservation invariant — the
+      A metadata operation fails the semantic preservation invariant -- the
       transformation changes the semantic meaning of the artifact. Resolution
       requires governor review of the change. Non-automatable.
     status: DELEGATE
@@ -2355,7 +2355,7 @@ mappings:
     description: >
       Obsolete shim, unused legacy parameter, or bypass wrapper that should be
       replaced by the Universal Workflow Pattern. Migration requires understanding
-      the historical context — governor decision. Advisory; non-automatable.
+      the historical context -- governor decision. Advisory; non-automatable.
     status: DELEGATE
 
   modularity.unix_philosophy:
@@ -2364,7 +2364,7 @@ mappings:
     description: >
       A class or module accumulates too many responsibilities (downstream verdict
       from modularity.class_too_large per ADR-042 D1). Split decision requires
-      designing the new module boundary — governor decision. Advisory;
+      designing the new module boundary -- governor decision. Advisory;
       non-automatable.
     status: DELEGATE
 
@@ -2385,7 +2385,7 @@ mappings:
     description: >
       A planning artifact encodes file paths as code content (e.g.
       'src / features / x.py' as a string literal). Fix requires confirming
-      path validity and correcting the format — governor decision.
+      path validity and correcting the format -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -2395,7 +2395,7 @@ mappings:
     description: >
       PlannerAgent generated code where only planning steps are permitted.
       Code generation bypasses constitutional review. Fix requires regenerating
-      the plan without code — governor review. Non-automatable.
+      the plan without code -- governor review. Non-automatable.
     status: DELEGATE
 
   planning.trace_mandatory:
@@ -2403,7 +2403,7 @@ mappings:
     confidence: 0.40
     description: >
       A planning operation is missing the required audit trace. Adding the trace
-      requires knowing which decisions to record — governor decision.
+      requires knowing which decisions to record -- governor decision.
       Non-automatable.
     status: DELEGATE
 
@@ -2415,7 +2415,7 @@ mappings:
     description: >
       A proposal was approved without the required authority level. Fix requires
       revoking the unauthorized approval and routing through the correct authority
-      — governor action. Non-automatable.
+      -- governor action. Non-automatable.
     status: DELEGATE
 
   proposal_lifecycle.claim.authority_required:
@@ -2424,15 +2424,15 @@ mappings:
     description: >
       A proposal was claimed without the required authority. Fix requires
       releasing the unauthorized claim and routing through the correct authority
-      — governor action. Non-automatable.
+      -- governor action. Non-automatable.
     status: DELEGATE
 
   proposal_lifecycle.claim.idempotency_guard:
     action: fix.modularity
     confidence: 0.40
     description: >
-      A proposal claim is not idempotent — claiming twice produces different
-      state. Fix requires inspecting the claim logic for the missing guard —
+      A proposal claim is not idempotent -- claiming twice produces different
+      state. Fix requires inspecting the claim logic for the missing guard --
       governor decision on the correct invariant. Non-automatable.
     status: DELEGATE
 
@@ -2441,8 +2441,8 @@ mappings:
     confidence: 0.40
     description: >
       A proposal status transition is invalid per the state machine (e.g.
-      completed→pending). Fix requires identifying which transition is incorrect
-      and correcting the caller — governor decision. Non-automatable.
+      completed->pending). Fix requires identifying which transition is incorrect
+      and correcting the caller -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- Purity (1 rule) --
@@ -2452,9 +2452,9 @@ mappings:
     confidence: 0.40
     description: >
       A metadata operation applies a decorator to a function. Decorators are
-      execution constructs — applying them via a metadata operation violates the
+      execution constructs -- applying them via a metadata operation violates the
       purity boundary. Fix requires removing the decorator application from the
-      metadata path — governor decision. Non-automatable.
+      metadata path -- governor decision. Non-automatable.
     status: DELEGATE
 
   # -- Quality (3 rules) --
@@ -2464,7 +2464,7 @@ mappings:
     confidence: 0.40
     description: >
       pip-audit or equivalent scanner reports a vulnerability in a dependency.
-      Resolution requires updating the dependency — governor decision on version
+      Resolution requires updating the dependency -- governor decision on version
       pin and test impact. Advisory; non-automatable without risk acceptance.
     status: DELEGATE
 
@@ -2473,7 +2473,7 @@ mappings:
     confidence: 0.40
     description: >
       Test suite has collection errors or failing tests. Fix requires identifying
-      the broken test and deciding whether to repair or regenerate — governor
+      the broken test and deciding whether to repair or regenerate -- governor
       decision. Advisory; non-automatable.
     status: DELEGATE
 
@@ -2482,7 +2482,7 @@ mappings:
     confidence: 0.40
     description: >
       MyPy type-checking reports errors. Resolution requires understanding the
-      type relationship and deciding the correct annotation — governor decision.
+      type relationship and deciding the correct annotation -- governor decision.
       Advisory; non-automatable without semantic understanding of the typed value.
     status: DELEGATE
 
@@ -2493,7 +2493,7 @@ mappings:
     confidence: 0.40
     description: >
       A worker's configured max_interval exceeds the observed runtime cadence
-      per ADR-041. Fix requires adjusting the schedule in the worker YAML —
+      per ADR-041. Fix requires adjusting the schedule in the worker YAML --
       governor decision on the correct interval. Non-automatable.
     status: DELEGATE
 
@@ -2503,5 +2503,5 @@ mappings:
     description: >
       A worker's declared process_classification in its YAML does not match
       runtime evidence per ADR-081 D7. Correcting requires understanding the
-      worker's actual process type — governor decision. Advisory; non-automatable.
+      worker's actual process type -- governor decision. Advisory; non-automatable.
     status: DELEGATE

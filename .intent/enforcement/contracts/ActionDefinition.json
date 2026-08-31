@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.action_definition",
-        "title": "ActionDefinition — atomic action constitutional metadata",
+        "title": "ActionDefinition -- atomic action constitutional metadata",
         "version": "1.1.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Constitutional metadata for a registered atomic action (src/body/atomic/registry.py). ActionDefinition is the runtime declaration for every AtomicAction; its action_id, category, and impact_level drive the autonomy gate. impact_level is a bare str (not enum) with empty string default — it is overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008); a missing entry in that YAML raises ConstitutionalError at startup. executor is a Python Callable (runtime-only, not JSON-serializable); it is included in properties to suppress false-positive undeclared-field findings from the AST gate. Governed vocabulary: action_category enum in .intent/META/enums.json (ADR-056 D5). Version 1.1.0: artifact_type added per ADR-091 D6 item 3 / ADR-092 D1 — the F-41 registry-coupling field carried on every action declaration. Authority: ADR-056 Wave 2 Session 1.",
+    "description": "Constitutional metadata for a registered atomic action (src/body/atomic/registry.py). ActionDefinition is the runtime declaration for every AtomicAction; its action_id, category, and impact_level drive the autonomy gate. impact_level is a bare str (not enum) with empty string default -- it is overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008); a missing entry in that YAML raises ConstitutionalError at startup. executor is a Python Callable (runtime-only, not JSON-serializable); it is included in properties to suppress false-positive undeclared-field findings from the AST gate. Governed vocabulary: action_category enum in .intent/META/enums.json (ADR-056 D5). Version 1.1.0: artifact_type added per ADR-091 D6 item 3 / ADR-092 D1 -- the F-41 registry-coupling field carried on every action declaration. Authority: ADR-056 Wave 2 Session 1.",
     "governed_classes": [
         "ActionDefinition"
     ],
@@ -38,7 +38,7 @@
         },
         "executor": {
             "type": "string",
-            "description": "Callable[..., Awaitable[ActionResult]] — the async handler for this action. Runtime-only field; not JSON-serializable. Included in properties to suppress AST gate false positives."
+            "description": "Callable[..., Awaitable[ActionResult]] -- the async handler for this action. Runtime-only field; not JSON-serializable. Included in properties to suppress AST gate false positives."
         },
         "impact_level": {
             "type": "string",

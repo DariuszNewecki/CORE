@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.proposal_action",
-        "title": "ProposalAction — single execution step within a Proposal",
+        "title": "ProposalAction -- single execution step within a Proposal",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "A single execution step within a Proposal. References exactly one of AtomicAction (via action_id) or Flow (via flow_id) — the XOR invariant is enforced by __post_init__ at runtime. The ref_id and ref_kind properties derive from whichever is set. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
+    "description": "A single execution step within a Proposal. References exactly one of AtomicAction (via action_id) or Flow (via flow_id) -- the XOR invariant is enforced by __post_init__ at runtime. The ref_id and ref_kind properties derive from whichever is set. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "ProposalAction"
     ],

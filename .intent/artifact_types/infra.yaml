@@ -4,7 +4,7 @@ kind: artifact_type
 id: infra
 title: Infrastructure SQL
 description: >
-  SQL files under infra/ — schema definitions, migrations, infrastructure
+  SQL files under infra/ -- schema definitions, migrations, infrastructure
   state. Authored at ADR-090 D7 (crawl_scopes.yaml retirement 2026-06-04).
   Routes to the docs vector collection per the historical crawler
   configuration (infra SQL semantically searched alongside documentation).
@@ -18,6 +18,6 @@ change_record: text_diff
 vector_collection: core-docs   # historical: infra SQL routed to docs collection
 crawler_indexed: true
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - repo_crawler
 supported_actions: []   # F-43 forward (ADR-090 D5)

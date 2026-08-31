@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.run_flow_request",
-        "title": "FixAllRequest — body of POST /fix/all and POST /fix/modularity",
+        "title": "FixAllRequest -- body of POST /fix/all and POST /fix/modularity",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

@@ -5,14 +5,14 @@ authority: constitutional
 title: CORE Filesystem-Operation Taxonomy
 python_version: "3.12"
 description: >
-  Canonical call-name → op-class taxonomy for filesystem-touching operations
-  in the standard library. The audit-side taxonomy declared by ADR-077 §2
+  Canonical call-name -> op-class taxonomy for filesystem-touching operations
+  in the standard library. The audit-side taxonomy declared by ADR-077 S2
   and consumed by the protected-namespace access check; vocabulary contract
   is `fs_audit_op_class` in .intent/META/enums.json (ADR-080 D3).
 
   Two blocks. ``pathlib_path:`` enumerates every public method on
-  pathlib.Path — auto-discovery target for the introspective completeness
-  check declared by ADR-077 §3; absence of a discovered Path method from
+  pathlib.Path -- auto-discovery target for the introspective completeness
+  check declared by ADR-077 S3; absence of a discovered Path method from
   this block is a finding. ``watched:`` is the curated set of qualified
   call names outside pathlib.Path that governance has chosen to classify;
   the completeness check verifies each watched name still resolves to a
@@ -31,43 +31,43 @@ description: >
            open() calls to write/append modes per the existing _is_write_mode
            helper.
 
-  Seeding rationale (ADR-077 §4): the watched block seeds the existing
+  Seeding rationale (ADR-077 S4): the watched block seeds the existing
   no_direct_writes coverage plus the six previously-silent write calls
-  ADR-077 §4 calls out (mkdir/makedirs/touch/symlink/link/chmod). Read-side
-  curation for os/shutil/tempfile is deferred — the policy shape that ships
-  with §6 step 3 is `forbidden_classes: [write]`, which has no use for
+  ADR-077 S4 calls out (mkdir/makedirs/touch/symlink/link/chmod). Read-side
+  curation for os/shutil/tempfile is deferred -- the policy shape that ships
+  with S6 step 3 is `forbidden_classes: [write]`, which has no use for
   read-class watched names. Tempfile is not seeded for the same reason.
-  Pathlib.Path's read-side methods ARE classified here because §3 mandates
+  Pathlib.Path's read-side methods ARE classified here because S3 mandates
   every public Path method be present; classification cost is bounded
   (~52 entries) and unblocks the completeness check.
 
-  Authority: ADR-077 §2 (taxonomy declaration); ADR-080 D4 (enum binding);
+  Authority: ADR-077 S2 (taxonomy declaration); ADR-080 D4 (enum binding);
   ADR-068 (.intent/taxonomies/ pattern). Sole loader:
   src/shared/infrastructure/intent/filesystem_operations.py.
 
 operations:
 
   # ---------------------------------------------------------------------------
-  # pathlib.Path — every public method classified.
-  # ADR-077 §3: "every public method must be classified. A method present in
+  # pathlib.Path -- every public method classified.
+  # ADR-077 S3: "every public method must be classified. A method present in
   # the runtime but absent from the taxonomy is a finding." The completeness
   # check enumerates pathlib.Path public callables via inspect.getmembers and
   # set-differences against this block; any gap fires manual_review.
   #
-  # Per-entry match: leaf by convention. Three exceptions — `replace`,
-  # `rename`, and `open` — are declared qualified to avoid colliding with
+  # Per-entry match: leaf by convention. Three exceptions -- `replace`,
+  # `rename`, and `open` -- are declared qualified to avoid colliding with
   # high-volume non-FS attribute names. Leaf-matching `replace` would fire
   # on every `str.replace(...)` (~140 src/ sites); leaf-matching `open`
   # would fire on `tarfile.open(mode="w:gz")`, `gzip.open(...)`, and any
   # other module's `.open()` method. Detection of the write semantics on
   # these names runs through the watched-block entries (`os.replace`,
   # `os.rename`, builtin `open`); the pathlib qualified entries below
-  # exist for §3 completeness compliance but never resolve at detection
+  # exist for S3 completeness compliance but never resolve at detection
   # time (`Path("x").replace(...)` and `Path("x").open("w")` have Call
-  # receivers, unresolvable through `resolve_qualified_name` — the
+  # receivers, unresolvable through `resolve_qualified_name` -- the
   # detection routes through the watched-block bare `open` and `os.*`
   # entries instead). The variable-receiver bypass (`p.replace(...)`,
-  # `p.open("w")`) is a pre-existing, accepted gap — see #506 follow-up.
+  # `p.open("w")`) is a pre-existing, accepted gap -- see #506 follow-up.
   # ---------------------------------------------------------------------------
   pathlib_path:
     absolute:          { op_class: neutral,  match: leaf }
@@ -124,31 +124,31 @@ operations:
     write_text:        { op_class: write,    match: leaf }
 
   # ---------------------------------------------------------------------------
-  # Curated watched set — qualified match.
-  # ADR-077 §3: "os, shutil, tempfile, builtin open: a curated watched set
+  # Curated watched set -- qualified match.
+  # ADR-077 S3: "os, shutil, tempfile, builtin open: a curated watched set
   # in the taxonomy. The check verifies each watched name still resolves to a
   # callable in its module and is classified. It does not auto-discover new
-  # FS members here — introspection cannot separate FS from non-FS in these
+  # FS members here -- introspection cannot separate FS from non-FS in these
   # mixed namespaces."
   #
-  # Seeded for §6 step 1: existing no_direct_writes coverage from
+  # Seeded for S6 step 1: existing no_direct_writes coverage from
   # .intent/enforcement/mappings/architecture/governance_basics.yaml's
   # forbidden_additional list (os/shutil writes + builtin open), plus the
-  # six §4-named gaps (mkdir/makedirs/touch/symlink/link/chmod) in their
+  # six S4-named gaps (mkdir/makedirs/touch/symlink/link/chmod) in their
   # os-module form. Read-side curation deferred.
   #
   # aiofiles.open is NOT seeded despite appearing in the legacy
   # forbidden_additional list: the library is not a runtime dependency and
-  # does not resolve in this venv. The completeness check (§3) requires
+  # does not resolve in this venv. The completeness check (S3) requires
   # each watched name to resolve, and the taxonomy's contract is
   # "classified surfaces actually present in this runtime," not
   # "speculative defensive coverage." This is precisely the kind of silent
-  # drift §3 was designed to catch — flagged by the completeness check on
+  # drift S3 was designed to catch -- flagged by the completeness check on
   # first run and removed here. If aiofiles is added as a dependency, the
   # taxonomy and the audit policy's forbidden surface are updated together.
   # ---------------------------------------------------------------------------
   watched:
-    # builtin open — module-qualified is the bare name. Mode predicate filters
+    # builtin open -- module-qualified is the bare name. Mode predicate filters
     # to write/append per existing _is_write_mode in purity_checks.
     open:              { op_class: write, match: qualified, predicate: write_mode }
 
@@ -159,7 +159,7 @@ operations:
     "os.unlink":       { op_class: write, match: qualified }
     "os.rmdir":        { op_class: write, match: qualified }
 
-    # os filesystem-mutation family (ADR-077 §4 gaps)
+    # os filesystem-mutation family (ADR-077 S4 gaps)
     "os.mkdir":        { op_class: write, match: qualified }
     "os.makedirs":     { op_class: write, match: qualified }
     "os.symlink":      { op_class: write, match: qualified }

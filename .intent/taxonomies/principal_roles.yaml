@@ -48,7 +48,7 @@ roles:
       No write access of any kind. Designed for the GxP QA archetype:
       an external auditor who inspects the trail without influencing it.
       A principal holding this role may not have approved the proposals
-      they are auditing (SoD constraint — ADR-068 D3).
+      they are auditing (SoD constraint -- ADR-068 D3).
     proposal_approval_authority: false
     read_access: audit_trail_only
     write_access: none
@@ -57,7 +57,7 @@ roles:
     display_name: System Agent
     authority: policy
     description: >
-      Autonomous system actors — workers, daemons, and the risk classifier.
+      Autonomous system actors -- workers, daemons, and the risk classifier.
       The risk_classification.safe_auto_approval authority belongs to this
       role class. Distinct from human principals; never issued credentials.
     proposal_approval_authority: false

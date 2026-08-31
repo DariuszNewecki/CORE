@@ -21,10 +21,10 @@ identity:
 mandate:
   responsibility: >
     Inspect the constitutional quality of .intent/ itself. Runs three passes:
-    (1) structural — verifies every document has required fields and a $schema reference;
-    (2) coherence — asks whether each document's narrative is clear, internally consistent,
+    (1) structural -- verifies every document has required fields and a $schema reference;
+    (2) coherence -- asks whether each document's narrative is clear, internally consistent,
     and accurately describes what it declares;
-    (3) alignment — detects cross-document conflicts, orphaned declarations, and rules
+    (3) alignment -- detects cross-document conflicts, orphaned declarations, and rules
     that reference non-existent workers, files, or roles.
     Posts all findings to the blackboard. Makes no changes.
   phase: runtime

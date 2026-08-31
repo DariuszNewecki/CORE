@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.context_build_request",
-        "title": "ContextBuildRequest — single entrypoint for all context assembly",
+        "title": "ContextBuildRequest -- single entrypoint for all context assembly",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Canonical request for building a context packet (src/shared/infrastructure/context/models.py). This is the single entrypoint for all context assembly inside CORE — declares the operational goal, invocation trigger, evaluation phase, and optional targeting hints. Consumed by ContextPacket as its request field. TriggerType (cli/workflow/agent) and PhaseType (parse/load/audit/runtime/execution) are Literal type aliases in the same file — not classes, not governable via AST gate. Authority: ADR-056 Wave 1 Session 4.",
+    "description": "Canonical request for building a context packet (src/shared/infrastructure/context/models.py). This is the single entrypoint for all context assembly inside CORE -- declares the operational goal, invocation trigger, evaluation phase, and optional targeting hints. Consumed by ContextPacket as its request field. TriggerType (cli/workflow/agent) and PhaseType (parse/load/audit/runtime/execution) are Literal type aliases in the same file -- not classes, not governable via AST gate. Authority: ADR-056 Wave 1 Session 4.",
     "governed_classes": [
         "ContextBuildRequest"
     ],
@@ -24,11 +24,11 @@
         },
         "trigger": {
             "type": "string",
-            "description": "Invocation trigger. Governed vocabulary: TriggerType Literal — cli, workflow, agent."
+            "description": "Invocation trigger. Governed vocabulary: TriggerType Literal -- cli, workflow, agent."
         },
         "phase": {
             "type": "string",
-            "description": "Evaluation phase. Governed vocabulary: PhaseType Literal — parse, load, audit, runtime, execution."
+            "description": "Evaluation phase. Governed vocabulary: PhaseType Literal -- parse, load, audit, runtime, execution."
         },
         "workflow_id": {
             "type": "string",

@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.decision_trace_entries.schema.json",
-    "title": "DecisionTrace.decisions — autonomous decision entry shape",
+    "title": "DecisionTrace.decisions -- autonomous decision entry shape",
     "description": "JSON Schema for a single element in the DecisionTrace.decisions JSONB array (src/shared/infrastructure/database/models/decision_traces.py). Each entry corresponds to one Decision dataclass instance (src/will/orchestration/decision_tracer.py) serialized via dataclasses.asdict(). The decisions column stores the complete session decision chain for autonomous operation observability, consumed by core-admin inspect decisions. Authority: ADR-056 Wave 2 (persistence boundary). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["timestamp", "agent", "decision_type", "context", "rationale", "chosen_action", "alternatives_considered", "confidence"],

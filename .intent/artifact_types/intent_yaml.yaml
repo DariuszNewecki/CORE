@@ -4,7 +4,7 @@ kind: artifact_type
 id: intent_yaml
 title: Constitutional .intent YAML
 description: >
-  YAML documents under .intent/ that declare CORE's own governance state —
+  YAML documents under .intent/ that declare CORE's own governance state --
   policies, rules, workers, taxonomies, workflows, phases, enforcement
   mappings, data contracts. Governed by the META schemas referenced via
   each document's $schema field. This declaration covers CORE's self-
@@ -18,10 +18,10 @@ discovery:
 identity_key: path
 schema_ref: "META/intent_tree.schema.json"   # tree-level validation; per-doc schemas declared via $schema
 change_record: structured_patch
-vector_collection: core-patterns   # ADR-090 D7 — aligned with crawler's existing collection
+vector_collection: core-patterns   # ADR-090 D7 -- aligned with crawler's existing collection
 crawler_indexed: true
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - intent_inspector
   - repo_crawler
 supported_actions: []   # F-43 forward (ADR-090 D5)

@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.blackboard_entry.payload.sync_db_complete.schema.json",
-    "title": "BlackboardEntry.payload — sync.db.complete shape",
+    "title": "BlackboardEntry.payload -- sync.db.complete shape",
     "description": "JSON Schema for the payload JSONB column when entry_type='report' and subject='sync.db.complete'. Posted by DbSyncWorker (src/will/workers/db_sync_worker.py) via post_report() on a successful sync.db atomic action run. The payload is ActionResult.data from the sync.db action (src/body/atomic/sync_actions/sync_actions.py). Authority: ADR-056 Wave 1; ADR-011; DbSyncWorker is the sole emitter. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["symbols_synced", "dry_run"],

@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.lane_propose_response",
-        "title": "LaneProposeResponse — POST /v1/lane/{finding_id}/propose response",
+        "title": "LaneProposeResponse -- POST /v1/lane/{finding_id}/propose response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Response body (201 Created) for POST /v1/lane/{finding_id}/propose — submits a remediation proposal for a delegated finding. The proposal is created in the autonomous_proposals table and the finding's status transitions. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneProposeResponse.",
+    "description": "Response body (201 Created) for POST /v1/lane/{finding_id}/propose -- submits a remediation proposal for a delegated finding. The proposal is created in the autonomous_proposals table and the finding's status transitions. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class LaneProposeResponse.",
     "governed_classes": [
         "LaneProposeResponse"
     ],

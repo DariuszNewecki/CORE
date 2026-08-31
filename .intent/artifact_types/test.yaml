@@ -19,7 +19,7 @@ change_record: text_diff
 vector_collection: core-tests
 crawler_indexed: true
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - repo_crawler
   - test_coverage_sensor
   - test_runner_sensor

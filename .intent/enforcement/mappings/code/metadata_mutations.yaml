@@ -7,7 +7,7 @@
 # because they are governed by a stricter, proof-based invariant:
 # the normalized AST must be identical before and after.
 #
-# Rules below marked engine: advisory are permissive declarations — they
+# Rules below marked engine: advisory are permissive declarations -- they
 # authorize WRITE_METADATA actions, they do not detect violations.
 # Mapped here explicitly to remove them from the declared_only count.
 
@@ -55,7 +55,7 @@ mappings:
 
   # ===========================================================================
   # ADVISORY DECLARATIONS
-  # Permissive rules — they grant permission, not restrict.
+  # Permissive rules -- they grant permission, not restrict.
   # No automated check is possible or needed.
   # ===========================================================================
 

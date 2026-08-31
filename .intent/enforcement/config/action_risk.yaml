@@ -27,8 +27,8 @@
 # FORMAT (ADR-120 D1): entries may be a plain impact_level string (unconstrained
 # actions) or a mapping with impact_level + artifact_types (type-constrained).
 #
-#   fix.format: safe                          # unconstrained — old format, still valid
-#   fix.format:                               # constrained — new dict format
+#   fix.format: safe                          # unconstrained -- old format, still valid
+#   fix.format:                               # constrained -- new dict format
 #     impact_level: safe
 #     artifact_types: [python]
 #
@@ -36,7 +36,7 @@
 # is absent or empty are unconstrained and may be dispatched for any artifact type.
 
 actions:
-  # ── Infrastructure / state machine / cross-artifact (unconstrained) ─────────
+  # -- Infrastructure / state machine / cross-artifact (unconstrained) ---------
   action.execute: moderate
   admin.meta: safe
   assisted.apply_diff: moderate
@@ -63,12 +63,12 @@ actions:
   sync.vectors_constitution: moderate
   test.system: safe
 
-  # ── Document corpus actions (artifact_types: [document_corpus]) ─────────────
+  # -- Document corpus actions (artifact_types: [document_corpus]) -------------
   document.gap_analysis:
     impact_level: safe
     artifact_types: [document_corpus]
 
-  # ── Python-specific actions (artifact_types: [python]) ──────────────────────
+  # -- Python-specific actions (artifact_types: [python]) ----------------------
   # Primary autonomous path (ADR-133 D3): per-symbol generation via
   # context_aware_test_gen. Prompt: context_aware_test_gen (ADR-134 governed).
   build.test_for_symbol:

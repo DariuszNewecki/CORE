@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.detailed_plan_step",
-        "title": "DetailedPlanStep — blueprint for a single atomic action",
+        "title": "DetailedPlanStep -- blueprint for a single atomic action",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "A plan step enriched with code specifications — the Blueprint for a single AtomicAction (src/shared/models/workflow_models.py). Created via from_execution_task(task: ExecutionTask, code: str | None) classmethod. NOTE: ExecutionTask.task_type is silently dropped at this conversion boundary — task_type carries ADR-003 routing semantics (code_generation, test_generation, code_modification) that are not propagated into DetailedPlanStep. The get_steps_requiring_code() method on sibling DetailedPlan hardcodes four action names ({file.create, file.edit, create_file, edit_file}) — two are valid registry IDs, two are legacy names not in the registry. Authority: ADR-056 Wave 3 Session 1.",
+    "description": "A plan step enriched with code specifications -- the Blueprint for a single AtomicAction (src/shared/models/workflow_models.py). Created via from_execution_task(task: ExecutionTask, code: str | None) classmethod. NOTE: ExecutionTask.task_type is silently dropped at this conversion boundary -- task_type carries ADR-003 routing semantics (code_generation, test_generation, code_modification) that are not propagated into DetailedPlanStep. The get_steps_requiring_code() method on sibling DetailedPlan hardcodes four action names ({file.create, file.edit, create_file, edit_file}) -- two are valid registry IDs, two are legacy names not in the registry. Authority: ADR-056 Wave 3 Session 1.",
     "governed_classes": [
         "DetailedPlanStep"
     ],

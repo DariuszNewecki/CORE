@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.lane_finding_item",
-        "title": "LaneFindingItem — delegated finding from the Assisted Remediation Lane",
+        "title": "LaneFindingItem -- delegated finding from the Assisted Remediation Lane",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
@@ -26,7 +26,7 @@
         },
         "subject": {
             "type": "string",
-            "description": "Blackboard subject string — typically an audit violation subject (e.g. 'audit.violation::rule_id')."
+            "description": "Blackboard subject string -- typically an audit violation subject (e.g. 'audit.violation::rule_id')."
         },
         "payload": {
             "type": "object",

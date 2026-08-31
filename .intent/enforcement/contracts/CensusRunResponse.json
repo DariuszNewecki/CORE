@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.census_run_response",
-        "title": "CensusRunResponse — GET /v1/census/runs/{run_id} response",
+        "title": "CensusRunResponse -- GET /v1/census/runs/{run_id} response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Response shape for GET /v1/census/runs/{run_id}. Intentionally omits requested_by (internal username) per #727. The result field carries a CensusRunResult (contracts.census_run_result) — the RepoCensus.model_dump() artifact. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusRunResponse.",
+    "description": "Response shape for GET /v1/census/runs/{run_id}. Intentionally omits requested_by (internal username) per #727. The result field carries a CensusRunResult (contracts.census_run_result) -- the RepoCensus.model_dump() artifact. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusRunResponse.",
     "governed_classes": [
         "CensusRunResponse"
     ],
@@ -59,7 +59,7 @@
         },
         "result": {
             "type": ["object", "null"],
-            "description": "CensusRunResult JSONB payload (contracts.census_run_result) — the RepoCensus.model_dump() artifact plus optional snapshot_file key. Null while pending|executing.",
+            "description": "CensusRunResult JSONB payload (contracts.census_run_result) -- the RepoCensus.model_dump() artifact plus optional snapshot_file key. Null while pending|executing.",
             "additionalProperties": true
         },
         "error": {

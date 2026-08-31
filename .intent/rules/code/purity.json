@@ -77,7 +77,7 @@
             "authority": "policy",
             "phase": "audit",
             "enforcement": "blocking",
-            "rationale": "Without dir=, tempfile resolves to the system temp dir (/tmp/ on Linux), which CLAUDE.md's dev-side contract prohibits. The detection asymmetry — dev contract on Claude Code output but no audit rule against the codebase — let four such sites accumulate undetected; closed by #508 + this rule."
+            "rationale": "Without dir=, tempfile resolves to the system temp dir (/tmp/ on Linux), which CLAUDE.md's dev-side contract prohibits. The detection asymmetry -- dev contract on Claude Code output but no audit rule against the codebase -- let four such sites accumulate undetected; closed by #508 + this rule."
         }
     ]
 }

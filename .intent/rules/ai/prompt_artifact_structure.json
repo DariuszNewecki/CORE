@@ -32,7 +32,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "A role that is not declared in .intent/ cannot be governed, routed, or reasoned about. Using an undeclared role name is the equivalent of calling a function that does not exist — it silently removes governance from the invocation."
+            "rationale": "A role that is not declared in .intent/ cannot be governed, routed, or reasoned about. Using an undeclared role name is the equivalent of calling a function that does not exist -- it silently removes governance from the invocation."
         },
         {
             "id": "ai.prompt.governed_prompt_must_have_anchor",

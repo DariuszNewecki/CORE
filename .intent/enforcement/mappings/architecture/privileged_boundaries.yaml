@@ -31,10 +31,10 @@ mappings:
         - "src/mind/**/test_*.py"
         - "src/will/**/test_*.py"
         - "tests/**"
-        # REMOVED: src/will/workers/*.py exemption — this had no rationale and was
+        # REMOVED: src/will/workers/*.py exemption -- this had no rationale and was
         # silently hiding 14 production violations (external audit 2026-03-28, Finding 1.1).
         # Will workers MUST use dependency injection like all other Will components.
-        # Tracking issue: Will→database violations require WillDatabasePort refactor
+        # Tracking issue: Will->database violations require WillDatabasePort refactor
         # before this rule can be promoted from reporting to blocking.
 
         # ==========================================================================
@@ -146,7 +146,7 @@ mappings:
   # Rule: architecture.boundary.remediation_write_access
   # ==========================================================================
   # Candidate-only remediation must not gain a fresh direct-import route to
-  # Git-commit authority. CrateProcessingService is NOT listed here — it is
+  # Git-commit authority. CrateProcessingService is NOT listed here -- it is
   # legitimately imported by crate_canary.py for validate_crate_by_id(); the
   # companion call-site boundary test
   # (tests/will/remediation/test_no_live_mutation_call_sites.py) is what

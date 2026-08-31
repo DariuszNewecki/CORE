@@ -48,7 +48,7 @@
         },
         {
             "id": "architecture.api.response_must_use_declared_schema",
-            "statement": "API routes returning blackboard findings, audit data, or run results MUST declare an explicit response_model= using a type defined in api/v1/schemas.py — relying on ORM serialisation or bare dict returns is prohibited.",
+            "statement": "API routes returning blackboard findings, audit data, or run results MUST declare an explicit response_model= using a type defined in api/v1/schemas.py -- relying on ORM serialisation or bare dict returns is prohibited.",
             "enforcement": "reporting",
             "authority": "policy",
             "phase": "audit",

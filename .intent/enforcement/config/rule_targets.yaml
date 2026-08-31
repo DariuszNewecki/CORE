@@ -1,4 +1,4 @@
-# rule_targets.yaml — F-05 Default Rule Library convergence target
+# rule_targets.yaml -- F-05 Default Rule Library convergence target
 # Authority: policy
 # Status: active
 #
@@ -23,7 +23,7 @@
 
 metadata:
   id: rule_targets.f_05
-  title: F-05 Convergence Target — Default Rule Library (Source Code)
+  title: F-05 Convergence Target -- Default Rule Library (Source Code)
   authority: policy
   status: active
   feature_id: F-05

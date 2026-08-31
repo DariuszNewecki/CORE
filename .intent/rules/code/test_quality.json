@@ -16,7 +16,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "execution",
-            "rationale": "Across #572's 20-batch drain this pattern was the most common autogen runtime failure (~8 files). MagicMock returns a child MagicMock on call, and `await MagicMock()` raises TypeError: object MagicMock can't be used in 'await' expression. The fix is mechanical (swap MagicMock for AsyncMock at the awaited attribute) and detectable purely from the AST — no LLM judgment required. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_magicmock_on_await."
+            "rationale": "Across #572's 20-batch drain this pattern was the most common autogen runtime failure (~8 files). MagicMock returns a child MagicMock on call, and `await MagicMock()` raises TypeError: object MagicMock can't be used in 'await' expression. The fix is mechanical (swap MagicMock for AsyncMock at the awaited attribute) and detectable purely from the AST -- no LLM judgment required. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_magicmock_on_await."
         },
         {
             "id": "code.tests.no_imported_symbol_redeclared",
@@ -24,7 +24,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "execution",
-            "rationale": "Observed in #572 batches 19/20 as the 'speculative stub' pattern: when the generator's source-context budget is exhausted, it emits a local placeholder for the symbol it can't introspect. Tests against the placeholder pass trivially and add fake coverage. The rule's structural check (imported names ∩ top-level def/class names) catches the shape independent of test contents. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared."
+            "rationale": "Observed in #572 batches 19/20 as the 'speculative stub' pattern: when the generator's source-context budget is exhausted, it emits a local placeholder for the symbol it can't introspect. Tests against the placeholder pass trivially and add fake coverage. The rule's structural check (imported names intersect top-level def/class names) catches the shape independent of test contents. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared."
         },
         {
             "id": "code.tests.no_placeholder_test_body",
@@ -32,7 +32,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "execution",
-            "rationale": "Observed in #572 batch 20 (crawl_service stub) where every test was a method invocation followed by a `# add assertions to verify` comment. The autogen header on the same file claimed `Status: verified_in_sandbox` — a header lie that would be caught by this rule before write. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_placeholder_test_body."
+            "rationale": "Observed in #572 batch 20 (crawl_service stub) where every test was a method invocation followed by a `# add assertions to verify` comment. The autogen header on the same file claimed `Status: verified_in_sandbox` -- a header lie that would be caught by this rule before write. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_placeholder_test_body."
         },
         {
             "id": "code.tests.no_global_module_mutation",

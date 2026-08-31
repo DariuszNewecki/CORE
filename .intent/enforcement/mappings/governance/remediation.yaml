@@ -13,12 +13,12 @@ mappings:
   # RULE: governance.remediation.all_rules_mapped
   # Verifies that every active reporting rule in the audit registry has a
   # corresponding entry in auto_remediation.yaml. An entry of any tier
-  # (ACTIVE, DELEGATE, PENDING) satisfies the invariant — the entry's
+  # (ACTIVE, DELEGATE, PENDING) satisfies the invariant -- the entry's
   # existence is what closes the abandoned-finding re-emit loop.
   #
   # Scope: reporting rules only. Blocking rules fire at IntentGuard
   # pre-commit and do not enter the audit-cycle re-emit loop. Advisory
-  # rules do not produce findings. See ADR-066 §"Scope".
+  # rules do not produce findings. See ADR-066 S"Scope".
   governance.remediation.all_rules_mapped:
     engine: artifact_gate
     params:
@@ -31,8 +31,8 @@ mappings:
   # RULE: governance.remediation.active_routing_claimed_by_action
   # Verifies that every ACTIVE auto_remediation.yaml entry routing a
   # rule_id to an action_id is honored by that action's
-  # @register_action(remediates=[…]) declaration. DELEGATE / PENDING
-  # entries and flow: entries are exempt — see the rule statement for
+  # @register_action(remediates=[...]) declaration. DELEGATE / PENDING
+  # entries and flow: entries are exempt -- see the rule statement for
   # the load-bearing distinction (issue #580 + ADR-095 D5).
   governance.remediation.active_routing_claimed_by_action:
     engine: artifact_gate

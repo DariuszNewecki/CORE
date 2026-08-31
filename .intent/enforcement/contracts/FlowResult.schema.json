@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.flow_result.schema.json",
-    "title": "FlowResult — structured result of a Flow execution",
-    "description": "JSON Schema for the FlowResult dataclass (src/body/flows/result.py:49). The structured result contract every Flow execution returns. Constitutional requirement (CORE-Flow.md §6): FlowExecutor always returns a FlowResult — no exceptions. Fields mirror ActionResult where they overlap (ok, duration_sec, data) so callers can reason uniformly about both. Authority: ADR-056 Wave 1 (flow-boundary contract); CORE-Flow.md §6. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "title": "FlowResult -- structured result of a Flow execution",
+    "description": "JSON Schema for the FlowResult dataclass (src/body/flows/result.py:49). The structured result contract every Flow execution returns. Constitutional requirement (CORE-Flow.md S6): FlowExecutor always returns a FlowResult -- no exceptions. Fields mirror ActionResult where they overlap (ok, duration_sec, data) so callers can reason uniformly about both. Authority: ADR-056 Wave 1 (flow-boundary contract); CORE-Flow.md S6. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["flow_id", "ok"],
     "additionalProperties": true,

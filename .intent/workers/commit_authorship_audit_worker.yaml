@@ -20,7 +20,7 @@ mandate:
     governance.commit_authorship_integrity::{proposal_id} on discrepancy.
     Also flags completed proposals missing consequence_recorded_at (posts
     governance.proposal_finalization_integrity::{proposal_id}), excluding
-    pre-ADR-148 rows. Detection only — no record modification.
+    pre-ADR-148 rows. Detection only -- no record modification.
   phase: audit
   permitted_tools: []
   approval_required: false

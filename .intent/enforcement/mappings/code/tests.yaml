@@ -72,7 +72,7 @@ mappings:
         src/body/governance/intent_pattern_validators.py::PatternValidators.check_no_imported_symbol_redeclared
         when build.tests invokes IntentGuard.validate_generated_code with pattern_id="test_file".
         Redefining an imported symbol as a speculative stub masks the real import
-        (#572 batch 19/20 pattern — context-budget exhaustion, #589 Tier 2).
+        (#572 batch 19/20 pattern -- context-budget exhaustion, #589 Tier 2).
         No audit-engine dispatch; the gate prevents the pattern from landing.
     scope:
       applies_to: ["tests/**/*.py"]

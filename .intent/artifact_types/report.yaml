@@ -4,11 +4,11 @@ kind: artifact_type
 id: report
 title: Crawl / audit reports
 description: >
-  Generated reports under reports/ — YAML and markdown outputs from CORE's
+  Generated reports under reports/ -- YAML and markdown outputs from CORE's
   own audit, crawl, and sync workflows. Authored at ADR-090 D7
   (crawl_scopes.yaml retirement 2026-06-04). Patterns mirror the existing
   hardcoded _CRAWL_SCOPES in src/body/services/crawl_service/orchestrator.py
-  (note: the retired crawl_scopes.yaml declared `var/reports/` — that was
+  (note: the retired crawl_scopes.yaml declared `var/reports/` -- that was
   drift from the running Python truth).
 
 discovery:
@@ -21,6 +21,6 @@ change_record: text_diff
 vector_collection: core-reports
 crawler_indexed: true
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - repo_crawler
 supported_actions: []   # F-43 forward (ADR-090 D5)

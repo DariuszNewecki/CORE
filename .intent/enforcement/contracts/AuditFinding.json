@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.audit_finding",
-        "title": "AuditFinding — constitutional audit check result",
+        "title": "AuditFinding -- constitutional audit check result",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Represents a single finding from a constitutional audit check (src/shared/models/audit_models.py). AuditFinding is the persistence surface for audit_runs.findings JSONB — one of the three Finding surfaces ADR-056 identified. The details property is a backward-compat alias for context; it is not a declared field and is not governed here. A separate governance entry will govern AuditFinding against the canonical Finding nucleus (Finding.json), which will produce drift findings for missing nucleus fields (rule_id, subject, worker_uuid absent; check_id/message serve analogous roles under different names). Severity vocabulary is governed by audit_severity in .intent/META/enums.json (ADR-059 D2): info/low/medium/high/block. AuditSeverity IntEnum and CIM CheckResult.severity now share this vocabulary. Authority: ADR-056 Wave 1.",
+    "description": "Represents a single finding from a constitutional audit check (src/shared/models/audit_models.py). AuditFinding is the persistence surface for audit_runs.findings JSONB -- one of the three Finding surfaces ADR-056 identified. The details property is a backward-compat alias for context; it is not a declared field and is not governed here. A separate governance entry will govern AuditFinding against the canonical Finding nucleus (Finding.json), which will produce drift findings for missing nucleus fields (rule_id, subject, worker_uuid absent; check_id/message serve analogous roles under different names). Severity vocabulary is governed by audit_severity in .intent/META/enums.json (ADR-059 D2): info/low/medium/high/block. AuditSeverity IntEnum and CIM CheckResult.severity now share this vocabulary. Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "AuditFinding"
     ],

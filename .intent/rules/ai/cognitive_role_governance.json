@@ -16,7 +16,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "A hardcoded role string couples the call site to a specific cognitive identity that has no constitutional standing at that location. The PromptModel manifest is the only legitimate authority for role declaration — it is the artifact that has been reviewed, declared, and governed. Bypassing it with a string literal is the cognitive equivalent of an inline prompt: ungoverned, untestable, and invisible to the audit system. CognitiveService maps roles to providers; call sites must not make that decision themselves."
+            "rationale": "A hardcoded role string couples the call site to a specific cognitive identity that has no constitutional standing at that location. The PromptModel manifest is the only legitimate authority for role declaration -- it is the artifact that has been reviewed, declared, and governed. Bypassing it with a string literal is the cognitive equivalent of an inline prompt: ungoverned, untestable, and invisible to the audit system. CognitiveService maps roles to providers; call sites must not make that decision themselves."
         }
     ]
 }

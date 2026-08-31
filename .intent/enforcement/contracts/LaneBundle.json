@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.lane_bundle",
-        "title": "LaneBundle — context bundle attached to a delegated finding",
+        "title": "LaneBundle -- context bundle attached to a delegated finding",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
@@ -19,7 +19,7 @@
     "properties": {
         "rule": {
             "type": "object",
-            "description": "LaneBundleRule (contracts.lane_bundle_rule) — rule metadata for the finding's source rule.",
+            "description": "LaneBundleRule (contracts.lane_bundle_rule) -- rule metadata for the finding's source rule.",
             "$ref": "LaneBundleRule.json"
         },
         "remediation": {

@@ -27,21 +27,21 @@ mappings:
         - "src/will/workers/worker_shop_manager.py"
         # 2026-06-06 expansion: auditor / coherence-checker exemptions.
         # Same pattern as meta_validator and intent_schema_validator
-        # already excluded above — these files audit .intent/ structure
+        # already excluded above -- these files audit .intent/ structure
         # for coherence, which requires seeing raw paths/contents the
         # gateway normalizes away. Adding via flat list rather than
-        # introducing a new CORE_ROLE for "auditor" — that's an
+        # introducing a new CORE_ROLE for "auditor" -- that's an
         # ADR-095 D3 amendment, not warranted by 6 entries today.
         - "src/mind/coherence/**/*.py"            # CCC checks + checker (ADR-067)
         - "src/mind/logic/engines/artifact_gate.py"   # F-41 registry walker
         - "src/mind/logic/engines/runtime_gate.py"    # ADR-077 runtime access checker
         - "src/body/services/representation_coherence_service.py"  # coherence service body counterpart
         - "tests/**/*.py"
-        - "src/cli/logic/byor.py"                        # External repo delivery — reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
-        - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence — same exemption as artifact_gate.py and runtime_gate.py
-        - "src/mind/logic/engines/registry.py"            # EngineRegistry loads passive-alias taxonomy from .intent/taxonomies/ at registration time — same pattern as artifact_gate.py and runtime_gate.py
+        - "src/cli/logic/byor.py"                        # External repo delivery -- reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
+        - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py and runtime_gate.py
+        - "src/mind/logic/engines/registry.py"            # EngineRegistry loads passive-alias taxonomy from .intent/taxonomies/ at registration time -- same pattern as artifact_gate.py and runtime_gate.py
 
-  # ADVISORY DECLARATIONS — architectural guidance, not engine-checkable.
+  # ADVISORY DECLARATIONS -- architectural guidance, not engine-checkable.
   # These rules describe how .intent/ should be structured and accessed.
   # They are constitutionally binding guidance for human architects.
 

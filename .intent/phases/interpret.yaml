@@ -45,9 +45,9 @@ notes: 'INTERPRET is the first constitutional phase. It does NOT have authority 
   execute - only to propose task structures that will be validated in subsequent
   phases.
 
-  Per UR-03 (CORE-USER-REQUIREMENTS §3), INTERPRET has two orthogonal failure
-  classes: ambiguity (input unclear → CORE asks via the `clarify` strategy) and
-  contradiction (input internally inconsistent → CORE stops via the `block`
+  Per UR-03 (CORE-USER-REQUIREMENTS S3), INTERPRET has two orthogonal failure
+  classes: ambiguity (input unclear -> CORE asks via the `clarify` strategy) and
+  contradiction (input internally inconsistent -> CORE stops via the `block`
   strategy). These are not substitutable: ambiguity is missing-input that the
   user can supply; contradiction is malformed-input that the user must resolve.
   Modeling them as a single failure_mode value erases UR-03''s distinction

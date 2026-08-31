@@ -11,7 +11,7 @@
 # (_LAYER_MAP, _ALWAYS_INCLUDE_CATEGORIES, _INCLUDE_ENFORCEMENT)
 # from Python source into constitutional governance.
 
-# File path prefix → canonical layer name for rule scope resolution
+# File path prefix -> canonical layer name for rule scope resolution
 layer_map:
   "src/body/": "body"
   "src/will/": "will"

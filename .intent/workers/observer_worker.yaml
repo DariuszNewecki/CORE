@@ -10,7 +10,7 @@ metadata:
   rationale: >
     Activated 2026-05-10. Daemon is running stably. Feeds core.system_health_log
     which is consumed by the convergence trajectory metric (core-admin runtime dashboard,
-    #261). No LLM dependency — pure deterministic DB reads.
+    #261). No LLM dependency -- pure deterministic DB reads.
 
 identity:
   uuid: "a7f3c2e1-b4d5-4e6f-8a9b-0c1d2e3f4a5b"

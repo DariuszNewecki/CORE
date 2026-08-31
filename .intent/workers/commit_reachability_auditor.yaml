@@ -18,7 +18,7 @@ mandate:
     verifies each commit is reachable from a git branch via git branch
     --contains. On detecting an orphan, posts a blackboard finding with
     subject governance.edge5.orphan_sha::{proposal_id}. Does not modify
-    the DB record — detection only, per ADR-019 D1.
+    the DB record -- detection only, per ADR-019 D1.
   phase: audit
   permitted_tools: []
   approval_required: false

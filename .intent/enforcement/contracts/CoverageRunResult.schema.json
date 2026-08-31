@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.coverage_run_result.schema.json",
-    "title": "CoverageRunResult — outcome persisted to core.coverage_runs.result",
-    "description": "JSON Schema for the result JSONB column on core.coverage_runs (src/will/governance/coverage_runner.py). Three distinct run kinds write to this column, producing different shapes; all share a loose-superset schema with additionalProperties:true. Kind is NOT stored on the result dict itself — use core.coverage_runs.target_file (NULL = report run) and core.coverage_runs.batch_priority (non-NULL = batch run) as discriminators. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py.",
+    "title": "CoverageRunResult -- outcome persisted to core.coverage_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.coverage_runs (src/will/governance/coverage_runner.py). Three distinct run kinds write to this column, producing different shapes; all share a loose-superset schema with additionalProperties:true. Kind is NOT stored on the result dict itself -- use core.coverage_runs.target_file (NULL = report run) and core.coverage_runs.batch_priority (non-NULL = batch run) as discriminators. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix -- intentionally skipped by intent_validator.py.",
     "type": "object",
     "additionalProperties": true,
     "properties": {

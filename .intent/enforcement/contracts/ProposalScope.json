@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.proposal_scope",
-        "title": "ProposalScope — proposal write boundary declaration",
+        "title": "ProposalScope -- proposal write boundary declaration",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Declares what a Proposal will affect. files is the load-bearing field: IntentGuard enforces actual write boundaries against this declaration at execution time (CORE-Proposal.md §6). A non-empty files list is the runtime invariant enforced at proposal creation per ADR-026; the AST gate validates field presence only. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
+    "description": "Declares what a Proposal will affect. files is the load-bearing field: IntentGuard enforces actual write boundaries against this declaration at execution time (CORE-Proposal.md S6). A non-empty files list is the runtime invariant enforced at proposal creation per ADR-026; the AST gate validates field presence only. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "ProposalScope"
     ],

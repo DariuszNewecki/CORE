@@ -14,10 +14,17 @@ snippet, assert both directions. Every example pair here was verified
 against the live engine before being written into this file, not
 authored from the pattern text alone.
 
-governance.intent_artifact_encoding.ascii_only is NOT here -- its mapping
-params use a schema (`pattern` + `match_means`) RegexGateEngine.verify()
-never reads, so the rule fires on nothing regardless of content
-(confirmed empirically; #851 filed, registry row marked `gap`).
+governance.intent_artifact_encoding.ascii_only WAS not here -- its mapping
+used a schema (`pattern` + `match_means`) RegexGateEngine.verify() never
+read, so the rule fired on nothing regardless of content (#851). Now fixed:
+the mapping uses `forbidden_patterns` (the real schema), and the 248 live
+.intent/ files it newly caught (958 em dashes, 859 box-drawing dividers,
+and 11 other non-ASCII symbols across comments and content) were cleaned
+via a purely mechanical 1:1 character substitution -- verified via a fresh
+regex sweep of the whole corpus (0 remaining non-ASCII bytes outside
+.intent/META/) and a full IntentRepository.initialize() (145 documents,
+343 policies, 257 rules -- unchanged counts pre/post cleanup) before this
+fixture pair was added.
 """
 
 from __future__ import annotations
@@ -46,6 +53,16 @@ def _load_rule_params(mapping_rel: str, rule_id: str) -> dict:
 def tmp_py(tmp_path: Path) -> Path:
     """Temp Python file under var/tmp/ (CLAUDE.md prohibits /tmp/)."""
     dest = _REPO_ROOT / "var" / "tmp" / f"g2_regex_{uuid.uuid4().hex}.py"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    yield dest
+    dest.unlink(missing_ok=True)
+
+
+@pytest.fixture
+def tmp_intent_yaml(tmp_path: Path) -> Path:
+    """Temp .yaml file under var/tmp/, matching this rule's own .intent/**/*.yaml
+    applies_to shape (content is what the engine reads, not the real path)."""
+    dest = _REPO_ROOT / "var" / "tmp" / f"g2_regex_intent_{uuid.uuid4().hex}.yaml"
     dest.parent.mkdir(parents=True, exist_ok=True)
     yield dest
     dest.unlink(missing_ok=True)
@@ -408,4 +425,35 @@ async def test_file_path_validation_clean_for_normal_path(
     params = _load_rule_params("will/planning.yaml", "planning.file_path_validation")
     tmp_py.write_text('p = "src/foo.py"\n', encoding="utf-8")
     result = await engine.verify(tmp_py, params)
+    assert not result.violations
+
+
+# ---------------------------------------------------------------------------
+# governance.intent_artifact_encoding.ascii_only (#851, now closed)
+# ---------------------------------------------------------------------------
+
+
+async def test_ascii_only_fires_on_em_dash(
+    tmp_intent_yaml: Path, engine: RegexGateEngine
+) -> None:
+    params = _load_rule_params(
+        "governance/intent_artifact_encoding.yaml",
+        "governance.intent_artifact_encoding.ascii_only",
+    )
+    tmp_intent_yaml.write_text(
+        "description: word " + chr(0x2014) + " word\n", encoding="utf-8"
+    )  # em dash (U+2014), the rule's own textbook violation
+    result = await engine.verify(tmp_intent_yaml, params)
+    assert result.violations
+
+
+async def test_ascii_only_clean_for_plain_ascii(
+    tmp_intent_yaml: Path, engine: RegexGateEngine
+) -> None:
+    params = _load_rule_params(
+        "governance/intent_artifact_encoding.yaml",
+        "governance.intent_artifact_encoding.ascii_only",
+    )
+    tmp_intent_yaml.write_text("description: word -- word\n", encoding="utf-8")
+    result = await engine.verify(tmp_intent_yaml, params)
     assert not result.violations

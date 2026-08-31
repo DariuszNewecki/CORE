@@ -17,10 +17,10 @@
 # the ADR-148 D4 stuck_finalizing roll-forward (consequence_source =
 # 'reaper_reconstructed') passes the check above (the row is present) but
 # carries fabricated, empty evidence. ADR-148 D7 (#790) adds a second,
-# independent check for exactly this — findings posted as
+# independent check for exactly this -- findings posted as
 # governance.consequence_evidence_degraded::{proposal_id}.
 #
-# NOTE: passive_gate is correct here — the worker is the detector, same
+# NOTE: passive_gate is correct here -- the worker is the detector, same
 # shape as governance.commit_authorship_integrity (authorship_integrity.yaml),
 # which this rule was extended alongside. This mapping satisfies
 # governance.remediation.all_rules_mapped (ADR-066); static engine-level
@@ -47,7 +47,7 @@ mappings:
   # The worker queries core.proposal_consequences joined to
   # core.autonomous_proposals for completed rows whose consequence_source =
   # 'reaper_reconstructed', and posts findings to the blackboard. Same
-  # passive_gate shape as its sibling rule above — the worker is the sole
+  # passive_gate shape as its sibling rule above -- the worker is the sole
   # detector; the audit engine does not duplicate it.
   governance.consequence_evidence_degraded:
     engine: passive_gate

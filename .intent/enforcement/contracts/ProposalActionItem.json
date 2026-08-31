@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.proposal_action_item",
-        "title": "ProposalActionItem — single action entry in a ProposalResponse",
+        "title": "ProposalActionItem -- single action entry in a ProposalResponse",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Element of ProposalResponse.actions. Represents one action step in an autonomous proposal — either an AtomicAction step (action_id set) or a Flow step (flow_id set). Exactly one of action_id/flow_id should be non-null per ADR-026 intent. Crosses the API boundary as part of ProposalResponse (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class ProposalActionItem.",
+    "description": "Element of ProposalResponse.actions. Represents one action step in an autonomous proposal -- either an AtomicAction step (action_id set) or a Flow step (flow_id set). Exactly one of action_id/flow_id should be non-null per ADR-026 intent. Crosses the API boundary as part of ProposalResponse (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class ProposalActionItem.",
     "governed_classes": [
         "ProposalActionItem"
     ],

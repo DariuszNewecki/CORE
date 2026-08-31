@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.blackboard_entry.payload.worker_heartbeat.schema.json",
-    "title": "BlackboardEntry.payload — worker.heartbeat shape",
+    "title": "BlackboardEntry.payload -- worker.heartbeat shape",
     "description": "JSON Schema for the payload JSONB column when entry_type='heartbeat' and subject='worker.heartbeat'. Posted by Worker.post_heartbeat() (delegates to BlackboardPublisher.post_heartbeat) with status='resolved'. Proves the worker is alive and constitutionally compliant. Authority: ADR-056 Wave 1; ADR-011 (blackboard write boundary); src/shared/workers/blackboard_publisher.py:173. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["worker", "ts"],

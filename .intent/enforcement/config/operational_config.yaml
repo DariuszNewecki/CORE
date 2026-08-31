@@ -38,7 +38,7 @@ chunking:
   max_chunk_chars: 1500
 
 # ---------------------------------------------------------------------------
-# Workers — per-worker claim limits and batch sizes
+# Workers -- per-worker claim limits and batch sizes
 # ---------------------------------------------------------------------------
 workers:
   call_site_rewriter:
@@ -74,7 +74,7 @@ workers:
     # proposal.stuck_executing::{proposal_id}.
     stuck_executing_sla_sec: 900
     stuck_finalizing_sla_sec: 300
-    # ADR-150 D1 (#802) — finalizing-redrive rail (ADR-104 D3/D9 family,
+    # ADR-150 D1 (#802) -- finalizing-redrive rail (ADR-104 D3/D9 family,
     # third instance). Failed roll-forwards are counted in place on the
     # proposal's single persistent open stuck_finalizing finding; at cap
     # the finding escalates to the governor inbox (indeterminate/human)
@@ -82,7 +82,7 @@ workers:
     finalizing_redrive_cap_n: 3
     # Stuck-undeferred SLA (#764): a proposal whose finding_ids include
     # findings still at 'open'/'claimed' instead of 'deferred_to_proposal'
-    # beyond this window — the creation-side deferral call either never ran
+    # beyond this window -- the creation-side deferral call either never ran
     # or failed. Short window: deferral should happen essentially
     # immediately after proposal creation in the same worker cycle.
     stuck_undeferred_sla_sec: 120
@@ -108,7 +108,7 @@ workers:
     retention_days: 7          # ADR-117 D2/D3
     max_reap_per_run: 200
   canary_janitor:
-    retention_seconds: 3600    # ADR-147 D5 — 1h, far past any normal canary trial
+    retention_seconds: 3600    # ADR-147 D5 -- 1h, far past any normal canary trial
     max_reap_per_run: 50
 
 # ---------------------------------------------------------------------------
@@ -116,20 +116,20 @@ workers:
 # ---------------------------------------------------------------------------
 blackboard:
   sla_default_seconds: 3600
-  # ADR-082 — Writer-as-sensor retention policy. Two sweep mechanisms hosted
+  # ADR-082 -- Writer-as-sensor retention policy. Two sweep mechanisms hosted
   # in BlackboardShopManager. Both run per-cycle with sweep_batch_max as the
   # row cap rail (memory feedback_destructive_autonomous_needs_rails_first).
   #
-  # Mechanism 1 — terminal telemetry hygiene. Hard DELETE for rows whose
+  # Mechanism 1 -- terminal telemetry hygiene. Hard DELETE for rows whose
   # subject begins with one of telemetry_subject_prefixes, status is
   # already terminal (resolved/abandoned), and created_at is older than
   # telemetry_ttl_days. ADR-044 llm_gate_verdicts precedent shape.
   #
-  # Mechanism 2 — DELEGATE-class OPEN finding sweep. Status transition
-  # open → resolved (with resolved_at = NOW()) for rows whose subject is in
+  # Mechanism 2 -- DELEGATE-class OPEN finding sweep. Status transition
+  # open -> resolved (with resolved_at = NOW()) for rows whose subject is in
   # delegate_finding_subjects and created_at is older than
   # delegate_finding_ttl_days. The matching post_report carries the original
-  # event payload — auto-resolution loses no evidence, only stale governor
+  # event payload -- auto-resolution loses no evidence, only stale governor
   # alerts. Subjects must be governance-decided as DELEGATE in
   # .intent/enforcement/remediation/auto_remediation.yaml.
   telemetry_ttl_days: 7
@@ -140,13 +140,13 @@ blackboard:
     - "coherence.violation_executor.blast_bound"
     - "coherence.repo_artifacts.drift"
   sweep_batch_max: 500
-  # ADR-104 D3 — reclaim rail. After an orphaned claim has been released this
+  # ADR-104 D3 -- reclaim rail. After an orphaned claim has been released this
   # many times it is abandoned (terminal) instead of re-opened, breaking a
   # crash -> reclaim -> crash loop. The orphan grace window and liveness
   # threshold are not separate knobs: per ratification #2 they are
   # health.worker_alive_threshold_sec (one clock).
   reclaim_cap_n: 3
-  # ADR-104 D9 (#637) — remediation-attempt rail. After autonomous
+  # ADR-104 D9 (#637) -- remediation-attempt rail. After autonomous
   # remediation has failed this many times for the same finding it is
   # abandoned (terminal Type-B). The counter lives in
   # payload.remediation_attempt_count and persists across revival cycles
@@ -158,7 +158,7 @@ blackboard:
 # ---------------------------------------------------------------------------
 health_log:
   stale_threshold_seconds: 3600
-  # F-19 convergence CTE (#563) rolling window — see
+  # F-19 convergence CTE (#563) rolling window -- see
   # body/services/health_log_service.py. #774 (ADR-040 sweep): moved out
   # of a src/ literal.
   convergence_rolling_window: 30
@@ -168,7 +168,7 @@ health_log:
 # ---------------------------------------------------------------------------
 daemon:
   one_shot_interval_sec: 300
-  # ADR-081 Step 0 — loop-hold instrumentation (Option 1: permanent).
+  # ADR-081 Step 0 -- loop-hold instrumentation (Option 1: permanent).
   # When set_debug is true, the daemon enables asyncio debug mode and sets
   # slow_callback_duration to surface synchronous-stretch warnings in the
   # journal. Step 3a-telemetry subscribes a structured handler to those
@@ -180,7 +180,7 @@ daemon:
   # cohort of audit sensors can't blackout the single-worker uvicorn API
   # after a restart. #774 (ADR-040 sweep): moved out of a src/ literal.
   startup_jitter_cap_sec: 30
-  # will/governance/daemon_runner.py — timeout on `systemctl --user
+  # will/governance/daemon_runner.py -- timeout on `systemctl --user
   # start|stop core-daemon` subprocess calls. #774 (ADR-040 sweep): the
   # constant existed in src/ but was never actually applied to the
   # subprocess call (dead), so systemctl invocations had no timeout
@@ -194,8 +194,8 @@ daemon:
 # consumes loop_hold.sample blackboard data from Step 3a-telemetry and
 # compares each worker's observed loop-hold over a time-bucketed window
 # against these thresholds. ADR-082 replaced the rolling-N cycle_window
-# with time windows — correct for event-driven sparse sampling.
-# Advisory only — findings propose declaration edits, never block.
+# with time windows -- correct for event-driven sparse sampling.
+# Advisory only -- findings propose declaration edits, never block.
 worker_classification:
   loop_hold_escalation_sec: 5.0
   loop_hold_deescalation_sec: 1.0
@@ -203,7 +203,7 @@ worker_classification:
   loop_hold_escalation_hours: 24
   # ADR-082 D2: 7 days of sustained cleanliness required to propose demotion.
   loop_hold_deescalation_hours: 168
-  # ADR-082 D1: noise floor — skip if fewer than this many samples in the
+  # ADR-082 D1: noise floor -- skip if fewer than this many samples in the
   # escalation window. Replaces cycle_window=5.
   min_samples_for_escalation: 3
   # ADR-082 D2: heartbeat activity proof required before de-escalation.
@@ -224,19 +224,19 @@ consequence_log:
   default_lookback_seconds: 3600
 
 # ---------------------------------------------------------------------------
-# Log partition maintenance (ADR-052 — core.llm_exchange_log DDL policy)
+# Log partition maintenance (ADR-052 -- core.llm_exchange_log DDL policy)
 # ---------------------------------------------------------------------------
 log_maintenance:
   advance_months: 3          # future monthly partitions pre-created ahead of today
   default_retention_months: 24  # fallback archive horizon when caller omits one
 
 # ---------------------------------------------------------------------------
-# Audit pipeline (ADR-044 — llm_gate verdict cache)
+# Audit pipeline (ADR-044 -- llm_gate verdict cache)
 # ---------------------------------------------------------------------------
 audit:
   # TTL for rows in core.llm_gate_verdicts. Rows older than this are
   # swept at the start of each audit run. TTL is hygiene, not correctness
-  # — file_content_hash + rule_content_hash mismatches handle correctness
+  # -- file_content_hash + rule_content_hash mismatches handle correctness
   # by producing a fresh row rather than serving a stale verdict.
   llm_gate_verdict_cache_ttl_days: 30
   # Threshold against repo_artifacts.last_crawled_at. When the crawler's
@@ -265,7 +265,7 @@ coverage:
   single_file_target_pct: 75.0
 
 # ---------------------------------------------------------------------------
-# Workflow gate — subprocess timeouts
+# Workflow gate -- subprocess timeouts
 # ---------------------------------------------------------------------------
 workflow_gate:
   linter_timeout_sec: 30.0
@@ -297,7 +297,7 @@ health:
   medium_lookback_minutes: 60
   short_lookback_minutes: 30
   recent_lookback_minutes: 10
-  # ADR-104 D8 — liveness lease cadence. A worker refreshes its registry
+  # ADR-104 D8 -- liveness lease cadence. A worker refreshes its registry
   # heartbeat this often while run() executes, so a long-running claim-holder
   # stays in the alive-set and is never reaped by the orphaned-claim sweep.
   # MUST stay below worker_alive_threshold_sec (600) with margin.
@@ -319,7 +319,7 @@ testing:
   snippet_max_lines: 20
 
 # ---------------------------------------------------------------------------
-# Strategy selector — scoring weights and thresholds
+# Strategy selector -- scoring weights and thresholds
 # ---------------------------------------------------------------------------
 strategy_selector:
   min_recommended_score: 15
@@ -354,7 +354,7 @@ analyzers:
   max_module_lines: 400
 
 # ---------------------------------------------------------------------------
-# Modularity — fix.modularity confidence gate (relocated from governance_paths.yaml)
+# Modularity -- fix.modularity confidence gate (relocated from governance_paths.yaml)
 # ---------------------------------------------------------------------------
 modularity:
   # Minimum SplitPlan confidence before fix.modularity splits a file. The LLM
@@ -468,7 +468,7 @@ authority_package:
   search_limit: 10
 
 # ---------------------------------------------------------------------------
-# Validation strategy — confidence thresholds per named strategy (ADR-040)
+# Validation strategy -- confidence thresholds per named strategy (ADR-040)
 # ---------------------------------------------------------------------------
 validation_strategy:
   minimal_threshold: 0.7

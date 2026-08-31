@@ -3,15 +3,15 @@
   # Status: HARDENED (P1.3)
   #
   # CHANGE LOG V2.3:
-  # - planning.no_code_generation: llm_gate → passive_gate
+  # - planning.no_code_generation: llm_gate -> passive_gate
   #   Rationale: Already enforced deterministically in base_planner.parse_and_validate_plan().
-  #   LLM gate was redundant AND a bypass risk — an LLM outage could block all planning.
-  # - planning.conceptual_only: llm_gate → passive_gate
+  #   LLM gate was redundant AND a bypass risk -- an LLM outage could block all planning.
+  # - planning.conceptual_only: llm_gate -> passive_gate
   #   Same rationale. The params-only check runs in base_planner.py on every plan.
   # - planning.file_path_validation and planning.trace_mandatory: unchanged (deterministic).
   #
   # LAW HYGIENE 2026-04-19: Removed stale "src/will/agents/specification_agent.py"
-  # from planning.trace_mandatory scope — that file does not exist in the codebase
+  # from planning.trace_mandatory scope -- that file does not exist in the codebase
   # and the reference had no other callers. No behavior change, pure cleanup.
 
   mappings:
@@ -47,7 +47,7 @@
           - "src/will/agents/base_planner.py"
 
     # 3. LAW: Paths must be valid.
-    # Regex Gate (deterministic) — unchanged.
+    # Regex Gate (deterministic) -- unchanged.
     planning.file_path_validation:
       engine: regex_gate
       params:
@@ -60,7 +60,7 @@
           - "src/will/agents/base_planner.py"
 
     # 4. LAW: Decisions must be traced.
-    # AST Gate (deterministic) — unchanged.
+    # AST Gate (deterministic) -- unchanged.
     planning.trace_mandatory:
       engine: ast_gate
       params:

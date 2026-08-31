@@ -69,7 +69,7 @@ mappings:
 
   # Rule: flow_must_propagate_write_false
   # FlowExecutor must propagate write=False to every step.
-  # Enforcement is structural — verified at Python runtime in executor.py.
+  # Enforcement is structural -- verified at Python runtime in executor.py.
   architecture.flows.flow_must_propagate_write_false:
     engine: python_runtime
     params:
@@ -78,7 +78,7 @@ mappings:
       note: >
         write=False is propagated unconditionally in FlowExecutor._execute_step().
         Any step that receives write=True does so only because the caller passed
-        write=True — not because the step escalated it. Verified by inspection
+        write=True -- not because the step escalated it. Verified by inspection
         of _execute_action_step and _execute_flow_step signatures.
     scope:
       applies_to:
@@ -93,20 +93,20 @@ mappings:
       forbidden_patterns:
         # register_flow() calls in src/ indicate a hardcoded declaration.
         # Legitimate registration happens only in FlowRegistry.load() which
-        # reads from .intent/flows/ — never via direct calls.
+        # reads from .intent/flows/ -- never via direct calls.
         - "register_flow\\("
     scope:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # FlowRegistry._load_file() builds FlowDefinition objects — not register_flow calls.
+        # FlowRegistry._load_file() builds FlowDefinition objects -- not register_flow calls.
         # The registry itself is the legitimate loader.
         - "src/body/flows/registry.py"
         - "tests/**/*.py"
         - "**/__init__.py"
 
   # Rule: worker_must_not_hardwire_sequence
-  # ADVISORY — Workers should delegate step sequences to declared Flows.
+  # ADVISORY -- Workers should delegate step sequences to declared Flows.
   # Not yet engine-checkable because the pattern (multiple sequential
   # ActionExecutor.execute calls in run()) requires AST context to
   # distinguish legitimate single-action dispatch from hardwired pipelines.

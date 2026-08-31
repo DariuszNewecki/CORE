@@ -10,9 +10,9 @@ mappings:
     params:
       check_type: pattern_match
       patterns:
-        # Full var/ path in string literal — "var/reports", "var/prompts/foo", etc.
+        # Full var/ path in string literal -- "var/reports", "var/prompts/foo", etc.
         - '["'']var/(?:reports|logs|prompts|exports|workflows|build|tmp|mind|run|drafts|context)[/"'']'
-        # Directory name as standalone or prefixed path-division operand — base / "reports"
+        # Directory name as standalone or prefixed path-division operand -- base / "reports"
         - '/\s*["''](?:reports|logs|prompts|exports|workflows|build|context|mind)["''/]'
       message: >
         Runtime directory name used in path construction expression. Route through
@@ -26,18 +26,18 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # Canonical surfaces — these ARE the abstraction
+        # Canonical surfaces -- these ARE the abstraction
         - "src/shared/path_resolver.py"
         - "src/shared/infrastructure/storage/file_handler.py"
         - "src/shared/infrastructure/storage/file_provider.py"
         # Tests construct paths against tmp_path directly
         - "tests/**/*.py"
-        # Glob/exclude pattern strings — not path construction expressions
+        # Glob/exclude pattern strings -- not path construction expressions
         - "src/mind/governance/audit_context.py"
         - "src/body/services/crawl_service/main_module.py"
         - "src/body/services/crawl_service/orchestrator.py"
         - "src/body/introspection/symbol_index_builder.py"
-        # Display string in console.print() message — not a path construction expression
+        # Display string in console.print() message -- not a path construction expression
         - "src/cli/logic/scout.py"
         # "mind" token navigates to src/mind/ source directory, not var/mind/ runtime dir
         - "src/mind/coherence/checks/dispatch_parity.py"

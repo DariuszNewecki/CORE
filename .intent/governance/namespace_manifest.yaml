@@ -4,14 +4,14 @@
 # Status:    active
 # Governs:   ADR-075 D4, D5, D6, D8
 # Vocabulary: .intent/taxonomies/governance_namespaces.yaml
-# Completeness rule: governance.namespace.classification_complete (D7 — blocking as of #505)
+# Completeness rule: governance.namespace.classification_complete (D7 -- blocking as of #505)
 #
 # Classifies every file under .intent/ and .specs/ into the
 # `governance_namespace` vocabulary declared by the taxonomy register.
 # Per ADR-075 D5, the governor is the classification authority. Type
 # and directory seed defaults; the governor MAY override per file.
 #
-# Per D6 the manifest is per-layer in shape — CORE's deployment manifest
+# Per D6 the manifest is per-layer in shape -- CORE's deployment manifest
 # is the union of framework entries and project::core entries. This file
 # carries both layers as a single classified surface today. When the
 # governance application separates layers into per-layer storage
@@ -23,7 +23,7 @@
 # Per D8, this initial population is a one-shot full pass. Going forward,
 # governance.namespace.classification_complete (D7, reporting) detects
 # any file added to .intent/ or .specs/ without an entry here and posts
-# a finding for governor classification — the §11 backfill-on-touch
+# a finding for governor classification -- the S11 backfill-on-touch
 # posture applied to the manifest itself.
 #
 # Entry shape:
@@ -46,7 +46,7 @@ classifications:
   # =====================================================================
 
   # ---------------------------------------------------------------------
-  # .intent/META/** — meta-schemas + enums (the shape of a valid
+  # .intent/META/** -- meta-schemas + enums (the shape of a valid
   # governance artifact). Framework by definition.
   # ---------------------------------------------------------------------
   - path: .intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json
@@ -81,7 +81,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/constitution/** — constitutional articles inherited by any
+  # .intent/constitution/** -- constitutional articles inherited by any
   # governed repo.
   # ---------------------------------------------------------------------
   - path: .intent/constitution/CONSTITUTIONAL-WORKFLOWS.md
@@ -94,7 +94,7 @@ classifications:
       Governor confirm.
 
   # ---------------------------------------------------------------------
-  # .intent/phases/** — six universal phase definitions
+  # .intent/phases/** -- six universal phase definitions
   # (INTERPRET/PARSE/LOAD/AUDIT/RUNTIME/EXECUTION).
   # ---------------------------------------------------------------------
   - path: .intent/phases/audit.yaml
@@ -111,7 +111,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/workflows/** — stage and definition files.
+  # .intent/workflows/** -- stage and definition files.
   # Stages are universal workflow building blocks. Definitions describe
   # generic workflows (canary validation, change-set lifecycle, coverage
   # remediation, modularity refactor) that apply to any governed code.
@@ -150,15 +150,15 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/taxonomies/** — vocabulary registers.
+  # .intent/taxonomies/** -- vocabulary registers.
   # ---------------------------------------------------------------------
   - path: .intent/taxonomies/capability_taxonomy.yaml
     governance_namespace: framework
   - path: .intent/taxonomies/filesystem_operations.yaml
     governance_namespace: framework
     notes: >
-      The audit-side call-name → op-class taxonomy declared by ADR-077
-      §2 and consumed by the protected-namespace access check. Framework:
+      The audit-side call-name -> op-class taxonomy declared by ADR-077
+      S2 and consumed by the protected-namespace access check. Framework:
       the FS-operation classification surface ships with CORE.
   - path: .intent/taxonomies/governance_namespaces.yaml
     governance_namespace: framework
@@ -175,7 +175,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/artifact_types/** — artifact-type registry (ADR-090 / F-41).
+  # .intent/artifact_types/** -- artifact-type registry (ADR-090 / F-41).
   # The universal artifact-type definitions consumed by sensors and
   # validators. Framework: the type vocabulary ships with CORE.
   # ---------------------------------------------------------------------
@@ -203,7 +203,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/rules/governance/** — framework subset.
+  # .intent/rules/governance/** -- framework subset.
   # Rules that govern governance artifacts themselves (encoding,
   # registers, remediation pattern, vocabulary store). The two
   # CORE-specific rule files (coherence.json, quarantine.json) appear
@@ -213,7 +213,7 @@ classifications:
     governance_namespace: framework
     notes: >
       Filesystem-operation taxonomy completeness + no-direct-yaml-import
-      rules (ADR-077 §3). Framework: the FS-operation governance surface
+      rules (ADR-077 S3). Framework: the FS-operation governance surface
       ships with CORE.
   - path: .intent/rules/governance/intent_artifact_encoding.json
     governance_namespace: framework
@@ -231,7 +231,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/rules/ai/** — generic AI/prompt governance applicable to
+  # .intent/rules/ai/** -- generic AI/prompt governance applicable to
   # any governed repo that hosts AI components.
   # ---------------------------------------------------------------------
   - path: .intent/rules/ai/capability_taxonomy_governance.json
@@ -244,7 +244,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/ai/** — match the framework rules/ai
+  # .intent/enforcement/mappings/ai/** -- match the framework rules/ai
   # cluster.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/ai/capability_taxonomy_governance.yaml
@@ -257,14 +257,14 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/governance/** — framework subset.
+  # .intent/enforcement/mappings/governance/** -- framework subset.
   # quarantine.yaml maps a project::core rule and appears below.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/governance/fs_operations.yaml
     governance_namespace: framework
     notes: >
       Enforcement bindings for the fs_operations rule cluster
-      (ADR-077 §3 + §6 step 2). Framework: matches the rule
+      (ADR-077 S3 + S6 step 2). Framework: matches the rule
       classification.
   - path: .intent/enforcement/mappings/governance/intent_artifact_encoding.yaml
     governance_namespace: framework
@@ -284,7 +284,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/runtime/** — framework subset.
+  # .intent/enforcement/mappings/runtime/** -- framework subset.
   # ADR-081 D7 drift detector. Reads runtime telemetry (loop_hold.sample
   # blackboard entries) against worker classification state to surface
   # misclassification as advisory findings.
@@ -295,7 +295,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/rules/runtime/** — framework subset.
+  # .intent/rules/runtime/** -- framework subset.
   # Rule declarations for runtime telemetry-driven invariants.
   # ---------------------------------------------------------------------
   - path: .intent/rules/runtime/worker_process_classification.json
@@ -304,7 +304,7 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/** — root-level envelope.
+  # .intent/enforcement/** -- root-level envelope.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/constitutional_envelope.yaml
     governance_namespace: framework
@@ -315,17 +315,17 @@ classifications:
       are CORE-specific.
 
   # ---------------------------------------------------------------------
-  # .specs/META/** — handoff schema.
+  # .specs/META/** -- handoff schema.
   # ---------------------------------------------------------------------
   - path: .specs/META/handoff.schema.json
     governance_namespace: framework
     notes: >
-      Handoff schema concept is framework. Governor confirm — if CORE
+      Handoff schema concept is framework. Governor confirm -- if CORE
       handoffs include CORE-specific fields, this may belong under
       project::core.
 
   # ---------------------------------------------------------------------
-  # .specs/CORE-CHARTER.md — founding charter of CORE-the-framework.
+  # .specs/CORE-CHARTER.md -- founding charter of CORE-the-framework.
   # ---------------------------------------------------------------------
   - path: .specs/CORE-CHARTER.md
     governance_namespace: framework
@@ -334,7 +334,7 @@ classifications:
       Governor confirm.
 
   # ---------------------------------------------------------------------
-  # .specs/northstar/** — framework vision.
+  # .specs/northstar/** -- framework vision.
   # ---------------------------------------------------------------------
   - path: .specs/northstar/CORE - What It Does.md
     governance_namespace: framework
@@ -347,14 +347,14 @@ classifications:
   - path: .specs/essays/core_northstar.md
     governance_namespace: framework
 
-  # .specs/ root — project::core contributor documents
+  # .specs/ root -- project::core contributor documents
   - path: .specs/CONTRIBUTOR-MINDSET.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/papers/** — framework subset.
-  # Heuristic: papers naming abstract patterns and concepts → framework;
-  # papers naming specific CORE workers/components → project::core
+  # .specs/papers/** -- framework subset.
+  # Heuristic: papers naming abstract patterns and concepts -> framework;
+  # papers naming specific CORE workers/components -> project::core
   # (appear in the project::core section below).
   # ---------------------------------------------------------------------
   - path: .specs/papers/CORE-Action.md
@@ -397,7 +397,7 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Crate.md
     governance_namespace: framework
-    notes: Governor confirm — concept paper, abstract noun.
+    notes: Governor confirm -- concept paper, abstract noun.
   - path: .specs/papers/CORE-DataContracts.md
     governance_namespace: framework
   - path: .specs/papers/CORE-DocumentationPipeline.md
@@ -420,7 +420,7 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Infrastructure-Definition.md
     governance_namespace: framework
-    notes: Governor confirm — could go either way on the title.
+    notes: Governor confirm -- could go either way on the title.
   - path: .specs/papers/CORE-IntentGuard.md
     governance_namespace: framework
   - path: .specs/papers/CORE-IntentRepository.md
@@ -445,7 +445,7 @@ classifications:
       Governor decide.
   - path: .specs/papers/CORE-RepositoryIndexing.md
     governance_namespace: framework
-    notes: Governor confirm — indexing model paper.
+    notes: Governor confirm -- indexing model paper.
   - path: .specs/papers/CORE-Rule-Authoring-Discipline.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Rule-Canonical-Form.md
@@ -483,18 +483,18 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .specs/concepts/** — framework concept papers.
+  # .specs/concepts/** -- framework concept papers.
   # Exploratory framework-shape thinking; promoted to papers when stable.
   # ---------------------------------------------------------------------
   - path: .specs/concepts/CORE-URS-Intake-Concept.md
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .specs/contracts/** — published framework contracts (OEM API etc.).
+  # .specs/contracts/** -- published framework contracts (OEM API etc.).
   # ---------------------------------------------------------------------
 
   # ---------------------------------------------------------------------
-  # .specs/core-ng/** — CORE-NG exploratory specs (framework redesign).
+  # .specs/core-ng/** -- CORE-NG exploratory specs (framework redesign).
   # Per .specs/core-ng/README.md: declarative-reconstruction thesis,
   # implementation-neutral declaration pack, conformance model. Nothing
   # here is binding for current CORE unless explicitly promoted. Framework:
@@ -556,10 +556,10 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
-  # .specs/decisions/** — framework subset.
+  # .specs/decisions/** -- framework subset.
   # Heuristic: ADRs establishing patterns / mechanisms / invariants
-  # inherited by any governed repo → framework. ADRs tuning CORE's own
-  # workers, columns, src/ files → project::core (in project::core
+  # inherited by any governed repo -> framework. ADRs tuning CORE's own
+  # workers, columns, src/ files -> project::core (in project::core
   # section below).
   # ---------------------------------------------------------------------
   - path: .specs/decisions/ADR-001-specs-layer-established.md
@@ -676,13 +676,13 @@ classifications:
   # =====================================================================
 
   # ---------------------------------------------------------------------
-  # .intent/cim/** — CORE Interface Map thresholds.
+  # .intent/cim/** -- CORE Interface Map thresholds.
   # ---------------------------------------------------------------------
   - path: .intent/cim/thresholds.yaml
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/flows/** — CORE's specific flow orchestrations
+  # .intent/flows/** -- CORE's specific flow orchestrations
   # (reference CORE-specific workers).
   # ---------------------------------------------------------------------
   - path: .intent/flows/flow.dev_sync.yaml
@@ -693,7 +693,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/governance/** — projection inventory + (this) manifest +
+  # .intent/governance/** -- projection inventory + (this) manifest +
   # taxonomy. All CORE's own meta-governance state.
   # ---------------------------------------------------------------------
   - path: .intent/governance/namespace_manifest.yaml
@@ -706,7 +706,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/workers/** — every CORE worker declaration.
+  # .intent/workers/** -- every CORE worker declaration.
   # ---------------------------------------------------------------------
   - path: .intent/workers/audit_ingest_worker.yaml
     governance_namespace: project::core
@@ -782,7 +782,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/architecture/** — CORE's specific api/body/will/shared
+  # .intent/rules/architecture/** -- CORE's specific api/body/will/shared
   # layer model rules.
   # ---------------------------------------------------------------------
   - path: .intent/rules/architecture/async_logic.json
@@ -825,13 +825,13 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/cli/** — CORE-specific CLI rules.
+  # .intent/rules/cli/** -- CORE-specific CLI rules.
   # ---------------------------------------------------------------------
   - path: .intent/rules/cli/interface_design.json
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/code/** — Python-specific style/structure rules for
+  # .intent/rules/code/** -- Python-specific style/structure rules for
   # CORE's source.
   # ---------------------------------------------------------------------
   - path: .intent/rules/code/imports.json
@@ -852,13 +852,13 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/data/** — CORE's data governance rules.
+  # .intent/rules/data/** -- CORE's data governance rules.
   # ---------------------------------------------------------------------
   - path: .intent/rules/data/governance.json
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/infrastructure/** — CORE infrastructure rules.
+  # .intent/rules/infrastructure/** -- CORE infrastructure rules.
   # ---------------------------------------------------------------------
   - path: .intent/rules/infrastructure/authority_boundaries.json
     governance_namespace: project::core
@@ -866,7 +866,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/will/** — CORE's will-layer rules.
+  # .intent/rules/will/** -- CORE's will-layer rules.
   # ---------------------------------------------------------------------
   - path: .intent/rules/will/autonomy.json
     governance_namespace: project::core
@@ -876,7 +876,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/rules/governance/** — project::core subset.
+  # .intent/rules/governance/** -- project::core subset.
   # coherence.json contains CORE-specific rules (coherence.repo_artifacts
   # references core.repo_artifacts). quarantine.json governs CORE's
   # quarantine subsystem.
@@ -896,7 +896,7 @@ classifications:
       considered a pattern. Governor decide.
 
   # ---------------------------------------------------------------------
-  # .intent/rules/governance/namespace.json — the new completeness rule
+  # .intent/rules/governance/namespace.json -- the new completeness rule
   # (this implementation).
   # ---------------------------------------------------------------------
   - path: .intent/rules/governance/namespace.json
@@ -907,7 +907,7 @@ classifications:
       Cognate to governance.vocabulary_registers (also framework).
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/config/** — CORE's runtime configuration values.
+  # .intent/enforcement/config/** -- CORE's runtime configuration values.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/config/action_risk.yaml
     governance_namespace: project::core
@@ -933,7 +933,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/contracts/** — CORE's runtime type contracts
+  # .intent/enforcement/contracts/** -- CORE's runtime type contracts
   # (ADR-056). Every contract describes a specific CORE runtime shape.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/contracts/ActionDefinition.json
@@ -1094,7 +1094,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/architecture/** — match the CORE
+  # .intent/enforcement/mappings/architecture/** -- match the CORE
   # architecture rule cluster.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/architecture/async_logic.yaml
@@ -1161,7 +1161,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/coherence/** — maps the CORE-specific
+  # .intent/enforcement/mappings/coherence/** -- maps the CORE-specific
   # coherence rules.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/coherence/coherence.yaml
@@ -1174,7 +1174,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/mappings/governance/** — project::core subset.
+  # .intent/enforcement/mappings/governance/** -- project::core subset.
   # The new namespace.yaml mapping (this implementation) is classified
   # framework along with its rule.
   # ---------------------------------------------------------------------
@@ -1205,20 +1205,20 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/quarantine/** — CORE's quarantine drainer
+  # .intent/enforcement/quarantine/** -- CORE's quarantine drainer
   # registry.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/quarantine/drainer_registry.yaml
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/enforcement/remediation/** — CORE's auto-remediation routes.
+  # .intent/enforcement/remediation/** -- CORE's auto-remediation routes.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/remediation/auto_remediation.yaml
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .intent/CHANGELOG.md — CORE's constitutional-state history.
+  # .intent/CHANGELOG.md -- CORE's constitutional-state history.
   # ---------------------------------------------------------------------
   - path: .intent/CHANGELOG.md
     governance_namespace: project::core
@@ -1235,24 +1235,24 @@ classifications:
   - path: .intent/daily_loop.md
     governance_namespace: project::core
     notes: >
-      File header marks this as "informal — not yet doctrine." Classified
+      File header marks this as "informal -- not yet doctrine." Classified
       project::core on directory placement; promotion to framework
       doctrine would require an ADR.
 
   # ---------------------------------------------------------------------
-  # .specs/decisions/** — newly added milestone records (continued).
+  # .specs/decisions/** -- newly added milestone records (continued).
   # ---------------------------------------------------------------------
   - path: .specs/decisions/CORE-A3-plan.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/requirements/** — newly added planning inputs (continued).
+  # .specs/requirements/** -- newly added planning inputs (continued).
   # ---------------------------------------------------------------------
   - path: .specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/papers/** — newly added OSS architectural papers (continued).
+  # .specs/papers/** -- newly added OSS architectural papers (continued).
   # ---------------------------------------------------------------------
   - path: .specs/papers/CORE-Repo-Split-Plan.md
     governance_namespace: project::core
@@ -1260,25 +1260,25 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/planning/** — CORE's own roadmaps and planning notes.
+  # .specs/planning/** -- CORE's own roadmaps and planning notes.
   # ---------------------------------------------------------------------
   - path: .specs/planning/CORE-BYOR-Program-Backlog.md
     governance_namespace: project::core
   - path: .specs/planning/INTERACTION-CONTRACT.md
     governance_namespace: project::core
     notes: >
-      Governor confirm — interaction contract may be a framework
+      Governor confirm -- interaction contract may be a framework
       pattern. Defaulted project::core on directory placement.
   - path: .specs/planning/SESSION-PROTOCOL.md
     governance_namespace: project::core
-    notes: Governor confirm — same gray-zone reasoning as above.
+    notes: Governor confirm -- same gray-zone reasoning as above.
   - path: .specs/planning/CORE-Feature-Dependency-Graph.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Operational-Completeness.md
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/requirements/** — URS for specific CORE features.
+  # .specs/requirements/** -- URS for specific CORE features.
   # ---------------------------------------------------------------------
   - path: .specs/requirements/CORE-Ask-URS.md
     governance_namespace: project::core
@@ -1298,7 +1298,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/verification/** — F-feature verification documents.
+  # .specs/verification/** -- F-feature verification documents.
   # project::core: verification is deployment-specific.
   # ---------------------------------------------------------------------
   - path: .specs/verification/F-40-sidecar-walk.md
@@ -1311,11 +1311,11 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/state/** — CORE recon, diagnostics, handoffs, snapshots.
+  # .specs/state/** -- CORE recon, diagnostics, handoffs, snapshots.
   # ---------------------------------------------------------------------
 
   # ---------------------------------------------------------------------
-  # .specs/papers/** — project::core subset.
+  # .specs/papers/** -- project::core subset.
   # Papers naming specific CORE workers / components / market posture.
   # ---------------------------------------------------------------------
   - path: .specs/papers/CORE-Blackboard-State-Machine.md
@@ -1358,7 +1358,7 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
-  # .specs/decisions/** — project::core subset.
+  # .specs/decisions/** -- project::core subset.
   # ADRs tuning CORE's own workers/columns/src files, recalibrating
   # CORE-specific rules, fixing CORE incidents.
   # ---------------------------------------------------------------------
@@ -1436,13 +1436,13 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-076-per-check-type-context-level-dispatch.md
     governance_namespace: project::core
-    # notes: gray — engine dispatch mechanism (framework-ish) vs CORE-specific #480 closure; governor review
+    # notes: gray -- engine dispatch mechanism (framework-ish) vs CORE-specific #480 closure; governor review
   - path: .specs/decisions/ADR-079-chokepoint-implementation-for-capability-scoped-filesystem-authority.md
     governance_namespace: project::core
-    # notes: gray — implements a framework mechanism in CORE src; classed with ADR-062/063/064 implementations; governor review
+    # notes: gray -- implements a framework mechanism in CORE src; classed with ADR-062/063/064 implementations; governor review
   - path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md
     governance_namespace: project::core
-    # notes: gray — generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
+    # notes: gray -- generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
   - path: .specs/decisions/ADR-082-d7-detection-window-sparse-loop-hold.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-083-commercial-add-on-stamping-f44-f47.md
@@ -1469,7 +1469,7 @@ classifications:
     governance_namespace: project::core
     notes: F-43 exit criterion is feature-specific to this deployment.
 
-  # ADR-098 through ADR-130 — added in the ADR-075 D7 backfill (2026-06-28)
+  # ADR-098 through ADR-130 -- added in the ADR-075 D7 backfill (2026-06-28)
   - path: .specs/decisions/ADR-098-aggregate-quality-gate-finding-shape.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-099-finding-nucleus-migration.md
@@ -1569,7 +1569,7 @@ classifications:
   - path: .specs/decisions/ADR-144-cross-namespace-relation-taxonomy.md
     governance_namespace: framework
 
-  # .intent/ — framework entries added in ADR-075 D7 backfill (2026-06-28)
+  # .intent/ -- framework entries added in ADR-075 D7 backfill (2026-06-28)
   - path: .intent/artifact_types/document_corpus.yaml
     governance_namespace: framework
   - path: .intent/enforcement/contracts/FixRunResult.json
@@ -1629,13 +1629,13 @@ classifications:
   - path: .intent/workers/prompt_drift_sensor.yaml
     governance_namespace: framework
 
-  # .specs/META/ — framework schema definitions
+  # .specs/META/ -- framework schema definitions
   - path: .specs/META/adr.header.schema.json
     governance_namespace: framework
   - path: .specs/META/paper.header.schema.json
     governance_namespace: framework
 
-  # .specs/papers/ — new governance papers
+  # .specs/papers/ -- new governance papers
   - path: .specs/essays/CORE-Disposition-Governance-Seed.md
     governance_namespace: framework
   - path: .specs/essays/CORE-Disposition-Governance.md
@@ -1652,12 +1652,12 @@ classifications:
   - path: .specs/papers/CORE-Specification-as-Source.md
     governance_namespace: framework
 
-  # .specs/planning/ — project::core (planning and roadmap documents)
+  # .specs/planning/ -- project::core (planning and roadmap documents)
   - path: .specs/planning/CORE-Semver-Policy.md
     governance_namespace: project::core
 
   # =====================================================================
-  # ADDED 2026-07-13 (#780) — governance.namespace.classification_complete
+  # ADDED 2026-07-13 (#780) -- governance.namespace.classification_complete
   # backfill. Files added to .intent/ and .specs/ since the last manifest
   # pass. Classified by dominant exact-directory precedent (the manifest's
   # own 'directory seeds the default' rule, ADR-075 D5); entries carrying
@@ -1711,15 +1711,15 @@ classifications:
   - path: .intent/architecture/bridges/audit_ingest_worker.yaml
     governance_namespace: project::core
     notes: >-
-      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) -- CORE-specific runtime, not reusable substrate. Classified project::core.
   - path: .intent/architecture/bridges/proposal_consumer_worker.yaml
     governance_namespace: project::core
     notes: >-
-      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) -- CORE-specific runtime, not reusable substrate. Classified project::core.
   - path: .intent/architecture/bridges/quality_ingest_worker.yaml
     governance_namespace: project::core
     notes: >-
-      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) — CORE-specific runtime, not reusable substrate. Classified project::core.
+      REVIEW: no sibling precedent. Worker-bridge wiring for CORE's own workers (audit/proposal/quality ingest) -- CORE-specific runtime, not reusable substrate. Classified project::core.
   - path: .intent/enforcement/contracts/ApproveRequest.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/CreateAuditRunRequest.json

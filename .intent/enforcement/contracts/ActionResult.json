@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.action_result",
-        "title": "ActionResult — universal atomic action result contract",
+        "title": "ActionResult -- universal atomic action result contract",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Universal result contract for all atomic actions in CORE (src/shared/action_types.py). Every AtomicAction must return an ActionResult. Critical risk: ConstitutionalViolationError provenance stored in the data dict is silently lost if required fields drift from this contract. CommandResult is a backward-compat module-level alias for ActionResult — not a separate governed class. Authority: ADR-056 Wave 1.",
+    "description": "Universal result contract for all atomic actions in CORE (src/shared/action_types.py). Every AtomicAction must return an ActionResult. Critical risk: ConstitutionalViolationError provenance stored in the data dict is silently lost if required fields drift from this contract. CommandResult is a backward-compat module-level alias for ActionResult -- not a separate governed class. Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "ActionResult"
     ],

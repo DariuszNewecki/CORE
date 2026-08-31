@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.proposal_response",
-        "title": "ProposalResponse — GET /v1/proposals/{id} response",
+        "title": "ProposalResponse -- GET /v1/proposals/{id} response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
@@ -36,7 +36,7 @@
     "properties": {
         "proposal_id": {
             "type": "string",
-            "description": "Unique proposal identifier (text, not UUID — matches autonomous_proposals.proposal_id)."
+            "description": "Unique proposal identifier (text, not UUID -- matches autonomous_proposals.proposal_id)."
         },
         "goal": {
             "type": "string",
@@ -49,7 +49,7 @@
         },
         "scope": {
             "type": "object",
-            "description": "ProposalScope JSONB — files and other resource constraints. Conforms to ProposalScope.json.",
+            "description": "ProposalScope JSONB -- files and other resource constraints. Conforms to ProposalScope.json.",
             "additionalProperties": true
         },
         "risk": {

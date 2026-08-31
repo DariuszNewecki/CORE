@@ -16,7 +16,7 @@ flow:
     - rules/code/purity
 
   steps:
-    # Headers before IDs — avoids prepend conflicts
+    # Headers before IDs -- avoids prepend conflicts
     - ref_id: fix.headers
       kind: action
       required: true
@@ -50,12 +50,12 @@ flow:
       kind: action
       required: true
 
-    # Modularity is optional — high risk, may not apply to every file
+    # Modularity is optional -- high risk, may not apply to every file
     - ref_id: fix.modularity
       kind: action
       required: false
 
-    # Format always last — cleans up after all other fixers
+    # Format always last -- cleans up after all other fixers
     - ref_id: fix.format
       kind: action
       required: true

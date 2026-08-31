@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.task_plan.schema.json",
-    "title": "Task.plan — planning step array element shape",
-    "description": "JSON Schema for a single element in the Task.plan JSONB array (src/shared/infrastructure/database/models/operations.py). Task.plan holds the ordered sequence of planning steps produced by the INTERPRET phase for a given task. The structure is implicit in the current codebase — no writer in src/ has been identified that populates this column with a stable schema. This contract documents the minimal observable shape and is intended for future enforcement once the plan authoring path is stabilized. Authority: ADR-056 Wave 2 (persistence boundary). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
+    "title": "Task.plan -- planning step array element shape",
+    "description": "JSON Schema for a single element in the Task.plan JSONB array (src/shared/infrastructure/database/models/operations.py). Task.plan holds the ordered sequence of planning steps produced by the INTERPRET phase for a given task. The structure is implicit in the current codebase -- no writer in src/ has been identified that populates this column with a stable schema. This contract documents the minimal observable shape and is intended for future enforcement once the plan authoring path is stabilized. Authority: ADR-056 Wave 2 (persistence boundary). This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": [],
     "additionalProperties": true,

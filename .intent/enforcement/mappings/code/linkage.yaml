@@ -9,7 +9,7 @@
         excludes: ["**/__init__.py", "tests/**"]
 
     # LAW: No ID collisions allowed.
-    # Stateless corpus check in ast_gate (#820 Group C) — the prior
+    # Stateless corpus check in ast_gate (#820 Group C) -- the prior
     # knowledge_gate mechanism required the DB knowledge graph (skipped in the
     # stateless --offline audit) and grouped on the capability `key`, not the
     # `# ID:` anchor, so it never fired. ast_gate.duplicate_ids is context-level

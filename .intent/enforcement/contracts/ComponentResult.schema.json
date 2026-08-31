@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.component_result.schema.json",
-    "title": "ComponentResult — universal component output shape",
+    "title": "ComponentResult -- universal component output shape",
     "description": "JSON Schema for the ComponentResult dataclass (src/shared/component_primitive.py:68). The universal result type returned by all Body components (Analyzers, Evaluators, Strategists) crossing a phase boundary. Constitutional requirement (Article IV): all components MUST return evaluable results with explicit success status. ComponentResult is the single source of truth for component outputs. Authority: ADR-056 Wave 1 (phase-boundary contract); src/shared/component_primitive.py. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["component_id", "ok", "data", "phase"],
@@ -29,11 +29,11 @@
             "minimum": 0.0,
             "maximum": 1.0,
             "default": 1.0,
-            "description": "Confidence in result (0.0–1.0). Used by workflow orchestrators for routing decisions. Defaults to 1.0 for deterministic components."
+            "description": "Confidence in result (0.0-1.0). Used by workflow orchestrators for routing decisions. Defaults to 1.0 for deterministic components."
         },
         "next_suggested": {
             "type": ["string", "null"],
-            "description": "Optional suggestion for the next component to run. A hint, not a requirement — orchestrators may ignore it. Null when no suggestion is relevant."
+            "description": "Optional suggestion for the next component to run. A hint, not a requirement -- orchestrators may ignore it. Null when no suggestion is relevant."
         },
         "metadata": {
             "type": "object",

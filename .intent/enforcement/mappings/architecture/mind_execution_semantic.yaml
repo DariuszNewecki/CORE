@@ -5,7 +5,7 @@
 # cheap regex pre-selector (ADR-043 D7.2 / #310).
 
 mappings:
-  # Pre-selector — flags Mind files containing structural markers of
+  # Pre-selector -- flags Mind files containing structural markers of
   # execution semantics. The LLM verdict in no_execution_semantics only
   # fires on files this rule has already touched.
   architecture.mind.execution_signal:

@@ -7,9 +7,9 @@ mappings:
   # RULE: governance.quarantine.namespace_has_drainer
   # Verifies every subject namespace currently holding rows in
   # awaiting_reaudit has a corresponding entry in drainer_registry.yaml.
-  # ADR-072 §"Mechanism" defines the behaviour. An entry's existence
+  # ADR-072 S"Mechanism" defines the behaviour. An entry's existence
   # is what closes the loop; the drainer worker class and method are
-  # documentation for human readers — the engine validates presence,
+  # documentation for human readers -- the engine validates presence,
   # not behaviour.
   governance.quarantine.namespace_has_drainer:
     engine: artifact_gate

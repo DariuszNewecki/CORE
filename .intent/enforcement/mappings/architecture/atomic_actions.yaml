@@ -7,7 +7,7 @@
 # or execution-time) rather than by a static analysis engine. The
 # python_runtime engine documents where enforcement occurs in code.
 #
-# The advisory entry is a naming boundary declaration —
+# The advisory entry is a naming boundary declaration --
 # it grants no automated check but removes the rule from declared_only.
 #
 # The regex_gate entry enforces the governed-impact-level invariant
@@ -63,7 +63,7 @@ mappings:
       applies_to:
         - "src/body/atomic/**/*.py"
 
-  # ADVISORY DECLARATION — naming boundary rule, not engine-checkable.
+  # ADVISORY DECLARATION -- naming boundary rule, not engine-checkable.
   atomic_actions.fix_action_scope:
     engine: advisory
     params:
@@ -96,7 +96,7 @@ mappings:
   # Rule: atomic_actions.must_accept_kwargs
   # Enforcement: Decoration-time TypeError raise in shared/atomic_action.py.
   # Every @atomic_action whose signature lacks **kwargs fails at import,
-  # so no audit-time finding is ever produced — the daemon cannot start
+  # so no audit-time finding is ever produced -- the daemon cannot start
   # with a violator present. See ADR-070 D8 and issue #448.
   atomic_actions.must_accept_kwargs:
     engine: python_runtime

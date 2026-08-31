@@ -1,6 +1,6 @@
 # .intent/enforcement/mappings/coherence/coherence.yaml
 #
-# Enforcement mappings for ADR-070 coherence rules — writer-as-sensor
+# Enforcement mappings for ADR-070 coherence rules -- writer-as-sensor
 # pattern. These rules are not evaluated by an external static gate;
 # they are enforced inside a runtime component (the writer) that posts
 # findings under the rule_id when its bound trips.

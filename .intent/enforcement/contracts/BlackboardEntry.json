@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.blackboard_entry",
-        "title": "BlackboardEntry — constitutional coordination ledger row contract",
+        "title": "BlackboardEntry -- constitutional coordination ledger row contract",
         "version": "1.0.2",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Whole-row contract for the BlackboardEntry ORM class (src/shared/infrastructure/database/models/workers.py). The blackboard is the sole inter-worker communication channel; every worker interaction produces a row here. entry_type governs the semantic family (finding, claim, proposal, report, heartbeat); payload is JSONB and carries family-specific fields not governed at the class level. __tablename__ and __table_args__ are SQLAlchemy ClassVar metaclass attributes declared as AnnAssign nodes in the class body; they are included in properties to prevent false-positive undeclared-field findings. Payload sub-contracts (worker_heartbeat, worker_error, run_complete families) are deferred — raw dict literals in worker base.py are not governable via the current AST gate. The three Finding surfaces (CheckResult, AuditFinding, BlackboardEntry entry_type='finding') are governed by Finding.json; adding BlackboardEntry to Finding.json governed_classes is deferred pending governor decision. Authority: ADR-056 Wave 1 Session 3.",
+    "description": "Whole-row contract for the BlackboardEntry ORM class (src/shared/infrastructure/database/models/workers.py). The blackboard is the sole inter-worker communication channel; every worker interaction produces a row here. entry_type governs the semantic family (finding, claim, proposal, report, heartbeat); payload is JSONB and carries family-specific fields not governed at the class level. __tablename__ and __table_args__ are SQLAlchemy ClassVar metaclass attributes declared as AnnAssign nodes in the class body; they are included in properties to prevent false-positive undeclared-field findings. Payload sub-contracts (worker_heartbeat, worker_error, run_complete families) are deferred -- raw dict literals in worker base.py are not governable via the current AST gate. The three Finding surfaces (CheckResult, AuditFinding, BlackboardEntry entry_type='finding') are governed by Finding.json; adding BlackboardEntry to Finding.json governed_classes is deferred pending governor decision. Authority: ADR-056 Wave 1 Session 3.",
     "governed_classes": [
         "BlackboardEntry"
     ],
@@ -26,11 +26,11 @@
     "properties": {
         "__tablename__": {
             "type": "string",
-            "description": "SQLAlchemy ClassVar — table name declaration. Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
+            "description": "SQLAlchemy ClassVar -- table name declaration. Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
         },
         "__table_args__": {
             "type": "object",
-            "description": "SQLAlchemy ClassVar — table arguments (schema, constraints). Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
+            "description": "SQLAlchemy ClassVar -- table arguments (schema, constraints). Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
         },
         "id": {
             "type": "string",
@@ -82,7 +82,7 @@
         },
         "resolution_mechanism": {
             "type": "string",
-            "description": "Closing-authority classification for finding rows. Non-omittable for entry_type='finding'; forbidden (NULL) for every other entry_type. Governed vocabulary: finding_resolution_mechanism enum in .intent/META/enums.json — values reaudit | self_resolve | human. Gates ADR-045 awaiting_reaudit eligibility per the ADR-091 D2 invariant: a finding may be transitioned to awaiting_reaudit if and only if its resolution_mechanism = 'reaudit'. Enforced at the DB layer by blackboard_entry_resolution_mechanism_closed_set CHECK. Authority: ADR-091 D2 Revision B."
+            "description": "Closing-authority classification for finding rows. Non-omittable for entry_type='finding'; forbidden (NULL) for every other entry_type. Governed vocabulary: finding_resolution_mechanism enum in .intent/META/enums.json -- values reaudit | self_resolve | human. Gates ADR-045 awaiting_reaudit eligibility per the ADR-091 D2 invariant: a finding may be transitioned to awaiting_reaudit if and only if its resolution_mechanism = 'reaudit'. Enforced at the DB layer by blackboard_entry_resolution_mechanism_closed_set CHECK. Authority: ADR-091 D2 Revision B."
         }
     },
     "allOf": [

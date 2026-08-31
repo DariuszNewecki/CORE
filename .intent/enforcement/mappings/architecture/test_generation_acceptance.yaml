@@ -6,7 +6,7 @@
 # The check is a bespoke, single-purpose AST check (TestGenAcceptanceCheck,
 # src/mind/logic/engines/ast_gate/checks/test_gen_acceptance_check.py) scoped
 # to the one known wiring point: TestGenCognitiveDelegate is the sole
-# CognitiveFlowDelegate for the test_generation capability (ADR-140 D9 —
+# CognitiveFlowDelegate for the test_generation capability (ADR-140 D9 --
 # no global delegate registry exists until >=3 delegate types do). Scope is
 # narrowed to that file rather than swept broadly, since the check has no
 # meaning outside it.

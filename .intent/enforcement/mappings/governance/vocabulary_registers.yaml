@@ -1,7 +1,7 @@
 # .intent/enforcement/mappings/governance/vocabulary_registers.yaml
 #
 # Enforcement mapping for governance.vocabulary_registers rules.
-# Declared under CORE-Vocabulary-Registers.md and Article I §5 of the
+# Declared under CORE-Vocabulary-Registers.md and Article I S5 of the
 # Constitution. Both rules require structured YAML/JSON field parsing;
 # python_runtime is the appropriate engine.
 #
@@ -9,7 +9,7 @@
 # intentional human correction of governance artifact authoring.
 #
 # Amendment 2026-05-25: scope.excludes for both rules cover
-# .intent/enforcement/mappings/** as a structural guard — mapping files
+# .intent/enforcement/mappings/** as a structural guard -- mapping files
 # have no register fields to validate (their schema in
 # enforcement_mapping.schema.json defines only engine, params, scope,
 # governed_exclusions, requires_findings_from).
@@ -47,7 +47,7 @@ mappings:
   # artifacts use UPPER_SNAKE_CASE. Diagnostic-register fields: severity,
   # verdict-state fields.
   # Scope: vocabulary declarations only. Enforcement mapping files are excluded
-  # as a structural guard — the mapping schema has no severity field to validate.
+  # as a structural guard -- the mapping schema has no severity field to validate.
   governance.vocabulary_registers.diagnostic_fields_must_be_uppercase:
     engine: python_runtime
     params:

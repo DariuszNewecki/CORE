@@ -44,5 +44,5 @@ invariants:
     - All changes pass constitutional audit before commit.
   must_not:
     - Workflow must not bypass audit validation before execution.
-    - Workflow must not split source files into submodules — use refactor_modularity for that.
-    - Workflow must not generate test files — use coverage_remediation for that.
+    - Workflow must not split source files into submodules -- use refactor_modularity for that.
+    - Workflow must not generate test files -- use coverage_remediation for that.

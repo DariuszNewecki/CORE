@@ -12,7 +12,7 @@
 #   All cli_gate check_types are CONTEXT-LEVEL (is_context_level_for ->
 #   True): they inspect the command registry / loader as a whole, not
 #   individual files. SCOPE_INERT (ADR-076 D6) therefore skips per-file
-#   scope matching for them, so the `applies_to` glob is documentary —
+#   scope matching for them, so the `applies_to` glob is documentary --
 #   it names the surface examined, not a per-file trigger.
 #
 #   Engine binding lives HERE, not in the rule JSON. The previous
@@ -52,7 +52,7 @@ mappings:
       # daemon control, healthchecks, dashboards, and other idioms the
       # rule was flagging on legitimate uses. Noun-shaped command names
       # (blackboard, capabilities, commands, search.search) are not
-      # added — they are genuine drift and remain architectural-judgment
+      # added -- they are genuine drift and remain architectural-judgment
       # per ADR-095 D1 posture.
       # 2026-06-23 vocabulary expansion: 9 domain verbs added
       # (accept, claim, gap-analysis, ingest, next, promote, propose,
@@ -62,7 +62,7 @@ mappings:
       # (accessibility, login, logout, whoami) covering UAC CLI surface
       # (ADR-124) that postdated the prior expansions.
       # 2026-08-26 vocabulary expansion: 2 hyphenated domain verbs added
-      # (adopt-pack, consequence-chain) — governor-inbox findings for
+      # (adopt-pack, consequence-chain) -- governor-inbox findings for
       # project.adopt-pack and demo.consequence-chain, same shape as prior
       # additions (audit-duplicates, check-imports, fix-atomic, ...).
       allowed_verbs:
@@ -173,7 +173,7 @@ mappings:
 
   # LAW: Mutating commands MUST be declared dangerous and require --write.
   # Confirmation MAY be added as an additional safeguard but MUST NOT
-  # replace --write (#824 — corrects the earlier "or confirmation" prose,
+  # replace --write (#824 -- corrects the earlier "or confirmation" prose,
   # which the gate below never actually accepted as an alternative).
   cli.dangerous_explicit:
     engine: cli_gate
@@ -192,7 +192,7 @@ mappings:
       applies_to: ["src/cli/**/*.py"]
 
   # LAW: CLI module imports MUST be fail-fast at process start
-  # (restated per ADR-076 D6 — see rule JSON. Structural check: static
+  # (restated per ADR-076 D6 -- see rule JSON. Structural check: static
   #  imports, no error-swallowing around the CLI loader.)
   cli.discovery_strict:
     engine: cli_gate

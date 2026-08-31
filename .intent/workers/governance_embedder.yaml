@@ -28,7 +28,7 @@ mandate:
   responsibility: >
     Harvest normative claims from the governance corpus (.specs/decisions/,
     .specs/papers/, .specs/northstar/, .intent/**/*.{json,yaml} excluding
-    META/) using the §2.5 marker register at
+    META/) using the S2.5 marker register at
     .intent/enforcement/config/normative_markers.yaml, compute content_sha
     per claim, and incrementally upsert/delete points in the Qdrant
     governance_claims collection. Re-embeds only on content_sha change.

@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.quality_gate_result",
-        "title": "QualityGateResult — outcome of the /quality/gates run",
+        "title": "QualityGateResult -- outcome of the /quality/gates run",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
@@ -23,7 +23,7 @@
         },
         "ok": {
             "type": "boolean",
-            "description": "The critical-gate verdict — false when any non-warning gate failed."
+            "description": "The critical-gate verdict -- false when any non-warning gate failed."
         },
         "components": {
             "type": "object",

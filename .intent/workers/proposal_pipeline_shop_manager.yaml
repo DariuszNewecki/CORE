@@ -16,7 +16,7 @@ mandate:
   responsibility: >
     Patrols the proposal pipeline for stuck-in-approved, stuck-executing,
     stuck-finalizing, stuck-undeferred, and repeated-failure pathologies
-    (CORE-ShopManager.md §3.3). Terminates+revives stuck-executing (ADR-104
+    (CORE-ShopManager.md S3.3). Terminates+revives stuck-executing (ADR-104
     D9), rolls forward stuck-finalizing (ADR-148 D4), redrives undeferred
     findings (#764); stuck-approved and repeated-failure are detection-only.
   phase: audit

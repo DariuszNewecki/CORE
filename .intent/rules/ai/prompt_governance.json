@@ -16,7 +16,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "Inline prompts are ungoverned, untestable, and bypass constitutional standards. PromptModels ensure every AI call carries validated context, a system prompt grounded in .intent/ policy, reference examples, and an output contract. This is the AI equivalent of 'no direct writes' — all mutations route through governed surfaces."
+            "rationale": "Inline prompts are ungoverned, untestable, and bypass constitutional standards. PromptModels ensure every AI call carries validated context, a system prompt grounded in .intent/ policy, reference examples, and an output contract. This is the AI equivalent of 'no direct writes' -- all mutations route through governed surfaces."
         },
         {
             "id": "ai.prompt.model_artifact_required",
@@ -24,7 +24,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "An incomplete PromptModel artifact is as dangerous as an inline prompt. The manifest is the contract — without it, there is no governance."
+            "rationale": "An incomplete PromptModel artifact is as dangerous as an inline prompt. The manifest is the contract -- without it, there is no governance."
         },
         {
             "id": "ai.prompt.system_prompt_required",

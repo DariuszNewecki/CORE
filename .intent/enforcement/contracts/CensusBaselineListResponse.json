@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.census_baseline_list_response",
-        "title": "CensusBaselineListResponse — GET /v1/census/baselines response",
+        "title": "CensusBaselineListResponse -- GET /v1/census/baselines response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Response body for GET /v1/census/baselines — lists all named census baselines registered in the CensusHistory baseline registry. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusBaselineListResponse.",
+    "description": "Response body for GET /v1/census/baselines -- lists all named census baselines registered in the CensusHistory baseline registry. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class CensusBaselineListResponse.",
     "governed_classes": [
         "CensusBaselineListResponse"
     ],

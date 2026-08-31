@@ -1,15 +1,15 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.census_run_result.schema.json",
-    "title": "CensusRunResult — outcome persisted to core.census_runs.result",
-    "description": "JSON Schema for the result JSONB column on core.census_runs (src/will/governance/census_runner.py). The column stores RepoCensus.model_dump(mode='json') — the complete CIM-0 census artifact — with an optional 'snapshot_file' key appended when snapshot=true was requested. The RepoCensus contract (contracts.repo_census / RepoCensus.json) governs the nested object structure; this schema documents the persistence boundary. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix — intentionally skipped by intent_validator.py.",
+    "title": "CensusRunResult -- outcome persisted to core.census_runs.result",
+    "description": "JSON Schema for the result JSONB column on core.census_runs (src/will/governance/census_runner.py). The column stores RepoCensus.model_dump(mode='json') -- the complete CIM-0 census artifact -- with an optional 'snapshot_file' key appended when snapshot=true was requested. The RepoCensus contract (contracts.repo_census / RepoCensus.json) governs the nested object structure; this schema documents the persistence boundary. Authority: ADR-056 Wave 3 (persistence-boundary contract). Uses .schema.json suffix -- intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": ["metadata", "repo", "tree", "signals", "summary"],
     "additionalProperties": true,
     "properties": {
         "metadata": {
             "type": "object",
-            "description": "RepoCensusMetadata — run identity and schema version. Fields: run_id (str, UUID), timestamp (datetime ISO), core_version (str), schema_id ('core.cim.repo_census'), schema_version ('1.0.0').",
+            "description": "RepoCensusMetadata -- run identity and schema version. Fields: run_id (str, UUID), timestamp (datetime ISO), core_version (str), schema_id ('core.cim.repo_census'), schema_version ('1.0.0').",
             "required": ["run_id", "core_version"],
             "additionalProperties": true,
             "properties": {
@@ -22,7 +22,7 @@
         },
         "repo": {
             "type": "object",
-            "description": "RepoInfo — basic repository identity. Fields: root_path (str), git_remote, git_branch, git_commit (all str|null).",
+            "description": "RepoInfo -- basic repository identity. Fields: root_path (str), git_remote, git_branch, git_commit (all str|null).",
             "required": ["root_path"],
             "additionalProperties": true,
             "properties": {
@@ -34,7 +34,7 @@
         },
         "tree": {
             "type": "object",
-            "description": "TreeStats — file tree statistics. Fields: total_files (int), total_directories (int), extensions (dict[str,int]), top_level_dirs (list[str]).",
+            "description": "TreeStats -- file tree statistics. Fields: total_files (int), total_directories (int), extensions (dict[str,int]), top_level_dirs (list[str]).",
             "required": ["total_files", "total_directories"],
             "additionalProperties": true,
             "properties": {
@@ -46,7 +46,7 @@
         },
         "signals": {
             "type": "object",
-            "description": "ArchitecturalSignals — detected architectural markers. Boolean flags: has_src, has_intent, has_sql, has_tests, has_docs; plus dependency_files (list[str]).",
+            "description": "ArchitecturalSignals -- detected architectural markers. Boolean flags: has_src, has_intent, has_sql, has_tests, has_docs; plus dependency_files (list[str]).",
             "additionalProperties": true,
             "properties": {
                 "has_src": {"type": "boolean", "default": false},
@@ -59,7 +59,7 @@
         },
         "summary": {
             "type": "object",
-            "description": "CensusSummary — aggregated governance statistics. Counts execution/mutation surfaces, write-zone breakdown, hotspot files, lane distribution, CLI entrypoints, and error count.",
+            "description": "CensusSummary -- aggregated governance statistics. Counts execution/mutation surfaces, write-zone breakdown, hotspot files, lane distribution, CLI entrypoints, and error count.",
             "additionalProperties": true,
             "properties": {
                 "execution_surfaces_count": {"type": "integer", "minimum": 0, "default": 0},
@@ -80,7 +80,7 @@
         },
         "execution_surfaces": {
             "type": "array",
-            "description": "list[ExecutionSurface] — detected entry points. Each item has: path (str), type (str: cli_entrypoint|main_block|service_app), line (int|null).",
+            "description": "list[ExecutionSurface] -- detected entry points. Each item has: path (str), type (str: cli_entrypoint|main_block|service_app), line (int|null).",
             "items": {
                 "type": "object",
                 "additionalProperties": true,
@@ -94,7 +94,7 @@
         },
         "mutation_surfaces": {
             "type": "array",
-            "description": "list[MutationSurface] — detected mutation capability. Each item has: path, type, operation, line, detail, write_zone, lane, allowlisted.",
+            "description": "list[MutationSurface] -- detected mutation capability. Each item has: path, type, operation, line, detail, write_zone, lane, allowlisted.",
             "items": {
                 "type": "object",
                 "additionalProperties": true
@@ -103,7 +103,7 @@
         },
         "errors": {
             "type": "array",
-            "description": "list[CensusError] — non-fatal errors during census. Each item has: path (str), error_type (str), message (str).",
+            "description": "list[CensusError] -- non-fatal errors during census. Each item has: path (str), error_type (str), message (str).",
             "items": {
                 "type": "object",
                 "additionalProperties": true,

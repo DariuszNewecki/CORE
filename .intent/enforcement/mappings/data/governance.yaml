@@ -44,7 +44,7 @@ mappings:
       applies_to:
         - "src/**/*.py"
 
-  # ── Wave 1 ─────────────────────────────────────────────────────────────────
+  # -- Wave 1 -----------------------------------------------------------------
 
   # ADR-102 (#612): cross-cutting check that catches the class of bind
   # error ADR-099 spent three revision passes trying to honor. Fires when
@@ -62,7 +62,7 @@ mappings:
 
   # ADR-102 (#613): empirical counterpart to layer_scope_coherence.
   # Queries core.audit_findings for finding counts per schema_conformance
-  # rule over the lookback window; for classes governed by ≥2 rules with
+  # rule over the lookback window; for classes governed by >=2 rules with
   # asymmetric counts (some 0, some >0), the high-firing rule's binding
   # is suspect. Catches the canonical ADR-102 case directly (Finding.json
   # firing against AuditFinding while AuditFinding.json fires 0).
@@ -77,10 +77,10 @@ mappings:
 
   # ADR-102 (#614): iceberg-shape detector. Fires on schema_conformance
   # rules where finding_count >= min_findings AND distinct file_paths
-  # <= max_distinct_files in the lookback window — the cluster shape
+  # <= max_distinct_files in the lookback window -- the cluster shape
   # itself signals the rule's binding is suspect. Catches the canonical
   # case even when only one contract is involved (asymmetric_contract_findings
-  # needs ≥2 contracts to fire; this one doesn't). Skip-silently when
+  # needs >=2 contracts to fire; this one doesn't). Skip-silently when
   # db_session is not injected.
   data.contracts.rule_binding_iceberg:
     engine: contracts_gate
@@ -257,7 +257,7 @@ mappings:
       applies_to:
         - "src/shared/models/embedding_payload.py"
 
-  # ── Wave 2 Session 1 ───────────────────────────────────────────────────────
+  # -- Wave 2 Session 1 -------------------------------------------------------
 
   data.contracts.governance_decision_conforms:
     engine: ast_gate
@@ -313,7 +313,7 @@ mappings:
       applies_to:
         - "src/body/flows/registry.py"
 
-  # ── Wave 2 Session 2 ───────────────────────────────────────────────────────
+  # -- Wave 2 Session 2 -------------------------------------------------------
 
   data.contracts.remediation_result_conforms:
     engine: ast_gate
@@ -405,7 +405,7 @@ mappings:
       applies_to:
         - "src/shared/models/validation_result.py"
 
-  # ── Wave 3 Session 1 — Workflow, vector, observability ─────────────────────
+  # -- Wave 3 Session 1 -- Workflow, vector, observability ---------------------
 
   # WorkflowResult and PhaseWorkflowResult both live in workflow_models.py.
   # Legacy and constitutional shapes coexist; both governed separately.
@@ -495,7 +495,7 @@ mappings:
       applies_to:
         - "src/body/services/cim/models.py"
 
-  # Wave 3 API DTO request shapes — ADR-056 Wave 3
+  # Wave 3 API DTO request shapes -- ADR-056 Wave 3
 
   data.contracts.create_audit_run_request_conforms:
     engine: ast_gate

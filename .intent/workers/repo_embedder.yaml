@@ -16,7 +16,7 @@ metadata:
     collection. Module path corrected from will.workers.repo_embedder to
     will.workers.repo_embedding to match the package on disk (ADR-018
     D3a). Registry singleton invariant restored in the worker class
-    (ADR-018 D3b) — RepoEmbedderWorker routes Qdrant and Cognitive
+    (ADR-018 D3b) -- RepoEmbedderWorker routes Qdrant and Cognitive
     service access through service_registry rather than direct
     construction.
 
@@ -29,8 +29,8 @@ mandate:
     Consume repo_artifacts records where content_hash has changed or
     chunk_count is zero, chunk each artifact by its type, embed the chunks,
     and upsert them into the appropriate Qdrant collection:
-    python→core-code, docs→core-docs, tests→core-tests, prompts→core-prompts,
-    reports→core-reports, intent→core-patterns.
+    python->core-code, docs->core-docs, tests->core-tests, prompts->core-prompts,
+    reports->core-reports, intent->core-patterns.
     Updates repo_artifacts.chunk_count on completion.
     Depends on RepoCrawlerWorker having populated repo_artifacts first.
   phase: audit

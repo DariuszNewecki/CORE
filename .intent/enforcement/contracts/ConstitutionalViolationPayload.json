@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "enforcement/contracts/ConstitutionalViolationPayload",
-        "title": "ConstitutionalViolationPayload — IntentGuard violation serialization envelope",
+        "title": "ConstitutionalViolationPayload -- IntentGuard violation serialization envelope",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active",
@@ -36,7 +36,7 @@
         },
         "violations": {
             "type": "array",
-            "description": "Structured list of per-violation dicts. Each entry mirrors ViolationReport fields serialized to primitives only — no nested dataclasses.",
+            "description": "Structured list of per-violation dicts. Each entry mirrors ViolationReport fields serialized to primitives only -- no nested dataclasses.",
             "items": {
                 "type": "object",
                 "required": ["rule_name", "path", "severity", "message"],

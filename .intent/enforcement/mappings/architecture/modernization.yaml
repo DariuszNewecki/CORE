@@ -48,7 +48,7 @@
       # symbol_calls edges outside tests/) is a cross-file, DB-backed join
       # that cannot run in file-scoped commit-gate engines. passive_gate
       # signals the audit engine does not duplicate the sensor's runtime
-      # check — same shape as governance.proposal_finalization_integrity
+      # check -- same shape as governance.proposal_finalization_integrity
       # (finalization_integrity.yaml). Satisfies ADR-066 all-rules-mapped.
       modernization.dead_shim:
         engine: passive_gate

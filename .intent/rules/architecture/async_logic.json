@@ -23,7 +23,7 @@
             "authority": "policy",
             "phase": "load",
             "enforcement": "advisory",
-            "rationale": "The original statement 'MUST NOT import get_session globally' was ambiguous between Reading A (no module-global session instance) and Reading B (no module-scope import statement). architecture.boundary.database_session_access resolves both readings with explicit layer permissions. Scope of the retired mapping (src/features/**  — directory removed — and src/body/services/**) was fully subsumed. Retired per direction 2, issue #512."
+            "rationale": "The original statement 'MUST NOT import get_session globally' was ambiguous between Reading A (no module-global session instance) and Reading B (no module-scope import statement). architecture.boundary.database_session_access resolves both readings with explicit layer permissions. Scope of the retired mapping (src/features/**  -- directory removed -- and src/body/services/**) was fully subsumed. Retired per direction 2, issue #512."
         },
         {
             "id": "logic.logging.standard_only",

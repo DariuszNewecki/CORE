@@ -16,7 +16,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "The AtomicAction → Flow → Worker hierarchy is the constitutional execution model. An AtomicAction that composes others violates the single-responsibility invariant, makes the execution graph invisible to governance, and prevents Flows from reasoning about step ordering and required/optional semantics. Identified named violation: build.tests (tracked for migration)."
+            "rationale": "The AtomicAction -> Flow -> Worker hierarchy is the constitutional execution model. An AtomicAction that composes others violates the single-responsibility invariant, makes the execution graph invisible to governance, and prevents Flows from reasoning about step ordering and required/optional semantics. Identified named violation: build.tests (tracked for migration)."
         },
         {
             "id": "architecture.flows.flow_must_not_post_to_blackboard",
@@ -24,7 +24,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "A Flow has no Blackboard presence — it has no mandate and no worker_uuid. Posting to the Blackboard from a Flow bypasses Worker attribution, violates ADR-011, and makes findings untraceable to a constitutional officer. Flows produce FlowResult; Workers decide what to post from that result."
+            "rationale": "A Flow has no Blackboard presence -- it has no mandate and no worker_uuid. Posting to the Blackboard from a Flow bypasses Worker attribution, violates ADR-011, and makes findings untraceable to a constitutional officer. Flows produce FlowResult; Workers decide what to post from that result."
         },
         {
             "id": "architecture.flows.flow_must_not_create_proposals",
@@ -32,7 +32,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "A Flow executes a declared step sequence under explicit instruction. A Flow that creates Proposals would be deciding when and why to act — that is Worker responsibility. Conflating the two collapses the Worker/Flow boundary and creates ungoverned autonomy at the composition layer."
+            "rationale": "A Flow executes a declared step sequence under explicit instruction. A Flow that creates Proposals would be deciding when and why to act -- that is Worker responsibility. Conflating the two collapses the Worker/Flow boundary and creates ungoverned autonomy at the composition layer."
         },
         {
             "id": "architecture.flows.flow_must_propagate_write_false",
@@ -48,7 +48,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "Governance-relevant declarations — step sequences, step ordering, required/optional semantics — are governance decisions, not implementation details. They belong in .intent/, not in src/. A Flow not in .intent/flows/ is invisible to audit, cannot be governed, and cannot be referenced in a Proposal without constitutional standing."
+            "rationale": "Governance-relevant declarations -- step sequences, step ordering, required/optional semantics -- are governance decisions, not implementation details. They belong in .intent/, not in src/. A Flow not in .intent/flows/ is invisible to audit, cannot be governed, and cannot be referenced in a Proposal without constitutional standing."
         },
         {
             "id": "architecture.flows.worker_must_not_hardwire_sequence",

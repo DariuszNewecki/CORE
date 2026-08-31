@@ -10,7 +10,7 @@ metadata:
   rationale: >
     Detects sensor-fixer incoherence: a fixer ran successfully for a violation
     but the sensor re-detected the same check_id + file_path on a subsequent
-    cycle. Incoherence causes silent churn — proposals execute, violations
+    cycle. Incoherence causes silent churn -- proposals execute, violations
     persist. ADR-027.
 
 identity:
@@ -23,7 +23,7 @@ mandate:
     checks whether the same check_id + file_path was re-detected in
     core.blackboard_entries after execution. Posts a
     coherence.incoherence::<check_id>::<file_hash> finding when detected.
-    Deduplicates — does not re-post an already-open incoherence finding. Does
+    Deduplicates -- does not re-post an already-open incoherence finding. Does
     not modify any proposal or finding. Detection only, per ADR-027 D1.
   phase: audit
   permitted_tools: []

@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.census_baseline_item",
-        "title": "CensusBaselineItem — a single named census baseline record",
+        "title": "CensusBaselineItem -- a single named census baseline record",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

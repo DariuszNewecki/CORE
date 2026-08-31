@@ -1,10 +1,10 @@
 # .intent/enforcement/mappings/architecture/async_logic.yaml
 mappings:
-  # RETIRED: logic.di.no_global_session — superseded by
+  # RETIRED: logic.di.no_global_session -- superseded by
   # architecture.boundary.database_session_access (issue #512, direction 2).
   # Rule retained in async_logic.json as advisory historical record.
   # passive_gate satisfies the all_rules_mapped invariant (ADR-066) while
-  # dispatching zero findings — consistent with "no findings are dispatched"
+  # dispatching zero findings -- consistent with "no findings are dispatched"
   # intent in the rule rationale.
   logic.di.no_global_session:
     engine: passive_gate

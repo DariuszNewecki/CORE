@@ -11,7 +11,7 @@ mappings:
     engine: regex_gate
     params:
       forbidden_patterns:
-        # Case-insensitive via inline (?i) flag — SQL is case-insensitive by
+        # Case-insensitive via inline (?i) flag -- SQL is case-insensitive by
         # convention and the codebase mixes "INSERT INTO" / "insert into"
         # against the same table. \s+ covers any whitespace between tokens
         # (including newlines inside multi-line SQL strings). (?:core\.)?
@@ -26,7 +26,7 @@ mappings:
         # Legitimate INSERT sites within the Worker system.
         # base.py thin-wraps BlackboardPublisher; the INSERT lives in the
         # publisher after it was extracted from base.py for testability.
-        # Both belong here — the INSERT still originates exclusively within
+        # Both belong here -- the INSERT still originates exclusively within
         # the Worker attribution path.
         - "src/shared/workers/base.py"
         - "src/shared/workers/blackboard_publisher.py" # Extracted Worker _post_entry implementation; INSERT is Worker-system-internal
@@ -47,7 +47,7 @@ mappings:
   #
   # Promotion path: ships at `reporting`; promotes to `blocking` after
   # one clean audit cycle confirms zero violations. Issue #575 step (4).
-  # Expected violations at engine landing: zero — the only current
+  # Expected violations at engine landing: zero -- the only current
   # awaiting_reaudit write site (revive_findings_for_failed_proposal at
   # src/body/services/blackboard_service/blackboard_proposal_service.py)
   # already carries the guard from commit 1c (b2887afe).
@@ -77,7 +77,7 @@ mappings:
   # Promotion path: ships at `reporting`; promotes to `blocking` after one
   # clean audit cycle confirms zero violations and the #628 fix-D backfill
   # clears the pre-existing indeterminate+reaudit rows. Expected violations at
-  # engine landing: zero — the four write sites (mark_indeterminate,
+  # engine landing: zero -- the four write sites (mark_indeterminate,
   # update_entry_status, CallSiteRewriter._mark_findings, PromptArtifactWriter)
   # all carry the human co-assignment from this change-set.
   architecture.blackboard.indeterminate_requires_human_mechanism:

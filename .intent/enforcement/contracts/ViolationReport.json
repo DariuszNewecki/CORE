@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.violation_report",
-        "title": "ViolationReport — IntentGuard constitutional violation detail",
+        "title": "ViolationReport -- IntentGuard constitutional violation detail",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Detailed violation report produced by IntentGuard when a constitutional rule is violated (src/mind/governance/violation_report.py). Each ViolationReport describes one violated rule at one file path. ViolationReport instances are collected into ConstitutionalViolationError.violations and serialized via to_dict() into proposal.execution_results. The ConstitutionalViolationPayload (to_dict() envelope) has no Python class and is deferred — same gap as ProposalConsequence. ViolationLike (same file) is a Protocol for duck-typed consumers to avoid Mind-layer imports; it is not a dataclass and is not governable via the current AST gate. Authority: ADR-056 Wave 1 Session 4.",
+    "description": "Detailed violation report produced by IntentGuard when a constitutional rule is violated (src/mind/governance/violation_report.py). Each ViolationReport describes one violated rule at one file path. ViolationReport instances are collected into ConstitutionalViolationError.violations and serialized via to_dict() into proposal.execution_results. The ConstitutionalViolationPayload (to_dict() envelope) has no Python class and is deferred -- same gap as ProposalConsequence. ViolationLike (same file) is a Protocol for duck-typed consumers to avoid Mind-layer imports; it is not a dataclass and is not governable via the current AST gate. Authority: ADR-056 Wave 1 Session 4.",
     "governed_classes": [
         "ViolationReport"
     ],

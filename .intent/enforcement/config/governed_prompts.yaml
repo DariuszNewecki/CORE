@@ -19,7 +19,7 @@ governed_prompts:
 
   - name: assumption_extractor
     anchors: ["ADR-003:D2"]
-    rationale: Constitutional assumption synthesis — extracts operational guidance from .intent/ for context building.
+    rationale: Constitutional assumption synthesis -- extracts operational guidance from .intent/ for context building.
 
   - name: coder_repair
     anchors: ["ADR-025"]
@@ -35,7 +35,7 @@ governed_prompts:
 
   - name: violation_remediator
     anchors: ["ADR-134:D8"]
-    rationale: Produces corrected source written via ViolationRemediatorWorker → ActionExecutor / FileHandler.
+    rationale: Produces corrected source written via ViolationRemediatorWorker -> ActionExecutor / FileHandler.
 
   - name: call_site_rewriter
     anchors: ["ADR-134:D8"]
@@ -55,36 +55,36 @@ governed_prompts:
 
   - name: line_length_refactorer
     anchors: ["ADR-134:D8"]
-    rationale: Refactors source lines; output written via LineLengthService → ActionExecutor.
+    rationale: Refactors source lines; output written via LineLengthService -> ActionExecutor.
 
   - name: clarity_v2_refactor
     anchors: ["ADR-134:D8"]
-    rationale: Produces clarity refactors written via ClarityService → ActionExecutor.
+    rationale: Produces clarity refactors written via ClarityService -> ActionExecutor.
 
   - name: logic_alignment_generic_repair
     anchors: ["ADR-134:D8"]
-    rationale: Generates alignment repairs written via alignment specialists → ActionExecutor.
+    rationale: Generates alignment repairs written via alignment specialists -> ActionExecutor.
 
   - name: complexity_reflex_refactor
     anchors: ["ADR-134:D8"]
-    rationale: Produces complexity refactors written via ComplexityService → ActionExecutor.
+    rationale: Produces complexity refactors written via ComplexityService -> ActionExecutor.
 
   - name: godd_object_modularizer
     anchors: ["ADR-134:D8"]
-    rationale: Generates God Object decomposition plans written via alignment specialists → ActionExecutor.
+    rationale: Generates God Object decomposition plans written via alignment specialists -> ActionExecutor.
 
   - name: single_test_fixer
     anchors: ["ADR-134:D8"]
-    rationale: Fixes failing tests; output written via SingleTestFixer → FileHandler / ActionExecutor.
+    rationale: Fixes failing tests; output written via SingleTestFixer -> FileHandler / ActionExecutor.
 
   - name: test_gen_prompt
     anchors: ["ADR-003"]
     rationale: File-level test generation path. Used by CodeGenerator when task_type="test_generation" (build.tests action). Parallel to context_aware_test_gen (symbol-level, ADR-133:D6); both retained.
 
-# Explicit exclusions — active in src/ but out of scope for governed_prompts.yaml (ADR-134:D8).
+# Explicit exclusions -- active in src/ but out of scope for governed_prompts.yaml (ADR-134:D8).
 # These are intermediate correction passes whose output feeds a governed prompt downstream;
 # they do not themselves produce the write artifact.
 #
-#   pattern_correction                    — intermediate pass inside CorrectionEngine
-#   self_correction_engine_correction_prompt — self-correction refinement in generation loop
-#   test_generation_test_executor         — validates test output before write decision; advisory
+#   pattern_correction                    -- intermediate pass inside CorrectionEngine
+#   self_correction_engine_correction_prompt -- self-correction refinement in generation loop
+#   test_generation_test_executor         -- validates test output before write decision; advisory

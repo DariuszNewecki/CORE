@@ -1,20 +1,20 @@
 # .intent/enforcement/mappings/architecture/artifact_discovery.yaml
 #
 # Enforcement mapping for the architecture.artifact_discovery_through_registry
-# rule (ADR-090 §Verification gate 9; issue #566).
+# rule (ADR-090 SVerification gate 9; issue #566).
 #
 # The check itself is per-file (AST-walked by ast_gate.ArtifactDiscoveryCheck)
 # and lives at src/mind/logic/engines/ast_gate/checks/artifact_discovery_check.py.
 # The check function self-filters by file location to the artifact-pipeline
 # prefixes (will/workers, mind/governance, mind/coherence,
-# body/services/crawl_service) — out-of-scope files short-circuit to empty
+# body/services/crawl_service) -- out-of-scope files short-circuit to empty
 # violations without further inspection. Broad scope here is therefore
 # safe: ast_gate visits every src/**/*.py file once, the check rejects
 # files outside the pipeline directories at the cost of a single AST walk.
 
 mappings:
   # LAW: artifact-pipeline components MUST consult the artifact_type registry
-  # via IntentRepository — not hardcoded extension-based globs.
+  # via IntentRepository -- not hardcoded extension-based globs.
   # Enforcement: per-file AST check via ast_gate; ramp posture below.
   architecture.artifact_discovery_through_registry:
     engine: ast_gate
@@ -29,7 +29,7 @@ mappings:
         # Non-discovery carve-outs surfaced by #566 triage (#586):
         # The rule's own statement exempts "non-discovery file walks (test
         # runners, config loaders, build tooling)". The three entries below
-        # are concrete instances — each walks a narrow subset of a registered
+        # are concrete instances -- each walks a narrow subset of a registered
         # artifact_type for a non-discovery purpose. Removing a carve-out
         # entry requires either (a) demonstrating the file IS performing
         # artifact discovery, or (b) refactoring it to route through the

@@ -48,7 +48,7 @@
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "EmbeddingService reads LOCAL_EMBEDDING_API_URL from env/settings, bypassing the DB-backed resource registry (core.llm_resources + role assignments). Constructing it directly decouples resource configuration from governance. All embedding access outside shared infrastructure MUST resolve through CognitiveService → Vectorizer role → CognitiveEmbedderAdapter so that host, model, and timeout are operator-governed and auditable."
+            "rationale": "EmbeddingService reads LOCAL_EMBEDDING_API_URL from env/settings, bypassing the DB-backed resource registry (core.llm_resources + role assignments). Constructing it directly decouples resource configuration from governance. All embedding access outside shared infrastructure MUST resolve through CognitiveService -> Vectorizer role -> CognitiveEmbedderAdapter so that host, model, and timeout are operator-governed and auditable."
         },
         {
             "id": "architecture.boundary.remediation_write_access",
@@ -56,7 +56,7 @@
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "audit",
-            "rationale": "ADR-154 D4: RemediationCeremony was structurally retired from direct production mutation onto the human-gated proposal path. This import boundary closes the reintroduction route via a fresh direct GitService import. CrateProcessingService is deliberately not banned here — crate_canary.py legitimately imports it for validate_crate_by_id() (Canary validation), so an import-level ban would also block legitimate candidate validation. The decisive enforcement against apply_and_finalize_crate()/commit_paths() reappearing — including via dependency-injected or already-imported service handles this import check cannot see — is the companion call-site boundary test, not this rule."
+            "rationale": "ADR-154 D4: RemediationCeremony was structurally retired from direct production mutation onto the human-gated proposal path. This import boundary closes the reintroduction route via a fresh direct GitService import. CrateProcessingService is deliberately not banned here -- crate_canary.py legitimately imports it for validate_crate_by_id() (Canary validation), so an import-level ban would also block legitimate candidate validation. The decisive enforcement against apply_and_finalize_crate()/commit_paths() reappearing -- including via dependency-injected or already-imported service handles this import check cannot see -- is the companion call-site boundary test, not this rule."
         }
     ]
 }

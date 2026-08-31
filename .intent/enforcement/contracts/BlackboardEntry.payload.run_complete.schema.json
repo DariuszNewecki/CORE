@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.intent.blackboard_entry.payload.run_complete.schema.json",
-    "title": "BlackboardEntry.payload — *.run.complete nucleus shape",
+    "title": "BlackboardEntry.payload -- *.run.complete nucleus shape",
     "description": "JSON Schema nucleus for the payload JSONB column when subject matches the *.run.complete family. Workers post a report under '<worker_name>.run.complete' at the end of a successful run cycle. The nucleus defines no required fields because specific shapes differ by worker (see worker-specific extensions in the blackboard subject enum). All *.run.complete payloads use additionalProperties:true to allow worker-specific fields. Authority: ADR-056 Wave 1; ADR-011. This file uses the .schema.json suffix and is intentionally skipped by intent_validator.py.",
     "type": "object",
     "required": [],

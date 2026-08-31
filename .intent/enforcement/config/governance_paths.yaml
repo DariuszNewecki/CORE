@@ -20,7 +20,7 @@ remediation:
   map_path: ".intent/enforcement/remediation/auto_remediation.yaml"
 
   # Minimum confidence threshold for AuditAnalyzer to propose an autonomous fix.
-  # Range: 0.0 – 1.0
+  # Range: 0.0 - 1.0
   # safe_only mode requires entries >= this value in auto_remediation.yaml.
   # Raise only when fixer coverage and test confidence both justify it.
   min_confidence: 0.80

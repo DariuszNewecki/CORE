@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.remediation_run_response",
-        "title": "RemediationRunResponse — GET /v1/audit/remediations/{run_id} response",
+        "title": "RemediationRunResponse -- GET /v1/audit/remediations/{run_id} response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Response shape for GET /v1/audit/remediations/{run_id}. The result field carries an AuditRemediationRunResult (contracts.audit_remediation_run_result) — the flattened RemediationResult summary persisted after a remediation run. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class RemediationRunResponse.",
+    "description": "Response shape for GET /v1/audit/remediations/{run_id}. The result field carries an AuditRemediationRunResult (contracts.audit_remediation_run_result) -- the flattened RemediationResult summary persisted after a remediation run. Crosses the API boundary (ADR-056 D7 criterion 6). Authority: ADR-056 Wave 3 (#366). Source: src/api/v1/schemas.py, class RemediationRunResponse.",
     "governed_classes": [
         "RemediationRunResponse"
     ],

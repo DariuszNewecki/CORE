@@ -9,12 +9,12 @@
 # `core-admin health` output and the API /v1/health endpoint.
 #
 # mode values:
-#   solo        — single governor, local-only trust (current).
+#   solo        -- single governor, local-only trust (current).
 #                 Mutation endpoints gated by governor authentication only.
-#   multi_user  — multiple users with role-differentiated access.
+#   multi_user  -- multiple users with role-differentiated access.
 #                 Requires all multi_user_prerequisites below to be CLOSED.
 #
-# Changing mode: solo → multi_user without closing all prerequisites is a
+# Changing mode: solo -> multi_user without closing all prerequisites is a
 # constitutional violation of ADR-110 D1. The change requires a governor
 # commit referencing the closed issue numbers and their verification commits.
 

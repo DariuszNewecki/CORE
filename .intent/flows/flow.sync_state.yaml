@@ -16,7 +16,7 @@ flow:
     - rules/code/purity
 
   steps:
-    # DB sync is the gate — vectors are skipped if DB fails
+    # DB sync is the gate -- vectors are skipped if DB fails
     - ref_id: sync.db
       kind: action
       required: true

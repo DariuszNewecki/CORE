@@ -48,7 +48,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "Naming ambiguity between 'fix imports (sort)' and 'fix imports (validate)' creates a false sense of safety. A dev-sync run that includes fix.imports and reports ok=True MUST NOT imply that all imports are valid — only that they are sorted. This rule eliminates that ambiguity constitutionally."
+            "rationale": "Naming ambiguity between 'fix imports (sort)' and 'fix imports (validate)' creates a false sense of safety. A dev-sync run that includes fix.imports and reports ok=True MUST NOT imply that all imports are valid -- only that they are sorted. This rule eliminates that ambiguity constitutionally."
         },
         {
             "id": "atomic_actions.impact_level_must_be_governed",
@@ -56,7 +56,7 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
-            "rationale": "Impact level determines whether an action requires human approval or auto-executes — a governance decision that belongs in .intent/, not in src/. Centralizing it in action_risk.yaml makes reclassification an auditable constitutional edit rather than a code change. See ADR-008."
+            "rationale": "Impact level determines whether an action requires human approval or auto-executes -- a governance decision that belongs in .intent/, not in src/. Centralizing it in action_risk.yaml makes reclassification an auditable constitutional edit rather than a code change. See ADR-008."
         },
         {
             "id": "atomic_actions.must_accept_kwargs",

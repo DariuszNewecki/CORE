@@ -20,7 +20,7 @@ mappings:
         - "tests/**"
 
   # Logic/runtime code must not use terminal-oriented rendering primitives.
-  # enforcement: reporting — see channels.json note for migration context.
+  # enforcement: reporting -- see channels.json note for migration context.
   # src/will/workflows/** excluded pending migration to src/cli/.
   # This entire cluster (dev_sync_reporter, phase executors) is constitutional
   # debt: it performs terminal rendering from Will layer. Migration is required
@@ -33,7 +33,7 @@ mappings:
   # - forbidden_calls: added sys.{stdout,stderr}.write (direct terminal I/O
   #   that bypasses logger), pprint.pprint (stdlib pretty-printing), and
   #   console.{log,rule} (other Rich Console output methods).
-  # Bare "pprint" deliberately NOT added — too generic a name to list bare;
+  # Bare "pprint" deliberately NOT added -- too generic a name to list bare;
   # would require import-tracking to catch safely.
   architecture.channels.logic_no_terminal_rendering:
     engine: ast_gate
@@ -61,7 +61,7 @@ mappings:
         # Added: direct terminal I/O bypassing the logger
         - "sys.stdout.write"
         - "sys.stderr.write"
-        # Added: stdlib pretty-printing (qualified form only — bare pprint
+        # Added: stdlib pretty-printing (qualified form only -- bare pprint
         # is too generic to list safely)
         - "pprint.pprint"
         # Added: other Rich Console output methods beyond .print
@@ -138,7 +138,7 @@ mappings:
         - "src/will/workflows/**"
         - "tests/**"
 
-  # ADVISORY DECLARATION — permissive rule, no engine check needed.
+  # ADVISORY DECLARATION -- permissive rule, no engine check needed.
   architecture.channels.cli_rendering_allowed:
     engine: advisory
     params:
@@ -152,14 +152,14 @@ mappings:
 
   # API routes returning blackboard/audit data must declare an explicit
   # response_model. enforcement: reporting (ramps to blocking once full
-  # coverage is confirmed — #727). No AST engine exists yet for response_model
+  # coverage is confirmed -- #727). No AST engine exists yet for response_model
   # detection; passive_gate until one is authored.
   architecture.api.response_must_use_declared_schema:
     engine: passive_gate
     params:
       attestation_class: "D"
       note: >
-        Passive gate — no AST check authored yet. The rule is enforcement:
+        Passive gate -- no AST check authored yet. The rule is enforcement:
         reporting. Violations are surfaced manually via code review.
         Ramps to an ast_gate check once the decorator-response_model
         detection pattern is implemented.

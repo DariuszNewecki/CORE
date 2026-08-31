@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.embedding_payload",
-        "title": "EmbeddingPayload — vector store payload schema",
+        "title": "EmbeddingPayload -- vector store payload schema",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Strict schema for the payload of every vector stored in Qdrant (src/shared/models/embedding_payload.py). Pydantic BaseModel. The docstring explicitly claims 'strict schema' — this contract formalizes that claim constitutionally. Every stored vector must carry this payload to ensure all knowledge is traceable to its origin. All required fields use Pydantic Field(...) with no default — absence at construction time raises a validation error. Authority: ADR-056 Wave 1 Session 4.",
+    "description": "Strict schema for the payload of every vector stored in Qdrant (src/shared/models/embedding_payload.py). Pydantic BaseModel. The docstring explicitly claims 'strict schema' -- this contract formalizes that claim constitutionally. Every stored vector must carry this payload to ensure all knowledge is traceable to its origin. All required fields use Pydantic Field(...) with no default -- absence at construction time raises a validation error. Authority: ADR-056 Wave 1 Session 4.",
     "governed_classes": [
         "EmbeddingPayload"
     ],

@@ -4,7 +4,7 @@ kind: artifact_type
 id: intent_json
 title: Constitutional .intent JSON
 description: >
-  JSON documents under .intent/ — enums, schema definitions, global
+  JSON documents under .intent/ -- enums, schema definitions, global
   meta-schema, vocabulary projection, and other structured constitutional
   state encoded in JSON rather than YAML. Sibling to intent_yaml; the
   two carry different change-record formats (structured_patch is
@@ -21,7 +21,7 @@ change_record: structured_patch
 vector_collection: core-patterns   # routed alongside intent_yaml
 crawler_indexed: true
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - intent_inspector
   - repo_crawler
 supported_actions: []   # F-43 forward (ADR-090 D5)

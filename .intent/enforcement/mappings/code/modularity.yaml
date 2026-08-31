@@ -1,9 +1,9 @@
 # Code modularity enforcement mappings
-# Source file structure enforcement — splitting and refactoring detection
+# Source file structure enforcement -- splitting and refactoring detection
 
 mappings:
   # LAW: Files exceeding line limit with single coherent responsibility SHOULD be split
-  # Automatable — mechanical redistribution, no discipline boundaries crossed
+  # Automatable -- mechanical redistribution, no discipline boundaries crossed
   modularity.needs_split:
     engine: ast_gate
     params:
@@ -25,7 +25,7 @@ mappings:
         - "**/__init__.py"
 
   # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
-  # reviewed by a human. Mechanical redistribution cannot resolve these —
+  # reviewed by a human. Mechanical redistribution cannot resolve these --
   # the problem lives inside the class (see ADR-007).
   modularity.class_too_large:
     engine: ast_gate
@@ -35,7 +35,7 @@ mappings:
       # Per ADR-042: pre-selector threshold raised from 400 to 500 for
       # consistency with needs_split. The verdict on whether an oversize
       # class is genuinely poly-responsibility lives in
-      # modularity.unix_philosophy (llm_gate, currently stubbed — see #306).
+      # modularity.unix_philosophy (llm_gate, currently stubbed -- see #306).
       max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
@@ -48,7 +48,7 @@ mappings:
     governed_exclusions: []
 
   # LAW: Files mixing distinct architectural disciplines MUST be refactored
-  # Blocking — requires human judgment before any autonomous action
+  # Blocking -- requires human judgment before any autonomous action
   modularity.needs_refactor:
     engine: ast_gate
     params:

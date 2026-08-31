@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.lane_finding_with_bundle",
-        "title": "LaneFindingWithBundle — delegated finding with ADR-109 context bundle",
+        "title": "LaneFindingWithBundle -- delegated finding with ADR-109 context bundle",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
@@ -31,7 +31,7 @@
         },
         "payload": {
             "type": "object",
-            "description": "Raw blackboard entry payload — AuditFinding shape (inherited from LaneFindingItem).",
+            "description": "Raw blackboard entry payload -- AuditFinding shape (inherited from LaneFindingItem).",
             "additionalProperties": true
         },
         "created_at": {
@@ -41,7 +41,7 @@
         },
         "bundle": {
             "type": "object",
-            "description": "LaneBundle (contracts.lane_bundle) — rule metadata and remediation guidance enrichment.",
+            "description": "LaneBundle (contracts.lane_bundle) -- rule metadata and remediation guidance enrichment.",
             "$ref": "LaneBundle.json"
         }
     }

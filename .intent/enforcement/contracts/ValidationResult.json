@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.validation_result",
-        "title": "ValidationResult — canonical validation result",
+        "title": "ValidationResult -- canonical validation result",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

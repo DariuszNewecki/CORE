@@ -14,15 +14,15 @@ discovery:
 identity_key: path
 schema_ref: null   # AST-parsed, not JSON-schema-validated
 change_record: text_diff
-vector_collection: core-code   # ADR-090 D7 — was `code`, aligned with crawler's existing collection
+vector_collection: core-code   # ADR-090 D7 -- was `code`, aligned with crawler's existing collection
 crawler_indexed: true
 
 # Note: tests/**/*.py lives in its own artifact_type `test` so the crawler
 # can route test source to a distinct vector collection (core-tests) for
 # semantic-search separation. Both are governance-equivalent Python source
-# — the split is a vector-index concern, not a governance concern.
+# -- the split is a vector-index concern, not a governance concern.
 
-supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - audit_sensor_architecture
   - audit_sensor_cli
   - audit_sensor_governance
@@ -33,7 +33,7 @@ supported_sensors:        # ADR-091 D4 — authored set; introspected via taxono
   - audit_sensor_purity
   - audit_sensor_style
   - audit_violation_sensor
-  - dead_shim_sensor      # ADR-151 — graph-backed dead-shim conjunction
+  - dead_shim_sensor      # ADR-151 -- graph-backed dead-shim conjunction
   - coherence_sensor
   - repo_crawler
   - test_coverage_sensor

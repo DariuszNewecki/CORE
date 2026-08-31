@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.proposal",
-        "title": "Proposal — state-conditional field contract",
+        "title": "Proposal -- state-conditional field contract",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "State-conditional field invariants for the Proposal domain dataclass (src/will/autonomy/proposal.py). ProposalStateManager is the runtime enforcement site; this contract makes its invariants constitutionally visible and auditable. Authority: ADR-056 D4. The allOf/if/then blocks declare which fields are mandatory at each ProposalStatus value; the current AST gate validates field presence (class declaration conformance only) — runtime value enforcement remains with ProposalStateManager and the DB CHECK constraints (ADR-015 D2/D6). The AutonomousProposal ORM class shares field names but adds ORM-only columns (id, claimed_by, version, updated_at) that are not declared on the domain dataclass and therefore not governed by this contract.",
+    "description": "State-conditional field invariants for the Proposal domain dataclass (src/will/autonomy/proposal.py). ProposalStateManager is the runtime enforcement site; this contract makes its invariants constitutionally visible and auditable. Authority: ADR-056 D4. The allOf/if/then blocks declare which fields are mandatory at each ProposalStatus value; the current AST gate validates field presence (class declaration conformance only) -- runtime value enforcement remains with ProposalStateManager and the DB CHECK constraints (ADR-015 D2/D6). The AutonomousProposal ORM class shares field names but adds ORM-only columns (id, claimed_by, version, updated_at) that are not declared on the domain dataclass and therefore not governed by this contract.",
     "governed_classes": [
         "Proposal"
     ],
@@ -85,7 +85,7 @@
         },
         "approval_required": {
             "type": "boolean",
-            "description": "Whether human approval is required before execution. Derived from risk.overall_risk at creation: safe → false, moderate/high → true."
+            "description": "Whether human approval is required before execution. Derived from risk.overall_risk at creation: safe -> false, moderate/high -> true."
         },
         "approved_by": {
             "type": "string",
@@ -116,7 +116,7 @@
             }
         },
         {
-            "description": "EXECUTING: all APPROVED invariants hold; execution_started_at must be non-null. claimed_by is enforced at the ORM layer only (AutonomousProposal.claimed_by) — not a Proposal dataclass field.",
+            "description": "EXECUTING: all APPROVED invariants hold; execution_started_at must be non-null. claimed_by is enforced at the ORM layer only (AutonomousProposal.claimed_by) -- not a Proposal dataclass field.",
             "if": {
                 "required": ["status"],
                 "properties": {"status": {"const": "executing"}}
@@ -146,7 +146,7 @@
             }
         },
         {
-            "description": "FAILED: failure_reason must be non-null. Terminal status. ConsumerWorker must revive all Findings linked via constitutional_constraints.finding_ids by resetting status to open (CORE-Proposal.md §8a).",
+            "description": "FAILED: failure_reason must be non-null. Terminal status. ConsumerWorker must revive all Findings linked via constitutional_constraints.finding_ids by resetting status to open (CORE-Proposal.md S8a).",
             "if": {
                 "required": ["status"],
                 "properties": {"status": {"const": "failed"}}

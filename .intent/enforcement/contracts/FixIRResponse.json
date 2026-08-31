@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.fix_ir_response",
-        "title": "FixIRResponse — POST /v1/fix/ir synchronous response",
+        "title": "FixIRResponse -- POST /v1/fix/ir synchronous response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

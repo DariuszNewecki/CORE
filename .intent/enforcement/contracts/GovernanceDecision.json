@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.governance_decision",
-        "title": "GovernanceDecision — constitutional validation outcome",
+        "title": "GovernanceDecision -- constitutional validation outcome",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Result of governance validation produced by ConstitutionalValidator (src/body/services/constitutional_validator.py). GovernanceDecision is the state-conditional output of the risk/approval pipeline: risk_tier determines which approval_type is required. RiskTier is integer-valued (ROUTINE=1, STANDARD=3, ELEVATED=7, CRITICAL=10); ApprovalType is string-valued (autonomous/validation_only/human_confirmation/human_review) — divergent enum value types within the same governance domain, noted as reconciliation candidate. Governed vocabulary: risk_tier and approval_type enums in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
+    "description": "Result of governance validation produced by ConstitutionalValidator (src/body/services/constitutional_validator.py). GovernanceDecision is the state-conditional output of the risk/approval pipeline: risk_tier determines which approval_type is required. RiskTier is integer-valued (ROUTINE=1, STANDARD=3, ELEVATED=7, CRITICAL=10); ApprovalType is string-valued (autonomous/validation_only/human_confirmation/human_review) -- divergent enum value types within the same governance domain, noted as reconciliation candidate. Governed vocabulary: risk_tier and approval_type enums in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
     "governed_classes": [
         "GovernanceDecision"
     ],
@@ -43,7 +43,7 @@
     },
     "allOf": [
         {
-            "description": "CRITICAL risk: approval_type must be human_review. Enforced by ConstitutionalValidator risk→approval mapping.",
+            "description": "CRITICAL risk: approval_type must be human_review. Enforced by ConstitutionalValidator risk->approval mapping.",
             "if": {
                 "required": ["risk_tier"],
                 "properties": {"risk_tier": {"const": "CRITICAL"}}

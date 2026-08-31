@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.feature_issue",
-        "title": "FeatureIssue — GitHub feature issue field contract",
+        "title": "FeatureIssue -- GitHub feature issue field contract",
         "version": "1.0.0",
         "authority": "policy",
         "status": "active"
@@ -84,7 +84,7 @@
                 "type": "string",
                 "pattern": "^F-[0-9]+$"
             },
-            "description": "F-IDs this feature depends on. Informational — canonical dependency record is the GitHub blocking relationship on the issue. Both must be kept in sync."
+            "description": "F-IDs this feature depends on. Informational -- canonical dependency record is the GitHub blocking relationship on the issue. Both must be kept in sync."
         },
         "blocks": {
             "type": "array",

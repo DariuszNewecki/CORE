@@ -46,7 +46,7 @@
             "enforcement": "reporting",
             "scope": {
                 "paths": ["src/will/agents/planner_agent.py"],
-                "notes": "Scoped to PlannerAgent only — the sole autonomous component responsible for policy-aligned planning decisions."
+                "notes": "Scoped to PlannerAgent only -- the sole autonomous component responsible for policy-aligned planning decisions."
             }
         }
     ]

@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.async_dispatch_response",
-        "title": "AsyncDispatchResponse — standard 202 response for all async-dispatch endpoints",
+        "title": "AsyncDispatchResponse -- standard 202 response for all async-dispatch endpoints",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

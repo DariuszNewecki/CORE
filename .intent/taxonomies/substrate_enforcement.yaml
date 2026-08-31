@@ -8,7 +8,7 @@
 #   Declares which governance engine names delegate enforcement to a runtime
 #   substrate (MyPy, Pydantic, Python runtime) rather than to a CORE audit-time
 #   engine. Entries in this taxonomy are resolved to passive_gate by
-#   EngineRegistry.get() — they structurally cannot fail at audit time because
+#   EngineRegistry.get() -- they structurally cannot fail at audit time because
 #   enforcement happens outside CORE's scan.
 #
 #   Every passive-routed enforcement mapping MUST reference an entry from this
@@ -29,7 +29,7 @@ entries:
   python_runtime:
     description: >
       Enforcement delegated to the Python runtime. Violations produce
-      AttributeError, TypeError, or similar runtime exceptions — not
+      AttributeError, TypeError, or similar runtime exceptions -- not
       audit-time findings.
     enforcement_surface: python_runtime
     closure_adr: ADR-136

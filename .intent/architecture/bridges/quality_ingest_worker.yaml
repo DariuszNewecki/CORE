@@ -1,6 +1,6 @@
 kind: architecture_bridge
 id: quality-ingest-worker
-title: "QualityIngestWorker: Quality Check Findings → Blackboard"
+title: "QualityIngestWorker: Quality Check Findings -> Blackboard"
 
 description: >
   QualityIngestWorker (Will) bridges quality-gate findings (mypy, pip-audit)

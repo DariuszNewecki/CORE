@@ -20,7 +20,7 @@ test_file_suffix: "/test_generated.py"
 excluded_filenames:
   - "__init__.py"
 
-# Scope limiter — if non-empty, only these files are scanned.
+# Scope limiter -- if non-empty, only these files are scanned.
 # Remove or leave empty to scan the full source_root.
 #
 # 2026-06-28: Widened from 1 file (body pilot) to 25 files covering
@@ -44,24 +44,24 @@ excluded_filenames:
 # Ordering: low-risk files first (pure helpers, small models) so the sensor
 # exercises the success path before the complex orchestration files queue.
 include_files:
-  # ── body pilot (verified success path) ────────────────────────────────────
+  # -- body pilot (verified success path) ------------------------------------
   - "src/body/self_healing/placeholder_fixer_service.py"
 
-  # ── will/workers — pure helpers / models (lowest risk) ────────────────────
+  # -- will/workers -- pure helpers / models (lowest risk) --------------------
   - "src/will/workers/violation_remediator_body/models.py"
   - "src/will/workers/repo_embedding/helpers.py"
   - "src/will/workers/test_remediator/_operations.py"
   - "src/will/workers/violation_remediator_body/ceremony.py"
   - "src/will/workers/violation_remediator_blackboard.py"
 
-  # ── will/workers — sensors (bounded deps) ─────────────────────────────────
+  # -- will/workers -- sensors (bounded deps) ---------------------------------
   - "src/will/workers/coherence_sensor.py"
   - "src/will/workers/test_coverage_sensor.py"
   - "src/will/workers/test_runner_sensor.py"
   - "src/will/workers/capability_tagger.py"
   - "src/will/workers/audit_ingest_worker.py"
 
-  # ── will/workers — mid-complexity workers ─────────────────────────────────
+  # -- will/workers -- mid-complexity workers ---------------------------------
   - "src/will/workers/observer_worker.py"
   - "src/will/workers/intent_inspector.py"
   - "src/will/workers/prompt_extractor_worker.py"
@@ -71,19 +71,19 @@ include_files:
   - "src/will/workers/violation_remediator_proposal.py"
   - "src/will/workers/worker_shop_manager.py"
 
-  # ── will/workers — proposal pipeline ──────────────────────────────────────
+  # -- will/workers -- proposal pipeline --------------------------------------
   - "src/will/workers/proposal_consumer_effects.py"
   - "src/will/workers/proposal_consumer_revival.py"
   - "src/will/workers/proposal_consumer_worker.py"
 
-  # ── will/workers — external-service-heavy (Qdrant / DB / FS) ─────────────
+  # -- will/workers -- external-service-heavy (Qdrant / DB / FS) -------------
   - "src/will/workers/governance_embedding/governance_embedder_worker.py"
   - "src/will/workers/repo_embedding/repo_embedder_workers.py"
   - "src/will/workers/repo_crawler.py"
   - "src/will/workers/db_sync_worker.py"
 
-  # ── api/v1 route modules (2026-07-06: scope widened to cover API layer) ────
-  # Ordered low→high complexity so the sensor exercises the success path first.
+  # -- api/v1 route modules (2026-07-06: scope widened to cover API layer) ----
+  # Ordered low->high complexity so the sensor exercises the success path first.
   # Each maps to tests/api/v1/<module>/test_generated.py (sensor suffix).
   # Hand-written tests/api/v1/test_<module>.py files are separate; no collision.
   - "src/api/v1/lint_routes.py"

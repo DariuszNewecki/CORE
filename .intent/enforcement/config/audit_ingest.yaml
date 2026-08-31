@@ -1,5 +1,5 @@
 # .intent/enforcement/config/audit_ingest.yaml
-# Audit-ingest pipeline configuration — ADR-098 D5 constraint substrate.
+# Audit-ingest pipeline configuration -- ADR-098 D5 constraint substrate.
 # Loader: src/shared/infrastructure/intent/audit_ingest_config.py
 # Consumer: src/will/workers/quality_ingest_worker.py
 

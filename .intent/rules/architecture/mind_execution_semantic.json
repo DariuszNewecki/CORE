@@ -20,7 +20,7 @@
         },
         {
             "id": "architecture.mind.execution_signal",
-            "statement": "A file under src/mind/** containing structural markers of execution semantics (decision-method names, risk-tier types, allow/deny pattern matching) MUST be flagged as a candidate for execution-semantics review. Pre-selector only — produces no verdict.",
+            "statement": "A file under src/mind/** containing structural markers of execution semantics (decision-method names, risk-tier types, allow/deny pattern matching) MUST be flagged as a candidate for execution-semantics review. Pre-selector only -- produces no verdict.",
             "enforcement": "reporting",
             "authority": "policy",
             "phase": "audit",

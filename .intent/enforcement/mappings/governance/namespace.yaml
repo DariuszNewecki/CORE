@@ -7,18 +7,18 @@
 # .intent/governance/namespace_manifest.yaml.
 #
 # Engine: artifact_gate. Cognate with all_rules_mapped (ADR-066) and
-# namespace_has_drainer (ADR-072) — same shape: a repo-level invariant
+# namespace_has_drainer (ADR-072) -- same shape: a repo-level invariant
 # anchored on a single meta-state file, walked internally by the check
 # function. applies_to references the manifest itself so the check
 # fires once per audit cycle, not once per .intent/.specs/ file.
 #
-# Enforcement escalated to blocking (#505 — 2026-07-05) once the manifest
+# Enforcement escalated to blocking (#505 -- 2026-07-05) once the manifest
 # reached 0 unclassified files. Any new .intent/ or .specs/ file added
 # without a manifest entry now stops a commit.
 #
 # Remediation routing for this rule lives in
 # .intent/enforcement/remediation/auto_remediation.yaml. Unclassified
-# files require governor judgment (D5 — namespace is per-artifact
+# files require governor judgment (D5 -- namespace is per-artifact
 # *purpose*, not file type), so the route is human-only, not an
 # automated remediator. The ADR-066 unmapped-rules invariant is
 # satisfied by a DELEGATE entry on the remediation surface.
@@ -27,7 +27,7 @@ mappings:
   # RULE: governance.namespace.classification_complete
   # Verifies that every file in .intent/ and .specs/ has a matching
   # entry in .intent/governance/namespace_manifest.yaml. The finding
-  # set is: (filesystem walk under .intent/ and .specs/) ∖ (paths
+  # set is: (filesystem walk under .intent/ and .specs/) minus (paths
   # declared in the manifest's `classifications:` list).
   governance.namespace.classification_complete:
     engine: artifact_gate

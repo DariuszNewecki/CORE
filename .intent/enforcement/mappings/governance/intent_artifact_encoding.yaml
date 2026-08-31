@@ -15,8 +15,14 @@ mappings:
       # space through tilde (0x20-0x7E).
       # Common violations: em dash (U+2014), curly quotes (U+2018/2019/201C/201D),
       # ellipsis (U+2026), non-breaking space (U+00A0).
-      pattern: "[^\\x09\\x0A\\x0D\\x20-\\x7E]"
-      match_means: violation
+      #
+      # #851: was `pattern`/`match_means`, param names RegexGateEngine.verify()
+      # never reads (it only reads naming_pattern / forbidden_patterns /
+      # required_patterns) -- the rule fired on nothing regardless of content.
+      # forbidden_patterns is the real schema for a "this pattern must not
+      # appear" check.
+      forbidden_patterns:
+        - "[^\\x09\\x0A\\x0D\\x20-\\x7E]"
       message: >
         Non-ASCII character detected in .intent/ artifact. All intent files must
         contain only printable ASCII (0x20-0x7E) plus standard whitespace.

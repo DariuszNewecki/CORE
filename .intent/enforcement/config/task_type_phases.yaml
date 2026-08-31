@@ -1,5 +1,5 @@
 # .intent/enforcement/config/task_type_phases.yaml
-# Canonical task_type → governance phase mapping.
+# Canonical task_type -> governance phase mapping.
 # Authority: policy
 # Phase: n/a (configuration, not a runtime phase)
 # Status: active
@@ -11,7 +11,7 @@
 #   (cli/resources/context/build.py) via the helper
 #   shared.infrastructure.intent.task_type_phases.
 #
-# RULE: task_type → phase mapping MUST be read from this
+# RULE: task_type -> phase mapping MUST be read from this
 # file. No hardcoded copies permitted in src/.
 #
 # See ADR-004.

@@ -1,7 +1,7 @@
 # .intent/enforcement/mappings/architecture/core_safety.yaml
 #
 # Core architectural safety checks enforced via deterministic gates.
-# These are the structural perimeter rules — they verify the shape of
+# These are the structural perimeter rules -- they verify the shape of
 # the codebase before any semantic analysis begins.
 
 mappings:

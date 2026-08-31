@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.remediation_result",
-        "title": "RemediationResult — complete remediation run report",
+        "title": "RemediationResult -- complete remediation run report",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "The complete report of one autonomous remediation run (src/body/self_healing/remediation_models.py). RemediationResult is the full audit→fix→validate evidence trail. Three sibling types are declared in the same file and referenced as field types: MatchedPattern (finding + pattern + confidence + risk_level), FixDetail (finding_id + file_path + action_handler + status + duration_ms + error_message), and RemediationMode enum (SAFE_ONLY/MEDIUM_RISK/ALL_DETERMINISTIC). VOCABULARY DRIFT: MatchedPattern.risk_level and FixDetail.status are bare str with comment-documented value sets — not enums. findings_by_severity keys are AuditSeverity enum value names as bare str. These are noted as reconciliation candidates. Authority: ADR-056 Wave 2 Session 2.",
+    "description": "The complete report of one autonomous remediation run (src/body/self_healing/remediation_models.py). RemediationResult is the full audit->fix->validate evidence trail. Three sibling types are declared in the same file and referenced as field types: MatchedPattern (finding + pattern + confidence + risk_level), FixDetail (finding_id + file_path + action_handler + status + duration_ms + error_message), and RemediationMode enum (SAFE_ONLY/MEDIUM_RISK/ALL_DETERMINISTIC). VOCABULARY DRIFT: MatchedPattern.risk_level and FixDetail.status are bare str with comment-documented value sets -- not enums. findings_by_severity keys are AuditSeverity enum value names as bare str. These are noted as reconciliation candidates. Authority: ADR-056 Wave 2 Session 2.",
     "governed_classes": [
         "RemediationResult"
     ],
@@ -46,15 +46,15 @@
         },
         "findings_by_severity": {
             "type": "object",
-            "description": "Count of findings keyed by severity name. Keys are AuditSeverity enum value names (bare str) — vocabulary reconciliation pending."
+            "description": "Count of findings keyed by severity name. Keys are AuditSeverity enum value names (bare str) -- vocabulary reconciliation pending."
         },
         "matched_patterns": {
             "type": "array",
-            "description": "List of MatchedPattern — findings that matched an AutoFixablePattern with sufficient confidence."
+            "description": "List of MatchedPattern -- findings that matched an AutoFixablePattern with sufficient confidence."
         },
         "unmatched_findings": {
             "type": "array",
-            "description": "List of AuditFinding — findings with no matching AutoFixablePattern."
+            "description": "List of AuditFinding -- findings with no matching AutoFixablePattern."
         },
         "fixes_attempted": {
             "type": "integer",
@@ -86,7 +86,7 @@
         },
         "fix_details": {
             "type": "array",
-            "description": "List of FixDetail — per-fix execution records for the evidence trail."
+            "description": "List of FixDetail -- per-fix execution records for the evidence trail."
         },
         "duration_sec": {
             "type": "number",

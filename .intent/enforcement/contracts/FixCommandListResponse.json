@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.fix_command_list_response",
-        "title": "FixCommandListResponse — GET /v1/fix/commands response",
+        "title": "FixCommandListResponse -- GET /v1/fix/commands response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

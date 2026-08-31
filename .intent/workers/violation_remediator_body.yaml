@@ -22,7 +22,7 @@ mandate:
     architectural context, invoke RemoteCoder, and validate via Crate/Canary
     and assisted.validate_diff, producing an immutable validated candidate.
     A passing candidate automatically creates a human-gated DRAFT proposal
-    (ADR-154 D3/D5) — production application happens only after governor
+    (ADR-154 D3/D5) -- production application happens only after governor
     approval, through ProposalExecutor/SandboxLifecycle, never directly from
     this worker.
   phase: execution

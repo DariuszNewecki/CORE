@@ -4,7 +4,7 @@ authority: constitutional
 title: CORE Operational Capability Taxonomy
 description: >
   Canonical declaration of operational capabilities in CORE. An operational
-  capability is a named unit of what CORE-as-a-system does — distinct from a
+  capability is a named unit of what CORE-as-a-system does -- distinct from a
   cognitive capability per CORE-Capability-Taxonomy.md, which describes what an
   LLM model can do. This file is the authoritative source of the operational-
   capability name set and the filesystem profile per capability used by the
@@ -12,14 +12,14 @@ description: >
   .specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md. Schema declared
   by ADR-078.
 
-  This file is the LIVE-AUTHORIZATION SURFACE — it enumerates capabilities the
+  This file is the LIVE-AUTHORIZATION SURFACE -- it enumerates capabilities the
   chokepoint will authorize, not the complete @atomic_action / @register_action
   registry. The two surfaces diverge only by the chokepoint primitives excluded
   in D8 (file.create, file.edit, file.read, file.tag_metadata); all other
   registered actions have a corresponding capability entry. ADR-078 D9 describes
   the dormant-set concept for cases where a future capability is risk-classified
-  but not yet live; the current dormant set is empty. (The prior example —
-  fix.policy_ids — was retired entirely in #493 on identity-shape grounds:
+  but not yet live; the current dormant set is empty. (The prior example --
+  fix.policy_ids -- was retired entirely in #493 on identity-shape grounds:
   policies have human-readable id as TRUE identity; opaque UUIDs were the wrong
   shape for a human-readable artefact.)
 
@@ -36,7 +36,7 @@ description: >
 capabilities:
 
   action.execute:
-    description: Meta-dispatcher — invokes other atomic actions; FS authorization resolves at runtime against the dispatched capability per paper §7.
+    description: Meta-dispatcher -- invokes other atomic actions; FS authorization resolves at runtime against the dispatched capability per paper S7.
     risk: moderate
     fs_profile:
       read: []
@@ -45,7 +45,7 @@ capabilities:
       delete: []
 
   admin.meta:
-    description: Constitutional file index — lists indexed .intent/ files for operator inspection. Read-only.
+    description: Constitutional file index -- lists indexed .intent/ files for operator inspection. Read-only.
     risk: safe
     fs_profile:
       read:
@@ -81,7 +81,7 @@ capabilities:
         - {path_pattern: "var/tmp/**", modes: [dev, live]}
 
   build.test_for_symbol:
-    description: Per-symbol test generator (primary autonomous path per ADR-133 D3) — generates pytest test files via CoderAgent; path mapping governed by .intent/enforcement/config/test_coverage.yaml.
+    description: Per-symbol test generator (primary autonomous path per ADR-133 D3) -- generates pytest test files via CoderAgent; path mapping governed by .intent/enforcement/config/test_coverage.yaml.
     risk: safe
     artifact_type: [test]
     fs_profile:
@@ -146,7 +146,7 @@ capabilities:
       delete: []
 
   crate.create:
-    description: General-purpose intent crate packaging — bundles source and tests into var/crates/ for proposal export.
+    description: General-purpose intent crate packaging -- bundles source and tests into var/crates/ for proposal export.
     risk: safe
     fs_profile:
       read: []
@@ -156,7 +156,7 @@ capabilities:
       delete: []
 
   crate.create_from_spec:
-    description: SpecificationAgent convenience wrapper around CrateCreationService — bundles generated artifacts into var/crates/.
+    description: SpecificationAgent convenience wrapper around CrateCreationService -- bundles generated artifacts into var/crates/.
     risk: moderate
     fs_profile:
       read: []
@@ -166,7 +166,7 @@ capabilities:
       delete: []
 
   document.gap_analysis:
-    description: GRC gap-analysis runner — evaluates a document corpus against a requirements catalog and writes verdict reports to var/reports/corpus/.
+    description: GRC gap-analysis runner -- evaluates a document corpus against a requirements catalog and writes verdict reports to var/reports/corpus/.
     risk: safe
     artifact_type: [document_corpus]
     fs_profile:
@@ -189,7 +189,7 @@ capabilities:
       delete: []
 
   fix.capability_tagging:
-    description: Capability tag injector — adds canonical dot-notation capability keys to symbols per .intent/taxonomies/capability_taxonomy.yaml.
+    description: Capability tag injector -- adds canonical dot-notation capability keys to symbols per .intent/taxonomies/capability_taxonomy.yaml.
     risk: moderate
     artifact_type: [python]
     fs_profile:
@@ -274,7 +274,7 @@ capabilities:
       delete: []
 
   fix.logging:
-    description: Logger-not-presentation fixer — separates logger.* from console.* per .intent/rules/code/purity.json.
+    description: Logger-not-presentation fixer -- separates logger.* from console.* per .intent/rules/code/purity.json.
     risk: safe
     artifact_type: [python]
     fs_profile:
@@ -321,7 +321,7 @@ capabilities:
       delete: []
 
   fix.settings_access:
-    description: Body-layer settings-import remover — routes body/ config through dependency injection per .intent/rules/architecture/layer_separation.json.
+    description: Body-layer settings-import remover -- routes body/ config through dependency injection per .intent/rules/architecture/layer_separation.json.
     risk: dangerous
     artifact_type: [python]
     fs_profile:
@@ -344,7 +344,7 @@ capabilities:
       delete: []
 
   log.archive_partitions:
-    description: DB-only — detaches expired llm_exchange_log monthly partitions and attaches them to the core_archive schema (ADR-052).
+    description: DB-only -- detaches expired llm_exchange_log monthly partitions and attaches them to the core_archive schema (ADR-052).
     risk: moderate
     fs_profile:
       read: []
@@ -353,7 +353,7 @@ capabilities:
       delete: []
 
   log.maintain_partitions:
-    description: DB-only — creates upcoming monthly partitions for core.llm_exchange_log (ADR-052); idempotent CREATE TABLE IF NOT EXISTS.
+    description: DB-only -- creates upcoming monthly partitions for core.llm_exchange_log (ADR-052); idempotent CREATE TABLE IF NOT EXISTS.
     risk: safe
     fs_profile:
       read: []
@@ -446,7 +446,7 @@ capabilities:
       delete: []
 
   test.execute:
-    description: pytest runner — executes tests, persists results to DB and to var/logs/tests.jsonl + var/reports/test_failures.json. Renamed from test_execution per ADR-078 D7.
+    description: pytest runner -- executes tests, persists results to DB and to var/logs/tests.jsonl + var/reports/test_failures.json. Renamed from test_execution per ADR-078 D7.
     risk: moderate
     fs_profile:
       read:
@@ -463,7 +463,7 @@ capabilities:
         - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
 
   test.sandbox_validate:
-    description: Single-file generated-test gate (#574 dynamic follow-on) — runs run_tests on one target; persists evidence to DB and to var/logs/tests.jsonl + var/reports/test_failures.json, identical write surface to test.execute.
+    description: Single-file generated-test gate (#574 dynamic follow-on) -- runs run_tests on one target; persists evidence to DB and to var/logs/tests.jsonl + var/reports/test_failures.json, identical write surface to test.execute.
     risk: safe
     fs_profile:
       read:
@@ -479,7 +479,7 @@ capabilities:
         - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
 
   test.system:
-    description: Test-execution dispatcher — delegates to test.execute; own fs_profile empty (FS authorization resolves at runtime against the dispatched capability).
+    description: Test-execution dispatcher -- delegates to test.execute; own fs_profile empty (FS authorization resolves at runtime against the dispatched capability).
     risk: safe
     fs_profile:
       read: []

@@ -4,9 +4,9 @@ authority: constitutional
 title: CORE Governance Namespace Taxonomy
 description: >
   Canonical declaration of the governance-namespace vocabulary. Defines the
-  two value classes — `framework` and `project::<name>` — that every
+  two value classes -- `framework` and `project::<name>` -- that every
   governance artifact under .intent/ and .specs/ is classified into.
-  Authority: ADR-075 D1, D3, D4. Grounding: CORE-Governance-Topology §8.
+  Authority: ADR-075 D1, D3, D4. Grounding: CORE-Governance-Topology S8.
   The per-file classification is carried by
   .intent/governance/namespace_manifest.yaml (D4); this register declares
   what the legal values are, not which files take which value.
@@ -32,7 +32,7 @@ namespaces:
     display_name: Framework
     description: >
       Ships with CORE; applies to any governed project. Artifacts in this
-      namespace describe the governance system itself — its schemas,
+      namespace describe the governance system itself -- its schemas,
       contracts, enforcement primitives, constitutional papers, and the
       patterns any governed repository inherits when it adopts CORE.
       A BYOR deployment receives the framework namespace unchanged; the
@@ -84,7 +84,7 @@ deployment_topologies:
 references:
   adr: ADR-075
   grounding_paper: papers/CORE-Governance-Topology.md
-  grounding_section: "§8"
+  grounding_section: "S8"
   cognate_register_pattern:
     adr: ADR-068
     artifact: .intent/taxonomies/principal_roles.yaml

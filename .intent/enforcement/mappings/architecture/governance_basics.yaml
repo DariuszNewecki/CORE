@@ -16,17 +16,17 @@
     # 2. THE BLOCKING LAW: Logic mutations must be governed.
     # This list EXCLUDES components that are allowed to use direct writes.
     #
-    # Forbidden surface converged 2026-05-31 (#489 / ADR-077 §6 step 3):
+    # Forbidden surface converged 2026-05-31 (#489 / ADR-077 S6 step 3):
     # the check now derives its forbidden set from
     # .intent/taxonomies/filesystem_operations.yaml filtered by
     # op_class == "write". The previous forbidden_additional block
     # (os.*/shutil.*/aiofiles.open) is now redundant with the watched:
     # block of the taxonomy; aiofiles.open was dropped (no src/ consumer,
-    # legacy defensive coverage). The §4 gap-set (mkdir, makedirs, touch,
+    # legacy defensive coverage). The S4 gap-set (mkdir, makedirs, touch,
     # symlink, link, chmod) is now covered by both leaf-matched pathlib
     # entries and qualified-matched os.* entries. Variable-receiver
     # `p.replace(...)` / `p.rename(...)` remain a pre-existing accepted
-    # gap — see #489 migration trap. Bare-import resolution for the
+    # gap -- see #489 migration trap. Bare-import resolution for the
     # qualified entries (closed in #488, 2026-05-30) is preserved by
     # ASTHelpers.resolve_qualified_name; star imports and dynamic imports
     # remain out of reach.
@@ -46,17 +46,17 @@
           - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
           - "src/mind/governance/runtime_validator.py" # Validation infrastructure
           - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
-          # Subprocess sanctuary — also owns ephemeral worktree directory
+          # Subprocess sanctuary -- also owns ephemeral worktree directory
           # cleanup (/tmp/core-action-sandbox-*) per ADR-071 D2.2.
           # shutil.rmtree fallback covers crashed-git worktrees the orphan
           # sweep can't reach (admin entry pruned, directory remains).
           - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
-          # Runtime cache for ContextPackets — operates beneath the
+          # Runtime cache for ContextPackets -- operates beneath the
           # FileHandler abstraction on var/cache/context/ ephemera; not a
           # constitutional artifact surface. Same shape as runtime_validator
           # and ruff_linter above.
           - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
-          # --- ADDED 2026-05-31 (#507 Phase 2 drain — Tier 2 authority-scoped exclusions) ---
+          # --- ADDED 2026-05-31 (#507 Phase 2 drain -- Tier 2 authority-scoped exclusions) ---
           # Each entry mirrored in mutation_surface.yaml's excludes set.
           # Per-line rationale; see #507 for the full disposition table.
           - "src/body/governance/key_management_service.py" # Security-sanctuary: chmod 0600 on private keying material; FileHandler exposes no chmod primitive
@@ -70,7 +70,7 @@
           - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
           # --- ADDED 2026-07-13 (#779) ---
           # Mirrored in mutation_surface.yaml's excludes set.
-          - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* — work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
+          - "src/will/workers/canary_janitor.py" # ADR-147 D4: shutil.rmtree on work/canary/sandbox_* -- work/ has no target_class_boundaries.yaml entry, would misclassify as strictest repo-source tier if routed through FileHandler
           # --- ADDED 2026-07-23 (ADR-155 isolated consequence-chain demo, Phase 1) ---
           # Mirrored in mutation_surface.yaml's excludes set.
           - "src/cli/logic/demo/isolation.py" # ADR-155 D3: writes run-identity marker + isolation-fingerprint records under CORE_DEMO_STATE_DIR (outside any repo root); FileHandler is repo-bound and refuses out-of-repo paths
@@ -79,7 +79,7 @@
           # (sandbox.py above is test-generation, not self-healing)
 
     # 3. Artifact mutations must be traceable via FileHandler.
-    # Advisory — automated detection not feasible for SHOULD-level requirement
+    # Advisory -- automated detection not feasible for SHOULD-level requirement
     # without high false-positive risk. Verified by code review and FileHandler
     # usage convention.
     governance.artifact_mutation.traceable:
@@ -110,19 +110,19 @@
           - "tests/**"
 
     # Widened 2026-04-18:
-    # - "Popen" (bare) catches `from subprocess import Popen; Popen(...)` —
+    # - "Popen" (bare) catches `from subprocess import Popen; Popen(...)` --
     #   the bare-import form that previously bypassed the `subprocess.Popen`
     #   pattern because full_attr_name resolves to "Popen" without the prefix.
     # - subprocess variants (check_call, check_output, getoutput,
-    #   getstatusoutput) — all legitimate subprocess entry points that
+    #   getstatusoutput) -- all legitimate subprocess entry points that
     #   invoke commands but don't route through run/call/Popen.
-    # - os process-spawn family (execv, execvp, execve, spawnv, spawnvp, fork) —
+    # - os process-spawn family (execv, execvp, execve, spawnv, spawnvp, fork) --
     #   alternative paths to process creation outside the os.system family.
     #
     # Deliberately NOT added (collision risk):
-    # - Bare "call", "run", "fork" — names too generic; would produce false
+    # - Bare "call", "run", "fork" -- names too generic; would produce false
     #   positives on legitimate code (e.g., app.run(), func.call()).
-    # - "builtins.eval" / "builtins.exec" / "builtins.compile" — nobody writes
+    # - "builtins.eval" / "builtins.exec" / "builtins.compile" -- nobody writes
     #   these forms; the bare names are already caught.
     #
     # Bare-import gap closed 2026-05-30 (#488 sibling fix):
@@ -175,7 +175,7 @@
           - "os.spawnv"
           - "os.spawnvp"
           - "os.fork"
-          # Added 2026-07-02: asyncio async-subprocess family — functionally
+          # Added 2026-07-02: asyncio async-subprocess family -- functionally
           # equivalent to subprocess.Popen but escapes the original forbidden
           # list because the call site uses asyncio.create_subprocess_exec /
           # create_subprocess_shell rather than subprocess.*. Three Will-layer
@@ -192,9 +192,9 @@
           - "src/shared/logger.py"
           - "src/shared/config.py" # Authoritative env-var read surface
           # operational_mode.py is the ADR-079 D4 authoritative surface for
-          # CORE_OPERATIONAL_MODE resolution — architectural peer to
+          # CORE_OPERATIONAL_MODE resolution -- architectural peer to
           # shared/config.py for the operational-mode taxonomy concern. Paper
-          # §6 fail-closed semantics live here; the chokepoint reads
+          # S6 fail-closed semantics live here; the chokepoint reads
           # current_mode() once per check_transaction. Sanctuary by design
           # rather than candidate for refactor.
           - "src/shared/infrastructure/intent/operational_mode.py" # ADR-079 D4 authoritative surface
@@ -213,9 +213,9 @@
           - "src/cli/commands/check/quality_gates.py"
           - "src/cli/commands/coverage/services/coverage_rep*"
           - "src/body/self_healing/test_context/metrics.py"
-          - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation — same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
-          - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess — same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
-          # Workflow gate checks invoke external quality tools inline — no Body delegation
+          - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation -- same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
+          - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess -- same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
+          # Workflow gate checks invoke external quality tools inline -- no Body delegation
           # surface exists for synchronous gate execution; tool call is the fundamental operation
           - "src/mind/logic/engines/workflow_gate/checks/ruff_format.py"
           - "src/mind/logic/engines/workflow_gate/checks/quality.py"
@@ -229,8 +229,8 @@
           - "src/body/project_lifecycle/integration_service.py"            # pg_dump subprocess for schema capture; no FileHandler path for DB introspection
           - "src/body/maintenance/scripts/context_export.py"               # subprocess for context export pipeline
           - "src/body/self_healing/handlers/import_sorting_handler.py"     # isort/ruff subprocess for import-sort remediation
-          - "src/body/workers/violation_remediator/ceremony.py" # Runs ruff/linting as remediation — subprocess sanctuary
-          - "src/cli/commands/daemon.py" # 2026-06-06: systemd control surface — subprocess intrinsic to daemon command
+          - "src/body/workers/violation_remediator/ceremony.py" # Runs ruff/linting as remediation -- subprocess sanctuary
+          - "src/cli/commands/daemon.py" # 2026-06-06: systemd control surface -- subprocess intrinsic to daemon command
 
           # --- COHERENCE CHECKS (text-based forbidden_primitives matcher flags docstring references) ---
           - "src/mind/coherence/**/*.py" # 2026-06-06: CCC checks reference forbidden primitives in docstrings as documentation; the matcher flags these as false positives. row4_naming.py:108 is a docstring; the actual code routes through GitService (the sanctioned sanctuary)

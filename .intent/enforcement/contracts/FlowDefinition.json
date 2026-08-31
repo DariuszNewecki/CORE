@@ -3,12 +3,12 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.flow_definition",
-        "title": "FlowDefinition — constitutional flow declaration",
+        "title": "FlowDefinition -- constitutional flow declaration",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Constitutional declaration of a Flow, loaded from .intent/flows/*.yaml (src/body/flows/registry.py). Existence in .intent/flows/ is constitutional standing — a flow that exists in code but not in .intent/ is ungoverned. FlowDefinition follows the same registry pattern as ActionDefinition. source_path is a Python Path object (runtime-only, not JSON-serializable); included in properties to suppress AST gate false positives. steps is a list of FlowStep governed by the FlowStep contract. Authority: ADR-056 Wave 2 Session 1.",
+    "description": "Constitutional declaration of a Flow, loaded from .intent/flows/*.yaml (src/body/flows/registry.py). Existence in .intent/flows/ is constitutional standing -- a flow that exists in code but not in .intent/ is ungoverned. FlowDefinition follows the same registry pattern as ActionDefinition. source_path is a Python Path object (runtime-only, not JSON-serializable); included in properties to suppress AST gate false positives. steps is a list of FlowStep governed by the FlowStep contract. Authority: ADR-056 Wave 2 Session 1.",
     "governed_classes": [
         "FlowDefinition"
     ],

@@ -1,6 +1,6 @@
 kind: architecture_bridge
 id: audit-ingest-worker
-title: "AuditIngestWorker: Audit Findings → Blackboard"
+title: "AuditIngestWorker: Audit Findings -> Blackboard"
 
 description: >
   Mind evaluates source code via ConstitutionalAuditor and writes results to

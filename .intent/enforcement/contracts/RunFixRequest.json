@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.run_fix_request",
-        "title": "FixRunRequest — body of POST /fix/run/{fix_id}",
+        "title": "FixRunRequest -- body of POST /fix/run/{fix_id}",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.audit_run_response",
-        "title": "AuditRunResponse — GET /v1/audit/runs/{run_id} response",
+        "title": "AuditRunResponse -- GET /v1/audit/runs/{run_id} response",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

@@ -26,7 +26,7 @@
         },
         {
             "id": "proposal_lifecycle.claim.authority_required",
-            "statement": "The transition from approved to executing MUST record the identity of the claiming worker or CLI operator in the claimed_by field in the same atomic write that advances the status. A claim that does not supply a recognised claimer identity — a registered Worker UUID or the designated CLI sentinel UUID — MUST be rejected.",
+            "statement": "The transition from approved to executing MUST record the identity of the claiming worker or CLI operator in the claimed_by field in the same atomic write that advances the status. A claim that does not supply a recognised claimer identity -- a registered Worker UUID or the designated CLI sentinel UUID -- MUST be rejected.",
             "authority": "policy",
             "phase": "execution",
             "enforcement": "blocking"

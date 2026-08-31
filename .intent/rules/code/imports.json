@@ -28,7 +28,7 @@
         },
         {
             "id": "code.imports.generated_must_resolve",
-            "statement": "Generated code (e.g. autogen test files written by build.tests) MUST have every import statement resolve to an existing module on the Python path. Hallucinated module references — a known failure mode of LLM-authored code — are forbidden and MUST be rejected before the generated file is written to disk.",
+            "statement": "Generated code (e.g. autogen test files written by build.tests) MUST have every import statement resolve to an existing module on the Python path. Hallucinated module references -- a known failure mode of LLM-authored code -- are forbidden and MUST be rejected before the generated file is written to disk.",
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "execution",

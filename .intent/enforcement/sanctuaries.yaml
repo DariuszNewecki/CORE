@@ -27,11 +27,11 @@ sanctuaries:
   - id: action_logger_append
     site: src/shared/action_logger.py
     rule_id: governance.mutation_surface.filehandler_required
-    detection_inert_pattern: "variable-receiver pathlib open — bare attr 'open' not caught by qualified-name matcher"
+    detection_inert_pattern: "variable-receiver pathlib open -- bare attr 'open' not caught by qualified-name matcher"
     rationale: >
       Append-mode write semantics. FileHandler has no append primitive; adding one
       would require routing action-log writes through ActionExecutor, which is the
-      component being logged — a circular dependency that cannot be resolved without
+      component being logged -- a circular dependency that cannot be resolved without
       extracting a lower-level append surface from Body infrastructure.
     closure_adr: ADR-137
     deadline: open
@@ -39,7 +39,7 @@ sanctuaries:
   - id: coherence_seed_streaming_export
     site: src/cli/resources/coherence/seed.py
     rule_id: governance.mutation_surface.filehandler_required
-    detection_inert_pattern: "variable-receiver pathlib open — bare attr 'open' not caught by qualified-name matcher"
+    detection_inert_pattern: "variable-receiver pathlib open -- bare attr 'open' not caught by qualified-name matcher"
     rationale: >
       Streaming JSONL export of paginated Qdrant results to a CLI-specified output
       path. FileHandler.write_runtime_text requires materializing the full collection

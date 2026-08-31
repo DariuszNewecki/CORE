@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.action_command_item",
-        "title": "ActionCommandItem — metadata for one registered atomic action",
+        "title": "ActionCommandItem -- metadata for one registered atomic action",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

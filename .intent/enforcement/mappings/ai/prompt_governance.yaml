@@ -28,9 +28,9 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # The LLMClient defines and wraps these methods — allowed
+        # The LLMClient defines and wraps these methods -- allowed
         - "src/shared/ai/llm_client.py"
-        # The PromptModel calls them internally — this IS the governed surface
+        # The PromptModel calls them internally -- this IS the governed surface
         - "src/shared/ai/prompt_model.py"
         # Provider implementations call make_request at the transport layer
         - "src/shared/ai/providers/**/*.py"
@@ -81,7 +81,7 @@ mappings:
   # RULE: ai.prompt.constitutional_grounding_section
   # Governed prompt system.txt files MUST contain a '# CONSTITUTIONAL'
   # section declaring enforced policies and ADR clauses.
-  # No static engine check exists yet — PromptDriftSensor does not
+  # No static engine check exists yet -- PromptDriftSensor does not
   # verify section presence. passive_gate satisfies ADR-066
   # (all_rules_mapped); a static check will be wired in a future
   # delivery when the check is implemented.
@@ -96,7 +96,7 @@ mappings:
   # RULE: ai.prompt.governed_change_requires_review
   # A governed prompt (system.txt or user.txt) changed without
   # ratification requires governor review. PromptDriftSensor (ADR-134 D6)
-  # is the live detector — it posts findings to the blackboard on content
+  # is the live detector -- it posts findings to the blackboard on content
   # change. passive_gate signals that static engine analysis does not
   # duplicate the sensor-driven detection.
   ai.prompt.governed_change_requires_review:

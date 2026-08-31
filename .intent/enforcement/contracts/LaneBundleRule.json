@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.lane_bundle_rule",
-        "title": "LaneBundleRule — rule metadata within a lane finding bundle",
+        "title": "LaneBundleRule -- rule metadata within a lane finding bundle",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"

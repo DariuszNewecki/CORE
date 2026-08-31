@@ -1,6 +1,6 @@
 kind: architecture_bridge
 id: proposal-consumer-worker
-title: "ProposalConsumerWorker: Approved Proposals → Execution"
+title: "ProposalConsumerWorker: Approved Proposals -> Execution"
 
 description: >
   ProposalConsumerWorker (Will) bridges approved proposals from

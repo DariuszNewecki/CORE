@@ -17,7 +17,7 @@ mappings:
       excludes: ["tests/**"]
 
   # LAW: After any module rename or relocation, stale namespace references MUST be updated
-  # Same tooling as above — stale namespaces manifest as unresolvable imports.
+  # Same tooling as above -- stale namespaces manifest as unresolvable imports.
   # Separate rule ID to enable targeted reporting during refactoring workflows.
   code.imports.no_stale_namespace:
     engine: workflow_gate
@@ -33,7 +33,7 @@ mappings:
 
   # LAW: Generated code MUST have every import resolve to an existing module
   # Enforcement: write-time, via PatternValidators.validate_test_file_pattern.
-  # The audit engine pipeline does NOT dispatch this rule — enforcement happens
+  # The audit engine pipeline does NOT dispatch this rule -- enforcement happens
   # inside build.tests before the generated file is written to disk (issue #574).
   # passive_gate is the canonical declared-but-not-audit-dispatched engine.
   code.imports.generated_must_resolve:
@@ -49,7 +49,7 @@ mappings:
     scope:
       applies_to: ["tests/**/test_generated.py"]
 
-  # LAW: Generated code MUST use absolute imports — no relative imports
+  # LAW: Generated code MUST use absolute imports -- no relative imports
   # Same enforcement surface as generated_must_resolve. Both rules fire from the
   # same write-time validator dispatched by pattern_id="test_file".
   code.imports.generated_no_relative:

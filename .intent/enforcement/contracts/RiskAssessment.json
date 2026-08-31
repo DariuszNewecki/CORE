@@ -3,7 +3,7 @@
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.risk_assessment",
-        "title": "RiskAssessment — proposal risk analysis",
+        "title": "RiskAssessment -- proposal risk analysis",
         "version": "1.0.0",
         "authority": "constitution",
         "status": "active"
