@@ -34,9 +34,9 @@ entries:
   - rule_id: "ai.cognitive_role.no_hardcoded_string"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_cognitive_role_hardcoded_string_fires"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_cognitive_role_manifest_derived_role_is_clean"
+    state: "verified"
   - rule_id: "ai.prompt.artifact.no_provider_leak"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
@@ -118,9 +118,9 @@ entries:
   - rule_id: "architecture.blackboard.worker_only_inserts"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_worker_only_inserts_fires_on_raw_insert"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_worker_only_inserts_clean_via_post_finding"
+    state: "verified"
   - rule_id: "architecture.boundary.database_session_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -178,27 +178,27 @@ entries:
   - rule_id: "architecture.flows.atomic_action_must_not_compose"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_atomic_action_must_not_compose_fires"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_atomic_action_must_not_compose_clean_when_no_composition"
+    state: "verified"
   - rule_id: "architecture.flows.flow_declared_in_intent"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_declared_in_intent_fires_on_direct_registration"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_declared_in_intent_clean_via_registry_load"
+    state: "verified"
   - rule_id: "architecture.flows.flow_must_not_create_proposals"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_must_not_create_proposals_fires"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_must_not_create_proposals_clean_when_no_proposal"
+    state: "verified"
   - rule_id: "architecture.flows.flow_must_not_post_to_blackboard"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_must_not_post_to_blackboard_fires"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_flow_must_not_post_to_blackboard_clean_when_no_posting"
+    state: "verified"
   - rule_id: "architecture.flows.flow_must_propagate_write_false"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
@@ -220,9 +220,9 @@ entries:
   - rule_id: "architecture.path_access.no_hardcoded_runtime_dirs"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_rule_fires__per_engine_type.py::test_regex_gate_fires_on_hardcoded_runtime_dir"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_hardcoded_runtime_dirs_clean_via_path_resolver"
+    state: "verified"
   - rule_id: "architecture.patterns.action_pattern"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -256,9 +256,9 @@ entries:
   - rule_id: "atomic_actions.impact_level_must_be_governed"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_impact_level_must_be_governed_fires_on_inline_assignment"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_impact_level_must_be_governed_clean_when_not_assigned_inline"
+    state: "verified"
   - rule_id: "atomic_actions.must_accept_kwargs"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
@@ -310,9 +310,9 @@ entries:
   - rule_id: "capability.taxonomy.no_model_specific_names"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_model_specific_names_fires_on_model_name"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_model_specific_names_clean_for_canonical_capability"
+    state: "verified"
   - rule_id: "capability.taxonomy.resources_provide_canonical_capabilities"
     engine: "knowledge_gate"
     mechanism_class: "engine_mapped"
@@ -418,9 +418,9 @@ entries:
   - rule_id: "data.security.no_raw_secrets"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_raw_secrets_fires_on_hardcoded_password"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_raw_secrets_clean_when_read_from_env"
+    state: "verified"
   - rule_id: "data.ssot.database_primacy"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -436,15 +436,15 @@ entries:
   - rule_id: "governance.fs_operations.no_direct_yaml_import"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_direct_yaml_import_fires_on_direct_read"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_direct_yaml_import_clean_via_sanctioned_loader"
+    state: "verified"
   - rule_id: "governance.intent_artifact_encoding.ascii_only"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "governance.logic_mutation.governed"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -520,9 +520,9 @@ entries:
   - rule_id: "governance.vocabulary.no_direct_json_import"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_direct_json_import_fires_on_direct_read"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_no_direct_json_import_clean_via_sanctioned_loader"
+    state: "verified"
   - rule_id: "governance.vocabulary.projection_must_match_canonical"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
@@ -580,9 +580,9 @@ entries:
   - rule_id: "planning.file_path_validation"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_file_path_validation_fires_on_spaced_slash"
+    compliant_fixture: "tests/mind/governance/test_g2_regex_gate_rules.py::test_file_path_validation_clean_for_normal_path"
+    state: "verified"
   - rule_id: "planning.no_code_generation"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
