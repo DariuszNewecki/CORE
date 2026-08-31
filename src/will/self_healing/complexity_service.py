@@ -150,7 +150,7 @@ class ComplexityRemediationService:
             f"Refactor {rel_path} to reduce complexity. "
             f"Strategy: {strategy['instruction']}\n\nCODE:\n{original_code}"
         )
-        conservation_validator = LogicConservationValidator()  # type: ignore[abstract]
+        conservation_validator = LogicConservationValidator()
 
         for attempt in range(3):
             logger.info("🔁 Reflex Attempt %d/3...", attempt + 1)

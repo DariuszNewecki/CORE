@@ -128,7 +128,7 @@ class ModularityRemediationService:
 
         results: list[dict[str, Any]] = []
         repo_root = self.context.git_service.repo_path
-        conservation_validator = LogicConservationValidator()  # type: ignore[abstract]
+        conservation_validator = LogicConservationValidator()
 
         for violator in violators:
             file_path = violator["file"]

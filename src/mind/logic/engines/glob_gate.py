@@ -62,6 +62,14 @@ class GlobGateEngine(BaseEngine):
         if check_type == "allowed_top_level_dirs":
             return self._check_allowed_top_level_dirs(target_path, params)
 
+        if check_type == "directory_has_required_files":
+            return self._check_directory_has_required_files(
+                file_path, target_path, params
+            )
+
+        if check_type == "files_not_empty":
+            return self._check_files_not_empty(file_path, target_path, params)
+
         # --- max_lines with optional path-based thresholds ---
         max_lines = params.get("max_lines")
         thresholds = params.get("thresholds")
@@ -213,3 +221,144 @@ class GlobGateEngine(BaseEngine):
             return path.startswith(prefix)
 
         return fnmatch.fnmatch(path, pattern)
+
+    # ID: 1c9e7a2d-4b6f-4e3a-9d5c-8a1f2e6b0c7d
+    def _check_directory_has_required_files(
+        self, file_path: Path, target_path: str, params: dict[str, Any]
+    ) -> EngineResult:
+        """
+        Every immediate subdirectory of ``root`` that contains at least one
+        file MUST also contain every file named in ``required_files``.
+
+        Dispatched once per matched file under the rule's own scope (which
+        covers the whole ``root`` tree per the live mapping) -- a file
+        sitting directly under ``root`` rather than inside a subdirectory
+        is not itself a governed module and is skipped.
+        """
+        root = str(params.get("root", "")).strip("/")
+        required_files = params.get("required_files") or []
+        if not root or not required_files:
+            return EngineResult(
+                ok=True,
+                message="No root/required_files configured.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        posix_path = target_path.replace("\\", "/")
+        marker = f"/{root}/"
+        idx = posix_path.find(marker)
+        if idx == -1:
+            return EngineResult(
+                ok=True,
+                message="File is outside the configured root.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        rel = posix_path[idx + len(marker) :]
+        parts = rel.split("/")
+        if len(parts) < 2:
+            return EngineResult(
+                ok=True,
+                message="File is not inside a governed subdirectory.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        subdir_name = parts[0]
+        subdir_path = Path(posix_path[: idx + len(marker) + len(subdir_name)])
+        missing = [f for f in required_files if not (subdir_path / f).exists()]
+
+        if missing:
+            return EngineResult(
+                ok=False,
+                message="Governed directory missing required file(s).",
+                violations=[
+                    f"Directory '{root}/{subdir_name}' is missing required "
+                    f"file(s): {', '.join(missing)}"
+                ],
+                engine_id=self.engine_id,
+            )
+
+        return EngineResult(
+            ok=True,
+            message="All required files present.",
+            violations=[],
+            engine_id=self.engine_id,
+        )
+
+    # ID: 6d3f8b1a-2c5e-4a9f-b7d1-3e6a9c2f5b8d
+    def _check_files_not_empty(
+        self, file_path: Path, target_path: str, params: dict[str, Any]
+    ) -> EngineResult:
+        """Files matching ``pattern`` MUST NOT be empty or whitespace-only.
+
+        Uses a dedicated substring match rather than ``_match()``: real
+        dispatch (``rule_executor.py``'s per-file audit loop) always hands
+        an absolute filesystem path, but ``_match()``'s prefix branch only
+        ever does a leading ``str.startswith``, which can never match an
+        absolute path against a repo-relative pattern prefix like
+        "var/prompts". Matching on "does the prefix directory appear
+        anywhere in the path, and does the path end with the suffix"
+        instead handles both absolute and relative callers, and naturally
+        covers zero-or-more intermediate directories the same way ``**``
+        does elsewhere in this engine.
+        """
+        pattern = params.get("pattern")
+        if not pattern:
+            return EngineResult(
+                ok=True,
+                message="No pattern configured.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        posix_path = target_path.replace("\\", "/")
+        posix_pattern = pattern.replace("\\", "/")
+
+        if "/**/" in posix_pattern:
+            prefix, _, suffix = posix_pattern.partition("/**/")
+            matches = f"/{prefix}/" in f"/{posix_path}" and posix_path.endswith(
+                f"/{suffix}"
+            )
+        else:
+            matches = self._match(posix_path, posix_pattern)
+
+        if not matches:
+            return EngineResult(
+                ok=True,
+                message="File does not match the governed pattern.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except OSError:
+            # Don't fail the check if we can't read the file -- matches the
+            # existing max_lines block's convention above.
+            return EngineResult(
+                ok=True,
+                message="Could not read file.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        if not content.strip():
+            return EngineResult(
+                ok=False,
+                message="File matching governed pattern is empty.",
+                violations=[
+                    f"File '{target_path}' matches pattern '{pattern}' but "
+                    "is empty or whitespace-only"
+                ],
+                engine_id=self.engine_id,
+            )
+
+        return EngineResult(
+            ok=True,
+            message="File is non-empty.",
+            violations=[],
+            engine_id=self.engine_id,
+        )

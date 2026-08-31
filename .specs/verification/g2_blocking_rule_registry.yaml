@@ -64,9 +64,9 @@ entries:
   - rule_id: "ai.prompt.model_artifact_required"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_model_artifact_required_fires_on_missing_manifest_files"
+    compliant_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_model_artifact_required_clean_when_all_three_present"
+    state: "verified"
   - rule_id: "ai.prompt.model_required"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -82,9 +82,9 @@ entries:
   - rule_id: "ai.prompt.system_prompt_required"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_system_prompt_required_fires_on_empty_system_txt"
+    compliant_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_system_prompt_required_clean_for_populated_system_txt"
+    state: "verified"
   - rule_id: "architecture.api.route_module_must_declare_exposure"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -292,9 +292,9 @@ entries:
   - rule_id: "autonomy.conservation.min_preservation_ratio"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/body/validators/test_logic_conservation_validator.py::test_execute_fires_on_logic_evaporation"
+    compliant_fixture: "tests/body/validators/test_logic_conservation_validator.py::test_execute_passes_when_mass_conserved"
+    state: "verified"
   - rule_id: "autonomy.lanes.boundary_enforcement"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"

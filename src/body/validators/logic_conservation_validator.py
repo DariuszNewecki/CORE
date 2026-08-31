@@ -70,6 +70,11 @@ class LogicConservationValidator(BaseEvaluator):
 
     # phase is inherited from BaseEvaluator — all evaluators are AUDIT phase.
 
+    # ID: 90b97205-45d5-4520-9ad1-49f34a7a3f13
+    async def execute(self, *args: object, **kwargs: object) -> ComponentResult:
+        """Fulfil BaseEvaluator's abstract contract by delegating to evaluate()."""
+        return await self.evaluate(*args, **kwargs)  # type: ignore[arg-type]
+
     # ID: d4e5f6a7-b8c9-0123-defa-234567890123
     async def evaluate(
         self,
