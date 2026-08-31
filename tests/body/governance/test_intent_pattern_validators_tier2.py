@@ -211,6 +211,7 @@ def test_x():
     tree = ast.parse(code)
     v = PatternValidators.check_no_unresolved_free_names(tree, "test.py")
     assert len(v) == 1
+    assert v[0].rule_name == "code.tests.no_unresolved_free_names"
     assert "MagicMock" in v[0].message
 
 
