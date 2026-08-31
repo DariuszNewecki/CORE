@@ -117,6 +117,29 @@ collaborative freshness.
 - **GitHub Merge Queue** does not apply — CORE has no PR-based workflow (direct-to-`main`), and current
   merge-queue tooling has known rough edges for this repo's shape. Not adopted regardless.
 
+## D3.3 execution note (2026-08-31)
+
+Implemented and measured directly, on the dev box against the real (LAN) test database — not just
+argued from source reading. A full-suite local run was attempted first as a clean before/after
+baseline; it had to be killed both before and after the fix (once for being too slow to be practical
+over LAN latency even after ~30 minutes, once for a genuine stall on the wheel-install e2e test that
+appears network-egress-dependent in this sandbox) — so no exact before/after wall-clock number came
+out of this environment, and the authoritative timing measurement for D3.8 is deferred to the actual
+CI run against localhost containers, which is the correct environment for that number anyway.
+
+What *did* come out of local measurement, directly: the new fail-fast fixture
+(`_fail_unmarked_tests_that_touch_db`) caught a real classification gap neither classification agent's
+literal-grep heuristic could see — `tests/body/evaluators/test_constitutional_evaluator.py` calls a
+real `ConstitutionalEvaluator.execute()`, which reaches `KnowledgeService.get_graph()` →
+`get_session()` several call-layers below the test file itself, with no `session`/`AsyncSession`/
+`get_session`/`db_session` literal anywhere in the test file. 14 of its 30 tests (exactly those whose
+effective `validation_scope` includes `constitutional_compliance`, by inspection) needed
+`@pytest.mark.integration`; the other 16 explicitly scope to `pattern_compliance`/
+`governance_boundaries` only and never touch the database. A targeted sweep for the same pattern
+(`ConstitutionalEvaluator(` and `load_knowledge_graph`/`AuditorContext(` elsewhere in `tests/`) found
+no further instances — all other candidates were already correctly mocked. This is exactly the
+failure mode the fail-fast fixture exists to catch, and it caught one on its first real run.
+
 ## D3 implementation checklist (approved with conditions, 2026-08-31 — third review round)
 
 Verified before acceptance: `test_offline_audit_regression_544.py` looks for

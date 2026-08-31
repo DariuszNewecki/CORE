@@ -45,6 +45,7 @@ class TestComponentContract:
         """Evaluators must operate in AUDIT phase."""
         assert evaluator.phase == ComponentPhase.AUDIT
 
+    @pytest.mark.integration
     async def test_returns_component_result(self, evaluator):
         """Execute must return ComponentResult."""
         result = await evaluator.execute(
@@ -60,6 +61,7 @@ class TestComponentContract:
         """Component ID should be derived from class name."""
         assert evaluator.component_id == "constitutionalevaluator"
 
+    @pytest.mark.integration
     async def test_no_mutations(self, evaluator):
         """Evaluators must not mutate state (read-only)."""
         # This is a contract test - evaluator should never write files
@@ -75,6 +77,7 @@ class TestComponentContract:
 class TestConstitutionalCompliance:
     """Test constitutional compliance checking."""
 
+    @pytest.mark.integration
     async def test_evaluates_file_compliance(self, evaluator):
         """Should check file against constitutional rules."""
         result = await evaluator.execute(
@@ -99,6 +102,7 @@ class TestConstitutionalCompliance:
             "constitutional" not in details or not details["constitutional"]["checked"]
         )
 
+    @pytest.mark.integration
     async def test_handles_missing_file(self, evaluator):
         """Should handle missing files gracefully."""
         result = await evaluator.execute(
@@ -228,6 +232,7 @@ class TestComplianceScore:
 class TestViolationDetails:
     """Test violation data structure."""
 
+    @pytest.mark.integration
     async def test_violations_have_required_fields(self, evaluator):
         """Each violation should have standard fields."""
         result = await evaluator.execute(
@@ -242,6 +247,7 @@ class TestViolationDetails:
             assert "message" in violation
             assert "file_path" in violation
 
+    @pytest.mark.integration
     async def test_violations_include_suggested_fix(self, evaluator):
         """Violations should include remediation guidance."""
         result = await evaluator.execute(
@@ -271,6 +277,7 @@ class TestEvaluationScope:
         if "constitutional" in details:
             assert not details["constitutional"].get("checked", False)
 
+    @pytest.mark.integration
     async def test_default_scope_comprehensive(self, evaluator):
         """Default scope should include all major checks."""
         result = await evaluator.execute(
@@ -316,6 +323,7 @@ class TestResultStatus:
 class TestMetadata:
     """Test result metadata completeness."""
 
+    @pytest.mark.integration
     async def test_includes_violation_counts(self, evaluator):
         """Metadata should include violation counts by severity."""
         result = await evaluator.execute(
@@ -327,6 +335,7 @@ class TestMetadata:
         assert "error_violations" in result.metadata
         assert "warning_violations" in result.metadata
 
+    @pytest.mark.integration
     async def test_includes_operation_context(self, evaluator):
         """Metadata should include operation context."""
         result = await evaluator.execute(
@@ -336,6 +345,7 @@ class TestMetadata:
         assert result.metadata["file_path"] == "src/models/user.py"
         assert result.metadata["operation_type"] == "refactor"
 
+    @pytest.mark.integration
     async def test_tracks_duration(self, evaluator):
         """Should track execution duration."""
         result = await evaluator.execute(
@@ -349,6 +359,7 @@ class TestMetadata:
 class TestConfidence:
     """Test confidence scoring."""
 
+    @pytest.mark.integration
     async def test_confidence_equals_compliance_score(self, evaluator):
         """Component confidence should match compliance score."""
         result = await evaluator.execute(
@@ -357,6 +368,7 @@ class TestConfidence:
 
         assert result.confidence == result.data["compliance_score"]
 
+    @pytest.mark.integration
     async def test_low_confidence_with_violations(self, evaluator):
         """Confidence should be low when violations exist."""
         result = await evaluator.execute(
@@ -400,6 +412,7 @@ class TestErrorHandling:
 class TestRemediationAvailability:
     """Test remediation availability detection."""
 
+    @pytest.mark.integration
     async def test_detects_remediable_violations(self, evaluator):
         """Should indicate when violations can be auto-fixed."""
         result = await evaluator.execute(
@@ -409,6 +422,7 @@ class TestRemediationAvailability:
         assert "remediation_available" in result.data
         assert isinstance(result.data["remediation_available"], bool)
 
+    @pytest.mark.integration
     async def test_suggests_remediation_handler(self, evaluator):
         """Should suggest remediation_handler when fixes available."""
         result = await evaluator.execute(

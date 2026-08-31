@@ -36,10 +36,19 @@ async def _dispose_db_engines_after_each_test() -> AsyncGenerator[None, None]:
 # Worker-session writes commit outside the test's transaction, so transactional
 # rollback cannot undo them. TRUNCATE at the table level works regardless of
 # session ownership. Only fires when the DB is reachable — same guard as
-# _skip_db_tests_when_unreachable.
+# _skip_db_tests_when_unreachable — and, per ADR-157 D3.3, only for tests
+# marked `integration`: this fixture ran unconditionally for all 4,071 tests
+# whenever the database happened to be reachable, including the ~4,000 that
+# never open a session, paying a real TRUNCATE CASCADE round-trip for no
+# reason. Tests are now classified (ADR-157 D3.2), so the marker is a
+# reliable gate.
 @pytest_asyncio.fixture(autouse=True)
-async def _truncate_core_tables_between_tests() -> AsyncGenerator[None, None]:
+async def _truncate_core_tables_between_tests(
+    request: pytest.FixtureRequest,
+) -> AsyncGenerator[None, None]:
     yield
+    if request.node.get_closest_marker("integration") is None:
+        return
     reachable, _ = _db_reachability()
     if not reachable:
         return
@@ -112,6 +121,41 @@ def _skip_db_tests_when_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     # raising=True: fail loudly if `_get_state` is ever renamed, rather than
     # silently no-op'ing and letting the hang return unnoticed.
     monkeypatch.setattr(session_manager, "_get_state", _unreachable, raising=True)
+
+
+# ADR-157 D3.3 — a test without `integration` must not touch the database.
+#
+# Now that TRUNCATE-based isolation above only runs for `integration`-marked
+# tests, an unmarked test that opens a real session anyway would silently
+# write state with no cleanup guaranteed — exactly the contamination risk a
+# reviewer flagged before this landed. While the database is reachable (the
+# complement of the skip-fixture above, which handles the unreachable case),
+# fail any such test immediately instead of letting it run un-isolated. This
+# is a permanent safety net, not just a transitional measurement guard: it
+# stays useful for catching a future misclassification any time the suite
+# runs with a live database, including local dev.
+@pytest.fixture(autouse=True)
+def _fail_unmarked_tests_that_touch_db(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if request.node.get_closest_marker("integration") is not None:
+        return
+    reachable, _ = _db_reachability()
+    if not reachable:
+        return
+
+    def _unexpected_db_access(*_args: object, **_kwargs: object) -> None:
+        pytest.fail(
+            f"{request.node.nodeid} opened a database session without an "
+            "`integration` marker. Add @pytest.mark.integration (or a "
+            "module-level `pytestmark = [pytest.mark.integration]`) if this "
+            "test genuinely needs the database, or remove the DB access if "
+            "it doesn't (ADR-157 D3.2/D3.3)."
+        )
+
+    monkeypatch.setattr(
+        session_manager, "_get_state", _unexpected_db_access, raising=True
+    )
 
 
 # --- #773 T5.1 — explicit CI/release mode: required DB infra must be up ---------
