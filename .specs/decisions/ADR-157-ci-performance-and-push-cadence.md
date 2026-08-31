@@ -163,6 +163,43 @@ effective `validation_scope` includes `constitutional_compliance`, by inspection
 no further instances — all other candidates were already correctly mocked. This is exactly the
 failure mode the fail-fast fixture exists to catch, and it caught one on its first real run.
 
+## D3.4 execution note (2026-08-31)
+
+Implemented the full design below (partition ratchet, `hermetic`/`integration` split, `pytest-xdist`,
+coverage-combine, wheel build) in one commit, verified locally end-to-end first — including a real
+bug the ratchet script itself had (pytest 9's `--collect-only` needs `-qq`, not `-q`, to print flat
+node IDs when addopts already carries `-v`; and a strict `\S+` regex after `::` silently dropped
+parametrized test IDs containing spaces, which happened to cancel out in the disjoint/union check
+rather than fail loudly — caught by comparing against the real "N tests collected" count, not by
+trusting the ratchet's own first "OK" result) — then pushed. **First real CI run succeeded
+completely, no follow-up fixes needed** (run `33382371460`, commit `0c3b9afd`):
+
+| Job | Duration | Result |
+|---|---|---|
+| `test-partition-ratchet` | 66s | disjoint + exhaustive, confirmed in the real CI environment |
+| `static-checks` | 172s | pass (unchanged from D3.1) |
+| `hermetic` (pytest step) | 443.97s | 3905 passed, 0 failed, 0 fail-fast DB-access triggers |
+| `integration` (pytest step) | 549.10s | 168 passed, 0 failed |
+| `coverage-combine` | 27s | `coverage combine` succeeded, combined report 50.8% (≥38%), `coverage.xml` + Codecov upload both succeeded |
+
+Critical path (run start to `coverage-combine` completion): **654s (10m54s)** — down from D3.3's
+1061s (17m41s), a further **−407s (−38.4%)**. From the original single-job baseline recorded earlier
+in this ADR (pytest 1273.60s plus ~150s of then-serial static checks plus overhead, ≈1473s/~24.5min
+total), the combined effect of D1+D3.1+D3.3+D3.4 is roughly a **56% reduction** in `CORE CI`'s total
+critical path — without weakening the coverage gate (50.8% combined matches the pre-split single-job
+50.79–50.94% almost exactly, confirming the complementary-partition-plus-combine design (D3.4's
+refinement of ADR-115 D4) preserves whole-suite coverage honesty rather than just approximating it.
+
+3905 (hermetic) + 168 (integration) = 4073, exactly matching the partition ratchet's own "4073 total"
+count and the full suite's actual collected-test count — the partition is not just asserted disjoint
+and exhaustive by the ratchet, it visibly adds up in the two jobs' own independent pass counts.
+
+D3.6 (integration job stays serial, no per-worker DB isolation) remains unre-evaluated — 549.10s for
+168 tests is not yet a bottleneck relative to `hermetic`'s 443.97s for 3905 tests, so there is no
+current case for the added complexity. D3.8's broader "is this fast enough" question is effectively
+answered by this run: yes, without further work, pending only whichever measurement the governor
+wants to treat as the closing criterion for this ADR.
+
 ## D3 implementation checklist (approved with conditions, 2026-08-31 — third review round)
 
 Verified before acceptance: `test_offline_audit_regression_544.py` looks for
