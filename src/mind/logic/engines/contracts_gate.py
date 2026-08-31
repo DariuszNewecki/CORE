@@ -741,13 +741,29 @@ def _find_persistence_reach(classes: set[str], src_root: Path) -> set[str]:
 def _check_passive_gate_symbol_attestation(
     context: AuditorContext, params: dict[str, Any]
 ) -> list[AuditFinding]:
-    """Verify every Class A passive_gate enforced_by path resolves to a live symbol.
+    """Verify every declared-enforcement-symbol mapping entry names a real,
+    resolving Python symbol -- and that one is actually declared.
 
-    Walks all .intent/enforcement/mappings/**/*.yaml. For each entry with
-    engine: passive_gate and attestation_class: 'A', extracts the enforced_by
-    dotted path, resolves it to a source file under src/, and confirms the
-    named class or function exists via AST. Stale claims are blocking violations
-    (ADR-142 D2).
+    Walks all .intent/enforcement/mappings/**/*.yaml. Two entry shapes are
+    covered, both meaning "this rule's real enforcement lives at a named
+    Python symbol, not in a periodic engine dispatch":
+
+    - engine: passive_gate, attestation_class: 'A' -- enforced_by (singular).
+    - engine: python_runtime -- enforcement_location (singular) or
+      enforcement_locations (list). Added 2026-08-31 (ADR-158, #854): this
+      check previously filtered to engine == "passive_gate" only, so a
+      python_runtime rule declaring no location at all passed silently --
+      exactly the shape governance.vocabulary_registers.operational_fields_must_be_lowercase
+      and .diagnostic_fields_must_be_uppercase shipped in for over a year
+      before #854 caught it by hand. Covering python_runtime here closes this
+      category of defect, not just those two instances.
+
+    For each matching entry, resolves the dotted path(s) to a source file
+    under src/ and confirms the named class or function exists via AST.
+    Both a MISSING declaration and a declared-but-unresolving one are
+    blocking violations (ADR-142 D2 covered the latter; #854 extends it to
+    the former -- a rule that names no enforcement location at all made
+    exactly the same false claim as one whose location has rotted away).
 
     Resolution algorithm:
     - Strip trailing documentation suffixes (e.g. ' enum').
@@ -787,51 +803,93 @@ def _check_passive_gate_symbol_attestation(
         for rule_id, mapping in mappings_block.items():
             if not isinstance(mapping, dict):
                 continue
-            if mapping.get("engine") != "passive_gate":
-                continue
+            engine = mapping.get("engine")
             entry_params = mapping.get("params") or {}
-            if entry_params.get("attestation_class") != "A":
-                continue
-            enforced_by = (entry_params.get("enforced_by") or "").strip()
-            if not enforced_by:
+
+            if engine == "passive_gate":
+                if entry_params.get("attestation_class") != "A":
+                    continue
+                declared_raw = entry_params.get("enforced_by")
+                declared: list[str] = [declared_raw] if declared_raw else []
+                declaration_field = "enforced_by"
+            elif engine == "python_runtime":
+                if entry_params.get("enforcement_locations"):
+                    declared = list(entry_params["enforcement_locations"])
+                    declaration_field = "enforcement_locations"
+                else:
+                    single = entry_params.get("enforcement_location")
+                    declared = [single] if single else []
+                    declaration_field = "enforcement_location"
+            else:
                 continue
 
-            # Strip trailing documentation suffixes like " enum"
-            enforced_by_clean = enforced_by.split(" ")[0]
+            rel_yaml = str(yaml_file.relative_to(repo_root))
+            declared = [d.strip() for d in declared if isinstance(d, str) and d.strip()]
 
-            resolved = _resolve_enforced_by_symbol(enforced_by_clean, src_root)
-            if resolved is None:
-                rel_yaml = str(yaml_file.relative_to(repo_root))
+            if not declared:
                 findings.append(
                     AuditFinding(
                         check_id=_RULE_ID_PASSIVE_GATE_ATTESTATION,
                         severity=AuditSeverity.BLOCK,
                         message=(
-                            f"passive_gate rule '{rule_id}' in {rel_yaml} declares "
-                            f"enforced_by='{enforced_by}' but no matching Python "
-                            f"symbol was found under src/. The governance claim is "
-                            f"silently false — audit returns ok=True on an "
-                            f"enforcement that no longer exists. Resolve by: "
-                            f"(1) updating enforced_by to the symbol's current "
-                            f"dotted path, or (2) reclassifying this rule to the "
-                            f"correct attestation_class if enforcement moved to a "
-                            f"different mechanism."
+                            f"{engine} rule '{rule_id}' in {rel_yaml} declares no "
+                            f"{declaration_field} at all. The governance claim "
+                            f"'this is enforced in real code' is unverifiable — "
+                            f"audit returns ok=True with nothing to check. "
+                            f"Resolve by: (1) naming the real enforcing symbol's "
+                            f"dotted path, or (2) reclassifying this rule to an "
+                            f"engine that actually dispatches (ast_gate, "
+                            f"regex_gate, artifact_gate, etc.) if no such "
+                            f"symbol exists."
                         ),
                         file_path=rel_yaml,
                         context={
                             "rule_id": rule_id,
-                            "enforced_by": enforced_by,
+                            "engine": engine,
                             "mappings_file": rel_yaml,
                         },
                     )
                 )
-            else:
-                logger.debug(
-                    "contracts_gate: %s enforced_by '%s' resolved to %s",
-                    rule_id,
-                    enforced_by,
-                    resolved,
-                )
+                continue
+
+            for enforced_by in declared:
+                # Strip trailing documentation suffixes like " enum"
+                enforced_by_clean = enforced_by.split(" ")[0]
+
+                resolved = _resolve_enforced_by_symbol(enforced_by_clean, src_root)
+                if resolved is None:
+                    findings.append(
+                        AuditFinding(
+                            check_id=_RULE_ID_PASSIVE_GATE_ATTESTATION,
+                            severity=AuditSeverity.BLOCK,
+                            message=(
+                                f"{engine} rule '{rule_id}' in {rel_yaml} declares "
+                                f"{declaration_field}='{enforced_by}' but no matching "
+                                f"Python symbol was found under src/. The governance "
+                                f"claim is silently false — audit returns ok=True on "
+                                f"an enforcement that no longer exists. Resolve by: "
+                                f"(1) updating {declaration_field} to the symbol's "
+                                f"current dotted path, or (2) reclassifying this rule "
+                                f"to the correct attestation_class if enforcement "
+                                f"moved to a different mechanism."
+                            ),
+                            file_path=rel_yaml,
+                            context={
+                                "rule_id": rule_id,
+                                "engine": engine,
+                                declaration_field: enforced_by,
+                                "mappings_file": rel_yaml,
+                            },
+                        )
+                    )
+                else:
+                    logger.debug(
+                        "contracts_gate: %s %s '%s' resolved to %s",
+                        rule_id,
+                        declaration_field,
+                        enforced_by,
+                        resolved,
+                    )
 
     return findings
 

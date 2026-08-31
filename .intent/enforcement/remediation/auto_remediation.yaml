@@ -2257,10 +2257,14 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      A diagnostic register field (audit_severity, finding type) is lowercase
-      where UPPERCASE is required per ADR-059 D2. Fix requires renaming across
-      all producer/consumer sites -- governor decision on blast radius.
-      Non-automatable.
+      Rule retired to advisory 2026-08-31 (ADR-158, #854) -- ADR-059 D2
+      (accepted 2026-05-19) made lowercase the canonical casing for
+      audit_severity, not uppercase as this entry previously (incorrectly)
+      stated; the causality here was backwards. The Diagnostic register has
+      no remaining .intent/-authored surface (severity moved to Operational;
+      verdict states are runtime-only, never authored statically). Mapped as
+      DELEGATE to satisfy the ADR-066 invariant and prevent abandoned-finding
+      accumulation; no autonomous fix applicable to a retired rule.
     status: DELEGATE
 
   governance.vocabulary_registers.operational_fields_must_be_lowercase:
@@ -2268,9 +2272,10 @@ mappings:
     confidence: 0.40
     description: >
       An operational register field is uppercase where lowercase is required
-      (routing keys must be lowercased across Python, YAML, JSON, SQL). Fix
-      requires renaming across all sites -- governor decision on blast radius.
-      Non-automatable.
+      (routing keys must be lowercased across Python, YAML, JSON, SQL). Since
+      2026-08-31 (ADR-158) this also governs the audit_severity enum
+      declaration in enums.json. Fix requires renaming across all sites --
+      governor decision on blast radius. Non-automatable.
     status: DELEGATE
 
   # -- Logic DI (1 rule) --

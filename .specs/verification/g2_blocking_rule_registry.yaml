@@ -529,18 +529,12 @@ entries:
     violating_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_projection_consistency_orphan"
     compliant_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_projection_consistency_clean"
     state: "verified"
-  - rule_id: "governance.vocabulary_registers.diagnostic_fields_must_be_uppercase"
-    engine: "python_runtime"
-    mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
   - rule_id: "governance.vocabulary_registers.operational_fields_must_be_lowercase"
-    engine: "python_runtime"
+    engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/logic/engines/test_artifact_gate__register_casing.py::test_register_casing_fires_on_uppercase_metadata_authority"
+    compliant_fixture: "tests/mind/logic/engines/test_artifact_gate__register_casing.py::test_register_casing_clean_for_lowercase_metadata_fields"
+    state: "verified"
   - rule_id: "linkage.assign_ids"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"

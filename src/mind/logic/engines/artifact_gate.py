@@ -80,6 +80,7 @@ _VOCABULARY_CHECK_TYPES = frozenset(
         "vocabulary_projection_consistency",
         "vocabulary_canonical_format",
         "vocabulary_authoritative_paths",
+        "register_casing_validation",
     }
 )
 
@@ -416,6 +417,27 @@ def _check_authoritative_paths(repo_root: Path, check: str) -> EngineResult:
             )
 
     return _vocab_result(check, violations)
+
+
+# -----------------------------------------------------------------------------
+# governance.vocabulary_registers.operational_fields_must_be_lowercase (#854,
+# ADR-158). The real path-qualified check lives in
+# shared.infrastructure.intent.vocabulary_register_validator (src/shared/ has
+# no layer restriction on being imported by src/mind/, and the same check
+# doubles as IntentRepository.__init__'s fail-closed bootstrap guard -- see
+# that module's docstring for why the two callers exist and how their failure
+# semantics differ). This function is a thin EngineResult adapter.
+# -----------------------------------------------------------------------------
+
+
+def _check_register_casing(repo_root: Path, check: str) -> EngineResult:
+    """Operational-register casing: authored field instances + enums.json ratification."""
+    from shared.infrastructure.intent.vocabulary_register_validator import (
+        check_register_casing,
+    )
+
+    report = check_register_casing(repo_root / ".intent")
+    return _vocab_result(check, report.violations)
 
 
 # ID: 7d1a2c8e-4b3f-4d52-a6e1-9c2b8d4e1f7a
@@ -946,6 +968,7 @@ _VOCAB_DISPATCH: dict[str, Any] = {
     "vocabulary_projection_consistency": _check_projection_consistency,
     "vocabulary_canonical_format": _check_canonical_format,
     "vocabulary_authoritative_paths": _check_authoritative_paths,
+    "register_casing_validation": _check_register_casing,
 }
 
 _GOVERNANCE_SYNC_DISPATCH: dict[str, Any] = {

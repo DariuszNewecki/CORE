@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.governance.passive_gate_attestation",
         "title": "Passive Gate Enforced-By Symbol Attestation",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -12,11 +12,11 @@
     "rules": [
         {
             "id": "governance.passive_gate.enforced_by_must_resolve",
-            "statement": "Every Class A passive_gate mapping entry (attestation_class: 'A') MUST carry an enforced_by param whose dotted Python path resolves to an existing class or function in src/. Stale enforced_by claims (referencing renamed, moved, or deleted symbols) are a blocking violation: they make the governance claim silently false while the engine still returns ok=True.",
+            "statement": "Every Class A passive_gate mapping entry (attestation_class: 'A') MUST carry an enforced_by param, and every python_runtime mapping entry MUST carry an enforcement_location (or enforcement_locations) param, whose dotted Python path(s) resolve to an existing class or function in src/. A missing declaration is itself a blocking violation, not merely a stale one: stating no enforcement location at all makes the same silent-false claim as a rotted one. Stale claims (referencing renamed, moved, or deleted symbols) are also a blocking violation: they make the governance claim silently false while the engine still returns ok=True.",
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "ADR-142. passive_gate is the semantically correct engine for rules whose enforcement lives in runtime substrate. That correctness depends on the enforced_by claim being true. A stale claim -- symbol deleted, renamed, or moved -- turns a legitimate governance delegation into silent governance absence: every audit passes ok=True on a claim that no longer holds. Initial recon (2026-07-05) found one already-stale reference (features.maintenance.command_sync_service in .intent/enforcement/mappings/infrastructure/cli_commands.yaml; actual path is body.maintenance.command_sync_service). The check is purely AST/filesystem: it parses enforced_by as a dotted path, resolves the longest matching prefix to a source file, and confirms the named symbol is defined in that file. No imports, no runtime execution."
+            "rationale": "ADR-142. passive_gate is the semantically correct engine for rules whose enforcement lives in runtime substrate; python_runtime is the sibling engine for the same shape of claim. That correctness depends on a real symbol being both named and true. A stale claim -- symbol deleted, renamed, or moved -- turns a legitimate governance delegation into silent governance absence: every audit passes ok=True on a claim that no longer holds. Initial recon (2026-07-05) found one already-stale reference (features.maintenance.command_sync_service in .intent/enforcement/mappings/infrastructure/cli_commands.yaml; actual path is body.maintenance.command_sync_service). Widened 2026-08-31 (ADR-158, #854): the check previously filtered to engine == passive_gate only and silently skipped a missing enforced_by/enforcement_location entirely -- exactly the gap that let governance.vocabulary_registers.operational_fields_must_be_lowercase and .diagnostic_fields_must_be_uppercase (engine: python_runtime, no enforcement_location declared at all) ship with no real consumer for over a year before #854 caught it by hand. Both edges are now covered: absence and staleness. The check is purely AST/filesystem: it parses each declared dotted path, resolves the longest matching prefix to a source file, and confirms the named symbol is defined in that file. No imports, no runtime execution."
         }
     ]
 }

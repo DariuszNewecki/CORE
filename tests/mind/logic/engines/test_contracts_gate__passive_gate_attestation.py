@@ -318,5 +318,156 @@ mappings:
     assert rule_ids == {"rule.one", "rule.two"}
 
 
+# ---------------------------------------------------------------------------
+# python_runtime coverage (#854, ADR-158) — the engine-type filter previously
+# excluded python_runtime entirely, so a rule declaring no enforcement
+# location at all passed silently. Both the resolving and missing-declaration
+# shapes are covered here, for both the singular and plural param forms.
+# ---------------------------------------------------------------------------
+
+_PYTHON_RUNTIME_RESOLVES_MAPPING = """\
+mappings:
+  my.rule.runtime_valid:
+    engine: python_runtime
+    params:
+      check_type: registration_time_validation
+      enforcement_location: "body.atomic.registry.register_action"
+    scope:
+      applies_to: ["src/body/atomic/**/*.py"]
+"""
+
+_PYTHON_RUNTIME_LOCATIONS_LIST_MAPPING = """\
+mappings:
+  my.rule.runtime_list:
+    engine: python_runtime
+    params:
+      check_type: comprehensive_validation
+      enforcement_locations:
+        - "body.atomic.registry.register_action"
+        - "body.atomic.executor.execute"
+    scope:
+      applies_to: ["src/body/atomic/**/*.py"]
+"""
+
+_PYTHON_RUNTIME_STALE_MAPPING = """\
+mappings:
+  my.rule.runtime_stale:
+    engine: python_runtime
+    params:
+      check_type: registration_time_validation
+      enforcement_location: "body.atomic.old_registry.old_register"
+    scope:
+      applies_to: ["src/body/atomic/**/*.py"]
+"""
+
+_PYTHON_RUNTIME_MISSING_MAPPING = """\
+mappings:
+  my.rule.runtime_missing:
+    engine: python_runtime
+    params:
+      check_type: register_casing_validation
+      register: operational
+    scope:
+      applies_to: [".intent/**/*.yaml"]
+"""
+
+
+def test_python_runtime_resolves_passes(tmp_path: Path) -> None:
+    """python_runtime entry whose enforcement_location resolves → no findings."""
+    repo = _scaffold(
+        tmp_path,
+        mapping_content=_PYTHON_RUNTIME_RESOLVES_MAPPING,
+        src_files={
+            "body/atomic/registry.py": "def register_action():\n    pass\n"
+        },
+    )
+    ctx = _make_context(repo)
+    findings = _check_passive_gate_symbol_attestation(
+        ctx, {"mappings_root": ".intent/enforcement/mappings", "src_root": "src"}
+    )
+    assert findings == []
+
+
+def test_python_runtime_locations_list_all_resolve_passes(tmp_path: Path) -> None:
+    """enforcement_locations (plural list) — every entry must resolve."""
+    repo = _scaffold(
+        tmp_path,
+        mapping_content=_PYTHON_RUNTIME_LOCATIONS_LIST_MAPPING,
+        src_files={
+            "body/atomic/registry.py": "def register_action():\n    pass\n",
+            "body/atomic/executor.py": "def execute():\n    pass\n",
+        },
+    )
+    ctx = _make_context(repo)
+    findings = _check_passive_gate_symbol_attestation(
+        ctx, {"mappings_root": ".intent/enforcement/mappings", "src_root": "src"}
+    )
+    assert findings == []
+
+
+def test_python_runtime_stale_reference_produces_finding(tmp_path: Path) -> None:
+    """python_runtime entry whose enforcement_location does not resolve → finding."""
+    repo = _scaffold(
+        tmp_path, mapping_content=_PYTHON_RUNTIME_STALE_MAPPING, src_files={}
+    )
+    ctx = _make_context(repo)
+    findings = _check_passive_gate_symbol_attestation(
+        ctx, {"mappings_root": ".intent/enforcement/mappings", "src_root": "src"}
+    )
+    assert len(findings) == 1
+    assert findings[0].check_id == "governance.passive_gate.enforced_by_must_resolve"
+    assert "old_registry.old_register" in findings[0].message
+
+
+def test_python_runtime_missing_declaration_produces_finding(tmp_path: Path) -> None:
+    """python_runtime entry with NO enforcement_location/enforcement_locations at
+    all → finding, not a silent skip. This is the exact shape
+    governance.vocabulary_registers.operational_fields_must_be_lowercase and
+    .diagnostic_fields_must_be_uppercase shipped in (#854) before this check
+    covered python_runtime at all."""
+    repo = _scaffold(
+        tmp_path, mapping_content=_PYTHON_RUNTIME_MISSING_MAPPING, src_files={}
+    )
+    ctx = _make_context(repo)
+    findings = _check_passive_gate_symbol_attestation(
+        ctx, {"mappings_root": ".intent/enforcement/mappings", "src_root": "src"}
+    )
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.check_id == "governance.passive_gate.enforced_by_must_resolve"
+    assert "my.rule.runtime_missing" in f.message
+    assert "no enforcement_location" in f.message
+
+
+_CLASS_A_MISSING_ENFORCED_BY_MAPPING = """\
+mappings:
+  my.rule.class_a_missing:
+    engine: passive_gate
+    params:
+      attestation_class: "A"
+    scope:
+      applies_to: ["src/**/*.py"]
+"""
+
+
+def test_class_a_missing_enforced_by_produces_finding(tmp_path: Path) -> None:
+    """Class A entry with NO enforced_by at all → finding, not a silent skip
+    (previously `if not enforced_by: continue` swallowed this shape)."""
+    repo = _scaffold(
+        tmp_path,
+        mapping_content=_CLASS_A_MISSING_ENFORCED_BY_MAPPING,
+        src_files={},
+    )
+    ctx = _make_context(repo)
+    findings = _check_passive_gate_symbol_attestation(
+        ctx, {"mappings_root": ".intent/enforcement/mappings", "src_root": "src"}
+    )
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.check_id == "governance.passive_gate.enforced_by_must_resolve"
+    assert "my.rule.class_a_missing" in f.message
+    assert "no enforced_by" in f.message
+
+
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])

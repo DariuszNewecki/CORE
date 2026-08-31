@@ -2,38 +2,50 @@
 #
 # Enforcement mapping for governance.vocabulary_registers rules.
 # Declared under CORE-Vocabulary-Registers.md and Article I S5 of the
-# Constitution. Both rules require structured YAML/JSON field parsing;
-# python_runtime is the appropriate engine.
+# Constitution.
 #
-# No auto_remediation entries: register casing violations require
-# intentional human correction of governance artifact authoring.
+# 2026-08-31 (ADR-158, #854): governance.vocabulary_registers.diagnostic_fields_must_be_uppercase
+# is retired -- see .intent/rules/governance/vocabulary_registers.json for the
+# full disposition. governance.vocabulary_registers.operational_fields_must_be_lowercase
+# moved from engine: python_runtime (declared but never implemented -- no
+# consumer existed for either rule; #854) to engine: artifact_gate. Real
+# implementation: src/mind/logic/engines/artifact_gate.py::_check_register_casing,
+# a context-level check dispatched via verify_context (walks the whole .intent/
+# tree once per audit, not per matched file). The same underlying casing
+# grammar is separately enforced as a fail-closed bootstrap guard inside
+# IntentRepository.__init__ (src/shared/infrastructure/intent/intent_repository.py,
+# via validate_register_casing in
+# src/shared/infrastructure/intent/vocabulary_register_validator.py) -- CORE
+# refuses to even load a .intent/ tree with a casing violation in this scope,
+# strict=True by default. That boot guard means, in production, this
+# artifact_gate rule's own scope can never actually observe a violation --
+# a bad .intent/ tree never gets far enough to be audited. The rule stays
+# "verified" against its own real mechanism (proven via injected temp
+# fixtures in the G2 census, not against live traffic), and the boot guard is
+# the reason production traffic never exercises it -- stated here explicitly
+# per the #854 review rather than left implicit.
 #
-# Amendment 2026-05-25: scope.excludes for both rules cover
-# .intent/enforcement/mappings/** as a structural guard -- mapping files
-# have no register fields to validate (their schema in
-# enforcement_mapping.schema.json defines only engine, params, scope,
-# governed_exclusions, requires_findings_from).
+# No auto_remediation entries beyond the DELEGATE placeholders already
+# present: register casing violations require intentional human correction
+# of governance artifact authoring.
+#
+# scope.excludes for the surviving rule covers .intent/enforcement/mappings/**
+# as a structural guard -- mapping files have no register fields to validate
+# (their schema in enforcement_mapping.schema.json defines only engine,
+# params, scope, governed_exclusions, requires_findings_from).
 
 mappings:
   # RULE: governance.vocabulary_registers.operational_fields_must_be_lowercase
   # Verifies that values in operational-register fields of .intent/ artifacts
-  # use lowercase_snake_case. Operational-register fields: authority, phase,
-  # strength, enforcement, status, class, ordering.
-  # A Title Case or UPPER_CASE value in any of these fields is a violation.
+  # use lowercase_snake_case (authority, phase, enforcement, status, class,
+  # ordering.mode -- path-qualified, see artifact_gate.py's
+  # _REGISTER_GOVERNED_PATHS), plus the operational-register enum vocabularies
+  # declared in .intent/META/enums.json (authority, phase, strength,
+  # audit_severity -- see _REGISTER_ENUMS_RATIFIED_NAMES).
   governance.vocabulary_registers.operational_fields_must_be_lowercase:
-    engine: python_runtime
+    engine: artifact_gate
     params:
       check_type: register_casing_validation
-      register: operational
-      fields:
-        - authority
-        - phase
-        - strength
-        - enforcement
-        - status
-        - class
-        - ordering
-      expected_pattern: "^[a-z][a-z0-9_]*$"
     scope:
       applies_to:
         - ".intent/**/*.yaml"
@@ -43,23 +55,15 @@ mappings:
         - ".intent/enforcement/mappings/**"
 
   # RULE: governance.vocabulary_registers.diagnostic_fields_must_be_uppercase
-  # Verifies that values in diagnostic-register fields of .intent/ vocabulary
-  # artifacts use UPPER_SNAKE_CASE. Diagnostic-register fields: severity,
-  # verdict-state fields.
-  # Scope: vocabulary declarations only. Enforcement mapping files are excluded
-  # as a structural guard -- the mapping schema has no severity field to validate.
+  # RETIRED 2026-08-31 (ADR-158, #854) -- see the rule document for the full
+  # disposition. passive_gate/attestation_class D satisfies the ADR-066
+  # all_rules_mapped invariant while dispatching zero findings, matching the
+  # precedent set by logic.di.no_global_session
+  # (.intent/enforcement/mappings/architecture/async_logic.yaml).
   governance.vocabulary_registers.diagnostic_fields_must_be_uppercase:
-    engine: python_runtime
+    engine: passive_gate
     params:
-      check_type: register_casing_validation
-      register: diagnostic
-      fields:
-        - severity
-      expected_pattern: "^[a-z][a-z0-9_]*$"
+      attestation_class: "D"
     scope:
       applies_to:
-        - ".intent/**/*.yaml"
-        - ".intent/**/*.json"
-      excludes:
-        - ".intent/META/**"
-        - ".intent/enforcement/mappings/**"
+        - "src/**/*.py"

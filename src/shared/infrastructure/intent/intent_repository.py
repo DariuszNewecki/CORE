@@ -27,6 +27,9 @@ from typing import Any
 from shared.config import settings
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_validator import validate_intent_tree
+from shared.infrastructure.intent.vocabulary_register_validator import (
+    validate_register_casing,
+)
 from shared.infrastructure.rooted_repository import RootedRepository
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
@@ -125,6 +128,12 @@ class IntentRepository(RootedRepository):
 
         self._check_root_safety()
         validate_intent_tree(self._root, strict=self._strict)
+        # ADR-158 (#854): fail-closed bootstrap guard for
+        # governance.vocabulary_registers.operational_fields_must_be_lowercase.
+        # Same underlying check as artifact_gate's register_casing_validation
+        # check_type -- see vocabulary_register_validator's module docstring
+        # for why both callers exist and how their failure semantics differ.
+        validate_register_casing(self._root, strict=self._strict)
 
     # ID: ab9383d3-df49-4565-856b-c3d8846b405d
     def initialize(self) -> None:
