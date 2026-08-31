@@ -22,6 +22,8 @@ logic directly without going through pytest's own fixture injection.
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 
 import tests.conftest as conftest_module
@@ -78,7 +80,10 @@ def test_release_mode_on_and_db_unreachable_aborts_the_session(
     monkeypatch.setattr(
         conftest_module,
         "_db_reachability",
-        lambda: (False, "database host db:5432 is unreachable (ConnectionRefusedError)"),
+        lambda: (
+            False,
+            "database host db:5432 is unreachable (ConnectionRefusedError)",
+        ),
     )
     with pytest.raises(pytest.exit.Exception) as exc_info:
         conftest_module._require_db_infrastructure_in_release_mode.__wrapped__()
@@ -98,6 +103,12 @@ async def test_truncate_cleanup_failure_propagates_instead_of_being_swallowed() 
     fixture instance (the one pytest itself invokes for this test) must
     still see the real get_session/_db_reachability at its own teardown,
     not this test's fake exploding session.
+
+    ADR-157 D3.3: the fixture now takes `request` and gates on the
+    `integration` marker, so this direct `.__wrapped__()` call needs a
+    fake request whose node reports as `integration`-marked -- otherwise
+    the fixture would return early before ever reaching the truncate
+    logic this test exists to exercise.
     """
 
     class _ExplodingSession:
@@ -116,11 +127,18 @@ async def test_truncate_cleanup_failure_propagates_instead_of_being_swallowed() 
     def _fake_get_session() -> _ExplodingSession:
         return _ExplodingSession()
 
+    fake_request = MagicMock()
+    fake_request.node.get_closest_marker.return_value = (
+        MagicMock()
+    )  # non-None => "integration"-marked
+
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(conftest_module, "_db_reachability", lambda: (True, ""))
         mp.setattr(conftest_module, "get_session", _fake_get_session)
 
-        gen = conftest_module._truncate_core_tables_between_tests.__wrapped__()
+        gen = conftest_module._truncate_core_tables_between_tests.__wrapped__(
+            fake_request
+        )
         await anext(gen)  # advance to the fixture's `yield`
         with pytest.raises(RuntimeError, match="simulated truncate failure"):
             await anext(gen)  # drives the post-yield cleanup code

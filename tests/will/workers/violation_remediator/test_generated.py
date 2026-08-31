@@ -137,6 +137,12 @@ class TestViolationRemediatorWorker:
             ]
         )
         worker._get_remediation_map = MagicMock(return_value={})
+        # ADR-157 D3.3: run() calls _get_active_proposal_id_by_action_file()
+        # unconditionally before the action-groups loop, real DB-backed --
+        # unmocked here it opened a real session. All findings are
+        # unmappable in this test so the loop body (and _check_circuit_
+        # breaker within it) never executes, but this call still happens.
+        worker._get_active_proposal_id_by_action_file = AsyncMock(return_value={})
         worker._release_unmappable = AsyncMock(return_value=1)
         worker._mark_delegated = AsyncMock(return_value=0)
         worker.post_heartbeat = AsyncMock()
@@ -234,6 +240,11 @@ class TestViolationRemediatorWorker:
             }
         )
         worker._get_active_proposal_id_by_action_file = AsyncMock(return_value={})
+        # ADR-157 D3.3: real DB-backed circuit-breaker lookup, unmocked here
+        # it opened a real session -- the committed-file path reaches it
+        # (unlike the uncommitted-gate test, which `continue`s before this
+        # call). Low count keeps it under mock_cb's threshold_n=5.
+        worker._check_circuit_breaker = AsyncMock(return_value=(0, None, None, None))
         worker._create_proposal = AsyncMock(return_value="proposal-abc")
         worker._defer_to_proposal = AsyncMock(return_value=1)
         worker._release_unmappable = AsyncMock(return_value=0)
@@ -280,6 +291,11 @@ class TestViolationRemediatorWorker:
             }
         )
         worker._get_active_proposal_id_by_action_file = AsyncMock(return_value={})
+        # ADR-157 D3.3: flow-kind findings bypass the uncommitted gate
+        # entirely (ref_kind == "flow"), reaching the same real DB-backed
+        # circuit-breaker call as the committed-file path -- unmocked here
+        # it opened a real session.
+        worker._check_circuit_breaker = AsyncMock(return_value=(0, None, None, None))
         worker._create_proposal = AsyncMock(return_value="proposal-flow-1")
         worker._defer_to_proposal = AsyncMock(return_value=1)
         worker._release_unmappable = AsyncMock(return_value=0)

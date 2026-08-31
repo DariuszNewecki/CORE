@@ -106,9 +106,27 @@ async def test_blackboard_shop_manager_classifies_entry_stale_as_self_resolve(
     monkeypatch.setattr(
         worker, "_sweep_resolved_stale_alerts", AsyncMock(return_value=0)
     )
-    monkeypatch.setattr(worker, "_sweep_telemetry_ttl", AsyncMock(return_value=0))
+    # ADR-157 D3.3: this was patching a name (`_sweep_telemetry_ttl`) that
+    # run() never calls -- the real method is `_sweep_telemetry_keep_last_n`
+    # (#568), so it silently executed for real against a live DB. Likewise
+    # `_sweep_orphaned_claims` (ADR-104) and `_sweep_retired_rule_findings`
+    # (#657) were added to run() after this test was written and never
+    # mocked at all. The fail-fast DB-access guard caught all three.
+    monkeypatch.setattr(
+        worker, "_sweep_telemetry_keep_last_n", AsyncMock(return_value=0)
+    )
     monkeypatch.setattr(
         worker, "_sweep_delegate_findings_ttl", AsyncMock(return_value=0)
+    )
+    monkeypatch.setattr(
+        worker,
+        "_sweep_orphaned_claims",
+        AsyncMock(return_value={"skipped": False, "abandoned": [], "released": []}),
+    )
+    monkeypatch.setattr(
+        worker,
+        "_sweep_retired_rule_findings",
+        AsyncMock(return_value={"resolved": 0, "retired_rules": []}),
     )
     monkeypatch.setattr(
         worker, "_fetch_stale_entries", AsyncMock(return_value=[stale_entry])
