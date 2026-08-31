@@ -294,7 +294,7 @@ entries:
     mechanism_class: "passive_gate_class_a"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "autonomy.lanes.boundary_enforcement"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -304,9 +304,9 @@ entries:
   - rule_id: "autonomy.remediation.min_confidence_floor"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/autonomy/test_audit_analyzer.py::test_below_confidence_floor_excluded_from_fixable"
+    compliant_fixture: "tests/body/autonomy/test_audit_analyzer.py::test_at_or_above_confidence_floor_included_in_fixable"
+    state: "verified"
   - rule_id: "capability.taxonomy.no_model_specific_names"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -576,7 +576,7 @@ entries:
     mechanism_class: "passive_gate_class_a"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "planning.file_path_validation"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -588,7 +588,7 @@ entries:
     mechanism_class: "passive_gate_class_a"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "planning.trace_mandatory"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -598,27 +598,27 @@ entries:
   - rule_id: "proposal_lifecycle.approval.authority_required"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/will/autonomy/test_proposal_state_manager_approve.py::test_approve_rejects_unknown_authority"
+    compliant_fixture: "tests/will/autonomy/test_proposal_state_manager_approve.py::test_approve_happy_path"
+    state: "verified"
   - rule_id: "proposal_lifecycle.claim.authority_required"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_proposal_lifecycle_actions.py::test_claim_missing_claimed_by_rejected_before_any_db_write"
+    compliant_fixture: "tests/body/atomic/test_proposal_lifecycle_actions.py::test_claim_with_authority_and_no_prior_claim_succeeds"
+    state: "verified"
   - rule_id: "proposal_lifecycle.claim.idempotency_guard"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_proposal_lifecycle_actions.py::test_second_claim_on_already_claimed_proposal_rejected"
+    compliant_fixture: "tests/body/atomic/test_proposal_lifecycle_actions.py::test_claim_with_authority_and_no_prior_claim_succeeds"
+    state: "verified"
   - rule_id: "proposal_lifecycle.transitions.valid_sequence"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/will/autonomy/test_proposal_state_transitions.py::test_approve_from_completed_raises"
+    compliant_fixture: "tests/will/autonomy/test_proposal_state_transitions.py::test_mark_finalizing_executing_to_finalizing"
+    state: "verified"
   - rule_id: "purity.no_metadata_decorators"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
