@@ -70,15 +70,15 @@ entries:
   - rule_id: "ai.prompt.model_required"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_model_required_fires_on_direct_make_request_call"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_model_required_passes_via_prompt_model_invoke"
+    state: "verified"
   - rule_id: "ai.prompt.output_validation_required"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_output_validation_required_fires_when_invoke_skips_validation"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_output_validation_required_passes_when_invoke_validates"
+    state: "verified"
   - rule_id: "ai.prompt.system_prompt_required"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -160,15 +160,15 @@ entries:
   - rule_id: "architecture.channels.api_structured_output_only"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_api_structured_output_only_fires_on_rich_console"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_api_structured_output_only_passes_via_logger"
+    state: "verified"
   - rule_id: "architecture.channels.logic_logger_only"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_logic_logger_only_fires_on_print"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_logic_logger_only_passes_via_logger"
+    state: "verified"
   - rule_id: "architecture.constitution_read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -214,9 +214,9 @@ entries:
   - rule_id: "architecture.no_module_async_engine"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_no_module_async_engine_fires_on_module_level_creation"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_no_module_async_engine_passes_for_lazy_function_scoped_creation"
+    state: "verified"
   - rule_id: "architecture.path_access.no_hardcoded_runtime_dirs"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -244,9 +244,9 @@ entries:
   - rule_id: "async.no_manual_loop_run"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_no_manual_loop_run_fires_on_unguarded_asyncio_run"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_no_manual_loop_run_passes_for_defensively_guarded_call"
+    state: "verified"
   - rule_id: "atomic_actions.fix_action_scope"
     engine: "advisory"
     mechanism_class: "advisory_mapped"
@@ -592,9 +592,9 @@ entries:
   - rule_id: "planning.trace_mandatory"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_trace_mandatory_fires_when_create_method_skips_tracer"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_trace_mandatory_passes_when_create_method_traces"
+    state: "verified"
   - rule_id: "proposal_lifecycle.approval.authority_required"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
@@ -628,9 +628,9 @@ entries:
   - rule_id: "purity.tempfile_default_dir"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_tempfile_default_dir_fires_on_missing_dir_kwarg"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_call_execution_discipline_rules.py::test_tempfile_default_dir_passes_with_explicit_dir_kwarg"
+    state: "verified"
   - rule_id: "quality.type_safety"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
