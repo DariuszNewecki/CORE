@@ -88,33 +88,33 @@ entries:
   - rule_id: "architecture.api.route_module_must_declare_exposure"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_route_module_must_declare_exposure_fires_when_absent"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_route_module_must_declare_exposure_passes_when_declared"
+    state: "verified"
   - rule_id: "architecture.api.router_exposure_must_match_dependencies"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_router_exposure_enforcement_fires_when_governor_only_ungated"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_router_exposure_enforcement_passes_when_governor_only_gated"
+    state: "verified"
   - rule_id: "architecture.artifact_discovery_through_registry"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_artifact_discovery_fires_on_hardcoded_extension_glob"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_artifact_discovery_passes_when_registry_consulted"
+    state: "verified"
   - rule_id: "architecture.blackboard.indeterminate_requires_human_mechanism"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_indeterminate_guard_fires_when_human_mechanism_missing"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_indeterminate_guard_passes_with_set_clause_human_coassignment"
+    state: "verified"
   - rule_id: "architecture.blackboard.reaudit_requires_reaudit_mechanism"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_reaudit_guard_fires_when_mechanism_predicate_absent"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_reaudit_guard_passes_with_where_clause_mechanism_predicate"
+    state: "verified"
   - rule_id: "architecture.blackboard.worker_only_inserts"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -226,9 +226,9 @@ entries:
   - rule_id: "architecture.patterns.action_pattern"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_action_pattern_fires_when_register_action_lacks_atomic_action"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_action_pattern_passes_for_correctly_decorated_action"
+    state: "verified"
   - rule_id: "architecture.shared.no_layer_imports"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -544,15 +544,15 @@ entries:
   - rule_id: "linkage.assign_ids"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_assign_ids_fires_on_public_symbol_without_anchor"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_api_blackboard_linkage_discovery_rules.py::test_assign_ids_passes_with_id_anchor"
+    state: "verified"
   - rule_id: "linkage.duplicate_ids"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_duplicate_ids_check.py::test_duplicate_id_across_two_files_is_blocked"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_duplicate_ids_check.py::test_unique_ids_pass"
+    state: "verified"
   - rule_id: "metadata.operations.comment_length_limit"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
