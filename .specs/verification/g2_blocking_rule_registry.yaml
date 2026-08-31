@@ -66,7 +66,7 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "ai.prompt.model_required"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -84,7 +84,7 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "architecture.api.route_module_must_declare_exposure"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -172,9 +172,9 @@ entries:
   - rule_id: "architecture.constitution_read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_rule_fires__per_engine_type.py::test_glob_gate_fires_on_prohibited_constitution_path"
+    compliant_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_constitution_read_only_clean_for_ordinary_src_file"
+    state: "verified"
   - rule_id: "architecture.flows.atomic_action_must_not_compose"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -208,9 +208,9 @@ entries:
   - rule_id: "architecture.meta_read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_meta_read_only_fires_on_meta_path"
+    compliant_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_meta_read_only_clean_for_ordinary_src_file"
+    state: "verified"
   - rule_id: "architecture.no_module_async_engine"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -300,7 +300,7 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "autonomy.remediation.min_confidence_floor"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
@@ -430,9 +430,9 @@ entries:
   - rule_id: "governance.constitution.read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_governance_constitution_read_only_fires_on_any_intent_path"
+    compliant_fixture: "tests/mind/governance/test_g2_glob_gate_rules.py::test_governance_constitution_read_only_clean_for_ordinary_src_file"
+    state: "verified"
   - rule_id: "governance.fs_operations.no_direct_yaml_import"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
