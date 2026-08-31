@@ -16,6 +16,16 @@ on:
           develop) without a throwaway PR (#827).
         required: false
 
+# ADR-157 D2: cancel a superseded push/PR run when a newer commit lands on the
+# same ref -- rapid-fire pushes (e.g. #842's fix-up series) otherwise let each
+# run's full ~25min ephemeral-DB job complete after its result is already
+# moot. workflow_dispatch runs get a unique group per invocation (github.run_id)
+# so an intentional dispatch against an old SHA (#827) is never auto-cancelled
+# by an unrelated later push.
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}"
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write

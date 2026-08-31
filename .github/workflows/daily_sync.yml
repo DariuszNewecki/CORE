@@ -8,6 +8,12 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
 
+# ADR-157 D2: cancel a superseded run if a manual dispatch overlaps the
+# scheduled cron; a workflow_dispatch run still gets its own unique group.
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}"
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
