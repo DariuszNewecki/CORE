@@ -133,8 +133,22 @@ argued from source reading. A full-suite local run was attempted first as a clea
 baseline; it had to be killed both before and after the fix (once for being too slow to be practical
 over LAN latency even after ~30 minutes, once for a genuine stall on the wheel-install e2e test that
 appears network-egress-dependent in this sandbox) — so no exact before/after wall-clock number came
-out of this environment, and the authoritative timing measurement for D3.8 is deferred to the actual
-CI run against localhost containers, which is the correct environment for that number anyway.
+out of this environment, and the authoritative timing measurement was deferred to the actual CI run
+against localhost containers, which is the correct environment for that number anyway.
+
+**That CI measurement is now in** (run `33374003476`, commit `8ac587ea`, first fully green run with
+D1–D3.3 in place): the `Run tests with coverage` step — pytest itself, nothing else — completed in
+**996.67s**, down from the **1273.60s** baseline recorded earlier in this ADR. That is **−276.93s
+(−21.7%)** from D3.3's fixture fix alone, before any of D3.4's job-split/parallelization work.
+`static-checks` (D3.1) completed in 166s, running fully in parallel with `Validate` — it contributes
+nothing to the critical path. `Validate`'s total job wall time (container init through teardown) was
+1061s (17m41s). Since `static-checks` and `Validate` run concurrently, the whole `CORE CI` check's
+critical path is `max(166, 1061) = 1061s` — down from the original single-job ~24–25 minute total.
+Result: 4070 passed, 1 skipped (the wheel-install e2e test, D3's checklist item — expected, not yet
+wired), 0 failed, and — notably — zero fail-fast DB-access detections on this run, confirming the
+classification gaps found in the process (below, plus three more the CI run itself surfaced beyond
+local testing's reach — a regression in a direct-fixture-invocation test, and two workers with
+stale/missing mocks predating this ADR entirely) are now fully closed for the current test population.
 
 What *did* come out of local measurement, directly: the new fail-fast fixture
 (`_fail_unmarked_tests_that_touch_db`) caught a real classification gap neither classification agent's
