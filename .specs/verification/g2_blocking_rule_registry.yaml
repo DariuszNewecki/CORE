@@ -316,15 +316,15 @@ entries:
   - rule_id: "capability.taxonomy.resources_provide_canonical_capabilities"
     engine: "knowledge_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_knowledge_gate__capability_taxonomy_whitelist.py::test_non_canonical_resource_capability_is_reported"
+    compliant_fixture: "tests/mind/logic/engines/test_knowledge_gate__resources_provide_canonical_capabilities.py::test_canonical_llm_resources_capabilities_pass_with_no_findings"
+    state: "verified"
   - rule_id: "capability.taxonomy.roles_require_canonical_capabilities"
     engine: "knowledge_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_knowledge_gate__capability_taxonomy_whitelist.py::test_non_canonical_database_value_is_reported_with_evidence"
+    compliant_fixture: "tests/mind/logic/engines/test_knowledge_gate__capability_taxonomy_whitelist.py::test_canonical_database_capabilities_pass_with_no_findings"
+    state: "verified"
   - rule_id: "cli.async_execution"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
@@ -466,9 +466,9 @@ entries:
   - rule_id: "governance.passive_gate.enforced_by_must_resolve"
     engine: "contracts_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_contracts_gate__passive_gate_attestation.py::test_class_a_stale_reference_produces_finding"
+    compliant_fixture: "tests/mind/logic/engines/test_contracts_gate__passive_gate_attestation.py::test_class_a_resolves_passes"
+    state: "verified"
   - rule_id: "governance.quarantine.namespace_has_drainer"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
@@ -490,21 +490,21 @@ entries:
   - rule_id: "governance.taxonomy.operational_capabilities_decorator_backing"
     engine: "taxonomy_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_taxonomy_gate.py::test_phantom_yields_one_finding_with_resolution_prompt"
+    compliant_fixture: "tests/mind/logic/engines/test_taxonomy_gate.py::test_clean_tree_yields_no_findings"
+    state: "verified"
   - rule_id: "governance.taxonomy.self_resolve_resolver_owned"
     engine: "taxonomy_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_self_resolve_resolver_owned.py::test_missing_docstring_block_flags_finding"
+    compliant_fixture: "tests/mind/logic/engines/test_self_resolve_resolver_owned.py::test_clean_tree_yields_no_findings"
+    state: "verified"
   - rule_id: "governance.taxonomy.sensor_supported_by_declaration"
     engine: "taxonomy_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_taxonomy_gate__sensor_supported_by_declaration.py::test_introspected_sensor_not_authored_flags_finding"
+    compliant_fixture: "tests/mind/logic/engines/test_taxonomy_gate__sensor_supported_by_declaration.py::test_matching_authored_and_introspected_yields_no_findings"
+    state: "verified"
   - rule_id: "governance.vocabulary.authoritative_source_must_be_paper"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
@@ -642,4 +642,4 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
