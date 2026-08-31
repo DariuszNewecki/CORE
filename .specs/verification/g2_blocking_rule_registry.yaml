@@ -40,27 +40,27 @@ entries:
   - rule_id: "ai.prompt.artifact.no_provider_leak"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_adr_076_firing_coverage.py::test_no_provider_leak_fires_on_anthropic_preference"
+    compliant_fixture: "tests/mind/logic/engines/test_g2_artifact_gate_compliant_fixtures.py::test_no_provider_leak_passes_for_capability_class_preference"
+    state: "verified"
   - rule_id: "ai.prompt.artifact.required_fields"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_adr_076_firing_coverage.py::test_required_fields_fires_on_missing_field"
+    compliant_fixture: "tests/mind/logic/engines/test_g2_artifact_gate_compliant_fixtures.py::test_required_fields_passes_for_complete_manifest"
+    state: "verified"
   - rule_id: "ai.prompt.artifact.role_abstraction"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_adr_076_firing_coverage.py::test_role_abstraction_fires_on_unknown_role"
+    compliant_fixture: "tests/mind/logic/engines/test_g2_artifact_gate_compliant_fixtures.py::test_role_abstraction_passes_for_declared_cognitive_role"
+    state: "verified"
   - rule_id: "ai.prompt.governed_prompt_must_have_anchor"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_artifact_gate__governed_prompt_has_anchor.py::test_governed_prompt_without_anchor_violates"
+    compliant_fixture: "tests/mind/logic/engines/test_artifact_gate__governed_prompt_has_anchor.py::test_governed_prompt_with_anchor_passes"
+    state: "verified"
   - rule_id: "ai.prompt.model_artifact_required"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -460,9 +460,9 @@ entries:
   - rule_id: "governance.namespace.classification_complete"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_adr_076_firing_coverage.py::test_namespace_manifest_completeness_fires_on_unclassified_file"
+    compliant_fixture: "tests/mind/logic/engines/test_g2_artifact_gate_compliant_fixtures.py::test_namespace_manifest_completeness_passes_when_every_file_classified"
+    state: "verified"
   - rule_id: "governance.passive_gate.enforced_by_must_resolve"
     engine: "contracts_gate"
     mechanism_class: "engine_mapped"
@@ -472,21 +472,21 @@ entries:
   - rule_id: "governance.quarantine.namespace_has_drainer"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/governance/test_adr_076_firing_coverage.py::test_namespace_has_drainer_fires_when_drainer_missing"
+    compliant_fixture: "tests/mind/logic/engines/test_g2_artifact_gate_compliant_fixtures.py::test_namespace_has_drainer_passes_when_namespace_registered"
+    state: "verified"
   - rule_id: "governance.remediation.active_routing_claimed_by_action"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/test_artifact_gate__active_routing_claimed_by_action.py::test_active_entry_with_unclaimed_rule_violates"
+    compliant_fixture: "tests/mind/logic/engines/test_artifact_gate__active_routing_claimed_by_action.py::test_active_entry_with_claimed_rule_passes"
+    state: "verified"
   - rule_id: "governance.remediation.all_rules_mapped"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/engines/test_artifact_gate_all_rules_mapped.py::test_unmapped_reporting_rule_fails"
+    compliant_fixture: "tests/engines/test_artifact_gate_all_rules_mapped.py::test_all_mapped_passes"
+    state: "verified"
   - rule_id: "governance.taxonomy.operational_capabilities_decorator_backing"
     engine: "taxonomy_gate"
     mechanism_class: "engine_mapped"
@@ -508,15 +508,15 @@ entries:
   - rule_id: "governance.vocabulary.authoritative_source_must_be_paper"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_authoritative_paths_nonexistent"
+    compliant_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_authoritative_paths_clean"
+    state: "verified"
   - rule_id: "governance.vocabulary.canonical_format_must_validate"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_canonical_format_empty_term"
+    compliant_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_canonical_format_clean"
+    state: "verified"
   - rule_id: "governance.vocabulary.no_direct_json_import"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -526,9 +526,9 @@ entries:
   - rule_id: "governance.vocabulary.projection_must_match_canonical"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_projection_consistency_orphan"
+    compliant_fixture: "tests/engines/test_artifact_gate_vocabulary.py::test_projection_consistency_clean"
+    state: "verified"
   - rule_id: "governance.vocabulary_registers.diagnostic_fields_must_be_uppercase"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
