@@ -204,7 +204,7 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "decision_required"
   - rule_id: "architecture.meta_read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -262,33 +262,33 @@ entries:
   - rule_id: "atomic_actions.must_accept_kwargs"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/shared/test_atomic_action__signature_validation.py::test_action_without_kwargs_refused_at_decoration"
+    compliant_fixture: "tests/shared/test_atomic_action__signature_validation.py::test_action_with_kwargs_decorates_successfully"
+    state: "verified"
   - rule_id: "atomic_actions.must_have_decorator"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_missing_decorator_metadata_violates_must_have_decorator"
+    compliant_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_correct_signature_passes_both_checks"
+    state: "verified"
   - rule_id: "atomic_actions.must_return_action_result"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_wrong_return_annotation_violates_must_return_action_result"
+    compliant_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_correct_signature_passes_both_checks"
+    state: "verified"
   - rule_id: "atomic_actions.no_governance_bypass"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_non_action_result_return_violates_no_governance_bypass"
+    compliant_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_real_action_result_passes_through_unchanged"
+    state: "verified"
   - rule_id: "atomic_actions.result_must_be_structured"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_non_dict_data_violates_result_must_be_structured"
+    compliant_fixture: "tests/body/atomic/test_g2_atomic_actions_python_runtime.py::test_real_action_result_passes_through_unchanged"
+    state: "verified"
   - rule_id: "autonomy.conservation.min_preservation_ratio"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
@@ -534,13 +534,13 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "governance.vocabulary_registers.operational_fields_must_be_lowercase"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "linkage.assign_ids"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
