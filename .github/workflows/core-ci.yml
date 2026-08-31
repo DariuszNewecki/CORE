@@ -82,6 +82,60 @@ jobs:
       - name: Validate manifest invariants + README sync
         run: python scripts/production_readiness.py
 
+  # ADR-157 D3.1: extracted from `validate` -- none of these four checks need
+  # the database (vocabulary sync is file-based; audit runs --offline; ruff
+  # and pip-audit are static/dependency-only), so they no longer wait on
+  # container startup or share a timeout budget with the test run.
+  static-checks:
+    name: Static checks (vocabulary, audit, lint, deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache Poetry & Pip
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-3.12-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Vocabulary freshness check
+        run: poetry run core-admin intent sync vocabulary --check
+
+      # Constitutional audit, per push, blocking rules only. See ADR-115's
+      # note on --offline: without it the CLI routes through CoreApiClient to
+      # a core-api daemon that does not exist on a runner.
+      - name: Constitutional audit (blocking rules, stateless engine)
+        timeout-minutes: 10
+        run: poetry run core-admin code audit --offline --severity=block
+
+      # ADR-115 D3: lint statically (ruff), not via the core-api server.
+      - name: Lint (ruff — static, no server)
+        run: poetry run ruff check src tests
+
+      - name: Upgrade pip in Poetry venv
+        run: poetry run pip install --upgrade "pip>=26.1.2"
+
+      - name: Dependency audit (pip-audit)
+        run: poetry run pip-audit
+
   validate:
     name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -170,45 +224,6 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
           psql -h localhost -U core_test_db -d core_test -v ON_ERROR_STOP=1 \
             < schema.sql
-
-      - name: Vocabulary freshness check
-        run: poetry run core-admin intent sync vocabulary --check
-
-      # Constitutional audit, per push, blocking rules only.
-      #
-      # Until now the only automated audit was daily_sync.yml's, on a ~24h
-      # cron. Blocking constitutional rules were therefore the *least*
-      # promptly enforced checks in the repo — ordinary pytest assertions gate
-      # every push, while a blocking rule violation could sit for a day. Two
-      # of the three CI blockers fixed in f5b14a32 were exactly that shape.
-      # This step closes the timing gap for every rule the stateless engine
-      # can evaluate.
-      #
-      # --offline is required, and not merely for the no-DB reason its name
-      # suggests: without it the CLI routes through CoreApiClient to a running
-      # core-api daemon (audit.py -> client.audit), which does not exist on a
-      # runner. Same constraint ADR-115 D3 already recorded for ruff.
-      #
-      # KNOWN GAP, deliberately not closed here: stateless mode skips 19
-      # knowledge_gate + llm_gate rules, five of them `blocking` —
-      # linkage.duplicate_ids and the four capability.taxonomy.* rules. Those
-      # remain enforced by nothing automated. Closing it needs an in-process
-      # audit path that can use a database; there is currently no such mode,
-      # only stateless-in-process or daemon-over-HTTP. That is a src/ change,
-      # not a workflow change.
-      - name: Constitutional audit (blocking rules, stateless engine)
-        timeout-minutes: 10
-        run: poetry run core-admin code audit --offline --severity=block
-
-      # ADR-115 D3: lint statically (ruff), not via the core-api server.
-      - name: Lint (ruff — static, no server)
-        run: poetry run ruff check src tests
-
-      - name: Upgrade pip in Poetry venv
-        run: poetry run pip install --upgrade "pip>=26.1.2"
-
-      - name: Dependency audit (pip-audit)
-        run: poetry run pip-audit
 
       # #773 T5.1: this job provisions a real ephemeral Postgres above
       # (services: postgres) -- DB reachability here is a guaranteed
