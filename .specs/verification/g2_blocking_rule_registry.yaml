@@ -328,39 +328,39 @@ entries:
   - rule_id: "cli.async_execution"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_async_execution_fires_on_undecorated_coroutine"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_async_execution_passes_for_core_command_wrapper"
+    state: "verified"
   - rule_id: "cli.command.no_duplicates"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_no_duplicates_fires_on_repeated_canonical_name"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_no_duplicates_passes_for_unique_canonical_names"
+    state: "verified"
   - rule_id: "cli.dangerous_explicit"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_dangerous_explicit_fires_via_engine_dispatch"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_dangerous_explicit_passes_for_compliant_mutate_command"
+    state: "verified"
   - rule_id: "cli.discovery_strict"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_discovery_strict_fires_via_engine_dispatch"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_discovery_strict_passes_for_top_level_import"
+    state: "verified"
   - rule_id: "cli.no_layer_exposure"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_no_layer_exposure_fires_via_engine_dispatch"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_no_layer_exposure_passes_for_permitted_resource"
+    state: "verified"
   - rule_id: "cli.resource_first"
     engine: "cli_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_resource_first_fires_on_depth_one_command"
+    compliant_fixture: "tests/mind/logic/engines/cli_gate/engine/test_g2_cli_gate_engine_rules.py::test_resource_first_passes_for_depth_two_command"
+    state: "verified"
   - rule_id: "code.imports.generated_must_resolve"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
