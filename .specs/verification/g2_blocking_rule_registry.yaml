@@ -124,39 +124,39 @@ entries:
   - rule_id: "architecture.boundary.database_session_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_database_session_access_fires_on_get_session_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_database_session_access_passes_for_di_only_reference"
+    state: "verified"
   - rule_id: "architecture.boundary.embedding_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_embedding_access_fires_on_embedding_service_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_embedding_access_passes_via_cognitive_adapter"
+    state: "verified"
   - rule_id: "architecture.boundary.file_handler_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_file_handler_access_fires_on_direct_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_file_handler_access_passes_without_direct_instantiation"
+    state: "verified"
   - rule_id: "architecture.boundary.llm_client_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_llm_client_access_fires_on_will_agents_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_llm_client_access_passes_without_ai_invocation"
+    state: "verified"
   - rule_id: "architecture.boundary.remediation_write_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_remediation_write_access_fires_on_git_service_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_remediation_write_access_passes_without_git_import"
+    state: "verified"
   - rule_id: "architecture.boundary.settings_access"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_settings_access_fires_on_settings_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_settings_access_passes_without_direct_import"
+    state: "verified"
   - rule_id: "architecture.channels.api_structured_output_only"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
@@ -232,15 +232,15 @@ entries:
   - rule_id: "architecture.shared.no_layer_imports"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_no_layer_imports_fires_on_mind_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_no_layer_imports_passes_for_shared_only_reference"
+    state: "verified"
   - rule_id: "architecture.workers.no_direct_worker_import"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_no_direct_worker_import_fires_on_sibling_worker_import"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_runtime_import_boundary_rules.py::test_no_direct_worker_import_passes_via_blackboard_only"
+    state: "verified"
   - rule_id: "async.no_manual_loop_run"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
