@@ -378,13 +378,13 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "code.imports.no_stale_namespace"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "code.tests.no_global_module_mutation"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
@@ -636,7 +636,7 @@ entries:
     mechanism_class: "engine_mapped"
     violating_fixture: null
     compliant_fixture: null
-    state: "unverified"
+    state: "gap"
   - rule_id: "runtime.worker_max_interval_within_observed"
     engine: "runtime_gate"
     mechanism_class: "engine_mapped"
