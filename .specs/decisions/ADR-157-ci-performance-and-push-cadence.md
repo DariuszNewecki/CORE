@@ -119,6 +119,15 @@ collaborative freshness.
 
 ## D3.3 execution note (2026-08-31)
 
+**Scope actually implemented: one of the two fixtures, deliberately.** Only
+`_truncate_core_tables_between_tests` was gated on the `integration` marker.
+`_dispose_db_engines_after_each_test` was investigated (`dispose_engine()` traced to source) and left
+unconditional on evidence — it is already a no-op when no engine exists for the current test's event
+loop, and unconditional disposal is the safer default against a test that unexpectedly leaks a real
+session. See D3 step 3 above for the full reasoning. Called out explicitly here because the original
+D3 decision text committed to fixing "the two fixtures," and this refinement should be visible to
+anyone diffing intent against implementation, not left as a silent discrepancy.
+
 Implemented and measured directly, on the dev box against the real (LAN) test database — not just
 argued from source reading. A full-suite local run was attempted first as a clean before/after
 baseline; it had to be killed both before and after the fix (once for being too slow to be practical
@@ -211,13 +220,20 @@ the marker set, or still-unmarked DB tests silently lose isolation during the me
    that it needs a third job. Everything else unmarked is implicitly `unit` — no marker required. The
    real partition boundary is binary (`integration` / `not integration`); `e2e` and `slow` are
    orthogonal descriptive tags, not a third bucket, once this file's placement is settled.
-3. **Only then fix the two `autouse=True` fixtures** in `tests/conftest.py`
-   (`_truncate_core_tables_between_tests`, `_dispose_db_engines_after_each_test`) to run only when the
+3. **Only then fix `_truncate_core_tables_between_tests`** in `tests/conftest.py` to run only when the
    test that just executed is marked `integration` (e.g. `request.node.get_closest_marker
    ("integration")`), not merely "whenever the DB happens to be reachable." **Measure the effect on the
    existing single-job suite before touching job topology at all** — this isolates the fixture-overhead
    variable from the job-split variable, so D3.4 is evaluated against a clean baseline instead of two
-   unmeasured changes conflated together.
+   unmeasured changes conflated together. `_dispose_db_engines_after_each_test` is deliberately **not**
+   gated the same way, on evidence, not by omission: `dispose_engine()` (which it calls) pops the
+   current event loop's entry from `_DB_BY_LOOP` and returns immediately if that's `None` — i.e. it is
+   already a no-op for every test that never opened a session, so gating it buys nothing measurable.
+   Gating it would also be strictly riskier: skipping disposal for a test that unexpectedly leaks a
+   real session (exactly the bug `_fail_unmarked_tests_that_touch_db`, below, is built to catch and
+   fail loudly on) would leave an engine bound to that test's event loop for the *next* test to
+   collide with, instead of being cleanly disposed regardless of marking. Unconditional is the safer
+   default here, and it was already free.
 4. **Split into an exhaustive, complementary partition:** a `unit` job (`-m "not integration"`, no
    service containers) and an `integration` job (`-m integration`, keeps the Postgres 17 + Qdrant
    service containers from ADR-115 D1). `-m X` and `-m "not X"` are complementary and exhaustive over
