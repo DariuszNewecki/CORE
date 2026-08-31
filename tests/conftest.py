@@ -109,6 +109,18 @@ def _db_reachability() -> tuple[bool, str]:
         )
 
 
+# ADR-157 D3.4 — CORE_UNIT_JOB=1 (set only in core-ci.yml's `hermetic` job,
+# which never provisions a database) turns this fixture's skip into a fail.
+# A forgotten `integration` marker on a test that genuinely needs the
+# database would otherwise show up as a green skip here — indistinguishable
+# from the honest local-dev case this fixture also serves — and the
+# unit/integration partition ratchet (D3.4) only checks *collection*, not
+# whether a collected `unit` test can actually run. This is the runtime
+# half of that guarantee.
+def _core_unit_job() -> bool:
+    return os.environ.get("CORE_UNIT_JOB", "") == "1"
+
+
 @pytest.fixture(autouse=True)
 def _skip_db_tests_when_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     reachable, reason = _db_reachability()
@@ -116,6 +128,13 @@ def _skip_db_tests_when_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
         return
 
     def _unreachable(*_args: object, **_kwargs: object) -> None:
+        if _core_unit_job():
+            pytest.fail(
+                f"requires database, but CORE_UNIT_JOB=1 — this job never "
+                f"provisions one ({reason}). Add @pytest.mark.integration "
+                "(or a module-level `pytestmark = [pytest.mark.integration]`) "
+                "if this test genuinely needs the database (ADR-157 D3.4)."
+            )
         pytest.skip(f"requires database — {reason}")
 
     # raising=True: fail loudly if `_get_state` is ever renamed, rather than

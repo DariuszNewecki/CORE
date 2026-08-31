@@ -136,19 +136,108 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: poetry run pip-audit
 
-  validate:
-    name: Validate (Python ${{ matrix.python-version }})
+  # ADR-157 D3.4: mathematically, `-m "not integration"` and `-m "integration"`
+  # are complementary and exhaustive over a fixed collection by construction —
+  # this job exists to catch drift the math doesn't cover (a file silently
+  # failing to collect in one job's environment, a typo'd marker name past
+  # --strict-markers, a future -k filter layered on top of -m). No DB, no
+  # test execution, just three `--collect-only` passes and a set comparison.
+  test-partition-ratchet:
+    name: Verify unit/integration partition (ADR-157 D3.4)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Cache Poetry & Pip
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-3.12-
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      - name: Verify unit/integration node-ID sets are disjoint and exhaustive
+        run: python scripts/verify_test_partition.py
+
+  # ADR-157 D3.4: no service containers -- CORE_UNIT_JOB=1 turns any DB
+  # session attempt into a hard failure (tests/conftest.py) rather than the
+  # silent, honest-for-local-dev skip a forgotten `integration` marker would
+  # otherwise produce. Named "hermetic", not "unit": it also builds and
+  # exercises the published wheel (tests/cli/test_offline_audit_regression_544.py,
+  # e2e+slow but DB-free), which the old single job always skipped because
+  # `poetry build` never ran and dist/ is gitignored.
+  hermetic:
+    name: Hermetic tests (unit + wheel e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Cache Poetry & Pip
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-3.12-
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      # test_offline_audit_regression_544.py looks for dist/core_runtime-*.whl
+      # and skips if absent -- build it before pytest runs, not after, so the
+      # test's own logic (not a workaround) picks it up.
+      - name: Build wheel
+        run: poetry build
+      # addopts (pyproject.toml) already supplies --cov=src and the
+      # html/term-missing report types; --cov-report= does NOT clear an
+      # already-accumulated report list (verified empirically -- it's
+      # additive, "multi-allowed" per pytest-cov's own --help), so there is
+      # nothing to override here beyond routing the raw data file via
+      # COVERAGE_FILE.
+      - name: Run hermetic tests (xdist, no DB)
+        env:
+          CORE_UNIT_JOB: "1"
+          COVERAGE_FILE: .coverage.hermetic
+        run: poetry run pytest -m "not integration" -n auto
+      - name: Upload hermetic coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-hermetic-data
+          path: .coverage.hermetic
+          include-hidden-files: true
+
+  # ADR-115: runs against ephemeral, hermetic infrastructure provisioned per
+  # run and seeded from the canonical schema -- no dependency on a
+  # hand-maintained LAN host. Serial (no xdist) on initial landing per
+  # ADR-157 D3.6 -- per-worker DB isolation is real engineering risk, not
+  # justified until D3.8 shows the plain split alone isn't fast enough.
+  integration:
+    name: Integration tests (DB)
     runs-on: ubuntu-latest
     # Hard bound: the integration suite must never hang the runner. If a test
     # blocks on an unprovisioned dependency, fail the job rather than wait.
     timeout-minutes: 25
-    strategy:
-      matrix:
-        python-version: ["3.12"]
 
-    # ADR-115: the integration job runs against ephemeral, hermetic infrastructure
-    # provisioned per run and seeded from the canonical schema — no dependency on a
-    # hand-maintained LAN host.
     services:
       postgres:
         image: postgres:17
@@ -174,10 +263,10 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: Install Poetry
         run: pipx install poetry
@@ -191,9 +280,9 @@ jobs:
           path: |
             ~/.cache/pypoetry
             ~/.cache/pip
-          key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: poetry-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-${{ matrix.python-version }}-
+            poetry-${{ runner.os }}-3.12-
 
       - name: Install dependencies
         run: poetry install --no-interaction
@@ -230,16 +319,61 @@ jobs:
       # precondition, not best-effort. If it's ever unreachable, that's an
       # infrastructure fault that must fail the run outright rather than
       # silently skip the entire DB-backed test population.
-      - name: Run tests with coverage (XML for Codecov)
+      # No --cov-fail-under here: this job's coverage is necessarily partial
+      # (integration-marked tests only) -- the combined-suite gate lives on
+      # coverage-combine (ADR-157 D3.7), reading the union of both jobs.
+      - name: Run integration tests with coverage
         env:
           CORE_REQUIRE_DB_TESTS: "1"
-        run: |
-          poetry run pytest \
-            --cov=src \
-            --cov-report=xml:coverage.xml \
-            --cov-report=term-missing:skip-covered \
-            --cov-fail-under=38
+          COVERAGE_FILE: .coverage.integration
+        run: poetry run pytest -m integration
 
+      - name: Upload integration coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-data
+          path: .coverage.integration
+          include-hidden-files: true
+
+  # ADR-157 D3.7: the two test jobs run on separate, ephemeral runners with no
+  # shared filesystem -- this job is the explicit transfer-and-combine step,
+  # not an afterthought. Both jobs check out the same commit SHA on the same
+  # runner image, so absolute paths match without needing
+  # [tool.coverage.paths] remapping; if that assumption ever breaks, `coverage
+  # combine` fails loudly with a "couldn't combine" error, not a silently
+  # wrong number.
+  coverage-combine:
+    name: Coverage (combined, ≥38% enforced)
+    runs-on: ubuntu-latest
+    needs: [hermetic, integration]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # Only `coverage` itself is needed here, not the whole project's
+      # dependency set -- this job runs no project code, just combines data
+      # files produced elsewhere.
+      - name: Install coverage
+        run: pip install coverage --quiet
+      - name: Download hermetic coverage data
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-hermetic-data
+      - name: Download integration coverage data
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration-data
+      - name: Combine coverage from both jobs
+        run: coverage combine .coverage.hermetic .coverage.integration
+      - name: Coverage report (combined suite, enforced)
+        run: coverage report --fail-under=38
+      - name: Coverage XML (combined, for Codecov)
+        run: coverage xml -o coverage.xml
       - name: Upload coverage to Codecov
         if: github.repository == 'DariuszNewecki/CORE'
         uses: codecov/codecov-action@v7
@@ -247,7 +381,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           flags: unittests
-          name: core-ci-${{ matrix.python-version }}
+          name: core-ci-combined
           fail_ci_if_error: true
           verbose: true
 

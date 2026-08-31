@@ -15,6 +15,12 @@ Also covers the removed `except Exception: pass` in the between-test
 truncate-cleanup fixture: a cleanup failure now propagates instead of
 being swallowed.
 
+3. ADR-157 D3.4 — CORE_UNIT_JOB=1 (set only in core-ci.yml's `hermetic`
+   job, which never provisions a database) turns the same unreachable-DB
+   case that (1) skips on into a hard failure instead, so a forgotten
+   `integration` marker on a test that needs the database can't show up
+   as a green skip in the one job where DB is never even attempted.
+
 Fixture functions are called via `.__wrapped__` (same pattern as
 tests/cli/resources/vectors/test_rebuild.py) to exercise the underlying
 logic directly without going through pytest's own fixture injection.
@@ -142,3 +148,36 @@ async def test_truncate_cleanup_failure_propagates_instead_of_being_swallowed() 
         await anext(gen)  # advance to the fixture's `yield`
         with pytest.raises(RuntimeError, match="simulated truncate failure"):
             await anext(gen)  # drives the post-yield cleanup code
+
+
+async def test_unreachable_db_without_unit_job_flag_still_skips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ADR-157 D3.4: CORE_UNIT_JOB unset (or not '1') preserves the
+    pre-existing honest-skip behavior -- a contributor without a local
+    database still gets a visible skip, not a failure."""
+    monkeypatch.delenv("CORE_UNIT_JOB", raising=False)
+    monkeypatch.setattr(
+        conftest_module, "_db_reachability", lambda: (False, "unreachable")
+    )
+    conftest_module._skip_db_tests_when_unreachable.__wrapped__(monkeypatch)
+    with pytest.raises(pytest.skip.Exception):
+        async with conftest_module.get_session():
+            pass
+
+
+async def test_unreachable_db_with_unit_job_flag_fails_instead_of_skipping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ADR-157 D3.4: CORE_UNIT_JOB=1 turns the same unreachable-DB case into
+    a hard failure. The `hermetic` job never provisions a database, so a
+    green skip there would be indistinguishable from a forgotten
+    `integration` marker on a test that genuinely needs one."""
+    monkeypatch.setenv("CORE_UNIT_JOB", "1")
+    monkeypatch.setattr(
+        conftest_module, "_db_reachability", lambda: (False, "unreachable")
+    )
+    conftest_module._skip_db_tests_when_unreachable.__wrapped__(monkeypatch)
+    with pytest.raises(pytest.fail.Exception):
+        async with conftest_module.get_session():
+            pass
