@@ -2,17 +2,25 @@
 kind: adr
 id: ADR-157
 title: 'ADR-157 — CI performance: complete the ADR-115 tier split, remove the duplicate Smoke gate, target the full gate on every push'
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-157-ci-performance-and-push-cadence.md -->
 
 # ADR-157 — CI performance: complete the ADR-115 tier split, remove the duplicate Smoke gate, target the full gate on every push
 
-**Status:** Architecture approved (governor, 2026-08-31), conditional on the D3 implementation
-checklist below. D1+D2 cleared to implement immediately. Revised three times after technical
-counter-review ("BigBrother"); every claim across all three rounds was checked against the repository
-before being accepted, corrected, or (once) rejected — see Context.
+**Status:** Accepted — governor, 2026-08-31, citing implementation commit `0c3b9afd` and CI run
+`33382371460` (fully green across partition ratchet, `hermetic`, `integration`, `static-checks`,
+`coverage-combine`, and Codecov upload) as the evidence closing D3.8's feasibility bet: the
+complementary-partition-plus-combine design reproduces whole-suite coverage (50.8% combined,
+matching the pre-split single-job number), executes all 4,073 current tests, and cuts `CORE CI`'s
+critical path by roughly 56% (from ≈1473s to 654s) across D1+D3.1+D3.3+D3.4 combined. Independently
+verified against GitHub before acceptance (governor confirmed `main`@`b03f7b6a`, the D3.4 commit, and
+the run's per-job conclusions directly, not from this document's own claims alone). Architecture was
+approved 2026-08-31, conditional on the D3 implementation checklist below; that checklist is now
+satisfied by the run cited above. Revised three times after technical counter-review ("BigBrother")
+before implementation; every claim across all three rounds was checked against the repository before
+being accepted, corrected, or (once) rejected — see Context.
 **Date:** 2026-08-31
 **Prompted by:** an external review ("BigBrother") arguing that CORE's "push `main` once daily" habit
 turns GitHub into a stale shared-memory surface for multi-agent collaboration, plus this session's own
