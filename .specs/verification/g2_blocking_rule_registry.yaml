@@ -556,15 +556,15 @@ entries:
   - rule_id: "metadata.operations.comment_length_limit"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_metadata_only_diff_gates.py::test_comment_length_limit_fires_on_new_comment_over_120_chars"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_metadata_only_diff_gates.py::test_comment_length_limit_passes_for_new_comment_within_120_chars"
+    state: "verified"
   - rule_id: "metadata.semantic_preservation"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_metadata_only_diff_gates.py::test_semantic_preservation_fires_when_executable_ast_changes"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_metadata_only_diff_gates.py::test_semantic_preservation_passes_for_docstring_only_change"
+    state: "verified"
   - rule_id: "modularity.needs_refactor"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
