@@ -299,7 +299,7 @@ class GlobGateEngine(BaseEngine):
         an absolute filesystem path, but ``_match()``'s prefix branch only
         ever does a leading ``str.startswith``, which can never match an
         absolute path against a repo-relative pattern prefix like
-        "var/prompts". Matching on "does the prefix directory appear
+        ``var/prompts``. Matching on "does the prefix directory appear
         anywhere in the path, and does the path end with the suffix"
         instead handles both absolute and relative callers, and naturally
         covers zero-or-more intermediate directories the same way ``**``

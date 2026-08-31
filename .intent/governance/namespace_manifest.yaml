@@ -1794,6 +1794,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-157-ci-performance-and-push-cadence.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-158-vocabulary-register-assignment-corrections.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
