@@ -364,15 +364,15 @@ entries:
   - rule_id: "code.imports.generated_must_resolve"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators__test_file.py::test_hallucinated_module_produces_must_resolve_violation"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators__test_file.py::test_valid_imports_produce_no_violations"
+    state: "verified"
   - rule_id: "code.imports.generated_no_relative"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators__test_file.py::test_relative_import_is_no_relative_violation"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators__test_file.py::test_valid_imports_produce_no_violations"
+    state: "verified"
   - rule_id: "code.imports.must_resolve"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
@@ -388,33 +388,33 @@ entries:
   - rule_id: "code.tests.no_global_module_mutation"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_global_module_mutation_flags_top_level_assignment"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_global_module_mutation_clean_when_no_imports"
+    state: "verified"
   - rule_id: "code.tests.no_imported_symbol_redeclared"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_imported_symbol_redeclared_flags_local_class_shadowing_import"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_imported_symbol_redeclared_clean_for_unrelated_local_class"
+    state: "verified"
   - rule_id: "code.tests.no_magicmock_on_await"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_magicmock_on_await_flags_attribute_assigned_to_magicmock"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_magicmock_on_await_clean_when_asyncmock_used"
+    state: "verified"
   - rule_id: "code.tests.no_placeholder_test_body"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_placeholder_body_flags_test_with_no_assertion"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_placeholder_body_passes_assert_statement"
+    state: "verified"
   - rule_id: "code.tests.no_unresolved_free_names"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_unresolved_free_names_flags_missing_import"
+    compliant_fixture: "tests/body/governance/test_intent_pattern_validators_tier2.py::test_unresolved_free_names_clean_when_imported"
+    state: "verified"
   - rule_id: "data.security.no_raw_secrets"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
