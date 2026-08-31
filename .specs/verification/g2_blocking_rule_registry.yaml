@@ -424,9 +424,9 @@ entries:
   - rule_id: "data.ssot.database_primacy"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_database_primacy_fires_on_hardcoded_llm_models"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_database_primacy_passes_for_unrelated_constant"
+    state: "verified"
   - rule_id: "governance.constitution.read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
@@ -448,15 +448,15 @@ entries:
   - rule_id: "governance.logic_mutation.governed"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_logic_mutation_governed_fires_on_direct_write_text"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_logic_mutation_governed_passes_via_file_handler"
+    state: "verified"
   - rule_id: "governance.mutation_surface.filehandler_required"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_filehandler_required_fires_on_direct_write_bytes"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_filehandler_required_passes_via_file_handler"
+    state: "verified"
   - rule_id: "governance.namespace.classification_complete"
     engine: "artifact_gate"
     mechanism_class: "engine_mapped"
@@ -568,9 +568,9 @@ entries:
   - rule_id: "modularity.needs_refactor"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_needs_refactor_fires_when_four_concerns_present"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_needs_refactor_passes_with_single_concern"
+    state: "verified"
   - rule_id: "planning.conceptual_only"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
@@ -622,9 +622,9 @@ entries:
   - rule_id: "purity.no_metadata_decorators"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "unverified"
+    violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_no_metadata_decorators_fires_on_capability_decorator"
+    compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_no_metadata_decorators_passes_without_forbidden_decorator"
+    state: "verified"
   - rule_id: "purity.tempfile_default_dir"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
