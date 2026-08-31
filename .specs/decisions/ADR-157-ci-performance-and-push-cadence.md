@@ -1,7 +1,7 @@
 ---
 kind: adr
 id: ADR-157
-title: ADR-157 — CI performance: complete the ADR-115 tier split, remove the duplicate Smoke gate, target the full gate on every push
+title: 'ADR-157 — CI performance: complete the ADR-115 tier split, remove the duplicate Smoke gate, target the full gate on every push'
 status: proposed
 ---
 
