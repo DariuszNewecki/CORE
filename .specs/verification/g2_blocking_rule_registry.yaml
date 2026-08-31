@@ -202,9 +202,9 @@ entries:
   - rule_id: "architecture.flows.flow_must_propagate_write_false"
     engine: "python_runtime"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "decision_required"
+    violating_fixture: "tests/body/flows/test_write_false_propagation.py::test_static_write_true_in_step_params_fails_closed_for_action_and_flow"
+    compliant_fixture: "tests/body/flows/test_write_false_propagation.py::test_write_false_reaches_action_and_nested_flow_unchanged"
+    state: "verified"
   - rule_id: "architecture.meta_read_only"
     engine: "glob_gate"
     mechanism_class: "engine_mapped"
