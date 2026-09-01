@@ -220,7 +220,7 @@ jobs:
           COVERAGE_FILE: .coverage.hermetic
         run: poetry run pytest -m "not integration" -n auto
       - name: Upload hermetic coverage data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-hermetic-data
           path: .coverage.hermetic
@@ -329,7 +329,7 @@ jobs:
         run: poetry run pytest -m integration
 
       - name: Upload integration coverage data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-data
           path: .coverage.integration
