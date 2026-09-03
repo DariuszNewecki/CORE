@@ -565,12 +565,12 @@ entries:
     violating_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_needs_refactor_fires_when_four_concerns_present"
     compliant_fixture: "tests/mind/logic/engines/ast_gate/test_g2_ssot_mutation_surface_modularity_rules.py::test_needs_refactor_passes_with_single_concern"
     state: "verified"
-  - rule_id: "planning.conceptual_only"
-    engine: "passive_gate"
-    mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+  # planning.conceptual_only: row removed (#849). Downgraded blocking ->
+  # advisory -- the rule's own rationale specified a json.dumps(params_dict)
+  # scan that base_planner.parse_and_validate_plan never implemented; no
+  # closed mechanical definition of "conceptual content" exists to build one
+  # against. See .intent/rules/will/planning.json rationale for the
+  # promotion condition.
   - rule_id: "planning.file_path_validation"
     engine: "regex_gate"
     mechanism_class: "engine_mapped"
@@ -580,9 +580,9 @@ entries:
   - rule_id: "planning.no_code_generation"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/will/agents/test_base_planner.py::test_no_code_generation_fires_on_substantive_code"
+    compliant_fixture: "tests/will/agents/test_base_planner.py::test_no_code_generation_passes_for_empty_and_null_code"
+    state: "verified"
   - rule_id: "planning.trace_mandatory"
     engine: "ast_gate"
     mechanism_class: "engine_mapped"
