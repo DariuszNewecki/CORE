@@ -41,12 +41,18 @@ class AuditVerdict(Enum):
     PASS: All checked rules passed. No crashes. No unmapped rules that
           require an enforcement mapping (see
           shared.infrastructure.intent.rule_registry.
-          rule_requires_enforcement_mapping).
+          rule_requires_enforcement_mapping). No blocking rule reported
+          its dependency/evidence as unavailable.
     FAIL: One or more blocking rules found violations in the code.
     DEGRADED: Audit infrastructure itself failed — some rules crashed,
-              could not be checked, or are unmapped despite requiring an
-              enforcement mapping. The compliance status is UNKNOWN and
-              must be treated as non-compliant until fixed.
+              could not be checked, are unmapped despite requiring an
+              enforcement mapping, or a blocking rule's dependency/evidence
+              (a required tool, a DB session, a minimum evidence sample)
+              was unavailable (#847/#856). The compliance status is UNKNOWN
+              and must be treated as non-compliant until fixed. An
+              advisory/reporting rule's unavailable dependency does NOT
+              trigger this — it stays visible in findings without forcing
+              DEGRADED (governor ruling 6).
 
     The distinction matters:
     - FAIL means "your code is non-compliant."
@@ -99,6 +105,10 @@ class ConstitutionalAuditor:
 
         executed_rule_ids: set[str] = set()
         crashed_rule_ids: set[str] = set()
+        # #847/#856: tracked separately from crashed_rule_ids — an
+        # unavailable enforcement dependency (missing tool, missing DB
+        # session, insufficient evidence) is distinct from an engine crash.
+        unavailable_rule_ids: set[str] = set()
 
         # #306: re-initializing the EngineRegistry clears its cached
         # instances; the llm_client must be threaded through or the
@@ -111,20 +121,24 @@ class ConstitutionalAuditor:
             self.context,
             executed_rule_ids=executed_rule_ids,
             crashed_rule_ids=crashed_rule_ids,
+            unavailable_rule_ids=unavailable_rule_ids,
         )
 
         stats = get_dynamic_execution_stats(
-            self.context, executed_rule_ids, crashed_rule_ids
+            self.context, executed_rule_ids, crashed_rule_ids, unavailable_rule_ids
         )
 
         verdict = self._determine_verdict(findings, stats, crashed_rule_ids)
 
         logger.info(
-            "Audit verdict: %s (executed=%d, crashed=%d, unmapped=%d)",
+            "Audit verdict: %s (executed=%d, crashed=%d, unmapped=%d, "
+            "unavailable=%d, blocking_unavailable=%d)",
             verdict.value,
             stats.get("executed_dynamic_rules", 0),
             stats.get("crashed_rules", 0),
             stats.get("unmapped_rules", 0),
+            stats.get("unavailable_rules", 0),
+            stats.get("blocking_unavailable_rules", 0),
         )
 
         return {
@@ -132,6 +146,7 @@ class ConstitutionalAuditor:
             "stats": stats,
             "executed_rule_ids": executed_rule_ids,
             "crashed_rule_ids": crashed_rule_ids,
+            "unavailable_rule_ids": unavailable_rule_ids,
             "verdict": verdict,
             "passed": verdict == AuditVerdict.PASS,
         }
@@ -167,6 +182,19 @@ class ConstitutionalAuditor:
         if (
             "any_unmapped_mapping_required_rules" in policy["degraded_on"]
             and stats.get("unmapped_rules", 0) > 0
+        ):
+            return AuditVerdict.DEGRADED
+
+        # #847/#856 (governor rulings 3/6): a BLOCKING rule whose
+        # dependency/evidence is unavailable (missing tool, missing DB
+        # session, insufficient samples) makes the audit DEGRADED — never
+        # PASS, never FAIL. An advisory/reporting rule's unavailable
+        # dependency does NOT trigger this: its finding stays visible
+        # (ignored_finding_types keeps it off the FAIL path too) without
+        # forcing degradation, so the audit may still PASS.
+        if (
+            "any_blocking_unavailable_rules" in policy["degraded_on"]
+            and stats.get("blocking_unavailable_rules", 0) > 0
         ):
             return AuditVerdict.DEGRADED
 

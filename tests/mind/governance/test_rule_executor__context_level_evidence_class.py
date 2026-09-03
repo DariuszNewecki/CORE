@@ -14,27 +14,37 @@ violation — exactly the collapse CORE-Internal-Truthfulness forbids.
 
 Findings self-identify via context["finding_type"] == "ENFORCEMENT_FAILURE";
 execute_rule() must honor that marker and leave such findings at the
-ATTESTED default rather than stamping the engine's class.
+ATTESTED default rather than stamping the engine's class. #847/#856 extend
+the same marker-based carve-out to "ENFORCEMENT_UNAVAILABLE" — a missing
+tool or missing evidence source is not a verdict the engine actually
+reached either.
 
 Covers the fix both generically (fake engine) and end-to-end through the
 real KnowledgeGateEngine.capability_taxonomy_whitelist check_type (#820
-Group A), per the explicit request to verify through execute_rule() and
-not only by calling the private checker.
+Group A) and, for the unavailable-evidence carve-out, the real
+RuntimeGateEngine.worker_max_interval_within_observed and
+WorkflowGateEngine.quality.type_safety check_types (#847/#856), per the
+explicit request to verify through execute_rule() and not only by calling
+the private checker.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from mind.governance.audit_context import AuditorContext
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.rule_executor import execute_rule
 from mind.logic.engines.base import BaseEngine
 from mind.logic.engines.knowledge_gate import KnowledgeGateEngine
+from mind.logic.engines.runtime_gate import RuntimeGateEngine
+from mind.logic.engines.workflow_gate.engine import WorkflowGateEngine
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
+from shared.path_resolver import PathResolver
 
 
 # ID: 2b6e6c9a-2a6f-4a2b-9b7e-2b6e6c9a2a6f
@@ -199,3 +209,154 @@ async def test_real_engine_unavailable_db_session_is_unknown_not_proven(
         "constitutional violation"
     )
     assert f.context["finding_type"] == "ENFORCEMENT_FAILURE"
+
+
+# ---------------------------------------------------------------------------
+# #847/#856: ENFORCEMENT_UNAVAILABLE gets the same ATTESTED carve-out
+# ---------------------------------------------------------------------------
+
+
+async def test_enforcement_unavailable_finding_keeps_attested_not_proven(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generic (fake-engine) proof, mirroring
+    test_enforcement_failure_finding_keeps_attested_not_proven above."""
+    finding = AuditFinding(
+        check_id="fake.enforcement_unavailable",
+        severity=AuditSeverity.BLOCK,
+        message="ENFORCEMENT_UNAVAILABLE: required tool missing",
+        file_path="System",
+        context={"finding_type": "ENFORCEMENT_UNAVAILABLE"},
+    )
+    engine = _FakeContextLevelEngine([finding])
+    _patch_engine(monkeypatch, engine)
+
+    results = await execute_rule(_make_rule(), MagicMock(repo_path=Path(".")))
+
+    assert len(results) == 1
+    f = results[0]
+    assert f.check_id == "test.context_rule"
+    assert f.severity == AuditSeverity.BLOCK
+    assert f.evidence_class == EvidenceClass.ATTESTED, (
+        "an ENFORCEMENT_UNAVAILABLE finding must never be indistinguishable "
+        "from a proven violation"
+    )
+
+
+async def test_real_workflow_gate_engine_missing_mypy_is_unavailable_not_proven(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """#847 end-to-end: the real quality.type_safety dispatch path
+    (WorkflowGateEngine -> QualityGateCheck) with mypy genuinely absent,
+    driven through the real execute_rule(), not a fake engine."""
+    path_resolver = PathResolver(tmp_path)
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
+    _patch_engine(monkeypatch, engine)
+
+    rule = ExecutableRule(
+        rule_id="quality.type_safety",
+        engine="workflow_gate",
+        params={
+            "check_type": "mypy_check",
+            "tools": [{"tool": "mypy", "args": ["--no-error-summary"]}],
+        },
+        enforcement="blocking",
+        is_context_level=True,
+    )
+
+    with patch(
+        "asyncio.create_subprocess_exec",
+        side_effect=FileNotFoundError(2, "No such file or directory", "mypy"),
+    ):
+        results = await execute_rule(rule, MagicMock(repo_path=tmp_path))
+
+    assert len(results) == 1
+    f = results[0]
+    assert f.check_id == "quality.type_safety"
+    assert f.severity == AuditSeverity.BLOCK  # rule.enforcement is "blocking"
+    assert f.evidence_class == EvidenceClass.ATTESTED, (
+        "a missing required tool must read as unknown, never as a proven "
+        "constitutional violation"
+    )
+    assert f.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+
+
+async def test_real_runtime_gate_engine_missing_db_session_is_unavailable_not_proven(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """#856 end-to-end: the real runtime.worker_max_interval_within_observed
+    dispatch path (RuntimeGateEngine) with db_session absent, driven
+    through the real execute_rule(), not a fake engine."""
+    workers_dir = tmp_path / ".intent" / "workers"
+    workers_dir.mkdir(parents=True)
+    (workers_dir / "alpha.yaml").write_text(
+        "metadata:\n  status: active\n"
+        "identity:\n  uuid: 11111111-2222-3333-4444-555555555555\n"
+        "mandate:\n  schedule:\n    max_interval: 600\n",
+        encoding="utf-8",
+    )
+
+    engine = RuntimeGateEngine()
+    _patch_engine(monkeypatch, engine)
+
+    rule = ExecutableRule(
+        rule_id="runtime.worker_max_interval_within_observed",
+        engine="runtime_gate",
+        params={"check_type": "worker_max_interval_within_observed"},
+        enforcement="blocking",
+        is_context_level=True,
+    )
+
+    ctx = AuditorContext(repo_path=tmp_path)
+    assert getattr(ctx, "db_session", None) is None
+
+    results = await execute_rule(rule, ctx)
+
+    assert len(results) == 1
+    f = results[0]
+    assert f.check_id == "runtime.worker_max_interval_within_observed"
+    assert f.severity == AuditSeverity.BLOCK
+    assert f.evidence_class == EvidenceClass.ATTESTED, (
+        "a missing db_session must read as unknown, never as a proven "
+        "constitutional violation"
+    )
+    assert f.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert f.context["reason"] == "db_session_unavailable"
+
+
+async def test_real_advisory_rule_missing_tool_is_visible_but_info_severity(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Governor ruling 6, real dispatch: quality.security_audit (advisory,
+    pip-audit via QualityGateCheck's security_check) with pip-audit absent
+    still surfaces ENFORCEMENT_UNAVAILABLE -- visible, per ruling 6 -- but
+    at INFO severity (rule.enforcement="advisory" -> _map_enforcement_to_
+    severity), never BLOCK. It stays ATTESTED, same carve-out as the
+    blocking case; only severity differs, driven by the rule's own tier."""
+    path_resolver = PathResolver(tmp_path)
+    engine = WorkflowGateEngine(path_resolver=path_resolver)
+    _patch_engine(monkeypatch, engine)
+
+    rule = ExecutableRule(
+        rule_id="quality.security_audit",
+        engine="workflow_gate",
+        params={"check_type": "security_check"},
+        enforcement="advisory",
+        is_context_level=True,
+    )
+
+    with patch(
+        "asyncio.create_subprocess_exec",
+        side_effect=FileNotFoundError(2, "No such file or directory", "pip-audit"),
+    ):
+        results = await execute_rule(rule, MagicMock(repo_path=tmp_path))
+
+    assert len(results) == 1
+    f = results[0]
+    assert f.check_id == "quality.security_audit"
+    assert f.severity == AuditSeverity.INFO, (
+        "an advisory rule's unavailable finding must not carry BLOCK "
+        "severity -- it must stay visible without forcing degradation"
+    )
+    assert f.evidence_class == EvidenceClass.ATTESTED
+    assert f.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"

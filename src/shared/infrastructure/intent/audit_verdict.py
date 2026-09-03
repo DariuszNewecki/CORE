@@ -40,7 +40,12 @@ logger = getLogger(__name__)
 
 
 _KNOWN_PRECONDITIONS: frozenset[str] = frozenset(
-    {"any_crashed_rules", "stats_error", "any_unmapped_mapping_required_rules"}
+    {
+        "any_crashed_rules",
+        "stats_error",
+        "any_unmapped_mapping_required_rules",
+        "any_blocking_unavailable_rules",
+    }
 )
 
 _REQUIRED_LIST_KEYS: tuple[str, ...] = (

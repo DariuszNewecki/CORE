@@ -1,9 +1,12 @@
-"""Tests for runtime_gate.worker_max_interval_within_observed (#516).
+"""Tests for runtime_gate.worker_max_interval_within_observed (#516, #856).
 
 The check aggregates worker.heartbeat rows from core.blackboard_entries
 per worker_uuid over a 24h window and fires when the observed p95
 inter-heartbeat gap exceeds the configured ``mandate.schedule.max_interval``
-times 1.1. Workers with fewer than 10 samples are skipped silently.
+times 1.1. #856: workers with fewer than 10 samples, or a missing
+db_session entirely, no longer skip silently -- both surface as one
+aggregated ENFORCEMENT_UNAVAILABLE finding (governor rulings 7-9), which
+the audit-verdict policy routes to DEGRADED for this blocking rule.
 
 These tests stub the DB session with a lightweight async-shaped fake so
 the check's algorithm is exercised without a real Postgres dependency.
@@ -78,17 +81,26 @@ async def test_no_workers_no_findings(tmp_path: Path) -> None:
 
 
 # ID: 2b8c96f0-cb5a-4e7f-b437-dee4f9ca77cf
-async def test_db_session_absent_returns_empty(tmp_path: Path) -> None:
-    """If db_session is not injected (e.g. IntentGuard pre-commit path),
-    the check defers without firing. Matches the precedent set by
-    worker_process_classification."""
+async def test_db_session_absent_surfaces_unavailable(tmp_path: Path) -> None:
+    """#856: if db_session is not injected (e.g. IntentGuard pre-commit
+    path), the check no longer defers silently -- it surfaces one
+    aggregated ENFORCEMENT_UNAVAILABLE finding naming the affected active
+    workers. Unlike worker_process_classification (advisory sibling,
+    silent-skip on missing evidence remains a reasonable choice there),
+    this rule is blocking: missing db_session is unavailable evidence, not
+    a silent pass (governor ruling 8)."""
     workers = tmp_path / ".intent" / "workers"
     workers.mkdir(parents=True)
     _write_worker_yaml(workers, "alpha", "11111111-2222-3333-4444-555555555555", 600)
 
     ctx = SimpleNamespace(repo_path=tmp_path, db_session=None)
     out = await _check_worker_max_interval_within_observed(ctx)
-    assert out == []
+    assert len(out) == 1
+    finding = out[0]
+    assert finding.check_id == "runtime.worker_max_interval_within_observed"
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert finding.context["reason"] == "db_session_unavailable"
+    assert finding.context["affected_worker_stems"] == ["alpha"]
 
 
 # ID: 8e2db2e0-d3ce-4dcc-8fb5-132236c0c92e
@@ -130,20 +142,74 @@ async def test_worker_above_threshold_fires_finding(tmp_path: Path) -> None:
 
 
 # ID: 3a8bc311-d9e7-4d72-857c-3c5b43d7c4a5
-async def test_worker_insufficient_samples_skips_silently(tmp_path: Path) -> None:
-    """Workers with fewer than the 10-sample minimum are skipped silently
-    (no finding either way). Right after a daemon restart the rule
-    reports clean until evidence accumulates.
+async def test_worker_insufficient_samples_surfaces_unavailable(
+    tmp_path: Path,
+) -> None:
+    """#856: workers with fewer than the 10-sample minimum no longer skip
+    silently -- right after a daemon restart the rule now surfaces one
+    aggregated ENFORCEMENT_UNAVAILABLE finding (governor ruling 7) instead
+    of a silent, indistinguishable-from-clean pass.
     """
     workers = tmp_path / ".intent" / "workers"
     workers.mkdir(parents=True)
     _write_worker_yaml(workers, "alpha", "11111111-2222-3333-4444-555555555555", 600)
 
-    # samples=5 (< 10) — should skip even though p95 vastly exceeds
-    # threshold.
+    # samples=5 (< 10) — must surface as unavailable even though p95
+    # vastly exceeds threshold; insufficient evidence, not a clean pass.
     ctx = _ctx_with_rows(tmp_path, [SimpleNamespace(samples=5, p95=5000.0)])
     out = await _check_worker_max_interval_within_observed(ctx)
-    assert out == []
+    assert len(out) == 1
+    finding = out[0]
+    assert finding.check_id == "runtime.worker_max_interval_within_observed"
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert finding.context["reason"] == "insufficient_samples"
+    assert finding.context["affected_worker_stems"] == ["alpha"]
+    assert finding.context["sample_counts"] == {"alpha": 5}
+
+
+async def test_multiple_insufficient_samples_workers_aggregate_into_one_finding(
+    tmp_path: Path,
+) -> None:
+    """#856 governor ruling 9: multiple workers with insufficient evidence
+    in the same audit run produce ONE aggregated finding, not one per
+    worker -- preserves GitHub's annotation budget."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(workers, "alpha", "11111111-2222-3333-4444-555555555555", 600)
+    _write_worker_yaml(workers, "beta", "22222222-3333-4444-5555-666666666666", 600)
+
+    # Two workers, each below the 10-sample minimum.
+    ctx = _ctx_with_rows(
+        tmp_path,
+        [
+            SimpleNamespace(samples=3, p95=100.0),
+            SimpleNamespace(samples=7, p95=200.0),
+        ],
+    )
+    out = await _check_worker_max_interval_within_observed(ctx)
+    assert len(out) == 1
+    finding = out[0]
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert set(finding.context["affected_worker_stems"]) == {"alpha", "beta"}
+    assert finding.context["sample_counts"] == {"alpha": 3, "beta": 7}
+
+
+async def test_missing_aggregate_row_counts_as_insufficient_samples(
+    tmp_path: Path,
+) -> None:
+    """A worker with no aggregate row at all (row is None) is zero samples
+    — folded into the same insufficient-evidence bucket as an explicit
+    low sample count, not silently skipped."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(workers, "alpha", "11111111-2222-3333-4444-555555555555", 600)
+
+    ctx = _ctx_with_rows(tmp_path, [None])
+    out = await _check_worker_max_interval_within_observed(ctx)
+    assert len(out) == 1
+    finding = out[0]
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert finding.context["sample_counts"] == {"alpha": 0}
 
 
 async def test_paused_worker_skipped(tmp_path: Path) -> None:

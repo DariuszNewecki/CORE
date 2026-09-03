@@ -382,7 +382,14 @@ async def execute_rule(
                 # self-identify via context["finding_type"] ==
                 # "ENFORCEMENT_FAILURE" keep the ATTESTED default; only
                 # genuine verdicts get stamped with the engine's class.
-                if f.context.get("finding_type") != "ENFORCEMENT_FAILURE":
+                # "ENFORCEMENT_UNAVAILABLE" (#847/#856) gets the same
+                # carve-out: a missing tool or missing evidence source is
+                # not a verdict the engine actually reached either — it
+                # must not be stamped as proven any more than a crash is.
+                if f.context.get("finding_type") not in (
+                    "ENFORCEMENT_FAILURE",
+                    "ENFORCEMENT_UNAVAILABLE",
+                ):
                     f.evidence_class = engine_evidence_class  # ADR-113
                 # Restore check_id == rule.rule_id invariant (#485). The per-file
                 # path at the bottom of this function constructs AuditFinding with

@@ -99,17 +99,41 @@ class QualityGateCheck(WorkflowCheck):
         except FileNotFoundError as exc:
             # Tool not installed in this environment (the F-10.3 Action's
             # slim Docker image ships without mypy/pytest/pip-audit by
-            # design). Silent skip rather than surfacing as a finding —
-            # the consumer cannot act on tool-absence from a PR change,
-            # and the noise consumes GitHub's per-check-run annotation
-            # budget. See #549.
+            # design). #549 made this a silent compliant pass to protect
+            # GitHub's per-check-run annotation budget; #847 found that
+            # trade indistinguishable from a genuine clean result for a
+            # blocking rule (G9: "crashes degrade, never comply"). One
+            # aggregated ENFORCEMENT_UNAVAILABLE finding per rule preserves
+            # the #549 annotation-budget win (still exactly one finding,
+            # not one per affected file) while making tool-absence visible
+            # to the dispatch layer as unavailable evidence, not a pass —
+            # rule_executor / audit_verdict route it to DEGRADED for
+            # blocking rules and leave it as a visible, non-blocking signal
+            # for advisory/reporting rules.
+            tool_name = exc.filename or self.cmd[0]
             logger.debug(
-                "%s skipped: tool '%s' not installed in this environment (%s)",
+                "%s: tool '%s' not installed in this environment (%s) — "
+                "surfacing as ENFORCEMENT_UNAVAILABLE",
                 self.check_type,
-                exc.filename or self.cmd[0],
+                tool_name,
                 exc,
             )
-            return []
+            return [
+                StructuredViolation(
+                    file_path="System",
+                    message=(
+                        f"Quality gate {self.check_type} could not run: tool "
+                        f"'{tool_name}' is not installed in this environment. "
+                        f"Compliance status UNKNOWN for this rule — not a pass."
+                    ),
+                    context={
+                        "finding_type": "ENFORCEMENT_UNAVAILABLE",
+                        "tool": tool_name,
+                        "check_type": self.check_type,
+                        "reason": "tool_not_installed",
+                    },
+                )
+            ]
         except Exception as e:
             return [f"Gate {self.check_type} error: {e!s}"]
         return []

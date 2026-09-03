@@ -100,3 +100,47 @@ def test_load_audit_verdict_policy_accepts_real_policy_with_new_precondition():
 
     assert "_error" not in result
     assert result["degraded_on"] == valid["degraded_on"]
+
+
+# --- #847/#856: any_blocking_unavailable_rules ------------------------------
+
+
+def test_known_preconditions_include_blocking_unavailable_rules():
+    from shared.infrastructure.intent.audit_verdict import _KNOWN_PRECONDITIONS
+
+    assert "any_blocking_unavailable_rules" in _KNOWN_PRECONDITIONS
+
+
+def test_validate_policy_accepts_blocking_unavailable_precondition():
+    policy = dict(_VALID_BASE)
+    policy["ignored_finding_types"] = ["ENFORCEMENT_FAILURE", "ENFORCEMENT_UNAVAILABLE"]
+    policy["degraded_on"] = [
+        "any_crashed_rules",
+        "stats_error",
+        "any_blocking_unavailable_rules",
+    ]
+    _validate_policy(policy)  # must not raise
+
+
+def test_load_audit_verdict_policy_accepts_real_policy_with_unavailable_precondition():
+    valid = dict(_VALID_BASE)
+    valid["ignored_finding_types"] = ["ENFORCEMENT_FAILURE", "ENFORCEMENT_UNAVAILABLE"]
+    valid["degraded_on"] = [
+        "any_crashed_rules",
+        "stats_error",
+        "any_blocking_unavailable_rules",
+    ]
+
+    mock_repo = Mock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = valid
+
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        result = load_audit_verdict_policy()
+
+    assert "_error" not in result
+    assert result["degraded_on"] == valid["degraded_on"]
+    assert "ENFORCEMENT_UNAVAILABLE" in result["ignored_finding_types"]

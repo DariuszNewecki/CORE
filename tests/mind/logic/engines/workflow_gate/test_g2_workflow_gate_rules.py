@@ -2,23 +2,23 @@
 
 """#842 Unit I: the 3 workflow_gate blocking rules.
 
-All three (code.imports.must_resolve, code.imports.no_stale_namespace,
-quality.type_safety) fail this census's acceptance bar and are recorded
-as ``gap``, not ``verified`` -- every fixture pair below was run against
-the real ``WorkflowGateEngine``/``WorkflowCheck`` dispatch chain (never
-mocked at the check level) with live params loaded from the actual
+Every fixture pair below was run against the real
+``WorkflowGateEngine``/``WorkflowCheck`` dispatch chain (never mocked at
+the check level) with live params loaded from the actual
 ``.intent/enforcement/mappings/`` YAML, and each pins CURRENT, CONFIRMED
-production behavior. None of these assertions describe correct behavior
--- they are evidence for the two open defects below, not compliant
-fixtures (per #842 Unit I's explicit instruction: a missing-dependency
-empty result does not count as a compliant result for a blocking rule).
+production behavior.
 
-quality.type_safety -- gap, see #847 (existing issue, not duplicated
-here). Its mypy_check mechanism genuinely works when mypy is present
-(confirmed below: a real type error produces a real BLOCK-shaped
-finding, real clean code produces none) -- the defect is narrower than
-the two code.imports rows: only the dependency-absence path silently
-reports compliant for a blocking rule, which is exactly #847's scope.
+quality.type_safety -- VERIFIED (#847 fixed). Its mypy_check mechanism
+genuinely works when mypy is present (confirmed below: a real type error
+produces a real BLOCK-shaped finding, real clean code produces none), and
+the dependency-absence path (confirmed below via the real engine, live
+mapping params) now surfaces one ENFORCEMENT_UNAVAILABLE finding instead
+of silently reporting compliant -- the audit-verdict policy
+(.intent/enforcement/config/audit_verdict.yaml,
+any_blocking_unavailable_rules) routes that to DEGRADED, never PASS.
+See tests/mind/governance/test_auditor___determine_verdict.py for the
+verdict-level proof through the real ``execute_rule``/``_determine_verdict``
+path.
 
 code.imports.must_resolve / code.imports.no_stale_namespace -- gap, see
 #855 (new issue filed by this unit). Both dispatch to the same
@@ -212,13 +212,15 @@ async def test_type_safety_passes_for_correctly_typed_code(tmp_path: Path) -> No
     assert result == []
 
 
-async def test_type_safety_silent_passes_when_mypy_absent_via_real_engine() -> None:
-    """Reproduces #847 through the real WorkflowGateEngine.verify_context
+async def test_type_safety_surfaces_unavailable_when_mypy_absent_via_real_engine() -> (
+    None
+):
+    """#847 fix, proven through the real WorkflowGateEngine.verify_context
     (not just QualityGateCheck in isolation, which
     test_tool_absence_silent_skip.py already covers) -- a blocking rule's
-    real production dispatch path returns an empty (compliant) finding
-    list when its required tool is unavailable. Evidence of #847's gap,
-    not a compliant fixture."""
+    real production dispatch path, with the rule's live mapping params,
+    now returns one ENFORCEMENT_UNAVAILABLE finding rather than an empty
+    (compliant) list when its required tool is unavailable."""
     params = _load_rule_params(
         "architecture/quality_gates.yaml", "quality.type_safety"
     )
@@ -227,4 +229,7 @@ async def test_type_safety_silent_passes_when_mypy_absent_via_real_engine() -> N
         side_effect=FileNotFoundError(2, "No such file or directory", "mypy"),
     ):
         result = await _run_via_real_engine(params)
-    assert result == []
+    assert len(result) == 1
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "tool_not_installed"
+    assert result[0].context["tool"] == "mypy"

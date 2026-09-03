@@ -10,6 +10,23 @@ demo PR was burned on this noise.
 The fix: detect ``FileNotFoundError`` at the check level and return
 an empty violation list (silent skip with a debug log). Annotation
 budget is preserved for actionable consumer findings.
+
+#847 correction: ``QualityGateCheck`` (mypy_check/pytest_check/
+security_check — backs blocking rule ``quality.type_safety`` among
+others) no longer silent-skips. An empty violation list is a compliant
+verdict to the dispatch layer, which made a missing tool indistinguishable
+from a genuine pass for a blocking rule (G9: "crashes degrade, never
+comply"). It now returns one aggregated ``StructuredViolation`` carrying
+``finding_type: "ENFORCEMENT_UNAVAILABLE"`` — still exactly one finding
+(the #549 annotation-budget win is preserved), but no longer a silent
+pass. See ``test_quality_gate_surfaces_unavailable_when_tool_missing``
+below and ``tests/mind/governance/test_auditor___determine_verdict.py``
+for the verdict-level consequence. The other checks in this file
+(``ImportResolutionCheck``, ``RuffFormatCheck``, ``LinterComplianceCheck``)
+are unchanged — #847/#856 scoped this correction to the two check classes
+named in those issues (``QualityGateCheck`` and, in a sibling file,
+``runtime_gate``'s ``worker_max_interval`` check) — not a blanket redesign
+of every silent-skip in the tree.
 """
 
 from __future__ import annotations
@@ -17,6 +34,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from mind.logic.engines.workflow_gate.base_check import StructuredViolation
 from mind.logic.engines.workflow_gate.checks.import_resolution import (
     ImportResolutionCheck,
 )
@@ -32,13 +50,13 @@ def _path_resolver(tmp_path: str = "/repo") -> MagicMock:
     return pr
 
 
-def test_quality_gate_silent_skips_when_tool_missing() -> None:
-    """QualityGateCheck (mypy/pytest/pip-audit wrapper) returns [] on FileNotFoundError.
-
-    The catch-all `except Exception` branch previously absorbed
-    FileNotFoundError and emitted "Gate <check> error: [Errno 2]..."
-    as a violation. The fix adds an explicit FileNotFoundError branch
-    above the catch-all that silent-skips.
+def test_quality_gate_surfaces_unavailable_when_tool_missing() -> None:
+    """QualityGateCheck (mypy/pytest/pip-audit wrapper) surfaces one
+    aggregated ENFORCEMENT_UNAVAILABLE StructuredViolation on
+    FileNotFoundError (#847) -- not the pre-#549 raw error string, and no
+    longer the post-#549 silent `[]` either. One finding, not one per
+    affected file: the #549 annotation-budget win is preserved by
+    aggregation, not by silence.
     """
     check = QualityGateCheck(
         _path_resolver(),
@@ -52,9 +70,12 @@ def test_quality_gate_silent_skips_when_tool_missing() -> None:
     ):
         result = asyncio.run(check.verify(None, {}))
 
-    assert result == [], (
-        f"QualityGateCheck must silent-skip on missing tool; got {result}"
-    )
+    assert len(result) == 1
+    violation = result[0]
+    assert isinstance(violation, StructuredViolation)
+    assert violation.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert violation.context["reason"] == "tool_not_installed"
+    assert violation.context["tool"] == "mypy"
 
 
 def test_quality_gate_still_emits_other_errors() -> None:

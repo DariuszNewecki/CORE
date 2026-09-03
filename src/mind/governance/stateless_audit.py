@@ -57,6 +57,7 @@ from typing import Any
 from mind.governance.audit_context import AuditorContext
 from mind.governance.filtered_audit import run_filtered_audit
 from mind.governance.rule_extractor import extract_executable_rules
+from shared.infrastructure.intent.audit_verdict import load_audit_verdict_policy
 from shared.infrastructure.intent.intent_repository import IntentRepository
 from shared.logger import getLogger
 
@@ -222,8 +223,53 @@ async def run_stateless_audit(
         for f in findings_dicts
         if str(f.get("severity", "")).lower() in {"blocking", "block", "high"}
     ]
-    passed = not blocking_findings
-    verdict = "PASS" if passed else "FAIL"
+
+    # #847/#856: this path built its own PASS/FAIL-only verdict, entirely
+    # independent of ConstitutionalAuditor._determine_verdict's DEGRADED
+    # semantics and ignored_finding_types carve-out. That gap is
+    # significant here specifically: db_session is *always* absent in the
+    # stateless/offline path (this function builds AuditorContext with no
+    # session_provider), so ENFORCEMENT_UNAVAILABLE findings for
+    # runtime.worker_max_interval_within_observed — and pre-existing
+    # ENFORCEMENT_FAILURE crash findings — are a real, common outcome of
+    # exactly this CLI path (core-admin code audit --offline), not a
+    # theoretical one. Reuses the same governed
+    # .intent/enforcement/config/audit_verdict.yaml ignored_finding_types
+    # vocabulary ConstitutionalAuditor consults, rather than inventing a
+    # second closed vocabulary. Governor ruling 3/4: an unavailable
+    # dependency or a crash makes the verdict DEGRADED, never silently
+    # folded into an ordinary FAIL (which reads as "known non-compliant"
+    # code, not "compliance unknown").
+    #
+    # Exit-code behavior is unchanged either way: the CLI's blocking-gate
+    # decision (src/cli/resources/code/audit.py::_run_offline_audit) is
+    # severity-based, not verdict-string-based, so this is a truthfulness
+    # fix to the "verdict"/"passed" label, not a change to whether CI
+    # blocks.
+    verdict_policy = load_audit_verdict_policy()
+    ignored_types = (
+        set(verdict_policy.get("ignored_finding_types", []))
+        if not verdict_policy.get("_error")
+        else {"ENFORCEMENT_FAILURE", "ENFORCEMENT_UNAVAILABLE"}
+    )
+    degraded_findings = [
+        f
+        for f in blocking_findings
+        if (f.get("context") or {}).get("finding_type") in ignored_types
+    ]
+    genuine_blocking_findings = [
+        f for f in blocking_findings if f not in degraded_findings
+    ]
+
+    if verdict_policy.get("_error") or degraded_findings:
+        verdict = "DEGRADED"
+        passed = False
+    elif genuine_blocking_findings:
+        verdict = "FAIL"
+        passed = False
+    else:
+        verdict = "PASS"
+        passed = True
 
     return {
         "verdict": verdict,

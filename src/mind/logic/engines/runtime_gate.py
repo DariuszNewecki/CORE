@@ -419,11 +419,17 @@ async def _check_worker_max_interval_within_observed(
     if session is None:
         logger.debug(
             "runtime_gate.worker_max_interval_within_observed: db_session "
-            "not injected — check deferred to next audit cycle."
+            "not injected — surfacing as ENFORCEMENT_UNAVAILABLE."
         )
-        return []
+        return [_unavailable_finding_no_session(sorted(workers))]
 
     findings: list[AuditFinding] = []
+    # #856: workers whose evidence is insufficient (missing aggregate row,
+    # or fewer than _MAX_INTERVAL_MIN_SAMPLES heartbeat gaps) are collected
+    # here rather than silently `continue`d, so one aggregated
+    # ENFORCEMENT_UNAVAILABLE finding can be emitted after the loop —
+    # insufficient evidence is unavailable, not a pass, for a blocking rule.
+    insufficient_evidence: list[tuple[str, int]] = []
     for stem, w in workers.items():
         # Window function over heartbeats: gap to previous heartbeat per
         # worker_uuid over the lookback window. PERCENTILE_CONT yields the
@@ -457,9 +463,11 @@ async def _check_worker_max_interval_within_observed(
         )
         row = r.first()
         if row is None or row.samples is None:
+            insufficient_evidence.append((stem, 0))
             continue
         samples = int(row.samples)
         if samples < _MAX_INTERVAL_MIN_SAMPLES:
+            insufficient_evidence.append((stem, samples))
             continue
         if row.p95 is None:
             continue
@@ -503,4 +511,63 @@ async def _check_worker_max_interval_within_observed(
             )
         )
 
+    if insufficient_evidence:
+        findings.append(
+            _unavailable_finding_insufficient_samples(insufficient_evidence)
+        )
+
     return findings
+
+
+# ID: 6e5f4d3c-2b1a-4c8d-9e7f-1a2b3c4d5e6f
+def _unavailable_finding_no_session(worker_stems: list[str]) -> AuditFinding:
+    """One aggregated ENFORCEMENT_UNAVAILABLE finding when db_session is
+    absent for the whole check (#856 / #847 shape, ADR-113 D3). Preserves
+    GitHub's annotation budget: one finding, not one per affected worker."""
+    return AuditFinding(
+        check_id=_RULE_ID_MAX_INTERVAL,
+        severity=AuditSeverity.BLOCK,  # rule_executor maps from rule.enforcement anyway
+        message=(
+            f"runtime.worker_max_interval_within_observed could not run: "
+            f"db_session was not injected into this audit context. "
+            f"Compliance status UNKNOWN for {len(worker_stems)} active "
+            f"worker(s) with a declared max_interval — not a pass."
+        ),
+        file_path="none",
+        context={
+            "finding_type": "ENFORCEMENT_UNAVAILABLE",
+            "reason": "db_session_unavailable",
+            "affected_worker_stems": worker_stems,
+        },
+    )
+
+
+# ID: 7f6e5d4c-3b2a-1c9d-8e7f-2a3b4c5d6e7f
+def _unavailable_finding_insufficient_samples(
+    insufficient: list[tuple[str, int]],
+) -> AuditFinding:
+    """One aggregated ENFORCEMENT_UNAVAILABLE finding for every worker whose
+    heartbeat-gap sample count is below _MAX_INTERVAL_MIN_SAMPLES (#856).
+    Insufficient evidence to compare configured vs. observed is unavailable,
+    not a silent pass, for this blocking rule."""
+    stems = [stem for stem, _ in insufficient]
+    return AuditFinding(
+        check_id=_RULE_ID_MAX_INTERVAL,
+        severity=AuditSeverity.BLOCK,  # rule_executor maps from rule.enforcement anyway
+        message=(
+            f"runtime.worker_max_interval_within_observed: {len(insufficient)} "
+            f"active worker(s) have fewer than {_MAX_INTERVAL_MIN_SAMPLES} "
+            f"heartbeat-gap samples in the last {_MAX_INTERVAL_LOOKBACK_HOURS}h "
+            f"— insufficient evidence to compare configured vs. observed "
+            f"max_interval. Compliance status UNKNOWN for these workers, not "
+            f"a pass: {', '.join(f'{s} ({n} samples)' for s, n in insufficient)}."
+        ),
+        file_path="none",
+        context={
+            "finding_type": "ENFORCEMENT_UNAVAILABLE",
+            "reason": "insufficient_samples",
+            "min_samples_required": _MAX_INTERVAL_MIN_SAMPLES,
+            "affected_worker_stems": stems,
+            "sample_counts": dict(insufficient),
+        },
+    )

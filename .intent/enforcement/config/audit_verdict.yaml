@@ -26,9 +26,12 @@
 #
 # DEGRADED  The audit instrument itself failed: the verdict policy is
 #           missing/corrupt, one or more rules crashed during
-#           evaluation, or execution statistics could not be computed.
-#           Compliance is unknown, not known-bad. DEGRADED must never
-#           be silently treated as PASS -- see ADR-005 S3.
+#           evaluation, execution statistics could not be computed, or a
+#           BLOCKING rule's dependency/evidence was unavailable (a
+#           required tool missing, a DB session not injected, fewer than
+#           the minimum evidence samples -- #847, #856). Compliance is
+#           unknown, not known-bad. DEGRADED must never be silently
+#           treated as PASS -- see ADR-005 S3.
 #
 # ---------------------------------------------------------------------
 # Why WARNINGs do not gate PASS
@@ -73,8 +76,19 @@ fail_severities:
 # They drive DEGRADED via crashed_rule_ids, not FAIL. This carve-out
 # preserves the invariant that "infrastructure broken" (unknown
 # compliance) is distinguishable from "code broken" (known non-compliance).
+#
+# ENFORCEMENT_UNAVAILABLE (#847/#856) is the same shape for a different
+# cause: a required tool, DB session, or evidence sample was unavailable,
+# rather than the engine crashing. For a blocking rule this drives DEGRADED
+# via stats["blocking_unavailable_rules"] (see any_blocking_unavailable_rules
+# below), not FAIL. For an advisory/reporting rule it carries no severity
+# that could reach fail_severities in the first place, but the carve-out is
+# listed here anyway, mirroring ENFORCEMENT_FAILURE's belt-and-suspenders
+# placement, so a future rule_executor change to how severity is assigned
+# cannot accidentally turn unavailable evidence into a false FAIL.
 ignored_finding_types:
   - ENFORCEMENT_FAILURE
+  - ENFORCEMENT_UNAVAILABLE
 
 # Preconditions that force DEGRADED regardless of finding severities.
 # any_crashed_rules                   -> crashed_rule_ids set is non-empty.
@@ -96,7 +110,23 @@ ignored_finding_types:
 #                                        rules cannot be checked, so it is
 #                                        unknown, not known-bad -- DEGRADED,
 #                                        not FAIL. See ADR-156.
+# any_blocking_unavailable_rules      -> stats["blocking_unavailable_rules"] > 0.
+#                                        One or more BLOCKING rules reported
+#                                        an ENFORCEMENT_UNAVAILABLE finding
+#                                        (a required tool missing, a DB
+#                                        session not injected, fewer than
+#                                        the minimum evidence samples). An
+#                                        unavailable dependency is distinct
+#                                        from a crash (crashed_rule_ids) --
+#                                        both force DEGRADED, but are
+#                                        tracked and reported separately.
+#                                        An advisory/reporting rule's
+#                                        unavailable dependency does NOT
+#                                        set this precondition -- it stays
+#                                        visible in findings without
+#                                        forcing DEGRADED. See #847, #856.
 degraded_on:
   - any_crashed_rules
   - stats_error
   - any_unmapped_mapping_required_rules
+  - any_blocking_unavailable_rules

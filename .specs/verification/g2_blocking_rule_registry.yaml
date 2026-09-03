@@ -628,12 +628,12 @@ entries:
   - rule_id: "quality.type_safety"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_type_safety_fires_on_a_genuine_type_error"
+    compliant_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_type_safety_passes_for_correctly_typed_code"
+    state: "verified"
   - rule_id: "runtime.worker_max_interval_within_observed"
     engine: "runtime_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/logic/engines/test_runtime_gate__worker_max_interval.py::test_worker_above_threshold_fires_finding"
+    compliant_fixture: "tests/mind/logic/engines/test_runtime_gate__worker_max_interval.py::test_worker_within_threshold_no_finding"
+    state: "verified"

@@ -33,6 +33,7 @@ async def run_dynamic_rules(
     *,
     executed_rule_ids: set[str],
     crashed_rule_ids: set[str] | None = None,
+    unavailable_rule_ids: set[str] | None = None,
 ) -> list:
     """Execute all rules via their declared engines.
 
@@ -40,11 +41,20 @@ async def run_dynamic_rules(
     instead of being silently swallowed. A crashing rule MUST NOT be
     indistinguishable from a passing rule.
 
+    #847/#856: an unavailable enforcement dependency (a missing tool, a
+    missing evidence source, insufficient samples) is distinct from an
+    unexpected engine crash — both produce ENFORCEMENT_UNAVAILABLE /
+    ENFORCEMENT_FAILURE findings respectively and are tracked in separate
+    sets, never conflated.
+
     Args:
         context: AuditorContext with policies, enforcement loader, paths.
         executed_rule_ids: Mutable set — populated with IDs of rules that ran.
         crashed_rule_ids: Mutable set — populated with IDs of rules that crashed.
             If None, an internal set is used (backward compat).
+        unavailable_rule_ids: Mutable set — populated with IDs of rules that
+            reported ENFORCEMENT_UNAVAILABLE (dependency/evidence unavailable,
+            not a crash). If None, an internal set is used (backward compat).
     """
     # DEFERRED IMPORT: Break circular loop
     from mind.governance.rule_executor import execute_rule
@@ -52,6 +62,8 @@ async def run_dynamic_rules(
 
     if crashed_rule_ids is None:
         crashed_rule_ids = set()
+    if unavailable_rule_ids is None:
+        unavailable_rule_ids = set()
 
     all_findings = []
     executable_rules = extract_executable_rules(
@@ -146,11 +158,29 @@ async def run_dynamic_rules(
             if rule_id:
                 crashed_rule_ids.add(rule_id)
 
+    # #847/#856: aggregate ENFORCEMENT_UNAVAILABLE findings into
+    # unavailable_rule_ids, tracked separately from crashed_rule_ids per the
+    # governor's ruling (an unavailable dependency is not a crash). Unlike
+    # the ENFORCEMENT_FAILURE scan above, context-level dispatch (execute_rule)
+    # normalizes check_id to rule.rule_id for every finding it returns —
+    # there is no ".enforcement_unavailable" suffix to strip, check_id is
+    # already the rule_id.
+    for finding in all_findings:
+        ctx = getattr(finding, "context", None)
+        if (
+            isinstance(ctx, dict)
+            and ctx.get("finding_type") == "ENFORCEMENT_UNAVAILABLE"
+        ):
+            check_id = getattr(finding, "check_id", "") or ""
+            if check_id:
+                unavailable_rule_ids.add(check_id)
+
     logger.info(
-        "Dynamic Rule Execution: Completed %d rules (Skipped %d stubs, %d crashed)",
+        "Dynamic Rule Execution: Completed %d rules (Skipped %d stubs, %d crashed, %d unavailable)",
         executed_count,
         skipped_stub_count,
         len(crashed_rule_ids),
+        len(unavailable_rule_ids),
     )
     return all_findings
 
@@ -304,21 +334,35 @@ def get_dynamic_execution_stats(
     context: AuditorContext,
     executed_rule_ids: set[str],
     crashed_rule_ids: set[str] | None = None,
+    unavailable_rule_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     """Calculate comprehensive audit execution statistics.
 
     HARDENING P0.2: Stats now include the TRUE denominator (all declared
     rules), not just the mapped subset. Unmapped and crashed rules are
     explicitly enumerated so coverage numbers reflect reality.
+
+    #847/#856: unavailable_rule_ids (dependency/evidence unavailable) is
+    tracked separately from crashed_rule_ids. Its blocking-tier subset,
+    blocking_unavailable_rule_ids, is what _determine_verdict's
+    any_blocking_unavailable_rules precondition reads — an advisory rule's
+    unavailable dependency stays visible in findings without forcing
+    DEGRADED (governor ruling 6).
     """
     if crashed_rule_ids is None:
         crashed_rule_ids = set()
+    if unavailable_rule_ids is None:
+        unavailable_rule_ids = set()
 
     try:
         executable_rules = extract_executable_rules(
             context.policies, context.enforcement_loader
         )
         executable_rule_ids = {r.rule_id for r in executable_rules}
+        blocking_rule_ids = {
+            r.rule_id for r in executable_rules if r.enforcement == "blocking"
+        }
+        blocking_unavailable_rule_ids = sorted(unavailable_rule_ids & blocking_rule_ids)
 
         # Honest count of all declared law (advisory included) — reported
         # as-is for transparency, NOT used as the coverage denominator.
@@ -379,6 +423,13 @@ def get_dynamic_execution_stats(
             "cleanly_executed_rules": len(cleanly_executed),
             "crashed_rules": len(crashed_rule_ids),
             "crashed_rule_ids": sorted(crashed_rule_ids),
+            # #847/#856: unavailable dependency/evidence, tracked separately
+            # from crashed_rule_ids. blocking_unavailable_* is the subset
+            # _determine_verdict's DEGRADED precondition consumes.
+            "unavailable_rules": len(unavailable_rule_ids),
+            "unavailable_rule_ids": sorted(unavailable_rule_ids),
+            "blocking_unavailable_rules": len(blocking_unavailable_rule_ids),
+            "blocking_unavailable_rule_ids": blocking_unavailable_rule_ids,
             # ADR-076 D4: effective dispatch mode per rule
             "context_level_rules": len(context_level_rule_ids),
             "context_level_rule_ids": context_level_rule_ids,
@@ -401,6 +452,10 @@ def get_dynamic_execution_stats(
             "cleanly_executed_rules": 0,
             "crashed_rules": 0,
             "crashed_rule_ids": [],
+            "unavailable_rules": 0,
+            "unavailable_rule_ids": [],
+            "blocking_unavailable_rules": 0,
+            "blocking_unavailable_rule_ids": [],
             "context_level_rules": 0,
             "context_level_rule_ids": [],
             "per_file_rules": 0,
