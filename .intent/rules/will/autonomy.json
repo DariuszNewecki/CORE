@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.will.autonomy",
         "title": "Autonomous Lane Control",
-        "version": "1.5.0",
+        "version": "1.6.0",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -12,10 +12,19 @@
     "rules": [
         {
             "id": "autonomy.lanes.boundary_enforcement",
-            "statement": "Autonomous agents MUST NOT modify files outside their assigned autonomy lane.",
+            "statement": "RETIRED from automated enforcement (#853). Its GlobGate mechanism (patterns vs. this rule's own scope.applies_to) was structurally disjoint: the paths this rule's scope could ever hand to the engine could never overlap with the paths named in its own forbidden-patterns list, so the rule could never fire regardless of file content -- confirmed empirically, not merely suspected. The real, load-bearing lane-boundary control CORE actually runs is autonomy.proposals.safe_auto_approval_envelope below, which governs a narrower and more precise claim: not 'agents cannot write outside a lane' in the abstract, but exactly which atomic actions and which repository-relative paths a proposal may target for AUTONOMOUS (non-human) approval. This rule no longer dispatches to a mapping. Historical marker only -- see rationale.",
+            "enforcement": "advisory",
             "authority": "policy",
             "phase": "runtime",
-            "enforcement": "blocking"
+            "rationale": "Found during #842 Unit E (G2 fixture-coverage program), filed as #853: GlobGateEngine.verify()'s generic pattern-matcher does read `patterns` and does flag a match as a violation -- this was not a missing-dispatch defect like #852's rules. The defect was that the rule's own `scope.applies_to` (src/will/agents/**/*.py) and its `patterns` list (src/body/cli/logic/**, src/features/introspection/**, src/features/self_healing/**) are two disjoint directory trees: no file the audit engine would ever hand to verify() under this rule's scope could ever match a pattern in the forbidden list, and no file matching a pattern in the list falls within this rule's own scope, so the rule always reported clean regardless of actual agent write behavior. The mapping's own comment described `patterns` as the *allowed* lanes ('Only allow agents to modify non-core directories autonomously'), while the engine's semantics treat anything in `patterns` as *forbidden* -- a second, independent contradiction on top of the disjoint-scope defect. Retired rather than repaired: 'agents must not write outside their lane' in the abstract has no single mechanically decidable definition (which lane, whose lane, checked how), whereas the concrete, governor-decided claim this system actually needs enforced -- the safe-auto-approval action-and-path envelope -- is precise, real, and now genuinely running. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry is removed."
+        },
+        {
+            "id": "autonomy.proposals.safe_auto_approval_envelope",
+            "statement": "A proposal MUST NOT transition to status='approved' under approval_authority='risk_classification.safe_auto_approval' unless every one of its actions references an action_id in the independently governed safe_auto_approval_envelope (.intent/enforcement/config/action_risk.yaml), targets a repository-relative Python file under src/ or tests/ (direct or nested children, no absolute path, no traversal segment), and the set of those target paths exactly matches the proposal's declared ProposalScope.files. No ProposalAction naming flow_id satisfies this rule -- no flow is authorized for safe auto-approval, including test-generation flows. This rule does not constrain approval_authority='principal.governor': a human governor's approval may cross this envelope; the envelope binds only the autonomous approval path.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "#853: impact_level: safe classification in action_risk.yaml is a RISK tier, not an AUTHORIZATION grant -- several impact_level: safe actions (build.test_for_symbol, check.imports, admin.meta, claim.proposal, ...) were never meant to auto-execute without a human step, yet nothing previously stopped ProposalStateManager.approve() from accepting approval_authority='risk_classification.safe_auto_approval' for any proposal regardless of which actions or paths it actually named -- the only prior checks were the approval_authority closed-vocabulary check and the ADR-109 assisted-lane validation gate, neither of which examined the proposal's actions or scope at all. A proposal's self-declared ProposalScope was similarly never independently verified against what its actions actually targeted. This rule closes that gap with a real, governor-decided envelope: exactly five atomic actions (fix.imports, fix.ids, fix.logging, fix.headers, fix.format), Python files under src/ or tests/ only, no flows. Enforcement is deterministic and runs on every safe-auto-approval attempt via ProposalStateManager.approve() -- see will.autonomy.safe_auto_approval_envelope.validate_envelope. A denial leaves the proposal in DRAFT for principal.governor review; it is never silently rejected, deleted, or rolled back."
         },
         {
             "id": "autonomy.tracing.mandatory",

@@ -199,3 +199,96 @@ def get_impact_level(action_id: str) -> str:
     """
     mapping = load_action_risk()
     return mapping[action_id]
+
+
+_SAFE_AUTO_APPROVAL_ENVELOPE_KEYS: frozenset[str] = frozenset(
+    {"authorized_actions", "authorized_path_prefixes", "authorized_extensions"}
+)
+
+
+def _validate_envelope(envelope: dict[str, Any]) -> None:
+    """Raise ValueError on the first malformed field in the envelope section."""
+    for key in _SAFE_AUTO_APPROVAL_ENVELOPE_KEYS:
+        if key not in envelope:
+            raise ValueError(
+                f"safe_auto_approval_envelope: required key {key!r} is missing"
+            )
+        value = envelope[key]
+        if not isinstance(value, list) or not value:
+            raise ValueError(
+                f"safe_auto_approval_envelope: {key!r} must be a non-empty list, "
+                f"got {value!r}"
+            )
+        for item in value:
+            if not isinstance(item, str) or not item:
+                raise ValueError(
+                    f"safe_auto_approval_envelope: {key!r} entries must be "
+                    f"non-empty strings, got {item!r}"
+                )
+
+
+# ID: 2d9e4f1a-7b3c-4e8d-9a5f-1c6b8d3e7f2a
+def load_safe_auto_approval_envelope() -> dict[str, Any]:
+    """
+    Load the safe_auto_approval_envelope section of action_risk.yaml (#853).
+
+    Independently governed authorization boundary for
+    risk_classification.safe_auto_approval — distinct from, and never
+    inferred from, the impact_level classification loaded by
+    load_action_risk() above. NO HARDCODED FALLBACK: this loader is
+    deliberately different from load_action_risk() — where the YAML is
+    missing, the section is absent, or an entry is malformed, it returns
+    the error sentinel
+
+        {"_error": True, "reason": "<human-readable reason>"}
+
+    and does NOT substitute default values. Callers MUST treat the sentinel
+    as "deny safe auto-approval" — an envelope that failed to load must
+    never be read as "nothing is authorized so nothing needs checking" and
+    must never fall back to a hardcoded permissive default. This mirrors
+    shared.infrastructure.intent.audit_verdict's fail-closed contract.
+
+    On success, returns:
+        {
+            "authorized_actions": frozenset[str],
+            "authorized_path_prefixes": tuple[str, ...],
+            "authorized_extensions": tuple[str, ...],
+        }
+    """
+    try:
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        config_path = repo.resolve_rel("enforcement/config/action_risk.yaml")
+        config = repo.load_document(config_path)
+        if not isinstance(config, dict):
+            reason = (
+                f"action_risk.yaml did not parse as a dict "
+                f"(got {type(config).__name__})"
+            )
+            logger.error("safe_auto_approval_envelope: %s", reason)
+            return {"_error": True, "reason": reason}
+
+        envelope = config.get("safe_auto_approval_envelope")
+        if not isinstance(envelope, dict):
+            reason = "action_risk.yaml missing 'safe_auto_approval_envelope' dict"
+            logger.error("safe_auto_approval_envelope: %s", reason)
+            return {"_error": True, "reason": reason}
+
+        _validate_envelope(envelope)
+        return {
+            "authorized_actions": frozenset(envelope["authorized_actions"]),
+            "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
+            "authorized_extensions": tuple(envelope["authorized_extensions"]),
+        }
+
+    except Exception as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        logger.error(
+            "safe_auto_approval_envelope: could not load .intent/enforcement/"
+            "config/action_risk.yaml (%s)",
+            reason,
+        )
+        return {"_error": True, "reason": reason}

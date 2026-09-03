@@ -21,10 +21,13 @@ from shared.infrastructure.database.models.autonomous_proposals import (
 from will.autonomy.proposal_state_manager import (
     ProposalNotFoundError,
     ProposalStateManager,
+    SafeAutoApprovalDeniedError,
 )
 
 
 pytestmark = [pytest.mark.integration]
+
+_ENVELOPE_FILE_PATH = "src/approve_test_fixture.py"
 
 
 def _draft_row(
@@ -32,14 +35,39 @@ def _draft_row(
     *,
     validation_checks: list[str] | None = None,
     validation_results: dict[str, bool] | None = None,
+    actions: list[dict] | None = None,
+    scope: dict | None = None,
 ) -> AutonomousProposal:
-    """Construct a minimal valid AutonomousProposal in DRAFT for tests."""
+    """Construct a minimal valid AutonomousProposal in DRAFT for tests.
+
+    Defaults to a safe-auto-approval-envelope-compliant shape (#853):
+    fix.format targeting a single src/ Python file, declared consistently
+    in scope.files — so tests that don't care about the envelope (falsy/
+    unknown authority, the governor-lane validation gate) keep working
+    unchanged, and only tests that explicitly want an out-of-envelope
+    shape need to override actions/scope.
+    """
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="approve() unit test",
         status="draft",
-        actions=[{"action_id": "fix.format", "parameters": {}, "order": 0}],
-        scope={"files": [], "modules": [], "symbols": [], "policies": []},
+        actions=actions
+        if actions is not None
+        else [
+            {
+                "action_id": "fix.format",
+                "parameters": {"file_path": _ENVELOPE_FILE_PATH},
+                "order": 0,
+            }
+        ],
+        scope=scope
+        if scope is not None
+        else {
+            "files": [_ENVELOPE_FILE_PATH],
+            "modules": [],
+            "symbols": [],
+            "policies": [],
+        },
         constitutional_constraints={},
         approval_required=False,
         created_at=datetime.now(UTC),
@@ -225,5 +253,186 @@ async def test_approve_passes_when_validation_gate_met(
         row = await _fetch(db_session, proposal_id)
         assert row is not None
         assert row.status == "approved"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+# --- #853: the safe auto-approval envelope, enforced centrally in approve() -
+
+
+async def test_approve_denies_safe_auto_approval_outside_envelope(
+    db_session: AsyncSession,
+) -> None:
+    """Governor rulings 1/5: an action not in the envelope raises
+    SafeAutoApprovalDeniedError and the row is left completely untouched
+    (still draft, no approval fields set) — the UPDATE never runs."""
+    proposal_id = f"test-envelope-deny-{uuid.uuid4().hex[:8]}"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            actions=[
+                {
+                    "action_id": "check.imports",
+                    "parameters": {"file_path": _ENVELOPE_FILE_PATH},
+                    "order": 0,
+                }
+            ],
+            scope={
+                "files": [_ENVELOPE_FILE_PATH],
+                "modules": [],
+                "symbols": [],
+                "policies": [],
+            },
+        )
+    )
+    await db_session.commit()
+
+    try:
+        with pytest.raises(SafeAutoApprovalDeniedError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="autonomous_self_promote",
+                approval_authority="risk_classification.safe_auto_approval",
+            )
+
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "draft"
+        assert row.approved_by is None
+        assert row.approved_at is None
+        assert row.approval_authority is None
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_denies_flow_for_safe_auto_approval(
+    db_session: AsyncSession,
+) -> None:
+    """Governor ruling 4: a flow-shaped proposal is never eligible for safe
+    auto-approval, regardless of how plausible its scope looks."""
+    proposal_id = f"test-envelope-flow-{uuid.uuid4().hex[:8]}"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            actions=[
+                {
+                    "action_id": None,
+                    "flow_id": "flow.build_test_for_symbol",
+                    "parameters": {"source_file": _ENVELOPE_FILE_PATH},
+                    "order": 0,
+                }
+            ],
+            scope={
+                "files": [_ENVELOPE_FILE_PATH],
+                "modules": [],
+                "symbols": [],
+                "policies": [],
+            },
+        )
+    )
+    await db_session.commit()
+
+    try:
+        with pytest.raises(SafeAutoApprovalDeniedError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="autonomous_self_promote",
+                approval_authority="risk_classification.safe_auto_approval",
+            )
+
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "draft"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_denies_out_of_envelope_path_for_safe_auto_approval(
+    db_session: AsyncSession,
+) -> None:
+    """Governor ruling 3/5: an in-envelope action targeting a path outside
+    src/ or tests/ is still denied."""
+    proposal_id = f"test-envelope-path-{uuid.uuid4().hex[:8]}"
+    out_of_envelope = ".intent/rules/code/imports.json"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            actions=[
+                {
+                    "action_id": "fix.format",
+                    "parameters": {"file_path": out_of_envelope},
+                    "order": 0,
+                }
+            ],
+            scope={
+                "files": [out_of_envelope],
+                "modules": [],
+                "symbols": [],
+                "policies": [],
+            },
+        )
+    )
+    await db_session.commit()
+
+    try:
+        with pytest.raises(SafeAutoApprovalDeniedError):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="autonomous_self_promote",
+                approval_authority="risk_classification.safe_auto_approval",
+            )
+
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "draft"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_approve_governor_authority_crosses_envelope(
+    db_session: AsyncSession,
+) -> None:
+    """Governor ruling 7: principal.governor approval is NOT bound by the
+    safe_auto_approval_envelope — the exact same out-of-envelope proposal
+    that #853's other tests prove denies under
+    risk_classification.safe_auto_approval succeeds here."""
+    proposal_id = f"test-envelope-governor-{uuid.uuid4().hex[:8]}"
+    out_of_envelope = ".intent/rules/code/imports.json"
+    db_session.add(
+        _draft_row(
+            proposal_id,
+            actions=[
+                {
+                    "action_id": "check.imports",
+                    "parameters": {"file_path": out_of_envelope},
+                    "order": 0,
+                }
+            ],
+            scope={
+                "files": [out_of_envelope],
+                "modules": [],
+                "symbols": [],
+                "policies": [],
+            },
+        )
+    )
+    await db_session.commit()
+
+    try:
+        await ProposalStateManager(db_session).approve(
+            proposal_id,
+            approved_by="cli_admin",
+            approval_authority="principal.governor",
+        )
+        await db_session.commit()
+
+        db_session.expire_all()
+        row = await _fetch(db_session, proposal_id)
+        assert row is not None
+        assert row.status == "approved"
+        assert row.approval_authority == "principal.governor"
     finally:
         await _delete(db_session, proposal_id)

@@ -1,17 +1,49 @@
 mappings:
-    # LAW: Agents MUST NOT modify files outside their assigned lane
-    autonomy.lanes.boundary_enforcement:
-      engine: glob_gate
+    # ==========================================================================
+    # autonomy.lanes.boundary_enforcement -- mapping removed (#853). RETIRED
+    # from automated enforcement: its GlobGate check_type (path_restriction)
+    # compared this rule's own scope.applies_to (src/will/agents/**/*.py)
+    # against a forbidden-patterns list naming disjoint directory trees
+    # (src/body/cli/logic/**, src/features/introspection/**,
+    # src/features/self_healing/**) -- no file the engine could ever be
+    # handed under this rule's scope could ever match a forbidden pattern,
+    # so the check always reported clean regardless of actual agent write
+    # behavior. Confirmed empirically (#853). The real, load-bearing
+    # replacement is autonomy.proposals.safe_auto_approval_envelope below.
+    # See .intent/rules/will/autonomy.json for the full rationale.
+    # Historical marker only.
+    # ==========================================================================
+
+    # LAW: A proposal MUST NOT auto-approve under risk_classification.safe_
+    # auto_approval unless every action is in the governed envelope, targets
+    # an in-envelope src/ or tests/ Python path, and action targets exactly
+    # match the declared ProposalScope.files. No flow is authorized.
+    # ENFORCEMENT: Deterministic check in ProposalStateManager.approve(),
+    # called before the UPDATE statement on every safe-auto-approval attempt.
+    autonomy.proposals.safe_auto_approval_envelope:
+      engine: passive_gate
       params:
-        check_type: path_restriction
-        # Only allow agents to modify non-core directories autonomously
-        patterns:
-          - "src/body/cli/logic/**"
-          - "src/features/introspection/**"
-          - "src/features/self_healing/**"
-        action: "warn"
+        attestation_class: "A"
+        enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager"
+        enforcement_note: >
+          Runtime check -- ProposalStateManager.approve() calls
+          will.autonomy.safe_auto_approval_envelope.validate_envelope() before
+          the UPDATE whenever approval_authority is
+          'risk_classification.safe_auto_approval' (not for
+          'principal.governor', per governor ruling 7). validate_envelope()
+          raises SafeAutoApprovalDeniedError on any unlisted action, flow
+          reference, missing/malformed/absolute/traversal/out-of-envelope
+          path, or action/scope inconsistency; the caller's UPDATE never
+          runs, so the proposal row is left untouched (still DRAFT/PENDING).
+          The envelope itself (authorized_actions, authorized_path_prefixes,
+          authorized_extensions) is governed by the safe_auto_approval_envelope
+          section of .intent/enforcement/config/action_risk.yaml, loaded via
+          shared.infrastructure.intent.action_risk.load_safe_auto_approval_envelope
+          (fail-closed: an envelope load failure denies, never authorizes).
       scope:
-        applies_to: ["src/will/agents/**/*.py"]
+        applies_to:
+          - "src/will/autonomy/proposal_state_manager.py"
+          - "src/will/autonomy/safe_auto_approval_envelope.py"
 
     # LAW: Every autonomous decision MUST produce a trace
     # Check: Ensures TracedAgentMixin subclasses call self.tracer.record

@@ -295,12 +295,17 @@ entries:
     violating_fixture: "tests/body/validators/test_logic_conservation_validator.py::test_execute_fires_on_logic_evaporation"
     compliant_fixture: "tests/body/validators/test_logic_conservation_validator.py::test_execute_passes_when_mass_conserved"
     state: "verified"
-  - rule_id: "autonomy.lanes.boundary_enforcement"
-    engine: "glob_gate"
-    mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+  # autonomy.lanes.boundary_enforcement: row removed (#853). Retired to
+  # advisory -- its GlobGate mechanism compared its own scope against a
+  # structurally disjoint forbidden-patterns list and could never fire.
+  # Replaced by autonomy.proposals.safe_auto_approval_envelope below. See
+  # .intent/rules/will/autonomy.json for the full rationale.
+  - rule_id: "autonomy.proposals.safe_auto_approval_envelope"
+    engine: "passive_gate"
+    mechanism_class: "passive_gate_class_a"
+    violating_fixture: "tests/will/autonomy/test_safe_auto_approval_envelope.py::test_action_outside_envelope_denies"
+    compliant_fixture: "tests/will/autonomy/test_safe_auto_approval_envelope.py::test_authorized_action_within_src_approves"
+    state: "verified"
   - rule_id: "autonomy.remediation.min_confidence_floor"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_a"

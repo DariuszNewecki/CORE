@@ -1947,13 +1947,15 @@ mappings:
       reviewing the operation's scope -- governor decision. Non-automatable.
     status: DELEGATE
 
-  autonomy.lanes.boundary_enforcement:
+  autonomy.proposals.safe_auto_approval_envelope:
     action: fix.modularity
     confidence: 0.40
     description: >
-      An operation crosses permitted autonomous/assisted/governor lane boundaries.
-      Resolution requires rerouting the operation to the correct lane -- governor
-      decision. Non-automatable.
+      A proposal was denied safe auto-approval (unlisted action, flow reference,
+      out-of-envelope path, or action/scope inconsistency). Resolution requires
+      principal.governor review of the DRAFT proposal -- governor decision.
+      Non-automatable. Replaces autonomy.lanes.boundary_enforcement (#853,
+      retired -- see .intent/rules/will/autonomy.json).
     status: DELEGATE
 
   autonomy.remediation.min_confidence_floor:

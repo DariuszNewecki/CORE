@@ -54,6 +54,7 @@ from will.autonomy.proposal import (
     ProposalScope,
     ProposalStatus,
 )
+from will.autonomy.safe_auto_approval_envelope import SafeAutoApprovalDeniedError
 
 
 logger = getLogger(__name__)
@@ -199,17 +200,32 @@ async def create_proposal(
 
             if not proposal.approval_required:
                 state_manager = ProposalStateManager(session)
-                await state_manager.approve(
-                    proposal_id,
-                    approved_by="autonomous_self_promote",
-                    approval_authority="risk_classification.safe_auto_approval",
-                )
-                logger.info(
-                    "ViolationRemediatorWorker: proposal for '%s' auto-approved "
-                    "(risk=%s, approval_required=False)",
-                    ref_id,
-                    proposal.risk.overall_risk if proposal.risk else "unknown",
-                )
+                try:
+                    await state_manager.approve(
+                        proposal_id,
+                        approved_by="autonomous_self_promote",
+                        approval_authority="risk_classification.safe_auto_approval",
+                    )
+                    logger.info(
+                        "ViolationRemediatorWorker: proposal for '%s' auto-approved "
+                        "(risk=%s, approval_required=False)",
+                        ref_id,
+                        proposal.risk.overall_risk if proposal.risk else "unknown",
+                    )
+                except SafeAutoApprovalDeniedError as denial:
+                    # #853 governor ruling 6: not eligible for safe
+                    # auto-approval is NOT a persistence failure. The
+                    # proposal row already exists (repo.create above) and
+                    # was never touched by the denied approve() call — commit
+                    # it in DRAFT for principal.governor review rather than
+                    # letting the outer except swallow it into a rollback.
+                    logger.warning(
+                        "ViolationRemediatorWorker: proposal for '%s' is not "
+                        "eligible for safe auto-approval (%s) — committing in "
+                        "DRAFT for governor review.",
+                        ref_id,
+                        denial,
+                    )
             else:
                 logger.info(
                     "ViolationRemediatorWorker: proposal for '%s' requires human "

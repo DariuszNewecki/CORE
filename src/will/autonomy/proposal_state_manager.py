@@ -26,6 +26,17 @@ from shared.exceptions import CoreError
 from shared.logger import getLogger
 from shared.workers.blackboard_publisher import _sanitize_payload
 from will.autonomy.proposal import ProposalStatus
+from will.autonomy.safe_auto_approval_envelope import (
+    SafeAutoApprovalDeniedError,
+    validate_envelope,
+)
+
+
+__all__ = [
+    "ProposalNotFoundError",
+    "ProposalStateManager",
+    "SafeAutoApprovalDeniedError",
+]
 
 
 logger = getLogger(__name__)
@@ -232,11 +243,17 @@ class ProposalStateManager:
         # cannot be approved until every declared check is recorded passing in
         # validation_results. The autonomous path declares no validation_checks,
         # so this is a no-op there; the gate only bites the human-gated lane.
+        #
+        # #853: the same row read also carries actions/scope, consulted below
+        # only when approval_authority is risk_classification.safe_auto_approval
+        # (governor ruling 7 — principal.governor is not bound by the envelope).
         gate_row = (
             await self._session.execute(
                 select(
                     AutonomousProposal.validation_checks,
                     AutonomousProposal.validation_results,
+                    AutonomousProposal.actions,
+                    AutonomousProposal.scope,
                 ).where(AutonomousProposal.proposal_id == proposal_id)
             )
         ).first()
@@ -249,6 +266,17 @@ class ProposalStateManager:
                     f"Proposal {proposal_id!r} cannot be approved: validation "
                     f"gate not satisfied (unmet checks: {unmet})."
                 )
+
+            # #853 — governor rulings 1-5: safe auto-approval requires an
+            # independently governed action-and-path envelope beyond
+            # ProposalScope. Validated here, BEFORE the UPDATE below, so a
+            # denial leaves the row completely untouched (still DRAFT/
+            # PENDING) rather than racing or partially mutating it. Raised
+            # exceptions propagate to the caller — see
+            # SafeAutoApprovalDeniedError's docstring for the caller
+            # contract (commit the proposal in DRAFT, never roll it back).
+            if approval_authority == "risk_classification.safe_auto_approval":
+                validate_envelope(gate_row.actions or [], gate_row.scope or {})
 
         stmt = (
             update(AutonomousProposal)

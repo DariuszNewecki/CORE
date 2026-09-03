@@ -137,3 +137,43 @@ actions:
   test.sandbox_validate:
     impact_level: safe
     artifact_types: [python]
+
+# ---------------------------------------------------------------------------
+# SAFE AUTO-APPROVAL ENVELOPE (#853)
+#
+# Independently governed action-and-path envelope for
+# risk_classification.safe_auto_approval (ProposalStateManager.approve()).
+# impact_level: safe (above) classifies action RISK; it does NOT by itself
+# authorize autonomous approval -- several impact_level: safe actions above
+# (build.test_for_symbol, check.imports, admin.meta, claim.proposal, ...)
+# are NOT in this envelope. Authorization is a separate, narrower,
+# independently declared list, and a proposal's self-declared ProposalScope
+# is not trusted either: every action's actual execution target is
+# validated against this envelope at approval time and cross-checked for
+# consistency against the proposal's declared scope.files.
+#
+# Governor ruling (#853): the first envelope authorizes exactly the five
+# actions below, targeting only repository-relative Python files under
+# src/ or tests/ (direct or nested children). No flow is authorized -- a
+# ProposalAction naming flow_id always falls outside this envelope,
+# including test-generation flows. principal.governor approval is NOT
+# constrained by this envelope (ruling 7) -- it applies only to
+# risk_classification.safe_auto_approval.
+#
+# Enforced by: will.autonomy.safe_auto_approval_envelope.validate_envelope,
+# called from ProposalStateManager.approve() before the UPDATE statement.
+# See autonomy.proposals.safe_auto_approval_envelope
+# (.intent/rules/will/autonomy.json) for the governed rule declaration.
+# ---------------------------------------------------------------------------
+safe_auto_approval_envelope:
+  authorized_actions:
+    - fix.imports
+    - fix.ids
+    - fix.logging
+    - fix.headers
+    - fix.format
+  authorized_path_prefixes:
+    - src/
+    - tests/
+  authorized_extensions:
+    - .py

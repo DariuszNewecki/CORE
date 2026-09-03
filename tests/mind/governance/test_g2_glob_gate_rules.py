@@ -24,14 +24,17 @@ GlobGateEngine.verify(), so it doesn't satisfy #842's "directly exercise
 that symbol" bar. It remains valid as its own regression check; this
 file adds the real fixture pair G2 requires.
 
-Not here, per #842's acceptance criteria (claimed enforcement absent or
-materially different -> gap + defect, not a fabricated fixture):
-- autonomy.lanes.boundary_enforcement -- #853. Its scope
-  (src/will/agents/**/*.py) and its forbidden `patterns` list
-  (src/body/cli/logic/**, etc.) are disjoint directory trees; no file
-  the real audit would ever hand this rule can match its own patterns.
-  Still a gap: the fix is a rule-design decision (governor), not a reflex
-  patch, unlike the two rules below.
+autonomy.lanes.boundary_enforcement was a gap row here (glob_gate) at the
+time #842 Unit E filed #853 -- its scope (src/will/agents/**/*.py) and its
+forbidden `patterns` list (src/body/cli/logic/**, etc.) were disjoint
+directory trees; no file the real audit would ever hand this rule could
+match its own patterns. #853 is now closed: the rule was retired to
+advisory (RETIRED historical marker, mapping removed -- see
+.intent/rules/will/autonomy.json) rather than repaired, and replaced by
+autonomy.proposals.safe_auto_approval_envelope, a passive_gate rule
+(ProposalStateManager.approve()) with its own real fixture pair in
+tests/will/autonomy/test_safe_auto_approval_envelope.py -- not a
+glob_gate rule, so it is not listed in this file.
 
 ai.prompt.model_artifact_required and ai.prompt.system_prompt_required were
 originally gap rows too (#852: GlobGateEngine.verify() had no dispatch

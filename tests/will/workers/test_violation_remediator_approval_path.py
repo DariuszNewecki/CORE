@@ -77,3 +77,50 @@ async def test_worker_persists_with_authority(db_session: AsyncSession) -> None:
             )
         )
         await db_session.commit()
+
+
+async def test_worker_preserves_draft_when_action_outside_safe_auto_approval_envelope(
+    db_session: AsyncSession,
+) -> None:
+    """#853 governor ruling 6, real end-to-end: check.imports is
+    impact_level: safe (so proposal.approval_required is False and the
+    worker attempts safe auto-approval) but is NOT in the five-action
+    safe_auto_approval_envelope. The denial must not be treated as a
+    persistence failure -- the proposal must still be created and land in
+    DRAFT for principal.governor review, not disappear or roll back."""
+    worker = ViolationRemediatorWorker(declaration_name="violation_remediator")
+    findings = [
+        {
+            "id": str(uuid.uuid4()),
+            "payload": {
+                "file_path": "src/test_fixture_for_band_b_envelope.py",
+                "check_id": "code.imports.must_resolve",
+                "rule": "code.imports.must_resolve",
+            },
+        }
+    ]
+
+    proposal_id = await worker._create_proposal("check.imports", "action", findings)
+    assert proposal_id is not None, (
+        "envelope denial must not be treated as a persistence failure -- "
+        "the proposal row must still be committed"
+    )
+
+    try:
+        db_session.expire_all()
+        result = await db_session.execute(
+            select(AutonomousProposal).where(
+                AutonomousProposal.proposal_id == proposal_id
+            )
+        )
+        row = result.scalar_one()
+        assert row.status == "draft"
+        assert row.approved_by is None
+        assert row.approval_authority is None
+    finally:
+        await db_session.execute(
+            delete(AutonomousProposal).where(
+                AutonomousProposal.proposal_id == proposal_id
+            )
+        )
+        await db_session.commit()
