@@ -19,14 +19,16 @@ real):
      test.candidate_validate pytest run during generation) -> build.test_for_
      symbol (real write) -> test.sandbox_validate (real pytest run inside the
      real hermetic git worktree ADR-106 sandboxes the flow into) -> real git
-     commit -> real core.proposal_consequences row. Only PromptModel.invoke
+     commit -> real core.proposal_consequences row -> real blackboard
+     evidence posted by the real orchestration Worker. Only PromptModel.invoke
      is stubbed — the one genuinely external, nondeterministic LLM call.
 
   2. no-output fails closed: the stubbed LLM never returns a ```python fence,
      so generation exhausts its budget, the cognitive step raises
      CognitiveStepError, and FlowExecutor's required-step-halt semantics
      stop the flow before build.test_for_symbol ever runs — no file written,
-     HEAD unmoved, proposal FAILED.
+     HEAD unmoved, proposal FAILED, and the failure is recorded on the
+     blackboard by the same Worker.
 
   3. sandbox-validation failure produces no commit: the accepted candidate
      passes generation-time acceptance for real, but the flow's final
@@ -34,7 +36,26 @@ real):
      patch of test_actions.run_tests keyed on action_id — proving that a
      downstream sandbox-validation failure means the flow-sandboxed write
      never propagates out of its hermetic worktree (ADR-106/107: propagate_
-     changes only runs when the flow succeeds) and no commit lands.
+     changes only runs when the flow succeeds), no commit lands, and the
+     failure is recorded on the blackboard.
+
+Governor ruling (this session, reopening #843): blackboard proof remains
+required. All three tests below drive the proposal through the REAL
+production orchestration Worker, ProposalConsumerWorker.run() — not a
+direct ProposalExecutor.execute() call — because
+architecture.flows.flow_must_not_post_to_blackboard means flow.build_test_
+for_symbol itself never touches the blackboard; ProposalConsumerWorker is
+the responsible orchestration layer that posts the
+`proposal_consumer_worker.run.complete` report after every execution
+(success or failure) via Worker.post_report, which every test here queries
+back from core.blackboard_entries for real and asserts against. This is
+also why the earlier version of this file (committed at 4984d123, which
+called ProposalExecutor.execute() directly with a throwaway
+ViolationExecutorWorker registration used only to obtain a worker_uuid) did
+not actually prove the "blackboard evidence posted" acceptance criterion —
+ViolationExecutorWorker.run() was never invoked, so none of its blackboard
+posting logic ran, and nothing in that version ever queried
+core.blackboard_entries.
 
 IntentGuard's tier-1 path guard (FileHandler._guard_paths) is neutralized at
 the class level, not just on one instance, because ADR-106 sandboxing builds
@@ -70,9 +91,8 @@ from will.autonomy.proposal import (
     ProposalStatus,
     RiskAssessment,
 )
-from will.autonomy.proposal_executor import ProposalExecutor
 from will.autonomy.proposal_repository import ProposalRepository
-from will.workers.violation_executor import ViolationExecutorWorker
+from will.workers.proposal_consumer_worker import ProposalConsumerWorker
 
 
 pytestmark = [pytest.mark.integration]
@@ -253,6 +273,41 @@ async def _fetch_consequence_row(proposal_id: str) -> dict:
         return dict(row) if row is not None else {}
 
 
+async def _find_run_complete_report_for_proposal(proposal_id: str) -> dict | None:
+    """Search recent `proposal_consumer_worker.run.complete` blackboard
+    reports for the one recording this proposal_id's outcome.
+
+    architecture.flows.flow_must_not_post_to_blackboard means
+    flow.build_test_for_symbol itself never posts — ProposalConsumerWorker
+    is the responsible orchestration layer, and this is the real blackboard
+    evidence it posts after every execution attempt (see
+    ProposalConsumerWorker.run(), Worker.post_report). Scans by content
+    (proposal_id inside payload["results"]), not by "most recent report for
+    this worker_uuid" or "most recent report overall" — .intent/workers/
+    proposal_consumer_worker.yaml declares a FIXED identity.uuid shared by
+    every instantiation, and other integration tests (or a concurrent xdist
+    worker) may post their own run.complete reports under the same
+    worker_uuid around the same time. Searching for our own proposal_id
+    inside the results list is what actually proves the worker recorded
+    *this* proposal's outcome, independent of what else it processed in the
+    same or a concurrent cycle.
+    """
+    async with service_registry.session() as session:
+        result = await session.execute(
+            text(
+                "SELECT payload FROM core.blackboard_entries "
+                "WHERE subject = 'proposal_consumer_worker.run.complete' "
+                "AND entry_type = 'report' "
+                "ORDER BY created_at DESC LIMIT 50"
+            )
+        )
+        for row in result.mappings().all():
+            for entry in (row["payload"] or {}).get("results", []):
+                if entry.get("proposal_id") == proposal_id:
+                    return entry
+    return None
+
+
 async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_consequence(
     repo: Path,
     db_session: AsyncSession,
@@ -260,7 +315,7 @@ async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_c
     core_context = _make_context(repo)
     baseline_sha = core_context.git_service.get_current_commit()
 
-    worker = ViolationExecutorWorker(core_context=core_context)
+    worker = ProposalConsumerWorker(core_context)
     await worker._register()
 
     proposal = _build_test_gen_proposal("Generate a test for mymod.example.add")
@@ -269,13 +324,7 @@ async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_c
         await session.commit()
 
     with patch.object(PromptModel, "invoke", new=AsyncMock(return_value=_ACCEPTED_FENCE)):
-        executor = ProposalExecutor(core_context)
-        result = await executor.execute(
-            proposal_id, claimed_by=worker._worker_uuid, write=True
-        )
-
-    assert result["ok"] is True, result
-    assert result["lifecycle_status"] == "completed", result
+        await worker.run()
 
     written = (repo / _TEST_FILE).read_text(encoding="utf-8")
     assert "def test_add" in written
@@ -294,6 +343,18 @@ async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_c
     assert consequence["post_execution_sha"] == post_sha
     assert _TEST_FILE in {f["path"] for f in consequence["files_changed"]}
 
+    # Governor ruling (#843): blackboard proof. flows never post to the
+    # blackboard (architecture.flows.flow_must_not_post_to_blackboard) —
+    # ProposalConsumerWorker is the responsible orchestration layer, and
+    # this is its real, unmocked evidence for this proposal's outcome.
+    reported = await _find_run_complete_report_for_proposal(proposal_id)
+    assert reported is not None, (
+        "ProposalConsumerWorker must post a proposal_consumer_worker."
+        "run.complete blackboard report recording this proposal's outcome"
+    )
+    assert reported["ok"] is True, reported
+    assert reported["lifecycle_status"] == "completed", reported
+
 
 async def test_build_test_for_symbol_no_output_fails_closed_with_no_write(
     repo: Path,
@@ -302,7 +363,7 @@ async def test_build_test_for_symbol_no_output_fails_closed_with_no_write(
     core_context = _make_context(repo)
     baseline_sha = core_context.git_service.get_current_commit()
 
-    worker = ViolationExecutorWorker(core_context=core_context)
+    worker = ProposalConsumerWorker(core_context)
     await worker._register()
 
     proposal = _build_test_gen_proposal("Generate a test — forced no-fence response")
@@ -311,13 +372,8 @@ async def test_build_test_for_symbol_no_output_fails_closed_with_no_write(
         await session.commit()
 
     with patch.object(PromptModel, "invoke", new=AsyncMock(return_value=_NO_FENCE_RESPONSE)):
-        executor = ProposalExecutor(core_context)
-        result = await executor.execute(
-            proposal_id, claimed_by=worker._worker_uuid, write=True
-        )
+        await worker.run()
 
-    assert result["ok"] is False, result
-    assert result["lifecycle_status"] == "failed", result
     assert not (repo / _TEST_FILE).exists(), (
         "no-output must fail closed — no test file may be written"
     )
@@ -329,6 +385,16 @@ async def test_build_test_for_symbol_no_output_fails_closed_with_no_write(
     assert final_row["status"] == "failed"
     assert final_row["consequence_recorded_at"] is None
 
+    # Governor ruling (#843): blackboard proof, failure path too — the
+    # orchestration Worker must record a failed outcome, not stay silent.
+    reported = await _find_run_complete_report_for_proposal(proposal_id)
+    assert reported is not None, (
+        "ProposalConsumerWorker must post a blackboard report even when "
+        "the proposal fails closed"
+    )
+    assert reported["ok"] is False, reported
+    assert reported["lifecycle_status"] == "failed", reported
+
 
 async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit(
     repo: Path,
@@ -337,7 +403,7 @@ async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit
     core_context = _make_context(repo)
     baseline_sha = core_context.git_service.get_current_commit()
 
-    worker = ViolationExecutorWorker(core_context=core_context)
+    worker = ProposalConsumerWorker(core_context)
     await worker._register()
 
     proposal = _build_test_gen_proposal(
@@ -370,13 +436,8 @@ async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit
             test_actions_module, "run_tests", new=_forced_sandbox_validate_failure
         ),
     ):
-        executor = ProposalExecutor(core_context)
-        result = await executor.execute(
-            proposal_id, claimed_by=worker._worker_uuid, write=True
-        )
+        await worker.run()
 
-    assert result["ok"] is False, result
-    assert result["lifecycle_status"] == "failed", result
     # ADR-106/107: a flow's sandbox writes land in a throwaway worktree and
     # are propagated to the main tree only on flow success — a failure at
     # the final required step means the write never leaves the worktree at
@@ -392,3 +453,12 @@ async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit
     final_row = await _fetch_proposal_row(proposal_id)
     assert final_row["status"] == "failed"
     assert final_row["consequence_recorded_at"] is None
+
+    # Governor ruling (#843): blackboard proof, negative path too.
+    reported = await _find_run_complete_report_for_proposal(proposal_id)
+    assert reported is not None, (
+        "ProposalConsumerWorker must post a blackboard report even when "
+        "sandbox validation rejects the change"
+    )
+    assert reported["ok"] is False, reported
+    assert reported["lifecycle_status"] == "failed", reported

@@ -114,17 +114,23 @@ gates:
 
   - id: G8
     name: Integration tests for the governed mutation chain
-    status: not_started
-    gap: "No end-to-end integration test of the governed mutation chain (cognitive delegate -> write -> sandbox -> evidence). Integration INFRASTRUCTURE exists — the specific chain test does not."
+    status: partial                      # all 3 URS acceptance criteria have integration-test
+                                          # proof now, including blackboard evidence; needs human
+                                          # attestation (verified_by + verified_at) before mostly_met/met
+    gap: "All three URS §G8 acceptance criteria are now proven by real, unmocked integration tests for flow.build_test_for_symbol — including blackboard evidence, which the 4984d123 version of this file did not actually prove (it called ProposalExecutor.execute() directly, bypassing the real orchestration Worker entirely, so no blackboard post ever ran). What remains is exactly the human-attestation step this manifest's own invariant requires before status can advance past partial: a governor reviewing the evidence below and signing verified_by + verified_at. No other acceptance-criterion work is outstanding for this gate."
     evidence:
-      - "CI provisions PostgreSQL + Qdrant; 33 @pytest.mark.integration tests exist (infra present)"
+      - "CI provisions PostgreSQL + Qdrant; @pytest.mark.integration tests exist (infra present)"
+      - "tests/will/autonomy/test_build_test_for_symbol_e2e_acceptance.py — three real-DB, real-sandbox integration tests for flow.build_test_for_symbol, extended this session to drive the proposal through the real orchestration Worker (ProposalConsumerWorker.run(), not a direct ProposalExecutor.execute() call) and assert real core.blackboard_entries evidence, per architecture.flows.flow_must_not_post_to_blackboard (the flow itself never posts; the Worker is the responsible layer, proven via Worker.post_report's proposal_consumer_worker.run.complete report, queried back from the real DB):"
+      - "  - test_build_test_for_symbol_happy_path_reaches_completed_with_durable_consequence: real TestGenCognitiveDelegate generate/accept loop -> real write -> real sandboxed pytest validation -> real git commit -> durable core.proposal_consequences row -> real blackboard report with ok=True, lifecycle_status=completed for this proposal_id"
+      - "  - test_build_test_for_symbol_no_output_fails_closed_with_no_write: stubbed LLM returns no code fence -> FlowExecutor halts before build.test_for_symbol runs -> no file written, HEAD unmoved, proposal failed -> real blackboard report with ok=False, lifecycle_status=failed"
+      - "  - test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit: accepted candidate, forced test.sandbox_validate failure -> ADR-106/107 hermetic-worktree write never propagates, no commit -> real blackboard report with ok=False, lifecycle_status=failed"
+      - "Only PromptModel.invoke is stubbed (the one genuinely external, nondeterministic LLM call) — Worker orchestration, proposal lifecycle, FlowExecutor, the write action, sandbox validation, the database, the consequence chain, and blackboard posting are all real, unmocked components"
     attestation: null
-    blocking_issues: [843]               # corrected 2026-08-29 — was [773], but G8's
-                                          # gap is a positive green-path proof concern,
+    blocking_issues: [843]               # reopened this session — blackboard proof was the
+                                          # remaining gap; corrected 2026-08-29 from [773]
+                                          # (G8's gap is a positive green-path proof concern,
                                           # different in kind from #773's three
-                                          # failure/edge-case-honesty subscopes; #843 is
-                                          # the dedicated issue (blocker-link fix only,
-                                          # gap/status unchanged)
+                                          # failure/edge-case-honesty subscopes)
     urs_ref: URS-production-readiness.md#g8
 
   - id: G9
@@ -203,8 +209,8 @@ gates:
     urs_ref: URS-production-readiness.md#g15
 
 # Derived rollup (computed by the generator, NOT hand-written):
-#   met 0/15 · mostly_met 0 · partial 12 ·
-#   not_demonstrated 1 (G4) · not_started 2 (G8,G11)
+#   met 0/15 · mostly_met 0 · partial 13 ·
+#   not_demonstrated 1 (G4) · not_started 1 (G11)
 #   -> overall_verdict: NOT ATTESTED. No composite score.
 
 integrity:

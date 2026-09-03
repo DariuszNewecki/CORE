@@ -267,7 +267,7 @@ CORE does not claim a status it has not earned. The gates are defined in [URS-pr
 
 **Production readiness: NOT ATTESTED.** All gates must hold simultaneously, and each `met` gate must carry dated, human-signed evidence. There is no composite score.
 
-Progress: **0/15 met** · 12 partial · 1 not demonstrated · 2 not started.
+Progress: **0/15 met** · 13 partial · 1 not demonstrated · 1 not started.
 
 | Gate | Status | Primary gap |
 |------|--------|-------------|
@@ -278,7 +278,7 @@ Progress: **0/15 met** · 12 partial · 1 not demonstrated · 2 not started.
 | G5 — Mutation-lane equivalence and lifecycle safety | ⚠️ partial | claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified |
 | G6 — Risk model is governed, correct, and regression-tested | ⚠️ partial | else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited |
 | G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
-| G8 — Integration tests for the governed mutation chain | ⬜ not started | No end-to-end integration test of the governed mutation chain (cognitive delegate -> write -> sandbox -> evidence). Integration INFRASTRUCTURE exists — the specific chain test does not. |
+| G8 — Integration tests for the governed mutation chain | ⚠️ partial | All three URS §G8 acceptance criteria are now proven by real, unmocked integration tests for flow.build_test_for_symbol — including blackboard evidence, which the 4984d123 version of this file did not actually prove (it called ProposalExecutor.execute() directly, bypassing the real orchestration Worker entirely, so no blackboard post ever ran). What remains is exactly the human-attestation step this manifest's own invariant requires before status can advance past partial: a governor reviewing the evidence below and signing verified_by + verified_at. No other acceptance-criterion work is outstanding for this gate. |
 | G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
 | G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
 | G11 — Upgrade and migration safety | ⬜ not started | Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap. |
