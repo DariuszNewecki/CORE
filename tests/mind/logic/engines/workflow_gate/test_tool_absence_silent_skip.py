@@ -21,12 +21,23 @@ comply"). It now returns one aggregated ``StructuredViolation`` carrying
 (the #549 annotation-budget win is preserved), but no longer a silent
 pass. See ``test_quality_gate_surfaces_unavailable_when_tool_missing``
 below and ``tests/mind/governance/test_auditor___determine_verdict.py``
-for the verdict-level consequence. The other checks in this file
-(``ImportResolutionCheck``, ``RuffFormatCheck``, ``LinterComplianceCheck``)
-are unchanged — #847/#856 scoped this correction to the two check classes
-named in those issues (``QualityGateCheck`` and, in a sibling file,
-``runtime_gate``'s ``worker_max_interval`` check) — not a blanket redesign
-of every silent-skip in the tree.
+for the verdict-level consequence.
+
+#855 correction: ``ImportResolutionCheck`` (import_resolution_check —
+backs ``code.imports.must_resolve``/``code.imports.no_stale_namespace``)
+gets the same fix. It used to silent-skip on a missing tool exactly like
+``RuffFormatCheck``/``LinterComplianceCheck`` still do below (#847/#856
+scoped their correction to ``QualityGateCheck`` and, in a sibling file,
+``runtime_gate``'s ``worker_max_interval`` check only) — but #855 found
+this check's declared tools/params were never read at all, and fixing
+that meant fixing tool-absence handling in the same pass rather than
+shipping a newly-functional check that still silently passes when its
+one real instrument is missing. See
+``test_import_resolution_surfaces_unavailable_when_tool_missing`` below,
+and ``tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py``
+for the live-mapping, real-engine proof.
+``RuffFormatCheck``/``LinterComplianceCheck`` remain genuinely unchanged
+— no issue has scoped a correction to them yet.
 """
 
 from __future__ import annotations
@@ -98,17 +109,25 @@ def test_quality_gate_still_emits_other_errors() -> None:
     assert "subprocess kernel oops" in result[0]
 
 
-def test_import_resolution_silent_skips_when_ruff_missing() -> None:
-    """ImportResolutionCheck returns [] on FileNotFoundError instead of "ruff not found"."""
+def test_import_resolution_surfaces_unavailable_when_tool_missing() -> None:
+    """#855: ImportResolutionCheck no longer silent-skips on a missing
+    declared tool -- it surfaces one aggregated ENFORCEMENT_UNAVAILABLE
+    StructuredViolation, the same shape #847 gave QualityGateCheck."""
     check = ImportResolutionCheck()
 
     with patch(
         "asyncio.create_subprocess_exec",
         side_effect=FileNotFoundError(2, "No such file or directory", "ruff"),
     ):
-        result = asyncio.run(check.verify(None, {}))
+        result = asyncio.run(
+            check.verify(None, {"tools": [{"tool": "ruff", "args": []}]})
+        )
 
-    assert result == [], f"Expected silent skip; got {result}"
+    assert len(result) == 1
+    violation = result[0]
+    assert isinstance(violation, StructuredViolation)
+    assert violation.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert violation.context["tool"] == "ruff"
 
 
 def test_ruff_format_silent_skips_when_ruff_missing() -> None:

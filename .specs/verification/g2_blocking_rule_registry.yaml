@@ -381,15 +381,15 @@ entries:
   - rule_id: "code.imports.must_resolve"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_must_resolve_fires_on_genuine_unresolvable_import"
+    compliant_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_must_resolve_produces_zero_findings_for_resolvable_import"
+    state: "verified"
   - rule_id: "code.imports.no_stale_namespace"
     engine: "workflow_gate"
     mechanism_class: "engine_mapped"
-    violating_fixture: null
-    compliant_fixture: null
-    state: "gap"
+    violating_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_no_stale_namespace_fires_on_stale_features_reference"
+    compliant_fixture: "tests/mind/logic/engines/workflow_gate/test_g2_workflow_gate_rules.py::test_no_stale_namespace_produces_zero_findings_for_resolvable_import"
+    state: "verified"
   - rule_id: "code.tests.no_global_module_mutation"
     engine: "passive_gate"
     mechanism_class: "passive_gate_class_b"

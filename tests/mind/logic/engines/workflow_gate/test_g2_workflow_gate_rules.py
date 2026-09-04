@@ -20,30 +20,36 @@ See tests/mind/governance/test_auditor___determine_verdict.py for the
 verdict-level proof through the real ``execute_rule``/``_determine_verdict``
 path.
 
-code.imports.must_resolve / code.imports.no_stale_namespace -- gap, see
-#855 (new issue filed by this unit). Both dispatch to the same
-check_type, import_resolution_check
-(``ImportResolutionCheck.verify()``), which:
+code.imports.must_resolve / code.imports.no_stale_namespace -- VERIFIED
+(#855 fixed). ImportResolutionCheck.verify() now reads its mapping's
+``params["tools"]`` and runs whatever is declared instead of one
+hardcoded ``ruff --select F821,F401`` regardless of which rule fired.
+The mapping itself also needed a governor-applied correction (this was
+not a code-only fix): the declared mypy args
+(``--ignore-missing-imports=false``) were an argparse usage error on
+mypy 1.18.2 (a store_true flag rejects an explicit value) -- invisible
+until now because the dead-params bug meant they had never actually
+been executed -- and no_stale_namespace's ruff-only mechanism was
+structurally incapable of import resolution at all (ruff's F821 verifies
+that a *used name* is bound, not that an imported module exists, so it
+cannot see this error class regardless of filter string). Both are now
+mypy-backed (import-not-found), with no_stale_namespace narrowed via a
+``filter_all`` (AND-semantics) list to the retired ``features.*``
+namespace specifically -- see .intent/enforcement/mappings/code/imports.yaml
+for the full rationale.
 
-1. Never reads its own mapping's ``params`` (documented in source as
-   "currently unused") -- the declared secondary ``mypy`` tool for
-   must_resolve and the ``filter: "features."`` narrowing for
-   no_stale_namespace are both dead; the two rules are functionally
-   identical at dispatch time.
-2. Runs ``ruff --select F821,F401``, which does not perform import
-   resolution at all -- confirmed empirically: a file with a
-   textbook-unresolvable import, and a file with a textbook-stale
-   ``features.*`` reference, both produce zero findings.
-3. ``WorkflowGateEngine._always_context_level = True`` means the real
-   dispatch path (``verify_context``) always calls
-   ``check_logic.verify(None, params)`` -- ``file_path`` is
-   unconditionally ``None``, so ``target = str(file_path) if file_path
-   else "src"`` always resolves to the literal string ``"src"``. Real
-   production runs one fixed ``ruff check src ...`` per audit,
-   independent of the mapping's ``scope.applies_to``/``excludes``.
-4. Also silent-skips (returns ``[]``) when ``ruff`` itself is absent --
-   the same G9 shape as #847, on a different check class not covered
-   by that issue.
+``WorkflowGateEngine._always_context_level = True`` still means the real
+dispatch path (``verify_context``) always calls
+``check_logic.verify(None, params)`` -- ``file_path`` is unconditionally
+``None``, so ``target`` always resolves to the literal string ``"src"``,
+independent of the mapping's ``scope.applies_to``/``excludes``. That
+engine-level fact predates #855 and is unchanged by it; it is tracked
+separately as #869 (not fixed here).
+
+Tool-absence handling changed too: a missing declared tool (ruff or
+mypy) now surfaces one aggregated ENFORCEMENT_UNAVAILABLE finding
+instead of silently returning ``[]`` -- same G9 fix #847 made for
+QualityGateCheck, now applied to ImportResolutionCheck.
 """
 
 from __future__ import annotations
@@ -54,6 +60,7 @@ from unittest.mock import MagicMock, patch
 import yaml
 
 from mind.governance.audit_context import AuditorContext
+from mind.logic.engines.workflow_gate.base_check import StructuredViolation
 from mind.logic.engines.workflow_gate.checks.import_resolution import (
     ImportResolutionCheck,
 )
@@ -72,6 +79,13 @@ def _load_rule_params(mapping_rel: str, rule_id: str) -> dict:
     return data["mappings"][rule_id]["params"]
 
 
+def _as_str(violation: str | StructuredViolation) -> str:
+    """Narrow the check's `str | StructuredViolation` union for assertions
+    on fixtures that only ever produce plain-string violations."""
+    assert isinstance(violation, str), f"expected a plain string, got {violation!r}"
+    return violation
+
+
 async def _run_via_real_engine(params: dict) -> list:
     """Drive the real WorkflowGateEngine.verify_context -- the actual
     production dispatch path for every workflow_gate rule."""
@@ -84,18 +98,22 @@ async def _run_via_real_engine(params: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
-# code.imports.must_resolve / code.imports.no_stale_namespace -- gap, #855
+# code.imports.must_resolve / code.imports.no_stale_namespace -- VERIFIED,
+# #855 fixed (mapping corrected by the governor in the same change).
 # ---------------------------------------------------------------------------
 
 
-async def test_must_resolve_verify_context_always_discards_file_path() -> None:
-    """Pins #855 finding 3: the real dispatch path never targets a specific
-    file -- it always shells out against the literal string "src", proven
-    by capturing the actual subprocess argv through the real engine."""
-    captured: dict[str, tuple] = {}
+async def test_must_resolve_verify_context_always_targets_src() -> None:
+    """#869 (engine-level, unchanged by #855): the real dispatch path never
+    targets a specific file -- every declared tool's subprocess is invoked
+    with the literal string "src" as its final positional argument,
+    proven by capturing every actual subprocess argv through the real
+    engine. must_resolve declares two tools (ruff, mypy); both must show
+    this, not just the first one dispatched."""
+    calls: list[tuple] = []
 
     async def fake_exec(*args, **kwargs):
-        captured["args"] = args
+        calls.append(args)
         proc = MagicMock()
 
         async def _communicate():
@@ -109,16 +127,19 @@ async def test_must_resolve_verify_context_always_discards_file_path() -> None:
     with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
         await _run_via_real_engine(params)
 
-    assert captured["args"][:3] == ("ruff", "check", "src")
+    assert len(calls) == 2, f"expected ruff + mypy dispatch, got {calls}"
+    for call_args in calls:
+        assert call_args[-1] == "src", f"target was not 'src' in {call_args}"
 
 
-async def test_must_resolve_produces_zero_findings_for_genuinely_broken_import(
+async def test_must_resolve_fires_on_genuine_unresolvable_import(
     tmp_path: Path,
 ) -> None:
-    """Pins #855 findings 1+2: even with an explicit isolated file_path
-    (bypassing the verify_context discard above), the real
-    ImportResolutionCheck with the rule's live mapping params produces
-    zero findings for an import that cannot possibly resolve."""
+    """#855 D-b fixed: with an explicit isolated file_path (bypassing the
+    verify_context discard proven above) and the rule's live mapping
+    params, a textbook-unresolvable import now produces a real BLOCK-shaped
+    finding -- mypy's import-not-found, not ruff's F821/F401 (which still
+    cannot see this error class and correctly contributes nothing)."""
     bad = tmp_path / "bad.py"
     bad.write_text(
         "import this_module_does_not_exist_anywhere_xyz\n"
@@ -128,17 +149,31 @@ async def test_must_resolve_produces_zero_findings_for_genuinely_broken_import(
     params = _load_rule_params("code/imports.yaml", "code.imports.must_resolve")
     check = ImportResolutionCheck()
     result = await check.verify(bad, params)
-    assert result == [], (
-        "code.imports.must_resolve's stated law is never actually verified "
-        "by the real check -- see #855"
-    )
+    assert len(result) == 1
+    violation = _as_str(result[0])
+    assert "import-not-found" in violation
+    assert "this_module_does_not_exist_anywhere_xyz" in violation
 
 
-async def test_no_stale_namespace_produces_zero_findings_for_stale_reference(
+async def test_must_resolve_produces_zero_findings_for_resolvable_import(
     tmp_path: Path,
 ) -> None:
-    """Same root cause as above, for the second rule sharing this
-    check_type: a textbook stale-namespace import produces zero findings."""
+    """Compliant fixture: a file whose only import genuinely resolves
+    produces zero findings through the same live-mapping path."""
+    clean = tmp_path / "clean.py"
+    clean.write_text("import os\n\nprint(os.getcwd())\n", encoding="utf-8")
+    params = _load_rule_params("code/imports.yaml", "code.imports.must_resolve")
+    check = ImportResolutionCheck()
+    result = await check.verify(clean, params)
+    assert result == []
+
+
+async def test_no_stale_namespace_fires_on_stale_features_reference(
+    tmp_path: Path,
+) -> None:
+    """#855 D-b fixed for the second rule: a textbook stale-namespace
+    import (the retired features.* namespace) now produces a real finding
+    via the rule's live mapping params (mypy + filter_all)."""
     stale = tmp_path / "stale.py"
     stale.write_text(
         "from features.old_module import legacy_thing\nx = legacy_thing()\n",
@@ -147,29 +182,87 @@ async def test_no_stale_namespace_produces_zero_findings_for_stale_reference(
     params = _load_rule_params("code/imports.yaml", "code.imports.no_stale_namespace")
     check = ImportResolutionCheck()
     result = await check.verify(stale, params)
-    assert result == [], (
-        "code.imports.no_stale_namespace's stated law is never actually "
-        "verified by the real check -- see #855"
-    )
+    assert len(result) == 1
+    violation = _as_str(result[0])
+    assert "import-not-found" in violation
+    assert "features.old_module" in violation
 
 
-async def test_import_resolution_check_silent_passes_when_ruff_absent(
+async def test_no_stale_namespace_produces_zero_findings_for_resolvable_import(
     tmp_path: Path,
 ) -> None:
-    """Pins #855 finding 4: the same G9 tool-absence-is-compliant shape as
-    #847, on ImportResolutionCheck rather than QualityGateCheck. This is
-    evidence of the defect, not a compliant fixture -- a missing required
-    tool must not count as a compliant result for a blocking rule."""
     clean = tmp_path / "clean.py"
     clean.write_text("import os\n\nprint(os.getcwd())\n", encoding="utf-8")
-    params = _load_rule_params("code/imports.yaml", "code.imports.must_resolve")
+    params = _load_rule_params("code/imports.yaml", "code.imports.no_stale_namespace")
     check = ImportResolutionCheck()
+    result = await check.verify(clean, params)
+    assert result == []
+
+
+async def test_must_resolve_and_no_stale_namespace_are_no_longer_identical(
+    tmp_path: Path,
+) -> None:
+    """#855 D-a fixed: before this fix both rules dispatched to one
+    hardcoded ruff invocation and were functionally identical. Now, a
+    genuinely unresolvable import OUTSIDE the retired features.* namespace
+    fires must_resolve but not no_stale_namespace -- the two rules
+    demonstrably differ in what they fire on."""
+    bad = tmp_path / "bad.py"
+    bad.write_text(
+        "import this_module_does_not_exist_anywhere_xyz\n"
+        "x = this_module_does_not_exist_anywhere_xyz.foo()\n",
+        encoding="utf-8",
+    )
+    must_resolve_params = _load_rule_params(
+        "code/imports.yaml", "code.imports.must_resolve"
+    )
+    no_stale_params = _load_rule_params(
+        "code/imports.yaml", "code.imports.no_stale_namespace"
+    )
+    check = ImportResolutionCheck()
+
+    must_resolve_result = await check.verify(bad, must_resolve_params)
+    no_stale_result = await check.verify(bad, no_stale_params)
+
+    assert len(must_resolve_result) == 1
+    assert no_stale_result == []
+
+
+async def test_must_resolve_surfaces_unavailable_when_ruff_missing_via_real_engine() -> (
+    None
+):
+    """#855 D-d fixed: a missing declared tool (ruff, the first of
+    must_resolve's two declared tools) now surfaces one aggregated
+    ENFORCEMENT_UNAVAILABLE finding through the real production dispatch
+    path with live mapping params, instead of silently returning []. Same
+    G9 shape #847 fixed for QualityGateCheck, proven here for
+    ImportResolutionCheck (not covered by #847's scope)."""
+    params = _load_rule_params("code/imports.yaml", "code.imports.must_resolve")
     with patch(
         "asyncio.create_subprocess_exec",
         side_effect=FileNotFoundError(2, "No such file or directory", "ruff"),
     ):
-        result = await check.verify(clean, params)
-    assert result == []
+        result = await _run_via_real_engine(params)
+    assert len(result) == 1
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "tool_not_installed"
+    assert result[0].context["tool"] == "ruff"
+
+
+async def test_no_stale_namespace_surfaces_unavailable_when_mypy_missing_via_real_engine() -> (
+    None
+):
+    """Same proof for no_stale_namespace, whose sole declared tool is mypy."""
+    params = _load_rule_params("code/imports.yaml", "code.imports.no_stale_namespace")
+    with patch(
+        "asyncio.create_subprocess_exec",
+        side_effect=FileNotFoundError(2, "No such file or directory", "mypy"),
+    ):
+        result = await _run_via_real_engine(params)
+    assert len(result) == 1
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "tool_not_installed"
+    assert result[0].context["tool"] == "mypy"
 
 
 # ---------------------------------------------------------------------------

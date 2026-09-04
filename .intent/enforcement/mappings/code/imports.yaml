@@ -1,7 +1,18 @@
 mappings:
   # LAW: All import statements MUST resolve to existing modules
-  # Tool: ruff --select F821 (undefined names) + mypy import-not-found
-  # This is the Python equivalent of a compile-time linker check.
+  # Tool: mypy (import-not-found is the real resolution signal); ruff
+  # F821/F401 kept as a complementary, fast static-name signal.
+  #
+  # 2026-09-04 (#855): removed the invalid `--ignore-missing-imports=false`
+  # mypy argument. mypy's --ignore-missing-imports is a store_true flag;
+  # passing an explicit value ("=false") is an argparse usage error on
+  # mypy 1.18.2 (confirmed: exit 2, "ignored explicit argument 'false'"),
+  # not a way to force strict checking. mypy's DEFAULT behavior already
+  # reports unresolvable imports as import-not-found -- no flag is needed
+  # to get that behavior; the flag as declared could only ever break the
+  # invocation, never enable it. This bug was invisible before #855
+  # because ImportResolutionCheck.verify() never read `params` at all
+  # (#855 D-a) -- these args had literally never been executed.
   code.imports.must_resolve:
     engine: workflow_gate
     params:
@@ -10,23 +21,54 @@ mappings:
         - tool: ruff
           args: ["check", "--select", "F821,F401"]
         - tool: mypy
-          args: ["--no-error-summary", "--ignore-missing-imports=false"]
+          args: ["--no-error-summary"]
           filter: "import-not-found"
     scope:
       applies_to: ["src/**/*.py"]
       excludes: ["tests/**"]
 
-  # LAW: After any module rename or relocation, stale namespace references MUST be updated
-  # Same tooling as above -- stale namespaces manifest as unresolvable imports.
-  # Separate rule ID to enable targeted reporting during refactoring workflows.
+  # LAW: Following any module rename or relocation, all import statements
+  # referencing the old path MUST be updated.
+  #
+  # 2026-09-04 (#855): replaced the ruff-only mechanism. ruff's F821
+  # (undefined name) does not perform import resolution -- it verifies
+  # that a *used name* is bound somewhere, not that an imported module
+  # exists. `from features.old_module import legacy_thing` binds
+  # legacy_thing via the import statement itself, so F821 never fires
+  # regardless of whether features.old_module exists (confirmed
+  # empirically: zero violations on a textbook stale-namespace fixture,
+  # under any filter string -- the tool cannot see this error class).
+  #
+  # mypy resolves this correctly and names the unresolved module in its
+  # message ("Cannot find implementation or library stub for module named
+  # \"features.old_module\""). filter_all requires BOTH "import-not-found"
+  # (the base resolution-failure signal, same instrument must_resolve
+  # uses) AND "features." (the specific legacy-namespace signal).
+  #
+  # SCOPE, STATED PLAINLY: this catches ONE historical rename -- the
+  # retired "features.*" namespace -- not "any future module rename or
+  # relocation" as the rule's law text says. A rename to some other
+  # namespace tomorrow is invisible to this rule as mapped; there is no
+  # generic "this path used to exist and doesn't anymore" detector here,
+  # only a fixed substring for one known-dead namespace. Widening this to
+  # match the rule's actual law (e.g. diffing the import graph against
+  # git history, or re-deriving the filter per rename) is future work,
+  # not part of #855.
+  #
+  # KNOWN NESTING: because filter_all is a strict superset condition over
+  # must_resolve's filter (both require "import-not-found"; this adds
+  # "features." on top), every no_stale_namespace finding is, by
+  # construction, also a must_resolve finding on the same line. This is
+  # an accepted, known property -- expect double-reporting for any
+  # features.* violation, not a bug to chase.
   code.imports.no_stale_namespace:
     engine: workflow_gate
     params:
       check_type: import_resolution_check
       tools:
-        - tool: ruff
-          args: ["check", "--select", "F821"]
-          filter: "features." # Primary indicator: old 'features.*' namespace references
+        - tool: mypy
+          args: ["--no-error-summary"]
+          filter_all: ["import-not-found", "features."]
     scope:
       applies_to: ["src/**/*.py"]
       excludes: ["tests/**"]
