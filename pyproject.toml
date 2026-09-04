@@ -79,7 +79,7 @@ dependencies = [
     # Security floors for transitive deps (pip-audit; not directly imported):
     # click via typer/uvicorn/httpx — PYSEC-2026-2132 (click.edit command injection, fixed 8.3.3)
     # setuptools via greenlet/uvloop — PYSEC-2026-3447 (MANIFEST NFD/NFC bypass, fixed 83.0.0)
-    "click>=8.3.3",
+    "click>=8.5.0",
     "setuptools>=83.0.0",
 ]
 
