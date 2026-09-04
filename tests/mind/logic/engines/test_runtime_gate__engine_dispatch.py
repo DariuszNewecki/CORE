@@ -5,13 +5,11 @@ RuntimeGateEngine.verify_context dispatch (not just the private
 _check_worker_max_interval_within_observed function that
 test_runtime_gate__worker_max_interval.py already covers thoroughly).
 
-gap, new #856 (not a #847/#855 duplicate -- third independent check
-class with the same G9 shape). The mechanism itself works correctly
-when db_session is present (violating/compliant both fire correctly,
-confirmed below); only the dependency-absence path is broken -- it
-returns an empty (compliant) finding list for a blocking rule instead
-of a fail-closed BLOCK/DEGRADED outcome. Live mapping params loaded
-from the real .intent/enforcement/mappings/ YAML.
+#856 made the dependency-absence path fail closed: the real dispatch
+path now returns an aggregated BLOCK/ENFORCEMENT_UNAVAILABLE finding
+instead of an empty (compliant) list when db_session is absent, same as
+the private function it wraps. Live mapping params loaded from the real
+.intent/enforcement/mappings/ YAML.
 """
 
 from __future__ import annotations
@@ -93,12 +91,16 @@ async def test_engine_dispatch_clean_for_worker_within_threshold(tmp_path: Path)
     assert findings == []
 
 
-async def test_engine_dispatch_silent_passes_when_db_session_absent(
+async def test_engine_dispatch_surfaces_unavailable_when_db_session_absent(
     tmp_path: Path,
 ) -> None:
-    """gap evidence, #856 -- the real engine's dispatch path returns an
-    empty (compliant) finding list for a blocking rule when db_session
-    is unavailable. Not a compliant fixture."""
+    """#856 -- the real engine's dispatch path fails closed: one
+    aggregated BLOCK/ENFORCEMENT_UNAVAILABLE finding for a blocking rule
+    when db_session is unavailable, not an empty (compliant) list.
+    Mirrors test_runtime_gate__worker_max_interval.py's
+    test_db_session_absent_surfaces_unavailable at the
+    RuntimeGateEngine.verify_context dispatch layer instead of the
+    private function directly."""
     _write_worker_yaml(
         tmp_path / ".intent" / "workers",
         "alpha",
@@ -110,4 +112,10 @@ async def test_engine_dispatch_silent_passes_when_db_session_absent(
     )
     ctx = _ctx_with_rows(tmp_path, [], db_session=None)
     findings = await RuntimeGateEngine().verify_context(ctx, params)
-    assert findings == []
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.check_id == "runtime.worker_max_interval_within_observed"
+    assert finding.severity.name == "BLOCK"
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert finding.context["reason"] == "db_session_unavailable"
+    assert finding.context["affected_worker_stems"] == ["alpha"]

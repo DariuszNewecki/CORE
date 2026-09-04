@@ -2,9 +2,12 @@
 
 The stateless runner pre-filters rules whose engine requires the
 knowledge graph (knowledge_gate) or the LLM provider + verdict cache
-(llm_gate). The skipped rules surface in the result's `skipped_rules`
-list with a structured reason so the CI gate's output is honest about
-coverage rather than silently degraded.
+(llm_gate). It also pre-filters individual rule_ids that require
+db_session even though their owning engine also dispatches DB-independent
+check_types (#856 fallout: runtime.worker_max_interval_within_observed).
+The skipped rules surface in the result's `skipped_rules` list with a
+structured reason so the CI gate's output is honest about coverage
+rather than silently degraded.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.stateless_audit import (
     _STATELESS_SKIP_ENGINES,
+    _STATELESS_SKIP_RULE_IDS,
     run_stateless_audit,
 )
 
@@ -144,3 +148,45 @@ def test_skip_engine_set_matches_design() -> None:
     surface in code review.
     """
     assert _STATELESS_SKIP_ENGINES == frozenset({"knowledge_gate", "llm_gate"})
+
+
+async def test_worker_max_interval_rule_is_skipped_but_sibling_engine_rule_runs(
+    tmp_path: Path,
+) -> None:
+    """#856 fallout: runtime.worker_max_interval_within_observed structurally
+    requires db_session (blackboard heartbeat aggregation) even though its
+    owning engine (runtime_gate) also dispatches DB-independent
+    check_types. Skipped by rule_id, not by adding runtime_gate to
+    _STATELESS_SKIP_ENGINES -- that would also swallow runtime_gate's
+    DB-independent rules, which is not the actual dependency shape."""
+    rules = [
+        _rule("runtime.worker_max_interval_within_observed", "runtime_gate"),
+        _rule("runtime.worker_process_classification", "runtime_gate"),
+    ]
+    intent_repo = MagicMock()
+    with (
+        patch(
+            "mind.governance.stateless_audit.extract_executable_rules",
+            return_value=rules,
+        ),
+        patch(
+            "mind.governance.stateless_audit.run_filtered_audit",
+            new=AsyncMock(return_value=([], set(), {})),
+        ) as mock_runner,
+    ):
+        result = await run_stateless_audit(intent_repo, tmp_path)
+
+    skipped_ids = {entry["rule_id"] for entry in result["skipped_rules"]}
+    assert "runtime.worker_max_interval_within_observed" in skipped_ids
+    assert "runtime.worker_process_classification" not in skipped_ids
+    runnable_passed = mock_runner.call_args.kwargs["rule_ids"]
+    assert runnable_passed == ["runtime.worker_process_classification"]
+
+
+def test_skip_rule_id_set_matches_design() -> None:
+    """Constitutional guard: the individually-skipped rule_id set is
+    exactly this one rule. Adding another warrants the same review
+    surfacing as test_skip_engine_set_matches_design above."""
+    assert _STATELESS_SKIP_RULE_IDS == frozenset(
+        {"runtime.worker_max_interval_within_observed"}
+    )
