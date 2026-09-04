@@ -1796,6 +1796,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-158-vocabulary-register-assignment-corrections.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-159-autonomy-thesis-acceptance-boundary.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
