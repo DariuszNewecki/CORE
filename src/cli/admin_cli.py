@@ -10,6 +10,23 @@ UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 
 from __future__ import annotations
 
+import sys
+
+from cli.runtime_external_verify import matches_route
+from cli.runtime_external_verify import run as run_external_verify
+
+
+# Pre-bootstrap dispatch (Unit B, EC-1A safety package, Governor ruling
+# 2026-09-05): `runtime external-verify` must bind REPO_PATH/MIND and run
+# Unit A's fail-closed guard BEFORE any heavy runtime import below executes
+# (GitService transitively initializes the IntentRepository singleton via
+# operational_config at import time). This is a fixed, single-route
+# interception, not a general command router: every other invocation —
+# `--help`, every ordinary resource command — falls through unchanged to
+# the Typer application defined below.
+if matches_route(sys.argv[1:]):
+    sys.exit(run_external_verify(sys.argv[1:]))
+
 import typer
 from rich.console import Console
 
