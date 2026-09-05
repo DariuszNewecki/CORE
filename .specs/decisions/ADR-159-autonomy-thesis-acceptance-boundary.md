@@ -292,3 +292,20 @@ be amended to do so.
 ## Notes
 
 <!-- Append-only. Amendments are added here, never by rewriting the decisions above. -->
+
+### 2026-09-05 — Governor ruling: bounded external-autonomy safety package authorized
+
+Governor ruling, verbatim intent: *"Authorize the bounded safety package now; EC-1A must precede
+EC-1B."*
+
+- The bounded pre-experiment safety package (process-level target-binding validation for a future
+  external-run command) is authorized to proceed now, as a bounded safety package — not as a
+  general readiness programme.
+- **EC-1A** (the read-only external-code evaluation) **must precede EC-1B** (the later controlled-
+  write evaluation). EC-1B must not begin until EC-1A has completed.
+- This ruling does not authorize a general architecture programme, and does not authorize any
+  target-specific runtime adaptation. Multi-target support, `Proposal`/database schema changes,
+  API work, and `core-cli` work remain out of scope of this ruling.
+- This note records the ruling only. It does not alter D1–D9 above, does not redefine T-A/T-B/T-C
+  or any G-numbered threshold, and does not resolve where EC-1A/EC-1B sit relative to those
+  thresholds — that determination remains for a separate, explicit Governor decision.
