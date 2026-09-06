@@ -44,7 +44,11 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq
 # 2026-07-12. The Poetry installer below bootstraps its own venv via
 # `python3 -m venv`, which fails without python3-venv.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  ca-certificates curl git make python3-pip python3-venv
+  ca-certificates curl git make python3-pip python3-venv qemu-guest-agent
+# Proxmox VM config sets `agent: 1`, so the agent must actually be running or
+# `qm agent <id> ping` / `qm guest exec` (IP discovery, command exec) silently
+# hang/fail on every clone. Confirmed missing on the 2026-06-14 template build.
+sudo systemctl enable --now qemu-guest-agent
 
 # ---- 2. Docker (official repo) + rootless-for-user -------------------------
 say "Installing Docker + Compose"
