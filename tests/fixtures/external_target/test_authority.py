@@ -231,23 +231,21 @@ class TestMalformedPathDenials:
         result = _validate(pristine_target / ".intent", pristine_target, file_path)
         assert result["ok"] is False
 
-    def test_symlink_escape_is_not_denied_known_gap(
+    def test_lexical_layer_alone_still_does_not_resolve_symlinks(
         self, pristine_target: Path
     ) -> None:
-        """DEVIATION, reported per the Unit C brief rather than silently
-        passed over: the real `_validate_target_path` is explicitly
-        "lexical only -- no filesystem access" (its own docstring). A path
-        string like "package/escape/evil.py" that lexically starts with
-        "package/" and ends with ".py" is authorized by validate_envelope
-        even when "package/escape" is, on disk, a symlink pointing outside
-        the repository -- there is no realpath/containment check anywhere
-        in validate_envelope, _validate_target_path, or its caller
-        ProposalStateManager.approve() (grepped directly; none resolve()
-        the file_path before this check). This test documents the current,
-        real behavior rather than asserting a denial the code does not
-        provide, per "use the real ... function, do not reproduce its
-        logic" and "stop and report the exact incompatibility." No
-        production-code fix is attempted here -- out of Unit C's scope.
+        """The lexical layer's own scope, confirmed rather than assumed:
+        `validate_envelope`/`_validate_target_path` remain exactly as they
+        were -- "lexical only -- no filesystem access" per their own
+        docstring, unchanged by Unit C.1. A lexically clean string like
+        "package/escape/evil.py" still passes `validate_envelope` even
+        when "package/escape" is, on disk, a symlink pointing outside the
+        repository. This is expected and no longer a gap: physical
+        containment is enforced separately, at dispatch time, by
+        `body.atomic.executor._check_physical_containment` -- proven in
+        `TestPhysicalContainment` below and in
+        `tests/body/atomic/test_executor_physical_containment.py`. See
+        ADR-159 Notes and the Unit C.1 commit for the full boundary.
         """
         escape_target = pristine_target / "package" / "escape"
         outside = pristine_target.parent / "outside_package_root"
@@ -259,14 +257,137 @@ class TestMalformedPathDenials:
                 pristine_target,
                 "package/escape/evil.py",
             )
-            assert result == {"ok": True}, (
-                "if this ever starts failing, validate_envelope has been "
-                "changed to resolve symlinks -- update this test (and "
-                "report the fix) rather than treating the new denial as a "
-                "regression"
-            )
+            assert result == {"ok": True}
         finally:
             escape_target.unlink()
+
+
+def _check_containment(target: Path, file_path: str) -> dict:
+    return _run_probe(
+        target / ".intent", target, "physical_containment", {"file_path": file_path}
+    )
+
+
+class TestPhysicalContainment:
+    """Unit C.1: the real physical-containment enforcement point
+    (`body.atomic.executor._check_physical_containment`), called through
+    the fixture's own real, isolated-subprocess `.intent/` -- no mocked
+    envelope anywhere in this class. Converts Unit C's known-gap test into
+    a genuine refusal: none of these symlink escapes are accepted here.
+
+    Every symlink scenario builds its own scratch copy of the pristine
+    target (never mutates the module-scoped `pristine_target` itself, so
+    the module's autouse git-invariant fixture stays meaningful).
+    """
+
+    @pytest.fixture
+    def scratch(self, pristine_target: Path, tmp_path: Path) -> Path:
+        dest = tmp_path / "scratch"
+        shutil.copytree(pristine_target, dest)
+        return dest
+
+    def test_normal_file_remains_authorized(self, pristine_target: Path) -> None:
+        result = _check_containment(pristine_target, "package/example.py")
+        assert result == {"denied": False, "reason": None}
+
+    def test_nested_normal_file_remains_authorized(self, pristine_target: Path) -> None:
+        result = _check_containment(pristine_target, "package/sub/nested.py")
+        assert result == {"denied": False, "reason": None}
+
+    def test_symlinked_file_pointing_outside_repo_is_denied(
+        self, scratch: Path
+    ) -> None:
+        outside = scratch.parent / "outside_repo.py"
+        outside.write_text("stolen = True\n")
+        (scratch / "package" / "link.py").symlink_to(outside)
+
+        result = _check_containment(scratch, "package/link.py")
+        assert result["denied"] is True
+        assert "symbolic link" in result["reason"]
+
+    def test_symlinked_directory_under_package_leading_outside_is_denied(
+        self, scratch: Path
+    ) -> None:
+        outside_dir = scratch.parent / "outside_dir"
+        outside_dir.mkdir()
+        (outside_dir / "evil.py").write_text("evil = True\n")
+        (scratch / "package" / "linkdir").symlink_to(
+            outside_dir, target_is_directory=True
+        )
+
+        result = _check_containment(scratch, "package/linkdir/evil.py")
+        assert result["denied"] is True
+        assert "symbolic link" in result["reason"]
+
+    def test_symlink_to_another_location_inside_package_is_denied(
+        self, scratch: Path
+    ) -> None:
+        (scratch / "package" / "link.py").symlink_to(scratch / "package" / "example.py")
+
+        result = _check_containment(scratch, "package/link.py")
+        assert result["denied"] is True
+        assert "symbolic link" in result["reason"]
+
+    def test_symlink_to_elsewhere_inside_repo_outside_package_is_denied(
+        self, scratch: Path
+    ) -> None:
+        (scratch / "package" / "link.py").symlink_to(scratch / "scripts" / "outside.py")
+
+        result = _check_containment(scratch, "package/link.py")
+        assert result["denied"] is True
+        assert "symbolic link" in result["reason"]
+
+    def test_dangling_symlink_is_denied(self, scratch: Path) -> None:
+        (scratch / "package" / "dangling.py").symlink_to(
+            scratch.parent / "does-not-exist.py"
+        )
+
+        result = _check_containment(scratch, "package/dangling.py")
+        assert result["denied"] is True
+        assert "symbolic link" in result["reason"]
+
+    def test_symlinked_prefix_directory_itself_is_denied(self, scratch: Path) -> None:
+        real_package = scratch / "package"
+        moved = scratch.parent / "package_real"
+        real_package.rename(moved)
+        real_package.symlink_to(moved, target_is_directory=True)
+
+        result = _check_containment(scratch, "package/example.py")
+        assert result["denied"] is True
+        assert "authorized prefix directory is a symbolic link" in result["reason"]
+
+    def test_normalization_variants_cannot_bypass_the_combined_pipeline(
+        self, scratch: Path
+    ) -> None:
+        """Lexical validation still rejects '.'/'..' segments (unchanged);
+        physical containment rejects any symlink component regardless of
+        spelling. Together, no normalization variant of a symlink escape
+        gets through either layer."""
+        outside = scratch.parent / "outside_repo2.py"
+        outside.write_text("stolen = True\n")
+        (scratch / "package" / "link.py").symlink_to(outside)
+
+        # Lexical layer denies the '.'-bearing spelling outright.
+        lexical = _validate(scratch / ".intent", scratch, "package/./link.py")
+        assert lexical["ok"] is False
+
+        # Physical layer denies the clean spelling of the same symlink.
+        physical = _check_containment(scratch, "package/link.py")
+        assert physical["denied"] is True
+
+    def test_independent_of_process_cwd(
+        self, scratch: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        outside = scratch.parent / "outside_repo3.py"
+        outside.write_text("stolen = True\n")
+        (scratch / "package" / "link.py").symlink_to(outside)
+
+        elsewhere = tmp_path / "unrelated_cwd"
+        elsewhere.mkdir()
+        monkeypatch.chdir(elsewhere)
+
+        result = _check_containment(scratch, "package/link.py")
+        assert result["denied"] is True
 
 
 class TestScopeConsistency:

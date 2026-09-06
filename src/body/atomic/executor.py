@@ -22,6 +22,7 @@ import asyncio
 import inspect
 import json
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
@@ -31,7 +32,10 @@ from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.governance_token import authorize_execution
-from shared.infrastructure.intent.action_risk import load_action_risk_raw
+from shared.infrastructure.intent.action_risk import (
+    load_action_risk_raw,
+    load_safe_auto_approval_envelope,
+)
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import _current_run_id, getLogger
 
@@ -93,6 +97,113 @@ def _validate_action_result(action_id: str, result: Any) -> ActionResult:
         )
 
     return result
+
+
+# ID: 27f757a2-ec05-49c1-bf44-cfceed984a49
+def _check_physical_containment(
+    exec_context: CoreContext, file_path: Any
+) -> str | None:
+    """Physical (filesystem) containment check for the safe auto-approval
+    envelope's path-prefix guarantee (ADR-159 Notes; closes the Unit C
+    symlink-escape gap, EC-1A safety package).
+
+    The existing lexical validator
+    (``will.autonomy.safe_auto_approval_envelope._validate_target_path``)
+    is deliberately filesystem-free -- "Lexical only -- no filesystem
+    access" per its own docstring -- and has no repository-root context.
+    It stays exactly as-is; this is an additional, independent check.
+
+    This is the last point in the production dispatch path that both (a)
+    holds the authoritative, already-bound repository root
+    (``exec_context.git_service.repo_path`` -- the sandboxed worktree root
+    when ADR-071 D2.2 sandboxing applies, or the main tree root otherwise;
+    never the process cwd, a fresh environment read, or the global
+    ``IntentRepository`` singleton) and (b) runs before
+    ``definition.executor`` is ever invoked.
+
+    Returns a human-readable denial reason, or ``None`` when the target is
+    physically contained -- including when the check does not apply at all
+    (no ``file_path``, no bound ``git_service``, the envelope cannot load,
+    or the path does not lexically fall under any of the envelope's
+    ``authorized_path_prefixes``). The last case is deliberate: a target
+    outside every authorized prefix was never relying on this envelope for
+    its authorization (e.g. a governor-approved action, which per ADR
+    ruling 7 is not bound by the envelope at all), so this property has
+    nothing to check for it -- the existing lexical/approval-time checks
+    already govern that path.
+
+    Known limitation, not claimed to be solved: this is a validation-time
+    check, not a transactional guarantee -- it does not defend against a
+    filesystem replaced concurrently between this check and the action's
+    own I/O (TOCTOU), nor against hard links (which have no ``is_symlink``
+    signal at all).
+    """
+    if (
+        not isinstance(file_path, str)
+        or not file_path
+        or exec_context.git_service is None
+    ):
+        return None
+
+    envelope = load_safe_auto_approval_envelope()
+    if envelope.get("_error"):
+        # The envelope's own fail-closed contract already denies every
+        # safe-auto-approval at the proposal-approval gate when it cannot
+        # load (validate_envelope raises there). Anything still reaching
+        # execute() despite that is not bound by this envelope at all.
+        return None
+
+    prefixes: tuple[str, ...] = envelope["authorized_path_prefixes"]
+    matched_prefix = next((p for p in prefixes if file_path.startswith(p)), None)
+    if matched_prefix is None:
+        return None
+
+    try:
+        repo_root = Path(exec_context.git_service.repo_path).resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        return f"could not resolve the bound repository root: {exc}"
+
+    prefix_dir = repo_root / matched_prefix
+    if not prefix_dir.exists():
+        return f"authorized prefix directory does not exist: {matched_prefix}"
+    if prefix_dir.is_symlink():
+        return f"authorized prefix directory is a symbolic link: {matched_prefix}"
+    resolved_prefix_dir = prefix_dir.resolve(strict=True)
+
+    # Walk every path component from the repo root down to (and including)
+    # the target itself, rejecting a symlink at ANY level. is_symlink() is
+    # True for a dangling link regardless of whether it resolves to
+    # anything, so this also covers the dangling-symlink case without a
+    # separate branch.
+    current = repo_root
+    for part in Path(file_path).parts:
+        current = current / part
+        if current.is_symlink():
+            return (
+                f"target path {file_path!r} contains a symbolic link "
+                f"at {current.name!r}"
+            )
+
+    target = repo_root / file_path
+    if not target.exists():
+        # No symlink anywhere on the path, and nothing exists yet -- not a
+        # containment violation. The action's own file-existence handling
+        # (e.g. fix.format's graceful "file_not_in_sandbox" skip) governs.
+        return None
+
+    resolved_target = target.resolve(strict=True)
+
+    try:
+        resolved_target.relative_to(repo_root)
+    except ValueError:
+        return f"target {file_path!r} escapes the bound repository root"
+
+    try:
+        resolved_target.relative_to(resolved_prefix_dir)
+    except ValueError:
+        return f"target {file_path!r} escapes the authorized prefix {matched_prefix!r}"
+
+    return None
 
 
 # ID: e1b46328-53d2-4abe-93e4-3b875d50300f
@@ -270,6 +381,33 @@ class ActionExecutor:
         exec_context, scoped_git = self._sandbox.build_execution_context(
             definition, write, pre_execution_sha
         )
+
+        # 5.5. Physical containment (ADR-159 Notes; closes Unit C's
+        # symlink-escape gap). Runs against exec_context -- the sandboxed
+        # worktree root when one applies -- because that is the root the
+        # dispatch below will actually write into. See
+        # _check_physical_containment's docstring for scope and rationale.
+        containment_violation = _check_physical_containment(
+            exec_context, params.get("file_path")
+        )
+        if containment_violation is not None:
+            if scoped_git is not None:
+                scoped_git.cleanup()
+            logger.warning(
+                "Physical containment check refused %s: %s",
+                action_id,
+                containment_violation,
+            )
+            return ActionResult(
+                action_id=action_id,
+                ok=False,
+                data={
+                    "error": "Physical containment violation",
+                    "details": containment_violation,
+                },
+                duration_sec=time.time() - start_time,
+            )
+
         try:
             exec_params = self._prepare_params(
                 definition, write, params, context=exec_context
