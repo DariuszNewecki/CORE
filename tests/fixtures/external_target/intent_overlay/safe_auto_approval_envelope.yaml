@@ -1,0 +1,11 @@
+# Fixture-owned overlay merged into the machinery floor's
+# enforcement/config/action_risk.yaml at materialization time (Unit C,
+# EC-1A safety package). Records exactly the Governor-ratified envelope
+# (ADR-159 Notes, 2026-09-06) -- nothing broader.
+safe_auto_approval_envelope:
+  authorized_actions:
+    - fix.format
+  authorized_path_prefixes:
+    - package/
+  authorized_extensions:
+    - .py

@@ -309,3 +309,23 @@ EC-1B."*
 - This note records the ruling only. It does not alter D1–D9 above, does not redefine T-A/T-B/T-C
   or any G-numbered threshold, and does not resolve where EC-1A/EC-1B sit relative to those
   thresholds — that determination remains for a separate, explicit Governor decision.
+
+### 2026-09-06 — Governor ruling: Unit C fixture safe-auto-approval envelope ratified
+
+Governor ruling, verbatim intent: *"Ratify only `fix.format` for Python files under `package/`,
+with only the existing policy declarations required by that action."*
+
+- Authorizes exactly: action `fix.format`; path prefix `package/`; extension `.py`; only the
+  existing policy identifier genuinely required by `fix.format`'s current registration —
+  `rules/code/purity` (the sole entry in `@register_action(policies=[...])`; `ActionExecutor.
+  _validate_policies` is the only runtime consumer of `ActionDefinition.policies`, and it checks
+  nothing else for this action — confirmed by direct inspection of `body/atomic/fix/format_code.py`,
+  `body/atomic/executor.py`, and `body/atomic/registry.py`).
+- Does not authorize: any other action; `tests/`, `scripts/`, `deploy/`, `.intent/`, or
+  repository-root files as authorized targets; target-specific runtime logic; new policy meaning;
+  new rules or enforcement engines.
+- Scope: the Unit C neutral external-target fixture (`tests/fixtures/external_target/`) used to
+  prove the target-local authority boundary in isolation, ahead of any write experiment. This note
+  records the ruling only — it does not alter D1–D9, redefine any threshold, or authorize execution
+  of `fix.format` itself (Unit C is read/validate-only; the controlled write happens in Unit D,
+  inside a disposable copy).

@@ -1,0 +1,21 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.purity",
+        "title": "Code Purity Standards (Unit C fixture stub)",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "purity.fixture_placeholder",
+            "statement": "Fixture placeholder for the 'rules/code/purity' policy identifier that fix.format's @register_action(policies=[...]) declares. Exists only to make the identifier resolvable via IntentRepository.list_policies() in this minimal target-local .intent/; it deliberately does not reproduce CORE's own nine-rule purity policy, which is unrelated law for this fixture's purpose.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "advisory"
+        }
+    ]
+}

@@ -1,0 +1,137 @@
+"""Materializes the neutral external-target fixture as a real disposable
+Git repository (Unit C, EC-1A safety package; Governor ruling 2026-09-06,
+recorded in .specs/decisions/ADR-159-autonomy-thesis-acceptance-boundary.md
+Notes).
+
+Assembles a target-local ``.intent/`` from two layers, per the Governor's
+instruction:
+
+1. the existing bundled machinery floor (``src/shared/_machinery_floor``,
+   copied verbatim -- the same mechanism Units A and B's own tests already
+   use for a disposable external repository);
+2. the smallest reviewable fixture-owned overlay carrying the ratified
+   authority (``intent_overlay/``): one new rule document at
+   ``rules/code/purity.json`` and a ``safe_auto_approval_envelope`` section
+   merged into the floor's own copy of
+   ``enforcement/config/action_risk.yaml`` (its existing ``actions:``
+   mapping is preserved untouched -- this is a merge, not a replacement).
+
+Performs no side effects against CORE itself: every write lands under the
+caller-supplied *dest* (a pytest ``tmp_path``), never inside this checkout.
+Deliberately a small, single-purpose helper rather than a general fixture
+framework -- one function, one dataclass, no configurability beyond *dest*.
+"""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+
+_HERE = Path(__file__).resolve().parent
+REPO_ROOT = _HERE.parents[2]
+MACHINERY_FLOOR = REPO_ROOT / "src" / "shared" / "_machinery_floor"
+TEMPLATE_DIR = _HERE / "template"
+OVERLAY_DIR = _HERE / "intent_overlay"
+
+
+@dataclass(frozen=True)
+# ID: 1f2a3b4c-5d6e-7f80-9a1b-2c3d4e5f6a7b
+class MaterializedTarget:
+    """A materialized, git-committed copy of the external-target fixture."""
+
+    root: Path
+    intent_root: Path
+    baseline_commit: str
+    baseline_tree: str
+
+
+def _git(args: list[str], cwd: Path) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def _assemble_intent(target_root: Path) -> Path:
+    """Copy the machinery floor, then apply the fixture-owned overlay."""
+    intent_root = target_root / ".intent"
+    shutil.copytree(
+        MACHINERY_FLOOR,
+        intent_root,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+
+    overlay_purity = OVERLAY_DIR / "rules" / "code" / "purity.json"
+    dest_purity = intent_root / "rules" / "code" / "purity.json"
+    dest_purity.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(overlay_purity, dest_purity)
+
+    action_risk_path = intent_root / "enforcement" / "config" / "action_risk.yaml"
+    action_risk = yaml.safe_load(action_risk_path.read_text("utf-8")) or {}
+    overlay_envelope = yaml.safe_load(
+        (OVERLAY_DIR / "safe_auto_approval_envelope.yaml").read_text("utf-8")
+    )
+    action_risk["safe_auto_approval_envelope"] = overlay_envelope[
+        "safe_auto_approval_envelope"
+    ]
+    action_risk_path.write_text(
+        yaml.safe_dump(action_risk, sort_keys=False), encoding="utf-8"
+    )
+
+    return intent_root
+
+
+# ID: 2a3b4c5d-6e7f-8091-a2b3-c4d5e6f7a8b9
+def materialize_external_target(dest: Path) -> MaterializedTarget:
+    """Materialize the fixture at *dest* as a committed, disposable Git repo.
+
+    *dest* must not already exist. Copies the committed ``template/`` tree
+    (production package, native test, out-of-envelope script), assembles
+    ``.intent/`` per the module docstring, then initializes Git with a
+    local test identity and creates exactly one baseline commit. Never
+    creates a remote. Never touches CORE's own tree or the committed
+    ``template/``/``intent_overlay/`` sources (only reads from them).
+    """
+    dest.mkdir(parents=True, exist_ok=False)
+
+    shutil.copytree(
+        TEMPLATE_DIR,
+        dest,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+    _assemble_intent(dest)
+
+    _git(["init"], dest)
+    _git(["config", "user.email", "test@external-target-fixture.local"], dest)
+    _git(["config", "user.name", "External Target Fixture"], dest)
+    _git(["config", "commit.gpgsign", "false"], dest)
+    _git(["add", "-A"], dest)
+    _git(["commit", "-m", "Unit C fixture baseline"], dest)
+
+    baseline_commit = _git(["rev-parse", "HEAD"], dest)
+    baseline_tree = _git(["write-tree"], dest)
+
+    return MaterializedTarget(
+        root=dest,
+        intent_root=dest / ".intent",
+        baseline_commit=baseline_commit,
+        baseline_tree=baseline_tree,
+    )
+
+
+def git_snapshot(repo: Path) -> tuple[str, str, str]:
+    """Return (HEAD sha, tree hash, porcelain status) for *repo*."""
+    head = _git(["rev-parse", "HEAD"], repo)
+    tree = _git(["write-tree"], repo)
+    status = _git(["status", "--porcelain"], repo)
+    return head, tree, status
