@@ -79,6 +79,17 @@ class TestFileManifest:
         worker_decl = yaml.safe_load(overlay_worker.read_text("utf-8"))
         assert worker_decl["mandate"]["scope"]["paths"] == ["package/example.py"]
 
+        overlay_proposal_lifecycle = (
+            target.intent_root / "rules" / "will" / "proposal_lifecycle.json"
+        )
+        canonical_proposal_lifecycle = (
+            REPO_ROOT / ".intent" / "rules" / "will" / "proposal_lifecycle.json"
+        )
+        assert (
+            overlay_proposal_lifecycle.read_bytes()
+            == canonical_proposal_lifecycle.read_bytes()
+        ), "fixture overlay must carry claim.proposal's policy dependency byte-identical to CORE's own"
+
         merged = yaml.safe_load(
             (target.intent_root / "enforcement/config/action_risk.yaml").read_text(
                 "utf-8"
