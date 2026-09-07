@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.utils.subprocess_utils import run_direct_command, run_poetry_command
+from shared.utils.subprocess_utils import run_direct_command
 
 
 # ID: 1655ba02-a26e-4f8b-847a-8e4d16acfea0
@@ -41,13 +41,13 @@ def format_code(
     ruff_format_args.extend(targets)
 
     # --- Ruff Check (Linter) Configuration ---
-    ruff_cmd = ["ruff", "check"]
+    ruff_check_args = ["check"]
     if write:
-        ruff_cmd.extend(["--fix", "--unsafe-fixes"])
+        ruff_check_args.extend(["--fix", "--unsafe-fixes"])
     else:
         # In dry-run, we just want to see what would happen
         pass
-    ruff_cmd.extend(targets)
+    ruff_check_args.extend(targets)
 
     # Execute. #660: ruff exits 1 to report findings (would-reformat in
     # --check mode, lint findings, or residual unfixable issues after --fix) and
@@ -55,19 +55,19 @@ def format_code(
     # format action's purpose, so (0, 1) count as success; only exit 2+ raises.
     # Without this, every formattable file failed as "poetry command failed".
     #
-    # The format step (only) runs via run_direct_command, not
-    # run_poetry_command: `poetry run ruff format` requires Poetry to
-    # resolve a pyproject.toml from cwd upward, which a cwd outside
-    # CORE's own tree (e.g. a sandboxed worktree of an externally-bound
-    # governed target) need not have. Poetry's own project-discovery
-    # failure exits 1 -- the same code ruff itself uses for "would
-    # reformat" -- so allowed_returncodes=(0, 1) silently accepted a
-    # Poetry bootstrap failure as a clean ruff pass, and the file was
-    # never actually formatted (root cause of a false-success governed
-    # run; see ADR-159 Notes). Resolving and launching ruff directly
-    # removes Poetry from this path entirely, so exit 1 always belongs to
-    # ruff. The lint/fix step below is unrelated to that failure mode and
-    # stays on run_poetry_command, unchanged.
+    # Both phases run via run_direct_command, not run_poetry_command:
+    # `poetry run ruff ...` requires Poetry to resolve a pyproject.toml
+    # from cwd upward, which a cwd outside CORE's own tree (e.g. a
+    # sandboxed worktree of an externally-bound governed target) need not
+    # have. Poetry's own project-discovery failure exits 1 -- the same
+    # code ruff itself uses for "would reformat" / lint findings -- so
+    # allowed_returncodes=(0, 1) silently accepted a Poetry bootstrap
+    # failure as a clean ruff pass. The format phase was corrected first
+    # (ADR-159 Notes); the check/fix phase carried the identical latent
+    # defect -- reporting complete success while never actually invoking
+    # ruff -- until this correction. Resolving and launching ruff
+    # directly for both phases removes Poetry from the path entirely, so
+    # any exit code either phase returns unambiguously belongs to ruff.
     run_direct_command(
         f"✨ Ruff Format ({'Write' if write else 'Check'}): {' '.join(targets)}",
         "ruff",
@@ -75,9 +75,10 @@ def format_code(
         cwd=cwd,
         allowed_returncodes=(0, 1),
     )
-    run_poetry_command(
+    run_direct_command(
         f"✨ Ruff Check ({'Fix' if write else 'Check'}): {' '.join(targets)}",
-        ruff_cmd,
+        "ruff",
+        ruff_check_args,
         cwd=cwd,
         allowed_returncodes=(0, 1),
     )
