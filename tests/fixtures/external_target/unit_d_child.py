@@ -54,6 +54,42 @@ def _fail(stage: str, error: str, **extra: object) -> dict:
     return {"ok": False, "stage": stage, "error": error, **extra}
 
 
+async def _run_worker_once(
+    worker: object,
+    *,
+    proposal_id: str,
+    pre_approval_status: str,
+    final_status: str,
+) -> dict | None:
+    """Invoke the worker's constitutional ``start()`` exactly once.
+
+    ``start()`` (``shared.workers.base.Worker.start``) is one-shot: it
+    calls ``_register()`` -- upserting this worker's identity into
+    ``worker_registry`` -- before calling ``run()``. Calling ``run()``
+    directly, as this scaffold previously did, skips that registration
+    step, so the worker's first blackboard write (its opening heartbeat)
+    fails the ``blackboard_entries_worker_uuid_fkey`` foreign key against
+    an unregistered ``worker_uuid``.
+
+    Returns a structured, explicitly-labeled ``worker_start`` failure dict
+    (carrying ``proposal_id`` and the proposal's lifecycle status so far)
+    on error, so a failure here is never reported as a bare
+    ``unhandled_exception`` with the proposal evidence lost. Returns
+    ``None`` on success.
+    """
+    try:
+        await worker.start()  # type: ignore[attr-defined]
+    except Exception as exc:
+        return _fail(
+            "worker_start",
+            f"{type(exc).__name__}: {exc}",
+            proposal_id=proposal_id,
+            pre_approval_status=pre_approval_status,
+            final_status=final_status,
+        )
+    return None
+
+
 async def _run(target: Path) -> dict:
     # Step 1 -- Unit A's binding guard, before any heavy import.
     from shared.infrastructure.external_target_binding import (
@@ -205,9 +241,17 @@ async def _run(target: Path) -> dict:
             final_status=approved.status.value,
         )
 
-    # Step 6 -- invoke the worker's run() exactly once. Reached only if
+    # Step 6 -- invoke the worker's constitutional start() exactly once
+    # (registers, then runs -- see _run_worker_once). Reached only if
     # construction above succeeded.
-    await worker.run()
+    worker_start_failure = await _run_worker_once(
+        worker,
+        proposal_id=proposal_id,
+        pre_approval_status=pre_approval_status,
+        final_status=approved.status.value,
+    )
+    if worker_start_failure is not None:
+        return worker_start_failure
 
     # Step 7 -- gather raw evidence. All reads, no further mutation.
     async with service_registry.session() as session:
