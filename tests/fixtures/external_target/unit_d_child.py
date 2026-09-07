@@ -182,13 +182,16 @@ async def _run(target: Path) -> dict:
     # Step 5 -- construct the real, unmodified ProposalConsumerWorker via
     # its own public signature: ProposalConsumerWorker(core_context). No
     # repo_root override (its __init__ does not expose one), no __new__
-    # bypass, no target .intent/ widening. Worker.__init__ resolves its
-    # declaration via the process-wide IntentRepository singleton, which
-    # is bound to MIND -- the external target's .intent/ in this run, per
-    # Units A/B's own design. The ratified target authority (fix.format /
-    # package/ / rules/code/purity only) deliberately carries no
-    # .intent/workers/ declaration -- extending it would widen the
-    # fixture's ratified envelope, which this unit must not do.
+    # bypass. Worker.__init__ resolves its declaration via the
+    # process-wide IntentRepository singleton, which is bound to MIND --
+    # the external target's .intent/ in this run, per Units A/B's own
+    # design. Per the Governor's 2026-09-07 ruling, the target's
+    # .intent/workers/proposal_consumer_worker.yaml (materialize.py's
+    # intent_overlay/workers/) now gives the worker constitutional
+    # standing, scoped exactly to package/example.py. The ratified
+    # fix.format / package/ safe-auto-approval envelope
+    # (safe_auto_approval_envelope.yaml) is unchanged and remains the sole
+    # source of what the worker's execution may actually touch.
     from will.workers.proposal_consumer_worker import ProposalConsumerWorker
 
     try:

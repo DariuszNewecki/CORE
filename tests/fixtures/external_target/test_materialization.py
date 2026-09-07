@@ -70,6 +70,15 @@ class TestFileManifest:
             OVERLAY_DIR / "rules" / "code" / "purity.json"
         ).read_text("utf-8")
 
+        overlay_worker = (
+            target.intent_root / "workers" / "proposal_consumer_worker.yaml"
+        )
+        assert overlay_worker.read_text("utf-8") == (
+            OVERLAY_DIR / "workers" / "proposal_consumer_worker.yaml"
+        ).read_text("utf-8")
+        worker_decl = yaml.safe_load(overlay_worker.read_text("utf-8"))
+        assert worker_decl["mandate"]["scope"]["paths"] == ["package/example.py"]
+
         merged = yaml.safe_load(
             (target.intent_root / "enforcement/config/action_risk.yaml").read_text(
                 "utf-8"

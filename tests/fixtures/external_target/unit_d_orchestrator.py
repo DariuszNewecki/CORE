@@ -1,11 +1,14 @@
 """Unit D parent orchestrator: prepares a disposable target exactly as
-Unit C's real materializer produces it (unmodified -- no `.intent/`
-overlay of any kind beyond the ratified envelope), provisions an isolated
-database, runs the real governed fix.format scenario in a fresh child
-process, and verifies the "Required proof" invariant set against
-filesystem/git/database/Blackboard evidence -- or, if the real governed
-path cannot complete without a production correction, reports exactly
-where and why it stopped.
+Unit C's real materializer produces it (unmodified -- the target's
+`.intent/` carries only the machinery floor plus the fixture's own
+committed overlay: the ratified safe_auto_approval_envelope and, per the
+Governor's 2026-09-07 ruling, one proposal_consumer_worker declaration
+scoped to package/example.py), provisions an isolated database, runs the
+real governed fix.format scenario in a fresh child process, and verifies
+the "Required proof" invariant set against filesystem/git/database/
+Blackboard evidence -- or, if the real governed path cannot complete
+without a production correction, reports exactly where and why it
+stopped.
 
 Never mocks, monkeypatches, or fakes any component of the live governed
 run -- see ``unit_d_child.py``, which this module spawns as a genuinely
@@ -303,7 +306,9 @@ def run_unit_d(*, keep_target: bool = True) -> ScenarioResult:
     ).stdout
     core_head_before = _git(["rev-parse", "HEAD"], REPO_ROOT)
 
-    # Unmodified Unit C materializer -- no `.intent/` overlay of any kind.
+    # Unmodified Unit C materializer -- the fixture's own committed
+    # overlay only (safe_auto_approval_envelope + proposal_consumer_worker
+    # declaration); no ad hoc widening by this orchestrator.
     materialized: MaterializedTarget = materialize_external_target(workdir / "target")
     target_root = materialized.root
 

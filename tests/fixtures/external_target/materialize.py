@@ -11,10 +11,14 @@ instruction:
    use for a disposable external repository);
 2. the smallest reviewable fixture-owned overlay carrying the ratified
    authority (``intent_overlay/``): one new rule document at
-   ``rules/code/purity.json`` and a ``safe_auto_approval_envelope`` section
+   ``rules/code/purity.json``, a ``safe_auto_approval_envelope`` section
    merged into the floor's own copy of
    ``enforcement/config/action_risk.yaml`` (its existing ``actions:``
-   mapping is preserved untouched -- this is a merge, not a replacement).
+   mapping is preserved untouched -- this is a merge, not a replacement),
+   and one ``workers/proposal_consumer_worker.yaml`` declaration (Governor
+   ruling 2026-09-07) giving the worker constitutional standing scoped
+   exactly to ``package/example.py`` -- it does not touch the envelope
+   above, which remains the sole source of what ``fix.format`` may do.
 
 Performs no side effects against CORE itself: every write lands under the
 caller-supplied *dest* (a pytest ``tmp_path``), never inside this checkout.
@@ -74,6 +78,11 @@ def _assemble_intent(target_root: Path) -> Path:
     dest_purity = intent_root / "rules" / "code" / "purity.json"
     dest_purity.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(overlay_purity, dest_purity)
+
+    overlay_worker = OVERLAY_DIR / "workers" / "proposal_consumer_worker.yaml"
+    dest_worker = intent_root / "workers" / "proposal_consumer_worker.yaml"
+    dest_worker.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(overlay_worker, dest_worker)
 
     action_risk_path = intent_root / "enforcement" / "config" / "action_risk.yaml"
     action_risk = yaml.safe_load(action_risk_path.read_text("utf-8")) or {}

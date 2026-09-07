@@ -1,0 +1,50 @@
+# Fixture-owned overlay worker declaration, applied at materialization time
+# (Governor ruling 2026-09-07, following Unit D's honest stop at
+# worker_construction): gives ProposalConsumerWorker constitutional standing
+# to run inside the disposable target, scoped exactly to package/example.py
+# using only the tools the real declaration already requires
+# (.intent/workers/proposal_consumer_worker.yaml in CORE's own tree).
+#
+# Does not widen actual authority: the safe_auto_approval_envelope overlay
+# (safe_auto_approval_envelope.yaml, unchanged by this file) remains the
+# sole source of what fix.format may touch. This declaration only lets the
+# worker exist and execute an already-approved proposal against that
+# unchanged envelope.
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.proposal_consumer_worker
+  title: Proposal Consumer Worker
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "b7e25f7a-91f3-4f77-ba34-d29a871c3e0c"
+  class: acting
+
+mandate:
+  responsibility: >
+    Poll for APPROVED proposals and execute them via ProposalExecutor
+    with write=True, scoped in this fixture to exactly package/example.py.
+  phase: execution
+  permitted_tools:
+    - crate.create
+    - canary.validate
+    - crate.apply
+    - git.commit
+  scope:
+    paths:
+      - "package/example.py"
+    domains:
+      - remediation
+  approval_required: false
+  schedule:
+    max_interval: 60
+
+implementation:
+  module: will.workers.proposal_consumer_worker
+  class: ProposalConsumerWorker
+  requires_core_context: true
+  requires_dedicated_process: true
