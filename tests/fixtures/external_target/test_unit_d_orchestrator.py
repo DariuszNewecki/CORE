@@ -34,8 +34,10 @@ from unit_d_orchestrator import (
     disable_incidental_caches_env,
     hash_tree,
     introduce_violation,
+    redact_secrets,
     run_external_verify_precheck,
     run_formatter_check,
+    run_live_scenario,
     run_native_tests,
     scan_for_secrets,
     sha256_file,
@@ -91,6 +93,100 @@ class TestSecretScanning:
         assert (
             scan_for_secrets("Database:       nonexistent-host.invalid:5432/db") is True
         )
+
+
+class TestSecretRedaction:
+    def test_clean_text_is_unchanged(self) -> None:
+        text = "Target: /tmp/x\nVERIFIED — no mutation executed"
+        assert redact_secrets(text) == text
+
+    def test_none_passes_through(self) -> None:
+        assert redact_secrets(None) is None
+
+    def test_postgres_dsn_credential_is_redacted(self) -> None:
+        leaked = "using postgresql+asyncpg://user:hunter2@host:5432/db"
+        redacted = redact_secrets(leaked)
+        assert redacted is not None
+        assert "hunter2" not in redacted
+        assert "user:hunter2@host" not in redacted
+        assert "<REDACTED-DATABASE-URL>" in redacted
+        assert scan_for_secrets(redacted) is True
+
+    def test_asyncpg_dsn_credential_is_redacted(self) -> None:
+        leaked = "asyncpg://admin:secret@127.0.0.1:5432/core_unitd_x"
+        redacted = redact_secrets(leaked)
+        assert redacted is not None
+        assert "secret" not in redacted
+        assert scan_for_secrets(redacted) is True
+
+    def test_sanitized_database_identity_is_left_alone(self) -> None:
+        text = "Database:       nonexistent-host.invalid:5432/db"
+        assert redact_secrets(text) == text
+
+    def test_redaction_preserves_surrounding_text(self) -> None:
+        leaked = (
+            "line one\n"
+            "DATABASE_URL=postgresql+asyncpg://u:p@nonexistent-host-unitd.invalid:5432/db\n"
+            "line three"
+        )
+        redacted = redact_secrets(leaked)
+        assert redacted is not None
+        assert redacted.startswith("line one\n")
+        assert redacted.endswith("\nline three")
+        assert "u:p@" not in redacted
+
+
+class TestRunLiveScenarioEvidenceCapture:
+    """run_live_scenario previously discarded the child subprocess's own
+    captured stdout/stderr/returncode entirely -- a confirmed evidence gap
+    (Unit D run #3's diagnosis). These tests mock subprocess.run so no live
+    child process or database is needed."""
+
+    def test_child_process_evidence_present_and_redacted_on_success(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result_path = tmp_path / "child_result.json"
+        result_path.write_text('{"ok": true, "proposal_id": "abc"}', encoding="utf-8")
+        dsn = "postgresql+asyncpg://u:p@host:5432/db"
+
+        def _fake_run(*args, **kwargs):
+            return subprocess.CompletedProcess(
+                args=args[0],
+                returncode=0,
+                stdout=f"DATABASE_URL={dsn}\nsome log line",
+                stderr="",
+            )
+
+        monkeypatch.setattr("unit_d_orchestrator.subprocess.run", _fake_run)
+        result = run_live_scenario(tmp_path, dsn, result_path)
+
+        assert result["ok"] is True
+        assert result["proposal_id"] == "abc"
+        evidence = result["child_process"]
+        assert evidence["returncode"] == 0
+        assert "u:p@host" not in evidence["stdout"]
+        assert scan_for_secrets(evidence["stdout"]) is True
+
+    def test_child_process_evidence_present_when_result_file_missing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result_path = tmp_path / "child_result.json"  # never written
+        dsn = "postgresql+asyncpg://u:p@host:5432/db"
+
+        def _fake_run(*args, **kwargs):
+            return subprocess.CompletedProcess(
+                args=args[0], returncode=1, stdout="", stderr=f"crashed hard near {dsn}"
+            )
+
+        monkeypatch.setattr("unit_d_orchestrator.subprocess.run", _fake_run)
+        result = run_live_scenario(tmp_path, dsn, result_path)
+
+        assert result["ok"] is False
+        assert result["stage"] == "child_process"
+        evidence = result["child_process"]
+        assert evidence["returncode"] == 1
+        assert "u:p@host" not in evidence["stderr"]
+        assert scan_for_secrets(evidence["stderr"]) is True
 
 
 class TestHashing:

@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -94,6 +95,7 @@ class ScenarioResult:
     blackboard_report_present: bool = False
     root_agreement_ok: bool | None = None
     secret_scan_clean: bool = True
+    child_process: dict[str, Any] | None = None
     checks: dict[str, bool] = field(default_factory=dict)
     blockers: list[str] = field(default_factory=list)
     verdict: str = "FAIL"
@@ -124,6 +126,7 @@ class ScenarioResult:
             "blackboard_report_present": self.blackboard_report_present,
             "root_agreement_ok": self.root_agreement_ok,
             "secret_scan_clean": self.secret_scan_clean,
+            "child_process": self.child_process,
             "checks": self.checks,
             "blockers": self.blockers,
             "verdict": self.verdict,
@@ -250,7 +253,20 @@ def run_live_scenario(
     target_root: Path, database_url: str, result_path: Path
 ) -> dict[str, Any]:
     """Spawn unit_d_child.py in a fresh process with REPO_PATH/MIND/
-    DATABASE_URL bound before any bootstrap-sensitive import."""
+    DATABASE_URL bound before any bootstrap-sensitive import.
+
+    Retains the child process's own captured stdout/stderr and return
+    code as sanitized evidence (redact_secrets) under the returned dict's
+    "child_process" key -- previously this subprocess.run's captured
+    streams were discarded unread, so a failure the child's own
+    structured _fail() labeling didn't anticipate (e.g. an
+    unhandled_exception stage) left no way to recover what it actually
+    printed, including the very Poetry/ruff subprocess log lines that
+    would have diagnosed the false-success run this evidence gap
+    contributed to. Attached whether or not result_path was written, and
+    whether the child's own JSON says ok or not. DATABASE_URL is never
+    exposed: both streams are redacted before being kept.
+    """
     env = {
         **os.environ,
         "PYTHONPATH": str(REPO_ROOT / "src"),
@@ -258,7 +274,7 @@ def run_live_scenario(
         "MIND": str(target_root / ".intent"),
         "DATABASE_URL": database_url,
     }
-    subprocess.run(
+    completed = subprocess.run(
         [sys.executable, str(_CHILD_SCRIPT), str(target_root), str(result_path)],
         cwd=REPO_ROOT,
         env=env,
@@ -266,13 +282,21 @@ def run_live_scenario(
         text=True,
         timeout=120,
     )
+    child_process_evidence = {
+        "returncode": completed.returncode,
+        "stdout": redact_secrets(completed.stdout),
+        "stderr": redact_secrets(completed.stderr),
+    }
     if not result_path.exists():
         return {
             "ok": False,
             "stage": "child_process",
             "error": "no result file written",
+            "child_process": child_process_evidence,
         }
-    return json.loads(result_path.read_text("utf-8"))
+    result = json.loads(result_path.read_text("utf-8"))
+    result["child_process"] = child_process_evidence
+    return result
 
 
 def scan_for_secrets(*texts: str | None) -> bool:
@@ -292,6 +316,26 @@ def scan_for_secrets(*texts: str | None) -> bool:
         ):
             return False
     return True
+
+
+_DSN_CREDENTIAL_PATTERN = re.compile(
+    r"(postgresql(?:\+asyncpg)?|asyncpg)://[^\s\"']+@[^\s\"']+"
+)
+
+
+def redact_secrets(text: str | None) -> str | None:
+    """Replace any DATABASE_URL-shaped credential in *text* with a fixed
+    placeholder; everything else is preserved unchanged.
+
+    Same conservative detection shape as scan_for_secrets (driver prefix
+    plus an embedded user:password@ segment), but redacts rather than
+    only flags -- so captured subprocess output (run_live_scenario's
+    child_process evidence) can be retained for diagnosis without ever
+    persisting a real credential. None passes through as None.
+    """
+    if text is None:
+        return None
+    return _DSN_CREDENTIAL_PATTERN.sub("<REDACTED-DATABASE-URL>", text)
 
 
 # ID: 963ddb37-6256-4c80-9354-daa6868a9148
@@ -391,6 +435,7 @@ def run_unit_d(*, keep_target: bool = True) -> ScenarioResult:
     finally:
         stop_disposable_database(db)
 
+    result.child_process = child.get("child_process")
     checks["live_run_reached_success_path"] = bool(child.get("ok"))
     result.proposal_id = child.get("proposal_id")
     if child.get("pre_approval_status"):

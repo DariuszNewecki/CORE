@@ -131,6 +131,92 @@ def run_poetry_command(
     )
 
 
+# ID: 6a9e2f3b-7c1d-4e58-b02a-3f9d6c8e1a4f
+def run_direct_command(
+    description: str,
+    executable: str,
+    args: list[str],
+    cwd: Path | str | None = None,
+    allowed_returncodes: tuple[int, ...] = (0,),
+) -> SubprocessResult:
+    """Resolve *executable* on PATH and run it directly -- no wrapper, no shell.
+
+    Sanctuary entry point for tools whose own exit-code semantics must not
+    be laundered through a project-manager wrapper. ``run_poetry_command``
+    prefixes every invocation with ``poetry run <command>``, so a caller
+    whose ``allowed_returncodes`` tolerates a wrapped tool's non-zero
+    "findings" exit (e.g. ruff's ``1``) also silently tolerates *Poetry's
+    own* bootstrap failures that happen to share that exit code -- e.g.
+    Poetry exiting 1 because the target directory has no ``pyproject.toml``,
+    which is indistinguishable from "ruff found something to fix" by
+    return code alone (root cause of a false-success run against an
+    external target lacking a Poetry project). This helper sidesteps the
+    ambiguity structurally: *executable* runs directly, so any exit code
+    it returns unambiguously belongs to *executable* itself.
+
+    ``cwd``: the subprocess runs in this directory, so a tool's own
+    config discovery (e.g. ruff searching upward from ``cwd`` for
+    ``ruff.toml`` / ``pyproject.toml`` / ``.ruff.toml``) is preserved
+    exactly as it would be for any other invocation in that directory --
+    this helper changes only how the process is *launched*, not where it
+    looks for configuration.
+
+    ``allowed_returncodes``: same contract as ``run_poetry_command`` --
+    the exit codes that count as success for *executable*'s own findings
+    vs. genuine-error semantics (e.g. ruff: ``0``/``1`` are findings,
+    ``2+`` is a tool error).
+
+    Raises ``SubprocessCommandError`` before any subprocess spawns if
+    *executable* cannot be resolved on PATH, and after spawning if the
+    return code is not in ``allowed_returncodes`` (carrying captured
+    stderr/stdout, mirroring ``run_poetry_command``'s diagnosability
+    contract). A launch failure (e.g. the resolved path stops being
+    executable between resolution and spawn) propagates as whatever
+    exception ``subprocess.run`` itself raises -- not swallowed here,
+    same as ``run_poetry_command``.
+
+    Returns:
+        SubprocessResult with the command's returncode and captured streams.
+    """
+    resolved = shutil.which(executable)
+    if not resolved:
+        logger.error("❌ Could not find %r executable in your PATH.", executable)
+        raise SubprocessCommandError(f"{executable} executable not found.", exit_code=1)
+
+    logger.info(description)
+    full_command = [resolved, *args]
+    result = subprocess.run(
+        full_command,
+        check=False,
+        text=True,
+        capture_output=True,
+        cwd=str(cwd) if cwd else None,
+    )
+    if result.stdout:
+        logger.info(result.stdout)
+    if result.stderr:
+        logger.warning(result.stderr)
+
+    if result.returncode not in allowed_returncodes:
+        logger.error(
+            "❌ Command failed (exit %s): %s",
+            result.returncode,
+            " ".join(full_command),
+        )
+        detail = (result.stderr or result.stdout or "").strip()
+        raise SubprocessCommandError(
+            f"{executable} command failed (exit {result.returncode}): "
+            f"{' '.join(args)}" + (f" — {detail}" if detail else ""),
+            exit_code=result.returncode or 1,
+        )
+
+    return SubprocessResult(
+        stdout=result.stdout or "",
+        stderr=result.stderr or "",
+        returncode=result.returncode or 0,
+    )
+
+
 # ID: b58e3f7a-c12d-4856-9430-7d9e2c5a8b46
 def run_systemctl(*args: str) -> SubprocessResult:
     """Run ``systemctl --user <args...>`` and return a typed SubprocessResult.
@@ -169,9 +255,7 @@ def list_all_processes(format_spec: str) -> str:
 
 
 # ID: 63ffc8b0-fd1e-4324-9b1b-f546eb094e3d
-async def run_child_process(
-    args: list[str], *, cwd: Path, env: dict[str, str]
-) -> int:
+async def run_child_process(args: list[str], *, cwd: Path, env: dict[str, str]) -> int:
     """Spawn a child process with inherited stdio and an explicit, non-merged environment.
 
     Sanctuary primitive for ADR-155 D5: the isolated demo's scenario process

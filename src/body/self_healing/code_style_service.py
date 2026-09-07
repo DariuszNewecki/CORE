@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.utils.subprocess_utils import run_poetry_command
+from shared.utils.subprocess_utils import run_direct_command, run_poetry_command
 
 
 # ID: 1655ba02-a26e-4f8b-847a-8e4d16acfea0
@@ -35,10 +35,10 @@ def format_code(
         targets = [path]
 
     # --- Ruff Format Configuration ---
-    ruff_format_cmd = ["ruff", "format"]
+    ruff_format_args = ["format"]
     if not write:
-        ruff_format_cmd.append("--check")
-    ruff_format_cmd.extend(targets)
+        ruff_format_args.append("--check")
+    ruff_format_args.extend(targets)
 
     # --- Ruff Check (Linter) Configuration ---
     ruff_cmd = ["ruff", "check"]
@@ -54,9 +54,24 @@ def format_code(
     # reserves 2 for a genuine tool error. Both ruff steps are advisory to the
     # format action's purpose, so (0, 1) count as success; only exit 2+ raises.
     # Without this, every formattable file failed as "poetry command failed".
-    run_poetry_command(
+    #
+    # The format step (only) runs via run_direct_command, not
+    # run_poetry_command: `poetry run ruff format` requires Poetry to
+    # resolve a pyproject.toml from cwd upward, which a cwd outside
+    # CORE's own tree (e.g. a sandboxed worktree of an externally-bound
+    # governed target) need not have. Poetry's own project-discovery
+    # failure exits 1 -- the same code ruff itself uses for "would
+    # reformat" -- so allowed_returncodes=(0, 1) silently accepted a
+    # Poetry bootstrap failure as a clean ruff pass, and the file was
+    # never actually formatted (root cause of a false-success governed
+    # run; see ADR-159 Notes). Resolving and launching ruff directly
+    # removes Poetry from this path entirely, so exit 1 always belongs to
+    # ruff. The lint/fix step below is unrelated to that failure mode and
+    # stays on run_poetry_command, unchanged.
+    run_direct_command(
         f"✨ Ruff Format ({'Write' if write else 'Check'}): {' '.join(targets)}",
-        ruff_format_cmd,
+        "ruff",
+        ruff_format_args,
         cwd=cwd,
         allowed_returncodes=(0, 1),
     )
