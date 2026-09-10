@@ -160,7 +160,9 @@ def hash_tree(
 def disable_incidental_caches_env() -> dict[str, str]:
     """Environment overrides keeping bytecode/pytest/ruff caches out of the
     disposable target's own tree."""
-    cache_dir = tempfile.mkdtemp(prefix="unitd_caches_")
+    var_tmp = REPO_ROOT / "var" / "tmp"
+    var_tmp.mkdir(parents=True, exist_ok=True)
+    cache_dir = tempfile.mkdtemp(prefix="unitd_caches_", dir=var_tmp)
     return {
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONPYCACHEPREFIX": cache_dir,
@@ -340,7 +342,9 @@ def redact_secrets(text: str | None) -> str | None:
 
 # ID: 963ddb37-6256-4c80-9354-daa6868a9148
 def run_unit_d(*, keep_target: bool = True) -> ScenarioResult:
-    workdir = Path(tempfile.mkdtemp(prefix="unitd_run_"))
+    var_tmp = REPO_ROOT / "var" / "tmp"
+    var_tmp.mkdir(parents=True, exist_ok=True)
+    workdir = Path(tempfile.mkdtemp(prefix="unitd_run_", dir=var_tmp))
     blockers: list[str] = []
     checks: dict[str, bool] = {}
     extra_env = disable_incidental_caches_env()

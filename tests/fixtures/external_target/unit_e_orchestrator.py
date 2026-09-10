@@ -208,7 +208,9 @@ def run_live_scenario(
 
 # ID: 2c3d4e5f-6071-8293-a4b5-c6d7e8f9a0b1
 def run_unit_e(*, keep_target: bool = True) -> RollbackScenarioResult:
-    workdir = Path(tempfile.mkdtemp(prefix="unite_run_"))
+    var_tmp = REPO_ROOT / "var" / "tmp"
+    var_tmp.mkdir(parents=True, exist_ok=True)
+    workdir = Path(tempfile.mkdtemp(prefix="unite_run_", dir=var_tmp))
     blockers: list[str] = []
     notes: list[str] = []
     checks: dict[str, bool] = {}
