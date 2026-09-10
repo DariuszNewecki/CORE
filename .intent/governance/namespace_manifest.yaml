@@ -1828,6 +1828,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md
     governance_namespace: project::core
+  - path: .specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
     governance_namespace: project::core
   - path: .specs/planning/archive/external-review-2026-07-todo.md
