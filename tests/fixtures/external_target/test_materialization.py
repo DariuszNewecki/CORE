@@ -1,4 +1,5 @@
-"""Fixture assembly tests (Unit C, EC-1A safety package).
+"""Fixture assembly tests (Unit C, Governor-authorized external-target
+safety package).
 
 Proves materialize_external_target() builds what it claims to build --
 never that the resulting envelope authorizes/denies anything (that is

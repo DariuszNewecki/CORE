@@ -2,8 +2,9 @@
 
 """
 Pre-bootstrap dispatch and implementation for
-``core-admin runtime external-verify --target <path>`` (Unit B, EC-1A
-safety package; Governor ruling 2026-09-05).
+``core-admin runtime external-verify --target <path>`` (Unit B,
+Governor-authorized external-target safety package; Governor ruling
+2026-09-05).
 
 Import-order problem this module solves: ``cli.admin_cli`` imports
 ``body.infrastructure.bootstrap`` at module load, which transitively

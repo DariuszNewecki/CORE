@@ -105,7 +105,8 @@ def _check_physical_containment(
 ) -> str | None:
     """Physical (filesystem) containment check for the safe auto-approval
     envelope's path-prefix guarantee (ADR-159 Notes; closes the Unit C
-    symlink-escape gap, EC-1A safety package).
+    symlink-escape gap, part of the Governor-authorized external-target
+    safety package).
 
     The existing lexical validator
     (``will.autonomy.safe_auto_approval_envelope._validate_target_path``)

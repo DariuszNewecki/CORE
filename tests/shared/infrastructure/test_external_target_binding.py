@@ -1,4 +1,5 @@
-"""Tests for shared.infrastructure.external_target_binding (Unit A, EC-1A).
+"""Tests for shared.infrastructure.external_target_binding (Unit A,
+Governor-authorized external-target safety package).
 
 Governor ruling 2026-09-05 (ADR-159 Notes): bounded pre-experiment safety
 package, read-only evaluation before any controlled-write evaluation.

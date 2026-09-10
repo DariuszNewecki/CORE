@@ -1,5 +1,6 @@
-"""Tests for cli.runtime_external_verify (Unit B launcher, EC-1A safety
-package; Governor ruling 2026-09-05).
+"""Tests for cli.runtime_external_verify (Unit B launcher,
+Governor-authorized external-target safety package; Governor ruling
+2026-09-05).
 
 Verification only -- these tests must never trigger a proposal, action,
 or worker execution, and must never mutate the external test repository.

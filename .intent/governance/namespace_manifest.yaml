@@ -1820,6 +1820,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/CORE-Isolated-Consequence-Chain-Demo-Phase1-Map.md
     governance_namespace: project::core
+  - path: .specs/planning/CORE-D9-Trial0-Apparatus-Design.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
     governance_namespace: project::core
   - path: .specs/planning/archive/external-review-2026-07-todo.md

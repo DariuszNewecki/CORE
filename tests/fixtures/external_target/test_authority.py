@@ -1,5 +1,6 @@
 """Authority tests for the external-target safe auto-approval envelope
-(Unit C, EC-1A safety package; Governor ruling 2026-09-06 -- ADR-159 Notes).
+(Unit C, Governor-authorized external-target safety package; Governor
+ruling 2026-09-06 -- ADR-159 Notes).
 
 Every check below calls the real envelope loader
 (``shared.infrastructure.intent.action_risk.load_safe_auto_approval_envelope``)

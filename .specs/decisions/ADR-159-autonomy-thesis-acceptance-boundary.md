@@ -329,3 +329,53 @@ with only the existing policy declarations required by that action."*
   records the ruling only — it does not alter D1–D9, redefine any threshold, or authorize execution
   of `fix.format` itself (Unit C is read/validate-only; the controlled write happens in Unit D,
   inside a disposable copy).
+
+### 2026-09-07 — Governor ruling: fixture-local `proposal_consumer_worker` declaration authorized
+
+*Recorded retrospectively, approved 2026-09-10 — this entry is a summary of the 2026-09-07 ruling,
+written from the implementing commit, not a verbatim quotation reconstructed from that date.*
+
+- Authorized the fixture-owned `proposal_consumer_worker` declaration solely for
+  `package/example.py`, using the production declaration's existing permitted tools —
+  `crate.create`, `canary.validate`, `crate.apply`, and `git.commit` — and a fixture-local UUID
+  (`b7e25f7a-91f3-4f77-ba34-d29a871c3e0c`, distinct from the production worker's
+  `c1d2e3f4-a5b6-7890-cdef-123456789abc`).
+- This did not alter CORE's root `.intent/` or broaden the safe-auto-approval envelope —
+  `fix.format` on `package/*.py` remained the sole authorized action/path.
+- Implemented at `8569f02f5357e843ec05818445b902b5cde90f5e`.
+
+### 2026-09-07 — Governor ruling: `rules/will/proposal_lifecycle` policy dependency authorized
+
+*Recorded retrospectively, approved 2026-09-10 — this entry is a summary of the 2026-09-07 ruling,
+written from the implementing commit, not a verbatim quotation reconstructed from that date.*
+
+- Authorized copying the fixture-owned, already-existing `rules/will/proposal_lifecycle` policy
+  document into the fixture overlay, byte-identical to CORE's own copy, solely because production
+  action `claim.proposal` — invoked internally by `ProposalExecutor` for any proposal regardless of
+  the action it carries — declares it as a required policy, and the fixture's minimal
+  machinery-floor `.intent/` carried no `rules/will/` tree at all.
+- This enabled resolution of an existing dependency; it created no new policy meaning or action
+  authority.
+- Implemented at `bd2b336f76c51f4d931bace79cd5c7de2983507e`.
+
+### 2026-09-10 — Governor ruling: Trial 0 and Trial 1 runner baselines
+
+- Retained `27160a0a8768cf72bbe2a8fecc3d9169db758efc` (tag `autonomy-experiment-ready-2026-09-04`)
+  as Trial 0's runner. Not rebaselined.
+- Selected `b57423dc85c11c6650a9515c136bab49b02107ec` (Unit C.1) as Trial 1's separately frozen,
+  disclosed runner.
+- This does not recertify T-A, does not change Trial 0's baseline, and does not grant threshold
+  credit to Units A–E.
+
+### 2026-09-10 — Governor ruling: experiment sequence and EC-1A/EC-1B scope resolved
+
+Resolves the boundary the 2026-09-05 Note above explicitly deferred ("does not resolve where
+EC-1A/EC-1B sit relative to those thresholds").
+
+- Sequence: D9 (seal retrievability and isolation) → Trial 0 → Trial 1/T-B (established only if
+  ADR-159's criteria pass) → EC-1A → EC-1B → ADR-159's qualifying T-C recovery/rollback/soak work.
+- Units D/E remain preliminary, out-of-sequence engineering evidence — they occurred before D9 and
+  T-B and receive no T-C or other threshold credit.
+- Trial 1 is governance-document evaluation (CORE's Phase 1 apparatus against the frozen ITAM
+  Governance Library, D6); EC-1A is the later source-code evaluation. Different subjects,
+  modalities, evaluation claims, and thresholds — not folded together.

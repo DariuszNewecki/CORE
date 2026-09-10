@@ -4,8 +4,8 @@
 Fail-closed validation for binding one CORE process, one external Git
 repository, and one isolated database together (Governor ruling
 2026-09-05, recorded in .specs/decisions/ADR-159-autonomy-thesis-
-acceptance-boundary.md Notes; EC-1A of the bounded external-autonomy
-safety package).
+acceptance-boundary.md Notes; part of the Governor-authorized
+external-target safety package).
 
 This module answers exactly one question: "is it safe to treat *target*
 as the one external repository this process is bound to?" It performs

@@ -16,8 +16,8 @@ from cli.runtime_external_verify import matches_route
 from cli.runtime_external_verify import run as run_external_verify
 
 
-# Pre-bootstrap dispatch (Unit B, EC-1A safety package, Governor ruling
-# 2026-09-05): `runtime external-verify` must bind REPO_PATH/MIND and run
+# Pre-bootstrap dispatch (Unit B, Governor-authorized external-target
+# safety package, Governor ruling 2026-09-05): `runtime external-verify` must bind REPO_PATH/MIND and run
 # Unit A's fail-closed guard BEFORE any heavy runtime import below executes
 # (GitService transitively initializes the IntentRepository singleton via
 # operational_config at import time). This is a fixed, single-route
