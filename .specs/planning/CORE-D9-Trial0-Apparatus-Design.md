@@ -6,15 +6,31 @@ status: draft
 
 # CORE ADR-159 D9 Seal Custody and Trial 0 Apparatus Design
 
-**Status:** Draft — for Governor review. Nothing in this document has been implemented. No D9
-mechanism, no Trial 0 run, no external-target execution, and no access to the sealed answer
-material's content occurred while writing it.
+**Status:** Draft — for Governor review. **Correction notice (2026-09-10, second pass):** the
+prior version of this document contained a contradiction — its introduction and §7 (then-numbered
+§6) claimed no sealed content was accessed while writing it, while the incident disclosure further
+down the same document correctly said otherwise. That contradiction is corrected throughout this
+version. The facts, restated once, precisely:
+
+- No D9 mechanism has been implemented and no trial has been run.
+- While distinguishing `seal_manifest.py`'s sealing *tooling* from the sealed *data* it turned out
+  to also contain, this session accidentally accessed approximately two of the benchmark's eight
+  rows during planning.
+- No row content is reproduced anywhere in this document. The incident is described in full in
+  §17, not hidden or softened.
+- Because of this, and because CORE's project-memory store was separately found to already carry
+  pre-existing Phase 1 content (§9 finding 6), **this session — and every session that loads CORE's
+  current project memory — is excluded from serving as blind procedure author or trial runner.**
+  §12's runner boundary and the companion blind-author brief
+  (`.specs/planning/CORE-Autonomy-Trials-Blind-Author-Brief.md`) are written around that exclusion,
+  not in spite of it.
 
 **Scope:** design only, per ADR-159's own framing — "the run design for Trials 0 and 1 —
 harness, isolation mechanics, output layout, procedure — is revisable mechanics and belongs in
-`.specs/planning/`, not [the ADR]." This document does not alter ADR-159 D1–D9, does not
-redefine T-A/T-B/T-C, and does not commit to an implementation. The next unit implements D9 only
-after this document is reviewed.
+`.specs/planning/`, not [the ADR]." This document does not alter ADR-159 D1–D9, does not redefine
+T-A/T-B/T-C, and does not commit either trial's semantic procedure to text. It does not implement
+D9, publish or hash the seal, author either trial procedure, invoke a fresh session, provision the
+coldroom substrate, or run anything.
 
 ---
 
@@ -29,22 +45,51 @@ Restated here only to ground the design that follows; ADR-159 remains canonical 
 | **T-C** | sustained operation | controlled write experiment succeeds; recovery/rollback proven; then a sustained soak with no unauthorized writes, no lost proposals, no ambiguous lifecycle states. **Not reached.** |
 
 **D3 containment rule:** a finding beyond a threshold's declared criteria is backlog unless it
-invalidates the trial in progress, argued explicitly in writing. This document's own Trial 0
-design inherits that rule directly (§12).
+invalidates the trial in progress, argued explicitly in writing. §2's post-publication discipline
+below applies this specifically to post-publication apparatus changes.
 
-**D4 adaptation line:** acceptable adaptation (target `.intent/`, GRC catalogs, domain
-profiles, configuration/resource bindings) versus thesis-negative adaptation (new `src/`
-modules, new check/rule classes, target-specific runtime branches, schema changes). Both trials'
-reports must quantify which category their own work fell into. Nothing in this apparatus design
-proposes any thesis-negative adaptation.
+**D4 adaptation line:** acceptable adaptation (target `.intent/`, GRC catalogs, domain profiles,
+configuration/resource bindings) versus thesis-negative adaptation (new `src/` modules, new
+check/rule classes, target-specific runtime branches, schema changes). Both trials' reports must
+quantify which category their own work fell into.
 
-**Units D and E** (2026-09-06 – 2026-09-10) are preliminary engineering evidence for the
-mechanics a controlled write and its rollback require. They occurred before D9 and T-B and
-receive no T-C or other threshold credit (2026-09-10 Note).
+**Units D and E** (2026-09-06 – 2026-09-10) are preliminary engineering evidence for the mechanics
+a controlled write and its rollback require. They occurred before D9 and T-B and receive no T-C or
+other threshold credit (2026-09-10 Note).
 
 ---
 
-## 2. Exact pins
+## 2. Ordering (Governor ruling, 2026-09-10)
+
+The required order, fixed now so it cannot be argued after the fact:
+
+1. **Correct the planning record and record the ruling** — this document, this pass.
+2. **Produce a frozen blind-author input brief** — `CORE-Autonomy-Trials-Blind-Author-Brief.md`,
+   this unit, not invoked.
+3. **In a separate future action**, use a fresh stateless author (no project memory, no
+   conversation history, no connectors, no repository/web access — see the brief) to write both
+   Trial 0 and Trial 1 semantic procedures.
+4. **Review and freeze both procedures** without adding target-specific investigative guidance.
+5. **Implement D9 custody and publish the seal plus manifest** (§7–§8) — only after step 4.
+6. **Review D9 evidence.**
+7. **Run Trial 0 exactly once.**
+8. **Run Trial 1** only after Trial 0 is closed and ADR-159 permits proceeding.
+
+**D9 must exist before Trial 0 runs (step 7); it does not need to precede blind procedure
+authorship (steps 2–4).** Steps 2–4 can and should happen first — writing the procedures does not
+require the seal to be published, and delaying them behind D9 custody work would only extend the
+window during which an un-frozen procedure could still be shaped by hindsight.
+
+**Post-publication discipline:** after the seal is published (step 5), only a mechanical apparatus
+correction justified through a written D3 invalidation argument may be considered — and even then,
+it must not silently alter a frozen investigation prompt, scoring rule, target decomposition, or
+pass criterion. A defect discovered in the *apparatus* (isolation, evidence capture, harness
+plumbing) is fixable under that argument. A defect discovered in the *procedure itself* is not
+silently patchable — see §14's D3 discussion, unchanged in substance from the prior pass.
+
+---
+
+## 3. Exact pins
 
 ### Trial 0 — apparatus rehearsal (ADR-159 D5)
 
@@ -65,68 +110,58 @@ is an honest Trial 0 result, not permission to patch it (Governor ruling, 2026-0
 | Subject | `DariuszNewecki/ITAM-Governance-Library @ a2fe0a62d96423d8bc7296e3976e642a2cb120a3` |
 | Subject verification | **Verified** via GitHub's commit API (`GET /repos/DariuszNewecki/ITAM-Governance-Library/commits/a2fe0a62d96423d8bc7296e3976e642a2cb120a3`, 2026-09-10) — resolves to a real commit, author `Dariusz Newecki`, dated 2026-08-23. Not cloned for this verification. |
 
-The Trial 1 runner is the last baseline containing the Governor-authorized external-target
-safety package — including physical symlink-containment enforcement (`b57423dc` itself) — while
-excluding the later Unit D/E execution scaffolding and write-path corrections. First excluded
-commit: `c0694953`. See the commit ledger below for the full accounting.
+The Trial 1 runner is the last baseline containing the Governor-authorized external-target safety
+package — including physical symlink-containment enforcement (`b57423dc` itself) — while excluding
+the later Unit D/E execution scaffolding and write-path corrections. First excluded commit:
+`c0694953`. See §5 for the full commit ledger.
 
 ---
 
-## 3. Commit ledger: T-A → Trial 1 runner (`27160a0a` → `b57423dc`, inclusive)
+## 4. Verification of ADR-159 Notes entries 1 and 2 (worker authority, policy dependency)
 
-Five commits, all included in the Trial 1 runner pin.
+Unchanged from the prior pass — performed before those Notes were appended (2026-09-10), against
+the repository at the cited commits:
+
+- **Worker authority (`8569f02f`):** confirmed — `tests/fixtures/external_target/intent_overlay/workers/proposal_consumer_worker.yaml` scopes `mandate.scope.paths` to exactly `["package/example.py"]`; `permitted_tools` is exactly `crate.create`, `canary.validate`, `crate.apply`, `git.commit` — byte-identical to production's own `.intent/workers/proposal_consumer_worker.yaml` list; `identity.uuid` (`b7e25f7a-91f3-4f77-ba34-d29a871c3e0c`) is confirmed distinct from the production worker's UUID (`c1d2e3f4-a5b6-7890-cdef-123456789abc`); the diff touches only `tests/fixtures/external_target/` — no root `.intent/` change; `safe_auto_approval_envelope.yaml` is untouched by the commit.
+- **Proposal-lifecycle policy dependency (`bd2b336f`):** confirmed — the fixture's `intent_overlay/rules/will/proposal_lifecycle.json` added by this commit is byte-identical to CORE's own `.intent/rules/will/proposal_lifecycle.json` (both then and now); `body/atomic/proposal_lifecycle_actions.py`'s `claim.proposal` registration declares `policies=["rules/will/proposal_lifecycle"]`, confirming the stated dependency is real and pre-existing, not invented for the fixture.
+
+---
+
+## 5. Commit ledgers
+
+### Included in the Trial 1 runner (`27160a0a` → `b57423dc`, inclusive) — five commits
 
 | Commit | Subject | Classification |
 |---|---|---|
 | `660834c6` | feat(external): fail closed on target binding | **Production** — new module `src/shared/infrastructure/external_target_binding.py`. **Test** — `tests/shared/infrastructure/test_external_target_binding.py`. **Documentation** — ADR-159 Notes (2026-09-05 ruling). |
 | `cb47438a` | feat(cli): pre-bootstrap external-verify launcher | **Production** — `src/cli/admin_cli.py`, `src/cli/runtime_external_verify.py`. **Test** — `tests/cli/test_runtime_external_verify.py`. |
-| `fce5c064` | fix(coldroom): install and enable qemu-guest-agent in template prep | **Infrastructure/ops**, unrelated to the external-target safety package — `scripts/coldroom-prep.sh` only. Interleaved chronologically; no fixture/policy/test impact. Relevant to §9's substrate choice (the coldroom VM template script). |
-| `c7de61e5` | feat(external): Unit C neutral target fixture proves authority boundary | **Fixture/policy** — `tests/fixtures/external_target/{materialize.py, intent_overlay/*, template/*}` (the neutral target template, the ratified `safe_auto_approval_envelope`). **Test** — `test_authority.py`, `test_materialization.py`. **Documentation** — ADR-159 Notes (2026-09-06 ruling). |
-| `b57423dc` | fix(actions): deny symlink target escapes **(runner pin)** | **Production** — `src/body/atomic/executor.py` (`_check_physical_containment`, a real security fix, not fixture-scoped). **Test** — `tests/body/atomic/test_executor_physical_containment.py` (new), plus fixture-adjacent updates to `_probe.py`/`test_authority.py`. |
+| `fce5c064` | fix(coldroom): install and enable qemu-guest-agent in template prep | **Infrastructure/ops**, unrelated to the external-target safety package — `scripts/coldroom-prep.sh` only. Relevant to §11's substrate choice. |
+| `c7de61e5` | feat(external): Unit C neutral target fixture proves authority boundary | **Fixture/policy** — `tests/fixtures/external_target/{materialize.py, intent_overlay/*, template/*}`. **Test** — `test_authority.py`, `test_materialization.py`. **Documentation** — ADR-159 Notes (2026-09-06 ruling). |
+| `b57423dc` | fix(actions): deny symlink target escapes **(runner pin)** | **Production** — `src/body/atomic/executor.py` (`_check_physical_containment`, a real security fix). **Test** — `tests/body/atomic/test_executor_physical_containment.py` (new), plus fixture-adjacent updates. |
 
-**Net production surface in the Trial 1 runner, beyond T-A:** the external-target binding guard
-(`external_target_binding.py`), the pre-bootstrap CLI launcher (`admin_cli.py` route,
-`runtime_external_verify.py`), and the physical symlink-containment check in
-`body/atomic/executor.py`. All three are the Governor-authorized external-target safety package
-(Units A/B/C/C.1); none are target-specific adaptation under ADR-159 D4 — they are general
-hardening of the sandbox/authority boundary, applicable regardless of which external target is
-ever evaluated.
+**Net production surface in the Trial 1 runner, beyond T-A:** the external-target binding guard,
+the pre-bootstrap CLI launcher, and the physical symlink-containment check. All three are the
+Governor-authorized external-target safety package (Units A/B/C/C.1); none are target-specific
+adaptation under ADR-159 D4.
 
-## 4. Commit ledger: excluded from the Trial 1 runner (`c0694953` → `f2c50dc6`, inclusive)
-
-Eight commits, all excluded. First excluded commit: `c0694953`.
+### Excluded from the Trial 1 runner (`c0694953` → `f2c50dc6`, inclusive) — eight commits
 
 | Commit | Subject | Classification |
 |---|---|---|
-| `c0694953` | test(external): prove governed format mutation | **Fixture/test** — Unit D scaffold (`db_provisioning.py`, `unit_d_orchestrator.py`, `unit_d_child.py`, `test_unit_d_orchestrator.py`). No production changes. |
-| `8569f02f` | feat(external): authorize fixture-local proposal_consumer_worker declaration | **Fixture/policy** — new fixture-owned worker declaration, fixture-local UUID, scoped to `package/example.py`. **Test** — `test_materialization.py` update. Verified accurate in ADR-159 Notes (2026-09-10, §5 below). |
-| `d12254e5` | fix(external): Unit D scaffold calls Worker.start(), not run() | **Fixture/test** only — `unit_d_child.py` fix, `test_unit_d_child.py` new. |
-| `bd2b336f` | feat(external): authorize claim.proposal's policy dependency in fixture overlay | **Fixture/policy** — byte-identical copy of CORE's own `rules/will/proposal_lifecycle` into the fixture overlay. **Test** — `test_materialization.py` update. Verified accurate in ADR-159 Notes (2026-09-10, §5 below). |
-| `b4acb30d` | fix(body): Unit D formatter-runtime correction — resolve and run Ruff directly | **Production** — `src/body/self_healing/code_style_service.py`, `src/shared/utils/subprocess_utils.py` (new `run_direct_command` sanctuary helper; the Poetry-wrapped-false-success fix). **Test** — `test_format_sandbox_correction.py`, `test_subprocess_utils__run_direct_command.py`, `test_unit_d_orchestrator.py` update. |
-| `4ddcaa32` | fix(body): Unit D final Ruff-runtime correction — check/fix phase too | **Production** — `src/body/self_healing/code_style_service.py` (second phase of the same fix). **Test** — `test_code_style_service__format_code.py`, `test_format_sandbox_correction.py` update. |
-| `cca802ee` | test(external): Unit E scaffold — live post-propagation rollback qualification | **Fixture/test** only — `unit_e_orchestrator.py`, `unit_e_child.py`, both test files; `unit_d_child.py` gained an optional `goal` parameter (default-preserving). |
-| `f2c50dc6` | fix(external): route Unit D/E disposable workdirs through var/tmp, not /tmp | **Fixture/test** only — `unit_d_orchestrator.py`, `unit_e_orchestrator.py`. |
+| `c0694953` | test(external): prove governed format mutation | **Fixture/test** — Unit D scaffold. No production changes. |
+| `8569f02f` | feat(external): authorize fixture-local proposal_consumer_worker declaration | **Fixture/policy** — verified in §4. |
+| `d12254e5` | fix(external): Unit D scaffold calls Worker.start(), not run() | **Fixture/test** only. |
+| `bd2b336f` | feat(external): authorize claim.proposal's policy dependency in fixture overlay | **Fixture/policy** — verified in §4. |
+| `b4acb30d` | fix(body): Unit D formatter-runtime correction — resolve and run Ruff directly | **Production** — `code_style_service.py`, `subprocess_utils.py` (new `run_direct_command`; the Poetry-wrapped-false-success fix). |
+| `4ddcaa32` | fix(body): Unit D final Ruff-runtime correction — check/fix phase too | **Production** — `code_style_service.py`, second phase. |
+| `cca802ee` | test(external): Unit E scaffold — live post-propagation rollback qualification | **Fixture/test** only. |
+| `f2c50dc6` | fix(external): route Unit D/E disposable workdirs through var/tmp, not /tmp | **Fixture/test** only. |
 
-**Material consequence for anyone reasoning about the Trial 1 runner's behavior:** the Trial 1
-runner (`b57423dc`) does **not** include the `b4acb30d`/`4ddcaa32` fix — `fix.format`'s Ruff
-invocation at that pin still goes through `run_poetry_command`, which silently reports success
-against a target with no `pyproject.toml` (the defect Unit D diagnosed and fixed later, excluded
-here). This is not expected to matter for Trial 1 itself (the ITAM Governance Library is a
-governed-document corpus, not software `fix.format` would run against), but is recorded here so
-the runner's own known characteristics are not rediscovered as a surprise mid-trial.
-
----
-
-## 5. Verification of ADR-159 Notes entries 1 and 2 (worker authority, policy dependency)
-
-Performed before those Notes were appended (2026-09-10), against the repository at the cited
-commits:
-
-- **Worker authority (`8569f02f`):** confirmed — `tests/fixtures/external_target/intent_overlay/workers/proposal_consumer_worker.yaml` scopes `mandate.scope.paths` to exactly `["package/example.py"]`; `permitted_tools` is exactly `crate.create`, `canary.validate`, `crate.apply`, `git.commit` — byte-identical to production's own `.intent/workers/proposal_consumer_worker.yaml` list; `identity.uuid` (`b7e25f7a-91f3-4f77-ba34-d29a871c3e0c`) is confirmed distinct from the production worker's UUID (`c1d2e3f4-a5b6-7890-cdef-123456789abc`); the diff touches only `tests/fixtures/external_target/` — no root `.intent/` change; `safe_auto_approval_envelope.yaml` is untouched by the commit.
-- **Proposal-lifecycle policy dependency (`bd2b336f`):** confirmed — the fixture's `intent_overlay/rules/will/proposal_lifecycle.json` added by this commit is byte-identical to CORE's own `.intent/rules/will/proposal_lifecycle.json` (both then and now); `body/atomic/proposal_lifecycle_actions.py`'s `claim.proposal` registration declares `policies=["rules/will/proposal_lifecycle"]`, confirming the stated dependency is real and pre-existing, not invented for the fixture.
-
-Both entries were appended to ADR-159's Notes as retrospective summaries, explicitly dated and
-marked as such — see the ADR itself, not reproduced here.
+**Material consequence:** the Trial 1 runner (`b57423dc`) does **not** include the
+`b4acb30d`/`4ddcaa32` fix — `fix.format`'s Ruff invocation at that pin still goes through
+`run_poetry_command`, which silently reports success against a target with no `pyproject.toml`.
+Not expected to matter for Trial 1 (a governed-document corpus, not software `fix.format` would
+run against), recorded so it isn't rediscovered mid-trial as a surprise.
 
 ---
 
@@ -134,329 +169,377 @@ marked as such — see the ADR itself, not reproduced here.
 
 **Asset:** the Phase 1 sealed benchmark, `work/external-validation/phase1-benchmark-SEALED.json`
 (governor-signed, sealed 2026-08-27; run closed 2026-08-29) — eight rows scoring Trial-0/Trial-1
-correctness against a pre-registered answer key. Its path is confirmed to exist; **its content
-was not read, and is not reproduced, in this document** except by structural reference (pin
-values, row count, field-shape) already stated in ADR-159 D5/D9 or independently confirmed as
-schema-only, never data, in §9 below.
+correctness against a pre-registered answer key. Its path is confirmed to exist. **Its content was
+not deliberately read or reproduced in this document; §17 discloses one accidental partial
+exception (~2 of 8 rows), during this pass's own predecessor, with no content repeated here.**
 
 **What the threat model protects against:**
 
-1. **Runner self-answering.** If the Trial 0 runner process (or Trial 1's, symmetrically) can
-   read the seal's rows, its "recall" figure is definitionally worthless — it would be reading
-   the answer key, not deriving findings. This is D9's core concern, stated directly in ADR-159:
-   "a runner that can read its own answer key produces a recall figure of no evidential value."
+1. **Runner self-answering.** If the Trial 0 runner process (or Trial 1's, symmetrically) can read
+   the seal's rows, its "recall" figure is definitionally worthless. D9's core concern, stated
+   directly in ADR-159: "a runner that can read its own answer key produces a recall figure of no
+   evidential value."
 2. **Single-point-of-failure custody.** The seal currently exists only on the operator's local
-   disk, under a `.gitignore`d path (`work/*`, line 88). A disk failure, an accidental `rm`, or
-   simply nobody else being able to check the seal's own claims makes the sealed artifact "a
-   claim about evidence," not evidence (D9's own framing) — indistinguishable from an unrecorded
-   result.
-3. **Retroactive tampering.** If the seal can be edited after Trial 0/1 run, a disappointing
-   recall figure could be quietly revised. `seal_manifest.py`'s own sha256-over-canonical-bytes
-   pattern (confirmed to exist by structural reference — see §9) is the existing mitigation; D9
-   requires that mitigation be independently checkable, not merely asserted.
-4. **Operator-as-single-witness.** The Governor is both the seal's author and (in a solo-dev
-   project) the only available evaluator. D9's "retrievable... by someone other than its author"
-   property cannot, in this project's actual staffing, mean a literal second human. §11 states
-   the practical substitute this design relies on and flags it as a real, disclosed limitation
-   rather than pretending it away.
-5. **Incidental leakage via tooling.** This unit's own session accidentally read part of the
-   seal's content while inspecting what it believed was pure sealing *tooling* (`seal_manifest.py`
-   embeds both the sealing logic and the row data in one file — see §14's incident note). This is
-   itself a threat-model finding: any future design that treats "the sealing script" and "the
-   sealed data" as one artifact invites exactly this mistake. §9's design separates them.
-6. **Memory-substrate leakage (discovered while writing this document, unresolved by any control
-   below).** This project's Claude Code auto-memory system persists project memory in files
-   outside the repository, auto-loaded into every session's context by the harness itself,
-   independent of the CORE checkout's own filesystem/network/credential isolation. Several memory
-   files predating D9 (written before the sealing regime existed) already contain Phase 1
-   benchmark content. §9's filesystem/network isolation of the CORE checkout — cloning fresh from
-   GitHub, denying paths to `work/`/`ITAM` — does **nothing** to prevent a Claude-Code-driven
-   runner from separately auto-loading this pre-existing memory store, because the memory
-   substrate is a property of the harness/session, not of the repository checkout the other
-   controls govern. **This is a real, currently unmitigated gap, not a hypothetical one** —
-   confirmed content, not merely a theoretical risk. If any future Trial 0/Trial 1 runner is
-   itself a Claude Code session (as this design otherwise assumes it may be, per §9.4's
-   application-layer controls), its memory directory must be fresh/scoped/absent, exactly as
-   rigorously as its filesystem and network access are — this document does not yet specify how,
-   and no control elsewhere in this document addresses it. Flagged as an open item in §12's
-   acceptance criteria and §14's non-claims, not resolved here.
+   disk, under a `.gitignore`d path (`work/*`, line 88). §7 resolves this.
+3. **Retroactive tampering.** If the seal can be edited after Trial 0/1 run, a disappointing recall
+   figure could be quietly revised. `seal_manifest.py`'s own sha256-over-canonical-bytes pattern
+   (confirmed to exist by structural reference, never read further than necessary to confirm its
+   shape) is the existing mitigation; §7's published manifest makes it independently checkable.
+4. **Operator-as-single-witness.** The Governor is both the seal's author and, in a solo-developer
+   project, the only human available at all. §12 states precisely what this design can and cannot
+   claim about that — see the retrieval-independence / scoring-separation split there; the prior
+   pass's "a different session is a practical substitute" claim is withdrawn, not merely reworded.
+5. **Incidental leakage via tooling.** The prior pass of this document (and its predecessor
+   session) accidentally read part of the seal's content while inspecting what was believed to be
+   pure sealing *tooling* — `seal_manifest.py` embeds both the sealing logic and the row data in
+   one file. §17 discloses this fully. Structural lesson already applied: §7/§11 treat "the sealing
+   script" and "the sealed data" as two artifacts requiring separate handling.
+6. **Memory-substrate leakage — confirmed, not hypothetical, still unresolved by a control in this
+   document.** CORE's Claude Code auto-memory system persists project memory in files outside the
+   repository, auto-loaded into every session's context by the harness itself, independent of the
+   CORE checkout's own filesystem/network/credential isolation. Several memory files predating D9
+   already contain Phase 1 benchmark content. Checkout-level isolation (§11) does nothing to
+   prevent a Claude-Code-driven process from separately auto-loading this store. **This is why §12
+   requires the trial runner to be frozen CORE itself, launched by a deterministic operator
+   harness — not Claude Code, and not any process that would auto-load this project's memory.**
+   Blind procedure authorship carries the identical requirement (§2 step 3; the companion brief
+   specifies a session with no project memory at all).
 
 ---
 
-## 7. Where the seal may be retained
+## 7. Seal custody — decided, conditionally
 
-D9 states three satisfying options without preferring one: commit the sealed JSON, publish a
-hash of it, or hold it in a governed store. Evaluated here, not decided:
+**Decision (Governor ruling, 2026-09-10):** the sealed artifact's custody mechanism is a **tracked
+public attestation** — not one of the three previously-undecided options, now resolved:
 
-| Option | Retrievability | Runner-inaccessibility | Cost/risk |
-|---|---|---|---|
-| **Commit the sealed JSON to a repository the runner cannot reach** (e.g. a private tracking repo distinct from `DariuszNewecki/CORE`, or a new orphan branch/`refs/` namespace never checked out by the runner's clone) | High — anyone with repo access can fetch and verify the committed bytes against the recorded hash. | High, **if** the runner's own checkout is a fresh clone of `DariuszNewecki/CORE`'s `main` history only (never fetches the separate repo/ref) — see §9. | Low engineering cost. Requires a second repo or an unusual ref the runner's clone step must be documented to never touch — a discipline requirement, not a technical guarantee, unless enforced by network policy too (§10). |
-| **Publish only a hash** of the existing sealed JSON (e.g. in this ADR's Notes, or a `.specs/attestations/` record), leaving the JSON itself wherever it currently lives or moving it to a governed store outside the repo entirely | Retrievability is then a property of the *hash*, not the file — anyone can confirm a *later-produced* copy matches what was sealed, but cannot *retrieve the content* from the hash alone. Satisfies "integrity-checkable"; only partially satisfies "retrievable" (D9 requires the artifact retrievable, not merely verifiable once already possessed). | Trivially high — nothing about the runner's environment changes; the seal's actual bytes never enter any repo. | Cheapest option, but weakest on retrievability alone — needs pairing with an actual custody location (this row is not self-sufficient; it composes with one of the other two). |
-| **Hold it in a governed store** (e.g. `.specs/attestations/` if it is judged appropriate to publish the artifact itself there, given `.specs/attestations/` already holds prior sealed reports such as `e15-coldroom-3cbe0be0-20260726.md`) | High — same tree everyone already reads for other attestations. | Same conditional as row 1 — depends entirely on what the runner's checkout includes. | If placed inside `CORE`'s own tree, the runner's frozen clone of `main` **would** include it unless the seal is added only to a ref/tag the runner's clone step is documented to exclude, or added to `main` only *after* the runner tag is already cut (order-dependent — D9 already requires the seal exist "before Trial 0 runs," which this option can still satisfy if sealed after `27160a0a` was tagged but the runner's clone step pins to the tag, not `main`'s tip). |
+- the exact sealed artifact bytes, committed as-is;
+- a SHA-256 manifest alongside it;
+- tracked under `.specs/attestations/` (the same tree already holding prior sealed reports, e.g.
+  `e15-coldroom-3cbe0be0-20260726.md`);
+- retrievable through public Git history by anyone, indefinitely, independent of the operator's
+  local disk, account session, or continued availability.
 
-None of these is selected here. §12 states the smallest remaining Governor decision.
+**Conditions that must both hold before publication (not yet satisfied; not performed in this
+unit):**
 
----
+1. **Both semantic procedures are frozen first** (§2 steps 1–4). Publishing the seal before the
+   procedures exist would let their authorship be shaped, even inadvertently, by proximity to the
+   answer key.
+2. **A non-printing automated scan proves the artifact contains no credentials or sensitive
+   material.** "Non-printing" — the scan's own output must not itself become a second disclosure
+   channel (e.g., it reports pass/fail and, on failure, categories/locations, never matched
+   secret values). If the scan fails, publication is refused and a new custody ruling is required;
+   this document does not specify a fallback, because none is authorized to be invented here.
 
-## 8. Retrievability and integrity-check mechanism (mechanism-agnostic)
-
-Whichever custody option is chosen, the mechanism must provide, independent of this design:
-
-1. A **content hash** (sha256, matching `seal_manifest.py`'s existing pattern by structural
-   reference) computed over the sealed artifact's canonical bytes, recorded somewhere durable and
-   reachable by someone other than the operator's live working tree alone — e.g. in this ADR's
-   Notes, or a `.specs/attestations/` record, once a location is chosen (§12).
-2. A **retrieval path** — a location from which the artifact's bytes can actually be fetched,
-   not merely a hash compared against a copy someone already has.
-3. A **re-verification step** anyone (not just the operator) can run: fetch the artifact from the
-   retrieval path, hash it, compare to the recorded hash. This is the same class of check
-   `git worktree`/`git fsck` integrity relies on — no new subsystem, per D9's own instruction
-   that the mechanism is "a planning decision, not a constitutional one."
+This document does not publish, copy, hash, or scan the artifact — that is step 5 of §2's ordering,
+performed after both conditions are independently confirmed satisfied.
 
 ---
 
-## 9. Runner-inaccessibility mechanism
+## 8. Retrievability and integrity-check mechanism
 
-**Hard isolation constraint (restated from the brief):** the sealed material resides in a
-gitignored path inside the operator's live CORE working tree (`/opt/dev/CORE/work/`, plus the
-`ITAM` symlink at `/opt/dev/CORE/ITAM` → `/mnt/vector_db/YPTO/ITAM`). No Trial 0 runner process
-may access the operator's live checkout, or any other filesystem location containing the seal.
-The runner's own frozen CORE checkout is separate and does not contain the seal.
+Once §7's conditions are met and the attestation is published:
 
-**Design — two independent layers, mirroring the existing VM-302 blind-author isolation spec's
-own two-layer pattern (OS/network layer as load-bearing, application layer as defense in depth;
-`work/external-validation/DRAFT-vm302-isolation-specification.md`, confirmed to exist, read in
-full for this design — it concerns the *blind catalog-author* role, not Trial 0, but its
-mechanics transfer directly):**
+1. The commit adding it to `.specs/attestations/` carries the SHA-256 manifest in the same commit
+   as the artifact — no separate, later "here is the hash" step that could itself be tampered with
+   independently.
+2. **Retrieval path:** `git clone`/`git show` against the public `DariuszNewecki/CORE` history, by
+   anyone, with no credential and no dependency on the operator's disk or account.
+3. **Re-verification:** fetch the artifact from that path, compute its SHA-256, compare to the
+   manifest recorded in the same commit. The same class of check `git fsck` already relies on — no
+   new subsystem, per D9's own instruction that the mechanism is "a planning decision, not a
+   constitutional one."
 
-1. **Filesystem layer (load-bearing).** The runner's frozen CORE checkout is a **fresh `git
-   clone`** of `https://github.com/DariuszNewecki/CORE.git` at the tag
-   `autonomy-experiment-ready-2026-09-04`/commit `27160a0a...` — never a copy, bind-mount, or
-   worktree of the operator's local `/opt/dev/CORE`. The frozen Phase 1 **subject** checkout
-   (`c4d9fdf9...`) is, symmetrically, a fresh clone from GitHub at that SHA — never the operator's
-   pre-existing local worktree at `work/external-validation/core-phase1-frozen` (confirmed to
-   exist on this machine; it is operator-side reference material only and must not be exposed to
-   the runner substrate). A process with no bind-mount, no shared filesystem namespace, and no
-   path string pointing at `/opt/dev/CORE/work` or `/opt/dev/CORE/ITAM` structurally cannot read
-   what was never mounted into its namespace — the same guarantee §2 of the VM-302 spec states for
-   the blind author ("No sibling copy... anywhere on this box... enforced by mount topology
-   instead of instruction").
-2. **Network layer (load-bearing).** Default-deny egress (the VM-302 spec's `nftables`
-   single-`inet`-table pattern, IPv4+IPv6, confirmed workable there), permitting only what the
-   runner genuinely needs: DNS to the substrate's own trusted resolver, and whatever LLM/API
-   endpoints CORE's own cognitive components require to run (mirroring the VM-302 spec's four-host
-   Anthropic allowlist, §4 of that document) — explicitly **denying** any path back to
-   `github.com`/`api.github.com` beyond the one clone-time fetch of the pinned tag (or performing
-   that single clone from outside the sealed network boundary, before isolation is sealed, so the
-   running trial has no live GitHub egress at all — the stronger of the two options and the one
-   this design prefers). No route to the operator's own LAN/host at all — the substrate should not
-   be able to reach `/opt/dev/CORE` even over network file-sharing, not just lack a local mount.
-3. **Credential layer (defense in depth).** No credentials granting access to the operator's
-   account, disk, or any store holding the seal are provisioned into the runner's environment. If
-   the chosen custody mechanism (§7) is a governed store requiring authentication, the runner is
-   never given that credential — only the operator's own post-run evaluation step (§10) is.
-4. **Application layer (defense in depth, not load-bearing alone).** If the runner is itself
-   Claude-Code-driven (CORE operating autonomously under a Claude Code session, as this session
-   does), the same settings class the VM-302 spec uses — `sandbox.filesystem.denyRead` /
-   `sandbox.credentials.files` for any path that could resolve to the seal, `permissions.deny` for
-   `WebFetch`/`WebSearch` if network egress is not otherwise required, `disableClaudeAiConnectors:
-   true` — should be layered on top of §1/§2, exactly as the VM-302 spec argues for its own role:
-   "Claude Code's own docs are explicit that denying WebFetch 'doesn't prevent network access... '
-   That's why [the OS/network layer] remain[s] the load-bearing boundary and this section is
-   defense in depth."
+---
+
+## 9. Runner boundary (Governor ruling, 2026-09-10)
+
+**The trial runner is frozen CORE itself, launched directly by a deterministic operator harness
+inside the coldroom VM. Claude Code is not the runtime wrapper for either trial.**
+
+Claude Code (this session, or a general-purpose session like it) may help **build or review**
+apparatus **before** a trial runs — writing the isolation scripts, reviewing the harness, checking
+evidence-capture code, exactly the kind of work this document itself is. It must not, for either
+trial:
+
+- author either blind procedure (§2 step 3 is reserved for a fresh stateless session with no
+  project memory — see the companion brief);
+- wrap or direct the live trial (the operator harness invokes the frozen runner directly — a shell
+  script or equivalent deterministic launcher, not an interactive or agentic Claude Code process
+  standing between the operator and the runner);
+- supply prompts during execution (the runner's prompts come from the frozen procedure, provisioned
+  before isolation is sealed — nothing is typed or generated live);
+- inspect the subject during the run (the operator does not read along; inspection during
+  execution is exactly the self-answering risk §6 finding 1 describes, applied to a human observer
+  instead of the runner itself, and is refused for the same reason);
+- score the output before the runner terminates (§12 — scoring is strictly post-termination);
+- initiate a retry (§14 step 9 — no automatic or operator-triggered retry inside one trial
+  invocation).
+
+**What CORE's own frozen runner may do:** make the LLM calls its frozen configuration defines.
+Those calls must begin with fresh provider context each time — no inherited Claude Code memory,
+no inherited conversation history, nothing carried over from any apparatus-building or
+procedure-authoring session that preceded the trial. §10's exact-runner verification confirms the
+frozen runner's own LLM-calling code has no structural path to acquire any of that even if it
+wanted to (no `tools` parameter is ever passed to any provider's completion call).
+
+---
+
+## 10. Exact-runner verification (read-only object inspection, both pins)
+
+Performed via `git grep`/`git show` against the two frozen commit objects directly — **neither
+runner was executed.**
+
+**Method and findings:**
+
+1. Searched both `27160a0a8768cf72bbe2a8fecc3d9169db758efc` and
+   `b57423dc85c11c6650a9515c136bab49b02107ec` for web-search/fetch/browser/connector-shaped
+   identifiers across `src/`. Two hits in each, both confirmed false positives on inspection: the
+   string "connector" appears in `src/mind/governance/executable_rule.py` (a code comment: "just
+   the connector (pure data)") and as the class name `IntentConnector` in
+   `src/shared/infrastructure/intent/intent_connector.py` — an internal `.intent/` data-loading
+   abstraction, unrelated to any web/GitHub connector concept.
+2. Searched both pins for GitHub API client usage (`api.github.com`, `PyGithub`, `octokit`) in
+   `src/` — **zero matches** in either.
+3. Read `src/shared/infrastructure/llm/providers/anthropic.py` in full at `b57423dc` — the only
+   outbound network call is `httpx.AsyncClient.post()` to
+   `{api_url}/v1/messages`, with a payload containing exactly `model`, `max_tokens`, `system`,
+   `messages` — **no `tools` key, no tool-use of any kind.** `response_format` is explicitly
+   documented as "currently ignored... falls back to standard text generation." Confirmed
+   byte-identical between `27160a0a` and `b57423dc` (`diff` of the file at both SHAs: no
+   difference) — neither Unit A/B/C/C.1 touched this file.
+4. Checked the OpenAI and Ollama provider implementations (`providers/openai.py`,
+   `providers/ollama.py`) and the shared `providers/base.py` for `tools=`/`tool_choice` — **zero
+   matches** in any of the three.
+5. Enumerated every `@atomic_action`-registered action at `b57423dc` (38 actions, full list
+   retained in this pass's own working notes) — none are web/search/fetch/browse-shaped; the
+   complete action surface is file/crate/proposal/sync/test/fix/build/refactor/document-scoped.
+
+**Conclusion:** neither frozen runner exposes or requests web search, URL fetching, browser tools,
+GitHub connectors, provider-hosted retrieval, or an arbitrary remote-content-capable tool
+definition, as verified by direct object-level inspection rather than asserted from memory or
+documentation. **No unresolved D9 blocker from this specific check.** (§6 finding 6, the
+memory-substrate leakage, remains a separate, already-flagged, genuinely unresolved blocker — see
+§15's acceptance criteria.)
+
+---
+
+## 11. Runner-inaccessibility mechanism
+
+**Hard isolation constraint:** the sealed material resides in a gitignored path inside the
+operator's live CORE working tree (`/opt/dev/CORE/work/`, plus the `ITAM` symlink at
+`/opt/dev/CORE/ITAM` → `/mnt/vector_db/YPTO/ITAM`). No Trial 0/1 runner process may access the
+operator's live checkout, or any other filesystem location containing the seal. The runner's own
+frozen CORE checkout is separate and does not contain the seal.
+
+**Filesystem layer (load-bearing).** The runner's frozen CORE checkout is a **fresh `git clone`**
+of `https://github.com/DariuszNewecki/CORE.git` at the relevant pin — never a copy, bind-mount, or
+worktree of the operator's local `/opt/dev/CORE`. The frozen Phase 1 **subject** checkout
+(`c4d9fdf9...`) is, symmetrically, a fresh clone from GitHub — never the operator's pre-existing
+local worktree at `work/external-validation/core-phase1-frozen` (confirmed to exist on this
+machine; operator-side reference material only, never exposed to the runner substrate). A process
+with no bind-mount, no shared filesystem namespace, and no path string pointing at
+`/opt/dev/CORE/work` or `/opt/dev/CORE/ITAM` structurally cannot read what was never mounted into
+its namespace.
+
+**Network boundary — restricted, not absent (Governor ruling, 2026-09-10; replaces the prior
+pass's "no live GitHub egress at all" framing with an explicit, checkable deny-list):**
+
+- **Provisioning happens before isolation is sealed.** Both pinned checkouts (runner and subject)
+  are fetched *before* the network policy below takes effect — not during the trial, under an
+  assumed-safe exception.
+- **No GitHub credentials are ever provisioned into the runner's environment.**
+- Explicitly **denied**, by hostname, after isolation is sealed: `github.com`, `api.github.com`,
+  `raw.githubusercontent.com`, `codeload.github.com`, `objects.githubusercontent.com`, and every
+  other `*.githubusercontent.com` endpoint.
+- **No general HTTP/HTTPS proxy** — the substrate does not run an open forward proxy the runner
+  could route arbitrary traffic through.
+- **Only the exact DNS and LLM API destinations the pinned runner's frozen configuration requires**
+  are reachable — an explicit allowlist, not a broad "LLM traffic is fine" carve-out.
+- **Destination enforcement does not rely solely on mutable/shared CDN IP assumptions** — hostname/
+  SNI-based filtering (the VM-302 spec's own CONNECT/SNI pattern, §4 of that document, transfers
+  directly) rather than a static IP allowlist that a CDN could silently reassign out from under the
+  policy.
+- **No model-provider server-side URL retrieval, browsing, search, connectors, or file-fetch tools**
+  — confirmed structurally absent from the frozen runner's own code (§10), and additionally denied
+  at the network layer as defense in depth, in case a future configuration change ever tried to
+  request one.
+
+**Credential layer (defense in depth).** No credentials granting access to the operator's account,
+disk, or any store holding the seal are provisioned into the runner's environment.
 
 **Candidate substrate — the existing coldroom VM.** `scripts/coldroom-prep.sh` (last touched
-`fce5c064`, within the Trial 1 runner's own included range — see §3) already provisions a fresh
-Ubuntu 24.04 host/container with Docker, Postgres 16, Poetry, and `qemu-guest-agent` for Proxmox
-lifecycle management; `.specs/planning/CORE-Cleanroom-Rebuild-Runbook.md` (accepted, existing
-planning document, read in full for this design) documents a working, previously-exercised
+`fce5c064`, within the Trial 1 runner's own included range) already provisions a fresh Ubuntu 24.04
+host/container with Docker, Postgres 16, Poetry, and `qemu-guest-agent`;
+`.specs/planning/CORE-Cleanroom-Rebuild-Runbook.md` documents a working, previously-exercised
 procedure (2026-07-12 execution log entry) for standing up exactly this kind of host from a fresh
-clone and verifying it end-to-end. This substrate **simultaneously satisfies both D9 properties**
-as follows:
-
-- **Runner-inaccessibility:** a fresh Proxmox VM/LXC container, created per the Cleanroom Runbook,
-  has its own disk and its own network namespace — no filesystem path to `/opt/dev/CORE` exists on
-  it at all, satisfying §1/§2 above structurally, not by discipline alone (the operator's tree
-  simply is not reachable from a different machine on the network unless explicitly bridged, which
-  this design does not do).
-- **Seal retrievability:** entirely independent of the runner substrate — retrievability is a
-  property of where the SEALED ARTIFACT lives (§7/§8), which is never the coldroom VM. The
-  coldroom VM's isolation is what makes it *safe* to finalize a retrievability mechanism (commit,
-  publish-hash, or governed-store) without that mechanism ever risking runner exposure, since the
-  runner has no route to it regardless of which option §12 eventually selects.
-
-The two properties are therefore not in tension on this substrate: inaccessibility is enforced by
-the coldroom VM's isolation (independent of where the seal lives), and retrievability is enforced
-by the seal's custody mechanism (independent of the runner's isolation) — each is satisfied by a
-different, non-overlapping control, which is the affirmative answer D9 requires rather than an
-assertion that one property happens to imply the other.
+clone and verifying it end-to-end. A fresh VM/LXC container has its own disk and its own network
+namespace — no filesystem path to `/opt/dev/CORE` exists on it at all, satisfying
+runner-inaccessibility structurally, not by discipline alone. Seal retrievability (§7/§8) is
+entirely independent of this substrate — it is a property of where the published attestation
+lives, never the coldroom VM — so the two D9 properties are satisfied by non-overlapping controls,
+not by one implying the other.
 
 ---
 
-## 10. Scoring outside the runner
+## 12. Scoring separation and retrieval independence — two distinct properties
 
-After the Trial 0 run completes inside the coldroom VM:
+The prior pass of this document conflated these under one "trust boundaries" table, including a
+now-withdrawn claim that a different Claude process/session was "the practical substitute" for
+D9's "someone other than its author" requirement. That claim is removed, not reworded, because a
+different session run by the same operator, on the same disk, under the same account, establishes
+neither property on its own. The two properties, stated separately:
 
-1. The runner's blackboard database (the isolated, disposable Postgres instance created for this
-   run — same disposable-database pattern already proven in Unit D/E's `db_provisioning.py`,
-   never the operator's `core`/`core_test`) is exported to a flat evidence file (JSON/SQL dump) —
-   the same "capture, don't reopen" discipline the VM-302 spec uses for its own run evidence (§6
-   of that document: "authoring → session ends → operator captures raw artifacts → hash/seal → no
-   reopening").
-2. The exported evidence is copied **out** of the coldroom VM to the operator's evidence store —
-   at this point the runner's own further participation ends; the VM is torn down or at minimum
-   the evidence copy inside it is not treated as authoritative once external copies exist.
-3. **Scoring — comparing the runner's recovered findings against the sealed eight rows — happens
-   in a separate process, outside the runner substrate**, on the operator's machine or a fresh
-   evaluation session, using the retrieval path chosen in §12. The runner process itself never
-   receives the seal, never receives a "you got N/8" signal, and never re-runs conditioned on the
-   score.
-4. The recall figure (D5: "of the eight sealed Phase 1 benchmark rows, how many the runner
-   independently recovers, stated as a number before any interpretation is offered") is computed
-   and reported at this stage, not inside the trial.
+**Retrieval independence.** Another principal — not the seal's author, not dependent on the
+author's local disk or account session — must be able to retrieve and independently verify the
+sealed artifact. This is what §7's public tracked attestation is *for*: anyone with access to
+public GitHub history can clone the repository, extract the artifact, recompute its SHA-256, and
+compare it to the manifest, without asking the operator for anything and without trusting any
+claim the operator makes about it. A same-operator, different-session evaluation step does **not**
+establish this property — it still depends on the same one disk and the same one account
+throughout. Retrieval independence is a property of *where the artifact lives and how it can be
+fetched*, not of *which process later reads it*.
+
+**Scoring separation.** Scoring occurs after the runner stops, outside the runner, using frozen
+scoring rules and reproducible evidence:
+
+1. The runner's blackboard database (isolated, disposable — same pattern as Unit D/E's
+   `db_provisioning.py`, never the operator's `core`/`core_test`) is exported to a flat evidence
+   file after the trial terminates.
+2. The exported evidence is copied out of the coldroom VM; the runner's participation ends there.
+3. Scoring — comparing the runner's recovered findings against the retrieved, independently-
+   verified sealed artifact — happens in a separate process, using the frozen scoring rules from
+   the frozen procedure (§2 step 4), never rules improvised at scoring time.
+4. The runner never receives the seal, never receives a "you got N/8" signal, and never re-runs
+   conditioned on the score (§9's no-retry rule).
+
+**A separate process supports scoring separation. It does not, by itself, establish retrieval
+independence.** Both properties are required; neither substitutes for the other. This document
+satisfies retrieval independence through §7's custody decision and scoring separation through the
+procedure above — deliberately two different mechanisms, not one mechanism asked to do both jobs.
 
 ---
 
-## 11. Trust boundaries
+## 13. Trust boundaries
 
 | Role | Trusted for | Not trusted for / structurally denied |
 |---|---|---|
-| **Operator** (Dariusz) | Controlling the physical/VM infrastructure; starting/stopping the runner; holding custody of the seal; declaring the run closed. | Being the *only* witness to the seal (D9's actual concern) — mitigated by making the artifact retrievable (§7/§8) so its claims are independently re-checkable by hash, even though, in this solo-developer project, no literal second human is currently available to act as evaluator. **This is a disclosed, real limitation of a one-operator project, not a solved property** — see §14. |
-| **Runner** (frozen CORE at `27160a0a`, executing inside the isolated substrate) | Executing deterministically; honestly reporting its own findings and refusals (the same constitutional honesty properties CORE already enforces on itself); producing a blackboard-reconstructable trail. | Reading the seal, the subject's later state, or anything else that would let it "recognize" rather than "recover" the answer key (D9's core concern) — denied structurally, not by instruction (§9). |
-| **Evaluator** (whoever performs §10's scoring step) | Comparing exported evidence against the retrieved seal; computing the recall figure; reporting it as a number before interpretation. | Having participated in configuring or running the trial in a way that could bias scoring — in practice, in this project, the evaluator role is a distinct *process/session*, run after the trial closes and using only the exported evidence plus the independently-retrieved seal, not the same continuous session that ran the trial. This is the practical substitute for "someone other than its author" available to a solo-developer project, stated explicitly rather than left implicit. |
-| **Governor** | Final sign-off; the only party who can sign a threshold claim (ADR-159 D2: "Claude never signs a threshold"); deciding D3 invalidation arguments; choosing among §7's custody options. | Nothing here removes any existing Governor authority; this table exists to make explicit what each *other* role is and is not trusted for. |
+| **Operator** (Dariusz) | Controlling the physical/VM infrastructure; starting/stopping the runner; declaring the run closed. | Being the sole custodian of the seal after publication — resolved by §7/§8's retrieval independence, not by operator discipline. |
+| **Runner** (frozen CORE, launched by the deterministic operator harness inside the isolated substrate — never Claude Code, per §9) | Executing deterministically; honestly reporting its own findings and refusals; producing a blackboard-reconstructable trail. | Reading the seal, the subject's later state, or anything that would let it "recognize" rather than "recover" the answer key — denied structurally (§10, §11), not by instruction. |
+| **Blind procedure author** (a fresh stateless session, per the companion brief — never this session or any session sharing CORE's project memory) | Writing both trial procedures from the brief's allowed sources only. | Any access to the seal, to project memory, to the repository beyond what the brief hands it, or to prior Unit D/E findings as investigative hints. |
+| **Evaluator** (whoever performs §12's scoring step) | Comparing exported evidence against the independently-retrieved seal; computing the recall figure; reporting it as a number before interpretation. | Scoring before the runner terminates; using anything other than the frozen scoring rules; being treated as sufficient for retrieval independence on its own (§12). |
+| **Governor** | Final sign-off; the only party who can sign a threshold claim (ADR-159 D2); deciding D3 invalidation arguments; the decisions already made in this ruling (custody mechanism, runner boundary, network policy). | Nothing here removes any existing Governor authority. |
 
 ---
 
-## 12. Trial 0 isolated checkout/process design
+## 14. Trial 0 isolated checkout/process design
 
-Consolidating §9–§10 into one procedure:
+Consolidating §9–§12 into one procedure:
 
-1. **Provision** a fresh coldroom VM/LXC per `CORE-Cleanroom-Rebuild-Runbook.md` Phase 1 steps 1–3
-   (`coldroom-prep.sh`, then a **fresh clone** — not a copy — of `DariuszNewecki/CORE` at the
-   `autonomy-experiment-ready-2026-09-04` tag).
-2. **Apply network policy** (§9.2) before any trial code runs: default-deny egress, DNS to the
-   substrate's own resolver only, the minimum LLM/API allowlist CORE's own cognitive components
-   require, no route to the operator's LAN/host.
-3. **Provision the subject** as a second fresh clone (`c4d9fdf9...`), read-only-mounted into the
-   runner's evaluation path — no later commits, issues, ADRs, or benchmark answers reachable from
-   inside this checkout (this is naturally true of a clone pinned to one SHA with no `fetch`
-   permitted post-isolation).
-4. **Provision a disposable database**, same pattern as Unit D/E's `db_provisioning.py` — unique
-   name, ephemeral container, never the shared `core`/`core_test` instance.
-5. **Pre-run hash.** Compute and record sha256 (or `git rev-parse`/`git write-tree` where
-   applicable) over: the runner checkout's tree, the subject checkout's tree, and the disposable
-   database's freshly-loaded-schema state. This is the "nothing was altered before the trial
-   started" baseline, mirroring Unit D/E's own `git_snapshot`/`hash_tree` pattern.
-6. **Run** the preregistered Trial 0 procedure (itself out of scope for this document — the
-   procedure's content is a separate design step; this document specifies only the isolation
-   apparatus around it) with the network/filesystem/credential controls from §9 already active.
-7. **Post-run hash.** Recompute the same three hashes. Any drift outside what the trial itself was
-   expected to produce (a) is evidence, not noise — record it; (b) does not, by itself, invalidate
-   the apparatus's own integrity claims unless it shows the isolation controls were bypassed
-   (D3's "invalidates" bar — see below).
+1. **Provision** a fresh coldroom VM/LXC per `CORE-Cleanroom-Rebuild-Runbook.md` Phase 1 steps
+   1–3, then a **fresh clone** — not a copy — of `DariuszNewecki/CORE` at the relevant pin.
+2. **Provision the subject** as a second fresh clone, before isolation is sealed (§11).
+3. **Seal the network boundary** (§11) — deny-list applied, allowlist restricted to the exact LLM
+   endpoints the frozen configuration requires.
+4. **Provision a disposable database** — unique name, ephemeral container, never the shared
+   `core`/`core_test` instance.
+5. **Pre-run hash.** Record sha256/`git write-tree` over the runner checkout's tree, the subject
+   checkout's tree, and the disposable database's freshly-loaded-schema state.
+6. **Run** the frozen procedure (§2 step 4's output — not authored by this document or this
+   session) via the deterministic operator harness (§9) — no Claude Code wrapper.
+7. **Post-run hash.** Recompute the same three hashes; unexpected drift is evidence, not noise.
 8. **Sanitized evidence capture.** Export the blackboard contents and any captured process
    stdout/stderr through the same `redact_secrets`/`scan_for_secrets` discipline Unit D/E already
-   established (DSN-shaped credential redaction, applied here to anything the isolated network
-   layer's own config might otherwise leak — proxy addresses, resolver IPs, any LLM API identifiers
-   present in logs).
-9. **Deterministic failure behavior.** Every failure mode — provisioning failure, network-policy
-   application failure, subject-checkout mismatch, runner crash, timeout — produces a structured,
-   labeled result (the same `_fail(stage, error)` shape Unit D/E's child scripts already use), not
-   a silent hang or an ambiguous partial state. No automatic retry inside a single trial invocation
-   (mirrors Unit D/E's "invoke the scenario exactly once" discipline).
-10. **The frozen runner is never patched during a trial.** If step 6 exposes a defect in the
-    `27160a0a` runner itself, the trial stops, is reported as a Trial 0 result exactly as it
-    occurred (D5's own instruction: "that is an honest Trial 0 result — not permission to patch
-    it"), and any correction happens afterward, on `main`, as ordinary corrective work — never by
-    editing the tagged commit, and never by silently re-running the same trial claim against a
-    patched runner without a fresh T-A-equivalent re-certification.
-11. **Teardown.** Remove exactly the disposable VM/container and disposable database created for
-    this run; the subject and runner checkouts inside it are removed with the VM (they were never
-    the operator's canonical copies — those remain the GitHub-hosted tag/SHA, always re-fetchable).
+   established.
+9. **Deterministic failure behavior; no automatic retry** inside a single trial invocation.
+10. **The frozen runner is never patched during a trial** (D5's own instruction). Any correction
+    happens afterward, on `main`, never by editing the tagged commit, never by silently re-running
+    the same trial claim against a patched runner without fresh re-certification.
+11. **Teardown.** Remove exactly the disposable VM/container and disposable database; the checkouts
+    inside it were never the operator's canonical copies.
 
-**D3 invalidation process, applied to Trial 0's own apparatus:** a finding about this apparatus
-(the isolation held, but recall was low; the isolation held, but a dependency was unexpectedly
-missing) is backlog, per D3, unless it is argued in writing to show the *apparatus itself*
-produced wrong evidence — e.g., proof that network isolation was NOT actually enforced (an egress
-succeeded that should have been blocked), or that the runner in fact had a readable path to the
-seal. Only that class of finding blocks or invalidates a Trial 0 (or later Trial 1) result;
-everything else — including "the recall figure was lower than hoped," which is explicitly not a
-threshold per D5 — is recorded and carried forward, not treated as a blocker.
+**D3 invalidation, applied to Trial 0's own apparatus:** a finding about the apparatus (isolation
+held, but recall was low; isolation held, but a dependency was unexpectedly missing) is backlog per
+D3 unless argued in writing to show the apparatus itself produced wrong evidence — proof that
+network isolation was not actually enforced, or that the runner had a readable path to the seal.
+Everything else, including "the recall figure was lower than hoped" (explicitly not a threshold per
+D5), is recorded and carried forward, not treated as a blocker.
 
 ---
 
-## 13. Acceptance criteria
+## 15. Acceptance criteria
 
-**D9 acceptance (before Trial 0 may run):**
+**D9 acceptance (before Trial 0 may run — note the ordering from §2: this follows blind procedure
+authorship, it does not precede it):**
 
-- [ ] A custody mechanism for the sealed artifact is chosen from (or equivalent to) §7's options,
-  by explicit Governor decision (§14).
-- [ ] The chosen mechanism provides a recorded content hash, reachable independent of the
-  operator's live working tree alone.
-- [ ] The chosen mechanism provides an actual retrieval path (not hash-only, per §8).
-- [ ] A re-verification step (fetch, hash, compare) is documented and has been exercised at least
-  once by re-computing the hash against the retrieved copy.
-- [ ] The runner-inaccessibility mechanism (§9) is implemented and independently demonstrated —
-  e.g., an attempted read of the seal's known path from inside the isolated substrate fails
-  (filesystem layer), and an attempted egress to a disallowed host from inside the substrate is
-  blocked (network layer) — both demonstrated without ever exposing the seal's content during the
-  demonstration.
-- [ ] **§6 finding 6 (memory-substrate leakage) is resolved, not merely acknowledged** — if the
-  runner is Claude-Code-driven, it is confirmed to start with no project memory directory, or a
-  freshly scoped one verified free of Phase 1 content, before it ever touches the subject or the
-  network-isolated substrate. Unresolved as of this document's writing (2026-09-10) — pre-existing
-  memory content confirmed present, no control yet specified.
+- [ ] Both semantic procedures (Trial 0 and Trial 1) are frozen (§2 steps 2–4).
+- [ ] The non-printing automated scan has run against the sealed artifact and passed.
+- [ ] The tracked public attestation (artifact + SHA-256 manifest) is published under
+  `.specs/attestations/`.
+- [ ] The retrieval/re-verification step (§8) has been exercised at least once independent of the
+  operator's own working copy.
+- [ ] The runner-inaccessibility mechanism (§11) is implemented and independently demonstrated —
+  an attempted read of the seal's known path from inside the isolated substrate fails, and an
+  attempted egress to a denied host is blocked — without ever exposing the seal's content during
+  the demonstration.
+- [ ] **§6 finding 6 (memory-substrate leakage) is resolved, not merely acknowledged.** Confirmed
+  present and confirmed unresolved as of this document. No Claude-Code-driven process with access
+  to CORE's current project memory may be the runner (§9 already forecloses Claude Code as the
+  runner entirely, which resolves this for the runner role specifically — but the same exclusion
+  must hold for blind procedure authorship too; the companion brief's authoring-environment
+  requirements enforce this).
 
 **Trial 0 start acceptance:**
 
 - [ ] D9 acceptance (above) is fully satisfied.
-- [ ] The coldroom VM (or equivalent substrate) is freshly provisioned per §12 steps 1–4, with
-  fresh clones (not copies) of both runner and subject pins.
-- [ ] Pre-run hashes are recorded (§12 step 5).
-- [ ] The preregistered Trial 0 procedure itself (its content, separate from this apparatus) is
-  written and reviewed.
+- [ ] The coldroom VM (or equivalent substrate) is freshly provisioned per §14 steps 1–4.
+- [ ] Pre-run hashes are recorded (§14 step 5).
+- [ ] The frozen Trial 0 procedure (§2 step 4's output) exists and has been reviewed.
 - [ ] Network/filesystem/credential controls are verified active before the procedure begins.
 
 ---
 
-## 14. Explicit non-claims
+## 16. Explicit non-claims
 
 - This document does not implement D9. No custody mechanism has been created; no VM has been
-  provisioned; no isolation control has been applied.
-- This document does not run Trial 0 or Trial 1, and does not execute another external-target
-  scenario.
+  provisioned; no isolation control has been applied; the seal has not been published, copied,
+  hashed, or scanned.
+- This document does not run Trial 0 or Trial 1, author either trial's semantic procedure, invoke
+  a fresh session, or execute another external-target scenario.
 - This document does not change any production behavior, `.intent/` semantics (beyond the single
-  authorized namespace-manifest registration for this file itself), schema, or configuration.
-- This document does not resolve which of §7's custody options the Governor will choose — that
-  decision is the smallest explicit Governor decision still required, stated plainly:
+  authorized namespace-manifest registration for this file and the companion brief), schema, or
+  configuration.
+- The blind-author brief this unit produces (`CORE-Autonomy-Trials-Blind-Author-Brief.md`) is an
+  input packet only — it is not invoked, and neither trial procedure is written, in this unit.
 
-  > **Open decision:** which of §7's three custody options (commit the sealed JSON to a
-  > runner-unreachable location; publish a hash and relocate the artifact to a governed store;
-  > or hold it in `.specs/attestations/`-equivalent governed storage with clone-order discipline)
-  > should hold the Phase 1 seal going forward? No credential, external storage account, or new
-  > infrastructure is assumed or invented by this document; the decision is which of the
-  > already-available mechanisms to use, not building a new one.
+---
 
-  > **Second open decision, more urgent than the first:** §6 finding 6 — this project's Claude
-  > Code auto-memory store already contains pre-existing Phase 1 benchmark content, predating D9,
-  > in files this document does not name or further inspect. §9's checkout-level isolation does
-  > not touch this channel at all. Before any Claude-Code-driven Trial 0/Trial 1 runner is used,
-  > the Governor must decide how that runner's memory is scoped — a fresh/empty memory directory,
-  > a filtered one, or a non-Claude-Code runner implementation entirely. This document proposes no
-  > default; it states only that §13's D9 acceptance criteria cannot be met without an explicit
-  > answer to this question.
+## 17. Incident disclosure
 
-- **Incident disclosure, not a non-claim:** while writing this document, this session accidentally
-  read approximately the first two rows' worth of content (claim text and evidence paths) from
-  `work/external-validation/seal_manifest.py`, believing it to be pure sealing tooling based on the
-  VM-302 spec's description of it. It is not pure tooling — the sealing logic and the sealed row
-  data live in the same file. No content from those rows is reproduced anywhere in this document,
-  in ADR-159's Notes, in project memory, or in this unit's final report. This is disclosed here,
-  and prominently in the final report, rather than omitted. It bears on whether this session (or
-  its transcript) should be treated as still "blind" with respect to the Phase 1 benchmark for any
-  future role — that determination is the Governor's, not this session's own, and is not resolved
-  by this document. One structural lesson this incident already justifies, independent of that
-  determination: §7/§9's design deliberately treats "the sealing script" and "the sealed data" as
-  two artifacts requiring separate custody, specifically because this project's own existing
-  `seal_manifest.py` conflates them and that conflation is what caused the accidental read.
+While preparing the *prior* pass of this document, this session accidentally read approximately
+the first two rows' worth of content (claim text and evidence paths) from
+`work/external-validation/seal_manifest.py`, believing it to be pure sealing tooling. It is not —
+the sealing/hashing logic and the sealed row data live in the same file. **No content from those
+rows is reproduced anywhere in this document, in ADR-159's Notes, in project memory, or in any
+unit's final report.**
+
+Separately, while writing the prior pass, this session found that several project-memory files
+predating D9 (written 2026-08-27 through 2026-08-29, before the sealing regime existed) already
+contain real Phase 1 benchmark content — row identifiers, claim summaries, and in at least one case
+apparent directly-quoted document text. This is **confirmed content, not a hypothetical risk**, and
+is materially larger than the single accidental read above: it means any Claude-Code-driven process
+in this project directory, including a hypothetical future trial runner if one were ever
+Claude-Code-driven, would auto-load this content regardless of any checkout-level isolation.
+
+**Consequence, stated once and acted on throughout this document rather than merely noted:** this
+session, and every session that loads CORE's current project memory, is excluded from serving as
+blind procedure author or trial runner. §9 makes the runner frozen CORE itself under a
+non-Claude-Code operator harness — which independently satisfies this exclusion for the runner
+role, since a deterministic harness invoking a frozen binary/checkout does not load this project's
+Claude Code memory at all. The companion blind-author brief's authoring-environment requirements
+(fresh stateless session, no project memory, no connectors, no repository/web access) satisfy it
+for the authorship role.
+
+This determination — whether this session or its transcript should be treated as still eligible for
+any other role touching Trial 0/Trial 1 — remains the Governor's, not this session's own to decide
+beyond what is stated above.

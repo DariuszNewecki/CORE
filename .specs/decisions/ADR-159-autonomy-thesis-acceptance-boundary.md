@@ -379,3 +379,26 @@ EC-1A/EC-1B sit relative to those thresholds").
 - Trial 1 is governance-document evaluation (CORE's Phase 1 apparatus against the frozen ITAM
   Governance Library, D6); EC-1A is the later source-code evaluation. Different subjects,
   modalities, evaluation claims, and thresholds — not folded together.
+
+### 2026-09-10 — Governor ruling: D9 blindness, authorship, and runner boundaries
+
+- The same sealed eight-row Phase 1 benchmark supports both Trial 0 and Trial 1. The semantic
+  procedures for both trials, including their prompts, authority boundaries, permitted inputs,
+  required outputs, and scoring rules, must therefore be authored and frozen before the seal is
+  published in a location accessible to ordinary repository assistants.
+- Neither Claude Code nor any session loading CORE project memory may serve as blind procedure
+  author or trial runner. Blind procedure authorship must use a fresh stateless session with no
+  project memory, conversation history, connectors, repository access, web access, or
+  sealed-content access. It receives only the frozen blind-author brief.
+- After both semantic procedures are frozen, D9 custody will use a tracked public attestation
+  containing the exact sealed artifact and its SHA-256 manifest, provided a non-printing automated
+  scan first proves that the artifact contains no credentials or sensitive material. If that scan
+  fails, publication is refused and a new custody ruling is required.
+- Trial 0 and Trial 1 will be executed by their frozen CORE runners directly inside the isolated
+  coldroom substrate. Claude Code is not the runtime wrapper. CORE may use only its pinned
+  cognitive/LLM resources. No Claude Code memory, interactive-agent context, connector state, or
+  server-side browsing/fetch capability may enter either runner.
+- Network access is restricted, not absent. After pinned inputs are provisioned, the runner may
+  reach only the exact LLM API endpoints its frozen configuration requires. GitHub and
+  content-delivery endpoints remain denied, and model-provider tools capable of server-side
+  retrieval, browsing, connectors, URL fetching, or search must be absent or disabled.
