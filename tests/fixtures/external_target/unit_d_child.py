@@ -26,6 +26,16 @@ Writes one JSON result to <result_path> and never raises past its own
 outer try/except -- every failure mode becomes a structured ``ok: False``
 result with a ``stage`` name, so the parent can report a specific blocker
 rather than a crashed child with no evidence.
+
+``_run`` accepts an optional ``goal`` override (default: this module's own
+``_GOAL``), added so Unit E's ``unit_e_child.py`` can reuse this exact,
+unmodified construction/approval/worker-invocation sequence under its own
+Proposal goal string rather than duplicating it -- the two units' live
+routes are otherwise identical: what differs for Unit E is the target
+repo's pre-existing staged state (``scripts/outside.py``), set up by
+``unit_e_orchestrator.py`` before this process is spawned, never anything
+in this module. Unit D's own invocation (``main()``, unchanged) still
+calls ``_run(target)`` with the default goal.
 """
 
 from __future__ import annotations
@@ -90,7 +100,7 @@ async def _run_worker_once(
     return None
 
 
-async def _run(target: Path) -> dict:
+async def _run(target: Path, *, goal: str = _GOAL) -> dict:
     # Step 1 -- Unit A's binding guard, before any heavy import.
     from shared.infrastructure.external_target_binding import (
         ExternalTargetBindingError,
@@ -153,7 +163,7 @@ async def _run(target: Path) -> dict:
     )
 
     proposal = Proposal(
-        goal=_GOAL,
+        goal=goal,
         actions=[
             ProposalAction(
                 action_id="fix.format",
