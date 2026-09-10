@@ -223,10 +223,21 @@ exception (~2 of 8 rows), during this pass's own predecessor, with no content re
    figure could be quietly revised. `seal_manifest.py`'s own sha256-over-canonical-bytes pattern
    (confirmed to exist by structural reference, never read further than necessary to confirm its
    shape) is the existing mitigation; §7's published manifest makes it independently checkable.
-4. **Operator-as-single-witness.** The Governor is both the seal's author and, in a solo-developer
-   project, the only human available at all. §12 states precisely what this design can and cannot
-   claim about that — see the retrieval-independence / scoring-separation split there; the prior
-   pass's "a different session is a practical substitute" claim is withdrawn, not merely reworded.
+4. **Operator-as-single-witness.** **Correction, 2026-09-10:** the prior wording here — "the
+   Governor is both the seal's author..." — was false. The Governor states he did not knowingly
+   author the sealed benchmark and has not read it. Tracked records were searched for the seal's
+   actual authorship (repository files and git history, excluding `work/`); they establish only
+   that the artifact is **governor-signed** (ADR-159 D9; this document's §17 opening) — a
+   sign-off/custody act, not an authorship claim — and that a separate, ungitignored-only "VM-302
+   blind-author isolation runbook" is referenced alongside the sealed benchmark as existing on the
+   operator's disk (ADR-159 D9). No tracked file states who or what produced the benchmark's eight
+   rows, and no tracked file ties VM-302's isolation mechanism to this specific artifact's
+   production. **Authorship is not established by tracked records.** What this point's remaining
+   argument does not depend on: regardless of who or what authored the seal's content, the
+   Governor remains, in a solo-developer project, the only human available at all. §12 states
+   precisely what this design can and cannot claim about that — see the retrieval-independence /
+   scoring-separation split there; the prior pass's "a different session is a practical
+   substitute" claim is withdrawn, not merely reworded.
 5. **Incidental leakage via tooling.** The prior pass of this document (and its predecessor
    session) accidentally read part of the seal's content while inspecting what was believed to be
    pure sealing *tooling* — `seal_manifest.py` embeds both the sealing logic and the row data in
@@ -477,6 +488,33 @@ procedure above — deliberately two different mechanisms, not one mechanism ask
 | **Evaluator** (whoever performs §12's scoring step) | Comparing exported evidence against the independently-retrieved seal; computing the recall figure; reporting it as a number before interpretation. | Scoring before the runner terminates; using anything other than the frozen scoring rules; being treated as sufficient for retrieval independence on its own (§12). |
 | **Governor** | Final sign-off; the only party who can sign a threshold claim (ADR-159 D2); deciding D3 invalidation arguments; the decisions already made in this ruling (custody mechanism, runner boundary, network policy). | Nothing here removes any existing Governor authority. |
 
+**2026-09-10 addendum — concrete role substitutions.** ADR-159's 2026-09-10 Note states that
+stateless computational instances may perform independence roles — witnessing, reconstruction,
+scoring, adjudication — and that these substitutions never transfer constitutional sign-off.
+Mapped onto the roles Documents A/B define (filed at
+`.specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md`):
+
+- **Witness** (A4, B4) = deterministic hashing/timestamping/ordering code, not a person or an LLM
+  instance — the same mechanical hash-recording steps this document's own harness already performs
+  (§14 steps 5/7).
+- **Independent Reconstructor** (B4; B8 C4/C5) = a fresh stateless instance given Bundle R only —
+  never Bundle X, never the runner's logs or source, per B7's own bundle definition and C5's
+  requirement that Bundle X should not be needed.
+- **Trial 0 Scorer and Second Adjudicator** (A4, A10) = independent stateless instances, each given
+  only the sealed evidence bundle, the answer key, and the pre-hashed matching rule (A10.1), after
+  the run terminates, per A9/A10's ordering.
+- **Trial 1 adjudicators** (B4; B8 C6) = at least three independent stateless instances performing
+  the blinded C6 comparison; model diversity across the three is preferred, not required by
+  anything in Document B.
+- **None of these substitutions transfers constitutional sign-off.** Per ADR-159 D2 ("Claude never
+  signs a threshold") and the 2026-09-10 Note, the human Governor alone accepts threshold evidence
+  and authorizes progression, regardless of which roles above are filled by stateless instances.
+
+**Arms S and M (Document B §B8, C6) are a legitimate elaboration of D6's marginal-value
+criterion — not yet ratified.** Their specific models, task-statement issuance mechanics, and
+resource/time budgets remain open, pending a separate Governor ruling; nothing in this document or
+the filed procedures fixes them.
+
 ---
 
 ## 14. Trial 0 isolated checkout/process design
@@ -558,6 +596,16 @@ authorship, it does not precede it):**
   configuration.
 - The blind-author brief this unit produces (`CORE-Autonomy-Trials-Blind-Author-Brief.md`) is an
   input packet only — it is not invoked, and neither trial procedure is written, in this unit.
+- **2026-09-10 addendum.** Both trial procedures have since been produced by the blind author and
+  filed at `.specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md`. They are
+  retained as **semantic source material** — the intended content of Trial 0's and Trial 1's
+  procedures — but neither is executable as written against either pinned runner: the
+  `.specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md` headline finding, confirmed
+  and extended by its 2026-09-10 addendum, establishes that neither `27160a0a` nor `b57423dc`
+  exposes a free-text task-statement interface matching what Document A §A6 / Document B §B6
+  assume. This document does not resolve that gap, adapt either procedure to work around it, or
+  decide whether the interface, the procedure, or neither should change — see the appendix's own
+  addendum for what a narrower, non-agentic route at the pins can and cannot support instead.
 
 ---
 

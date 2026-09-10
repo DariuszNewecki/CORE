@@ -279,3 +279,167 @@ above, and does not invent one.
 No item above rests on inference alone; every row cites a specific file, docstring, or diffed
 absence. No open/unresolved-classification item remains — the evidence for item 14 is conclusive,
 not ambiguous, which is itself the finding.
+
+---
+
+## Addendum (2026-09-10) — the external-repository route
+
+**Method, unchanged:** Git object reads only (`git show`, `git grep`, `git ls-tree`) at both
+pins, `27160a0a8768cf72bbe2a8fecc3d9169db758efc` and `b57423dc85c11c6650a9515c136bab49b02107ec`.
+No checkout, no execution. All six files below are byte-identical between the two pins
+(confirmed by SHA-256 comparison of `git show <pin>:<path>` output).
+
+**The headline finding above stands, unmodified, for a free-text task statement.** Nothing below
+changes it. What this addendum adds: the pins *do* contain a real, production, non-agentic route
+for bringing an external repository under CORE's governance and evaluating it — BYOR onboarding
+into `--offline` audit. It was omitted from the item-by-item findings above. It is a materially
+different shape from what Documents A/§A6 and B/§B6 assume, detailed below.
+
+### Component 1 — BYOR (`src/cli/logic/byor.py`)
+
+1. **Invocation:** `initialize_repository(context, path, dry_run, stage_dir)` and
+   `promote_staged(context, path)`. **Not registered as a CLI command at either pin** — the
+   `project` Typer app (`src/cli/resources/project/__init__.py`) registers only `new`
+   (`new.py:15`) and `adopt-pack` (`adopt_pack.py:46`); no `onboard` command exists there. The
+   only live callers found are `src/api/v1/onboard_routes.py:114` (`POST /project/onboard`) and
+   `:161` (`POST /project/onboard/promote`), both gated `dependencies=[require_governor]`
+   (`onboard_routes.py:80-84`, `:151-155`). `src/cli/interactive.py:139-147` constructs a shell
+   command `core-admin manage project onboard <path> --write` from its TUI menu — **this
+   subcommand does not exist in the registered CLI tree at either pin**; the reference is itself
+   unwired, not evidence the command exists.
+2. **Writes into the target:** yes — `<target>/.intent/{META,constitution,enforcement/config,
+   taxonomies}/` (`byor.py:42-47`, `:217-233`, direct `shutil.copy2`, `byor.py:223`). Refuses if
+   the target already has `.intent/` (`byor.py:183-189`). A disposable copy of any read-only-
+   pinned subject would be required before this route could run against it — the write is not
+   optional or gated by a dry-run-only mode in production use (`dry_run=False`/`--write` is the
+   documented path to actually onboard a repo).
+3. **LLM/network:** none. Imports are `importlib.resources`, `shutil`, `pathlib`, `typer`,
+   `shared.logger` only (`byor.py:24-31`) — no provider, no HTTP client.
+4. **Findings/evidence destination:** `logger.info`/`logger.error` lines only (stdout/log
+   stream, e.g. `byor.py:205-210`, `:253-263`). No file manifest beyond the copied `.intent/`
+   tree itself; no blackboard entry — nothing in this module posts to the blackboard, and BYOR is
+   not a `Worker` subclass (the only class constitutionally permitted to `INSERT` into
+   `core.blackboard_entries`).
+5. **Stopping/timeout/budget:** none beyond normal Python execution — a fixed, single-pass file
+   copy over a pre-declared prefix list (`_MACHINERY_FLOOR_PREFIXES`, `byor.py:42-47`). No
+   retries, no external calls to bound.
+6. **Self-directed vs. fixed:** fixed. Copies exactly the four declared prefixes; no decision
+   about what to examine or copy.
+
+### Component 2 — Scout (`src/cli/logic/scout.py`, plus the real route in `src/api/v1/scout_routes.py`)
+
+**Two different implementations exist, and only one is reachable.**
+
+1. **Invocation:** `induce_rules(context, path, dry_run, reset)` (`scout.py:215`) is the
+   interactive, full version — LLM proposal, per-rule Rich-prompt ratification
+   (`_run_confirm_loop`, `scout.py:838-886`), then writes both output files. **It has zero call
+   sites anywhere in `src/` at either pin** (`git grep -n "induce_rules(" src/` matches only its
+   own `def` and one docstring mention). It is not wired to any CLI command or API route — dead
+   from a reachability standpoint, not merely undocumented. The live route,
+   `POST /project/scout` (`scout_routes.py:52-56`, gated `require_governor`), reimplements steps
+   1-3 inline (`ScoutAnalyzer` + `ScoutInducer` directly) and imports only three private helpers
+   from `scout.py` (`_load_enforcement_catalog`, `_load_fallback_candidates`,
+   `_match_enforcement`; `scout_routes.py:78-82`) — **not** `induce_rules` itself, and its own
+   docstring states it "Does NOT write `.intent/` files — the caller (CLI) handles interactive
+   ratification" (`scout_routes.py:70-72`). That CLI caller does not exist at either pin: the
+   `ProjectClient.scout()` HTTP client method (`src/api/cli/project_client.py:56-60`) has zero
+   call sites in `src/cli/**`. Net effect: the API route can compute candidates, but nothing in
+   the pinned tree can ratify or write them — Scout's write path is unreachable end-to-end at
+   both pins, by two independent gaps (no CLI wiring to the API client; no CLI wiring to
+   `induce_rules` either).
+2. **Writes into the target:** if `induce_rules` were invoked directly (e.g. by a future wrapper),
+   yes — `<target>/.intent/rules/scout_inducted.json` and
+   `<target>/.intent/enforcement/mappings/scout.yaml`, via direct `dest.write_text`
+   (`scout.py:1011-1036`), explicitly bypassing `ActionExecutor`/`FileHandler` ("scout.py is
+   excluded in mutation_surface.yaml", `scout.py:27-29`). Same disposable-copy consequence as
+   BYOR.
+3. **LLM/network:** yes, in the Suggest step — one call via `cognitive_service` →
+   `ScoutInducer` (`mind.logic.scout_inducer`) using the same DB-configured provider layer
+   documented in the original findings (item 9/13); falls back to a fixed 4-rule universal menu
+   with no LLM call at all if the cognitive service is unavailable (`scout.py:280-322`,
+   `scout_routes.py:114-146`).
+4. **Findings/evidence destination:** the API route returns a JSON dict to its caller
+   (`scout_routes.py:158-164`) — not the blackboard, not a file. `induce_rules`, if reachable,
+   would write the two `.intent/` files above and print Rich console lines — also not the
+   blackboard.
+5. **Stopping/timeout/budget:** one LLM call bounded by the same per-call HTTP timeouts as
+   elsewhere (`LLMConfig`, prior design doc item 10) — no whole-operation budget. Signal
+   extraction itself (`_extract_repo_signals`, `scout.py:452-576`) is a single deterministic
+   full-repository AST walk, not iteratively bounded.
+6. **Self-directed vs. fixed:** partially, and narrowly. The LLM proposes candidate rules from a
+   pre-computed **aggregate numeric signal report** (counts/ratios of docstrings, bare excepts,
+   decorators, etc. — `_format_signal_report`, `scout.py:579-646`), not from browsing source
+   text or planning an investigation. Signal extraction itself
+   (`_extract_repo_signals`, `scout.py:452-576`) walks **only `**/*.py` files via `ast.parse`**
+   — it has no mechanism for a non-Python, document-shaped corpus. This matters directly for
+   Trial 1 (see mapping below): the pinned Scout implementation could not meaningfully process
+   `DariuszNewecki/ITAM-Governance-Library` (governance documents, not Python source) even if it
+   were reachable.
+
+### Component 3 — `core-admin code audit --offline --target <path>` (`src/cli/resources/code/audit.py`)
+
+The one component of the three that is **actually a registered, directly invocable CLI command**
+at both pins.
+
+1. **Invocation:** `@app.command("audit")` (`audit.py:61`), `--offline --target <path>` options
+   (`audit.py:95-116`). No governor gate, no API round-trip — runs locally in-process.
+2. **Writes into the target:** no. Reads the target's `.intent/` via `IntentRepository`
+   (`audit.py:279-280`) and the target's source tree for rule execution; produces no output file
+   under the target. Requires the target to already have `.intent/` (i.e., BYOR/Scout — or manual
+   authoring — must have already run).
+3. **LLM/network:** none in `--offline` mode. `mind.governance.stateless_audit`'s own module
+   docstring states the boundary directly: "Mind layer, read-only. No filesystem writes. No DB
+   access (that's the whole point). No worker dispatch." (`stateless_audit.py:36-39`).
+   `knowledge_gate` and `llm_gate` rules are partitioned out before dispatch and reported in
+   `skipped_rules` rather than silently degraded (`stateless_audit.py:16-31`).
+4. **Findings/evidence destination — directly answers the ADR-159 D5/D6 blackboard question:**
+   **no blackboard record of any kind.** `run_stateless_audit` never opens a DB session
+   (`session_provider=None`, `stateless_audit.py:166`) and is explicitly documented as having
+   "No DB access." Output goes to stdout only, shaped by `--format`
+   (`text`/`json`/`github-annotations`/`codeclimate`; `audit.py:334-341`). The Constitutional-
+   Coherence and Representation-Coherence advisory lines that *do* open `get_session()`
+   (`audit.py:209-224`) belong to the **non-offline** branch only — the offline branch returns
+   before reaching that code (`audit.py:162-169`). **This means `--offline` cannot, as pinned,
+   satisfy ADR-159 D5's "every outcome is reconstructable from the blackboard" (I-4) or D6's C5
+   reconstructability criterion — there is no blackboard export to reconstruct from.**
+5. **Stopping/timeout/budget:** a single bounded pass over the declared, pre-selected rule set;
+   no LLM calls to bound, no iterative loop.
+6. **Self-directed vs. fixed:** fixed. A rule-execution engine applying a pre-declared rule set
+   uniformly; it does not decide what to examine.
+
+### Mapping against Trial 0 (ADR-159 D5)
+
+**Largely not applicable, and for a structural reason worth stating plainly rather than forcing
+a fit:** Trial 0's subject is frozen CORE itself (`c4d9fdf9...`), which already has its own native
+`.intent/` — it does not need BYOR onboarding, and Trial 0's apparatus (Document A) never invokes
+BYOR/Scout/audit-with-`--target` at all. The external-repository route exists for bringing a
+*different* repository under governance, not for evaluating CORE's own frozen snapshot.
+
+| Trial 0 requirement | Mapping | Basis |
+|---|---|---|
+| I-1 Read-only enforcement | **Unsupported** | BYOR/Scout write into the target by design; the route is not shaped for a read-only subject at all. Not applicable to Trial 0's actual subject (CORE doesn't need onboarding). |
+| I-2 Output isolation | **Undetermined** | `code audit --offline` itself writes nothing (Component 3, point 2) — isolated by construction — but this was never exercised against Trial 0's subject/output-store shape. |
+| I-3 No later-state leakage | **Undetermined** | Not exercised against the pinned subject; no evidence either way. |
+| I-4 Reconstructability (blackboard) | **Unsupported** | Confirmed directly: `--offline` produces no blackboard record (Component 3, point 4). |
+| I-5 / I-6 Mutation/authority boundary probes | **Undetermined** | BYOR/Scout do have real refusal paths (unsafe-target rejection, `.intent/`-exists refusal, `require_governor` gates) but these were never exercised as the specific pre-declared A7 probes Document A defines. |
+| Eight-row recall figure | **Unsupported** | None of the three components performs an open-ended investigation of a codebase capable of independently recovering findings; audit `--offline` applies only its own already-declared rule set, not a discovery process over unknown defects. |
+
+### Mapping against Trial 1 (ADR-159 D6)
+
+| Criterion | Mapping | Basis |
+|---|---|---|
+| C1 Comprehension (no human decomposition) | **Unsupported** | Audit `--offline` applies a fixed, pre-declared rule set — there is no comprehension step to decompose or not decompose. Scout's LLM step works from a pre-computed numeric digest, not from reading the corpus itself, and its digest-extraction is Python-AST-only — it cannot process a governance-document corpus like the Trial 1 subject at all (Component 2, point 6). |
+| C2 Independent planning | **Unsupported** | No component plans an investigation; BYOR/audit are fixed-procedure, Scout's LLM call proposes rule candidates from a digest, not a plan of what to examine next. |
+| C3 Boundary respect | **Supported, narrowly** | Real refusal paths exist and are attributable to a rule/config (BYOR's unsafe-target and existing-`.intent/` refusals; `require_governor` gates on the write routes) — but these are governance-config refusals, not the mutation/authority-probe refusals C3 specifically defines, and were never exercised as such. |
+| C4 Honest unavailability (mandatory) | **Undetermined** | None of the three components was run against Trial 1's actual subject in this inspection (no execution occurred, per this unit's own constraints); whether output correctly declares unavailable evidence cannot be assessed from source reading alone. |
+| C5 Reconstructability (mandatory) | **Unsupported** | Directly confirmed: `--offline` audit produces no blackboard record (Component 3, point 4), and BYOR/Scout post nothing to the blackboard either (Components 1-2, point 4). C5 requires end-to-end blackboard reconstruction; there is nothing to reconstruct from. |
+| C6 Marginal value (G vs S vs M arms) | **Not applicable** | This route has no arm structure and is not invoked via a task statement comparable across arms — it is a separate governance pipeline, not a runner exercising Document B's protocol. |
+
+**C4 and C5 are both mandatory (B9); C5 is directly unsupported by source evidence alone. This
+route, as pinned, does not satisfy Trial 1 as Document B defines it — consistent with, not
+contradicting, the original headline finding.**
+
+**Left explicitly open, per instruction — not decided here:** whether this non-agentic route
+could satisfy D6's "independent planning" criterion under some different invocation or framing is
+a Governor decision, not resolved by this addendum. No wrapper, prompt channel, or production
+change is proposed to close any gap identified above.
