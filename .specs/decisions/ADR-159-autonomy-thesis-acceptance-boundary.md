@@ -402,3 +402,32 @@ EC-1A/EC-1B sit relative to those thresholds").
   reach only the exact LLM API endpoints its frozen configuration requires. GitHub and
   content-delivery endpoints remain denied, and model-provider tools capable of server-side
   retrieval, browsing, connectors, URL fetching, or search must be absent or disabled.
+
+### 2026-09-10 — Governor ruling: seal scope correction and operator sign-off
+
+**Seal scope.** This corrects the preceding 2026-09-10 Note's opening statement that "the same
+sealed eight-row Phase 1 benchmark supports both Trial 0 and Trial 1." It does not:
+
+- Direct eight-row seal-recall scoring, as D5 describes it, applies to **Trial 0 only**.
+- Trial 1's PASS/FAIL is governed exclusively by D6's six criteria. No seal-recall criterion is
+  added to Trial 1 by this or any other Note.
+- The seal remains unavailable to the Trial 1 governed runner and to the comparison arms, and is
+  not opened or used during Trial 1 scoring.
+
+Consequence: the preceding Note's requirement that Trial 1's semantic procedure be frozen before
+seal publication no longer derives from seal scoring, because Trial 1 does not score against the
+seal. No other text in this ADR (D1–D9) independently requires Trial 1's procedure to be frozen
+before seal publication — D9 names only "the Trial-0 runner" in its access constraint, and D6
+states Trial 1's six criteria without reference to publication timing. The requirement to freeze
+both procedures before seal publication therefore stands as an operational design choice recorded
+in `.specs/planning/`, not as an ADR-level requirement for Trial 1 specifically.
+
+**Operator and sign-off.** The Governor states he has not read the sealed benchmark. The trial
+design does not rely on that fact: the Run Operator role is deterministic and mechanical (detailed
+in `.specs/planning/CORE-D9-Trial0-Apparatus-Design.md`), so operator blindness is not a control
+this ADR depends on.
+
+Stateless computational instances may perform independence roles — witnessing, reconstruction,
+scoring, adjudication. These substitutions never transfer constitutional sign-off: the human
+Governor alone accepts threshold evidence and authorizes progression (D2: "Claude never signs a
+threshold").

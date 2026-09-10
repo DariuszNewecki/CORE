@@ -87,6 +87,32 @@ pass criterion. A defect discovered in the *apparatus* (isolation, evidence capt
 plumbing) is fixable under that argument. A defect discovered in the *procedure itself* is not
 silently patchable — see §14's D3 discussion, unchanged in substance from the prior pass.
 
+**2026-09-10 update — steps 2–3 advanced; step 7 now has a disclosed blocker.** The blind-author
+brief was delivered to a fresh, stateless session (Claude Opus 5, Playground; no project
+attachment, memory, connectors, or repository/web access per its own "Author's note on
+environment"). Both Trial 0 and Trial 1 procedures were produced in that single generation attempt.
+The raw output is filed, with full provenance disclosure, at
+`.specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md` — custody, not authorship;
+see that file's own §1 for why a session with loaded project memory may file it without violating
+the exclusion above.
+
+Independently, `.specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md` (read-only
+object-level inspection of both frozen runner pins, no checkout or execution) found that **neither
+pin exposes an interface matching what both procedures assume** — a component that accepts a
+free-text task statement and autonomously plans and executes a multi-step investigation, recording
+its own findings to the blackboard. The closest real primitives at both pins are a non-executing
+constitutional-validation demo, a read-only/non-execution conversational Q&A path, and a
+goal-blind named-worker launcher. Full evidence: the Appendix's headline finding and its
+item-by-item detail (items 1–14).
+
+**This is a blocker on step 7 (Trial 0 execution), not resolved by this document.** Realizing
+either procedure as written against `27160a0a` would require new production code that does not
+exist at that pin — which step 2's own ordering constraint (blind authorship before D9, D9 before
+execution) does not license this document, or any session, to design, build, or route around.
+Whether to adapt the runner, adapt the procedure, or treat this as a Trial 0 finding in its own
+right is **the Governor's decision, to be made separately** — not resolved here and not implied by
+anything above.
+
 ---
 
 ## 3. Exact pins
@@ -114,6 +140,18 @@ The Trial 1 runner is the last baseline containing the Governor-authorized exter
 package — including physical symlink-containment enforcement (`b57423dc` itself) — while excluding
 the later Unit D/E execution scaffolding and write-path corrections. First excluded commit:
 `c0694953`. See §5 for the full commit ledger.
+
+### Blind-authored procedure pin cross-verification (2026-09-10)
+
+The four pins above were checked, verbatim, against the corresponding pins copied into the
+blind-authored Document A §A3 and Document B §B3 (preserved at
+`.specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md`). All four match exactly:
+Trial 0 runner (`27160a0a...` / tag `autonomy-experiment-ready-2026-09-04`), Trial 0 subject
+(`c4d9fdf9...`), Trial 1 runner (`b57423dc...`), Trial 1 subject (`a2fe0a62...`). The blind author's
+own note discloses these were copied "verbatim and unverified" from its perspective (it had no
+means to reach anything); this cross-check is the corresponding verification from this side —
+confirming the brief delivered the correct pins, not confirming the pins themselves resolve at
+execution time (that remains A5/B5's job, unperformed, at run time).
 
 ---
 
@@ -204,6 +242,15 @@ exception (~2 of 8 rows), during this pass's own predecessor, with no content re
    harness — not Claude Code, and not any process that would auto-load this project's memory.**
    Blind procedure authorship carries the identical requirement (§2 step 3; the companion brief
    specifies a session with no project memory at all).
+7. **Custody of the blind author's raw output is not the same exposure as authorship or running.**
+   §6 point 6's exclusion is scoped to *producing* a procedure or *running* a trial with
+   memory-loaded context, because contaminated memory could leak answer-key content into work that
+   is later scored. Receiving already-finished text from a stateless author, checking its
+   provenance, and filing it unmodified is a custodial act on text the custodian did not generate —
+   there is no channel for this session's memory to alter content it never authored. (Governor
+   ruling, 2026-09-10, recorded here because this is the section that states the exclusion this
+   ruling narrows.) This does not reopen or soften points 1–6 above: a memory-loaded session remains
+   excluded from writing either procedure and from being any trial's runner, scorer, or adjudicator.
 
 ---
 

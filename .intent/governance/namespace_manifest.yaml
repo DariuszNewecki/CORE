@@ -1808,6 +1808,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/attestations/soak-closure-f7430b25-20260726.md
     governance_namespace: project::core
+  - path: .specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md
@@ -1823,6 +1825,8 @@ classifications:
   - path: .specs/planning/CORE-D9-Trial0-Apparatus-Design.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Autonomy-Trials-Blind-Author-Brief.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
     governance_namespace: project::core
