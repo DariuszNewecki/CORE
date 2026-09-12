@@ -431,3 +431,58 @@ Stateless computational instances may perform independence roles — witnessing,
 scoring, adjudication. These substitutions never transfer constitutional sign-off: the human
 Governor alone accepts threshold evidence and authorizes progression (D2: "Claude never signs a
 threshold").
+
+### 2026-09-12 — Governor ruling: D3 invalidation filed against the preregistered trial sequence
+
+On 2026-09-12 the Governor filed a D3 invalidation against the preregistered trial sequence.
+
+**Ground.** `.specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md` establishes, by
+direct object-level inspection of both frozen runner pins (`27160a0a...`, `b57423dc...`,
+byte-identical on every file cited), that neither pin exposes an interface matching what the
+blind-authored Trial 0 and Trial 1 procedures assume (Document A §A6 / Document B §B6): a
+component that accepts a free-text goal, autonomously plans and executes a multi-step
+investigation, and records its own findings to the blackboard. The appendix's addendum further
+finds that the one production, non-agentic route for external-repository governance present at
+either pin — BYOR onboarding into `--offline` audit — does not close this gap: `--offline` audit
+produces **no blackboard record of any kind** (`stateless_audit.py`'s own docstring: "No
+filesystem writes. No DB access... No worker dispatch"), and both BYOR and Scout's write paths are
+**unreachable end-to-end at both pins** (BYOR has no CLI wiring at either pin; Scout's full
+`induce_rules` has zero call sites in `src/`, and its live API route explicitly does not write,
+with no CLI caller of either the route or `induce_rules` present at either pin). Mapped against
+D6's criteria: C1 (comprehension) and C2 (independent planning) are unsupported, and **C5
+(reconstructability), mandatory per D6, is unsupported** — there is nothing to reconstruct from.
+
+This is a written invalidation argument, not a report of a weakness the D3 containment rule would
+route to backlog: the finding does not say CORE could be better, it says the trial as
+preregistered cannot produce the evidence D6 requires, because the runner it would run against
+cannot execute the procedure the trial assumes.
+
+**Consequence.** Trial 0 and Trial 1 are suspended. They are not cancelled, rebaselined, or
+loosened. Both pins remain frozen exactly as recorded in the 2026-09-10 Note above
+(`27160a0a...` for Trial 0, `b57423dc...` for Trial 1). No trial may start until a new runner
+baseline is certified against D6's criteria — certification, not a patch to either existing pin
+mid-flight, consistent with D5's own instruction that the frozen runner is never patched during a
+trial.
+
+**Root cause.** The T-A gate set (G1–G8) certified CORE's governance machinery — policy
+validation, impact authorization, the blackboard, the proposal lifecycle — without testing
+whether CORE could execute the specific experiment that machinery was certified for. Record this
+as the defect to avoid when defining any future readiness gate: a certified baseline is evidence
+that CORE is safe to run, not evidence that CORE has anything to run.
+
+**D9 and the seal work remain valid, and are deferred, not discarded.** Nothing in this
+invalidation reopens D9's custody requirements, the blind-author brief, or the frozen procedures
+themselves (`.specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md`). They
+resume once a certified runner baseline exists.
+
+**Remediation scope — and nothing beyond it.** CORE must gain:
+
+1. an interface accepting a target and a goal;
+2. self-directed planning of its own investigation;
+3. Blackboard recording of findings, refusals, and explicit unavailability;
+4. export of that record.
+
+`706437a6` (#873) addresses item 3 in part — a genuine `GoalExecutionWorker` making one
+CORE-internal goal-driven run reconstructable from the blackboard, with a correlated run
+identity. It does not address items 1, 2, or 4, and does not by itself make Trial 0 or Trial 1
+runnable.
