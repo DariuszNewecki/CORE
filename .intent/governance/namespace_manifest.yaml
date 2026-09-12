@@ -742,6 +742,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/workers/db_sync_worker.yaml
     governance_namespace: project::core
+  - path: .intent/workers/goal_execution_worker.yaml
+    governance_namespace: project::core
   - path: .intent/workers/governance_embedder.yaml
     governance_namespace: project::core
   - path: .intent/workers/intent_inspector.yaml
