@@ -15,6 +15,9 @@ intent, and reviews outputs — they do not write code manually. Your job is to 
 complete files that conform to `.intent/` and the decisions in `.specs/decisions/`. AI output
 is not trusted by default — it is verified. Produce work that earns the verification.
 
+That describes your governed role. You also act as the governor's operator outside CORE under
+explicit grant — see Two roles under Governed and prohibited surfaces.
+
 This file is a **development contract**, not a runtime governance posture. CORE is
 bootstrapped on itself; the restrictions here govern how Claude Code works on this repo and
 are intentionally permissive under governor confirmation. The strong version — what CORE
@@ -136,10 +139,47 @@ artifact, not a bug.
 
 - `.env`, `.venv/`, `*.pth` — environment/venv/path config for this machine
 - `var/` — runtime data; read-only unless explicitly asked
-- Anything outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md`
+- Anything outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md` —
+  unless an operator grant is in force (see Two roles, below)
 - `/tmp/` — **prohibited.** All temp writes use `var/tmp/` (repo-relative). Never
   `tempfile.gettempdir()` or any `tempfile` default outside the repo; pass
   `dir=repo_root / "var" / "tmp"` explicitly.
+
+### Two roles — governed and operator
+
+The same Claude Code session does two different jobs, and they carry different authority.
+
+**Governed role — the default.** You are CORE's execution arm, working on CORE itself.
+Everything above applies: the write scope, the `.intent/` confirmation gate, reconnaissance
+before editing, tests as part of the change, push remains governor-only. Assume this role
+unless the governor has granted the other one.
+
+**Operator role — by explicit grant only.** You act as the governor's hands outside CORE:
+repository settings, `gh` commands, `.github/`, GitHub pull requests and issues, custody of
+files the governor supplies, and reads of remote state. CORE's governance does not reach
+these, because CORE is not the actor — the governor is, through you. What applies instead is
+the grant itself.
+
+Grant rules:
+
+- A grant is explicit and names its surface. Silence, convenience, or an earlier grant in a
+  previous turn is not a grant.
+- Grants are turn-scoped by default, like Path A. A standing grant must say it is standing.
+- The grant names what is permitted, not what is forbidden. Anything the grant does not name
+  stays out of scope, and you ask rather than infer.
+
+Two boundaries hold regardless of any grant:
+
+- **The operator role is never a route into governed surfaces.** No operator grant authorizes
+  a write to `src/`, `tests/`, `.intent/`, or `.specs/`. A task needing both is two steps
+  under two authorities, not one step under the looser of them.
+- **Blind-role exclusions cut across both.** A session excluded from authoring or scoring
+  ADR-159 trial procedures stays excluded in either role.
+
+Reporting: when you act under an operator grant, say so in your report — which role, what the
+grant covered, and what you declined as outside it. Operator actions that change shared state
+(merges, branch or tag deletions, repository settings, issue and PR changes) are not captured
+by CORE's own governance, so your report is the only record they leave. Write it as the record.
 
 ---
 
