@@ -14,9 +14,16 @@ Constitutional standing:
 - Phase:            execution
 - Permitted tools:  see declaration (the union of action_ids reachable from
                      the refactor_modularity / coverage_remediation workflows)
-- Approval:         not declared — this worker never creates Proposals; the
-                     field has no enforced meaning for a non-Proposal-emitting
-                     worker (verified: no code reads Worker.approval_required)
+- Approval:         not declared on this Worker's own YAML — `Worker.
+                     approval_required` still has no enforced meaning here
+                     (verified: no code reads it off a Worker instance).
+                     `Proposal.approval_required` is a separate, unrelated
+                     field on the Proposal objects this worker now creates
+                     in `create_proposal_only` mode (ADR-160 D3) — see
+                     `.intent/workers/violation_remediator.yaml`'s
+                     `permitted_tools: []` for the established precedent
+                     that Proposal creation is not gated by this
+                     declaration's `permitted_tools` field.
 
 LAYER: will/workers — acting worker. Receives CoreContext + the per-call goal
 via constructor (one instance per invocation; not scheduler-polled — see
@@ -42,11 +49,20 @@ is correlated to this run's Blackboard evidence with no new column and no
 duplicated persistence.
 
 Out of scope for this worker (ADR-159 D4 / #872): external-target binding,
-target reconnaissance/comprehension, and the Proposal lifecycle. This worker
-executes exactly what `develop_from_goal` already executed today
-(CORE-internal goal, direct ActionExecutor calls) — it adds reconstructable
-evidence around that existing, already-governor-gated path; it does not
-change what that path is authorized to do.
+target reconnaissance/comprehension. This worker executes exactly what
+`develop_from_goal` already executed today (CORE-internal goal, direct
+ActionExecutor calls) — it adds reconstructable evidence around that
+existing, already-governor-gated path; it does not change what that path is
+authorized to do.
+
+ADR-160 D3, first staged conversion (`create_proposal_only=True`, opt-in,
+default False): plans the goal via `PlannerAgent` directly, converts the
+resulting plan to a Proposal via `will.autonomy.plan_to_proposal`, persists
+it in DRAFT via `ProposalRepository`, and stops — `ActionExecutor` is never
+reached in this mode, so this worker now creates Proposals in this one
+opt-in path (the "never creates Proposals" claim in earlier revisions of
+this docstring covered only the default `orchestrator.execute_goal()` path,
+which is unchanged and still creates none).
 """
 
 from __future__ import annotations
@@ -57,7 +73,7 @@ from typing import Any
 
 from shared.activity_logging import activity_run
 from shared.logger import getLogger
-from shared.models.workflow_models import PhaseWorkflowResult
+from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import Worker
 from will.orchestration.phase_registry import PhaseRegistry
 from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
@@ -75,6 +91,11 @@ class GoalExecutionWorker(Worker):
     One instance per invocation — constructed by the caller (today, only
     `develop_from_goal`) with the goal/workflow/write bound at construction
     time, then driven through the normal `Worker.start()` lifecycle.
+
+    `create_proposal_only=True` (ADR-160 D3, opt-in, default False): plans
+    the goal directly via `PlannerAgent`, converts the plan to a Proposal
+    (`will.autonomy.plan_to_proposal`), persists it in DRAFT, and stops —
+    `WorkflowOrchestrator`/`ActionExecutor` are never reached in this mode.
     """
 
     declaration_name = "goal_execution_worker"
@@ -88,6 +109,7 @@ class GoalExecutionWorker(Worker):
         write: bool = False,
         task_id: str | None = None,
         repo_root: Path | None = None,
+        create_proposal_only: bool = False,
     ) -> None:
         super().__init__(repo_root=repo_root)
         self._context = context
@@ -95,8 +117,11 @@ class GoalExecutionWorker(Worker):
         self.workflow_type = workflow_type
         self.write = write
         self.task_id = task_id
+        self.create_proposal_only = create_proposal_only
         self.run_id: str | None = None
         self.result: PhaseWorkflowResult | None = None
+        self.proposal_id: str | None = None
+        self.proposal_approval_required: bool | None = None
 
     # ID: 44bb5768-ff92-4abf-9883-0064e6d145a2
     async def run(self) -> None:
@@ -158,6 +183,10 @@ class GoalExecutionWorker(Worker):
                     logger.warning(
                         "Could not resolve qdrant_service from registry: %s", exc
                     )
+
+            if self.create_proposal_only:
+                await self._run_create_proposal_only(run_id)
+                return
 
             phase_registry = PhaseRegistry(self._context, path_resolver)
             orchestrator = WorkflowOrchestrator(phase_registry, path_resolver)
@@ -242,3 +271,152 @@ class GoalExecutionWorker(Worker):
                         "duration_sec": result.total_duration,
                     },
                 )
+
+    # ID: a1fb17c6-a4a7-4503-9103-491b28305c2d
+    async def _run_create_proposal_only(self, run_id: str) -> None:
+        """ADR-160 D3, first staged conversion.
+
+        Plans the goal directly via `PlannerAgent` (mirroring
+        `ParsePhase.__init__`/`.execute()`), converts the resulting plan to
+        a Proposal via `will.autonomy.plan_to_proposal.convert_execution_plan`,
+        persists it in DRAFT via `ProposalRepository`, and stops.
+        `WorkflowOrchestrator`/`ActionExecutor` are never reached — no write
+        occurs in this mode regardless of `self.write`. Approval and
+        execution are a separate, later, Governor-triggered step outside
+        this worker's scope.
+
+        Every exit is either a persisted DRAFT Proposal + a `post_report`
+        outcome, or a refusal + a `post_observation` outcome — never a
+        partial or silently-dropped result.
+        """
+        from will.agents.planner_agent import PlannerAgent
+
+        try:
+            planner = PlannerAgent(
+                cognitive_service=self._context.cognitive_service,
+                repo_path=Path(self._context.git_service.repo_path),
+                qdrant_service=getattr(self._context, "qdrant_service", None),
+            )
+            plan = await planner.create_execution_plan(self.goal)
+        except Exception as exc:
+            await self._refuse_proposal_creation(
+                run_id, reason="planning_failed", detail=str(exc)
+            )
+            return
+
+        if not plan:
+            await self._refuse_proposal_creation(
+                run_id,
+                reason="empty_plan",
+                detail="PlannerAgent produced no executable steps for this goal.",
+            )
+            return
+
+        from will.autonomy.plan_to_proposal import (
+            PlanConversionRefused,
+            convert_execution_plan,
+        )
+
+        try:
+            scope, actions = convert_execution_plan(
+                plan, workflow_type=self.workflow_type
+            )
+        except PlanConversionRefused as refusal:
+            await self._refuse_proposal_creation(
+                run_id, reason="plan_conversion_refused", detail=str(refusal)
+            )
+            return
+
+        from will.autonomy.proposal import Proposal, ProposalStatus
+
+        proposal = Proposal(
+            goal=self.goal,
+            actions=actions,
+            scope=scope,
+            status=ProposalStatus.DRAFT,
+            created_by="api.develop_goal",
+        )
+        proposal.compute_risk()
+
+        is_valid, errors = proposal.validate()
+        if not is_valid:
+            await self._refuse_proposal_creation(
+                run_id, reason="proposal_invalid", detail="; ".join(errors)
+            )
+            return
+
+        from body.services.service_registry import service_registry
+        from will.autonomy.proposal_repository import ProposalRepository
+
+        async with service_registry.session() as session:
+            repo = ProposalRepository(session)
+            proposal_id = await repo.create(proposal)
+            await session.commit()
+
+        self.proposal_id = proposal_id
+        self.proposal_approval_required = proposal.approval_required
+
+        await self.post_report(
+            f"goal_run.{run_id}.outcome",
+            {
+                "run_id": run_id,
+                "ok": True,
+                "mode": "create_proposal_only",
+                "goal": self.goal,
+                "workflow_type": self.workflow_type,
+                "proposal_id": proposal_id,
+                "approval_required": proposal.approval_required,
+                "risk": proposal.risk.overall_risk if proposal.risk else None,
+                "scope_files": scope.files,
+                "action_results_correlation_key": run_id,
+            },
+        )
+
+        self.result = PhaseWorkflowResult(
+            ok=True,
+            workflow_type=self.workflow_type,
+            phase_results=[
+                PhaseResult(
+                    name="create_proposal",
+                    ok=True,
+                    data={
+                        "proposal_id": proposal_id,
+                        "approval_required": proposal.approval_required,
+                    },
+                    duration_sec=0.0,
+                )
+            ],
+            total_duration=0.0,
+        )
+
+    # ID: 1b723894-67d2-48d4-9d20-51215c9a4456
+    async def _refuse_proposal_creation(
+        self, run_id: str, *, reason: str, detail: str
+    ) -> None:
+        """Report a create_proposal_only refusal — fail closed, never partial."""
+        await self.post_observation(
+            f"goal_run.{run_id}.outcome",
+            {
+                "run_id": run_id,
+                "ok": False,
+                "mode": "create_proposal_only",
+                "goal": self.goal,
+                "workflow_type": self.workflow_type,
+                "reason": reason,
+                "detail": detail,
+            },
+            status="abandoned",
+        )
+        self.result = PhaseWorkflowResult(
+            ok=False,
+            workflow_type=self.workflow_type,
+            phase_results=[
+                PhaseResult(
+                    name="create_proposal",
+                    ok=False,
+                    error=detail,
+                    duration_sec=0.0,
+                )
+            ],
+            total_duration=0.0,
+        )

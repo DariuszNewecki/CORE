@@ -44,9 +44,19 @@ async def test_start_development_cycle():
         intent=payload.goal, assigned_role="AutonomousDeveloper", status="planning"
     )
 
+    # ADR-160 D3 (2026-09-13): payload.write=True now creates a pending
+    # Proposal instead of writing, so the response must not claim the work
+    # is running — see test_development_routes__start_development_cycle.py's
+    # dedicated write=True/write=False tests for full coverage of this
+    # branch. This test's own goal was request/response plumbing, not the
+    # status string's exact wording, so it is updated rather than pinned to
+    # stale text.
     assert result == {
         "task_id": "test-task-uuid",
-        "status": "Task accepted and running.",
+        "status": (
+            "Write requested — a Proposal will be created for Governor "
+            "approval; no changes will be applied automatically."
+        ),
     }
 
     # Verify that background_tasks.add_task was called with the run_development closure

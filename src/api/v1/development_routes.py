@@ -64,14 +64,36 @@ async def start_development_cycle(
 
     # ID: 419febbe-ce48-49a1-a1a7-ae800ce5cb4a
     async def run_development() -> None:
-        """Background task — CoreContext manages its own infrastructure."""
+        """Background task — CoreContext manages its own infrastructure.
+
+        ADR-160 D3, first staged conversion: a write-capable request
+        (`payload.write=True`) creates a pending Proposal instead of
+        writing (`create_proposal_only=True`) — no file write occurs for
+        this route until a separate, later, Governor-triggered approval
+        step. A dry-run request (`payload.write=False`) is unaffected —
+        `create_proposal_only` stays False and this call behaves exactly
+        as before.
+        """
         await develop_from_goal(
             context=core_context,
             goal=payload.goal,
             workflow_type=payload.workflow_type,
             write=payload.write,
             task_id=str(new_task.id),
+            create_proposal_only=payload.write,
         )
 
     background_tasks.add_task(run_development)
-    return {"task_id": str(new_task.id), "status": "Task accepted and running."}
+
+    # The route returns before the background task runs, so it cannot yet
+    # know the created Proposal's id — only whether this request is on the
+    # (now Proposal-gated) write path or the unaffected dry-run path. It
+    # must not claim work is running or completed when a write request is
+    # actually pending Governor approval (ADR-160 D3).
+    status_message = (
+        "Write requested — a Proposal will be created for Governor "
+        "approval; no changes will be applied automatically."
+        if payload.write
+        else "Task accepted and running."
+    )
+    return {"task_id": str(new_task.id), "status": status_message}

@@ -311,3 +311,51 @@ D4 is amended:
   configuration (`src/body/atomic/executor.py:386-410`).
 - Consequence, recorded as chosen rather than incidental: the Governor is the bottleneck in both
   directions. A stricter classification waits for a signature exactly as a demotion does.
+
+### 2026-09-12 — Governor ruling: D3 rolls out one caller at a time; `POST /develop/goal` first
+
+D3's Open item ("The sequencing of D3's implementation...") is resolved for its first step only.
+
+- **D3 rolls out one caller at a time, not all at once.** Each of `develop_from_goal`'s five
+  callers is converted, verified, and shipped independently. Converting one does not authorize
+  converting another.
+- **`POST /develop/goal` is authorized as the first conversion**, because per the blast-radius
+  assessment's finding 1, it is the only one of the five callers with no synchronous or
+  asynchronous dependence on `develop_from_goal`'s return value — the call sits inside a
+  fire-and-forget background task whose result nothing reads. A changed return contract (creating
+  a Proposal instead of writing) cannot be misreported anywhere downstream for this caller,
+  because nothing downstream exists to misreport it.
+- **The first conversion is create-and-stop.** For a write-capable request, the goal is planned,
+  converted to a Proposal, and persisted in DRAFT — pending Governor approval. Approval and
+  execution are a separate, later, Governor-triggered step, not part of this conversion.
+- **The other four callers keep today's behavior until separately authorized.** `effects.py`,
+  `refactor_runner.py`, `modularity_remediation_service.py`, and the CLI continue writing
+  synchronously exactly as before; this ruling does not touch them.
+- **All five callers are self-modification paths.** `develop_from_goal` has no external-target
+  parameter and always writes to the running CORE instance's own repository (confirmed:
+  `.specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md` item 1.3, "no traced path
+  accepts a path or repository parameter"). D3 therefore lands before external-target binding
+  exists for this path — deliberately: the authorization boundary is fixed on CORE's own
+  repository first, before any external target could exercise it.
+
+**ADR-159 D4 thesis-negative adaptation accounting: this work is thesis-negative, not exempt.**
+Recorded rather than assumed, per instruction:
+
+- The implementation adds one new `src/` module (`will/autonomy/plan_to_proposal.py`, the
+  planner-plan-to-Proposal bridge) and a new conditional branch in existing runtime code
+  (`GoalExecutionWorker.run()`'s `create_proposal_only` branch; `development_routes.py`'s
+  opt-in-on-`payload.write`). D4's thesis-negative categories name both of these directly: "new
+  modules under `src/`" and "target-specific branches, special-cases, or conditionals in runtime
+  code."
+- This is not a case where D4's target-accommodation framing could argue exemption — none of this
+  work is done to accommodate a specific external target (D3 lands before external-target binding
+  exists at all, per above). The category applies regardless: `.specs/planning/CORE-Autonomy-
+  Mission-Runner-Reconnaissance.md`'s own "ADR-159 D4 consequences of each option" table already
+  classified every option for extending `develop_from_goal`'s mission-capability as thesis-negative
+  on exactly this "new/changed `src/` production code" basis, independent of target-specificity.
+- Direct precedent: `GoalExecutionWorker` itself already self-documents as "ADR-159 D4
+  thesis-negative adaptation" (`will/autonomy/autonomous_developer.py:10-13`) for the same class of
+  reason (#872). This unit's converter and worker-mode addition extend that same worker module and
+  are cumulative with it, not a new, separately-accounted item — consistent with this ADR's own
+  2026-09-12 Note on ADR-159 (tightening c): rebaselining or incremental extension does not reset
+  D4's adaptation accounting; it remains quantified and reported in the eventual Trial 1 result.

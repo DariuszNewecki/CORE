@@ -35,6 +35,7 @@ async def develop_from_goal(
     workflow_type: str,
     write: bool = False,
     task_id: str | None = None,
+    create_proposal_only: bool = False,
 ) -> tuple[bool, str]:
     """
     Execute a goal using constitutional workflow orchestration.
@@ -45,9 +46,17 @@ async def develop_from_goal(
         workflow_type: Which workflow to use (refactor_modularity, coverage_remediation, etc.)
         write: Whether to apply changes
         task_id: Optional task ID for tracking
+        create_proposal_only: ADR-160 D3, opt-in, default False. When True,
+            the goal is planned and converted to a Proposal, persisted in
+            DRAFT, and left pending Governor approval — no write occurs
+            regardless of `write`. Callers that omit this argument get
+            today's unchanged behavior.
 
     Returns:
-        (success, message) tuple
+        (success, message) tuple. In `create_proposal_only` mode, `message`
+        names the created Proposal (pending approval) rather than reporting
+        a completed workflow — the caller must not read this as "work was
+        applied."
 
     Examples:
         # Refactor for modularity
@@ -77,6 +86,7 @@ async def develop_from_goal(
         workflow_type=workflow_type,
         write=write,
         task_id=task_id,
+        create_proposal_only=create_proposal_only,
     )
 
     try:
@@ -90,6 +100,23 @@ async def develop_from_goal(
         "GoalExecutionWorker.start() returned without raising, but "
         "run() did not set self.result — this should be unreachable."
     )
+
+    if create_proposal_only:
+        if result.ok and worker.proposal_id:
+            message = (
+                f"Proposal {worker.proposal_id} created "
+                f"(approval_required={worker.proposal_approval_required}), "
+                f"pending Governor approval (run_id={worker.run_id})"
+            )
+            return (True, message)
+        failure_detail = next(
+            (p.error for p in result.phase_results if not p.ok), "unknown reason"
+        )
+        message = (
+            f"Plan could not be converted to a Proposal: {failure_detail} "
+            f"(run_id={worker.run_id})"
+        )
+        return (False, message)
 
     if result.ok:
         message = f"Workflow '{workflow_type}' completed successfully (run_id={worker.run_id})"

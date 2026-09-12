@@ -3,6 +3,16 @@
 - Symbol: start_development_cycle
 - Status: verified_in_sandbox
 - Generated: 2026-01-11 02:42:56
+
+ADR-160 D3 (2026-09-13): the five tests above this marker were auto-generated
+against a `mock_payload = MagicMock()` that never set `.write` explicitly —
+harmless when the route's status message didn't depend on it. It now does
+(a write-capable request must not claim "running" while awaiting Governor
+approval), and an unset `.write` on a MagicMock is truthy by default, which
+would silently exercise the wrong branch. Each of those five tests now sets
+`mock_payload.write = False` explicitly, restoring their original intent
+(the unaffected dry-run/default path) rather than leaving it to a mock
+default. The new tests below this marker cover the `write=True` path.
 """
 
 import uuid
@@ -24,6 +34,7 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
 
     mock_payload = MagicMock()
     mock_payload.goal = "Build a user authentication system"
+    mock_payload.write = False
 
     mock_background_tasks = MagicMock(spec=BackgroundTasks)
     mock_background_tasks.add_task = MagicMock()
@@ -82,6 +93,7 @@ async def test_start_development_cycle_with_different_goal():
 
     mock_payload = MagicMock()
     mock_payload.goal = "Implement payment processing"
+    mock_payload.write = False
 
     mock_background_tasks = MagicMock(spec=BackgroundTasks)
     mock_background_tasks.add_task = MagicMock()
@@ -127,6 +139,7 @@ async def test_start_development_cycle_returns_correct_structure():
 
     mock_payload = MagicMock()
     mock_payload.goal = "Test goal"
+    mock_payload.write = False
 
     mock_background_tasks = MagicMock(spec=BackgroundTasks)
     mock_background_tasks.add_task = MagicMock()
@@ -172,6 +185,7 @@ async def test_start_development_cycle_background_task_configuration():
 
     mock_payload = MagicMock()
     mock_payload.goal = "Background task test"
+    mock_payload.write = False
 
     mock_background_tasks = MagicMock(spec=BackgroundTasks)
     captured_task_func = None
@@ -211,3 +225,136 @@ async def test_start_development_cycle_background_task_configuration():
 
         # We can't directly test the nested async function, but we've verified
         # that develop_from_goal is imported and available for the background task
+
+
+# ------------------------------------------------- write=True (ADR-160 D3)
+
+
+async def test_write_true_response_does_not_claim_work_is_running() -> None:
+    """A write-capable request must not say "running" or "completed" --
+    the write now creates a pending Proposal instead."""
+    mock_request = MagicMock(spec=Request)
+    mock_request.app.state.core_context = MagicMock()
+
+    mock_payload = MagicMock()
+    mock_payload.goal = "Fix the bug"
+    mock_payload.write = True
+
+    mock_background_tasks = MagicMock(spec=BackgroundTasks)
+    mock_session = AsyncMock()
+
+    mock_task_repo = AsyncMock()
+    mock_task = MagicMock()
+    mock_task.id = uuid.uuid4()
+    mock_task_repo.create.return_value = mock_task
+
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", AsyncMock()),
+    ):
+        result = await start_development_cycle(
+            request=mock_request,
+            payload=mock_payload,
+            background_tasks=mock_background_tasks,
+            session=mock_session,
+        )
+
+    assert "running" not in result["status"]
+    assert "completed" not in result["status"]
+    assert "Proposal" in result["status"]
+    assert "Governor" in result["status"]
+
+
+async def test_write_true_passes_create_proposal_only_to_develop_from_goal() -> None:
+    """The background task must opt the write path into ADR-160 D3's
+    create_proposal_only mode -- proof the route actually wires the flag,
+    not just that the response text changed."""
+    mock_request = MagicMock(spec=Request)
+    mock_core_context = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    mock_payload = MagicMock()
+    mock_payload.goal = "Fix the bug"
+    mock_payload.workflow_type = "code_modification"
+    mock_payload.write = True
+
+    captured_task_func = None
+
+    def capture_task(func, *args, **kwargs):
+        nonlocal captured_task_func
+        captured_task_func = func
+
+    mock_background_tasks = MagicMock(spec=BackgroundTasks)
+    mock_background_tasks.add_task.side_effect = capture_task
+
+    mock_session = AsyncMock()
+    mock_task_repo = AsyncMock()
+    mock_task = MagicMock()
+    mock_task.id = uuid.uuid4()
+    mock_task_repo.create.return_value = mock_task
+
+    mock_develop_from_goal = AsyncMock()
+
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
+    ):
+        await start_development_cycle(
+            request=mock_request,
+            payload=mock_payload,
+            background_tasks=mock_background_tasks,
+            session=mock_session,
+        )
+        assert captured_task_func is not None
+        await captured_task_func()
+
+    mock_develop_from_goal.assert_awaited_once()
+    _, kwargs = mock_develop_from_goal.await_args
+    assert kwargs["write"] is True
+    assert kwargs["create_proposal_only"] is True
+
+
+async def test_write_false_still_passes_create_proposal_only_false() -> None:
+    """Regression proof for the dry-run path on this same caller: unaffected."""
+    mock_request = MagicMock(spec=Request)
+    mock_request.app.state.core_context = MagicMock()
+
+    mock_payload = MagicMock()
+    mock_payload.goal = "Fix the bug"
+    mock_payload.workflow_type = "code_modification"
+    mock_payload.write = False
+
+    captured_task_func = None
+
+    def capture_task(func, *args, **kwargs):
+        nonlocal captured_task_func
+        captured_task_func = func
+
+    mock_background_tasks = MagicMock(spec=BackgroundTasks)
+    mock_background_tasks.add_task.side_effect = capture_task
+
+    mock_session = AsyncMock()
+    mock_task_repo = AsyncMock()
+    mock_task = MagicMock()
+    mock_task.id = uuid.uuid4()
+    mock_task_repo.create.return_value = mock_task
+
+    mock_develop_from_goal = AsyncMock()
+
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
+    ):
+        result = await start_development_cycle(
+            request=mock_request,
+            payload=mock_payload,
+            background_tasks=mock_background_tasks,
+            session=mock_session,
+        )
+        assert captured_task_func is not None
+        await captured_task_func()
+
+    mock_develop_from_goal.assert_awaited_once()
+    _, kwargs = mock_develop_from_goal.await_args
+    assert kwargs["create_proposal_only"] is False
+    assert result["status"] == "Task accepted and running."

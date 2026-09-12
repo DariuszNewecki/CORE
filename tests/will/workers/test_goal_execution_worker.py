@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from shared.models.execution_models import ExecutionTask, TaskParams
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import WorkerSilenceError
 from will.workers.goal_execution_worker import GoalExecutionWorker
@@ -33,6 +34,11 @@ def _make_worker(**overrides: object) -> GoalExecutionWorker:
     context.path_resolver = MagicMock()
     context.cognitive_service = MagicMock()
     context.qdrant_service = MagicMock()
+    # Real str, not a MagicMock: create_proposal_only's PlannerAgent
+    # construction does Path(context.git_service.repo_path) for real
+    # (PlannerAgent itself is patched in those tests, but this call happens
+    # in goal_execution_worker.py's own code, before the patched class).
+    context.git_service.repo_path = "/repo"
 
     kwargs = {
         "context": context,
@@ -71,8 +77,12 @@ def _failed_phase_result() -> PhaseWorkflowResult:
         total_duration=0.9,
         phase_results=[
             PhaseResult(name="interpret", ok=True, data={}, duration_sec=0.1),
-            PhaseResult(name="parse", ok=True, data={"actions": ["x"]}, duration_sec=0.2),
-            PhaseResult(name="audit", ok=False, data={}, error="canary failed", duration_sec=0.3),
+            PhaseResult(
+                name="parse", ok=True, data={"actions": ["x"]}, duration_sec=0.2
+            ),
+            PhaseResult(
+                name="audit", ok=False, data={}, error="canary failed", duration_sec=0.3
+            ),
         ],
     )
 
@@ -196,7 +206,9 @@ async def test_success_criteria_not_met_is_reported_unavailable_not_abandoned() 
     assert payload["reason"] == "success_criteria_not_met_no_phase_reason"
 
 
-async def test_orchestrator_exception_posts_abandoned_observation_and_reraises() -> None:
+async def test_orchestrator_exception_posts_abandoned_observation_and_reraises() -> (
+    None
+):
     worker = _make_worker()
     executor_instance = MagicMock()
     executor_instance.execute_goal = AsyncMock(side_effect=RuntimeError("boom"))
@@ -287,3 +299,187 @@ def test_declared_scope_paths_match_workflow_invariants() -> None:
     # (each forbidden from the other tree by its own workflow invariant) —
     # the declaration is their union, not a broadened grant.
     assert paths == {"src/**", "tests/**"}
+
+
+# --------------------------------------------------- create_proposal_only (ADR-160 D3)
+
+
+def _task(action: str, file_path: str | None) -> ExecutionTask:
+    return ExecutionTask(
+        step="step", action=action, params=TaskParams(file_path=file_path)
+    )
+
+
+class _FakeSessionCM:
+    """Minimal async context manager standing in for
+    `service_registry.session()` — yields a fake session, no real DB."""
+
+    def __init__(self, session: MagicMock) -> None:
+        self._session = session
+
+    async def __aenter__(self) -> MagicMock:
+        return self._session
+
+    async def __aexit__(self, *exc: object) -> bool:
+        return False
+
+
+def test_default_create_proposal_only_is_false() -> None:
+    worker = _make_worker()
+    assert worker.create_proposal_only is False
+
+
+async def test_create_proposal_only_success_persists_draft_and_never_touches_orchestrator() -> (
+    None
+):
+    """A convertible plan creates a DRAFT Proposal via ProposalRepository
+    and reports its id — WorkflowOrchestrator/ActionExecutor are never
+    reached, so no write occurs regardless of `write`."""
+    worker = _make_worker(
+        workflow_type="code_modification", write=True, create_proposal_only=True
+    )
+
+    fake_planner = MagicMock()
+    fake_planner.create_execution_plan = AsyncMock(
+        return_value=[_task("file.edit", "src/foo.py")]
+    )
+
+    fake_session = MagicMock()
+    fake_session.commit = AsyncMock()
+    fake_repo = MagicMock()
+    fake_repo.create = AsyncMock(return_value="proposal-123")
+
+    orchestrator_never_called = MagicMock()
+    orchestrator_never_called.execute_goal = AsyncMock(
+        side_effect=AssertionError(
+            "orchestrator must not run in create_proposal_only mode"
+        )
+    )
+
+    with (
+        patch("will.agents.planner_agent.PlannerAgent", return_value=fake_planner),
+        patch(
+            "will.autonomy.proposal_repository.ProposalRepository",
+            return_value=fake_repo,
+        ),
+        patch("body.services.service_registry.service_registry") as fake_registry,
+        patch(
+            "will.workers.goal_execution_worker.WorkflowOrchestrator",
+            return_value=orchestrator_never_called,
+        ),
+        patch("will.workers.goal_execution_worker.PhaseRegistry"),
+    ):
+        fake_registry.session = MagicMock(return_value=_FakeSessionCM(fake_session))
+        await worker.run()
+
+    orchestrator_never_called.execute_goal.assert_not_called()
+    fake_repo.create.assert_awaited_once()
+    fake_session.commit.assert_awaited_once()
+
+    assert worker.proposal_id == "proposal-123"
+    # file.edit resolves to `moderate` in action_risk.yaml -> requires approval.
+    assert worker.proposal_approval_required is True
+    assert worker.result is not None and worker.result.ok is True
+
+    outcome_call = worker._blackboard.post_report.call_args_list[-1]
+    _, payload = outcome_call.args
+    assert payload["mode"] == "create_proposal_only"
+    assert payload["proposal_id"] == "proposal-123"
+    assert payload["approval_required"] is True
+    assert payload["scope_files"] == ["src/foo.py"]
+    worker._blackboard.post_observation.assert_not_called()
+
+
+async def test_create_proposal_only_refuses_on_refactor_modularity() -> None:
+    """refactor_modularity bypasses the planner's own action choice
+    entirely -- the plan cannot describe what will execute, so the
+    converter refuses and no Proposal is created."""
+    worker = _make_worker(
+        workflow_type="refactor_modularity", write=True, create_proposal_only=True
+    )
+
+    fake_planner = MagicMock()
+    fake_planner.create_execution_plan = AsyncMock(
+        return_value=[_task("refactor.apply_split", "src/big.py")]
+    )
+    fake_repo = MagicMock()
+    fake_repo.create = AsyncMock()
+
+    with (
+        patch("will.agents.planner_agent.PlannerAgent", return_value=fake_planner),
+        patch(
+            "will.autonomy.proposal_repository.ProposalRepository",
+            return_value=fake_repo,
+        ),
+    ):
+        await worker.run()
+
+    fake_repo.create.assert_not_called()
+    assert worker.proposal_id is None
+    assert worker.result is not None and worker.result.ok is False
+
+    subject, payload = worker._blackboard.post_observation.call_args.args
+    assert subject == f"goal_run.{worker.run_id}.outcome"
+    assert payload["reason"] == "plan_conversion_refused"
+    assert "refactor_modularity" in payload["detail"]
+
+
+async def test_create_proposal_only_refuses_on_planning_exception() -> None:
+    worker = _make_worker(
+        workflow_type="code_modification", write=True, create_proposal_only=True
+    )
+    fake_planner = MagicMock()
+    fake_planner.create_execution_plan = AsyncMock(side_effect=RuntimeError("llm down"))
+
+    with patch("will.agents.planner_agent.PlannerAgent", return_value=fake_planner):
+        await worker.run()
+
+    assert worker.result is not None and worker.result.ok is False
+    _, payload = worker._blackboard.post_observation.call_args.args
+    assert payload["reason"] == "planning_failed"
+    assert "llm down" in payload["detail"]
+
+
+async def test_create_proposal_only_refuses_on_empty_plan() -> None:
+    worker = _make_worker(
+        workflow_type="code_modification", write=True, create_proposal_only=True
+    )
+    fake_planner = MagicMock()
+    fake_planner.create_execution_plan = AsyncMock(return_value=[])
+
+    with patch("will.agents.planner_agent.PlannerAgent", return_value=fake_planner):
+        await worker.run()
+
+    assert worker.result is not None and worker.result.ok is False
+    _, payload = worker._blackboard.post_observation.call_args.args
+    assert payload["reason"] == "empty_plan"
+
+
+async def test_create_proposal_only_refuses_high_risk_proposal_unapproved() -> None:
+    """A dangerous-classified action resolves to Proposal overall_risk
+    'high'; Proposal.validate() requires approved_by for high-risk
+    proposals, which create_proposal_only mode never sets -- refuse
+    rather than persist an invalid Proposal."""
+    worker = _make_worker(
+        workflow_type="code_modification", write=True, create_proposal_only=True
+    )
+    fake_planner = MagicMock()
+    fake_planner.create_execution_plan = AsyncMock(
+        return_value=[_task("fix.vulture_heal", "src/dead.py")]
+    )
+    fake_repo = MagicMock()
+    fake_repo.create = AsyncMock()
+
+    with (
+        patch("will.agents.planner_agent.PlannerAgent", return_value=fake_planner),
+        patch(
+            "will.autonomy.proposal_repository.ProposalRepository",
+            return_value=fake_repo,
+        ),
+    ):
+        await worker.run()
+
+    fake_repo.create.assert_not_called()
+    assert worker.result is not None and worker.result.ok is False
+    _, payload = worker._blackboard.post_observation.call_args.args
+    assert payload["reason"] == "proposal_invalid"
