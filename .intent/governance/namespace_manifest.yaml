@@ -1657,6 +1657,8 @@ classifications:
   # .specs/planning/ -- project::core (planning and roadmap documents)
   - path: .specs/planning/CORE-Semver-Policy.md
     governance_namespace: project::core
+  - path: .specs/planning/CORE-Repo-Branch-History.md
+    governance_namespace: project::core
 
   # =====================================================================
   # ADDED 2026-07-13 (#780) -- governance.namespace.classification_complete
