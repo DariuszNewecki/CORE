@@ -650,6 +650,57 @@ class BlackboardQueryService:
             "created_at": row[3].isoformat() if row[3] else None,
         }
 
+    # ID: 240714ba-cece-45af-87b8-0dfee0cc9be2
+    async def fetch_entries_by_subject_prefix_ordered(
+        self, prefix: str
+    ) -> list[dict[str, Any]]:
+        """
+        Return every blackboard entry whose subject matches *prefix*
+        (SQL LIKE pattern — caller supplies the trailing wildcard), oldest
+        first — the sequence-reconstruction query for one correlated run
+        (e.g. ``goal_run.<run_id>.%``).
+
+        Unlike the finding-scoped fetchers above, this is entry-type- and
+        status-agnostic: reconstructing a run needs every entry it produced
+        (start report, outcome report/observation alike), not just the
+        still-open findings a sensor's dedup set cares about.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, entry_type, subject, status, payload, created_at
+                    FROM core.blackboard_entries
+                    WHERE subject LIKE :prefix
+                    ORDER BY created_at ASC
+                    """
+                ),
+                {"prefix": prefix},
+            )
+            rows = result.fetchall()
+
+        entries = []
+        for row in rows:
+            raw_payload = row[4]
+            payload = (
+                raw_payload
+                if isinstance(raw_payload, dict)
+                else json.loads(raw_payload)
+            )
+            entries.append(
+                {
+                    "id": str(row[0]),
+                    "entry_type": row[1],
+                    "subject": row[2],
+                    "status": row[3],
+                    "payload": payload or {},
+                    "created_at": row[5].isoformat() if row[5] else None,
+                }
+            )
+        return entries
+
     # ID: 503a3ad3-2bb3-477b-8d37-f743024ffd66
     async def fetch_entry_by_id(self, entry_id: str) -> dict[str, Any] | None:
         """

@@ -1,0 +1,48 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.goal_execution_worker
+  title: Goal Execution Worker
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c9b6d171-2051-4701-aae3-b1ebea499736"
+  class: acting
+
+mandate:
+  responsibility: >
+    Execute one authorized goal-driven CORE workflow through the
+    constitutional workflow orchestrator with reconstructable Blackboard
+    evidence.
+  phase: execution
+  permitted_tools:
+    - intent.normalize
+    - intent.classify
+    - workflow.select
+    - action.plan
+    - scope.assess
+    - context.resolve
+    - action.resolve
+    - change.generate
+    - test.canary_validate
+    - style.validate
+    - style.autofix
+    - audit.evaluate
+    - change.commit
+    - test.generate
+    - test.sandbox_validate
+  scope:
+    paths:
+      - "src/**"
+      - "tests/**"
+    domains:
+      - autonomy
+      - goal_execution
+
+implementation:
+  module: will.workers.goal_execution_worker
+  class: GoalExecutionWorker
+  requires_core_context: true

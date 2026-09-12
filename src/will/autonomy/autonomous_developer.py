@@ -6,15 +6,23 @@ Autonomous Developer - Constitutional Workflow Edition
 Replaces hardcoded A3 loop with dynamic workflow composition.
 Workflows are defined in .intent/workflows/ and composed from
 phases defined in .intent/phases/.
+
+`develop_from_goal` is a compatibility shim over `GoalExecutionWorker`
+(will/workers/goal_execution_worker.py) — the genuine Worker that owns
+goal-driven execution and its Blackboard evidence lifecycle (#872, ADR-159
+D4 thesis-negative adaptation). This function's public signature and
+`(bool, str)` return contract are unchanged for its existing CLI/API/
+strategic-auditor callers; the WorkflowOrchestrator call itself now happens
+inside the Worker's own `run()`, driven through the real `Worker.start()`
+lifecycle (registration, liveness lease, silence enforcement, uncaught-error
+Blackboard reporting).
 """
 
 from __future__ import annotations
 
 from shared.context import CoreContext
 from shared.logger import getLogger
-from shared.models.workflow_models import PhaseWorkflowResult
-from will.orchestration.phase_registry import PhaseRegistry
-from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
+from will.workers.goal_execution_worker import GoalExecutionWorker
 
 
 logger = getLogger(__name__)
@@ -63,52 +71,35 @@ async def develop_from_goal(
     logger.info("Workflow: %s", workflow_type)
     logger.info("Write: %s", write)
 
-    path_resolver = getattr(context, "path_resolver", None)
-    if not path_resolver:
-        raise RuntimeError(
-            "PathResolver not found in CoreContext. "
-            "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
-        )
-
-    # Warm up brain services on the CoreContext so downstream phases can access them.
-    # When called from campaign execute the context hasn't gone through the
-    # strategic-audit CLI bootstrap that normally calls get_cognitive_service().
-    if context.cognitive_service is None:
-        try:
-            context.cognitive_service = await context.registry.get_cognitive_service()
-        except Exception as exc:
-            logger.warning("Could not resolve cognitive_service from registry: %s", exc)
-    if context.qdrant_service is None:
-        try:
-            context.qdrant_service = await context.registry.get_qdrant_service()
-        except Exception as exc:
-            logger.warning("Could not resolve qdrant_service from registry: %s", exc)
+    worker = GoalExecutionWorker(
+        context=context,
+        goal=goal,
+        workflow_type=workflow_type,
+        write=write,
+        task_id=task_id,
+    )
 
     try:
-        # Initialize orchestrator with PathResolver (FIXED)
-        phase_registry = PhaseRegistry(context, path_resolver)
-        orchestrator = WorkflowOrchestrator(phase_registry, path_resolver)
-
-        # Execute workflow
-        result: PhaseWorkflowResult = await orchestrator.execute_goal(
-            goal=goal,
-            workflow_type=workflow_type,
-            write=write,
-        )
-
-        if result.ok:
-            message = f"Workflow '{workflow_type}' completed successfully"
-            return (True, message)
-        else:
-            failed_phase = next(
-                (p.name for p in result.phase_results if not p.ok), "unknown"
-            )
-            message = f"Workflow failed at phase: {failed_phase}"
-            return (False, message)
-
+        await worker.start()
     except Exception as e:
         logger.error("Autonomous development failed: %s", e, exc_info=True)
         return (False, f"Execution error: {e}")
+
+    result = worker.result
+    assert result is not None, (
+        "GoalExecutionWorker.start() returned without raising, but "
+        "run() did not set self.result — this should be unreachable."
+    )
+
+    if result.ok:
+        message = f"Workflow '{workflow_type}' completed successfully (run_id={worker.run_id})"
+        return (True, message)
+    else:
+        failed_phase = next(
+            (p.name for p in result.phase_results if not p.ok), "unknown"
+        )
+        message = f"Workflow failed at phase: {failed_phase} (run_id={worker.run_id})"
+        return (False, message)
 
 
 # ID: 9ec4f0d3-c06c-483f-83ac-b01c52746f24
