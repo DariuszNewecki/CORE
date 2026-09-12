@@ -21,7 +21,7 @@ declarative rather than enforced.
 proposal-risk vocabulary); ADR-101 (commit authorship integrity — the same "who actually produced
 this" discipline applied here to authorization rather than bytes); ADR-159 (the autonomy
 acceptance boundary whose D3 invalidation this ADR is a direct consequence of).
-**Supersedes:** nothing.
+**Supersedes:** ADR-095 D7 (the `POST /fix/modularity` FlowExecutor exemption; see D3 Note below).
 
 ---
 
@@ -88,7 +88,10 @@ Three further mechanisms exist in the codebase, read but not enforced:
 `POST /develop/goal` (`src/api/v1/development_routes.py:24-30`, router-level
 `dependencies=[require_governor]`) and `StrategicAuditor.execute_approved_clusters`
 (`src/will/agents/strategic_auditor/effects.py:146,176`), which calls it once a human governor
-has cleared `Task.requires_approval` per cluster. Both gates are real, but both sit outside
+has cleared `Task.requires_approval` per cluster. **Note (2026-09-12): this count is corrected —
+verification found four non-CLI call sites, not two. See the dated Note "Corrected caller
+inventory" in this ADR's Notes section below for the full list with citations and authorization
+posture.** Both gates are real, but both sit outside
 CORE's own governance machinery, in the caller: `require_governor` authenticates the identity
 making the HTTP request, not the scope of what the request will do once inside; clearing
 `Task.requires_approval` is a boolean flip on an LLM-authored plan, not a scope-checked,
@@ -199,3 +202,112 @@ Recorded as open, not decided:
 ## Notes
 
 <!-- Append-only. Amendments are added here, never by rewriting the decisions above. -->
+
+### 2026-09-12 — Corrected caller inventory
+
+Context above states `develop_from_goal` has two non-CLI callers. Direct grep across `src/`
+(`grep -rn "await develop_from_goal(" src/`, excluding tests, import statements, re-exports, and
+docstring examples) finds **four** genuine non-CLI call sites, not two:
+
+1. **`POST /develop/goal`** — `src/api/v1/development_routes.py:68`. Gated by router-level
+   `dependencies=[require_governor]` (`development_routes.py:30`) — **caller-identity-based**:
+   `require_governor` authenticates who is making the HTTP request. Write scope: `payload.write`
+   (bool) and `payload.goal` (free text) are forwarded directly (`development_routes.py:70-72`);
+   the actual files/actions touched are chosen by `PlannerAgent.create_execution_plan` inside the
+   resulting `WorkflowOrchestrator` run — **planner-chosen**.
+2. **`StrategicAuditor.execute_approved_clusters`** —
+   `src/will/agents/strategic_auditor/effects.py:176`. Gated by the governor clearing
+   `Task.requires_approval` per cluster (`effects.py:127-130` docstring, `:141-147`
+   implementation: `and not c.requires_approval`) — a boolean flag on a stored, LLM-authored Task
+   row, **not caller-identity-based**. Write scope: `write=True` is hardcoded (`effects.py:180`);
+   the goal text (LLM-authored `child.intent`, plus audit-derived `affected_files` filtered to
+   paths that exist on disk) is forwarded to the planner, which chooses the actual plan —
+   **planner-chosen**.
+3. **`POST /refactor/autonomous` → `run_and_persist_refactor_autonomous`** —
+   `src/will/governance/refactor_runner.py:314`. Gated by router-level
+   `dependencies=[require_governor]` on the `/refactor` prefix (`src/api/v1/refactor_routes.py:60`)
+   — **caller-identity-based**. Write scope: `goal` and `write` come straight from the request
+   body (`RunAutonomousRequest.goal`/`.write`, `refactor_routes.py:71-72`); the planner chooses
+   the plan — **planner-chosen**.
+4. **`POST /fix/modularity` → `run_and_persist_modularity` →
+   `ModularityRemediationService.remediate_batch`** —
+   `src/will/self_healing/modularity_remediation_service.py:150`. Gated by per-route
+   `dependencies=[require_governor]` (`src/api/v1/fix_routes.py:323`) — **caller-identity-based**.
+   Write scope: `payload.write` propagates faithfully
+   (`fix_routes.py:371` → `will/governance/fix_runner.py:463` →
+   `modularity_remediation_service.py:154`); the goal per violating file is service-generated text
+   (`modularity_remediation_service.py:143-147`), but which files/actions the resulting workflow
+   actually touches is still `PlannerAgent`-chosen inside `develop_from_goal` —
+   **planner-chosen**.
+
+All four gates share the shape Context already names for the original two: each authenticates
+either the calling identity or a stored approval flag, never the scope of what the resulting plan
+will touch. This strengthens Context's conclusion rather than changing it. The Context sentence
+above is retained with a correction marker rather than silently rewritten, per this document's
+own append-only amendment convention (ADR-093 D6 precedent).
+
+### 2026-09-12 — Governor ruling: D3 supersedes ADR-095 D7's `POST /fix/modularity` exemption
+
+Verified before this ruling: ADR-095 D7 exempts `POST /fix/modularity` from FlowExecutor
+governance on two stated grounds — the route is `require_governor`-gated (confirmed:
+`src/api/v1/fix_routes.py:323`, per-route `dependencies=[require_governor]`) and the `write` flag
+propagates faithfully through `run_and_persist_modularity` (confirmed:
+`fix_routes.py:371` → `will/governance/fix_runner.py:463` →
+`will/self_healing/modularity_remediation_service.py:154`, no governance bypass on the mutation
+gate itself). D7's own boundary conditions already state the exemption lapses if the
+`require_governor` gate is removed, and require Flow YAML if `ModularityRemediationService` is
+decomposed into atomic actions. Also confirmed: `ModularityRemediationService.remediate_batch`
+calls `develop_from_goal` (`modularity_remediation_service.py:150`), which invokes
+`GoalExecutionWorker` → `WorkflowOrchestrator.execute_goal` → `ParsePhase` →
+`PlannerAgent.create_execution_plan` (`will/phases/parse_phase.py:81`,
+`will/workers/goal_execution_worker.py:163-166`) — a real LLM call that chooses the plan's actual
+scope, per `.specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md` item 1.4.
+
+**D3 supersedes ADR-095 D7's exemption.** Governor's reasoning:
+
+- CORE's trust model treats AI generation as untrusted and places determinism in the gates, not
+  in the planner. A planner operating in a dynamic environment must be an LLM; that is the
+  design, not a defect.
+- `require_governor` supervises the invocation. Nothing supervises the generation. The Governor
+  authorizes a goal; the model chooses the files.
+- Therefore a non-deterministic planner is precisely what a deterministic gate exists for. D7's
+  exemption rests on describing that path as a governor tool, which understates what it does.
+- D7's own second boundary condition anticipated revisiting once the path became agentic.
+
+**Consequence, recorded plainly:** `POST /fix/modularity` is a live governor-gated route whose
+behavior changes under this supersession — its write, currently authorized by `require_governor`
+alone, must instead be represented as a Proposal before execution per D3, scope-gated rather than
+caller-gated, once implemented. Implementation is not authorized here; this Note records the
+supersession only.
+
+### 2026-09-12 — Governor ruling: D4 amended — CORE never writes `.intent/`
+
+Verified before this ruling: `.intent/**` is immutable to all system components under two
+independently-authored blocking rules — `governance.constitution.read_only`
+(`.intent/rules/architecture/governance_basics.json`: "The constitutional intent directory
+(.intent/**) MUST be treated as immutable by all system components") and
+`architecture.constitution_read_only` (`.intent/rules/architecture/core_safety.json`: "The
+constitutional intent directory MUST be immutable"). Risk classifications live in
+`.intent/enforcement/config/action_risk.yaml`. D4 as written ("CORE may raise its own caution
+level unilaterally at any time") conflicts with both rules: raising a classification requires
+writing the file that carries it, and CORE is a system component under both rules' own wording.
+
+D4 is amended:
+
+- CORE never writes to `.intent/`, in either direction. The clause permitting unilateral
+  escalation is withdrawn. A law the governed party can amend is not a law; this is the founding
+  premise of the `.intent/` boundary and D4 must not erode it.
+- Escalation does not require write access. CORE escalates by refusing in the moment and by
+  recommending a change to the Governor. Refusing is obedience to the classification, not
+  amendment of it. The fail-closed mechanisms already in this codebase provide this without any
+  write path: the unmapped-action fallback to `moderate`
+  (`src/will/autonomy/proposal.py:166,180`, `_resolve_impact`'s
+  `risk_mapping.get(action_id, "moderate")`); `validate_envelope()` raising
+  `SafeAutoApprovalDeniedError` and leaving the proposal row completely untouched — validated
+  before the UPDATE, so a denial never partially mutates it
+  (`src/will/autonomy/proposal_state_manager.py:270-279`,
+  `src/will/autonomy/safe_auto_approval_envelope.py:54-149`); and the physical containment denial
+  in the executor, which refuses a write escaping its authorized prefix without touching
+  configuration (`src/body/atomic/executor.py:386-410`).
+- Consequence, recorded as chosen rather than incidental: the Governor is the bottleneck in both
+  directions. A stricter classification waits for a signature exactly as a demotion does.

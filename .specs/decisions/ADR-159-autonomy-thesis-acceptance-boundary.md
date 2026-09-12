@@ -486,3 +486,50 @@ resume once a certified runner baseline exists.
 CORE-internal goal-driven run reconstructable from the blackboard, with a correlated run
 identity. It does not address items 1, 2, or 4, and does not by itself make Trial 0 or Trial 1
 runnable.
+
+### 2026-09-12 — Governor ruling: three cold-review tightenings to the D3 invalidation Note
+
+**a. Certification wording.** Verified: D6's criteria (above) include criterion 6, "Marginal
+value — the governed run adds value over the single-agent and multi-agent comparison arms," which
+cannot be evaluated without running Trial 1 itself — there is no arm comparison to measure before
+the trial runs. The preceding Note's "certified against D6's criteria" therefore names a
+certification condition Trial 1's own outcome would need to satisfy, which a runner cannot be
+certified against in advance.
+
+Corrected: the new runner baseline must be certified as capable of executing the frozen
+procedures (Document A / Document B, per the blind-author brief) and producing the evidence
+required to evaluate D5 and D6 — not certified against D6's criteria themselves. Runner readiness
+and trial success are distinct: the former is a property of the apparatus, checkable before any
+trial runs; the latter is the trial's own result.
+
+**b. Remediation item 2 is too broad.** Verified against
+`.specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md`: both frozen pins already
+contain a goal-driven planner. `develop_from_goal` reaches `ParsePhase.execute()`, which calls
+`PlannerAgent.create_execution_plan(goal)` — "a real LLM call... genuine plan synthesis, not
+fixed pattern matching" (document item 1, point 4) — byte-identical at both pins and current
+HEAD. What the document confirms absent is: external-target binding (item 1, point 3: "no traced
+path accepts a path or repository parameter"); target reconnaissance before planning (item 1,
+point 4: `reconnaissance_report` is always empty; "`ReconnaissanceAgent` does not exist anywhere
+in `src/` at any of the three refs"); document-corpus operation (item 1, point 10: "source code
+only... no document-corpus workflow exists"); and Blackboard evidence and export (item 1, points
+7-8: "zero matches" for any blackboard call in the chain; "no blackboard export to reconstruct
+from").
+
+Remediation item 2 ("self-directed planning of its own investigation") is restated: the missing
+capability is **target-grounded reconnaissance and comprehension followed by self-directed
+investigation planning over an unfamiliar bound target** — not "self-directed planning" bare,
+which already exists in `PlannerAgent` and risks building a redundant second planner rather than
+extending the one that already works.
+
+**c. Rebaselining does not reset D4 adaptation accounting.** Verified: `GoalExecutionWorker`
+already documents itself as D4 thesis-negative adaptation — the implementing module's own
+docstring states it is "the genuine Worker that owns goal-driven execution and its Blackboard
+evidence lifecycle (#872, ADR-159 D4 thesis-negative adaptation)"
+(`src/will/autonomy/autonomous_developer.py:10-13`), and the Worker's own module docstring names
+its out-of-scope boundary against "ADR-159 D4 / #872" directly
+(`src/will/workers/goal_execution_worker.py:44-49`). This stands as the worked example: any
+remediation required to make the preregistered trial executable that falls into D4's
+thesis-negative categories (new `src/` modules, new check/rule classes, target-specific branches,
+schema changes) remains quantified and reported in the eventual Trial 1 result. Rebaselining the
+runner does not zero this accounting — it is cumulative across the remediation, not reset at each
+new frozen pin.

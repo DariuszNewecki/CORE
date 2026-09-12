@@ -252,6 +252,20 @@ The comment in `src/will/governance/fix_runner.py` ("no `flow.modularity` declar
 
 ---
 
+## Note — D7 superseded by ADR-160 D3 (2026-09-12)
+
+ADR-160 D3 ("Authorization gates on scope, not on caller") supersedes D7's exemption above. D7's
+grounds — the `require_governor` gate and faithful `write`-flag propagation — remain true as
+factual observations about the route today; what ADR-160 D3 changes is the conclusion drawn from
+them. D7's own second boundary condition ("If `ModularityRemediationService` is decomposed into
+atomic actions... the resulting steps MUST go through Flow YAML") anticipated exactly this
+direction of travel once the path became agentic, which `ModularityRemediationService` already is
+via `develop_from_goal` → `PlannerAgent`. See ADR-160 D3 and its 2026-09-12 Note for the full
+reasoning. This note records the supersession only; it does not alter D1–D7 or any other decision
+or note in this ADR, and no implementation follows from it.
+
+---
+
 ## References
 
 - ADR-006 — alignment of `needs_split` with its statement.
