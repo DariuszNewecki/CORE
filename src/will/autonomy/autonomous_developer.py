@@ -55,7 +55,8 @@ logger = getLogger(__name__)
 _GRANDFATHERED_DIRECT_WRITE_CALLERS: MappingProxyType[str, str] = MappingProxyType(
     {
         "cli.resources.dev.refactor": (
-            "removal condition not yet determined — Governor ruling required"
+            "removal condition not yet determined — Governor ruling required "
+            "(tracked: #883)"
         ),
         "will.governance.refactor_runner": (
             "core.refactor_runs' status lifecycle (_update_refactor_run_status) "
