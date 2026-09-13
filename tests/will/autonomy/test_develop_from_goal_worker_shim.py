@@ -33,6 +33,10 @@ def _fake_worker(
 
 
 async def test_success_return_contract_includes_run_id() -> None:
+    """A grandfathered direct-write caller (legacy_direct_write=True) still
+    gets the plain "completed successfully" message -- this caller shape is
+    unaffected by the ADR-160 D3 polarity inversion, only its opt-out
+    became explicit."""
     result = PhaseWorkflowResult(
         ok=True, phase_results=[PhaseResult(name="execution", ok=True)]
     )
@@ -48,6 +52,7 @@ async def test_success_return_contract_includes_run_id() -> None:
             workflow_type="refactor_modularity",
             write=True,
             task_id="task-1",
+            legacy_direct_write=True,
         )
 
     assert ok is True
@@ -59,11 +64,59 @@ async def test_success_return_contract_includes_run_id() -> None:
     assert kwargs["workflow_type"] == "refactor_modularity"
     assert kwargs["write"] is True
     assert kwargs["task_id"] == "task-1"
-    # ADR-160 D3: a caller that omits create_proposal_only gets today's
-    # unchanged behavior -- this is the regression proof for the four
-    # unconverted callers (effects.py, refactor_runner.py,
-    # modularity_remediation_service.py, the CLI), which all call
-    # develop_from_goal without this kwarg.
+    assert kwargs["create_proposal_only"] is False
+
+
+async def test_fail_closed_default_write_true_reaches_worker_as_create_proposal_only() -> (
+    None
+):
+    """ADR-160 D3 polarity inversion, the fail-closed default itself: a
+    caller that omits legacy_direct_write and requests write=True reaches
+    GoalExecutionWorker with create_proposal_only=True
+    (`create_proposal_only = write and not legacy_direct_write`)."""
+    result = PhaseWorkflowResult(
+        ok=True,
+        phase_results=[PhaseResult(name="create_proposal", ok=True)],
+    )
+    worker = _fake_worker(result, proposal_id="proposal-default")
+
+    with patch(
+        "will.autonomy.autonomous_developer.GoalExecutionWorker",
+        return_value=worker,
+    ) as worker_cls:
+        await develop_from_goal(
+            context=MagicMock(),
+            goal="Improve modularity of demo.py",
+            workflow_type="refactor_modularity",
+            write=True,
+        )
+
+    _, kwargs = worker_cls.call_args
+    assert kwargs["create_proposal_only"] is True
+
+
+async def test_legacy_direct_write_true_preserves_direct_write_behavior() -> None:
+    """A grandfathered caller passing legacy_direct_write=True keeps
+    create_proposal_only=False even for a write-capable request -- the
+    opt-out half of the ADR-160 D3 polarity inversion."""
+    result = PhaseWorkflowResult(
+        ok=True, phase_results=[PhaseResult(name="execution", ok=True)]
+    )
+    worker = _fake_worker(result)
+
+    with patch(
+        "will.autonomy.autonomous_developer.GoalExecutionWorker",
+        return_value=worker,
+    ) as worker_cls:
+        await develop_from_goal(
+            context=MagicMock(),
+            goal="Improve modularity of demo.py",
+            workflow_type="refactor_modularity",
+            write=True,
+            legacy_direct_write=True,
+        )
+
+    _, kwargs = worker_cls.call_args
     assert kwargs["create_proposal_only"] is False
 
 
@@ -111,6 +164,11 @@ async def test_worker_start_exception_returns_false_with_error_message() -> None
 
 
 # ------------------------------------------------- create_proposal_only (ADR-160 D3)
+# write=True with no legacy_direct_write is the fail-closed default (polarity
+# inversion) -- these two tests exercise the message-construction branch,
+# which the inversion did not change; only how create_proposal_only is
+# derived changed (see test_fail_closed_default_write_true_reaches_worker_as_
+# create_proposal_only above).
 
 
 async def test_create_proposal_only_success_message_names_pending_proposal() -> None:
@@ -136,7 +194,6 @@ async def test_create_proposal_only_success_message_names_pending_proposal() -> 
             goal="Fix the thing",
             workflow_type="code_modification",
             write=True,
-            create_proposal_only=True,
         )
 
     assert ok is True
@@ -173,7 +230,6 @@ async def test_create_proposal_only_refusal_message_names_reason_not_a_normal_fa
             goal="Refactor for modularity",
             workflow_type="refactor_modularity",
             write=True,
-            create_proposal_only=True,
         )
 
     assert ok is False

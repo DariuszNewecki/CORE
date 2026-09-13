@@ -178,6 +178,10 @@ async def execute_approved_clusters(
             goal=goal,
             workflow_type=workflow_type,
             write=True,
+            # ADR-160 D3 polarity inversion: this caller is grandfathered onto
+            # today's direct-write behavior pending its own conversion — see
+            # _GRANDFATHERED_DIRECT_WRITE_CALLERS in autonomous_developer.py.
+            legacy_direct_write=True,
         )
         await repo.update_status(child.id, "completed" if success else "failed")
         logger.info("    %s %s", "OK" if success else "FAIL", message)

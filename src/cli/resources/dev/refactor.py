@@ -90,6 +90,10 @@ async def dev_refactor_cmd(
         workflow_type=workflow_type,
         write=write,
         task_id=None,
+        # ADR-160 D3 polarity inversion: this caller is grandfathered onto
+        # today's direct-write behavior pending its own conversion — see
+        # _GRANDFATHERED_DIRECT_WRITE_CALLERS in autonomous_developer.py.
+        legacy_direct_write=True,
     )
     if success:
         console.print(f"\n[bold green]✅ Success:[/bold green] {message}")

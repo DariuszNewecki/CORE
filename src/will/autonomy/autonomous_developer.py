@@ -20,12 +20,69 @@ Blackboard reporting).
 
 from __future__ import annotations
 
+from types import MappingProxyType
+
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.workers.goal_execution_worker import GoalExecutionWorker
 
 
 logger = getLogger(__name__)
+
+
+# ADR-160 D3 rolls out develop_from_goal's proposal-gating default one caller
+# at a time (Governor ruling, 2026-09-12 Note, "D3 rolls out one caller at a
+# time; POST /develop/goal first"). This polarity inversion makes
+# create_proposal_only=True the FAIL-CLOSED DEFAULT for every write
+# request; the four callers below are grandfathered onto today's direct-write
+# behavior by explicitly passing `legacy_direct_write=True` until each is
+# separately authorized and converted. Converting one caller never authorizes
+# converting another. `POST /develop/goal` (development_routes.py) is not in
+# this registry — it was the first conversion and now gets the fail-closed
+# default for free, with no opt-out.
+#
+# This list is MONOTONICALLY SHRINKING. Adding an entry requires a Governor
+# ruling — it is not a decision Claude Code or CORE itself may make.
+#
+# This is NOT a declarative-only gate of the kind ADR-160's Context section
+# criticises (CommandExposure.GOVERNOR_ONLY, Worker.approval_required — both
+# read by nothing at runtime). This registry is read and enforced:
+# tests/will/autonomy/test_legacy_direct_write_registry.py scans src/ for
+# every `legacy_direct_write=True` call site and asserts the set equals
+# exactly this mapping's keys. A caller that opts out without a matching
+# entry fails CI; a registry entry with no corresponding call site also
+# fails CI.
+_GRANDFATHERED_DIRECT_WRITE_CALLERS: MappingProxyType[str, str] = MappingProxyType(
+    {
+        "cli.resources.dev.refactor": (
+            "removal condition not yet determined — Governor ruling required"
+        ),
+        "will.governance.refactor_runner": (
+            "core.refactor_runs' status lifecycle (_update_refactor_run_status) "
+            "has only 'completed'/'failed' terminal states and no "
+            "pending-approval state; create_proposal_only=True would mark a "
+            "run 'completed' when only a Proposal was created, misreporting "
+            "it to any reader of GET /refactor/runs."
+        ),
+        "will.self_healing.modularity_remediation_service": (
+            "issue #877 (Logic Conservation Gate read-after-write) — "
+            "remediate_batch reads the file back immediately after "
+            "develop_from_goal returns to score the conservation ratio; "
+            "create_proposal_only=True would return before any write occurs, "
+            "so the read-after-write check would run against unchanged "
+            "content."
+        ),
+        "will.agents.strategic_auditor.effects": (
+            "core.tasks' closed-vocab CHECK (pending/planning/executing/"
+            "validating/completed/failed/blocked) has no pending-approval "
+            "state; execute_approved_clusters' "
+            "repo.update_status(child.id, 'completed' if success else "
+            "'failed') would mark a cluster 'completed' when only a "
+            "Proposal was created, misrepresenting the campaign's "
+            "per-cluster review handle."
+        ),
+    }
+)
 
 
 # ID: ad8b2dd6-6874-431f-9fba-9d22a2d6a04c
@@ -35,7 +92,7 @@ async def develop_from_goal(
     workflow_type: str,
     write: bool = False,
     task_id: str | None = None,
-    create_proposal_only: bool = False,
+    legacy_direct_write: bool = False,
 ) -> tuple[bool, str]:
     """
     Execute a goal using constitutional workflow orchestration.
@@ -46,17 +103,21 @@ async def develop_from_goal(
         workflow_type: Which workflow to use (refactor_modularity, coverage_remediation, etc.)
         write: Whether to apply changes
         task_id: Optional task ID for tracking
-        create_proposal_only: ADR-160 D3, opt-in, default False. When True,
-            the goal is planned and converted to a Proposal, persisted in
-            DRAFT, and left pending Governor approval — no write occurs
-            regardless of `write`. Callers that omit this argument get
-            today's unchanged behavior.
+        legacy_direct_write: ADR-160 D3 polarity inversion, default False.
+            The fail-closed default is now create_proposal_only=True for any
+            write-capable request: the goal is planned and converted to a
+            Proposal, persisted in DRAFT, and left pending Governor approval
+            — no write occurs regardless of `write`. Passing
+            `legacy_direct_write=True` opts a grandfathered caller back into
+            today's direct-write behavior; see
+            `_GRANDFATHERED_DIRECT_WRITE_CALLERS` above for which callers and
+            why. New callers must not pass this argument.
 
     Returns:
-        (success, message) tuple. In `create_proposal_only` mode, `message`
-        names the created Proposal (pending approval) rather than reporting
-        a completed workflow — the caller must not read this as "work was
-        applied."
+        (success, message) tuple. In proposal-gated mode (the default for a
+        write-capable request), `message` names the created Proposal
+        (pending approval) rather than reporting a completed workflow — the
+        caller must not read this as "work was applied."
 
     Examples:
         # Refactor for modularity
@@ -79,6 +140,12 @@ async def develop_from_goal(
     logger.info("Goal: %s", goal)
     logger.info("Workflow: %s", workflow_type)
     logger.info("Write: %s", write)
+
+    # ADR-160 D3 polarity inversion: fail-closed by default. A write-capable
+    # request is Proposal-gated unless a grandfathered caller explicitly
+    # opts out via `legacy_direct_write=True` (see
+    # _GRANDFATHERED_DIRECT_WRITE_CALLERS above).
+    create_proposal_only = write and not legacy_direct_write
 
     worker = GoalExecutionWorker(
         context=context,

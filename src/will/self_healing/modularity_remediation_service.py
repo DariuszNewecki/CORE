@@ -152,6 +152,11 @@ class ModularityRemediationService:
                     goal=goal,
                     workflow_type="refactor_modularity",
                     write=write,
+                    # ADR-160 D3 polarity inversion: grandfathered pending
+                    # issue #877 (Logic Conservation Gate read-after-write)
+                    # — see _GRANDFATHERED_DIRECT_WRITE_CALLERS in
+                    # autonomous_developer.py.
+                    legacy_direct_write=True,
                 )
 
                 # Logic Conservation Gate — mirrors ComplexityRemediationService._run_reflex_loop.

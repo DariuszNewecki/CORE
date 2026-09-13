@@ -316,6 +316,10 @@ async def run_and_persist_refactor_autonomous(
             goal=goal,
             workflow_type="refactor_modularity",
             write=write,
+            # ADR-160 D3 polarity inversion: this caller is grandfathered onto
+            # today's direct-write behavior pending its own conversion — see
+            # _GRANDFATHERED_DIRECT_WRITE_CALLERS in autonomous_developer.py.
+            legacy_direct_write=True,
         )
     except Exception as exc:
         logger.exception("refactor_runner: develop_from_goal raised for %s", run_id)

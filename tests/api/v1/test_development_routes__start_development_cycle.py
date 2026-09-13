@@ -265,10 +265,15 @@ async def test_write_true_response_does_not_claim_work_is_running() -> None:
     assert "Governor" in result["status"]
 
 
-async def test_write_true_passes_create_proposal_only_to_develop_from_goal() -> None:
-    """The background task must opt the write path into ADR-160 D3's
-    create_proposal_only mode -- proof the route actually wires the flag,
-    not just that the response text changed."""
+async def test_write_true_relies_on_fail_closed_default_not_explicit_kwarg() -> None:
+    """ADR-160 D3 polarity inversion: this route no longer wires
+    create_proposal_only explicitly -- develop_from_goal's own fail-closed
+    default (create_proposal_only = write and not legacy_direct_write)
+    now produces the same behavior for write=True. Proof: the kwarg key is
+    absent from the call, and develop_from_goal is called with write=True
+    and no legacy_direct_write (see
+    tests/will/autonomy/test_develop_from_goal_worker_shim.py for the
+    default's own behavior)."""
     mock_request = MagicMock(spec=Request)
     mock_core_context = MagicMock()
     mock_request.app.state.core_context = mock_core_context
@@ -311,11 +316,14 @@ async def test_write_true_passes_create_proposal_only_to_develop_from_goal() -> 
     mock_develop_from_goal.assert_awaited_once()
     _, kwargs = mock_develop_from_goal.await_args
     assert kwargs["write"] is True
-    assert kwargs["create_proposal_only"] is True
+    assert "create_proposal_only" not in kwargs
+    assert "legacy_direct_write" not in kwargs
 
 
-async def test_write_false_still_passes_create_proposal_only_false() -> None:
-    """Regression proof for the dry-run path on this same caller: unaffected."""
+async def test_write_false_does_not_pass_create_proposal_only() -> None:
+    """Regression proof for the dry-run path on this same caller: unaffected.
+    write=False produces create_proposal_only=False either way, and this
+    route relies on the default rather than passing it explicitly."""
     mock_request = MagicMock(spec=Request)
     mock_request.app.state.core_context = MagicMock()
 
@@ -356,5 +364,5 @@ async def test_write_false_still_passes_create_proposal_only_false() -> None:
 
     mock_develop_from_goal.assert_awaited_once()
     _, kwargs = mock_develop_from_goal.await_args
-    assert kwargs["create_proposal_only"] is False
+    assert "create_proposal_only" not in kwargs
     assert result["status"] == "Task accepted and running."

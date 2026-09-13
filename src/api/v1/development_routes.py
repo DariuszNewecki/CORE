@@ -68,11 +68,13 @@ async def start_development_cycle(
 
         ADR-160 D3, first staged conversion: a write-capable request
         (`payload.write=True`) creates a pending Proposal instead of
-        writing (`create_proposal_only=True`) — no file write occurs for
-        this route until a separate, later, Governor-triggered approval
-        step. A dry-run request (`payload.write=False`) is unaffected —
-        `create_proposal_only` stays False and this call behaves exactly
-        as before.
+        writing — no file write occurs for this route until a separate,
+        later, Governor-triggered approval step. A dry-run request
+        (`payload.write=False`) is unaffected. This route no longer passes
+        `create_proposal_only` explicitly: `develop_from_goal`'s fail-closed
+        default (ADR-160 D3 polarity inversion) now derives it from `write`
+        alone, so this call produces the same behavior without the
+        argument.
         """
         await develop_from_goal(
             context=core_context,
@@ -80,7 +82,6 @@ async def start_development_cycle(
             workflow_type=payload.workflow_type,
             write=payload.write,
             task_id=str(new_task.id),
-            create_proposal_only=payload.write,
         )
 
     background_tasks.add_task(run_development)
