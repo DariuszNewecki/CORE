@@ -5,8 +5,9 @@ Unified Vector Indexing Service - Constitutional Infrastructure
 
 - Uses QdrantService for upsert operations.
 - Implements Smart Deduplication using content hashes.
-- Embeddings are obtained via an injected Embeddable provider.
-  Default provider is the local-only embedder from shared.utils.embedding_utils.
+- Embeddings are obtained via an injected Embeddable provider. There is no
+  default: the canonical provider is CognitiveEmbedderAdapter (DB-backed
+  Vectorizer role) and every caller must inject one explicitly.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from shared.infrastructure.intent.operational_config import load_operational_con
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.universal import get_deterministic_id
-from shared.utils.embedding_utils import Embeddable, build_embedder_from_env
+from shared.utils.embedding_utils import Embeddable
 
 
 if TYPE_CHECKING:
@@ -38,22 +39,28 @@ class VectorIndexService:
 
     Constitutional embedding rule:
     - VectorIndexService does not implement embedding logic.
-    - It consumes an Embeddable provider (injected), or falls back to the
-      local-only embedder factory (settings-based, no env access).
+    - It consumes an injected Embeddable provider; there is no settings-based
+      fallback (architecture.boundary.embedding_access).
     """
 
     def __init__(
         self,
         qdrant_service: QdrantService,
         collection_name: str,
+        *,
+        embedder: Embeddable,
         vector_dim: int | None = None,
-        embedder: Embeddable | None = None,
     ) -> None:
         self.qdrant = qdrant_service
         self.collection_name = collection_name
         self.vector_dim = vector_dim or int(settings.LOCAL_EMBEDDING_DIM)
 
-        self._embedder: Embeddable = embedder or build_embedder_from_env()
+        if embedder is None:  # runtime guard for untyped callers
+            raise ValueError(
+                "VectorIndexService requires an injected Embeddable "
+                "(use CognitiveEmbedderAdapter); no settings-based fallback exists"
+            )
+        self._embedder: Embeddable = embedder
 
         logger.info(
             "VectorIndexService initialized: collection=%s dim=%s embedder=%s",

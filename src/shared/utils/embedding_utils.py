@@ -5,9 +5,15 @@ Provides utilities for handling text embeddings, including chunking and aggregat
 
 CORE contract:
 - "Embeddings" are produced by the Vectorizer role and are ALWAYS local.
-- No provider switching (no OpenAI/DeepSeek here).
-- No os.getenv/os.environ.
-- No fallback chains. Missing required settings => error.
+- This module holds no embedding client of its own. The single sanctioned
+  provider is CognitiveEmbedderAdapter (shared.infrastructure.vector.cognitive_adapter),
+  which resolves host/model/timeout through the DB-backed Vectorizer role
+  (core.llm_resources). Callers receive it via dependency injection.
+- The former settings-based fallback (EmbeddingService / build_embedder_from_env)
+  was removed: LOCAL_EMBEDDING_API_URL was never a declared Settings field, so the
+  factory raised on every call and no caller reached it. The blocking rule
+  architecture.boundary.embedding_access still names both symbols as a
+  reintroduction guard.
 """
 
 from __future__ import annotations
@@ -16,41 +22,13 @@ import asyncio
 import hashlib
 from typing import Protocol
 
-import httpx
 import numpy as np
 
-from shared.config import settings
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
 from shared.utils.common_knowledge import normalize_text
 
 
-logger = getLogger(__name__)
-
 _CFG_EMB = load_operational_config().embedding
-
-
-def _require_setting(name: str) -> str:
-    """
-    Strict settings read (CORE-style):
-    - only from shared.config.settings (+ model_extra if used as backing store)
-    - no fallback chains
-    - missing/empty => ValueError
-    """
-    value = None
-
-    if hasattr(settings, name):
-        value = getattr(settings, name)
-    else:
-        extra = getattr(settings, "model_extra", {}) or {}
-        value = extra.get(name)
-
-    if value is None:
-        raise ValueError(f"Missing required setting: {name}")
-    if isinstance(value, str) and not value.strip():
-        raise ValueError(f"Setting '{name}' is empty")
-
-    return str(value)
 
 
 # ID: 0c956ad0-a9d9-4cdf-bc8d-af9bccc4e30c
@@ -59,17 +37,6 @@ class Embeddable(Protocol):
 
     # ID: 3ace367e-4136-4dd0-95b9-ec75462ff78d
     async def get_embedding(self, text: str) -> list[float]: ...
-
-
-class _Adapter:
-    """Internal adapter to make EmbeddingService conform to the Embeddable protocol."""
-
-    def __init__(self, service: Embeddable):
-        self._service = service
-
-    # ID: f6d67bd8-83e2-42d5-81d3-07c668642568
-    async def get_embedding(self, text: str) -> list[float]:
-        return await self._service.get_embedding(text)
 
 
 def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
@@ -89,82 +56,6 @@ def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
 def sha256_hex(text: str) -> str:
     """Computes the SHA256 hex digest for a string."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-# ID: c3c32fe7-d434-43c6-b6a2-647afe213b4e
-class EmbeddingService:
-    """
-    Local-only embeddings client — shared infrastructure only.
-
-    CANONICAL PATH FOR ALL OTHER CODE:
-      Use CognitiveEmbedderAdapter(cognitive_service) instead.
-      It resolves through the DB-backed Vectorizer role (core.llm_resources)
-      so host, model, and timeout are operator-governed, not env-bound.
-
-      from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
-      embedder = CognitiveEmbedderAdapter(cognitive_service)
-
-    This class exists for shared infrastructure internals only. Direct
-    construction outside src/shared/ is blocked by the
-    architecture.boundary.embedding_access governance rule.
-
-    Expected settings (NO fallbacks):
-    - LOCAL_EMBEDDING_API_URL
-    - LOCAL_EMBEDDING_MODEL_NAME
-
-    Endpoint:
-    - POST {LOCAL_EMBEDDING_API_URL}/api/embed with {model, input} (Ollama 0.4+)
-    """
-
-    def __init__(self, timeout: float = _CFG_EMB.utils_request_timeout_sec) -> None:
-        self.base = _require_setting("LOCAL_EMBEDDING_API_URL").rstrip("/")
-        self.model = _require_setting("LOCAL_EMBEDDING_MODEL_NAME")
-        self.timeout = timeout
-
-        self.endpoint = "/api/embed"
-        self.headers: dict[str, str] = {"Content-Type": "application/json"}
-
-        logger.info(
-            "EmbeddingService initialized (local) base=%s model=%s",
-            self.base,
-            self.model,
-        )
-
-    # ID: b0db34ef-e89a-4910-b264-8e939cc14f9a
-    async def get_embedding(self, text: str) -> list[float]:
-        """Return a single embedding vector for the given text."""
-        url = f"{self.base}{self.endpoint}"
-        payload = {"model": self.model, "input": text, "options": {"num_ctx": 8192}}
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(url, json=payload, headers=self.headers)
-
-        if resp.status_code != 200:
-            logger.error(
-                "HTTP error from local embedding API: %s - %s",
-                resp.status_code,
-                resp.text,
-            )
-            raise RuntimeError(f"Embedding API HTTP {resp.status_code}")
-
-        data = resp.json()
-        embeddings = data.get("embeddings")
-        if not embeddings or not embeddings[0]:
-            logger.error("Local embedding service returned no vector.")
-            raise RuntimeError("No vector returned from embedding service")
-
-        return embeddings[0]
-
-
-# ID: 14fd20cf-3101-4970-84b0-942ea9fffda3
-def build_embedder_from_env() -> Embeddable:
-    """Settings-based local embedder factory — shared infrastructure only.
-
-    For application code, use CognitiveEmbedderAdapter(cognitive_service)
-    which resolves through the DB-backed Vectorizer role. Direct use of this
-    factory outside src/shared/ is blocked by architecture.boundary.embedding_access.
-    """
-    return _Adapter(EmbeddingService())
 
 
 # ID: 31b34c50-e03b-4839-b588-d2a0c76a9004
