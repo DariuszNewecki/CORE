@@ -235,7 +235,10 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 | `passive_gate`    | Substrate-enforced rules (DB/runtime marker) |
 | `taxonomy_gate`   | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
 | `contracts_gate`  | Cross-cutting data-contract coherence (context-level; ADR-102) |
+| `runtime_gate`    | Runtime telemetry checks over blackboard data, not source (ADR-081/082) |
+| `attestation_gate`| The honest third outcome: requirements no automated method can settle need a dated human attestation (ADR-113) |
 | `llm_gate`        | LLM-assisted semantic checks                 |
+| `grc_judge`       | LLM-assisted compliance assessment of GRC documents |
 | `IntentGuard`*    | Runtime write authorization (not audit)      |
 
 *Runtime Gate per `.specs/papers/CORE-Gate.md`, kept here for visibility.
@@ -329,7 +332,7 @@ cd CORE
 poetry install
 cp .env.example .env
 docker compose up -d
-docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
+docker compose exec -T postgres psql -U postgres -d core < schema.sql
 poetry run core-admin code audit --offline   # offline mode needs no running services
 ```
 </details>
@@ -356,18 +359,20 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.9.1 — CLI Client Parity
+**Current Release:** v2.9.1 — BYOR Write-Flow Fixes
 
 Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved fixes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 
 All four A3 integrity gates are now closed. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
 
-| Gate | Meaning | Status |
-|------|---------|--------|
-| G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
-| G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ |
-| G3 — Consequence chain | Causality queryable end-to-end | ✅ |
-| G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ |
+These are the **A3 plan's closure gates** ([`CORE-A3-plan.md`](.specs/decisions/CORE-A3-plan.md), closed 2026-05), a different vocabulary from the fifteen production-readiness gates above — the A3 gates say the autonomous loop *exists and is governed*; the readiness gates say whether it is *proven fit to ship*, and today it is not.
+
+| A3 gate | Meaning | Status |
+|---------|---------|--------|
+| A3-G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
+| A3-G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ |
+| A3-G3 — Consequence chain | Causality queryable end-to-end | ✅ |
+| A3-G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ |
 
 ---
 
