@@ -16,22 +16,25 @@ Loop position:
                                      revives the deferred findings (§7a)
 
 Design constraints: no LLM, no file writes, dedup against active proposals
-on the (ref_id, file_path) key (ADR-035 D2). Findings are deferred AFTER
-the proposal is persisted. Safe (approval_required=False) proposals are
-created in APPROVED status so the consumer worker can execute without a
+on the (ref_id, file_path) key (ADR-035 D2). Proposal persistence, the
+deferral of its source findings, and safe auto-approval are ONE transaction
+(#886; ADR-154 D3b) — a finding can never be left ``claimed`` beside a
+committed proposal that cites it. Safe (approval_required=False) proposals
+land in APPROVED status so the consumer worker can execute without a
 separate approval step.
 
 Terminal-state semantics are documented on each collaborator function:
-- Proposal creation and active-proposal indexing — see
-  violation_remediator_proposal.py (ADR-035, ADR-010, ADR-038).
-- Blackboard transitions (resolve / defer / release / release_unmappable /
+- Proposal creation (with atomic finding deferral) and active-proposal
+  indexing — see violation_remediator_proposal.py (ADR-035, ADR-010,
+  ADR-038).
+- Blackboard transitions (resolve / release / release_unmappable /
   mark_delegated) — see violation_remediator_blackboard.py
   (ADR-010, ADR-015 D4).
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
@@ -41,7 +44,6 @@ from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.autonomy.circuit_breaker import load_circuit_breaker_config, trip
 from will.autonomy.violation_remediator_blackboard import (
-    defer_to_proposal,
     load_open_findings,
     mark_delegated,
     release_entries,
@@ -53,6 +55,10 @@ from will.autonomy.violation_remediator_proposal import (
     create_proposal,
     get_active_proposal_id_by_action_file,
 )
+
+
+if TYPE_CHECKING:
+    from body.services.proposal_submission_service import MappedSubmissionResult
 
 
 logger = getLogger(__name__)
@@ -84,9 +90,10 @@ class ViolationRemediatorWorker(Worker):
     Reads open audit.violation findings, maps each rule to a remediation
     action via .intent/ remediation map, groups by (action, file) per
     ADR-035 D1, deduplicates against active proposals on the same
-    (action, file) unit, creates per-finding proposals, transitions the
-    consumed entries to 'deferred_to_proposal' with the proposal_id
-    stored in their payload (per CORE-Finding.md §7).
+    (action, file) unit, and creates per-finding proposals — each one
+    committed in the same transaction that transitions its consumed
+    entries to 'deferred_to_proposal' with the proposal_id stored in
+    their payload (per CORE-Finding.md §7; #886 / ADR-154 D3b).
 
     Safe proposals (approval_required=False) are created in APPROVED status
     so ProposalConsumerWorker can execute them without a separate approval step.
@@ -257,22 +264,29 @@ class ViolationRemediatorWorker(Worker):
                 entries_circuit_broken += len(entry_ids)
                 continue
 
-            proposal_id = await self._create_proposal(ref_id, ref_kind, findings)
+            # One transaction: proposal row + every finding deferred to it
+            # (+ safe auto-approval). Either the whole submission is durable
+            # or nothing is — there is no separate defer step to fail after
+            # the proposal has committed (#886).
+            submission = await self._create_proposal(ref_id, ref_kind, findings)
 
-            if proposal_id:
+            if submission:
                 proposals_created.append(group_label)
-                deferred = await self._defer_to_proposal(entry_ids, proposal_id)
-                entries_deferred += deferred
+                entries_deferred += submission.deferred_count
                 logger.info(
                     "ViolationRemediatorWorker: created proposal '%s' for %s "
-                    "'%s' (%d findings, %d entries deferred to proposal)",
-                    proposal_id,
+                    "'%s' (%d findings, %d entries deferred to proposal, "
+                    "auto_approved=%s)",
+                    submission.proposal_id,
                     ref_kind,
                     group_label,
                     len(findings),
-                    deferred,
+                    submission.deferred_count,
+                    submission.auto_approved,
                 )
             else:
+                # Nothing was persisted. Release whatever this worker still
+                # holds so the next cycle can retry cleanly.
                 released = await self._release_entries(entry_ids)
                 entries_released_after_failure += released
                 logger.warning(
@@ -383,18 +397,14 @@ class ViolationRemediatorWorker(Worker):
     # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
     async def _create_proposal(
         self, ref_id: str, ref_kind: str, findings: list[dict[str, Any]]
-    ) -> str | None:
-        return await create_proposal(ref_id, ref_kind, findings)
+    ) -> MappedSubmissionResult | None:
+        return await create_proposal(
+            ref_id, ref_kind, findings, claimed_by=self._worker_uuid
+        )
 
     # ID: a9b0c1d2-e3f4-5678-abcd-567890123458
     async def _resolve_entries(self, entry_ids: list[str], proposal_id: str) -> int:
         return await resolve_entries(
-            await self._blackboard_service(), entry_ids, proposal_id
-        )
-
-    # ID: 2f8b4e71-c950-4a6d-b3e8-7f1a5c2d906e
-    async def _defer_to_proposal(self, entry_ids: list[str], proposal_id: str) -> int:
-        return await defer_to_proposal(
             await self._blackboard_service(), entry_ids, proposal_id
         )
 

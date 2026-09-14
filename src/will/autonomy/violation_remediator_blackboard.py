@@ -2,7 +2,7 @@
 """
 Blackboard operations for ViolationRemediatorWorker.
 
-Collaborator module. Owns the claim-time loader and the five terminal
+Collaborator module. Owns the claim-time loader and the four terminal
 transitions for findings:
 
 - load_open_findings: claim open audit-violation findings (subject set
@@ -14,10 +14,11 @@ transitions for findings:
   Status is 'resolved' rather than 'deferred_to_proposal' because the
   subsuming proposal does not track the subsumed entries in its scope,
   so the §7a revival contract does not apply.
-- defer_to_proposal: happy path (ADR-010 / CORE-Finding.md §7 row 4).
-  Transition entries to 'deferred_to_proposal' with proposal_id on
-  payload — the linkage ProposalStateManager.mark_failed reads to
-  revive findings if the proposal later fails.
+- (the happy-path 'deferred_to_proposal' transition — ADR-010 /
+  CORE-Finding.md §7 row 4 — is deliberately NOT here: since #886 it is
+  performed inside the Body-owned submission transaction that persists
+  the proposal, never as a separate call after the fact; see
+  violation_remediator_proposal.create_proposal.)
 - release_entries: rollback when proposal creation fails. Returns
   claimed entries to 'open' so the next cycle can retry cleanly.
 - release_unmappable: same release path, driven from a list of finding
@@ -147,35 +148,6 @@ async def resolve_entries(
         return await service.resolve_entries_for_proposal(entry_ids, proposal_id)
     except Exception as e:
         logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
-        return 0
-
-
-# ID: 145f905f-b1ac-4616-9bcc-6a4f0159afda
-async def defer_to_proposal(
-    service: Any,
-    entry_ids: list[str],
-    proposal_id: str,
-) -> int:
-    """Transition entries to 'deferred_to_proposal' with proposal_id on payload.
-
-    Happy-path terminal transition for findings consumed into a newly-
-    created proposal — CORE-Finding.md §7 row 4 and ADR-010. The §7a
-    revival contract in ProposalStateManager.mark_failed depends on this
-    linkage.
-
-    Returns count of entries deferred. Fail-soft: a revival-layer failure
-    here does not reverse the caller's proposal_created accounting.
-    """
-    if not entry_ids:
-        return 0
-    try:
-        return await service.defer_entries_to_proposal(entry_ids, proposal_id)
-    except Exception as e:
-        logger.error(
-            "ViolationRemediatorWorker: failed to defer entries to proposal %s: %s",
-            proposal_id,
-            e,
-        )
         return 0
 
 

@@ -48,7 +48,11 @@ class BlackboardProposalService:
         Returns the count of rows actually updated.
 
         Covers:
-          - ViolationRemediatorWorker._defer_to_proposal
+          - ProposalPipelineShopManager._redrive_undeferred_findings (#764).
+            No longer the mapped lane's happy path: since #886 that lane
+            defers inside the Body-owned submission transaction
+            (proposal_submission_service.submit_mapped_proposal), with an
+            ownership-checked predicate — not this unguarded one.
         """
         if not entry_ids:
             return 0

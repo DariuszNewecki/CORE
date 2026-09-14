@@ -15,13 +15,14 @@ split state, live in production before this fix.
 
 This module is also the first concrete instance of ADR-154 D3b's atomicity
 requirement: "a Body-owned service performs candidate persistence, proposal
-creation, and finding deferral within one database transaction." It accepts
-``finding_ids`` as a set (not assumed singular) so the same transactional
-shape is structurally ready to be reused once ceremony (Slice B) needs it —
-but this module currently implements only the assisted-lane eligibility
-predicate (``status='indeterminate' AND resolution_mechanism='human'``); a
-ceremony-shaped predicate (``open``/``claimed``) is future work, not built
-speculatively here.
+creation, and finding deferral within one database transaction." Three
+lanes now share that transactional shape, each with its own eligibility
+predicate: the assisted lane (``indeterminate+human``), the ceremony lane
+(``claimed`` by an expected worker, rule-set equality), and — #886 — the
+mapped lane (``submit_mapped_proposal``: ``claimed`` by an expected worker,
+with the lane's safe auto-approval step folded into the same transaction via
+a caller-supplied callable, so that creation, deferral and approval commit or
+roll back together).
 
 Layering (``architecture.layers.no_body_to_will``, no excludes, applies to
 every file in this directory): this module accepts an already-mapped
@@ -39,6 +40,8 @@ upward-borrowed Will import.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sqlalchemy import text
@@ -48,11 +51,44 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from shared.infrastructure.database.models.autonomous_proposals import (
         AutonomousProposal,
     )
 
 logger = getLogger(__name__)
+
+
+ApprovalStep = Callable[["AsyncSession", str], Awaitable[bool]]
+"""Caller-supplied approval transition for ``submit_mapped_proposal``.
+
+Invoked as ``await step(session, proposal_id)`` inside the submission
+transaction, after the proposal row is flushed and every finding is
+deferred. Returns True if the proposal was approved, False if it was
+evaluated and left unapproved (e.g. denied by the safe auto-approval
+envelope — a legitimate outcome, not a failure). It MUST NOT commit,
+roll back, or close *session*; the transaction is owned here. Any
+exception it raises aborts the whole submission — proposal, deferrals
+and approval alike — so a failed approval can never strand a committed
+proposal beside an un-deferred finding.
+
+The callable shape keeps this Body module free of any Will import
+(``architecture.layers.no_body_to_will``): the mapped lane passes a
+closure over ``ProposalStateManager.approve`` — the sanctioned
+lifecycle gate, which already runs caller-transaction-scoped — rather
+than this module reaching up for it.
+"""
+
+
+@dataclass(frozen=True)
+# ID: 39773ae3-66ff-482f-9c2a-8d30ac542b38
+class MappedSubmissionResult:
+    """Outcome of a committed ``submit_mapped_proposal`` transaction."""
+
+    proposal_id: str
+    deferred_count: int
+    auto_approved: bool
 
 
 # ID: 5c6910d8-6d13-403f-9633-1a9b3e0e6332
@@ -278,3 +314,121 @@ async def submit_ceremony_proposal(
             expected_worker_uuid,
         )
         return proposal_id
+
+
+# ID: 6a896db2-30d3-4c5f-8652-b5cce2e8c823
+async def submit_mapped_proposal(
+    proposal_model: AutonomousProposal,
+    finding_ids: list[str],
+    expected_worker_uuid: uuid.UUID,
+    *,
+    approval_step: ApprovalStep | None = None,
+) -> MappedSubmissionResult:
+    """Atomically persist *proposal_model*, defer every id in *finding_ids*
+    to it, and — when *approval_step* is given — run the lane's approval
+    transition in that same transaction (#886; ADR-154 D3b applied to the
+    mapped proposal lane, ADR-154 Context "Lane 1").
+
+    Same single-transaction shape as the assisted and ceremony analogues
+    (add + flush + one compare-and-swap ``UPDATE ... RETURNING`` + commit
+    once) and the ceremony lane's ownership predicate: mapped-lane findings
+    live at ``status='claimed'`` with ``claimed_by`` equal to the worker
+    that claimed them (``claim_findings_by_patterns``). A finding released
+    and re-claimed by another worker in the meantime is not this
+    submission's to defer, so the whole submission aborts rather than
+    silently stealing that claim — the ADR-154 D5 eligibility guard. No
+    rule-set check: unlike a ceremony candidate, a mapped proposal is built
+    directly from the findings it cites, so there is no separately
+    validated rule set to reconcile against.
+
+    Why the approval step lives *inside* the transaction: the mapped lane
+    may auto-approve under ``risk_classification.safe_auto_approval``
+    (ADR-068 D5, ADR-160 D2). Before #886 that approval was already atomic
+    with proposal creation, while finding deferral was a later, separate,
+    fail-soft transaction — the race this function closes. Folding
+    deferral in while pushing approval *out* would only have re-created a
+    narrower two-step shape (commit, then decide). So all three land or
+    none do: an exception from *approval_step* rolls back the proposal and
+    every deferral, leaving the findings exactly as claimed as they were
+    for the caller's ordinary release path. An envelope *denial* is not an
+    exception — the step returns False and the proposal commits unapproved
+    with its findings deferred (#853 governor ruling 6).
+
+    ``resolution_mechanism`` is deliberately NOT touched by the deferral
+    UPDATE, for the same reason as the ceremony lane: a later execution
+    failure must reach ``revive_findings_for_failed_proposal`` (ADR-038)
+    exactly as before.
+
+    Returns only after a successful commit.
+
+    Raises:
+        ProposalSubmissionError: *finding_ids* was empty, or fewer findings
+            were deferred than requested (stale claim/status/ownership).
+            Nothing is persisted.
+        Exception: whatever *approval_step* raised — re-raised unchanged
+            after the transaction has been rolled back.
+    """
+    if not finding_ids:
+        raise ProposalSubmissionError(
+            "submit_mapped_proposal requires at least one finding_id"
+        )
+
+    auto_approved = False
+    async with service_registry.session() as session:
+        async with session.begin():
+            session.add(proposal_model)
+            await session.flush()
+            proposal_id = str(proposal_model.proposal_id)
+
+            result = await session.execute(
+                text(
+                    """
+                    UPDATE core.blackboard_entries
+                    SET status = 'deferred_to_proposal',
+                        resolved_at = now(),
+                        updated_at = now(),
+                        payload = payload || jsonb_build_object(
+                            'proposal_id', cast(:proposal_id as text)
+                        )
+                    WHERE id = ANY(cast(:ids as uuid[]))
+                      AND entry_type = 'finding'
+                      AND status = 'claimed'
+                      AND claimed_by = cast(:expected_worker_uuid as uuid)
+                    RETURNING id
+                    """
+                ),
+                {
+                    "proposal_id": proposal_id,
+                    "ids": finding_ids,
+                    "expected_worker_uuid": str(expected_worker_uuid),
+                },
+            )
+            deferred_ids = {str(row[0]) for row in result.fetchall()}
+
+            if len(deferred_ids) != len(finding_ids):
+                stale = sorted(set(finding_ids) - deferred_ids)
+                raise ProposalSubmissionError(
+                    f"{len(stale)}/{len(finding_ids)} finding(s) no longer "
+                    "eligible for mapped-lane deferral (not entry_type='finding' "
+                    f"AND status='claimed' AND claimed_by={expected_worker_uuid} "
+                    f"at submission time): {stale}. Proposal not created — "
+                    "submission is all-or-nothing (ADR-154 D3b)."
+                )
+
+            if approval_step is not None:
+                auto_approved = await approval_step(session, proposal_id)
+
+        # session.begin() committed on clean exit — proposal_id is now durable.
+        logger.info(
+            "proposal_submission: mapped proposal %s committed with %d "
+            "finding(s) deferred atomically (worker=%s, auto_approved=%s)",
+            proposal_id,
+            len(deferred_ids),
+            expected_worker_uuid,
+            auto_approved,
+        )
+        return MappedSubmissionResult(
+            proposal_id=proposal_id,
+            deferred_count=len(deferred_ids),
+            auto_approved=auto_approved,
+        )

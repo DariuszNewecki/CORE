@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.services.proposal_submission_service import MappedSubmissionResult
+
 
 @dataclass
 class MockProposalAction:
@@ -245,8 +247,13 @@ class TestViolationRemediatorWorker:
         # (unlike the uncommitted-gate test, which `continue`s before this
         # call). Low count keeps it under mock_cb's threshold_n=5.
         worker._check_circuit_breaker = AsyncMock(return_value=(0, None, None, None))
-        worker._create_proposal = AsyncMock(return_value="proposal-abc")
-        worker._defer_to_proposal = AsyncMock(return_value=1)
+        # #886: creation and deferral are one transaction; the worker reads
+        # the deferred count off the submission result, not a second call.
+        worker._create_proposal = AsyncMock(
+            return_value=MappedSubmissionResult(
+                proposal_id="proposal-abc", deferred_count=1, auto_approved=True
+            )
+        )
         worker._release_unmappable = AsyncMock(return_value=0)
         worker._mark_delegated = AsyncMock(return_value=0)
         worker.post_report = AsyncMock()
@@ -270,6 +277,7 @@ class TestViolationRemediatorWorker:
         report_payload = worker.post_report.call_args[1]["payload"]
         assert report_payload["entries_held_uncommitted"] == 0
         assert report_payload["proposals_created"] == 1
+        assert report_payload["entries_deferred"] == 1
 
     async def test_flow_findings_bypass_uncommitted_gate(self, worker):
         """Flow-kind remediations have no file_path target and must not be gated."""
@@ -296,8 +304,11 @@ class TestViolationRemediatorWorker:
         # circuit-breaker call as the committed-file path -- unmocked here
         # it opened a real session.
         worker._check_circuit_breaker = AsyncMock(return_value=(0, None, None, None))
-        worker._create_proposal = AsyncMock(return_value="proposal-flow-1")
-        worker._defer_to_proposal = AsyncMock(return_value=1)
+        worker._create_proposal = AsyncMock(
+            return_value=MappedSubmissionResult(
+                proposal_id="proposal-flow-1", deferred_count=1, auto_approved=False
+            )
+        )
         worker._release_unmappable = AsyncMock(return_value=0)
         worker._mark_delegated = AsyncMock(return_value=0)
         worker.post_report = AsyncMock()

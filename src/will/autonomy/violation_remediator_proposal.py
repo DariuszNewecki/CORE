@@ -7,12 +7,15 @@ Collaborator module. Owns three operations that ViolationRemediatorWorker
 calls from its run loop:
 
 - create_proposal: build a Proposal from a (ref_id, ref_kind, findings) group,
-  validate it, persist via ProposalRepository, auto-approve through
-  ProposalStateManager when risk classification says safe, and return the
-  proposal_id. Safe proposals land in APPROVED status so the consumer worker
-  can pick them up without a separate human approval step (ADR-035 D1;
-  per-finding scope keyed by (action_id, file_path) for atomic actions, or
-  by flow_id alone for flows).
+  validate it, and submit it through the Body-owned
+  ``submit_mapped_proposal`` so that proposal persistence, the deferral of
+  every source finding to it, and the safe auto-approval transition
+  (ProposalStateManager.approve, when risk classification says safe) commit
+  or roll back as ONE transaction (#886; ADR-154 D3b applied to this lane).
+  Safe proposals land in APPROVED status so the consumer worker can pick
+  them up without a separate human approval step (ADR-035 D1; per-finding
+  scope keyed by (action_id, file_path) for atomic actions, or by flow_id
+  alone for flows).
 - get_active_proposal_id_by_action_file: load all proposals in active states
   ({DRAFT, PENDING, APPROVED, EXECUTING}) and return a
   (ref_id, file_path) → proposal_id map keyed for the dedup-subsume check
@@ -37,14 +40,19 @@ Dependencies are acquired lazily inside each function via the body service
 registry — same pattern as proposal_consumer_revival.mark_proposal_failed,
 which is the precedent for proposal-row mutations from a will collaborator
 module. No file writes, no LLM calls. No Worker reference required —
-nothing in this module posts to the blackboard.
+nothing in this module posts to the blackboard. Finding deferral is NOT
+performed here (nor anywhere else in this lane's collaborators): it is the
+Body-owned submission service's half of the D3b transaction, and the
+approval transition it needs is handed to it as a closure over the
+sanctioned ProposalStateManager gate — never a bypass around it.
 
 LAYER: will/workers — internal collaborator of ViolationRemediatorWorker.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import uuid
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 from will.autonomy.circuit_breaker import recent_consecutive_identical_count
@@ -55,6 +63,10 @@ from will.autonomy.proposal import (
     ProposalStatus,
 )
 from will.autonomy.safe_auto_approval_envelope import SafeAutoApprovalDeniedError
+
+
+if TYPE_CHECKING:
+    from body.services.proposal_submission_service import MappedSubmissionResult
 
 
 logger = getLogger(__name__)
@@ -88,25 +100,40 @@ async def create_proposal(
     ref_id: str,
     ref_kind: str,
     findings: list[dict[str, Any]],
-) -> str | None:
-    """Create and persist a Proposal for the given remediation reference.
+    *,
+    claimed_by: uuid.UUID,
+) -> MappedSubmissionResult | None:
+    """Create, persist and link a Proposal for the given remediation reference.
 
     ref_kind selects the ProposalAction shape: "action" produces
     ProposalAction(action_id=ref_id, ...) and "flow" produces
     ProposalAction(flow_id=ref_id, ...). The two are mutually exclusive
     per ProposalAction.__post_init__.
 
-    Safe proposals (approval_required=False) are auto-approved through
-    ProposalStateManager so the row carries approval_authority
-    (URS NFR.5; ADR-015 D6) and the consumer worker can execute without
-    a separate approval step. Proposals requiring human approval stay
-    in DRAFT.
+    One transaction (#886, ADR-154 D3b): the proposal row, the transition
+    of every finding in *findings* from ``claimed`` (by *claimed_by* — the
+    worker that claimed them) to ``deferred_to_proposal`` carrying the new
+    proposal_id, and — for safe proposals (approval_required=False) — the
+    auto-approval through ProposalStateManager so the row carries
+    approval_authority (URS NFR.5; ADR-015 D6) all commit together, or none
+    of them do. Proposals requiring human approval, and safe proposals the
+    safe auto-approval envelope denies (#853 ruling 6), commit unapproved in
+    DRAFT with their findings deferred.
 
-    Returns proposal_id on success, None on validation or persistence
-    failure.
+    Returns the committed submission (proposal_id, deferred_count,
+    auto_approved) on success; None on validation failure, on any finding
+    no longer being this worker's live claim at submission time (nothing
+    persisted — the caller releases what it still holds), or on any other
+    persistence/approval failure (also nothing persisted).
     """
-    from body.services.service_registry import service_registry
-    from will.autonomy.proposal_repository import ProposalRepository
+    from body.services.proposal_submission_service import (
+        ProposalSubmissionError,
+        submit_mapped_proposal,
+    )
+    from shared.infrastructure.database.models.autonomous_proposals import (
+        AutonomousProposal,
+    )
+    from will.autonomy.proposal_mapper import ProposalMapper
     from will.autonomy.proposal_state_manager import ProposalStateManager
 
     affected_files: list[str] = sorted(
@@ -124,10 +151,10 @@ async def create_proposal(
         }
     )
 
-    # finding_ids mirrors the entry_ids subsequently passed to
-    # defer_to_proposal in the worker run loop, making the proposal→finding
-    # read path symmetric with the finding→proposal write path. Consumed
-    # by ProposalExecutor when emitting consequence-log entries
+    # finding_ids is the exact set submit_mapped_proposal defers in the same
+    # transaction that persists this row, making the proposal→finding read
+    # path symmetric with the finding→proposal write path. Consumed by
+    # ProposalExecutor when emitting consequence-log entries
     # (proposal_executor.py:265-266). ADR-015 D7: forward-only — historical
     # proposals predating this field are not backfilled.
     finding_ids = [_entry_id(f) for f in findings]
@@ -193,52 +220,77 @@ async def create_proposal(
         )
         return None
 
+    async def _approve_in_transaction(session: Any, proposal_id: str) -> bool:
+        """Safe auto-approval step, run by the Body service inside its
+        transaction (ApprovalStep contract: no commit/rollback here).
+
+        ProposalStateManager.approve() is caller-transaction-scoped by
+        design — it never commits — which is exactly what lets the
+        sanctioned gate (envelope validation included) sit inside the
+        D3b transaction without a bypass.
+        """
+        try:
+            await ProposalStateManager(session).approve(
+                proposal_id,
+                approved_by="autonomous_self_promote",
+                approval_authority="risk_classification.safe_auto_approval",
+            )
+        except SafeAutoApprovalDeniedError as denial:
+            # #853 governor ruling 6: not eligible for safe auto-approval
+            # is NOT a persistence failure. approve() validated the
+            # envelope BEFORE its UPDATE, so the row is untouched — return
+            # False and let the transaction commit the proposal in DRAFT
+            # (findings deferred) for principal.governor review.
+            logger.warning(
+                "ViolationRemediatorWorker: proposal for '%s' is not "
+                "eligible for safe auto-approval (%s) — committing in "
+                "DRAFT for governor review.",
+                ref_id,
+                denial,
+            )
+            return False
+        logger.info(
+            "ViolationRemediatorWorker: proposal for '%s' auto-approved "
+            "(risk=%s, approval_required=False)",
+            ref_id,
+            proposal.risk.overall_risk if proposal.risk else "unknown",
+        )
+        return True
+
+    if proposal.approval_required:
+        logger.info(
+            "ViolationRemediatorWorker: proposal for '%s' requires human "
+            "approval (risk=%s) — creating in DRAFT",
+            ref_id,
+            proposal.risk.overall_risk if proposal.risk else "unknown",
+        )
+
+    # Will owns constructing/mapping the governed proposal representation;
+    # the Body-owned service only ever receives the persistence model
+    # (architecture.layers.no_body_to_will — same split as lane_service).
+    proposal_model = ProposalMapper.to_db_model(proposal, AutonomousProposal)
+
     try:
-        async with service_registry.session() as session:
-            repo = ProposalRepository(session)
-            proposal_id = await repo.create(proposal)
-
-            if not proposal.approval_required:
-                state_manager = ProposalStateManager(session)
-                try:
-                    await state_manager.approve(
-                        proposal_id,
-                        approved_by="autonomous_self_promote",
-                        approval_authority="risk_classification.safe_auto_approval",
-                    )
-                    logger.info(
-                        "ViolationRemediatorWorker: proposal for '%s' auto-approved "
-                        "(risk=%s, approval_required=False)",
-                        ref_id,
-                        proposal.risk.overall_risk if proposal.risk else "unknown",
-                    )
-                except SafeAutoApprovalDeniedError as denial:
-                    # #853 governor ruling 6: not eligible for safe
-                    # auto-approval is NOT a persistence failure. The
-                    # proposal row already exists (repo.create above) and
-                    # was never touched by the denied approve() call — commit
-                    # it in DRAFT for principal.governor review rather than
-                    # letting the outer except swallow it into a rollback.
-                    logger.warning(
-                        "ViolationRemediatorWorker: proposal for '%s' is not "
-                        "eligible for safe auto-approval (%s) — committing in "
-                        "DRAFT for governor review.",
-                        ref_id,
-                        denial,
-                    )
-            else:
-                logger.info(
-                    "ViolationRemediatorWorker: proposal for '%s' requires human "
-                    "approval (risk=%s) — created in DRAFT",
-                    ref_id,
-                    proposal.risk.overall_risk if proposal.risk else "unknown",
-                )
-
-            await session.commit()
-        return proposal_id
+        return await submit_mapped_proposal(
+            proposal_model,
+            finding_ids=finding_ids,
+            expected_worker_uuid=claimed_by,
+            approval_step=(
+                None if proposal.approval_required else _approve_in_transaction
+            ),
+        )
+    except ProposalSubmissionError as stale:
+        logger.warning(
+            "ViolationRemediatorWorker: proposal for '%s' not created — %s",
+            ref_id,
+            stale,
+        )
+        return None
     except Exception as e:
         logger.error(
-            "ViolationRemediatorWorker: failed to persist proposal for '%s': %s",
+            "ViolationRemediatorWorker: failed to persist proposal for '%s' "
+            "(nothing committed — proposal, deferrals and approval rolled "
+            "back together): %s",
             ref_id,
             e,
         )
