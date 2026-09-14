@@ -30,8 +30,8 @@ API_HOST="${CORE_API_HOST:-127.0.0.1}"
 API_PORT="${CORE_API_PORT:-8000}"
 API_PID_FILE="var/run/core-api.pid"
 DAEMON_PID_FILE="var/run/core-daemon.pid"
-API_LOG="var/log/core-api.log"
-DAEMON_LOG="var/log/core-daemon.log"
+API_LOG="var/logs/core-api.log"
+DAEMON_LOG="var/logs/core-daemon.log"
 
 # ---- pretty output ---------------------------------------------------------
 if [[ -t 1 ]]; then
@@ -105,7 +105,7 @@ write_env() {
       ok "created .env from .env.example (defaults are demo-ready; no API key needed)"
     fi
   fi
-  mkdir -p var/run var/log
+  mkdir -p var/run var/logs
 }
 
 # ===========================================================================
@@ -269,22 +269,22 @@ run_bare() {
 # Start the CORE API and daemon (bare mode — you supply the infra).
 set -euo pipefail
 cd "$(dirname "$0")"
-mkdir -p var/run var/log
+mkdir -p var/run var/logs
 API_HOST="${CORE_API_HOST:-127.0.0.1}"
 API_PORT="${CORE_API_PORT:-8000}"
 
 echo "Starting CORE API..."
 nohup poetry run uvicorn src.api.main:create_app --factory \
   --host "$API_HOST" --port "$API_PORT" --env-file .env \
-  >> var/log/core-api.log 2>&1 &
+  >> var/logs/core-api.log 2>&1 &
 echo $! > var/run/core-api.pid
-echo "  API PID $(cat var/run/core-api.pid) — logs: var/log/core-api.log"
+echo "  API PID $(cat var/run/core-api.pid) — logs: var/logs/core-api.log"
 
 echo "Starting CORE daemon..."
 nohup poetry run core-admin daemon start \
-  >> var/log/core-daemon.log 2>&1 &
+  >> var/logs/core-daemon.log 2>&1 &
 echo $! > var/run/core-daemon.pid
-echo "  Daemon PID $(cat var/run/core-daemon.pid) — logs: var/log/core-daemon.log"
+echo "  Daemon PID $(cat var/run/core-daemon.pid) — logs: var/logs/core-daemon.log"
 
 echo "CORE is running."
 STARTEOF
