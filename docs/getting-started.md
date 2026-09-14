@@ -6,16 +6,17 @@ You don't need the full runtime to start. Pick the path that matches your goal:
 
 | Goal | Path | What you need |
 |------|------|---------------|
-| **Govern your own repo** | `core-admin project onboard <path> --write` (machinery floor), then `core-admin project scout <path> --write` (fitted rules), then add the [GitHub Action](cold-reviewer.md) | Python 3.12+ and `pip install core-runtime` |
-| **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo **with a `.intent/` constitution** (scaffold one with `project onboard` + `project scout`) |
+| **Govern your own repo** | `core project onboard <path> --write` (machinery floor), then `core project scout <path> --write` (fitted rules), then add the [GitHub Action](cold-reviewer.md) — walkthrough: [byor-quickstart.md](byor-quickstart.md) | `pip install core-cli` **and a running CORE API** (Postgres + Qdrant behind it) |
+| **Add a rule pack to a repo that already has a `.intent/`** | `pip install core-runtime`, then `core-admin project adopt-pack core/starter-python --write` *inside that repo* | Python 3.12+ and a repo with a `.intent/` machinery floor |
+| **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo **with a `.intent/` constitution** |
 | **Run an audit locally, no services** | `pip install core-runtime`, then `core-admin code audit --offline` *inside a repo that has a `.intent/`* | Python 3.12+ **and a repo with a `.intent/`** |
 | **Run the full thesis** (encounter → audit → remediate → verify, the autonomous daemon) | The full local runtime below — run it on **CORE itself** | Postgres + Qdrant + an LLM resource |
 
-> **Govern your own repo (BYOR).** Two steps: (1) `core-admin project onboard <path> --write` delivers the machinery floor (schemas, taxonomies, enforcement config) into your repo — no LLM needed. (2) `core-admin project scout <path> --write` reads your source, proposes fitted rules via LLM, and requires you to ratify each one before delivery; if no LLM is available it presents a curated four-rule menu instead. Once both steps are done, `core-admin code audit --offline` inside that repo enforces the ratified rules immediately. Both commands work from a plain `pip install core-runtime` — the machinery floor is bundled in the wheel.
+> **Govern your own repo (BYOR) — honest shape of the path today.** Delivering a constitution *into* an existing repo is not a zero-infrastructure step. `project onboard` (machinery floor: schemas, taxonomies, enforcement config) and `project scout` (fitted rules — proposed via LLM, or a curated four-rule menu without one; you ratify each before delivery) are consumer commands in `core-cli`, which is a pure HTTP client (ADR-146 D2): it needs a reachable CORE API, and the API needs Postgres + Qdrant. There is currently no offline `onboard`. What *is* service-free, from a plain `pip install core-runtime`: `core-admin project adopt-pack` (add a ready-made rule pack to a repo that already carries a `.intent/`) and `core-admin code audit --offline` (enforce the rules, immediately).
 >
-> **Step-by-step walkthrough** (fresh machine → violation → fix → PASS): [byor-quickstart.md](byor-quickstart.md)
+> **Step-by-step walkthrough** (fresh machine → API → onboard → violation → fix → PASS): [byor-quickstart.md](byor-quickstart.md)
 
-The rest of this page covers the **full local runtime**. For the lightweight paths, the two commands above are the whole story.
+The rest of this page covers the **full local runtime**.
 
 ---
 

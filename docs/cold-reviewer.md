@@ -4,24 +4,30 @@ If you want to see CORE govern code in CI without installing anything locally, t
 
 **One honest prerequisite, stated up front:** the Action audits your repo against the `.intent/` constitution **in that repo** (see below). If your repo doesn't have one yet, scaffold it first — then come back here.
 
-**Govern your own repo (BYOR — Bring Your Own Repository).** Two commands bootstrap a fitted constitution into your repo:
+**Govern your own repo (BYOR — Bring Your Own Repository).** Two commands bootstrap a fitted
+constitution into your repo. Both are `core-cli` commands (`pip install core-cli`) that talk to a
+**running CORE API** — the API needs Postgres + Qdrant behind it (ADR-146). There is no offline
+`onboard` today; the [BYOR quickstart](byor-quickstart.md) covers standing the API up.
 
 **Step 1 — Deliver the machinery floor** (schemas, taxonomies, enforcement config):
 
 ```bash
-core-admin project onboard <path-to-your-repo> --write
+core project onboard <path-to-your-repo> --write
 ```
 
 **Step 2 — Induce and ratify rules** (LLM reads your source, proposes candidates, you confirm each):
 
 ```bash
-core-admin project scout <path-to-your-repo> --write
+core project scout <path-to-your-repo> --write
 ```
 
 `project scout` requires an LLM resource. Without one it presents a curated menu of four
 universal rules for you to accept, reject, or adjust — ratification is always required.
 Dry-run (no `--write`) previews what would be written in either command. Once both steps are
 done, add the workflow below and open a pull request.
+
+Already have a `.intent/`? A ready-made rule pack needs no API: `pip install core-runtime`, then
+`core-admin project adopt-pack core/starter-python --write` inside the repo.
 
 To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 
@@ -39,7 +45,7 @@ No daemon runs. No database is provisioned. The action is the stateless audit pa
 
 ## Minimum setup
 
-Your repository needs a `.intent/` directory at the root. If you don't have one, scaffold it with `core-admin project onboard` (see above) before adding the workflow.
+Your repository needs a `.intent/` directory at the root. If you don't have one, scaffold it with `core project onboard` (see above) before adding the workflow.
 
 Add this workflow at `.github/workflows/core-audit.yml`:
 

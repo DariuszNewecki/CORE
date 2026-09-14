@@ -248,10 +248,13 @@ poetry run core-admin secrets delete <key> # Delete a secret
 ### `project` — Project Lifecycle
 
 ```bash
-poetry run core-admin project new      # Scaffold a new governed application
-poetry run core-admin project onboard  # Onboard existing repository
-poetry run core-admin project docs     # Generate project documentation
+poetry run core-admin project adopt-pack <pack-id> -t <repo> --write  # Add a rule pack (e.g. core/starter-python) to a repo that has a .intent/
+poetry run core-admin project new <name> --write                      # Scaffold a new governed application (operator; not functional from a clean install — see #892)
 ```
+
+`project onboard`, `project scout`, `project promote` and `project docs` are consumer
+commands: they live in `core-cli` (`core project …`) and talk to a running CORE API
+(ADR-146 D2). See [byor-quickstart.md](byor-quickstart.md).
 
 ---
 
