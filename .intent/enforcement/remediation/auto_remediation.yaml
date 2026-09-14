@@ -1953,7 +1953,7 @@ mappings:
     description: >
       A proposal was denied safe auto-approval (unlisted action, flow reference,
       out-of-envelope path, or action/scope inconsistency). Resolution requires
-      principal.governor review of the DRAFT proposal -- governor decision.
+      principal.governor review of the PENDING proposal -- governor decision.
       Non-automatable. Replaces autonomy.lanes.boundary_enforcement (#853,
       retired -- see .intent/rules/will/autonomy.json).
     status: DELEGATE

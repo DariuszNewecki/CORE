@@ -25,8 +25,8 @@
         },
         "status": {
             "type": "string",
-            "enum": ["draft", "pending", "approved"],
-            "description": "Initial status of the created proposal. 'draft' requires further validation; 'pending' awaits approval; 'approved' is immediately executable."
+            "enum": ["pending", "approved"],
+            "description": "Initial status of the created proposal. 'pending' awaits approval; 'approved' is immediately executable."
         },
         "approval_required": {
             "type": "boolean",

@@ -34,7 +34,7 @@ mappings:
           raises SafeAutoApprovalDeniedError on any unlisted action, flow
           reference, missing/malformed/absolute/traversal/out-of-envelope
           path, or action/scope inconsistency; the caller's UPDATE never
-          runs, so the proposal row is left untouched (still DRAFT/PENDING).
+          runs, so the proposal row is left untouched (still PENDING).
           The envelope itself (authorized_actions, authorized_path_prefixes,
           authorized_extensions) is governed by the safe_auto_approval_envelope
           section of .intent/enforcement/config/action_risk.yaml, loaded via
