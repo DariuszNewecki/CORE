@@ -742,3 +742,81 @@ class BlackboardQueryService:
             "payload": payload or {},
             "created_at": row[4].isoformat() if row[4] else None,
         }
+
+    # ID: 1f795cbe-a9c4-4d2d-a8d1-6f7c5d5af3a3
+    async def fetch_entries_by_run_id(self, run_id: str) -> list[dict[str, Any]]:
+        """
+        Return every blackboard entry correlated to one goal-driven run, as
+        full rows, in posting order (``created_at`` ascending, tie-broken by
+        ``id`` so the order is total and re-derivable) — the retrieval leg
+        of the run-reconstruction record (#893, ADR-159 D6 C5).
+
+        Run identity predicate (``core.blackboard_entries`` has no run_id
+        column; GoalExecutionWorker stamps the id in both places):
+
+            subject LIKE 'goal_run.<run_id>.%'  OR  payload->>'run_id' = <run_id>
+
+        The disjunction is entry-type- and subject-agnostic on purpose: any
+        future entry that carries ``run_id`` in its payload is picked up
+        without re-plumbing this query. Cost, measured 2026-09-14 on the live
+        2.25M-row table (``EXPLAIN ANALYZE``, en_US.utf8 collation): every
+        form of this predicate is a parallel seq scan — a plain btree does
+        not serve ``LIKE`` prefixes under a non-C collation, so even
+        subject-only scanned the table (187 ms); the OR form costs 362 ms.
+        Accepted knowingly; the structural fix is a ``run_id`` column or a
+        ``text_pattern_ops`` index, both migrations, neither in scope here.
+
+        Unlike ``fetch_entries_by_subject_prefix_ordered`` this returns the
+        whole row — reconstructing a run wants the record, not a projection.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, worker_uuid, entry_type, phase, status, subject,
+                           payload, first_payload, resolution_mechanism,
+                           claimed_by, claimed_at, resolved_at,
+                           created_at, updated_at, last_seen_at,
+                           occurrence_count, orphan_release_count
+                    FROM core.blackboard_entries
+                    WHERE subject LIKE :subject_prefix
+                       OR payload->>'run_id' = :run_id
+                    ORDER BY created_at ASC, id ASC
+                    """
+                ),
+                {"subject_prefix": f"goal_run.{run_id}.%", "run_id": run_id},
+            )
+            rows = result.fetchall()
+
+        def _json(raw: Any) -> dict[str, Any] | None:
+            if raw is None:
+                return None
+            return raw if isinstance(raw, dict) else json.loads(raw)
+
+        def _ts(value: Any) -> str | None:
+            return value.isoformat() if value else None
+
+        return [
+            {
+                "id": str(row[0]),
+                "worker_uuid": str(row[1]) if row[1] else None,
+                "entry_type": row[2],
+                "phase": row[3],
+                "status": row[4],
+                "subject": row[5],
+                "payload": _json(row[6]) or {},
+                "first_payload": _json(row[7]),
+                "resolution_mechanism": row[8],
+                "claimed_by": str(row[9]) if row[9] else None,
+                "claimed_at": _ts(row[10]),
+                "resolved_at": _ts(row[11]),
+                "created_at": _ts(row[12]),
+                "updated_at": _ts(row[13]),
+                "last_seen_at": _ts(row[14]),
+                "occurrence_count": row[15],
+                "orphan_release_count": row[16],
+            }
+            for row in rows
+        ]
