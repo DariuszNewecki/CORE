@@ -68,7 +68,7 @@ async def _seed_deferred_ceremony_finding(
     worker_uuid: uuid.UUID,
     proposal_id: str,
 ) -> None:
-    """A ceremony finding: claimed by a real worker, deferred to a DRAFT
+    """A ceremony finding: claimed by a real worker, deferred to a PENDING
     proposal that has now been rejected — resolution_mechanism is 'reaudit'
     (its birth value), NOT 'human' (that's the assisted-lane shape)."""
     payload = {

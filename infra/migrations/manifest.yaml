@@ -54,3 +54,4 @@ migrations:
     - 20260727_reconcile_cognitive_role_and_resource_capabilities.sql
     - 20260727b_ccc_add_path_ref_intent_binding_cross_ns_direction.sql
     - 20260830_821_create_task_assignee_roles.sql
+    - 20260914_885_retire_draft_proposal_status.sql

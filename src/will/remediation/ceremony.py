@@ -21,19 +21,19 @@ ADR-154 D4: the ceremony is now candidate-only. It never applies a fix to
 live src/ and never commits — the direct apply/commit terminus (formerly
 gated by a `write` flag) has been structurally removed, not merely
 disabled. A canonical worker-backed ceremony (real blackboard worker
-identity) ends in an automatic human-gated DRAFT proposal once
+identity) ends in an automatic human-gated PENDING proposal once
 Canary and assisted.validate_diff both pass (ADR-154 D3/D5). CLI
 file-mode (no real worker identity) ends in candidate-export-only
 (ADR-154 D3a) — a validated candidate is built and logged for
 inspection, never submitted as a proposal. Production mutation happens
-only after DRAFT approval, through ProposalExecutor/SandboxLifecycle —
+only after proposal approval, through ProposalExecutor/SandboxLifecycle —
 never through this ceremony.
 
 Phase discipline (unchanged from the original):
   RUNTIME phase  — _plan_file():  read source, build architectural context,
                                   validate confidence, decide whether to proceed.
   EXECUTION phase — _execute_file(): LLM invocation, Crate, Canary, validate,
-                                     candidate construction, DRAFT/export.
+                                     candidate construction, proposal/export.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ from shared.infrastructure.database.models.autonomous_proposals import (
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.models.validated_remediation_candidate import CandidateConstructionError
-from will.autonomy.proposal_factory import build_assisted_lane_draft_proposal
+from will.autonomy.proposal_factory import build_assisted_lane_proposal
 from will.autonomy.proposal_mapper import ProposalMapper
 from will.self_healing.remediation_interpretation.service import (
     RemediationInterpretationError,
@@ -87,11 +87,11 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
     Candidate-only (ADR-154 D4): this ceremony never applies a fix to live
     src/ and never commits. A canonical worker-backed ceremony (real
     blackboard worker identity) that passes Canary and
-    assisted.validate_diff creates an automatic human-gated DRAFT proposal
+    assisted.validate_diff creates an automatic human-gated PENDING proposal
     (ADR-154 D3/D5). CLI file-mode (no real worker identity) stays
     candidate-export-only (ADR-154 D3a) — the validated candidate is built
     and logged for inspection, never submitted as a proposal. Production
-    mutation happens only after DRAFT approval, through
+    mutation happens only after proposal approval, through
     ProposalExecutor/SandboxLifecycle.
 
     One Crate per file - all violations in a file are fixed in a single
@@ -146,7 +146,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
 
         RUNTIME phase:  _plan_file()    — read, interpret, gate confidence
         EXECUTION phase: _execute_file() — LLM, crate, canary, validate,
-                          candidate construction, DRAFT/export
+                          candidate construction, proposal/export
         """
         plan = await self._plan_file(file_path, findings)
         if plan is None:
@@ -340,7 +340,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
     ) -> bool:
         """
         EXECUTION phase: LLM proposal, Crate, Canary, patch validation,
-        candidate construction, DRAFT/export.
+        candidate construction, proposal/export.
 
         plan.architectural_context is passed to the LLM as advisory
         evidence, labelled explicitly as 'architectural_context' — not as
@@ -404,7 +404,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
 
         # ADR-154 D1: patch generation + assisted.validate_diff safety gate.
         # Fail-closed — once this gate is invoked, a failed verdict must
-        # never fall through into candidate/DRAFT construction below. A
+        # never fall through into candidate/proposal construction below. A
         # gate whose failure can be silently bypassed is worse than no
         # gate: it manufactures the appearance of a check without its
         # substance.
@@ -464,7 +464,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             return False
 
         # ADR-154 D3/D5: canonical worker/rule-mode findings get an
-        # automatic human-gated DRAFT proposal here. Once a DRAFT is
+        # automatic human-gated PENDING proposal here. Once a PENDING proposal is
         # created (or its creation fails), this method returns — a
         # canonical passing ceremony never applies or commits.
         worker_uuid = self._blackboard.worker_uuid
@@ -489,7 +489,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         )
 
     # -------------------------------------------------------------------------
-    # ADR-154 D3 — candidate -> privileged candidate -> human-gated DRAFT
+    # ADR-154 D3 — candidate -> privileged candidate -> human-gated PENDING
     # -------------------------------------------------------------------------
 
     async def _create_ceremony_draft(
@@ -503,7 +503,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         worker_uuid: uuid.UUID,
     ) -> bool:
         """Build the privileged candidate and atomically submit the
-        ceremony's human-gated DRAFT proposal (ADR-154 D3).
+        ceremony's human-gated PENDING proposal (ADR-154 D3).
 
         Called only when ``self._blackboard.worker_uuid`` is not None —
         i.e. never for CLI file-mode (ADR-154 D3a stays candidate-export-
@@ -545,7 +545,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             )
             return False
 
-        proposal = build_assisted_lane_draft_proposal(
+        proposal = build_assisted_lane_proposal(
             candidate,
             goal=(
                 f"Autonomous remediation of {', '.join(rule_ids)} in "
@@ -590,7 +590,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             },
         )
         logger.info(
-            "RemediationCeremony: [DRAFT] created proposal %s for %s "
+            "RemediationCeremony: [PENDING] created proposal %s for %s "
             "(%d finding(s), rules=%s)",
             proposal_id,
             file_path,

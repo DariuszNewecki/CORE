@@ -54,7 +54,7 @@ class ViolationRemediator(Worker):
 
     Candidate-only (ADR-154 D4): the ceremony never applies a fix to live
     src/ and never commits. A passing candidate creates an automatic
-    human-gated DRAFT proposal (ADR-154 D3/D5) — nothing is live until the
+    human-gated PENDING proposal (ADR-154 D3/D5) — nothing is live until the
     proposal is approved.
 
     Args:

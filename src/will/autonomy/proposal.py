@@ -244,12 +244,13 @@ class Proposal:
     - Constitutionally governed
     - Execution-separated (proposal ≠ execution)
 
-    Lifecycle:
-    1. DRAFT: Created by analysis
-    2. PENDING: Ready for validation
-    3. APPROVED: Cleared to execute
-    4. EXECUTING: Currently running
-    5. COMPLETED/FAILED: Terminal states
+    Lifecycle (#885: created directly in PENDING — there is no pre-review
+    holding state; see shared.lifecycles.proposal.ProposalStatus):
+    1. PENDING: Created, awaiting approval in the review queue
+    2. APPROVED: Cleared to execute
+    3. EXECUTING: Currently running
+    4. FINALIZING: Committed; consequence chain being recorded (ADR-148)
+    5. COMPLETED/FAILED/REJECTED: Terminal states
     """
 
     proposal_id: str = field(default_factory=lambda: str(uuid4()))
@@ -267,8 +268,8 @@ class Proposal:
     risk: RiskAssessment | None = None
     """Risk analysis and mitigation"""
 
-    status: ProposalStatus = ProposalStatus.DRAFT
-    """Current lifecycle status"""
+    status: ProposalStatus = ProposalStatus.PENDING
+    """Current lifecycle status — created directly in the reviewable state (#885)"""
 
     # Metadata
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -561,7 +562,7 @@ class Proposal:
             actions=actions,
             scope=scope,
             risk=risk,
-            status=ProposalStatus(data.get("status", "draft")),
+            status=ProposalStatus(data.get("status", ProposalStatus.PENDING.value)),
             created_at=datetime.fromisoformat(data["created_at"]),
             created_by=data.get("created_by", "autonomous"),
             validation_checks=data.get("validation_checks", []),

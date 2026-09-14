@@ -34,7 +34,6 @@ _TARGET_RULES: list[str] = ["test.runner.missing", "test.runner.failure"]
 
 _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
     {
-        ProposalStatus.DRAFT,
         ProposalStatus.PENDING,
         ProposalStatus.APPROVED,
         ProposalStatus.EXECUTING,
@@ -354,13 +353,13 @@ async def _create_symbol_proposal(
                     # auto-approval. Not eligible is not a persistence
                     # failure — the proposal row already exists (repo.create
                     # above) and was never touched by the denied approve()
-                    # call. Commit it in DRAFT for principal.governor review
+                    # call. Commit it in PENDING for principal.governor review
                     # rather than letting the outer except swallow it into a
                     # rollback.
                     logger.warning(
                         "TestRemediatorWorker: symbol proposal for '%s::%s' is "
                         "not eligible for safe auto-approval (%s) — committing "
-                        "in DRAFT for governor review.",
+                        "in PENDING for governor review.",
                         source_file,
                         symbol_name,
                         denial,

@@ -504,7 +504,7 @@ async def _query_dashboard_data(session: Any, schedule_state: Any) -> dict[str, 
                 COUNT(*) AS approval_count,
                 MIN(created_at) AS oldest_approval
             FROM core.autonomous_proposals
-            WHERE status = 'draft' AND approval_required = true
+            WHERE status = 'pending' AND approval_required = true
             """),
         )
     ).fetchone()

@@ -80,7 +80,7 @@ def test_collect_rule_ids_none_on_missing_rule() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_file_blocks_on_failed_validation() -> None:
-    """Canary passes, assisted.validate_diff fails -> candidate/DRAFT
+    """Canary passes, assisted.validate_diff fails -> candidate/PENDING
     construction must never run. A failed gate cannot be silently
     bypassed."""
     ceremony = _make_ceremony()
@@ -206,7 +206,7 @@ async def test_execute_file_validate_diff_called_with_baseline_sha_and_rule_ids(
     )
 
 
-# --- ADR-154 D3: canonical worker-backed ceremony -> human-gated DRAFT ---
+# --- ADR-154 D3: canonical worker-backed ceremony -> human-gated PENDING ---
 
 
 def _mk_candidate(**overrides):
@@ -269,7 +269,7 @@ def _enter_passing_mocks(
 @pytest.mark.asyncio
 async def test_execute_file_worker_backed_creates_draft() -> None:
     """A canonical worker-backed ceremony (real worker_uuid) with passing
-    validation creates a DRAFT via the atomic submission path and returns
+    validation creates a PENDING via the atomic submission path and returns
     without ever applying or committing — that terminus no longer exists
     in this ceremony (ADR-154 D4)."""
     ceremony = _make_ceremony(worker_uuid=_WORKER_UUID)

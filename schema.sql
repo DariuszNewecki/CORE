@@ -784,7 +784,7 @@ CREATE TABLE core.autonomous_proposals (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     proposal_id text NOT NULL,
     goal text NOT NULL,
-    status text DEFAULT 'draft'::text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
     actions jsonb NOT NULL,
     scope jsonb DEFAULT '{}'::jsonb NOT NULL,
     risk jsonb,
@@ -807,7 +807,7 @@ CREATE TABLE core.autonomous_proposals (
     consequence_recorded_at timestamp with time zone,
     CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
     CONSTRAINT autonomous_proposals_approval_authority_value_check CHECK (((approval_authority IS NULL) OR (approval_authority = ANY (ARRAY['risk_classification.safe_auto_approval'::text, 'principal.governor'::text])))),
-    CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
+    CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
 );
 
 
@@ -836,7 +836,7 @@ COMMENT ON COLUMN core.autonomous_proposals.goal IS 'Strategic intent - what thi
 -- Name: COLUMN autonomous_proposals.status; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON COLUMN core.autonomous_proposals.status IS 'Lifecycle: draft->pending->approved->executing->finalizing->completed/failed/rejected';
+COMMENT ON COLUMN core.autonomous_proposals.status IS 'Lifecycle: pending->approved->executing->finalizing->completed/failed/rejected (#885: draft retired)';
 
 
 --

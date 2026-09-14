@@ -51,9 +51,11 @@ class AutonomousProposal(Base):
             "'risk_classification.safe_auto_approval', 'principal.governor']))",
             name="autonomous_proposals_approval_authority_value_check",
         ),
+        # #885: 'draft' retired from the vocabulary (migration 20260914_885);
+        # rows are created in 'pending', the only pre-approval state.
         CheckConstraint(
             "status = ANY (ARRAY["
-            "'draft', 'pending', 'approved', 'executing', 'finalizing', "
+            "'pending', 'approved', 'executing', 'finalizing', "
             "'completed', 'failed', 'rejected'])",
             name="autonomous_proposals_status_check",
         ),
@@ -68,7 +70,7 @@ class AutonomousProposal(Base):
 
     # Core proposal data
     goal = Column(Text, nullable=False)
-    status = Column(Text, nullable=False, server_default="draft", index=True)
+    status = Column(Text, nullable=False, server_default="pending", index=True)
 
     # Actions (JSONB array)
     # Format: [{"action_id": "fix.format", "parameters": {}, "order": 0}]

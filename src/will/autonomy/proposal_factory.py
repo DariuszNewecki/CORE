@@ -1,6 +1,6 @@
 # src/will/autonomy/proposal_factory.py
 """
-Shared human-gated DRAFT proposal construction (ADR-154 D1/D3).
+Shared human-gated PENDING proposal construction (ADR-154 D1/D3).
 
 The governed shape a `ValidatedRemediationCandidate` becomes is identical
 regardless of which lane produced the candidate: `assisted.apply_diff`
@@ -32,14 +32,16 @@ from will.autonomy.proposal import (
 
 
 # ID: 52201a7d-9380-484f-91b3-9afdec2c9c33
-def build_assisted_lane_draft_proposal(
+def build_assisted_lane_proposal(
     candidate: ValidatedRemediationCandidate,
     *,
     goal: str,
     created_by: str,
     extra_constraints: dict[str, Any] | None = None,
 ) -> Proposal:
-    """Build the ADR-109 human-gated DRAFT proposal for a validated candidate.
+    """Build the ADR-109 human-gated proposal for a validated candidate.
+
+    Created directly in PENDING (#885) — the state the approval queue lists.
 
     *extra_constraints* is merged into `constitutional_constraints` after
     the candidate's own evidence fields — a lane's lineage marker (e.g.
@@ -73,7 +75,7 @@ def build_assisted_lane_draft_proposal(
             )
         ],
         scope=ProposalScope(files=list(candidate.production_set)),
-        status=ProposalStatus.DRAFT,
+        status=ProposalStatus.PENDING,
         created_by=created_by,
         validation_checks=candidate.validation_checks,
         validation_results=candidate.validation_results,

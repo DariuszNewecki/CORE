@@ -38,7 +38,7 @@ from shared.infrastructure.intent.remediation_guidance import (
     load_remediation_guidance,
 )
 from shared.logger import getLogger
-from will.autonomy.proposal_factory import build_assisted_lane_draft_proposal
+from will.autonomy.proposal_factory import build_assisted_lane_proposal
 from will.autonomy.proposal_mapper import ProposalMapper
 
 
@@ -189,7 +189,7 @@ class LaneService:
         2. constructs the validated candidate (raises on any precondition
            failure — unknown run, wrong action, failed/incomplete run, patch
            mismatch, or missing base-SHA evidence);
-        3. builds the DRAFT proposal that, on approval, runs
+        3. builds the PENDING proposal that, on approval, runs
            ``assisted.apply_diff`` with the patch and the candidate's
            ``validated_base_sha``/``patch_digest`` (the fail-closed checks
            ADR-154 D2 requires) — ``approval_required=True`` is mandatory
@@ -242,7 +242,7 @@ class LaneService:
             validation_run_id=validation_run_id,
         )
 
-        proposal = build_assisted_lane_draft_proposal(
+        proposal = build_assisted_lane_proposal(
             candidate,
             goal=(
                 f"Assisted remediation of {rule} "

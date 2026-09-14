@@ -108,7 +108,7 @@ def _draft_proposal(rule: str = "modularity.class_too_large") -> AutonomousPropo
     return AutonomousProposal(
         proposal_id=str(uuid.uuid4()),
         goal="ADR-154 D3 ceremony atomic submission test",
-        status="draft",
+        status="pending",
         actions=[
             {
                 "action_id": "assisted.apply_diff",
@@ -148,7 +148,7 @@ async def _finding_row(session: AsyncSession, finding_id: uuid.UUID):
 async def test_submit_one_finding_persists_proposal_and_defers_atomically(
     db_session: AsyncSession,
 ) -> None:
-    """One canonical claimed finding -> durable DRAFT + deferred finding."""
+    """One canonical claimed finding -> durable PENDING + deferred finding."""
     await _ensure_blackboard_table(db_session)
 
     finding_id = uuid.uuid4()
@@ -194,7 +194,7 @@ async def test_submit_one_finding_persists_proposal_and_defers_atomically(
 async def test_submit_n_findings_one_draft_all_deferred_atomically(
     db_session: AsyncSession,
 ) -> None:
-    """N claimed findings -> one DRAFT + all deferred atomically."""
+    """N claimed findings -> one PENDING + all deferred atomically."""
     await _ensure_blackboard_table(db_session)
 
     ids = [uuid.uuid4() for _ in range(3)]

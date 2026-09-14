@@ -48,7 +48,7 @@ def _toxic_proposal(proposal_id: str) -> Proposal:
             )
         ],
         scope=ProposalScope(files=["src/foo.py"]),
-        status=ProposalStatus.DRAFT,
+        status=ProposalStatus.PENDING,
         created_at=datetime.now(UTC),
         validation_checks=[
             "File has 428 lines (limit 400) — consider splitting",
@@ -134,11 +134,11 @@ async def test_update_db_model_sanitizes_three_sibling_jsonb_fields(
     """
     proposal_id = f"test-mapper-update-{uuid.uuid4().hex[:8]}"
 
-    # Seed a clean draft row first.
+    # Seed a clean pending row first.
     seed = AutonomousProposal(
         proposal_id=proposal_id,
         goal="clean seed",
-        status="draft",
+        status="pending",
         actions=[{"action_id": "fix.format", "parameters": {}, "order": 0}],
         scope={"files": [], "modules": [], "symbols": [], "policies": []},
         validation_checks=[],

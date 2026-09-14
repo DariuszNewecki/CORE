@@ -11,7 +11,6 @@ from rich.table import Table
 
 console = Console()
 STATUS_COLORS = {
-    "draft": "white",
     "pending": "yellow",
     "approved": "green",
     "executing": "blue",

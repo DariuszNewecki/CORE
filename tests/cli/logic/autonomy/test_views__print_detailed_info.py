@@ -49,7 +49,7 @@ def _proposal_with_risk() -> Proposal:
             risk_factors=["Contains moderate-impact actions"],
             mitigation=["Automated pre-flight checks", "Rollback plan prepared"],
         ),
-        status=ProposalStatus.DRAFT,
+        status=ProposalStatus.PENDING,
         created_at=datetime(2026, 5, 3, 16, 6, 32, tzinfo=UTC),
         created_by="violation_remediator_worker",
         approval_required=True,

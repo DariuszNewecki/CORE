@@ -329,7 +329,7 @@ class BlackboardProposalService:
     async def revive_ceremony_findings_for_rejected_proposal(
         self, proposal_id: str, reason: str
     ) -> dict[str, Any] | None:
-        """Revive a ceremony finding when its DRAFT proposal is explicitly
+        """Revive a ceremony finding when its PENDING proposal is explicitly
         rejected by the governor (ADR-154 D3).
 
         The ceremony analogue of ``revive_delegated_findings_for_rejected_

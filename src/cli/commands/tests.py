@@ -203,7 +203,7 @@ async def tests_status(
             "completed": "green",
             "failed": "red",
             "executing": "yellow",
-            "draft": "dim",
+            "pending": "dim",
             "rejected": "magenta",
         }.get(status, "white")
         p_table.add_row(

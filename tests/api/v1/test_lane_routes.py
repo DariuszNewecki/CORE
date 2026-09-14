@@ -108,7 +108,7 @@ async def test_propose_rejects_finding_not_live():
 
 
 async def test_propose_happy_path_creates_proposal():
-    """A LaneService success routes back through as the draft proposal
+    """A LaneService success routes back through as the pending proposal
     envelope with the production set LaneService (via the candidate)
     reported — the route asserts nothing about validation itself."""
     body = ProposeRequest(patch=_PATCH, validation_run_id="run-1")
@@ -122,7 +122,7 @@ async def test_propose_happy_path_creates_proposal():
 
     assert out == {
         "proposal_id": "prop-xyz",
-        "status": "draft",
+        "status": "pending",
         "approval_required": True,
         "scope_files": ["src/x.py", "src/base.py"],
     }

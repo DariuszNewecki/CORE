@@ -211,7 +211,7 @@ async def propose_diff(
 
     return {
         "proposal_id": proposal_id,
-        "status": "draft",
+        "status": "pending",
         "approval_required": True,
         "scope_files": production_set,
     }

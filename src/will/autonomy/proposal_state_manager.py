@@ -270,22 +270,21 @@ class ProposalStateManager:
             # #853 — governor rulings 1-5: safe auto-approval requires an
             # independently governed action-and-path envelope beyond
             # ProposalScope. Validated here, BEFORE the UPDATE below, so a
-            # denial leaves the row completely untouched (still DRAFT/
-            # PENDING) rather than racing or partially mutating it. Raised
-            # exceptions propagate to the caller — see
-            # SafeAutoApprovalDeniedError's docstring for the caller
-            # contract (commit the proposal in DRAFT, never roll it back).
+            # denial leaves the row completely untouched (still PENDING,
+            # and therefore visible in the approval queue) rather than
+            # racing or partially mutating it. Raised exceptions propagate
+            # to the caller — see SafeAutoApprovalDeniedError's docstring
+            # for the caller contract (commit the proposal in PENDING, never
+            # roll it back).
             if approval_authority == "risk_classification.safe_auto_approval":
                 validate_envelope(gate_row.actions or [], gate_row.scope or {})
 
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
-            .where(
-                AutonomousProposal.status.in_(
-                    [ProposalStatus.DRAFT.value, ProposalStatus.PENDING.value]
-                )
-            )
+            # #885: PENDING is the only approvable state — the same state the
+            # approval queue lists, so nothing approvable is undiscoverable.
+            .where(AutonomousProposal.status == ProposalStatus.PENDING.value)
             .values(
                 status=ProposalStatus.APPROVED.value,
                 approved_by=approved_by,
@@ -318,11 +317,7 @@ class ProposalStateManager:
             .where(AutonomousProposal.proposal_id == proposal_id)
             .where(
                 AutonomousProposal.status.in_(
-                    [
-                        ProposalStatus.DRAFT.value,
-                        ProposalStatus.PENDING.value,
-                        ProposalStatus.APPROVED.value,
-                    ]
+                    [ProposalStatus.PENDING.value, ProposalStatus.APPROVED.value]
                 )
             )
             .values(

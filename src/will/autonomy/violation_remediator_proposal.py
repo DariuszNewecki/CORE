@@ -17,7 +17,7 @@ calls from its run loop:
   scope keyed by (action_id, file_path) for atomic actions, or by flow_id
   alone for flows).
 - get_active_proposal_id_by_action_file: load all proposals in active states
-  ({DRAFT, PENDING, APPROVED, EXECUTING}) and return a
+  ({PENDING, APPROVED, EXECUTING}) and return a
   (ref_id, file_path) → proposal_id map keyed for the dedup-subsume check
   (ADR-035 D2). Earliest by Proposal.created_at wins — the original anchor
   whose existence caused subsequent dedup-subsume decisions. The dedup-
@@ -74,7 +74,6 @@ logger = getLogger(__name__)
 
 _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
     {
-        ProposalStatus.DRAFT,
         ProposalStatus.PENDING,
         ProposalStatus.APPROVED,
         ProposalStatus.EXECUTING,
@@ -118,7 +117,8 @@ async def create_proposal(
     approval_authority (URS NFR.5; ADR-015 D6) all commit together, or none
     of them do. Proposals requiring human approval, and safe proposals the
     safe auto-approval envelope denies (#853 ruling 6), commit unapproved in
-    DRAFT with their findings deferred.
+    PENDING — visible in the approval queue (#885) — with their findings
+    deferred.
 
     Returns the committed submission (proposal_id, deferred_count,
     auto_approved) on success; None on validation failure, on any finding
@@ -239,12 +239,12 @@ async def create_proposal(
             # #853 governor ruling 6: not eligible for safe auto-approval
             # is NOT a persistence failure. approve() validated the
             # envelope BEFORE its UPDATE, so the row is untouched — return
-            # False and let the transaction commit the proposal in DRAFT
+            # False and let the transaction commit the proposal in PENDING
             # (findings deferred) for principal.governor review.
             logger.warning(
                 "ViolationRemediatorWorker: proposal for '%s' is not "
                 "eligible for safe auto-approval (%s) — committing in "
-                "DRAFT for governor review.",
+                "PENDING for governor review.",
                 ref_id,
                 denial,
             )
@@ -260,7 +260,7 @@ async def create_proposal(
     if proposal.approval_required:
         logger.info(
             "ViolationRemediatorWorker: proposal for '%s' requires human "
-            "approval (risk=%s) — creating in DRAFT",
+            "approval (risk=%s) — creating in PENDING",
             ref_id,
             proposal.risk.overall_risk if proposal.risk else "unknown",
         )

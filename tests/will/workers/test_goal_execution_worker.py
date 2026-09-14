@@ -329,12 +329,14 @@ def test_default_create_proposal_only_is_false() -> None:
     assert worker.create_proposal_only is False
 
 
-async def test_create_proposal_only_success_persists_draft_and_never_touches_orchestrator() -> (
+async def test_create_proposal_only_success_persists_pending_and_never_touches_orchestrator() -> (
     None
 ):
-    """A convertible plan creates a DRAFT Proposal via ProposalRepository
+    """A convertible plan creates a PENDING Proposal via ProposalRepository
     and reports its id — WorkflowOrchestrator/ActionExecutor are never
-    reached, so no write occurs regardless of `write`."""
+    reached, so no write occurs regardless of `write`. PENDING, not a
+    holding state: the Proposal must be visible in the approval queue
+    from the moment it exists (#885)."""
     worker = _make_worker(
         workflow_type="code_modification", write=True, create_proposal_only=True
     )
@@ -375,6 +377,13 @@ async def test_create_proposal_only_success_persists_draft_and_never_touches_orc
     orchestrator_never_called.execute_goal.assert_not_called()
     fake_repo.create.assert_awaited_once()
     fake_session.commit.assert_awaited_once()
+
+    from will.autonomy.proposal import Proposal, ProposalStatus
+
+    (created,) = fake_repo.create.call_args.args
+    assert isinstance(created, Proposal)
+    assert created.status is ProposalStatus.PENDING
+    assert created.created_by == "api.develop_goal"
 
     assert worker.proposal_id == "proposal-123"
     # file.edit resolves to `moderate` in action_risk.yaml -> requires approval.

@@ -5,7 +5,7 @@ The single genuine integration proof ADR-154's own Verification section
 calls for and #818 requires before closure:
 
     unmapped finding -> candidate generated and validated -> human-gated
-    DRAFT -> governor approval -> ProposalExecutor -> SandboxLifecycle ->
+    PENDING -> governor approval -> ProposalExecutor -> SandboxLifecycle ->
     production commit -> FINALIZING -> durable consequence row ->
     COMPLETED -> source finding resolved
 
@@ -264,7 +264,7 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
     # ------------------------------------------------------------------
     # 3-4. Run the real ceremony. Only the LLM call is stubbed — Crate,
     #    Canary, patch generation, assisted.validate_diff, candidate
-    #    construction, and DRAFT submission all run for real.
+    #    construction, and PENDING submission all run for real.
     # ------------------------------------------------------------------
     blackboard = WorkerRemediationBlackboard(worker, core_context)
     ceremony = RemediationCeremony(
@@ -275,7 +275,7 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
     with patch.object(ceremony, "_invoke_llm", new=AsyncMock(return_value=_FIXED)):
         ok = await ceremony.process_file(_FILE_PATH, ours)
     assert ok is True, (
-        "ceremony must succeed through candidate validation and DRAFT creation"
+        "ceremony must succeed through candidate validation and PENDING creation"
     )
 
     # ------------------------------------------------------------------
@@ -290,7 +290,7 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
         "git HEAD must not have moved before governor approval"
     )
 
-    # Locate the DRAFT proposal the ceremony created, bound to our finding.
+    # Locate the PENDING proposal the ceremony created, bound to our finding.
     async with service_registry.session() as session:
         result = await session.execute(
             text(
@@ -302,23 +302,23 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
             {"fid": finding_id, "started": test_started_at},
         )
         row = result.first()
-    assert row is not None, "a DRAFT proposal bound to the finding must exist"
+    assert row is not None, "a PENDING proposal bound to the finding must exist"
     proposal_id = row[0]
 
-    draft_row = await _fetch_proposal_row(proposal_id)
-    assert draft_row["status"] == "draft"
-    assert draft_row["approval_required"] is True
-    assert draft_row["approval_authority"] is None, (
-        "no approval authority recorded yet — DRAFT is not self-approved"
+    pending_row = await _fetch_proposal_row(proposal_id)
+    assert pending_row["status"] == "pending"
+    assert pending_row["approval_required"] is True
+    assert pending_row["approval_authority"] is None, (
+        "no approval authority recorded yet — PENDING is not self-approved"
     )
-    assert draft_row["actions"][0]["action_id"] == "assisted.apply_diff"
+    assert pending_row["actions"][0]["action_id"] == "assisted.apply_diff"
 
     # ------------------------------------------------------------------
     # 6. The proposal cannot take the mapped safe-auto-approval route:
     #    approval_required is True (unmapped-lane proposals never qualify
     #    for Lane 1's risk_classification.safe_auto_approval).
     # ------------------------------------------------------------------
-    assert draft_row["approval_required"] is True
+    assert pending_row["approval_required"] is True
 
     # ------------------------------------------------------------------
     # 7. Perform the real governor/human approval transition.

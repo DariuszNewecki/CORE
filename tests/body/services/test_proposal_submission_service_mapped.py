@@ -110,7 +110,7 @@ def _mapped_proposal(
     return AutonomousProposal(
         proposal_id=proposal_id or str(uuid.uuid4()),
         goal="#886 mapped atomic submission test",
-        status="draft",
+        status="pending",
         actions=[
             {
                 "action_id": action_id,
@@ -306,13 +306,14 @@ async def test_retry_after_rolled_back_submission_succeeds_cleanly(
         await _cleanup(db_session, [finding_id], [proposal_id])
 
 
-async def test_envelope_denial_commits_draft_with_findings_deferred(
+async def test_envelope_denial_commits_pending_with_findings_deferred(
     db_session: AsyncSession,
 ) -> None:
     """#853 governor ruling 6 inside the transaction: check.imports is
     impact_level safe (so the lane attempts auto-approval) but NOT in the
     envelope. Denial is not a failure — the step returns False and the
-    proposal commits in DRAFT with its finding deferred and linked."""
+    proposal commits in PENDING — visible in the approval queue (#885) —
+    with its finding deferred and linked."""
     finding_id = uuid.uuid4()
     worker_uuid = uuid.uuid4()
     file_path = f"src/t886_{finding_id.hex[:8]}.py"
@@ -335,7 +336,7 @@ async def test_envelope_denial_commits_draft_with_findings_deferred(
         async with service_registry.session() as fresh:
             prow = await _proposal_row(fresh, proposal.proposal_id)
             assert prow is not None
-            assert prow[0] == "draft"
+            assert prow[0] == "pending"
             assert prow[1] is None
             assert prow[2] is None
             frow = await _finding_row(fresh, finding_id)
@@ -346,11 +347,11 @@ async def test_envelope_denial_commits_draft_with_findings_deferred(
         await _cleanup(db_session, [finding_id], [proposal.proposal_id])
 
 
-async def test_non_safe_proposal_without_approval_step_stays_draft(
+async def test_non_safe_proposal_without_approval_step_stays_pending(
     db_session: AsyncSession,
 ) -> None:
     """approval_required=True proposals pass no approval step: they commit
-    in DRAFT with findings deferred and gain no automatic approval path
+    in PENDING with findings deferred and gain no automatic approval path
     (invariant 6). Behaviour unchanged from before #886."""
     finding_id = uuid.uuid4()
     worker_uuid = uuid.uuid4()
@@ -373,7 +374,7 @@ async def test_non_safe_proposal_without_approval_step_stays_draft(
         async with service_registry.session() as fresh:
             prow = await _proposal_row(fresh, proposal.proposal_id)
             assert prow is not None
-            assert prow[0] == "draft"
+            assert prow[0] == "pending"
             assert prow[2] is None
             frow = await _finding_row(fresh, finding_id)
             assert frow is not None

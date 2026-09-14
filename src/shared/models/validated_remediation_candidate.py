@@ -1,7 +1,7 @@
 # src/shared/models/validated_remediation_candidate.py
 """
 ValidatedRemediationCandidate — the frozen, privileged-construction contract
-between a passed ``assisted.validate_diff`` run and a human-gated DRAFT
+between a passed ``assisted.validate_diff`` run and a human-gated PENDING
 proposal (ADR-154 D2).
 
 The bytes validated, reviewed and approved must be exactly the bytes

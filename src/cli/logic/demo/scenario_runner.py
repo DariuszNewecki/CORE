@@ -239,7 +239,7 @@ async def _execute_and_fetch_chain(
         goal=proposal_json["goal"],
         status=proposal_json["status"],
         overall_risk=(proposal_json.get("risk") or {}).get("overall_risk", ""),
-        approval_required=proposal_json["status"] not in ("draft",),
+        approval_required=bool(proposal_json.get("approval_required", False)),
         approval_authority=proposal_json.get("approval_authority"),
         approved_by=proposal_json.get("approved_by"),
         finding_ids=[],

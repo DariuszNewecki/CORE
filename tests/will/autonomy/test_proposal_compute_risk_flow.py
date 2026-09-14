@@ -9,7 +9,7 @@ computes proposal risk before any executor exists in its process, so every
 action read an empty impact_level. The two risk-lookup defaults diverged —
 direct actions defaulted to "safe" (0), flow steps defaulted to "moderate"
 (1) — so flow-based proposals (flow.build_test_for_symbol) computed "moderate",
-flipped approval_required=True, and stuck in DRAFT, silently stalling the
+flipped approval_required=True, and stuck unapproved (in the then-existing DRAFT state), silently stalling the
 autonomous test-gen loop. ADR-008: impact_level is governed externally;
 risk computation must read it from action_risk.yaml directly.
 
@@ -60,7 +60,7 @@ def test_build_tests_proposal_auto_approves() -> None:
     """A test-gen proposal must not require approval — it must self-promote.
 
     This is the end-to-end condition that was broken: approval_required True
-    left the proposal stuck in DRAFT and the autonomous loop never executed.
+    left the proposal stuck unapproved (in the then-existing DRAFT state) and the autonomous loop never executed.
     """
     proposal = Proposal(
         goal="Autonomous test remediation: flow.build_test_for_symbol",
@@ -85,7 +85,7 @@ def test_build_tests_proposal_auto_approves() -> None:
     )
     assert proposal.approval_required is False, (
         "a safe test-gen proposal must auto-approve (approval_required=False); "
-        "True reproduces the DRAFT-stall regression."
+        "True reproduces the unapproved-stall regression."
     )
 
 

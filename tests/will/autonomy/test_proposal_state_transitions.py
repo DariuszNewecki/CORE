@@ -116,10 +116,10 @@ async def test_mark_completed_from_completed_raises(db_session: AsyncSession) ->
 # ---------------------------------------------------------------------------
 
 
-async def test_mark_failed_from_draft_raises(db_session: AsyncSession) -> None:
-    """mark_failed on a draft proposal raises ProposalNotFoundError (#708)."""
-    proposal_id = f"test-mf-draft-{uuid.uuid4().hex[:8]}"
-    db_session.add(_row(proposal_id, status="draft"))
+async def test_mark_failed_from_pending_raises(db_session: AsyncSession) -> None:
+    """mark_failed on a pending proposal raises ProposalNotFoundError (#708)."""
+    proposal_id = f"test-mf-pending-{uuid.uuid4().hex[:8]}"
+    db_session.add(_row(proposal_id, status="pending"))
     await db_session.commit()
     try:
         with pytest.raises(ProposalNotFoundError):
@@ -128,7 +128,7 @@ async def test_mark_failed_from_draft_raises(db_session: AsyncSession) -> None:
             )
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
-        assert row is not None and row.status == "draft"
+        assert row is not None and row.status == "pending"
     finally:
         await _delete(db_session, proposal_id)
 
@@ -151,7 +151,7 @@ async def test_mark_failed_from_completed_raises(db_session: AsyncSession) -> No
 
 
 # ---------------------------------------------------------------------------
-# approve — valid sources: DRAFT, PENDING
+# approve — valid source: PENDING only (#885)
 # ---------------------------------------------------------------------------
 
 
@@ -251,7 +251,7 @@ async def test_approve_from_executing_raises(db_session: AsyncSession) -> None:
 
 
 # ---------------------------------------------------------------------------
-# reject — valid sources: DRAFT, PENDING, APPROVED
+# reject — valid sources: PENDING, APPROVED
 # ---------------------------------------------------------------------------
 
 

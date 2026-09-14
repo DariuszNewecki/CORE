@@ -123,7 +123,7 @@ def _draft_proposal() -> AutonomousProposal:
     return AutonomousProposal(
         proposal_id=str(uuid.uuid4()),
         goal="ADR-154 D3b atomic submission regression test",
-        status="draft",
+        status="pending",
         actions=[
             {
                 "action_id": "assisted.apply_diff",

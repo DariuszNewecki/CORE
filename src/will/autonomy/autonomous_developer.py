@@ -107,7 +107,7 @@ async def develop_from_goal(
         legacy_direct_write: ADR-160 D3 polarity inversion, default False.
             The fail-closed default is now create_proposal_only=True for any
             write-capable request: the goal is planned and converted to a
-            Proposal, persisted in DRAFT, and left pending Governor approval
+            Proposal, persisted in PENDING, and left pending Governor approval
             — no write occurs regardless of `write`. Passing
             `legacy_direct_write=True` opts a grandfathered caller back into
             today's direct-write behavior; see

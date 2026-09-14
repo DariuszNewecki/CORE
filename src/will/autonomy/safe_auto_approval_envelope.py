@@ -18,8 +18,9 @@ Fail-closed by construction: an envelope-load failure, an unlisted action,
 a flow reference, a missing/malformed/absolute/traversal/out-of-envelope
 path, and an action/scope inconsistency all deny -- never silently
 authorize. Denial does NOT delete or roll back the proposal; callers keep
-it in DRAFT for principal.governor review (governor ruling 6), which is
-not bound by this envelope (governor ruling 7).
+it in PENDING — visible in the approval queue — for principal.governor
+review (governor ruling 6), which is not bound by this envelope (governor
+ruling 7).
 
 LAYER: will/autonomy — no filesystem access, no DB access. Pure validation
 over already-loaded action/scope data.
@@ -45,8 +46,8 @@ class SafeAutoApprovalDeniedError(CoreError):
     ValueError raised for a malformed approval_authority value -- this is
     specifically the envelope's own denial. Callers (the autonomous
     proposal creators) MUST catch this and commit the already-created
-    proposal in DRAFT rather than treat it as a persistence failure; the
-    proposal remains available for principal.governor review.
+    proposal in PENDING rather than treat it as a persistence failure; the
+    proposal remains in the approval queue for principal.governor review.
     """
 
 

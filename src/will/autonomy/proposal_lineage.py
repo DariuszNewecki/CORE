@@ -2,7 +2,7 @@
 """
 Proposal lineage discriminator (ADR-154 D3).
 
-Three lanes create human-gated DRAFT proposals from `constitutional_constraints`
+Three lanes create human-gated PENDING proposals from `constitutional_constraints`
 today: the legacy mapped-remediation autonomous lane (no marker — the
 historical default), the ADR-109 external-assisted lane (`assisted_lane: True`),
 and the ADR-154 ceremony lane (`proposal_origin: "ceremony"`).

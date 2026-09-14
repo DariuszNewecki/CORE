@@ -1,6 +1,6 @@
 """#853 governor rulings 4/6, real end-to-end: TestRemediatorWorker's
 flow.build_test_for_symbol proposal creator (will.workers.test_remediator
-._operations._create_symbol_proposal) must preserve the proposal in DRAFT
+._operations._create_symbol_proposal) must preserve the proposal in PENDING
 when safe auto-approval is denied, not treat the denial as a persistence
 failure.
 
@@ -72,7 +72,7 @@ async def test_symbol_proposal_preserves_draft_when_flow_denied_by_envelope(
             )
         )
         row = result.scalar_one()
-        assert row.status == "draft"
+        assert row.status == "pending"
         assert row.approved_by is None
         assert row.approval_authority is None
     finally:

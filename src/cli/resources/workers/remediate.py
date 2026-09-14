@@ -7,7 +7,7 @@ Chains AuditViolationSensor → ViolationRemediator for a given audit rule.
 ADR-154 D4: RemediationCeremony is candidate-only — there is no `--write`
 flag anymore, and no path from this command to a direct src/ apply or git
 commit. Rule mode's claimed, canonical findings automatically get a
-human-gated DRAFT proposal once Canary and assisted.validate_diff both
+human-gated PENDING proposal once Canary and assisted.validate_diff both
 pass (approval required before any production mutation — see
 ProposalService.approve, reachable via the GET/POST /v1/proposals API; no
 CLI surface for listing/approving proposals exists yet as of this
@@ -17,7 +17,7 @@ apply, no commit.
 
 Usage:
     # Sense + LLM + Canary + validate; a passing candidate automatically
-    # creates a human-gated DRAFT proposal. Nothing is applied to src/ or
+    # creates a human-gated PENDING proposal. Nothing is applied to src/ or
     # committed until the proposal is approved.
     core-admin workers remediate purity.no_ast_duplication
 
@@ -78,7 +78,7 @@ async def remediate_cmd(
 
     Default (rule mode): sensor finds violations → LLM proposes fix →
     Canary validates → assisted.validate_diff validates the diff → a
-    passing candidate automatically creates a human-gated DRAFT proposal
+    passing candidate automatically creates a human-gated PENDING proposal
     (ADR-154 D3/D5). No fix is applied to src/ or committed until the
     proposal is approved (currently via the /v1/proposals API — no CLI
     surface for this yet).
@@ -94,7 +94,7 @@ async def remediate_cmd(
     never committed, never submitted as a proposal.
 
     Examples:
-        # Validate a fix and create a DRAFT proposal for governor approval
+        # Validate a fix and create a PENDING proposal for governor approval
         core-admin workers remediate purity.no_ast_duplication
 
         # Just sense — populate blackboard, no LLM
@@ -311,13 +311,13 @@ async def _run_rule_pipeline(
     logger.info("Remediator complete.")
     console.print()
     # ADR-154 D3: rule mode is worker-backed (a real claimed-by identity),
-    # so a passing candidate creates a human-gated DRAFT proposal — nothing
+    # so a passing candidate creates a human-gated PENDING proposal — nothing
     # is live until the proposal is approved.
     logger.info(
         "Pipeline complete. Any validated fix now awaits governor approval "
-        "as a DRAFT proposal. No CLI surface for listing/approving "
+        "as a PENDING proposal. No CLI surface for listing/approving "
         "proposals exists yet — use the /v1/proposals API, or check the "
-        "blackboard report each DRAFT creation posts:"
+        "blackboard report each proposal creation posts:"
     )
     logger.info(
         "  core-admin workers blackboard --filter 'audit.remediation.draft_created'"

@@ -30,7 +30,7 @@ pytestmark = [pytest.mark.integration]
 _ENVELOPE_FILE_PATH = "src/approve_test_fixture.py"
 
 
-def _draft_row(
+def _pending_row(
     proposal_id: str,
     *,
     validation_checks: list[str] | None = None,
@@ -38,7 +38,7 @@ def _draft_row(
     actions: list[dict] | None = None,
     scope: dict | None = None,
 ) -> AutonomousProposal:
-    """Construct a minimal valid AutonomousProposal in DRAFT for tests.
+    """Construct a minimal valid AutonomousProposal in PENDING for tests (#885).
 
     Defaults to a safe-auto-approval-envelope-compliant shape (#853):
     fix.format targeting a single src/ Python file, declared consistently
@@ -50,7 +50,7 @@ def _draft_row(
     return AutonomousProposal(
         proposal_id=proposal_id,
         goal="approve() unit test",
-        status="draft",
+        status="pending",
         actions=actions
         if actions is not None
         else [
@@ -96,7 +96,7 @@ async def _fetch(
 async def test_approve_happy_path(db_session: AsyncSession) -> None:
     """Case A: approve() writes status, approved_by, approved_at, approval_authority."""
     proposal_id = f"test-approve-A-{uuid.uuid4().hex[:8]}"
-    db_session.add(_draft_row(proposal_id))
+    db_session.add(_pending_row(proposal_id))
     await db_session.commit()
 
     try:
@@ -124,7 +124,7 @@ async def test_approve_rejects_falsy_authority(
 ) -> None:
     """Case B: approve() raises ValueError on falsy authority and issues no UPDATE."""
     proposal_id = f"test-approve-B-{uuid.uuid4().hex[:8]}"
-    db_session.add(_draft_row(proposal_id))
+    db_session.add(_pending_row(proposal_id))
     await db_session.commit()
 
     try:
@@ -138,7 +138,7 @@ async def test_approve_rejects_falsy_authority(
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
         assert row.approval_authority is None
     finally:
         await _delete(db_session, proposal_id)
@@ -147,7 +147,7 @@ async def test_approve_rejects_falsy_authority(
 async def test_approve_rejects_unknown_authority(db_session: AsyncSession) -> None:
     """Case C: approve() raises ValueError on unknown authority; lists allowed set."""
     proposal_id = f"test-approve-C-{uuid.uuid4().hex[:8]}"
-    db_session.add(_draft_row(proposal_id))
+    db_session.add(_pending_row(proposal_id))
     await db_session.commit()
 
     try:
@@ -164,7 +164,7 @@ async def test_approve_rejects_unknown_authority(db_session: AsyncSession) -> No
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
     finally:
         await _delete(db_session, proposal_id)
 
@@ -203,7 +203,7 @@ async def test_approve_blocks_on_unmet_validation_gate(
     the proposal in draft."""
     proposal_id = f"test-gate-block-{uuid.uuid4().hex[:8]}"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             validation_checks=["assisted.validate_diff"],
             validation_results={"assisted.validate_diff": False},
@@ -221,7 +221,7 @@ async def test_approve_blocks_on_unmet_validation_gate(
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
     finally:
         await _delete(db_session, proposal_id)
 
@@ -233,7 +233,7 @@ async def test_approve_passes_when_validation_gate_met(
     proceeds to status='approved' normally."""
     proposal_id = f"test-gate-pass-{uuid.uuid4().hex[:8]}"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             validation_checks=["assisted.validate_diff"],
             validation_results={"assisted.validate_diff": True},
@@ -268,7 +268,7 @@ async def test_approve_denies_safe_auto_approval_outside_envelope(
     (still draft, no approval fields set) — the UPDATE never runs."""
     proposal_id = f"test-envelope-deny-{uuid.uuid4().hex[:8]}"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             actions=[
                 {
@@ -298,7 +298,7 @@ async def test_approve_denies_safe_auto_approval_outside_envelope(
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
         assert row.approved_by is None
         assert row.approved_at is None
         assert row.approval_authority is None
@@ -313,7 +313,7 @@ async def test_approve_denies_flow_for_safe_auto_approval(
     auto-approval, regardless of how plausible its scope looks."""
     proposal_id = f"test-envelope-flow-{uuid.uuid4().hex[:8]}"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             actions=[
                 {
@@ -344,7 +344,7 @@ async def test_approve_denies_flow_for_safe_auto_approval(
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
     finally:
         await _delete(db_session, proposal_id)
 
@@ -357,7 +357,7 @@ async def test_approve_denies_out_of_envelope_path_for_safe_auto_approval(
     proposal_id = f"test-envelope-path-{uuid.uuid4().hex[:8]}"
     out_of_envelope = ".intent/rules/code/imports.json"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             actions=[
                 {
@@ -387,7 +387,7 @@ async def test_approve_denies_out_of_envelope_path_for_safe_auto_approval(
         db_session.expire_all()
         row = await _fetch(db_session, proposal_id)
         assert row is not None
-        assert row.status == "draft"
+        assert row.status == "pending"
     finally:
         await _delete(db_session, proposal_id)
 
@@ -402,7 +402,7 @@ async def test_approve_governor_authority_crosses_envelope(
     proposal_id = f"test-envelope-governor-{uuid.uuid4().hex[:8]}"
     out_of_envelope = ".intent/rules/code/imports.json"
     db_session.add(
-        _draft_row(
+        _pending_row(
             proposal_id,
             actions=[
                 {

@@ -58,7 +58,7 @@ authorized to do.
 ADR-160 D3, first staged conversion (`create_proposal_only=True`, opt-in,
 default False): plans the goal via `PlannerAgent` directly, converts the
 resulting plan to a Proposal via `will.autonomy.plan_to_proposal`, persists
-it in DRAFT via `ProposalRepository`, and stops — `ActionExecutor` is never
+it in PENDING via `ProposalRepository`, and stops — `ActionExecutor` is never
 reached in this mode, so this worker now creates Proposals in this one
 opt-in path (the "never creates Proposals" claim in earlier revisions of
 this docstring covered only the default `orchestrator.execute_goal()` path,
@@ -94,7 +94,7 @@ class GoalExecutionWorker(Worker):
 
     `create_proposal_only=True` (ADR-160 D3, opt-in, default False): plans
     the goal directly via `PlannerAgent`, converts the plan to a Proposal
-    (`will.autonomy.plan_to_proposal`), persists it in DRAFT, and stops —
+    (`will.autonomy.plan_to_proposal`), persists it in PENDING, and stops —
     `WorkflowOrchestrator`/`ActionExecutor` are never reached in this mode.
     """
 
@@ -279,13 +279,13 @@ class GoalExecutionWorker(Worker):
         Plans the goal directly via `PlannerAgent` (mirroring
         `ParsePhase.__init__`/`.execute()`), converts the resulting plan to
         a Proposal via `will.autonomy.plan_to_proposal.convert_execution_plan`,
-        persists it in DRAFT via `ProposalRepository`, and stops.
+        persists it in PENDING via `ProposalRepository`, and stops.
         `WorkflowOrchestrator`/`ActionExecutor` are never reached — no write
         occurs in this mode regardless of `self.write`. Approval and
         execution are a separate, later, Governor-triggered step outside
         this worker's scope.
 
-        Every exit is either a persisted DRAFT Proposal + a `post_report`
+        Every exit is either a persisted PENDING Proposal + a `post_report`
         outcome, or a refusal + a `post_observation` outcome — never a
         partial or silently-dropped result.
         """
@@ -333,7 +333,7 @@ class GoalExecutionWorker(Worker):
             goal=self.goal,
             actions=actions,
             scope=scope,
-            status=ProposalStatus.DRAFT,
+            status=ProposalStatus.PENDING,
             created_by="api.develop_goal",
         )
         proposal.compute_risk()

@@ -161,7 +161,7 @@ async def test_worker_preserves_draft_when_action_outside_safe_auto_approval_env
     worker attempts safe auto-approval) but is NOT in the five-action
     safe_auto_approval_envelope. The denial must not be treated as a
     persistence failure -- the proposal must still be created and land in
-    DRAFT for principal.governor review, not disappear or roll back — and
+    PENDING for principal.governor review, not disappear or roll back — and
     (#886) its finding must still be deferred to it."""
     worker = ViolationRemediatorWorker(declaration_name="violation_remediator")
     finding = await _seed_claimed_finding(
@@ -187,7 +187,7 @@ async def test_worker_preserves_draft_when_action_outside_safe_auto_approval_env
             )
         )
         row = result.scalar_one()
-        assert row.status == "draft"
+        assert row.status == "pending"
         assert row.approved_by is None
         assert row.approval_authority is None
 
