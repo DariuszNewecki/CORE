@@ -70,8 +70,17 @@ gates:
   - id: G4
     name: Autonomous loop reliability demonstrated by soak
     status: not_demonstrated
-    gap: No 72h soak run; two loop bugs fixed 2026-07-05
-    evidence: []
+    gap: >-
+      A 72h soak ran (f7430b25, 2026-07-23 → 2026-07-26; NRestarts=0, ~35 workers,
+      68,495 blackboard entries) and proved loop continuity only: 0 of 16,445 findings
+      posted in the window reached a proposal or a consequence record — the only
+      actionable class was abandoned by the remediation circuit breaker before any
+      proposal could be created. Not accepted as G4 evidence. A qualifying soak needs a
+      pre-declared throughput condition (≥ 1 finding → proposal → consequence chain
+      completed under soak) recorded before it starts.
+    evidence:
+      - ".specs/attestations/soak-closure-f7430b25-20260726.md (continuity; Note 2026-09-14)"
+      - ".specs/attestations/soak-f7430b25-findings-to-outcome-20260914.md (0/16,445; reproduced 2026-09-14)"
     attestation: null
     blocking_issues: [799]
     urs_ref: URS-production-readiness.md#g4
