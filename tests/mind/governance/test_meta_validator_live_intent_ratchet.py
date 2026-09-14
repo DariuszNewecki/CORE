@@ -24,20 +24,28 @@ This test wires it as a **ratchet**, not a snapshot:
   added to CI as a raw zero-error gate and this module reduces to a plain
   "no errors" assertion.
 
-``KNOWN_ERRORS`` is **known constitutional-validation debt discovered during
-the 2026-09-14 reconnaissance**, with a defined removal path — not a permanent
-fixture. Two defect classes account for all nine entries:
+``KNOWN_ERRORS`` is **empty** — the terminal state. It held nine entries
+(known constitutional-validation debt discovered during the 2026-09-14
+reconnaissance) from the ratchet's introduction until the Governor's
+``.intent/`` corrections landed on 2026-09-14 and the table was emptied in
+that same reviewed commit. For the record, the two defect classes were:
 
-1. ``META/flow.schema.json`` (last changed 2026-05-25) predates fields that
+1. ``META/flow.schema.json`` (last changed 2026-05-25) predated fields that
    ADR-135 D5 and ADR-140 D2/D4/D8/D9 authorise and that ``FlowRegistry`` /
-   ``FlowExecutor`` consume today: root ``generation_mode`` and
-   ``cognitive_capability``, flow-level ``remediates`` (documentary only),
-   step ``kind: cognitive`` and step ``produces``. Resolution: the Governor
-   declares those fields in the schema.
-2. ``artifact_types/architecture_bridge.yaml`` (#617, 2026-07-07) omits the
-   two fields ``META/artifact_type.schema.json`` requires per ADR-090 D2
-   (``identity_key``, ``change_record``); the other sixteen artifact-type
-   declarations carry them. Resolution: the Governor adds the two fields.
+   ``FlowExecutor`` consume: root ``generation_mode`` and
+   ``cognitive_capability``, flow-level ``remediates`` (documentary only —
+   Governor ruling 2026-09-14, recorded in the schema), step
+   ``kind: cognitive`` and step ``produces``. Repaired by declaring them.
+2. ``artifact_types/architecture_bridge.yaml`` (#617) omitted the two fields
+   ``META/artifact_type.schema.json`` requires per ADR-090 D2
+   (``identity_key``, ``change_record``). Repaired by adding them.
+
+With the table empty, this module is a plain "the live ``.intent/`` validates
+clean" gate with a pinned surface. The raw CLI
+(``core-admin constitution validate``, exit 1 on any error) is now fit to be
+added to core-ci.yml as a zero-error gate in a separate change; until then,
+this test is the gate. Re-adding an entry here is the only sanctioned way to
+accept new debt, and it requires a reviewed decision that says so.
 
 Hermetic and read-only: no network, no database; the validator reads the real
 ``.intent/`` because the real tree is the subject, and writes nothing.
@@ -125,72 +133,15 @@ def _key(error: ValidationError) -> ErrorKey:
 
 
 # ---------------------------------------------------------------------------
-# The accepted debt. One entry per validator error, with why it is tolerated.
-# Removing an entry is the ONLY sanctioned way for this set to shrink; adding
-# one requires a reviewed decision that the new error is accepted debt rather
-# than a regression.
+# The accepted debt. EMPTY since 2026-09-14: the nine entries pinned at
+# 76c3f204 were repaired by the Governor's .intent/ corrections
+# (META/flow.schema.json declares the ADR-135/ADR-140 manifest fields;
+# artifact_types/architecture_bridge.yaml carries the ADR-090 D2 required
+# fields) and removed in the same reviewed commit. Adding an entry requires a
+# reviewed decision that the new error is accepted debt rather than a
+# regression; each entry is (document, field path, message) -> reason.
 # ---------------------------------------------------------------------------
-
-_FLOW_SCHEMA_LAG = (
-    "META/flow.schema.json predates the ADR-135 D5 / ADR-140 D2-D4-D8-D9 "
-    "manifest fields that FlowRegistry and FlowExecutor consume; awaiting the "
-    "Governor's schema declaration."
-)
-_ARTIFACT_TYPE_MISSING_REQUIRED = (
-    "architecture_bridge.yaml (#617) omits the ADR-090 D2 required fields the "
-    "other sixteen artifact types carry; awaiting the Governor's document fix."
-)
-
-KNOWN_ERRORS: dict[ErrorKey, str] = {
-    # -- defect class 2: document missing ADR-090 D2 required fields ---------
-    (
-        "artifact_types/architecture_bridge.yaml",
-        "root",
-        "'identity_key' is a required property",
-    ): _ARTIFACT_TYPE_MISSING_REQUIRED,
-    (
-        "artifact_types/architecture_bridge.yaml",
-        "root",
-        "'change_record' is a required property",
-    ): _ARTIFACT_TYPE_MISSING_REQUIRED,
-    # -- defect class 1: flow.schema.json lags ADR-135 / ADR-140 -------------
-    (
-        "flows/flow.build_test_for_symbol.yaml",
-        "root",
-        "Additional properties are not allowed ('cognitive_capability', "
-        "'generation_mode' were unexpected)",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.build_test_for_symbol.yaml",
-        "flow",
-        "Additional properties are not allowed ('remediates' was unexpected)",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.build_test_for_symbol.yaml",
-        "flow.steps.0",
-        "Additional properties are not allowed ('produces' was unexpected)",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.build_test_for_symbol.yaml",
-        "flow.steps.0.kind",
-        "'cognitive' is not one of ['action', 'flow']",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.fix_modularity.yaml",
-        "root",
-        "Additional properties are not allowed ('cognitive_capability' was unexpected)",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.fix_modularity.yaml",
-        "flow.steps.0",
-        "Additional properties are not allowed ('produces' was unexpected)",
-    ): _FLOW_SCHEMA_LAG,
-    (
-        "flows/flow.fix_modularity.yaml",
-        "flow.steps.0.kind",
-        "'cognitive' is not one of ['action', 'flow']",
-    ): _FLOW_SCHEMA_LAG,
-}
+KNOWN_ERRORS: dict[ErrorKey, str] = {}
 
 
 def _fmt(keys: set[ErrorKey]) -> str:
@@ -303,12 +254,11 @@ def test_live_intent_validation_errors_equal_known_debt_exactly() -> None:
 
 
 def test_ratchet_terminal_state_reminder() -> None:
-    """When KNOWN_ERRORS is empty, promote the raw CLI to a CI gate.
+    """KNOWN_ERRORS is empty: the live .intent/ must validate with zero errors.
 
-    Not a failure — a signpost: once this set reaches zero, add
-    ``core-admin constitution validate`` (exit 1 on any error) to
-    core-ci.yml as a zero-error gate and collapse this module to
-    ``assert not report.errors``.
+    Active since 2026-09-14. Signpost: ``core-admin constitution validate``
+    (exit 1 on any error) can now be added to core-ci.yml as a raw zero-error
+    gate in a separate change; this test remains the pytest-side gate.
     """
     if not KNOWN_ERRORS:
         _validator, observed = _run_validator()

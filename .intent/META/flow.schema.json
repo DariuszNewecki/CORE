@@ -71,6 +71,21 @@
                 }
             }
         },
+        "generation_mode": {
+            "type": "string",
+            "enum": [
+                "single_shot",
+                "iterative"
+            ],
+            "default": "single_shot",
+            "description": "Generation strategy for this Flow's cognitive step. Optional; omission means single_shot and preserves pre-ADR-135 behaviour exactly. Read by the cognitive delegate to select between a single generate_or_repair call and an accepted-or-capped iteration loop bounded by .intent/enforcement/config/generation_budget.yaml. Authority: ADR-135 D5 (field authorized, FlowExecutor routing) and ADR-140 (routing relocated to the Will-tier delegate; the field gains operational meaning)."
+        },
+        "cognitive_capability": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "description": "Capability id used to select the cognitive delegate for this Flow's cognitive step (ProposalExecutor._build_cognitive_delegate). Open vocabulary: no ADR fixes a closed set, so no enum is asserted here. Authority: ADR-140 D8 (field authorized) and D9 (delegate selection)."
+        },
         "flow": {
             "type": "object",
             "additionalProperties": false,
@@ -100,6 +115,15 @@
                     },
                     "description": "Policy IDs governing this Flow."
                 },
+                "remediates": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "minLength": 3
+                    },
+                    "description": "DOCUMENTARY ONLY. Canonical rule IDs (ADR-091 D2 form) this Flow is authored to close. Relocated here from the action decorator by ADR-140 D8 on the reasoning that the Flow, not the bare write action, is what remediates. This declaration confers NO routing or execution authority: the remediation gate governance.remediation.active_routing_claimed_by_action exempts flow: entries, and no runtime component reads this field. Dispatch authority remains solely with .intent/enforcement/remediation/auto_remediation.yaml. Governor ruling 2026-09-14: ADR-140 D8 authorized the declaration, not an enforcement mechanism; granting it executable authority would be retrofitted semantics and requires its own decision."
+                },
                 "steps": {
                     "type": "array",
                     "minItems": 1,
@@ -121,9 +145,10 @@
                                 "type": "string",
                                 "enum": [
                                     "action",
-                                    "flow"
+                                    "flow",
+                                    "cognitive"
                                 ],
-                                "description": "Whether ref_id is an AtomicAction or a nested Flow."
+                                "description": "Whether ref_id is an AtomicAction, a nested Flow, or a cognitive step routed to the injected Will-tier delegate. Authority for 'cognitive': ADR-140 D2 (StepKind.COGNITIVE). Note that FlowRegistry._load_entry skips unknown step kinds with a warning rather than failing, so an incomplete enum here does not fail loudly at load time."
                             },
                             "required": {
                                 "type": "boolean",
@@ -140,6 +165,15 @@
                                     "type": "string"
                                 },
                                 "description": "Allowlist of caller param keys forwarded to this step. Absent means current executor default (see issue #445)."
+                            },
+                            "produces": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "description": "Output keys this step writes into the enclosing Flow's context for downstream steps to consume. The counterpart of consumes: together they declare the inter-step data thread ADR-140 introduced. A downstream step declaring a key in consumes that no upstream step produces fails loudly (ADR-140 D4). Authority: ADR-140 D4/D8."
                             }
                         }
                     }
