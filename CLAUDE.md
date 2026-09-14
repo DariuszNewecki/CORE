@@ -440,7 +440,7 @@ return ComponentResult(component_id=self.component_id, ok=True, data={...},
 
 **File mutations go through FileHandler, never `Path.write_text`:**
 ```python
-from shared.infrastructure.file_handler import FileHandler
+from body.infrastructure.storage.file_handler import FileHandler
 FileHandler(str(repo_root)).write_runtime_text("relative/path.py", content)
 ```
 

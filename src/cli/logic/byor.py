@@ -112,6 +112,50 @@ def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
         raise typer.Exit(code=1)
 
 
+# ID: e21c1b19-792b-46fb-b558-2102cc49e3b2
+def deliver_external_intent_files(
+    target_root: Path,
+    core_root: Path,
+    files: dict[str, str],
+) -> int:
+    """Write text files into an external target's ``.intent/`` (ADR-111 D3 lane).
+
+    The single sanctioned write surface for BYOR delivery into a repository
+    that is not CORE's own: ``initialize_repository`` and ``promote_staged``
+    copy the machinery floor through the same stdlib path, and ``project
+    adopt-pack`` (ADR-149) delivers pack rule/mapping documents through this
+    helper. ``FileHandler`` cannot serve these writes — it is repo-bound and
+    hard-blocks any literal ``.intent/`` prefix at the governed-artifact tier
+    — which is why this module is excluded by name from
+    ``governance.mutation_surface.filehandler_required``.
+
+    ``files`` maps target-relative paths (each MUST start with ``.intent/``)
+    to text content. Refuses the same targets ``_reject_unsafe_target``
+    refuses, so a pack can never be written into CORE's own constitution.
+    Returns the number of files written. No git-add: the operator commits.
+    """
+    target_root = target_root.resolve()
+    _reject_unsafe_target(target_root, core_root.resolve())
+    for rel in files:
+        if not rel.startswith(".intent/") or ".." in Path(rel).parts:
+            raise ValueError(
+                f"deliver_external_intent_files: {rel!r} is not a .intent/-relative path"
+            )
+    written = 0
+    for rel, content in files.items():
+        dest = target_root / rel
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(content, encoding="utf-8")
+        except OSError as exc:
+            logger.error(
+                "Target path not accessible on the CORE host: %s (%s)", dest, exc
+            )
+            raise typer.Exit(code=1) from exc
+        written += 1
+    return written
+
+
 # ID: 3f7a1c82-e4d9-4b6e-9c21-d58f02a7b3e1
 def _resolve_machinery_floor(core_root: Path) -> Path:
     """

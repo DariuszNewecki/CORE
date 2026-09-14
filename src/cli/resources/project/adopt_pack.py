@@ -25,7 +25,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.utils import core_command
-from shared.config import settings
+from shared.config import resolve_default_repo_path, settings
 from shared.infrastructure.intent.pack_loader import PackLoader
 
 
@@ -163,11 +163,13 @@ async def adopt_pack_command(
         return
 
     # --- Apply ---
-    from shared.infrastructure.file_handler import (  # type: ignore[import-untyped]
-        FileHandler,
-    )
+    # External-target .intent/ delivery routes through the ADR-111 D3 lane in
+    # cli.logic.byor: FileHandler is repo-bound and hard-blocks any literal
+    # .intent/ path at the governed-artifact tier, so the pack files are
+    # assembled here and written by the one module sanctioned for that write.
+    from cli.logic.byor import deliver_external_intent_files
 
-    fh = FileHandler(str(target_dir))
+    core_root = resolve_default_repo_path()
 
     # 1. Rule document
     rule_doc = {
@@ -183,25 +185,31 @@ async def adopt_pack_command(
         },
         "rules": effective_rules,
     }
-    rel_rules = str(rules_file.relative_to(target_dir))
-    fh.ensure_dir(str(rules_out.relative_to(target_dir)))
-    fh.write_runtime_text(rel_rules, json.dumps(rule_doc, indent=4) + "\n")
+    files: dict[str, str] = {
+        rules_file.relative_to(target_dir).as_posix(): json.dumps(rule_doc, indent=4)
+        + "\n",
+    }
 
     # 2. Enforcement mappings
-    mapping_lines = ["mappings:"]
-    for rule_id, mapping in pack.enforcement_mappings.items():
-        # Apply override to mapping if the rule's enforcement was overridden
-        # (the mapping drives HOW, not WHAT enforcement; override is in rule doc)
-        import yaml as _yaml  # local import — CLI layer only
+    import yaml as _yaml  # local import — CLI layer only
 
-        entry = {rule_id: mapping}
-        mapping_lines.append(_yaml.dump(entry, default_flow_style=False).rstrip())
-    rel_mappings = str(mappings_file.relative_to(target_dir))
-    fh.ensure_dir(str(mappings_out.relative_to(target_dir)))
-    fh.write_runtime_text(rel_mappings, "\n".join(mapping_lines) + "\n")
+    # The mapping drives HOW, not WHAT enforcement; overrides live in the rule
+    # doc. Dump the whole document so entries nest under ``mappings:`` — the
+    # shape every mapping file under .intent/enforcement/mappings/ uses.
+    files[mappings_file.relative_to(target_dir).as_posix()] = _yaml.dump(
+        {"mappings": dict(pack.enforcement_mappings)},
+        default_flow_style=False,
+        sort_keys=False,
+    )
 
-    # 3. Update intent_tree.yaml packs: section
-    _upsert_pack_in_tree(tree_yaml, pack_id, parsed_overrides, fh, target_dir)
+    # 3. Update intent_tree.yaml packs: section (only if the target has one)
+    tree_update = _upsert_pack_in_tree(tree_yaml, pack_id, parsed_overrides)
+    if tree_update is not None:
+        files[tree_yaml.relative_to(target_dir).as_posix()] = tree_update
+
+    deliver_external_intent_files(target_dir, core_root, files)
+    if tree_update is not None:
+        console.print(f"  Updated {tree_yaml.name}: packs: section")
 
     console.print(
         "\n[bold green]Pack applied.[/bold green] "
@@ -213,20 +221,23 @@ def _upsert_pack_in_tree(
     tree_yaml: Path,
     pack_id: str,
     overrides: dict[str, str],
-    fh: object,
-    target_dir: Path,
-) -> None:
-    """Add or update the pack entry in intent_tree.yaml's packs: section."""
+) -> str | None:
+    """Return intent_tree.yaml text with the pack upserted in ``packs:``, or None.
+
+    None means the target has no ``META/intent_tree.yaml`` (a bare repo that
+    adopted a pack without the machinery floor). The pack still works — the
+    offline audit discovers ``rules/packs/`` directly — so this is a warning,
+    not a refusal.
+    """
     if not tree_yaml.exists():
         console.print(
             f"[yellow]Warning:[/yellow] {tree_yaml} not found — skipping packs: update."
         )
-        return
+        return None
 
     import yaml as _yaml
 
-    content = tree_yaml.read_text("utf-8")
-    data = _yaml.safe_load(content) or {}
+    data = _yaml.safe_load(tree_yaml.read_text("utf-8")) or {}
     packs: list[dict] = data.get("packs") or []
 
     # Remove existing entry for this pack_id (re-add below)
@@ -239,8 +250,4 @@ def _upsert_pack_in_tree(
         ]
     packs.append(new_entry)
     data["packs"] = packs
-
-    updated = _yaml.dump(data, default_flow_style=False, allow_unicode=True)
-    rel_tree = str(tree_yaml.relative_to(target_dir))
-    fh.write_runtime_text(rel_tree, updated)  # type: ignore[attr-defined]
-    console.print(f"  Updated {tree_yaml.name}: packs: {[p['id'] for p in packs]}")
+    return _yaml.dump(data, default_flow_style=False, allow_unicode=True)
