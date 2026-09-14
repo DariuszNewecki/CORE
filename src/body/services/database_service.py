@@ -161,7 +161,7 @@ class DatabaseService:
 
             return resource
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: c97d6320-a7d6-47ee-8658-106ef358da7b
     async def execute_query(
         self, query: str, params: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
@@ -193,7 +193,7 @@ class DatabaseService:
             logger.debug("Executed raw query, returned %d rows", len(rows))
             return rows
 
-    # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 32729aa9-15e8-4b4f-8ae0-89986313a4d8
     async def with_session(self, operation):
         """
         Execute an operation with a managed session.

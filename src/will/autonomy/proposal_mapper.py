@@ -19,12 +19,12 @@ from shared.workers.blackboard_publisher import _sanitize_payload
 from will.autonomy.proposal import Proposal
 
 
-# ID: 8d7c9f1e-2a4b-5c6d-7e8f-9a0b1c2d3e4f
+# ID: 892f687e-d67f-40ae-a688-5f81adc64352
 class ProposalMapper:
     """Converts between Proposal domain model and AutonomousProposal database model."""
 
     @staticmethod
-    # ID: f1e2d3c4-b5a6-7890-abcd-ef1234567890
+    # ID: 254effef-2065-48a9-b29b-f3a1970aeb85
     def to_db_model(proposal: Proposal, db_class: type) -> Any:
         """
         Convert domain Proposal to database AutonomousProposal.

@@ -43,7 +43,7 @@ class LLMGateStubEngine(BaseEngine):
             "(no API calls, no cost)"
         )
 
-    # ID: e9f4d8c7-6b3a-5e2f-8d9c-7a6b4e3f1c2d
+    # ID: ff7700cc-1483-43be-9cd6-752fef014785
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """
         Stub verification - always returns OK.

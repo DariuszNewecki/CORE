@@ -92,7 +92,7 @@ _CLEAN_PASS_TOKENS = (
 )
 
 
-# ID: f1e2d3c4-b5a6-7890-fedc-ba9876543210
+# ID: 6fd2604f-39b2-4f4f-96b6-1b4d205e200c
 class IntentInspector(Worker):
     """
     Sensing worker. Inspects .intent/ constitutional quality across three
@@ -116,7 +116,7 @@ class IntentInspector(Worker):
     # Entry point
     # -------------------------------------------------------------------------
 
-    # ID: a1b2c3d4-e5f6-7890-abcd-111111111111
+    # ID: 11309cfd-6cb3-41e8-bf70-6af5b91a132d
     async def run(self) -> None:
         """
         Execute all three inspection passes and post findings + final report.
@@ -200,7 +200,7 @@ class IntentInspector(Worker):
     # Pass 1 — Structural (pure Python)
     # -------------------------------------------------------------------------
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-222222222222
+    # ID: 2b748b54-7e1f-4d75-bf8f-9cb92b9370fb
     def _pass_structural(
         self,
         documents: list[dict[str, Any]],
@@ -280,7 +280,7 @@ class IntentInspector(Worker):
     # Pass 2 — Coherence (per-document LLM)
     # -------------------------------------------------------------------------
 
-    # ID: c3d4e5f6-a7b8-9012-cdef-333333333333
+    # ID: 53cbf136-0490-449e-a740-5a645932813b
     async def _pass_coherence(self, documents: list[dict[str, Any]]) -> int:
         """
         For each document, ask the LLM whether the narrative is clear and
@@ -361,7 +361,7 @@ class IntentInspector(Worker):
     # Pass 3 — Alignment (cross-document LLM)
     # -------------------------------------------------------------------------
 
-    # ID: d4e5f6a7-b8c9-0123-defa-444444444444
+    # ID: 0798cc65-206c-48ac-a78d-9e84729ccf3a
     async def _pass_alignment(
         self, documents: list[dict[str, Any]], intent_root: Path
     ) -> int:
@@ -430,13 +430,13 @@ class IntentInspector(Worker):
     # Helpers
     # -------------------------------------------------------------------------
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-555555555555
+    # ID: a9c231f4-8aeb-441b-9e7f-1f0b41f250f2
     def _resolve_intent_root(self) -> Path:
         """Resolve .intent/ path from core_context."""
         repo_path = Path(self._core_context.git_service.repo_path)
         return repo_path / ".intent"
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-666666666666
+    # ID: b363a4e6-647c-437c-bfad-93daac2888b8
     def _load_all_documents(self, intent_root: Path) -> list[dict[str, Any]]:
         """
         Load all YAML documents from .intent/, excluding operational subtrees.
@@ -506,7 +506,7 @@ class IntentInspector(Worker):
             return None
         return set(values)
 
-    # ID: a7b8c9d0-e1f2-3a4b-5c6d-777777777777
+    # ID: 8ca19cde-d5e5-4e07-b15d-3ff82853408f
     def _build_alignment_manifest(self, documents: list[dict[str, Any]]) -> str:
         """
         Build a compact text summary of all documents for the alignment LLM pass.
@@ -528,7 +528,7 @@ class IntentInspector(Worker):
             lines.append(f"[{doc['path']}] kind={kind} id={doc_id} — {summary}")
         return "\n".join(lines)
 
-    # ID: b8c9d0e1-f2a3-4b5c-6d7e-888888888888
+    # ID: 6dd94be4-ec14-4ca7-8e25-aa6d247758ab
     def _parse_llm_findings(
         self, response: str, path: str, pass_name: str
     ) -> list[dict[str, Any]]:

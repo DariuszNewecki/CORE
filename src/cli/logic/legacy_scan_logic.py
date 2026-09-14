@@ -100,7 +100,7 @@ LEGACY_MARKERS: dict[str, dict] = {
 
 
 @dataclass
-# ID: b2c3d4e5-f6a7-8901-bcde-f01234567bcd
+# ID: d6932e42-9c0e-479f-b042-7a5ad17de1dd
 class LegacyHit:
     """A single legacy marker found in the codebase."""
 
@@ -114,7 +114,7 @@ class LegacyHit:
 
 
 @dataclass
-# ID: c3d4e5f6-a7b8-9012-cdef-012345678cde
+# ID: 797b7f25-34cc-431e-8063-8deb7e904a4a
 class FileLegacySummary:
     """Aggregated legacy findings for a single file."""
 
@@ -122,17 +122,17 @@ class FileLegacySummary:
     hits: list[LegacyHit] = field(default_factory=list)
 
     @property
-    # ID: d4e5f6a7-b8c9-0123-defa-0123456789de
+    # ID: 5008a726-aadb-43ea-be8e-3153e6fa2d29
     def total(self) -> int:
         return len(self.hits)
 
     @property
-    # ID: e5f6a7b8-c9d0-1234-efab-123456789012
+    # ID: b1c73510-9dd9-447b-a805-bdce8c27dc8b
     def high_severity_count(self) -> int:
         return sum(1 for h in self.hits if h.severity == "high")
 
     @property
-    # ID: f6a7b8c9-d0e1-2345-fabc-23456789012f
+    # ID: bc53fc4b-12ea-4d80-8a5c-0d555a4c9a5a
     def by_marker(self) -> dict[str, int]:
         counts: dict[str, int] = {}
         for hit in self.hits:
@@ -141,7 +141,7 @@ class FileLegacySummary:
 
 
 @dataclass
-# ID: a7b8c9d0-e1f2-3456-abcd-34567890123a
+# ID: f2b34317-d76f-4afd-a188-4a51f4c65062
 class LegacyScanResult:
     """Complete scan result across all files."""
 
@@ -155,12 +155,12 @@ class LegacyScanResult:
         return sum(f.total for f in self.files_with_hits)
 
     @property
-    # ID: c9d0e1f2-a3b4-5678-cdef-56789012345c
+    # ID: b7bde035-781c-4384-9585-46d0b6aef5d8
     def total_high_severity(self) -> int:
         return sum(f.high_severity_count for f in self.files_with_hits)
 
     @property
-    # ID: d0e1f2a3-b4c5-6789-defa-67890123456d
+    # ID: f4cd1872-39ea-4f64-8967-fcbff6ce3716
     def marker_totals(self) -> dict[str, int]:
         totals: dict[str, int] = {}
         for f in self.files_with_hits:
@@ -169,7 +169,7 @@ class LegacyScanResult:
         return dict(sorted(totals.items(), key=lambda x: x[1], reverse=True))
 
     @property
-    # ID: e1f2a3b4-c5d6-7890-efab-78901234567e
+    # ID: 8c14107d-b3e9-4281-a646-659e3b151a86
     def files_sorted_by_debt(self) -> list[FileLegacySummary]:
         """Files sorted by high-severity count descending, then total."""
         return sorted(
@@ -184,7 +184,7 @@ class LegacyScanResult:
 # ---------------------------------------------------------------------------
 
 
-# ID: f2a3b4c5-d6e7-8901-fabc-890123456789
+# ID: e53aa020-88f5-4981-8b74-6cf511f249ae
 def scan_for_legacy_markers(
     repo_root: Path,
     scan_dirs: list[str] | None = None,
@@ -237,7 +237,7 @@ def scan_for_legacy_markers(
     )
 
 
-# ID: a3b4c5d6-e7f8-9012-abcd-901234567890
+# ID: ef97c826-075a-4e40-b82a-5e3f34e406a0
 def _scan_file(
     file_path: Path,
     repo_root: Path,
@@ -286,7 +286,7 @@ def _scan_file(
     return summary
 
 
-# ID: b4c5d6e7-f8a9-0123-bcde-012345678901
+# ID: e9e42775-7dfb-4a03-883f-77349a8f3f80
 def _resolve_marker(text: str) -> str | None:
     """Match detected text to a canonical marker key."""
     # Direct match first
@@ -298,7 +298,7 @@ def _resolve_marker(text: str) -> str | None:
     return None
 
 
-# ID: c5d6e7f8-a9b0-1234-cdef-123456789012
+# ID: 912933d9-7ef8-41cc-9959-7ab90418641b
 def get_top_debt_files(
     result: LegacyScanResult, limit: int = _CFG.legacy_scan_display_limit
 ) -> list[FileLegacySummary]:

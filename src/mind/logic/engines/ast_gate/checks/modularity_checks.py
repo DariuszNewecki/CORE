@@ -41,7 +41,7 @@ def _has_core_role_declaration(tree: ast.AST) -> bool:
     return False
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 451ad69a-726d-4e0f-94b0-a69b4d330dfd
 class ModularityChecker:
     """Enforces modularity and refactoring thresholds constitutionally."""
 

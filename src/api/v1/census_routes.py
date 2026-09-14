@@ -81,7 +81,7 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
 }
 
 
-# ID: 8c5e2d0f-4b9a-4d7e-ecbe-7f8901ab23cd
+# ID: dafea97d-5bfc-4fd1-ac90-b972b02f81e6
 class CreateCensusRunRequest(BaseModel):
     """Body for POST /census/runs."""
 
@@ -89,7 +89,7 @@ class CreateCensusRunRequest(BaseModel):
     requested_by: str = "api"
 
 
-# ID: 9d6f3e1a-5c0b-4e8f-fdcf-89012ab34d5e
+# ID: df5a4c33-0cc2-49a2-999d-06d37e08528f
 class CreateBaselineRequest(BaseModel):
     """Body for POST /census/baselines/{name}.
 
@@ -170,7 +170,7 @@ async def create_census_run(
         "the run doesn't exist."
     ),
 )
-# ID: 2a9c6b4d-8f3e-4b1c-c0fd-b2345cd6789a
+# ID: 520c9b12-e45d-4e2f-98dc-9c95b11cb722
 async def get_census_run(
     run_id: UUID,
     session: AsyncSession = Depends(get_api_session),
@@ -223,7 +223,7 @@ async def get_census_run(
         "is used. Returns 422 if no usable snapshot exists."
     ),
 )
-# ID: 3b0d7c5e-9a4f-4c2d-d10e-c3456de789ab
+# ID: 0461d352-f0ba-4bcb-86ed-c618f7469d35
 async def create_census_baseline(
     request: Request,
     name: str,
@@ -246,7 +246,7 @@ async def create_census_baseline(
     summary="List census baselines",
     description="Return all named baselines (newest first).",
 )
-# ID: 4c1e8d6f-0b5a-4d3e-e21f-d4567ef89abc
+# ID: 3095136b-f29b-46a8-bd0f-bbd2b10af1bd
 async def list_census_baselines(request: Request) -> dict:
     """Return all named baselines (newest first)."""
     core_context: CoreContext = request.app.state.core_context
@@ -264,7 +264,7 @@ async def list_census_baselines(request: Request) -> dict:
         "the structured delta consumed by F-20 dashboards."
     ),
 )
-# ID: 5d2f9e7a-1c6b-4e4f-f320-e5678f0abcde
+# ID: 76a87713-2f03-498e-9b31-ad0a843095f4
 async def census_diff(
     request: Request,
     baseline: str | None = Query(default=None),

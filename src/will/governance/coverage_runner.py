@@ -273,7 +273,7 @@ def get_coverage_history(context: CoreContext, *, limit: int = 30) -> dict:
     return {"count": len(history), "history": history}
 
 
-# ID: 2a7b8c9d-3e4f-5a6b-7c8d-9e0f1a2b3c4d
+# ID: 7e53d8eb-baa6-4f35-8ff4-e10a06d697be
 def get_coverage_methods(context: CoreContext) -> dict:
     """Return the legacy-vs-adaptive coverage method comparison.
 
@@ -303,7 +303,7 @@ def get_coverage_methods(context: CoreContext) -> dict:
     }
 
 
-# ID: a4b7c5d8-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: 7e8c3443-a1ab-46d9-af40-bc78bb325083
 async def _update_coverage_run_status(
     session: Any,
     run_id: UUID,
@@ -336,7 +336,7 @@ async def _update_coverage_run_status(
     await session.commit()
 
 
-# ID: c3d5e7f9-2a4b-3c5d-7e9f-1b3d5e7f9a1c
+# ID: 539e3335-6ac3-48eb-b3e5-c770850e50ce
 async def run_and_persist_coverage_generation(
     context: CoreContext,
     session: Any,
@@ -430,7 +430,7 @@ async def run_and_persist_coverage_generation(
     )
 
 
-# ID: e5f7a9b1-3c5d-4e6f-7a8b-9c0d1e2f3a4b
+# ID: c8dd0fa7-30ae-4914-9ef4-66f454c50f38
 async def run_and_persist_coverage_batch(
     context: CoreContext,
     session: Any,
@@ -629,7 +629,7 @@ async def run_and_persist_coverage_report(
     )
 
 
-# ID: f6a8b0c2-4d6e-5f7a-8b9c-0d1e2f3a4b5c
+# ID: 29cd4e84-534e-403b-9c0f-f5633e0ac7ca
 async def run_tests_interactive(
     context: CoreContext, *, target_file: str | None = None
 ) -> dict:

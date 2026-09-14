@@ -541,7 +541,7 @@ class CrawlService:
     # Crawl orchestration (delegating entry point)
     # ------------------------------------------------------------------
 
-    # ID: d4e5f6a7-b8c9-0123-def0-123456789012
+    # ID: 63213068-262e-4201-b3ef-168d93db7383
     async def run_crawl(
         self, repo_root: Path, cognitive_service: Any = None
     ) -> dict[str, int]:

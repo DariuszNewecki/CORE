@@ -292,7 +292,7 @@ async def get_audit_run(
     }
 
 
-# ID: 4b7c8d9e-0f1a-4b2c-3d4e-5f6a7b8c9d0e
+# ID: ae107f78-47ed-4027-9f82-80112dd34100
 class CreateRemediationRequest(BaseModel):
     """Body for POST /audit/remediations (ADR-057 D4).
 
@@ -323,7 +323,7 @@ class CreateRemediationRequest(BaseModel):
         "if `mode` is outside the allowed vocabulary."
     ),
 )
-# ID: 5c8d9e0f-1a2b-4c3d-4e5f-6a7b8c9d0e1f
+# ID: fb0e608e-695d-4a75-9bc2-1f5c51a57dfb
 async def create_remediation_run(
     request: Request,
     response: Response,
@@ -369,7 +369,7 @@ async def create_remediation_run(
     run_id: UUID = result.scalar_one()
     await session.commit()
 
-    # ID: 6d9e0f1a-2b3c-4d4e-5f6a-7b8c9d0e1f2a
+    # ID: 9077aa2d-af1c-42c1-95a0-3b56814a1503
     async def drive_remediation() -> None:
         async for bg_session in open_background_session():
             await run_and_persist_audit_remediation(
@@ -400,7 +400,7 @@ async def create_remediation_run(
         "404 if the run doesn't exist."
     ),
 )
-# ID: 7e0f1a2b-3c4d-4e5f-6a7b-8c9d0e1f2a3b
+# ID: 16eae41b-0992-49c1-b768-9c91d966e3b4
 async def get_remediation_run(
     run_id: UUID,
     session: AsyncSession = Depends(get_api_session),

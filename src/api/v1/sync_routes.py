@@ -65,7 +65,7 @@ router = APIRouter(
 )
 
 
-# ID: 6e3a0f8b-2d7c-4f5a-0431-f6789a0bcdef
+# ID: 10b6a68c-12f5-482f-9a46-95bb01dea266
 class SyncRequest(BaseModel):
     """Body for the four POST /sync/* endpoints.
 
@@ -84,7 +84,7 @@ class SyncRequest(BaseModel):
     force: bool = False
 
 
-# ID: 7f4b1a9c-3e8d-4a6b-1542-07890ab12345
+# ID: 4a4527e9-c18e-4deb-a0aa-f0cfe1324d66
 async def _dispatch_sync(
     *,
     sync_type: str,
@@ -125,7 +125,7 @@ async def _dispatch_sync(
     run_id: UUID = result.scalar_one()
     await session.commit()
 
-    # ID: 8a5c2b0d-4f9e-4b7c-2653-189012345abc
+    # ID: 1c79372e-8abe-4ea7-865e-a2312b34848a
     async def drive_sync() -> None:
         async for bg_session in open_background_session():
             await run_and_persist_sync(
@@ -148,7 +148,7 @@ async def _dispatch_sync(
 
 
 @router.post("/knowledge-graph", status_code=202, response_model=AsyncDispatchResponse)
-# ID: 9b6d3c1e-5a0f-4c8d-3764-29a01234abcd
+# ID: d6fc0d4a-a00e-4e90-a7b0-ff4063c3d31b
 async def sync_knowledge_graph(
     request: Request,
     response: Response,
@@ -168,7 +168,7 @@ async def sync_knowledge_graph(
 
 
 @router.post("/vectors", status_code=202, response_model=AsyncDispatchResponse)
-# ID: 0c7e4d2f-6b1a-4d9e-4875-3ab12345bcde
+# ID: a0eadae3-243a-4cce-b260-9e084897321d
 async def sync_vectors(
     request: Request,
     response: Response,
@@ -188,7 +188,7 @@ async def sync_vectors(
 
 
 @router.post("/code-vectors", status_code=202, response_model=AsyncDispatchResponse)
-# ID: 1d8f5e3a-7c2b-4e0f-5986-4bc23456cdef
+# ID: 16ae235c-ed1e-4e2e-928d-c5ede90bcb83
 async def sync_code_vectors(
     request: Request,
     response: Response,
@@ -208,7 +208,7 @@ async def sync_code_vectors(
 
 
 @router.post("/dev-sync", status_code=202, response_model=AsyncDispatchResponse)
-# ID: 2e9a6f4b-8d3c-4f1a-6a97-5cd34567def0
+# ID: 5bc22c63-d7a1-45b9-92e8-e675a75e1954
 async def sync_dev_sync(
     request: Request,
     response: Response,
@@ -228,7 +228,7 @@ async def sync_dev_sync(
 
 
 @router.get("/runs/{run_id}")
-# ID: 3f0b7a5c-9e4d-4a2b-7ba8-6de45678ef01
+# ID: 4f3b59f7-928c-444d-bcb0-1af0d6319bad
 async def get_sync_run(
     run_id: UUID,
     session: AsyncSession = Depends(get_api_session),

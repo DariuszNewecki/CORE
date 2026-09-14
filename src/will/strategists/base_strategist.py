@@ -14,7 +14,7 @@ from __future__ import annotations
 from shared.component_primitive import Component, ComponentPhase
 
 
-# ID: e7f5c6d8-f901-2345-efab-234567890124
+# ID: 35a786be-41d1-4f4a-954e-2a90bb969748
 class BaseStrategist(Component):
     """Base class for all RUNTIME phase strategists.
 
@@ -23,7 +23,7 @@ class BaseStrategist(Component):
     """
 
     @property
-    # ID: f8a6d7e9-0012-3456-fabc-345678901235
+    # ID: 0f2f5182-f962-4dc6-aa39-762a86b5bf15
     def phase(self) -> ComponentPhase:
         """All strategists operate in the RUNTIME phase."""
         return ComponentPhase.RUNTIME

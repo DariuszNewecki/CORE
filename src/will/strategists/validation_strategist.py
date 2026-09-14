@@ -39,7 +39,7 @@ logger = getLogger(__name__)
 _CFG_VS = load_operational_config().validation_strategy
 
 
-# ID: 8f3a2d1b-4c5e-6f7a-8b9c-0d1e2f3a4b5c
+# ID: 90035f1d-dfaa-4578-ba90-d0d7683d2eb7
 class ValidationStrategist(BaseStrategist):
     """
     Decides which validation checks to execute based on operation context.

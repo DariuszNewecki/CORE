@@ -35,7 +35,7 @@ _FENCE_RE = re.compile(
 )
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567891
+# ID: ef0221b8-4284-4c21-a5c8-aa08bfcb89d8
 def extract_json(text: str) -> Any:
     """
     Extract and parse JSON from an LLM response string.
@@ -86,7 +86,7 @@ def extract_json(text: str) -> Any:
     raise json.JSONDecodeError("No valid JSON found in LLM response.", stripped, 0)
 
 
-# ID: b2c3d4e5-f6a7-8901-bcde-f12345678902
+# ID: 98a67d93-f474-46ab-9d24-87255aca8585
 def extract_json_safe(text: str, default: Any = None) -> Any:
     """
     Like extract_json but returns `default` instead of raising on failure.
@@ -104,7 +104,7 @@ def extract_json_safe(text: str, default: Any = None) -> Any:
         return default
 
 
-# ID: c3d4e5f6-a7b8-9012-cdef-123456789013
+# ID: 34999d1d-32ce-4356-8d85-6077c361b5db
 def extract_code(text: str) -> str:
     """
     Strip markdown code fences from an LLM response containing raw code.
@@ -130,7 +130,7 @@ def extract_code(text: str) -> str:
     return stripped
 
 
-# ID: d4e5f6a7-b8c9-0123-def1-234567890124
+# ID: 68b4d54f-b99a-4983-87a6-3f3f892b9922
 def _extract_balanced_json_substring(text: str) -> str | None:
     """
     Extract the first balanced JSON object or array substring from text.

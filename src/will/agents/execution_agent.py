@@ -77,7 +77,7 @@ def _strip_params_for_action(action_id: str, params_dict: dict) -> dict:
     return params_dict
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef0123456789
+# ID: 17aa6361-5582-4a6e-b0e2-3ecbd9e75f90
 class ExecutionAgent(TracedAgentMixin):
     """
     The Contractor: Executes validated code blueprints.
@@ -106,7 +106,7 @@ class ExecutionAgent(TracedAgentMixin):
             "ExecutionAgent initialized (Contractor Mode: write=%s)", self.write
         )
 
-    # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
+    # ID: 1c548684-48c3-43a3-98fe-e1f964ea7711
     async def execute_plan(
         self,
         detailed_plan: DetailedPlan,
@@ -254,7 +254,7 @@ class ExecutionAgent(TracedAgentMixin):
             warnings=warnings,
         )
 
-    # ID: c3d4e5f6-789a-bcde-f012-3456789abcde
+    # ID: 0058a5dd-7ef0-4a3d-a5aa-36b37044f8b3
     async def _execute_step(
         self,
         step,  # DetailedPlanStep

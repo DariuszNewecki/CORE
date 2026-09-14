@@ -197,7 +197,7 @@ class ASTHelpers:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    # ID: e4d3c2b1-a0f9-8e7d-6c5b-4a3f2e1d0c9b
+    # ID: 2e30b169-0b56-4097-98f2-2841bcbf18ad
     def extract_domain_from_path(file_path: Path | str) -> str:
         """
         Extract domain from file path following CORE's domain convention.
@@ -217,7 +217,7 @@ class ASTHelpers:
         return ".".join(domain_parts) if domain_parts else ""
 
     @staticmethod
-    # ID: f3e2d1c0-b9a8-7f6e-5d4c-3b2a1f0e9d8c
+    # ID: 8b2e5ae1-d6f5-4010-afef-73764faa45e0
     def domain_matches(file_domain: str, allowed_domains: list[str]) -> bool:
         """
         Check if file domain matches any allowed domain (exact or prefix).

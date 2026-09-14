@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-# ID: 9b1e2f3a-4c5d-6789-abcd-ef1234567890
+# ID: 433a8830-74fa-4337-8817-5e883d6424e6
 class _WorkflowResultsMixin:
     """Shared computed properties for any workflow container that holds results.
 
@@ -25,13 +25,13 @@ class _WorkflowResultsMixin:
     results: list  # subclass dataclass field — accessed via self.results
 
     @property
-    # ID: a2c3d4e5-5f6a-7890-bcde-f01234567891
+    # ID: a8baadfa-8c65-4234-b300-30ce98704601
     def ok(self) -> bool:
         """Succeeds only if ALL results succeed."""
         return all(r.ok for r in self.results)
 
     @property
-    # ID: b3d4e5f6-6a7b-8901-cdef-012345678912
+    # ID: 66e0b0f5-d47e-48cf-9bdc-2c8283b02d0d
     def total_duration(self) -> float:
         """Sum of all result durations."""
         return sum(r.duration_sec for r in self.results)

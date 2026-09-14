@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from api.cli.client import CoreApiClient
 
 
-# ID: 6c0f4b8d-2e5a-4c9f-d3e7-1a5c9e3f7b1d
+# ID: ee03fc4a-8498-445e-a4e3-075b60bb95df
 class LlmResourcesClient:
     """Sub-client for /llm-resources/* endpoints.
 
@@ -25,7 +25,7 @@ class LlmResourcesClient:
     def __init__(self, facade: CoreApiClient) -> None:
         self._facade = facade
 
-    # ID: 7d1a5c9e-3f8b-4d0c-e4f8-2b6d0a4c8e2f
+    # ID: 600be55d-c052-4ae2-adb5-5489eeebfc9e
     async def author(self, definition: dict[str, Any], write: bool = False) -> dict:
         """POST /v1/llm-resources/author — validate (write=False) or persist (write=True)."""
         return await self._facade._request(

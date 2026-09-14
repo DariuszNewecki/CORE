@@ -21,7 +21,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+# ID: e7daf06c-7b53-4828-84e3-cd3f1d4d5ee2
 class CapabilityParser:
     """
     Parses capability tags from code.

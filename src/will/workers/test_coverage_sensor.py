@@ -74,7 +74,7 @@ class TestCoverageSensor(ScheduledWorker):
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         self._core_context = core_context
 
-    # ID: b3c4d5e6-f7a8-4901-0123-456789012cde
+    # ID: dc35a349-04f5-479d-87a2-f222d4bd0751
     async def run(self) -> None:
         """
         Execute one coverage-sensing cycle:
@@ -157,7 +157,7 @@ class TestCoverageSensor(ScheduledWorker):
     # Config loader — thin wrapper around the shared policy-governed helper
     # -------------------------------------------------------------------------
 
-    # ID: c4d5e6f7-a8b9-4012-1234-567890123def
+    # ID: a74416e9-ec45-4398-a5ed-2e27c8df39f5
     def _load_coverage_config(self) -> dict[str, Any]:
         """
         Load scan configuration from
@@ -172,7 +172,7 @@ class TestCoverageSensor(ScheduledWorker):
     # Filesystem scan
     # -------------------------------------------------------------------------
 
-    # ID: d5e6f7a8-b9c0-4123-2345-678901234ef0
+    # ID: c1316b74-a7ed-4715-b522-df39ae6718b4
     def _scan_uncovered_files(self, config: dict[str, Any]) -> list[str]:
         """
         Walk source_root and return relative paths (from repo root) for
@@ -189,7 +189,7 @@ class TestCoverageSensor(ScheduledWorker):
     # Blackboard helpers
     # -------------------------------------------------------------------------
 
-    # ID: e6f7a8b9-c0d1-4234-3456-789012345f01
+    # ID: 6045bb50-ef1d-4c28-a6f1-8528937303fa
     async def _fetch_existing_subjects(self) -> set[str]:
         """
         Fetch active `python::test.coverage::*` subjects from the Blackboard.

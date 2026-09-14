@@ -136,7 +136,7 @@ class CognitiveService:
 
         return OpenAIProvider(api_url=api_url, api_key=api_key, model_name=model_name)
 
-    # ID: 9962386f-4b31-5782-ba52-0b2b1655a43e
+    # ID: 47b241c8-f539-4589-8ea0-94ef0c0309ad
     async def aget_client_for_role(
         self, role_name: str, high_reasoning: bool = False, **_: Any
     ) -> LLMClient:

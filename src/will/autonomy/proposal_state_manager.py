@@ -63,7 +63,7 @@ class ProposalNotFoundError(CoreError):
     """
 
 
-# ID: 5a6b7c8d-9e0f-1a2b-3c4d-5e6f7a8b9c0d
+# ID: 65fe7d8a-ee5d-462c-8371-7217a22a4d57
 class ProposalStateManager:
     """
     Manages proposal lifecycle state transitions.

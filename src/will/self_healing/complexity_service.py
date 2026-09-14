@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b1c2d3e4-f5a6-7890-abcd-ef1234567890
+# ID: d405c538-4794-4b54-934c-71c1ce8e7ab4
 class ComplexityRemediationService:
     """
     Orchestrates the reduction of Cyclomatic Complexity via structural
@@ -60,7 +60,7 @@ class ComplexityRemediationService:
             path_resolver=context.path_resolver, agent_name="ComplexityHealer"
         )
 
-    # ID: d4e5f6a7-b8c9-0123-defa-567890abcdef
+    # ID: 18974de3-bd29-4ec6-8720-9e9726cb6fa0
     async def remediate(self, file_path: Path, write: bool = False) -> bool:
         """
         Executes the 7-Phase Complexity Remediation Workflow.
@@ -116,7 +116,7 @@ class ComplexityRemediationService:
 
         return False
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9012
+    # ID: 96fdd075-dcb8-4d17-acc5-ce9bcb7e6101
     async def _run_reflex_loop(
         self,
         rel_path: str,
@@ -229,7 +229,7 @@ class ComplexityRemediationService:
         )
         return None
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f901234
+    # ID: faec8ff7-83b8-47ca-bd69-f30b14d380b0
     def _build_execution_blueprint(
         self,
         original_path: str,

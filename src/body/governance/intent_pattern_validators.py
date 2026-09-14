@@ -345,7 +345,7 @@ class PatternValidators:
     # ------------------------------------------------------------------
 
     @classmethod
-    # ID: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
+    # ID: f362426d-dfe9-4e36-a346-10cbc8624dbf
     def check_no_magicmock_on_await(
         cls, tree: ast.AST, code: str, target_path: str
     ) -> list[ViolationReport]:
@@ -415,7 +415,7 @@ class PatternValidators:
         return violations
 
     @classmethod
-    # ID: 5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c
+    # ID: 281872e1-a112-4d68-87e5-7a5c9d41306d
     def check_no_imported_symbol_redeclared(
         cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
@@ -472,7 +472,7 @@ class PatternValidators:
         return violations
 
     @classmethod
-    # ID: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
+    # ID: 3a302727-50ed-437a-9340-706aacb85c05
     def check_no_placeholder_test_body(
         cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
@@ -511,7 +511,7 @@ class PatternValidators:
         return violations
 
     @classmethod
-    # ID: 7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
+    # ID: 7e955726-c011-4deb-9a39-4adc6100a3c0
     def check_no_global_module_mutation(
         cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:
@@ -584,7 +584,7 @@ class PatternValidators:
         return violations
 
     @classmethod
-    # ID: 8c9d0e1f-2a3b-4c5d-6e7f-8a9b0c1d2e3f
+    # ID: 543f17dc-86a5-46a8-9ebd-4ad24dad9044
     def check_no_unresolved_free_names(
         cls, tree: ast.Module, target_path: str
     ) -> list[ViolationReport]:

@@ -306,7 +306,7 @@ class PerformanceEvaluator(BaseEvaluator):
         weighted_score = sum(s * w for s, w in zip(scores, weights)) / sum(weights)
         return round(weighted_score, 2)
 
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: bb094334-e4a4-4188-b838-513f9f97ea1a
     def _suggest_time_optimization(self, operation_type: str) -> str:
         """Suggest time optimization strategies."""
         suggestions = {
@@ -332,7 +332,7 @@ class PerformanceEvaluator(BaseEvaluator):
         }
         return suggestions.get(operation_type, suggestions["default"])
 
-    # ID: a0b1c2d3-e4f5-6a7b-8c9d-0e1f2a3b4c5d
+    # ID: 7ec9496c-142c-463a-aa45-6f4d35b31883
     def _suggest_io_optimization(self, operation_type: str) -> str:
         """Suggest I/O optimization strategies."""
         suggestions = {

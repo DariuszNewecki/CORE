@@ -69,7 +69,7 @@ _MAX_INTERVAL_MIN_SAMPLES = 10
 _MAX_INTERVAL_LOOKBACK_HOURS = 24
 
 
-# ID: 9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
+# ID: 76f91a2c-9253-41b3-996f-48f187bb191c
 class RuntimeGateEngine(BaseEngine):
     """Runtime telemetry data engine (ADR-081 D7 / ADR-082).
 
@@ -87,7 +87,7 @@ class RuntimeGateEngine(BaseEngine):
         {"worker_process_classification", "worker_max_interval_within_observed"}
     )
 
-    # ID: 2a3b4c5d-6e7f-8901-2345-67890abcdef0
+    # ID: c9a069de-54dd-431f-b13b-b6290841e60a
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """runtime_gate is context-level only. Per-file dispatch is a
         contract violation; surface it clearly so a misconfigured mapping
@@ -103,7 +103,7 @@ class RuntimeGateEngine(BaseEngine):
             engine_id=self.engine_id,
         )
 
-    # ID: 3b4c5d6e-7f80-9012-3456-7890abcdef01
+    # ID: 32dd6988-0bb6-4ba0-992c-7acbe7b385cb
     async def verify_context(
         self, context: AuditorContext, params: dict[str, Any]
     ) -> list[AuditFinding]:
@@ -126,7 +126,7 @@ class RuntimeGateEngine(BaseEngine):
         ]
 
 
-# ID: 4c5d6e7f-8091-0123-4567-890abcdef012
+# ID: 7c2bfef2-d5be-489d-b921-8098b6e38cf5
 async def _check_worker_process_classification(
     context: AuditorContext,
 ) -> list[AuditFinding]:
@@ -542,7 +542,7 @@ def _unavailable_finding_no_session(worker_stems: list[str]) -> AuditFinding:
     )
 
 
-# ID: 7f6e5d4c-3b2a-1c9d-8e7f-2a3b4c5d6e7f
+# ID: 7b5b9e87-eccc-4181-a51a-ee04acc9086f
 def _unavailable_finding_insufficient_samples(
     insufficient: list[tuple[str, int]],
 ) -> AuditFinding:

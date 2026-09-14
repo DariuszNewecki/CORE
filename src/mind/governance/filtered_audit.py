@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: f8a9b7c6-5d4e-3f2a-1b0c-9d8e7f6a5b4c
+# ID: 355286f7-83b8-4770-95e7-399ba8df7aaf
 class RuleFilter:
     """Filters rules based on user-specified criteria."""
 

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 1f2e3d4c-5b6a-7890-cdef-1234567890ab
+# ID: d0c2806f-4ebd-480e-9d38-fe8bc57ef0b7
 class ExecutionPhase:
     """
     Execution phase - applies generated code to filesystem.
@@ -40,7 +40,7 @@ class ExecutionPhase:
     def __init__(self, context: CoreContext):
         self.context = context
 
-    # ID: 2a3b4c5d-6e7f-8901-abcd-ef1234567890
+    # ID: f6d9a975-0e24-486e-b88c-0e06b77d2e81
     async def execute(self, ctx: WorkflowContext) -> PhaseResult:
         """Execute the detailed plan from CODE_GENERATION phase."""
         start = time.time()
@@ -117,7 +117,7 @@ class ExecutionPhase:
                 duration_sec=time.time() - start,
             )
 
-    # ID: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+    # ID: 639b10ce-17aa-4723-824b-515c13d34dcd
     async def _execute_deterministic_split(
         self,
         split_results: list[dict],

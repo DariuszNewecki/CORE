@@ -60,7 +60,7 @@ ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(prefix="/refactor", dependencies=[require_governor])
 
 
-# ID: 3a7b9c5d-6e8f-4a0b-1c2d-3e4f5a6b7c8f
+# ID: 10a6a535-f31e-432b-8766-afb624b98fed
 class RunAutonomousRequest(BaseModel):
     """Body for POST /refactor/autonomous.
 
@@ -85,7 +85,7 @@ class RunAutonomousRequest(BaseModel):
         "surface."
     ),
 )
-# ID: 4b8c0d6e-7f9a-4b1c-2d3e-4f5a6b7c8d9a
+# ID: 95edda5a-8c24-4bd0-8bfb-f17c8e19c6db
 async def refactor_threshold(request: Request) -> dict:
     """Return the constitutional modularity threshold."""
     core_context: CoreContext = request.app.state.core_context
@@ -102,7 +102,7 @@ async def refactor_threshold(request: Request) -> dict:
         "return the full details payload from the modularity engine."
     ),
 )
-# ID: 5c9d1e7f-8a0b-4c2d-3e4f-5a6b7c8d9e0b
+# ID: 320944d1-57dc-46c2-ab33-052a6adde374
 async def refactor_score(
     request: Request,
     file: str = Query(..., min_length=1),
@@ -130,7 +130,7 @@ async def refactor_score(
         "dashboards use this as an actionable refactor backlog view."
     ),
 )
-# ID: 6d0e2f8a-9b1c-4d3e-4f5a-6b7c8d9e0f1c
+# ID: 3240977c-3a90-4415-aa75-72c4e0d709b6
 async def refactor_candidates(
     request: Request,
     min_score: float | None = Query(default=None, ge=0.0, le=200.0),
@@ -151,7 +151,7 @@ async def refactor_candidates(
         "and dashboard rendering."
     ),
 )
-# ID: 7e1f3a9b-0c2d-4e4f-5a6b-7c8d9e0f1a2d
+# ID: 080a6007-ff5f-4ebc-9b37-09f342c8ca2d
 async def refactor_stats(request: Request) -> dict:
     """Return aggregate modularity-score distribution."""
     core_context: CoreContext = request.app.state.core_context
@@ -171,7 +171,7 @@ async def refactor_stats(request: Request) -> dict:
     # /v1/openapi.json per ADR-087.
     include_in_schema=False,
 )
-# ID: 8f2a4b0c-1d3e-4f5a-6b7c-8d9e0f1a2b3e
+# ID: b888a38e-c4f3-460f-9383-269840edccd4
 async def run_refactor_autonomous(
     request: Request,
     response: Response,
@@ -205,7 +205,7 @@ async def run_refactor_autonomous(
     run_id: UUID = result.scalar_one()
     await session.commit()
 
-    # ID: 9a3b5c1d-2e4f-4a6b-7c8d-9e0f1a2b3c4f
+    # ID: ee5dfb3f-4fc4-4371-908e-4911fc34cab7
     async def drive_autonomous() -> None:
         async for bg_session in open_background_session():
             await run_and_persist_refactor_autonomous(

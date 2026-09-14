@@ -18,7 +18,7 @@ from typing import ClassVar
 from mind.governance.checks.rule_enforcement_check import RuleEnforcementCheck
 
 
-# ID: f9e2d7c5-8b4a-6e1f-3d9c-2a7b5e8f4c1d
+# ID: 0882f0e6-8601-499a-ac95-e3ece55ace28
 class PurityEnforcementCheck(RuleEnforcementCheck):
     """
     Enforces purity rules through AST-based constitutional checks.

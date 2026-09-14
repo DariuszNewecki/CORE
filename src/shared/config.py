@@ -53,7 +53,7 @@ def resolve_default_repo_path() -> Path:
     return REPO_ROOT
 
 
-# ID: 3a7b9c2d-1e4f-5a8b-c9d0-2e3f4a5b6c7d
+# ID: 67c68ee8-6e04-4eaf-8d41-bc79e3a4d15a
 def resolve_default_mind_path() -> Path:
     """Resolve the ``.intent/`` root for this invocation.
 

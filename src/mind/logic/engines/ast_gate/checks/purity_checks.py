@@ -111,7 +111,7 @@ class PurityChecks:
         return violations
 
     @staticmethod
-    # ID: 8d7c6b5a-4e3f-2d1c-0b9a-8f7e6d5c4b3a
+    # ID: 57ff0153-e657-4ea9-a731-b6047405fc53
     def check_forbidden_primitives(
         tree: ast.AST,
         forbidden: list[str],
@@ -213,7 +213,7 @@ class PurityChecks:
         ]
 
     @staticmethod
-    # ID: a4b3c2d1-e0f9-8e7d-6c5b-4a3f2e1d0c9b
+    # ID: ca48084e-0a5b-4120-803f-dfc425f3a269
     def check_required_decorator(
         tree: ast.AST, decorator: str, file_path: Path | None = None, **kwargs
     ) -> list[str]:

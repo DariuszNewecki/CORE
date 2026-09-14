@@ -270,12 +270,12 @@ class CoreApiClient:
 
     # -- /coverage, /tests/interactive (CoverageClient) ----------------
 
-    # ID: a8b2c4d6-1e3f-4a5b-6c7d-8e9f0a1b2c3d
+    # ID: 0cdae0a0-8e73-4163-af10-f8d9eec315f6
     async def coverage_check(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/coverage/check — see CoverageClient.coverage_check."""
         return await self.coverage.coverage_check(*args, **kwargs)
 
-    # ID: b9c3d5e7-2f4a-4b6c-7d8e-9f0a1b2c3d4e
+    # ID: a12ae394-3395-4500-adc9-f5fb3c53c178
     async def coverage_report(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/coverage/report — see CoverageClient.coverage_report."""
         return await self.coverage.coverage_report(*args, **kwargs)
@@ -290,44 +290,44 @@ class CoreApiClient:
         """GET /v1/coverage/gaps — see CoverageClient.coverage_gaps."""
         return await self.coverage.coverage_gaps(*args, **kwargs)
 
-    # ID: e2f6a8b0-5c7d-4e9f-0a1b-2c3d4e5f6071
+    # ID: ab1a0603-3b01-42e7-b5d7-fbcddc85c576
     async def coverage_history(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/coverage/history — see CoverageClient.coverage_history."""
         return await self.coverage.coverage_history(*args, **kwargs)
 
-    # ID: f3a7b9c1-6d8e-4f0a-1b2c-3d4e5f607182
+    # ID: 5dbf0d0c-d804-4f99-8ae1-c7acb10cdcdc
     async def coverage_methods(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/coverage/methods — see CoverageClient.coverage_methods."""
         return await self.coverage.coverage_methods(*args, **kwargs)
 
-    # ID: 04b8c0d2-7e9f-4a1b-2c3d-4e5f60718293
+    # ID: aa0f8de9-4a16-4eb6-b7af-33a683f48593
     async def coverage_generate(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/coverage/generate — see CoverageClient.coverage_generate."""
         return await self.coverage.coverage_generate(*args, **kwargs)
 
-    # ID: 15c9d1e3-8f0a-4b2c-3d4e-5f60718293a4
+    # ID: 8c79d8c0-16af-4794-9183-ab6ddbe03858
     async def coverage_generate_batch(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/coverage/generate:batch — see CoverageClient.coverage_generate_batch."""
         return await self.coverage.coverage_generate_batch(*args, **kwargs)
 
-    # ID: 26dae2f4-9a1b-4c3d-4e5f-60718293a4b5
+    # ID: 3258112e-7c1b-4174-ad85-94e95206e0e8
     async def get_coverage_run(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/coverage/runs/{run_id} — see CoverageClient.get_coverage_run."""
         return await self.coverage.get_coverage_run(*args, **kwargs)
 
-    # ID: 37ebf3a5-0b2c-4d4e-5f60-718293a4b5c6
+    # ID: aa80cd70-4103-433d-912a-eba169ccd7d6
     async def poll_coverage_run(self, *args: Any, **kwargs: Any) -> dict:
         """Poll a coverage run — see CoverageClient.poll_coverage_run."""
         return await self.coverage.poll_coverage_run(*args, **kwargs)
 
-    # ID: 48fc04b6-1c3d-4e5f-6071-8293a4b5c6d7
+    # ID: 1a0b3f5a-12f1-48f7-ba70-ab248a2e1ad2
     async def tests_interactive(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/tests/interactive — see CoverageClient.tests_interactive."""
         return await self.coverage.tests_interactive(*args, **kwargs)
 
     # -- /refactor (RefactorClient) ------------------------------------
 
-    # ID: 59ad15c7-2d4e-4f60-7182-93a4b5c6d7e8
+    # ID: 34e6c128-6c9e-454f-ae54-cc17d9b2ac01
     async def refactor_threshold(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/refactor/threshold — see RefactorClient.refactor_threshold."""
         return await self.refactor.refactor_threshold(*args, **kwargs)
@@ -352,64 +352,64 @@ class CoreApiClient:
         """POST /v1/refactor/autonomous — see RefactorClient.refactor_autonomous."""
         return await self.refactor.refactor_autonomous(*args, **kwargs)
 
-    # ID: aef26a1c-7293-4415-c6d7-e8f90a1b2c3d
+    # ID: 0c61e5a0-6853-4b79-8ec3-5201611cdd25
     async def get_refactor_run(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/refactor/runs/{run_id} — see RefactorClient.get_refactor_run."""
         return await self.refactor.get_refactor_run(*args, **kwargs)
 
-    # ID: bf037b2d-83a4-4526-d7e8-f90a1b2c3d4e
+    # ID: 255105d0-a7bb-4160-9142-9187f7330a31
     async def poll_refactor_run(self, *args: Any, **kwargs: Any) -> dict:
         """Poll a refactor run — see RefactorClient.poll_refactor_run."""
         return await self.refactor.poll_refactor_run(*args, **kwargs)
 
     # -- /status, /decisions, /refusals, /analysis, /components, /search (InspectClient) --
 
-    # ID: c0148c3e-94b5-4637-e8f9-0a1b2c3d4e5f
+    # ID: 04a996d1-37e0-402c-847e-cc9bee6a94a8
     async def status_db(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/status/db — see InspectClient.status_db."""
         return await self.inspect.status_db(*args, **kwargs)
 
-    # ID: d1259d4f-a5c6-4748-f90a-1b2c3d4e5f60
+    # ID: 693bd9d7-c915-4477-b45f-50d7a2577435
     async def status_drift(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/status/drift — see InspectClient.status_drift."""
         return await self.inspect.status_drift(*args, **kwargs)
 
-    # ID: e236ae50-b6d7-4859-0a1b-2c3d4e5f6071
+    # ID: 696a60a5-3723-4830-ae2f-ba121ff5aa96
     async def decisions_list(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/decisions — see InspectClient.decisions_list."""
         return await self.inspect.decisions_list(*args, **kwargs)
 
-    # ID: f347bf61-c7e8-495a-1b2c-3d4e5f607182
+    # ID: f35a3d73-f6c9-4228-a544-e05abc0c1b80
     async def decisions_patterns(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/decisions/patterns — see InspectClient.decisions_patterns."""
         return await self.inspect.decisions_patterns(*args, **kwargs)
 
-    # ID: 0458c072-d8f9-4a6b-2c3d-4e5f60718293
+    # ID: 4de226fa-d983-491d-9555-aba04e17a12a
     async def refusals_list(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/refusals — see InspectClient.refusals_list."""
         return await self.inspect.refusals_list(*args, **kwargs)
 
-    # ID: 1569d183-e90a-4b7c-3d4e-5f60718293a4
+    # ID: e9079d3e-6fe0-4cd9-be3e-7ff392867da5
     async def refusals_stats(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/refusals/stats — see InspectClient.refusals_stats."""
         return await self.inspect.refusals_stats(*args, **kwargs)
 
-    # ID: 267ae294-f01b-4c8d-4e5f-60718293a4b5
+    # ID: a164f1c4-2ad4-4bd1-a932-86c790b87018
     async def analysis_clusters(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/analysis/clusters — see InspectClient.analysis_clusters."""
         return await self.inspect.analysis_clusters(*args, **kwargs)
 
-    # ID: 378bf3a5-012c-4d9e-5f60-718293a4b5c6
+    # ID: 7751cdc6-f3e6-4f63-ac99-6598ea4b34b2
     async def analysis_duplicates(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/analysis/duplicates — see InspectClient.analysis_duplicates."""
         return await self.inspect.analysis_duplicates(*args, **kwargs)
 
-    # ID: 489c04b6-123d-4e0f-6071-8293a4b5c6d7
+    # ID: 26ee12c9-472a-46bc-abcb-d86e0b965a20
     async def analysis_common_knowledge(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/analysis/common-knowledge — see InspectClient.analysis_common_knowledge."""
         return await self.inspect.analysis_common_knowledge(*args, **kwargs)
 
-    # ID: 59ad15c7-234e-4f10-7182-93a4b5c6d7e8
+    # ID: 177b20b9-492c-4f1e-ba62-409fce7c999d
     async def analysis_command_tree(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/analysis/command-tree — see InspectClient.analysis_command_tree."""
         return await self.inspect.analysis_command_tree(*args, **kwargs)
@@ -456,44 +456,44 @@ class CoreApiClient:
         """POST /v1/census/baselines/{name} — see CensusClient.census_create_baseline."""
         return await self.census.census_create_baseline(*args, **kwargs)
 
-    # ID: 5e9f2a6b-7c8d-490b-cdef-012345678901
+    # ID: 1b9a0f86-afe2-485e-9177-702fafe98e27
     async def census_list_baselines(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/census/baselines — see CensusClient.census_list_baselines."""
         return await self.census.census_list_baselines(*args, **kwargs)
 
-    # ID: 6a0b3c7d-8e9f-401c-def0-123456789012
+    # ID: a991f213-618d-42f6-b67b-d37901f9bbad
     async def census_diff(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/census/diff — see CensusClient.census_diff."""
         return await self.census.census_diff(*args, **kwargs)
 
     # -- /sync (SyncClient) --------------------------------------------
 
-    # ID: 7b1c4d8e-9f0a-412d-ef01-234567890123
+    # ID: d37e8e25-80d3-4bf0-b365-19b67b6a8986
     async def sync_knowledge_graph(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/sync/knowledge-graph — see SyncClient.sync_knowledge_graph."""
         return await self.sync.sync_knowledge_graph(*args, **kwargs)
 
-    # ID: 8c2d5e9f-0a1b-423e-f012-345678901234
+    # ID: c357c8bb-1005-4b39-a4db-639bdb1ce624
     async def sync_vectors(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/sync/vectors — see SyncClient.sync_vectors."""
         return await self.sync.sync_vectors(*args, **kwargs)
 
-    # ID: 9d3e6f0a-1b2c-434f-0123-456789012345
+    # ID: 8a8a9163-cd97-4565-b385-4afae0f9c279
     async def sync_code_vectors(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/sync/code-vectors — see SyncClient.sync_code_vectors."""
         return await self.sync.sync_code_vectors(*args, **kwargs)
 
-    # ID: 0e4f7a1b-2c3d-4450-1234-567890123456
+    # ID: 7103606c-2838-448a-88da-90c869865c1e
     async def sync_dev_sync(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/sync/dev-sync — see SyncClient.sync_dev_sync."""
         return await self.sync.sync_dev_sync(*args, **kwargs)
 
-    # ID: 1f5a8b2c-3d4e-4561-2345-678901234567
+    # ID: 51059251-d3d3-4a36-94f1-1daa0cae253e
     async def get_sync_run(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/sync/runs/{run_id} — see SyncClient.get_sync_run."""
         return await self.sync.get_sync_run(*args, **kwargs)
 
-    # ID: 2a6b9c3d-4e5f-4672-3456-789012345678
+    # ID: 9e0ace1b-486c-43bf-bcc5-7fda109fd566
     async def poll_sync_run(self, *args: Any, **kwargs: Any) -> dict:
         """Poll a sync run — see SyncClient.poll_sync_run."""
         return await self.sync.poll_sync_run(*args, **kwargs)
@@ -512,17 +512,17 @@ class CoreApiClient:
 
     # -- /daemon (DaemonClient) ----------------------------------------
 
-    # ID: 3b7c0d4e-5f6a-4783-4567-890123456789
+    # ID: 88ea2bbb-82c4-4ed8-a745-8dfee26fbf82
     async def daemon_status(self, *args: Any, **kwargs: Any) -> dict:
         """GET /v1/daemon/status — see DaemonClient.daemon_status."""
         return await self.daemon.daemon_status(*args, **kwargs)
 
-    # ID: 4c8d1e5f-6a7b-4894-5678-901234567890
+    # ID: 7cbb8a58-8e7f-4a12-a8ee-1bcd326e76d9
     async def daemon_start(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/daemon/start — see DaemonClient.daemon_start."""
         return await self.daemon.daemon_start(*args, **kwargs)
 
-    # ID: 5d9e2f6a-7b8c-49a5-6789-012345678901
+    # ID: 01abf60f-dbb4-4918-9b3b-6137f946a04a
     async def daemon_stop(self, *args: Any, **kwargs: Any) -> dict:
         """POST /v1/daemon/stop — see DaemonClient.daemon_stop."""
         return await self.daemon.daemon_stop(*args, **kwargs)

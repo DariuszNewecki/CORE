@@ -88,7 +88,7 @@ async def status_db(session: AsyncSession = Depends(get_api_session)) -> dict:
         "convergence trajectory."
     ),
 )
-# ID: 2d6e8f4a-5b7c-4d9e-0f1a-2b3c4d5e6f72
+# ID: 7f99e646-7284-494f-8083-27f360cdf3b4
 async def status_drift(
     request: Request,
     scope: str = Query(default="all"),
@@ -112,7 +112,7 @@ async def status_drift(
         "newest-first stream."
     ),
 )
-# ID: 3e7f9a5b-6c8d-4e0f-1a2b-3c4d5e6f7a83
+# ID: 56a8b872-4add-4310-8cfe-822239657a0b
 async def decisions_list(
     session_id: str | None = Query(default=None),
     agent: str | None = Query(default=None),
@@ -141,7 +141,7 @@ async def decisions_list(
         "shape mirrors the CLI's `inspect decisions patterns` output."
     ),
 )
-# ID: 4f8a0b6c-7d9e-4f1a-2b3c-4d5e6f7a8b94
+# ID: f9c53cc8-0828-49bb-ac31-b168a0aaf6a6
 async def decisions_patterns(
     days: int = Query(default=7, ge=1, le=365),
 ) -> dict:
@@ -164,7 +164,7 @@ async def decisions_patterns(
         "renders these in the governance-trail view."
     ),
 )
-# ID: 5a9b1c7d-8e0f-4a2b-3c4d-5e6f7a8b9ca5
+# ID: 7521c831-a74f-45b7-a40f-9a8b0d3fdb3e
 async def refusals_list(
     refusal_type: str | None = Query(default=None, alias="type"),
     session_id: str | None = Query(default=None, alias="session"),
@@ -186,7 +186,7 @@ async def refusals_list(
         "a lookback window. `days` defaults to 7 (max 365)."
     ),
 )
-# ID: 6b0c2d8e-9f1a-4b3c-4d5e-6f7a8b9c0db6
+# ID: 128690c2-550d-4615-96bc-37048296c035
 async def refusals_stats(
     days: int = Query(default=7, ge=1, le=365),
 ) -> dict:
@@ -225,7 +225,7 @@ async def analysis_bridges(
         "finding enrichment."
     ),
 )
-# ID: 7c1d3e9f-0a2b-4c4d-5e6f-7a8b9c0d1ec7
+# ID: e7457ab4-e2d4-4400-91b6-4e9d17a3f8a7
 async def analysis_clusters(
     limit: int = Query(default=25, ge=1, le=200),
 ) -> dict:
@@ -242,7 +242,7 @@ async def analysis_clusters(
         "candidates across the codebase."
     ),
 )
-# ID: 8d2e4f0a-1b3c-4d5e-6f7a-8b9c0d1e2fd8
+# ID: 5231d192-99e4-4b91-9d70-cfd3926e7031
 async def analysis_duplicates(
     request: Request,
     threshold: float = Query(default=0.85, ge=0.0, le=1.0),
@@ -261,7 +261,7 @@ async def analysis_duplicates(
         "than symbol pair similarity. `limit` defaults to 25 (max 200)."
     ),
 )
-# ID: 9e3f5a1b-2c4d-4e6f-7a8b-9c0d1e2f3ae9
+# ID: 419495cb-a5f2-482b-aa25-375dcf729f67
 async def analysis_common_knowledge(
     limit: int = Query(default=25, ge=1, le=200),
 ) -> dict:

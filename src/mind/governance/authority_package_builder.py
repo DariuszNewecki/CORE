@@ -402,7 +402,7 @@ class AuthorityPackageBuilder:
 
         return contradictions
 
-    # ID: c9d0e1f2-a3b4-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: cd3f0334-aaec-4b4e-82f7-57cb3c2b2d34
     async def _extract_assumptions(
         self, task_structure: TaskStructure, matched_policies: list[PolicyMatch]
     ) -> list[Assumption]:
@@ -437,7 +437,7 @@ class AuthorityPackageBuilder:
 
         return assumptions
 
-    # ID: d0e1f2a3-b4c5-6d7e-8f9a-0b1c2d3e4f5a
+    # ID: a9d45cf7-eb09-4d40-ac21-0bdcb54a820c
     def _extract_constraints(self, matched_policies: list[PolicyMatch]) -> list[str]:
         """
         Extract hard constraints from matched policies.
@@ -478,7 +478,7 @@ class AuthorityPackageBuilder:
 
         return list(set(constraints))  # Deduplicate
 
-    # ID: e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b
+    # ID: 643ffa8a-8177-4d5b-b012-9d0f1ecda768
     async def confirm_authority_package(
         self, package: AuthorityPackage, user_approval: bool
     ) -> AuthorityPackage:

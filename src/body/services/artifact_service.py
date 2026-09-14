@@ -110,7 +110,7 @@ class ArtifactService:
             )
             await session.commit()
 
-    # ID: c3d4e5f6-a7b8-9012-cdef-012345678901
+    # ID: a100ab19-3ee9-4beb-a61b-19bea218a57c
     async def count_pending_artifacts(self) -> int:
         """
         Count repo_artifacts with chunk_count = 0 (unembedded, not permanently skipped).

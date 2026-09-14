@@ -89,7 +89,7 @@ class SlowCallbackBlackboardHandler(logging.Handler):
         super().__init__()
         self._queue = sample_queue
 
-    # ID: a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: 4a5aaf38-5341-4c7f-9444-ab9539a67adc
     def emit(self, record: logging.LogRecord) -> None:
         try:
             # The slow-callback warning logs with `record.args = (handle, duration)`
@@ -132,7 +132,7 @@ class SlowCallbackBlackboardHandler(logging.Handler):
             pass
 
 
-# ID: c0d1e2f3-a4b5-c6d7-e8f9-0a1b2c3d4e5f
+# ID: 95fd664f-fbfb-4f32-a613-bbbccb9c62e0
 def make_sample_queue() -> asyncio.Queue[dict[str, Any]]:
     """Construct the bounded queue the handler pushes into.
 
@@ -143,7 +143,7 @@ def make_sample_queue() -> asyncio.Queue[dict[str, Any]]:
     return asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
 
 
-# ID: d1e2f3a4-b5c6-d7e8-f9a0-b1c2d3e4f5a6
+# ID: e3ef8563-8d25-41e4-9761-ed25d010f149
 async def drain_loop_hold_samples(
     sample_queue: asyncio.Queue[dict[str, Any]],
     workers_by_stem: dict[str, Worker],

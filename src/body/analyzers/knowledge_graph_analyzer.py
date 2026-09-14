@@ -25,7 +25,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: e9b2c3d4-f5a6-7b8c-9d0e-1f2a3b4c5d6e
+# ID: d375cb24-d1b6-477d-b3b2-71fa8fa5d344
 class KnowledgeGraphAnalyzer(BaseAnalyzer):
     """
     Standardized component for building the Knowledge Graph.

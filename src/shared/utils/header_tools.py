@@ -126,7 +126,7 @@ class _HeaderTools:
         return components
 
     @staticmethod
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    # ID: 2825aa76-457b-4beb-9517-757149c68c04
     def has_valid_header(content: str) -> bool:
         """Return True if content begins with a # src/... location comment."""
         return _HeaderTools.parse(content).location is not None

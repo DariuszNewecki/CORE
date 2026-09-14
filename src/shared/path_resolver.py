@@ -212,36 +212,36 @@ class PathResolver:
         return self.workflows_dir / "morgue"
 
     @property
-    # ID: c3d4e5f6-a7b8-9012-cdef-111111111111
+    # ID: 5c680e81-7027-4d4b-b6b2-57b1769c53c2
     def prompts_dir(self) -> Path:
         return self._repo_root.joinpath(*self._DEFAULT_PROMPTS_SUBDIR)
 
     @property
-    # ID: 4a1b2c3d-5e6f-7890-abcd-ef1234567890
+    # ID: a948fe7e-3ee9-493d-bc03-5917669eaea6
     def tmp_dir(self) -> Path:
         """Temporary scratch space for in-process work (var/tmp/)."""
         return self._repo_root.joinpath(*self._DEFAULT_TMP_SUBDIR)
 
     @property
-    # ID: 5b2c3d4e-6f70-8901-bcde-f12345678901
+    # ID: 41076e0d-43b8-4caf-b1e2-8d3732a5cd6b
     def mind_dir(self) -> Path:
         """Root of the mind knowledge store (var/mind/)."""
         return self._repo_root.joinpath(*self._DEFAULT_MIND_SUBDIR)
 
     @property
-    # ID: 6c3d4e5f-7081-9012-cdef-012345678902
+    # ID: 5cbbcf85-f351-45b5-a1c8-a6eb57acb1d3
     def rollbacks_dir(self) -> Path:
         """Directory for rollback snapshots (var/mind/rollbacks/)."""
         return self._repo_root.joinpath(*self._DEFAULT_ROLLBACKS_SUBDIR)
 
     @property
-    # ID: 7d4e5f60-8192-0123-def0-123456789013
+    # ID: f363f066-2a97-4e0e-83fe-32acf8f3fd71
     def run_dir(self) -> Path:
         """Runtime PID and socket files (var/run/)."""
         return self._repo_root.joinpath(*self._DEFAULT_RUN_SUBDIR)
 
     @property
-    # ID: 8e5f6071-9203-1234-ef01-234567890124
+    # ID: e21d9c09-67a8-4b91-9867-99eb6b39b3aa
     def drafts_dir(self) -> Path:
         """Staging area for draft artifacts (var/drafts/)."""
         return self._repo_root.joinpath(*self._DEFAULT_DRAFTS_SUBDIR)
@@ -253,7 +253,7 @@ class PathResolver:
     # =========================================================================
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000001
+    # ID: 90d03e4d-9ce4-4398-a3c2-d496688408d3
     def governance_config_path(self) -> Path:
         """
         Path to the constitutional governance paths & thresholds config.
@@ -263,7 +263,7 @@ class PathResolver:
         return self._intent_root / "enforcement" / "config" / "governance_paths.yaml"
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000003
+    # ID: 4d987ad9-dcfd-4760-a07e-e3409cf72d92
     def remediation_map_path(self) -> Path:
         """
         Canonical path to the autonomous remediation mapping.
@@ -275,7 +275,7 @@ class PathResolver:
         )
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000004
+    # ID: c43cd1c6-0595-4544-bc45-bd6bd23d18d7
     def audit_findings_path(self) -> Path:
         """
         Canonical path to the raw audit findings JSON.
@@ -285,7 +285,7 @@ class PathResolver:
         return self.reports_dir / "audit_findings.json"
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000005
+    # ID: 960783b8-4c11-4b60-b9cf-3b2fd113b7f9
     def audit_findings_processed_path(self) -> Path:
         """
         Canonical path to the processed audit findings JSON.
@@ -295,7 +295,7 @@ class PathResolver:
         return self.reports_dir / "audit_findings.processed.json"
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000006
+    # ID: 00b90847-450b-4855-98fe-9e6093972cd3
     def remediation_evidence_dir(self) -> Path:
         """
         Canonical directory for remediation evidence artifacts.
@@ -304,7 +304,7 @@ class PathResolver:
         return self.reports_dir / "remediation"
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000007
+    # ID: 52627c1b-ad0f-40e3-9603-3a5097be98e4
     def workers_dir(self) -> Path:
         """
         Canonical path to .intent/workers/ declarations.

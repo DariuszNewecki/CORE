@@ -686,7 +686,7 @@ def _load_candidate_cache(
         return None
 
 
-# ID: 5a1b6c3d-8e2f-4a9b-c7d4-0e3f2a1b5c8d
+# ID: 685add94-41d1-4709-bd7f-4312da8d115d
 def _save_candidate_cache(
     file_handler: Any, cache_key: str, candidates: list[dict[str, Any]]
 ) -> None:

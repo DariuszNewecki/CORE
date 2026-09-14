@@ -31,7 +31,7 @@ logger = getLogger(__name__)
 _CFG_REPO = load_operational_config().repositories
 
 
-# ID: 8d9e0f1a-2b3c-4d5e-6f7a-8b9c0d1e2f3a
+# ID: c853d8f7-0c17-4a6e-a529-ce7f031307b6
 class DecisionTraceRepository:
     """
     Repository for decision trace database operations.
@@ -97,7 +97,7 @@ class DecisionTraceRepository:
         )
         return trace
 
-    # ID: 0f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c
+    # ID: d3291933-a41b-4d64-8572-1c9193c2a447
     async def get_by_session_id(self, session_id: str) -> DecisionTrace | None:
         """
         Retrieve decision trace by session ID.

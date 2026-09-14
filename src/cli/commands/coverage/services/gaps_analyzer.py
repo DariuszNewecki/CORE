@@ -24,7 +24,7 @@ _CFG = load_operational_config().coverage
 _SORTED_LOWEST_LIMIT = 20
 
 
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 90b8b8cb-885a-4257-bbe9-4305c1d2826f
 class GapsAnalyzer:
     """Analyzes coverage data to identify gaps and priorities."""
 

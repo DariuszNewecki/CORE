@@ -135,7 +135,7 @@ class ActionRegistry:
         # Reverse index: check_id -> action_id for O(1) remediation lookup
         self._remediates_index: dict[str, str] = {}
 
-    # ID: 2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d
+    # ID: d2609bd8-a2be-443a-9414-461d13ea67f4
     def register(self, definition: ActionDefinition) -> None:
         """Register an action definition."""
         if definition.action_id in self._actions:
@@ -155,12 +155,12 @@ class ActionRegistry:
             else:
                 self._remediates_index[check_id] = definition.action_id
 
-    # ID: 3b4c5d6e-7f8a-9b0c-1d2e-3f4a5b6c7d8e
+    # ID: 3e9fb2e2-4aab-42d1-8488-003c139a8e7b
     def get(self, action_id: str) -> ActionDefinition | None:
         """Get action definition by ID."""
         return self._actions.get(action_id)
 
-    # ID: 8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d
+    # ID: 581f471f-e54e-480a-a899-ef045d17766b
     def get_by_check_id(self, check_id: str) -> ActionDefinition | None:
         """
         Look up the action that remediates the given audit check_id.
@@ -175,12 +175,12 @@ class ActionRegistry:
             return None
         return self._actions.get(action_id)
 
-    # ID: 4c5d6e7f-8a9b-0c1d-2e3f-4a5b6c7d8e9f
+    # ID: ca528fc8-59d1-4109-a70a-2c5d643efbd8
     def get_by_category(self, category: ActionCategory) -> list[ActionDefinition]:
         """Get all actions in a category."""
         return [a for a in self._actions.values() if a.category == category]
 
-    # ID: 5d6e7f8a-9b0c-1d2e-3f4a-5b6c7d8e9f0a
+    # ID: 618bc1a6-2cb7-4d55-9524-5fb383022618
     def list_all(self) -> list[ActionDefinition]:
         """List all registered actions."""
         return list(self._actions.values())
@@ -291,7 +291,7 @@ def _validate_action_signature(func: Callable[..., Awaitable[ActionResult]]) -> 
     )
 
 
-# ID: 6e7f8a9b-0c1d-2e3f-4a5b-6c7d8e9f0a1b
+# ID: b5f0f6a2-421e-4199-a385-c2a6d88701c5
 def register_action(
     action_id: str,
     description: str,

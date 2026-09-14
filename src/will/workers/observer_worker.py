@@ -57,7 +57,7 @@ class ObserverWorker(ScheduledWorker):
     # Single observation cycle
     # -------------------------------------------------------------------------
 
-    # ID: c9d5e4f3-b6a7-4f8e-0c1d-2e3f4a5b6c7d
+    # ID: 3669c8e1-b1ff-4b02-8e31-b18911e9a962
     async def run(self) -> None:
         """
         Execute one observation cycle:
@@ -90,7 +90,7 @@ class ObserverWorker(ScheduledWorker):
     # State collection — pure DB reads
     # -------------------------------------------------------------------------
 
-    # ID: d0e6f5a4-c7b8-4a9f-1d2e-3f4a5b6c7d8e
+    # ID: e24c375c-f1bc-4470-acee-c16038b16cbd
     async def _collect_state(self) -> dict[str, Any]:
         """Read system state counts from the DB. No LLM. No side effects."""
         from body.services.service_registry import service_registry
@@ -102,7 +102,7 @@ class ObserverWorker(ScheduledWorker):
     # Health log write
     # -------------------------------------------------------------------------
 
-    # ID: e1f7a6b5-d8c9-4b0f-2e3f-4a5b6c7d8e9f
+    # ID: 545ff1ca-5ff5-4e7c-9e71-e201e755b502
     async def _write_health_log(self, state: dict[str, Any]) -> None:
         """Append one row to core.system_health_log. Never updates existing rows."""
         from body.services.service_registry import service_registry

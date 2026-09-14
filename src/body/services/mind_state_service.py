@@ -105,7 +105,7 @@ class MindStateService(SessionAttachedService):
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
-    # ID: d4e5f678-90ab-cdef-1234-567890abcdef
+    # ID: 7b2c4cfe-10a0-4aff-aa8e-93e95a171ec9
     async def get_config_service(self) -> ConfigService:
         """
         Create and return a ConfigService instance for configuration access.
@@ -115,7 +115,7 @@ class MindStateService(SessionAttachedService):
         config_service = await ConfigService.create(session)
         return config_service
 
-    # ID: e5f67890-abcd-ef12-3456-7890abcdef12
+    # ID: 666a5ccb-3958-47ab-b3de-f1aabab1c9d2
     async def load_mind_state(
         self,
     ) -> tuple[list[LlmResource], list[CognitiveRole], ConfigService]:

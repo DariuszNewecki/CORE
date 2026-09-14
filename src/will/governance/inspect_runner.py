@@ -158,7 +158,7 @@ async def get_drift_status(context: CoreContext, *, scope: str = "all") -> dict:
 # ---------- /decisions ----------------------------------------------------
 
 
-# ID: 3c4d5e6f-7a8b-4c9d-0e1f-2a3b4c5d6e7f
+# ID: 11fbfaf7-63ca-48d7-af3e-a3327139c1f2
 def _trace_to_dict(trace: Any) -> dict:
     """Serialise a DecisionTrace ORM row into a JSON-safe dict."""
     return {
@@ -175,7 +175,7 @@ def _trace_to_dict(trace: Any) -> dict:
     }
 
 
-# ID: 4d5e6f7a-8b9c-4d0e-1f2a-3b4c5d6e7f80
+# ID: 2d0b17eb-1c59-4a9f-afa7-d82ff6c9f037
 async def get_decisions(
     *,
     session_id: str | None = None,
@@ -215,7 +215,7 @@ async def get_decisions(
         }
 
 
-# ID: 5e6f7a8b-9c0d-4e1f-2a3b-4c5d6e7f8091
+# ID: 237e4592-f2d1-4ea5-8fa3-2673ceaa0c58
 async def get_decisions_patterns(*, days: int = 7) -> dict:
     """Return classification stats grouped by pattern."""
     async with DecisionTraceRepository.open() as repo:
@@ -226,7 +226,7 @@ async def get_decisions_patterns(*, days: int = 7) -> dict:
 # ---------- /refusals -----------------------------------------------------
 
 
-# ID: 6f7a8b9c-0d1e-4f2a-3b4c-5d6e7f8091a2
+# ID: b23ea4f6-fd42-490f-b496-4bf98809f160
 def _refusal_to_dict(record: Any) -> dict:
     """Serialise a RefusalRecord ORM row into a JSON-safe dict."""
     return {
@@ -246,7 +246,7 @@ def _refusal_to_dict(record: Any) -> dict:
     }
 
 
-# ID: 7a8b9c0d-1e2f-4a3b-4c5d-6e7f8091a2b3
+# ID: 31058e7f-bd1f-4752-9dbe-cea90c87aecc
 async def get_refusals(
     *,
     refusal_type: str | None = None,
@@ -267,7 +267,7 @@ async def get_refusals(
     }
 
 
-# ID: 8b9c0d1e-2f3a-4b4c-5d6e-7f8091a2b3c4
+# ID: deba1bdb-e16d-4996-8f1d-906c9da0c6ce
 async def get_refusals_stats(*, days: int = 7) -> dict:
     """Return refusal statistics by type across the lookback window."""
     repo = RefusalRepository()
@@ -279,7 +279,7 @@ async def get_refusals_stats(*, days: int = 7) -> dict:
 # ---------- /analysis -----------------------------------------------------
 
 
-# ID: 9c0d1e2f-3a4b-4c5d-6e7f-8091a2b3c4d5
+# ID: 9b2d1276-5361-4fc9-a7b6-d266674afc8c
 async def get_analysis_clusters(*, limit: int = 25) -> dict:
     """Return semantic capability clusters.
 
@@ -300,7 +300,7 @@ async def get_analysis_clusters(*, limit: int = 25) -> dict:
     return {"available": True, "count": len(clusters), "clusters": clusters}
 
 
-# ID: 0d1e2f3a-4b5c-4d6e-7f80-91a2b3c4d5e6
+# ID: cfbef0bb-2cba-44be-a771-d861b36f9132
 async def get_analysis_duplicates(
     context: CoreContext, *, threshold: float = 0.85
 ) -> dict:

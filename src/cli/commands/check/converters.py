@@ -20,7 +20,7 @@ from shared.path_resolver import PathResolver
 from shared.path_utils import get_repo_root
 
 
-# ID: a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d
+# ID: f9bbf525-5d2f-4c77-aba6-5b30e81de71b
 def parse_min_severity(severity: str) -> AuditSeverity:
     """Parse severity string to AuditSeverity enum with validation."""
     try:
@@ -32,7 +32,7 @@ def parse_min_severity(severity: str) -> AuditSeverity:
         ) from exc
 
 
-# ID: b8c7d6e5-f4a3-2b1c-0d9e-8f7a6b5c4d3e
+# ID: cfb45511-cfe2-42c6-994e-6a618dd16104
 def severity_from_string(value: str | None) -> AuditSeverity:
     """Convert lowercase string severity to enum, defaulting to BLOCK."""
     if not value:
@@ -44,7 +44,7 @@ def severity_from_string(value: str | None) -> AuditSeverity:
         return AuditSeverity.BLOCK
 
 
-# ID: c7d6e5f4-a3b2-1c0d-9e8f-7a6b5c4d3e2f
+# ID: 97ef6873-82f3-4eb8-8bd7-b53c2130f067
 def convert_engine_findings_to_audit_findings(
     *,
     file_path: Path,
@@ -85,7 +85,7 @@ def convert_engine_findings_to_audit_findings(
     return converted
 
 
-# ID: d6e5f4a3-b2c1-0d9e-8f7a-6b5c4d3e2f1a
+# ID: 7a63d7bd-3365-46cb-8f4f-bd9410a7e9df
 def convert_finding_dicts_to_models(findings_dicts: list[dict]) -> list[AuditFinding]:
     """
     Convert finding dictionaries to AuditFinding model objects.
@@ -104,7 +104,7 @@ def convert_finding_dicts_to_models(findings_dicts: list[dict]) -> list[AuditFin
     return findings
 
 
-# ID: e5f4a3b2-c1d0-9e8f-7a6b-5c4d3e2f1a0b
+# ID: 04480919-8454-46d6-9202-bea018ac0563
 def read_legacy_executed_ids_from_evidence() -> set[str]:
     """
     Read legacy auditor evidence to learn which checks/rules executed.

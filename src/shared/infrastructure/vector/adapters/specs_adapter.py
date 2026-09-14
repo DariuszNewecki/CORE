@@ -103,7 +103,7 @@ class SpecsAdapter:
         logger.info("Generated %s item(s) from %s spec file(s)", len(items), len(files))
         return items
 
-    # ID: d0a6f4c2-5eb7-4b8d-cf4a-9051bd7ec326
+    # ID: a53fd93d-6d82-4557-bf79-7842fee62caa
     def _build_items_for_file(
         self, doc_id: str, rel_path: Path, text: str
     ) -> list[VectorizableItem]:
@@ -134,7 +134,7 @@ class SpecsAdapter:
 
         return items
 
-    # ID: e1b705d3-6fc8-4c9e-d05b-a162ce8fd437
+    # ID: 53fc3360-97be-4771-9b53-1f703f392a41
     def _chunk_markdown(
         self, text: str, filename_section: str
     ) -> list[tuple[str, str]]:

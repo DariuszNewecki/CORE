@@ -39,7 +39,7 @@ logger = getLogger(__name__)
 _FALLBACK_MIN_CONFIDENCE: float = 0.80
 
 
-# ID: e1f2a3b4-c5d6-7890-efab-cd0000000001
+# ID: 67cbf053-dc90-430d-9963-2fc312084417
 def _load_governance_config(path_resolver: PathResolver) -> dict[str, Any]:
     """
     Load governance paths & thresholds from .intent/enforcement/config/governance_paths.yaml.
@@ -154,7 +154,7 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
     return validated
 
 
-# ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+# ID: b4269730-f061-4c47-9b4a-10df7b2ba147
 class AuditAnalyzer:
     """
     Analyzes audit findings to identify auto-fixable violations.
@@ -206,7 +206,7 @@ class AuditAnalyzer:
             self._remediation_map = _load_remediation_map(self._path_resolver)
         return self._remediation_map
 
-    # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
+    # ID: 44f474bf-9bb0-43a8-a990-4686afaf279e
     def analyze_findings(self, findings_path: Path | None = None) -> dict[str, Any]:
         """
         Analyze audit findings to identify auto-fixable violations.
@@ -326,7 +326,7 @@ class AuditAnalyzer:
             "summary_by_action": self._summarize_by_action(fixable_by_action),
         }
 
-    # ID: e5f6a7b8-c9d0-1234-ef12-345678901234
+    # ID: 41e65db5-42e4-4117-a2b5-a67642a56c34
     def _summarize_by_action(
         self, fixable_by_action: dict[str, list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:

@@ -29,7 +29,7 @@ logger = getLogger(__name__)
 __all__ = ["SymbolQueryService"]
 
 
-# ID: f6789012-3456-7890-abcd-ef1234567890
+# ID: 10ec2f85-3a77-4685-91ef-bfaf3d742659
 class SymbolQueryService:
     """
     Body service for symbol search and lookup operations.
@@ -54,7 +54,7 @@ class SymbolQueryService:
         """
         self.session = session
 
-    # ID: 01234567-89ab-cdef-0123-456789abcdef
+    # ID: a441f595-4e07-4b4d-b982-48b69793e171
     async def search_symbols(
         self, query: str, limit: int | None = None
     ) -> list[Symbol]:
@@ -94,7 +94,7 @@ class SymbolQueryService:
         logger.debug("Symbol search for '%s' returned %d results", query, len(symbols))
         return symbols
 
-    # ID: 12345678-9abc-def0-1234-56789abcdef0
+    # ID: 03e351a8-66df-45d0-9936-fce45953242c
     async def find_by_name(self, name: str) -> Symbol | None:
         """
         Find symbol by exact name match.
@@ -124,7 +124,7 @@ class SymbolQueryService:
 
         return symbol
 
-    # ID: 23456789-abcd-ef01-2345-6789abcdef01
+    # ID: ac829b64-18f1-4ff1-9183-aa87af097442
     async def find_by_module(self, module: str) -> list[Symbol]:
         """
         Find all symbols in a specific module.
@@ -150,7 +150,7 @@ class SymbolQueryService:
         logger.debug("Found %d symbols in module %s", len(symbols), module)
         return symbols
 
-    # ID: 3456789a-bcde-f012-3456-789abcdef012
+    # ID: 0046c83c-7690-476b-b10f-1b26b6d1ca54
     async def find_by_qualname(self, qualname: str) -> Symbol | None:
         """
         Find symbol by fully qualified name.
@@ -182,7 +182,7 @@ class SymbolQueryService:
 
         return symbol
 
-    # ID: 456789ab-cdef-0123-4567-89abcdef0123
+    # ID: 829bbcf8-7303-4b69-892c-8e2765873217
     async def get_symbols_by_file(self, file_path: str) -> list[Symbol]:
         """
         Get all symbols defined in a specific file.

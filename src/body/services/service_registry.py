@@ -157,7 +157,7 @@ class ServiceRegistry:
         return bootstrap_registry.get_session()
 
     @classmethod
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234560001
+    # ID: 32212d6d-46ae-40e5-8fef-73e8be91fbf1
     def reset(cls) -> None:
         """
         Clear all cached service instances and init flags.
@@ -297,7 +297,7 @@ class ServiceRegistry:
 
         return self._instances["cognitive_service"]
 
-    # ID: 3f7a1b2c-d4e5-6f78-90ab-cdef01234567
+    # ID: c24c44dc-b264-43c3-8685-2d1d9850879a
     def get_file_handler(self) -> Any:
         """Return a FileHandler rooted at the repo path. Belongs in the Body layer."""
         if "file_handler" not in self._instances:

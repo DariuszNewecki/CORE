@@ -42,7 +42,7 @@ class RepoEmbedderWorker(ScheduledWorker):
         if self._cognitive_service is None:
             self._cognitive_service = await service_registry.get_cognitive_service()
 
-    # ID: b3c4d5e6-f7a8-9b0c-2345-678901abcdef
+    # ID: 7bea205f-d96f-4552-9dab-f197d898e292
     async def run(self) -> None:
         """Embed a batch of unprocessed repo artifacts."""
         await self.post_heartbeat()

@@ -123,7 +123,7 @@ class CapabilityChecks:
         return findings
 
 
-# ID: c3d4e5f6-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: eded1da1-f5ce-4c7e-b47c-4c6147618b99
 def _extract_public_symbols(tree: ast.AST) -> list[tuple[str, int]]:
     """
     Extract public symbols (functions/classes) from AST.
@@ -151,7 +151,7 @@ def _extract_public_symbols(tree: ast.AST) -> list[tuple[str, int]]:
     return symbols
 
 
-# ID: d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 92d7fa2e-e647-4b93-bd44-a7e768f9e750
 def _find_symbol_in_kg(
     symbols_data: dict,
     symbol_name: str,

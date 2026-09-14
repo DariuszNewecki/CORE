@@ -31,7 +31,7 @@ from shared.workers.scheduled_worker import ScheduledWorker
 logger = getLogger(__name__)
 
 
-# ID: f1a2b3c4-d5e6-7890-abcd-ef1234567891
+# ID: 25405909-9e2e-405a-b636-53a75283be38
 class RepoCrawlerWorker(ScheduledWorker):
     """
     Sensing worker. Delegates crawl orchestration to CrawlService.run_crawl()
@@ -47,7 +47,7 @@ class RepoCrawlerWorker(ScheduledWorker):
         self._cognitive_service = cognitive_service
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678903
+    # ID: f931507a-8f3a-49d9-96aa-beed85728f9d
     async def run(self) -> None:
         """Crawl repository — delegate to CrawlService.run_crawl."""
         await self.post_heartbeat()

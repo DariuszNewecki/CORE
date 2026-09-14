@@ -44,12 +44,12 @@ class FileService:
         self._file_handler = FileHandler(str(self.repo_path))
         logger.debug("FileService initialized for %s", self.repo_path)
 
-    # ID: b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e
+    # ID: 2e4a3653-7c9b-47e1-bd87-818468bfee40
     def write(self, rel_path: str, content: str | bytes) -> FileOpResult:
         """Single-channel write. Delegates to `FileHandler.write` (ADR-097 D4)."""
         return self._file_handler.write(rel_path, content)
 
-    # ID: a2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d
+    # ID: 437ab543-980e-4315-8ae9-c6d39c99d376
     def write_json(self, rel_path: str, payload: Any) -> FileOpResult:
         """Serialize `payload` with `indent=2` and write through `write`.
 
@@ -59,10 +59,10 @@ class FileService:
         """
         return self._file_handler.write(rel_path, json.dumps(payload, indent=2))
 
-    # ID: d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a
+    # ID: d05b941e-2c2a-4f0c-849d-80206f4ec140
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
         return self._file_handler.ensure_dir(rel_dir)
 
-    # ID: e4f5a6b7-c8d9-0e1f-2a3b-4c5d6e7f8a9b
+    # ID: c746644c-35d6-4b59-9caa-1c921e8a6b07
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         return self._file_handler.add_pending_write(prompt, suggested_path, code)

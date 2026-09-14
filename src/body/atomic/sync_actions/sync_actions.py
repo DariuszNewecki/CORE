@@ -68,7 +68,7 @@ def _load_max_embedding_passes(repo_root) -> int:
     impact=ActionImpact.WRITE_METADATA,
     policies=["atomic_actions"],
 )
-# ID: f6789012-3456-789a-bcde-f0123456789a
+# ID: 5f5f9351-7a09-4d21-87b9-8ca3b3f2a796
 async def action_sync_database(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:

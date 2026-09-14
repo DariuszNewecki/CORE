@@ -205,7 +205,7 @@ class GlobGateEngine(BaseEngine):
             engine_id=self.engine_id,
         )
 
-    # ID: 3f4a5b6c-7d8e-9f0a-1b2c-3d4e5f6a7b8c
+    # ID: 2520615e-2be0-434d-a8fa-efe8a3d46464
     def _match(self, path: str, pattern: str) -> bool:
         """
         Implements robust glob matching including recursive (**) support.

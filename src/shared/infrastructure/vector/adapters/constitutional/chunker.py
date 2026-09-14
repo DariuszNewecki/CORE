@@ -21,7 +21,7 @@ from shared.infrastructure.vector.adapters.constitutional.utils import safe_str
 from shared.processors.yaml_processor import strict_yaml_processor
 
 
-# ID: 8a7b6c5d-4e3f-2a1b-9c8d-7e6f5a4b3c2d
+# ID: 894777d3-b226-457b-9800-e3f4d804d4c1
 def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Chunk a constitutional document into semantic sections.
@@ -86,7 +86,7 @@ def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
     return chunks
 
 
-# ID: 9b8a7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
+# ID: b8f2c3d9-a333-4f19-86a2-7113af445e20
 def _chunk_requirements(requirements: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Chunk requirements section.

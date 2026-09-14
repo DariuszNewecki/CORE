@@ -52,7 +52,7 @@ class AuthorLlmResourceRequest(BaseModel):
 
 
 @router.post("/author", response_model=LlmResourceAuthoringResponse)
-# ID: 5b9e3a7c-1f4d-4b8e-c2d6-0f4b8d2e6a0c
+# ID: bb7691ac-7de0-4375-9960-f02c3c11cbf8
 async def author_llm_resource(
     request: Request,
     payload: AuthorLlmResourceRequest = Body(...),

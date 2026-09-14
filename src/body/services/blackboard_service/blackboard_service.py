@@ -148,7 +148,7 @@ class BlackboardService:
                 )
                 return result.rowcount or 0
 
-    # ID: 3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a
+    # ID: a0455583-71d5-4e38-90e9-71780bb0b05e
     async def resolve_entries(self, entry_ids: list[str]) -> int:
         """
         Mark each entry in *entry_ids* as resolved, provided it is still in
@@ -201,7 +201,7 @@ class BlackboardService:
                     resolved_count += result.rowcount
         return resolved_count
 
-    # ID: a7b2c8d3-e4f5-6789-abcd-ef0123456789
+    # ID: e26d6375-97b0-44a5-bbf0-3db9380bef9a
     async def release_claimed_entries(self, entry_ids: list[str]) -> int:
         """
         Reset claimed entries back to open status and clear claimed_by.
@@ -1101,7 +1101,7 @@ class BlackboardService:
                 )
                 return result.rowcount or 0
 
-    # ID: 8a5f3d6c-2b9e-4f17-c0d8-9e4a1b6f3c8e
+    # ID: ba69fdc1-21ff-4619-bf6b-5807b5881fe1
     async def sweep_delegate_open_findings(
         self,
         subjects: tuple[str, ...],

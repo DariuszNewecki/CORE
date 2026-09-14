@@ -82,7 +82,7 @@ def _rules_of(findings: list[dict[str, Any]]) -> list[str]:
     )
 
 
-# ID: b4c5d6e7-f8a9-0123-bcde-f12345678904
+# ID: 3dc4b352-a788-40d6-8aed-92e9cd031312
 class ViolationRemediatorWorker(Worker):
     """
     Acting worker that converts Blackboard violation findings into proposals.
@@ -116,7 +116,7 @@ class ViolationRemediatorWorker(Worker):
         path_resolver = PathResolver(self._core_context.git_service.repo_path)
         return _load_remediation_map(path_resolver)
 
-    # ID: c5d6e7f8-a9b0-1234-cdef-123456789014
+    # ID: 618ba5d7-987b-440c-8a62-34bcbfa1f1be
     async def run(self) -> None:
         """One audit-loop cycle: load → group → dedup → propose → transition → report."""
         projection = load_vocabulary_projection()
@@ -375,7 +375,7 @@ class ViolationRemediatorWorker(Worker):
 
         return await service_registry.get_blackboard_service()
 
-    # ID: d6e7f8a9-b0c1-2345-defa-234567890125
+    # ID: 59df3920-7cd9-4109-9ab1-41bf681eaa1b
     async def _load_open_findings(self) -> list[dict[str, Any]]:
         from shared.infrastructure.intent.audit_namespaces import (
             audit_violation_like_patterns,
@@ -394,7 +394,7 @@ class ViolationRemediatorWorker(Worker):
     ) -> dict[tuple[str, str | None], str]:
         return await get_active_proposal_id_by_action_file()
 
-    # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
+    # ID: 378a92a2-6c09-4c58-a798-6e0cc5587a08
     async def _create_proposal(
         self, ref_id: str, ref_kind: str, findings: list[dict[str, Any]]
     ) -> MappedSubmissionResult | None:
@@ -402,17 +402,17 @@ class ViolationRemediatorWorker(Worker):
             ref_id, ref_kind, findings, claimed_by=self._worker_uuid
         )
 
-    # ID: a9b0c1d2-e3f4-5678-abcd-567890123458
+    # ID: 8389bdec-9236-4c21-acf2-71d89c14f052
     async def _resolve_entries(self, entry_ids: list[str], proposal_id: str) -> int:
         return await resolve_entries(
             await self._blackboard_service(), entry_ids, proposal_id
         )
 
-    # ID: d2e3f4a5-b6c7-8901-defa-890123456781
+    # ID: 919e30eb-20bb-4dfc-9b98-70b5a4ed7fa8
     async def _release_entries(self, entry_ids: list[str]) -> int:
         return await release_entries(await self._blackboard_service(), entry_ids)
 
-    # ID: b0c1d2e3-f4a5-6789-bcde-678901234569
+    # ID: 508a6c03-fe1a-4f72-8be1-a4b68e65d67a
     async def _release_unmappable(self, findings: list[dict[str, Any]]) -> int:
         return await release_unmappable(await self._blackboard_service(), findings)
 
@@ -429,7 +429,7 @@ class ViolationRemediatorWorker(Worker):
             ref_id=ref_id, ref_kind=ref_kind, file_path=file_path, config=config
         )
 
-    # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
+    # ID: 9c6f8976-e169-47a1-91f2-c3692c9f5139
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
         return await mark_delegated(await self._blackboard_service(), findings)
 

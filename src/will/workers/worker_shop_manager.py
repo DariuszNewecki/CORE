@@ -69,7 +69,7 @@ def _sanitize(value: str) -> str:
     return _NON_ASCII_RE.sub("?", value)
 
 
-# ID: c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a
+# ID: 11d01111-ccfa-4bb4-98ec-63e447b4052a
 class WorkerShopManager(ScheduledWorker):
     """
     Governance worker. Reads worker_registry, computes per-worker liveness
@@ -98,7 +98,7 @@ class WorkerShopManager(ScheduledWorker):
     # Single audit cycle
     # -------------------------------------------------------------------------
 
-    # ID: e5a6b7c8-d9e0-4f1a-2b3c-4d5e6f7a8b9c
+    # ID: 1e46f7e9-42b4-4278-84d1-38ad38336a71
     async def run(self) -> None:
         """
         Execute one liveness audit cycle:

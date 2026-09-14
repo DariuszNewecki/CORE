@@ -215,7 +215,7 @@ def create_baseline(
     return baseline.model_dump(mode="json")
 
 
-# ID: 0a7c4b2d-6f1e-4b8a-c5d6-9e0f1a2b3c45
+# ID: d5a9338c-ddd5-4f52-b228-466378ac4da4
 def list_baselines(context: CoreContext) -> dict:
     """List all named baselines (newest first)."""
     repo_root = context.git_service.repo_path
@@ -230,7 +230,7 @@ def list_baselines(context: CoreContext) -> dict:
     }
 
 
-# ID: 1b8d5c3e-7a2f-4c9b-d6e7-0f1a2b3c4d56
+# ID: f96ecf79-a992-4dae-a304-76c281edb3ce
 def get_diff(
     context: CoreContext,
     *,

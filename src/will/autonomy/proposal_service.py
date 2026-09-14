@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 _CFG_PR = load_operational_config().proposals
 
 
-# ID: 1f2e3d4c-5b6a-7890-1234-567890abcdef
+# ID: 66c8a04e-bbbe-4a73-9330-80f53e70b409
 class ProposalService:
     """
     High-level service for proposal operations.
@@ -229,7 +229,7 @@ class ProposalService:
     # Blast Radius / Scope
     # -------------------------
 
-    # ID: 3e4f5a6b-7c8d-9e0f-1a2b-3c4d5e6f7a8b
+    # ID: c545d927-83ba-4e8d-8ed2-c334ccf82003
     async def populate_scope_from_blast_radius(
         self,
         proposal: Proposal,

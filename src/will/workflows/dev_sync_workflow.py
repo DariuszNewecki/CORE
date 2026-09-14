@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b1c2d3e4-5f6a-7b8c-9d0e-1f2a3b4c5d6e
+# ID: f693c118-93f0-49df-9323-d0f616f752cc
 class DevSyncWorkflow:
     """
     Constitutional orchestration of the dev-sync workflow.
@@ -43,7 +43,7 @@ class DevSyncWorkflow:
         # The ActionExecutor is the central gateway for all changes
         self.executor = ActionExecutor(context)
 
-    # ID: c2d3e4f5-6a7b-8c9d-0e1f-2a3b4c5d6e7f
+    # ID: 88730a55-aa9a-4c00-81a9-558f39b4df7a
     async def run(self, *, write: bool = False) -> PhaseWorkflowResult:
         """Execute the complete dev-sync workflow."""
         mode = "WRITE" if write else "DRY-RUN"

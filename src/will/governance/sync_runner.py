@@ -52,7 +52,7 @@ _SYNC_TYPE_TO_ACTION_ID = {
 }
 
 
-# ID: 2c9e6d4f-8b3a-4d0c-e7f8-1a2b3c4d5e67
+# ID: a692c4a9-69d6-4740-9aba-c535837c73c8
 async def _update_sync_run_status(
     session: Any,
     run_id: UUID,
@@ -85,7 +85,7 @@ async def _update_sync_run_status(
     await session.commit()
 
 
-# ID: 3d0f7e5a-9c4b-4e1d-f8a9-2b3c4d5e6f78
+# ID: a6eb3dae-4e45-4043-9fef-b168112c120c
 async def run_and_persist_sync(
     context: CoreContext,
     session: Any,

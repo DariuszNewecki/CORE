@@ -75,7 +75,7 @@ class WorkerRegistryService:
                 for row in result.fetchall()
             ]
 
-    # ID: 7d8e9f0a-1b2c-4d5e-6f7a-8b9c0d1e2f3a
+    # ID: ae9047e5-39b6-4df4-9358-7b09647c3d63
     async def fetch_alive_workers(self, threshold_sec: int) -> list[dict[str, Any]]:
         """
         Return workers whose last_heartbeat is within the threshold.

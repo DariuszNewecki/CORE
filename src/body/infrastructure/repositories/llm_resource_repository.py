@@ -114,7 +114,7 @@ def validate_llm_resource_definition(
     return violations
 
 
-# ID: 6e0a4c8d-2b5f-4e9a-c3d7-1f5b9d3a7c0e
+# ID: 7b95d9d9-3bb1-4227-9754-6d5eaaf590c9
 class LlmResourceRepository:
     """
     Repository for core.llm_resources database operations.
@@ -129,12 +129,12 @@ class LlmResourceRepository:
 
     @classmethod
     @asynccontextmanager
-    # ID: 7f1b5d9f-3c6a-4f0b-d4e8-2a6c0e4b8d1f
+    # ID: 208a571f-5590-4701-84ba-30afe8d6e5b4
     async def open(cls) -> AsyncIterator[LlmResourceRepository]:
         async with get_session() as session:
             yield cls(session)
 
-    # ID: 8a2c6e0a-4d7b-4a1c-e5f9-3b7d1f5a9c2f
+    # ID: df5d9278-8830-4cae-a50c-f555f2ae05df
     async def get(self, name: str) -> LlmResource | None:
         """Return the row for `name`, or None if it doesn't exist."""
         result = await self._session.execute(
@@ -142,7 +142,7 @@ class LlmResourceRepository:
         )
         return result.scalar_one_or_none()
 
-    # ID: 9b3d7f1b-5e8c-4b2d-f6a0-4c8e2a6b0d3a
+    # ID: b4db96e1-8c25-4786-a3b9-01d0187433af
     async def upsert(self, definition: dict[str, Any]) -> LlmResource:
         """Validate and create-or-update a core.llm_resources row.
 

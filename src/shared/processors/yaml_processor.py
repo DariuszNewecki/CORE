@@ -16,7 +16,7 @@ import yaml
 from shared.processors.base_processor import BaseProcessor
 
 
-# ID: f9d8e7c6-b5a4-9382-7160-5e4d3c2b1a09
+# ID: 76a522c7-481a-4026-b4eb-2bd570e8cbfc
 class YAMLProcessor(BaseProcessor):
     """
     Centralized YAML processor for constitutional file operations.
@@ -42,12 +42,12 @@ class YAMLProcessor(BaseProcessor):
         except (yaml.YAMLError, TypeError):
             return False
 
-    # ID: f2a3b4c5-d6e7-8f9a-0b1c-2d3e4f5a6b7c
+    # ID: e7dadd40-923a-468a-868f-f78e0269eb25
     def _format_name(self) -> str:
         """Return format name for logging."""
         return "YAML"
 
-    # ID: a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d
+    # ID: c7ae9caa-2c9c-4a08-bf55-33b365559178
     def dump_yaml(self, data: Any) -> str:
         """
         Dump data to a JSON string.

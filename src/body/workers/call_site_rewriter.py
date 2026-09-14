@@ -68,7 +68,7 @@ _COGNITIVE_ROLES = {
 }
 
 
-# ID: e5f6a7b8-c9d0-1234-efab-567890123456
+# ID: 56014e15-f3ce-4304-84d8-ddc116d32d80
 class CallSiteRewriter(Worker):
     """
     Acting worker. Groups open prompt.artifact findings by file, rewrites
@@ -91,7 +91,7 @@ class CallSiteRewriter(Worker):
         # Initialize with externalized role - constitutional compliance
         self._cognitive_role = _COGNITIVE_ROLES["ARCHITECT"]
 
-    # ID: f6a7b8c9-d0e1-2345-fabc-678901234567
+    # ID: e4f2ee9d-790e-4855-9ea0-f8d9321a2b53
     async def run(self) -> None:
         """
         Main execution loop. Groups findings by file then processes each file

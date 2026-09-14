@@ -32,7 +32,7 @@ logger = getLogger(__name__)
 _CFG = load_operational_config().workers.capability_tagger
 
 
-# ID: e1f2a3b4-c5d6-7890-efab-cd1234567890
+# ID: dbb6240e-33b2-44a5-9fcf-b4beaa7c5e12
 class CapabilityTaggerWorker(Worker):
     """
     Sensing worker. Finds public symbols with no capability key assigned,
@@ -55,7 +55,7 @@ class CapabilityTaggerWorker(Worker):
         self._cognitive_service = cognitive_service
         self._repo_root = BootstrapRegistry.get_repo_path()
 
-    # ID: f2a3b4c5-d6e7-8901-fabc-de2345678901
+    # ID: 923396fc-cbaa-4b27-aad2-74170d678907
     async def run(self) -> None:
         """
         One tagging cycle:

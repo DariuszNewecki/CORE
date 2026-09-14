@@ -234,7 +234,7 @@ class DaemonConfig:
 
 
 @dataclass(frozen=True)
-# ID: 7e8f9a0b-1c2d-3e4f-5a6b-7c8d9e0f1a2b
+# ID: 82dbe9c1-067e-4f18-9cbc-8d3bcbed6767
 class WorkerClassificationConfig:
     """ADR-081 D7 / ADR-082 — gates for the runtime.worker_process_classification rule.
 

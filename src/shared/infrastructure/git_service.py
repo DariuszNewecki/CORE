@@ -269,7 +269,7 @@ class GitService:
             self._run_command(["add", "-A"])
             self._run_command(["commit", "-m", message])
 
-    # ID: d4e5f6a7-b8c9-0123-4567-89abcdef0123
+    # ID: 898f3694-920f-4915-b35b-61a143d39a6e
     def restore_paths(self, paths: list[str]) -> None:
         """
         Reverts the working-tree state of the given tracked paths to HEAD.
@@ -300,7 +300,7 @@ class GitService:
         output = self._run_command(["diff", "--cached", "--name-only"])
         return {line for line in output.splitlines() if line}
 
-    # ID: e5f6a7b8-c9d0-1234-5678-9abcdef01234
+    # ID: 2055eaae-98c7-499d-ab38-9a976090c8a0
     def commit_paths(self, paths: list[str], message: str) -> None:
         """
         Stages and commits exactly the given paths.
@@ -360,7 +360,7 @@ class GitService:
             self._run_command(["add", "--", *paths])
             self._run_command(["commit", "-m", message, "--", *paths])
 
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
+    # ID: c4b41786-639d-40e3-bba2-858baffa7802
     def get_recent_commits(self, n: int = _CFG_GIT.recent_commits_n) -> list[str]:
         """
         Returns the last n commit summaries (oneline, no merges).
@@ -383,7 +383,7 @@ class GitService:
         except RuntimeError:
             return ""
 
-    # ID: c3d4e5f6-a7b8-9012-cdef-123456789003
+    # ID: b84fb516-77dd-44eb-a7bc-8ebbbfcbfcb6
     def get_changed_files_log(self, n: int = _CFG_GIT.changed_files_log_n) -> list[str]:
         """
         Returns filenames touched in the last n commits (Python files only).

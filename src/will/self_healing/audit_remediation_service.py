@@ -144,12 +144,12 @@ class AuditRemediationService:
         )
         return result
 
-    # ID: e8a9b0c1-d2e3-4567-efab-888888888888
+    # ID: 52a6dc4a-648f-4897-b6f9-40d543a4b8d7
     def _default_findings_path(self) -> Path:
         """Return the canonical processed findings path via PathResolver."""
         return self._path_resolver.audit_findings_processed_path
 
-    # ID: f9b0c1d2-e3f4-5678-fabc-999999999999
+    # ID: d6369086-9834-4a71-8c79-d66a7ed583ce
     async def _load_findings(self, findings_path: Path | None) -> list[AuditFinding]:
         """Load audit findings from JSON file."""
         path = findings_path or self._default_findings_path()

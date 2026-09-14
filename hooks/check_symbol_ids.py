@@ -9,6 +9,9 @@ Checks applied to staged additions only (no retroactive enforcement on existing 
      immediately preceding line in the staged file.
   2. A UUID introduced in this commit must not already exist elsewhere in src/.
   3. Placeholder IDs ("# ID: xxxxxxxx-...") are rejected on the preceding line.
+  4. An ID added in this commit must be a real UUID v4 (version nibble 4, RFC
+     4122 variant) — hand-typed sequential hex that merely matches the 8-4-4-4-12
+     shape is rejected (361 such fakes were swept out on 2026-09-14).
 """
 
 from __future__ import annotations
@@ -24,6 +27,11 @@ _UUID_RE = re.compile(
     re.IGNORECASE,
 )
 _PLACEHOLDER_RE = re.compile(r"# ID: [xX]{8,}-")
+# Strict shape: third group starts with '4' (version), fourth with [89ab] (RFC 4122 variant).
+_UUID_V4_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
 _PUBLIC_DEF_RE = re.compile(r"^( *)(async +)?(?:def|class) +([A-Za-z_]\w*)")
 
 
@@ -107,6 +115,11 @@ def _check_staged_files(files: list[str]) -> list[str]:
             if um:
                 uid = um.group(1).lower()
                 loc = f"{f}:{lineno}"
+                if not _UUID_V4_RE.match(uid):
+                    errors.append(
+                        f"{loc}: '# ID: {uid}' is not a UUID v4 — generate one with "
+                        "python -c 'import uuid; print(uuid.uuid4())', never type it"
+                    )
                 if uid in new_uuids:
                     errors.append(
                         f"Duplicate UUID {uid}: added at {new_uuids[uid]} and {loc}"

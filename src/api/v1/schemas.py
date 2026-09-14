@@ -86,7 +86,7 @@ class AuditRunResponse(BaseModel):
 # ── Fix runs ──────────────────────────────────────────────────────────────────
 
 
-# ID: c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f
+# ID: cdd1d849-df18-4c26-89b1-d5380d0fecb5
 class FixRunResponse(BaseModel):
     """GET /v1/fix/runs/{run_id} response shape (ADR-055 D2)."""
 
@@ -125,7 +125,7 @@ class ActionCommandItem(BaseModel):
     remediates: list[str] = []
 
 
-# ID: 5b3c4d6e-7f8a-4b9c-0d1e-2f3a4b5c6d7e
+# ID: 4d400b0b-e01b-4169-bd0f-b3e45ab4fb97
 class FixCommandListResponse(BaseModel):
     """GET /v1/fix/commands response — whitelisted action metadata."""
 
@@ -136,7 +136,7 @@ class FixCommandListResponse(BaseModel):
 # ── Remediation runs ──────────────────────────────────────────────────────────
 
 
-# ID: d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
+# ID: a8926799-be01-4b50-b367-16349c35038c
 class RemediationRunResponse(BaseModel):
     """GET /v1/audit/remediations/{run_id} response shape."""
 
@@ -217,7 +217,7 @@ class GovernanceChainResponse(BaseModel):
 # ── Proposals ─────────────────────────────────────────────────────────────────
 
 
-# ID: e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b
+# ID: a3555752-a120-4726-b02f-aeb213033785
 class ProposalActionItem(BaseModel):
     """Single action entry in a ProposalResponse."""
 
@@ -227,7 +227,7 @@ class ProposalActionItem(BaseModel):
     order: int = 0
 
 
-# ID: f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c
+# ID: ed8dd1a6-2970-4a3c-8ed7-2c86f040cb6c
 class ProposalResponse(BaseModel):
     """GET /v1/proposals/{id} response shape (Proposal.to_dict() surface)."""
 
@@ -255,7 +255,7 @@ class ProposalResponse(BaseModel):
 # ── Lane (Assisted Remediation) ───────────────────────────────────────────────
 
 
-# ID: 6c7d8e9f-0a1b-4c2d-3e4f-5a6b7c8d9e0f
+# ID: e122f23a-e4b2-44e1-8860-5359d6c887b4
 class LaneBundleRule(BaseModel):
     """Rule metadata within a lane finding bundle (ADR-109 #653)."""
 
@@ -264,7 +264,7 @@ class LaneBundleRule(BaseModel):
     in_registry: bool = False
 
 
-# ID: 7d8e9f0a-1b2c-4d3e-4f5a-6b7c8d9e0f1a
+# ID: 87a590ef-ad76-4c50-b442-efb99cbb7cc9
 class LaneBundle(BaseModel):
     """Context bundle attached to a delegated finding (ADR-109 #653)."""
 
@@ -272,7 +272,7 @@ class LaneBundle(BaseModel):
     remediation: dict[str, Any] | None = None
 
 
-# ID: 8e9f0a1b-2c3d-4e4f-5a6b-7c8d9e0f1a2b
+# ID: df6cb07b-19dd-4013-9b5c-dae1ca48e1aa
 class LaneFindingItem(BaseModel):
     """A single delegated finding from the Assisted Remediation Lane."""
 
@@ -282,14 +282,14 @@ class LaneFindingItem(BaseModel):
     created_at: str | None = None
 
 
-# ID: 9f0a1b2c-3d4e-4f5a-6b7c-8d9e0f1a2b3c
+# ID: 4fed5e01-9d32-40d8-9a72-9838a7b1a580
 class LaneFindingWithBundle(LaneFindingItem):
     """Delegated finding enriched with the ADR-109 #653 context bundle."""
 
     bundle: LaneBundle
 
 
-# ID: 0a1b2c3d-4e5f-4a6b-7c8d-9e0f1a2b3c4d
+# ID: fac60698-1614-4e2c-8f6b-0a805f7aa13c
 class LaneFindingListResponse(BaseModel):
     """GET /v1/lane response — paginated delegated finding list."""
 
@@ -319,7 +319,7 @@ class LaneProposeResponse(BaseModel):
 # ── Census ────────────────────────────────────────────────────────────────────
 
 
-# ID: 3d4e5f6a-7b8c-4d9e-0f1a-2b3c4d5e6f7a
+# ID: c36d9db2-a3dd-427d-8cd8-4357abf615dd
 class CensusRunResponse(BaseModel):
     """GET /v1/census/runs/{run_id} response.
 
@@ -337,7 +337,7 @@ class CensusRunResponse(BaseModel):
     error: str | None = None
 
 
-# ID: 4e5f6a7b-8c9d-4e0f-1a2b-3c4d5e6f7a8b
+# ID: b28bad4b-0a94-4fef-921d-e183e237987f
 class CensusBaselineItem(BaseModel):
     """A single named census baseline record."""
 
@@ -347,14 +347,14 @@ class CensusBaselineItem(BaseModel):
     created_at: str | None = None
 
 
-# ID: 5f6a7b8c-9d0e-4f1a-2b3c-4d5e6f7a8b9c
+# ID: f82efd2c-109d-4227-ba40-fb250641ede9
 class CensusBaselineCreateResponse(BaseModel):
     """POST /v1/census/baselines/{name} response."""
 
     baseline: CensusBaselineItem
 
 
-# ID: 6a7b8c9d-0e1f-4a2b-3c4d-5e6f7a8b9c0d
+# ID: c2cad90b-6403-4276-a6e7-ed298ecc3f7f
 class CensusBaselineListResponse(BaseModel):
     """GET /v1/census/baselines response."""
 
@@ -362,7 +362,7 @@ class CensusBaselineListResponse(BaseModel):
     baselines: list[CensusBaselineItem]
 
 
-# ID: 7b8c9d0e-1f2a-4b3c-4d5e-6f7a8b9c0d1e
+# ID: 6183dbb5-9c23-43f0-80f9-43d074246b2a
 class CensusDiffResponse(BaseModel):
     """GET /v1/census/diff response.
 

@@ -17,7 +17,7 @@ from api.cli import CoreApiClient
 logger = logging.getLogger(__name__)
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 65bd32c6-1cb6-445e-998b-7998b4ffcda4
 class CoverageReporter:
     """Generates coverage reports via the API."""
 

@@ -43,7 +43,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 6c7d8e9f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+# ID: 53a68428-edd7-4d7a-9065-070a7901fe90
 def build_introspection_facts(
     file_path: str,
     symbol_name: str,
@@ -152,7 +152,7 @@ def build_introspection_facts(
     return facts
 
 
-# ID: 7d8e9f0a-1b2c-3d4e-5f6a-7b8c9d0e1f2a
+# ID: 4611a6c2-a536-4449-8b8e-f62118dd5ff7
 def _file_path_to_import_path(file_path: str) -> str:
     """Convert a repo-relative .py path into a dotted import path.
 
@@ -170,7 +170,7 @@ def _file_path_to_import_path(file_path: str) -> str:
     return ".".join(parts)
 
 
-# ID: 8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b
+# ID: a6e33837-617f-4a5a-99f3-764d72fea535
 def _import_target(import_path: str, symbol_name: str) -> Any:
     """Import ``import_path`` and resolve ``symbol_name`` off the module.
 
@@ -184,7 +184,7 @@ def _import_target(import_path: str, symbol_name: str) -> Any:
     return getattr(module, symbol_name)
 
 
-# ID: 9f0a1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c
+# ID: c4aced9e-2f47-4787-86a1-d0d5c5c5b5ae
 def _extract_awaited_call_sites(symbol_code: str, symbol_name: str) -> list[str]:
     """Walk the symbol's body for ``await x.y(...)`` patterns and return
     the dotted-name list of awaited call sites.
@@ -239,7 +239,7 @@ def _extract_target_decorators(symbol_code: str, symbol_name: str) -> list[str]:
     return out
 
 
-# ID: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
+# ID: db122050-a58b-459a-afcc-56af57673ca2
 def _find_target_node(
     tree: ast.AST, symbol_name: str
 ) -> ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef | None:
@@ -253,7 +253,7 @@ def _find_target_node(
     return None
 
 
-# ID: 2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f
+# ID: 618f259d-a080-421c-a58e-df4d693f4ba1
 def _has_governance_decorator(decorators: list[str]) -> bool:
     """True if any decorator on the target is a governance wrapper.
 

@@ -137,7 +137,7 @@ async def start_daemon() -> dict:
     return await _run_systemctl(("start", "core-daemon"))
 
 
-# ID: 6a3c0b8d-2f7e-4b4a-cbdc-5e6f7890ab12
+# ID: ae6c6acb-c4eb-4b4e-b967-7df2c056140c
 async def stop_daemon_background() -> None:
     """Invoke `systemctl --user stop core-daemon` from a BackgroundTask.
 
@@ -153,7 +153,7 @@ async def stop_daemon_background() -> None:
     logger.info("daemon_runner: stop_daemon_background -> %s", result)
 
 
-# ID: 7b4d1c9e-3a8f-4c5b-dcad-6f7890ab12cd
+# ID: 2155c790-d598-4cae-b33e-da2b37ce3d84
 async def _run_systemctl(argv_tail: tuple[str, ...]) -> dict:
     """Run systemctl --user via the sanctioned subprocess primitive.
 

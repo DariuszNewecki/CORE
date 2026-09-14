@@ -66,7 +66,7 @@ class ModularitySplitter:
     def __init__(self) -> None:
         self._resolver = ImportResolver()
 
-    # ID: 4e7f8a9b-0c1d-2e3f-4a5b-6c7d8e9f0a1b
+    # ID: 98ab7566-068c-422f-a917-519acb959d5c
     def split(self, source_path: Path, plan: SplitPlan) -> SplitResult:
         """Produce a SplitResult from *source_path* and a validated *plan*.
 

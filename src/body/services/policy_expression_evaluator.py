@@ -121,7 +121,7 @@ class PolicyExpressionEvaluator:
         except Exception as e:
             raise ValueError(f"Expression evaluation failed: {e}") from e
 
-    # ID: 0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
+    # ID: 086b9d45-cab7-423e-aca7-597b3cebf359
     def validate_expression(self, expr: str) -> tuple[bool, str | None]:
         """
         Validate expression without evaluating it.

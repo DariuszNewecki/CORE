@@ -141,17 +141,17 @@ class _SymbolInventory:
         """All top-level names defined in the current scope."""
         return set(self.classes) | set(self.functions) | set(self.constants)
 
-    # ID: 5e4d3c2b-1a0f-4b9e-c8d7-6a5b4c3d2e1f
+    # ID: 26ba2be6-f0ed-44de-bab9-079a4eacc752
     def defined_class_member_names(self) -> set[str]:
         """All defined class member names (dominant-class methods + assigns)."""
         return set(self.dominant_methods) | set(self.dominant_class_assigns)
 
-    # ID: 6f5e4d3c-2b1a-4c0f-d9e8-7b6c5d4e3f2a
+    # ID: e5a3dad6-65d2-4500-8168-660517d3caa5
     def imported_lookup(self) -> dict[str, str]:
         """Mapping of imported symbols to their source module."""
         return {name: source for name, source in self.imported}
 
-    # ID: 7a6b5c4d-3e2f-4d1a-e0f9-8c7d6e5f4a3b
+    # ID: 838b9547-60ae-4aea-9bfd-9ed188fdb7d5
     def render_for_prompt(self) -> str:
         """Human-readable summary of symbol definitions and imports for the prompt."""
         if not (

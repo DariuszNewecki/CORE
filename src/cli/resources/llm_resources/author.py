@@ -58,7 +58,7 @@ def _render_result(data: dict) -> None:
     "validate", help="Validate an llm_resources definition without persisting it."
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 0a4d8f2b-6c1e-4d9f-c0f2-5b9d3f7c1e6a
+# ID: 9ed01d9c-dbf7-4cf9-999d-a41cdbb2b337
 async def llm_resources_validate(
     ctx: typer.Context,
     definition_file: Path = typer.Argument(
@@ -79,7 +79,7 @@ async def llm_resources_validate(
     "author", help="Validate and, with --apply, persist an llm_resources definition."
 )
 @core_command(dangerous=True, confirmation=True, requires_context=False)
-# ID: 1b5e9d3f-7c2a-4e0d-d1a3-6c0e4a8d2f7b
+# ID: 7e365692-aaf2-4eab-ab53-7c5ed8855bdc
 async def llm_resources_author(
     ctx: typer.Context,
     definition_file: Path = typer.Argument(

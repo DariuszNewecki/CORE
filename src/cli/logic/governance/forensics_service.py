@@ -27,7 +27,7 @@ class GovernanceForensicsService:
     def __init__(self):
         self.session_factory = service_registry.session
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: e6c407ab-7ef1-4be6-a2be-d9f3af700437
     async def get_audit_trail(self, session_id: str) -> dict[str, Any]:
         """
         Retrieves the complete history of thoughts and actions for a session.

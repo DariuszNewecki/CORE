@@ -24,7 +24,7 @@ _ANTHROPIC_VERSION = "2023-06-01"
 _DEFAULT_SYSTEM = "You are a helpful assistant."
 
 
-# ID: 3a1b2c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 2d8c99c4-d804-4e2a-82f0-ba59b0d73b65
 class AnthropicProvider(AIProvider):
     """Provider for the Anthropic Messages API."""
 

@@ -107,7 +107,7 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
 }
 
 
-# ID: 8d2e4f0a-1b3c-4d5e-6f7a-8b9c0d1e2f30
+# ID: 7fd6d07c-f85d-424b-a498-b895229982a8
 class GenerateRequest(BaseModel):
     """Body for POST /coverage/generate.
 
@@ -121,7 +121,7 @@ class GenerateRequest(BaseModel):
     requested_by: str = "api"
 
 
-# ID: 9e3f5a1b-2c4d-4e6f-7a8b-9c0d1e2f3a41
+# ID: 91a12528-f699-42ff-ba18-b8c47d58b557
 class GenerateBatchRequest(BaseModel):
     """Body for POST /coverage/generate:batch.
 
@@ -145,7 +145,7 @@ class InteractiveTestsRequest(BaseModel):
     target_file: str | None = None
 
 
-# ID: 5e9f7c3d-4a6b-5e8f-9c0d-1e2f3a4b5c63
+# ID: e3d5f421-6588-425e-8ddf-afa9d6a40da2
 class ReportRequest(BaseModel):
     """Body for POST /coverage/reports.
 
@@ -193,7 +193,7 @@ async def coverage_check(request: Request) -> dict:
         "/v1/coverage/reports kicks off a fresh run as a background task."
     ),
 )
-# ID: 2b6c8d4e-5f7a-4b9c-0d1e-2f3a4b5c6d74
+# ID: 4ea026d3-8d33-4037-88cd-7b345fb5b9ff
 async def coverage_report(
     format: Literal["text", "html"] = Query(default="text"),
     session: AsyncSession = Depends(get_api_session),
@@ -232,7 +232,7 @@ async def coverage_report(
     # /v1/openapi.json per ADR-087.
     include_in_schema=False,
 )
-# ID: 3c7d9e5f-6a8b-7c0d-1e2f-3a4b5c6d7e96
+# ID: 9b8ae48c-1962-4e30-9d26-1628cc195c1c
 async def request_coverage_report(
     request: Request,
     response: Response,
@@ -265,7 +265,7 @@ async def request_coverage_report(
     run_id: UUID = result.scalar_one()
     await session.commit()
 
-    # ID: 4d8e0f6a-7b9c-8d1e-2f3a-4b5c6d7e8f97
+    # ID: 5b6b75f2-abe3-4072-beba-58edc90479d2
     async def drive_report() -> None:
         async for bg_session in open_background_session():
             await run_and_persist_coverage_report(
@@ -293,7 +293,7 @@ async def request_coverage_report(
         "the audit gate enforces. Sidecar configuration surface."
     ),
 )
-# ID: 3c7d9e5f-6a8b-4c0d-1e2f-3a4b5c6d7e85
+# ID: 2c13a12e-ecb6-4287-b3cb-d58f4493ad94
 def coverage_targets(request: Request) -> dict:
     """Return the constitutional coverage targets.
 
@@ -316,7 +316,7 @@ def coverage_targets(request: Request) -> dict:
         "operators to triage test debt."
     ),
 )
-# ID: 4d8e0f6a-7b9c-4d1e-2f3a-4b5c6d7e8f96
+# ID: c0a6f176-43da-4e66-9176-f0e86734afcb
 def coverage_gaps(
     request: Request,
     threshold: float = Query(default=75.0, ge=0.0, le=100.0),
@@ -343,7 +343,7 @@ def coverage_gaps(
         "trajectory alongside the convergence metric."
     ),
 )
-# ID: 5e9f1a7b-8c0d-4e2f-3a4b-5c6d7e8f9a07
+# ID: d52c4ab6-b8a3-4f38-b8fd-818c6127ad4a
 def coverage_history(
     request: Request,
     limit: int = Query(default=30, ge=1, le=500),
@@ -365,7 +365,7 @@ def coverage_history(
     # from /v1/openapi.json per ADR-087.
     include_in_schema=False,
 )
-# ID: 6f0a2b8c-9d1e-4f3a-4b5c-6d7e8f9a0b18
+# ID: 641fdeb7-c353-4fb2-93e6-874262a7d2b2
 def coverage_methods(request: Request) -> dict:
     """Return the legacy-vs-adaptive coverage method comparison.
 
@@ -390,7 +390,7 @@ def coverage_methods(request: Request) -> dict:
     # /v1/openapi.json per ADR-087.
     include_in_schema=False,
 )
-# ID: 7a1b3c9d-0e2f-4a4b-5c6d-7e8f9a0b1c29
+# ID: b7f147cf-8201-449c-a76c-873defb2b077
 async def generate_coverage(
     request: Request,
     response: Response,
@@ -426,7 +426,7 @@ async def generate_coverage(
     run_id: UUID = result.scalar_one()
     await session.commit()
 
-    # ID: 8b2c4d0e-1f3a-4b5c-6d7e-8f9a0b1c2d3a
+    # ID: 72759f76-ba82-4cdd-9ae6-47ca051139d4
     async def drive_generate() -> None:
         async for bg_session in open_background_session():
             await run_and_persist_coverage_generation(
@@ -455,7 +455,7 @@ async def generate_coverage(
     # concern. Excluded from /v1/openapi.json per ADR-087.
     include_in_schema=False,
 )
-# ID: 9c3d5e1f-2a4b-4c6d-7e8f-9a0b1c2d3e4b
+# ID: ad23ac5f-7541-40d7-93e1-f5d2c70f8b38
 async def generate_coverage_batch(
     request: Request,
     response: Response,
@@ -556,7 +556,7 @@ async def interactive_tests(
         "with that id."
     ),
 )
-# ID: 2f6a8b4c-5d7e-4f9a-0b1c-2d3e4f5a6b7e
+# ID: a857b0ba-d704-4bd4-ac5e-597f4561c591
 async def get_coverage_run(
     run_id: UUID,
     session: AsyncSession = Depends(get_api_session),

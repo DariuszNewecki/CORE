@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class ImportResolver:
     """Resolve the minimal imports needed by a subset of symbols."""
 
-    # ID: 9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d
+    # ID: 7194a08c-21c6-49e1-a7f4-1fe81f833126
     def resolve(self, source: str, symbol_names: list[str]) -> list[str]:
         """Return minimal import statements and module-level definitions
         needed by *symbol_names*.

@@ -388,7 +388,7 @@ No explanation. No markdown. No text before or after.
 No ```json fences. Start your response with {{ and end with }}.
 """
 
-    # ID: c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: a0ad46a9-af80-40d5-8098-5e11ed14ce2d
     async def _execute_deterministic_split(
         self, context: WorkflowContext, start_time: float
     ) -> PhaseResult:
@@ -487,7 +487,7 @@ No ```json fences. Start your response with {{ and end with }}.
             duration_sec=time.perf_counter() - start_time,
         )
 
-    # ID: f1e2d3c4-b5a6-4789-0abc-def012345678
+    # ID: c2ee2e4c-8779-463f-91a6-48c568710645
     async def _request_split_plan(
         self,
         source_file: str,

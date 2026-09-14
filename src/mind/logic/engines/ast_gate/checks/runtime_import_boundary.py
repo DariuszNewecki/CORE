@@ -62,7 +62,7 @@ class RuntimeImportBoundaryCheck:
     """
 
     @staticmethod
-    # ID: a3f7c9e1-4b2d-5e8f-a1c6-d9f4e7b2a8c3
+    # ID: 79f28830-9f19-4b6a-b052-236b4d9720bc
     def check(
         filepath: Path,
         tree: ast.Module,
@@ -123,7 +123,7 @@ class RuntimeImportBoundaryCheck:
         )
 
     @staticmethod
-    # ID: e5f9a2c7-d3b6-8e4f-c1a5-f7d2e9b4a6c8
+    # ID: f20bb302-10c9-4723-b0af-be90b810c004
     def _find_type_checking_blocks(tree: ast.Module) -> set[ast.AST]:
         """Return the set of AST nodes inside ``if TYPE_CHECKING:`` blocks."""
         type_checking_nodes: set[ast.AST] = set()
@@ -140,7 +140,7 @@ class RuntimeImportBoundaryCheck:
         return type_checking_nodes
 
     @staticmethod
-    # ID: b8e2f6d3-9c4a-5f1e-a7b9-c3d8e1f5a2b6
+    # ID: a0245949-b379-43d9-8dd5-a279e0edeac4
     def _check_import_from(
         node: ast.ImportFrom,
         forbidden_patterns: list[str],
@@ -165,7 +165,7 @@ class RuntimeImportBoundaryCheck:
         return None
 
     @staticmethod
-    # ID: c9d4e7f2-a3b5-6e8c-b4d1-f8a7c2e5b3d9
+    # ID: 2b0b3d80-ee48-44f1-9eb4-c3b6ef66aed6
     def _check_import(
         node: ast.Import,
         forbidden_patterns: list[str],
@@ -186,7 +186,7 @@ class RuntimeImportBoundaryCheck:
         return None
 
     @staticmethod
-    # ID: d2f8e4c1-b5a7-9e3f-c6d2-a9f7e4b1c8d5
+    # ID: 204ec940-0302-40fd-8c9e-08bc94eeb6b4
     def _matches_pattern(import_path: str, pattern: str) -> bool:
         """Exact, prefix, or subpath match against the forbidden pattern."""
         if import_path == pattern:

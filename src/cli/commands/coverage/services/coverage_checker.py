@@ -18,7 +18,7 @@ from api.cli import CoreApiClient
 logger = logging.getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 62d7cdd0-db4f-46e7-bc11-50b2bcea985f
 class CoverageChecker:
     """Checks coverage compliance via the API."""
 

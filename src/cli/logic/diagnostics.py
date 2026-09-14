@@ -84,7 +84,7 @@ def build_cli_tree_data(app: TyperAppLike) -> list[dict[str, Any]]:
     return _walk(app)
 
 
-# ID: e9d2a1f3-5c4b-8a7e-9f1d-2b3c4d5e6f7a
+# ID: 9a061528-5824-4482-949b-7f77bcdb0e4f
 async def get_unassigned_symbols_logic(
     core_context: CoreContext,
 ) -> list[dict[str, Any]]:

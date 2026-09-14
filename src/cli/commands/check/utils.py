@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-# ID: f4a3b2c1-d0e9-8f7a-6b5c-4d3e2f1a0b9c
+# ID: daf2036c-fd67-400a-8e41-f5361944c73c
 def iter_target_files(target: Path) -> list[Path]:
     """
     Resolve target into a list of files to audit.

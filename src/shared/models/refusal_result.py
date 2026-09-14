@@ -23,7 +23,7 @@ from shared.component_primitive import ComponentPhase, ComponentResult
 
 
 @dataclass
-# ID: cd3e4f5a-6b7c-8d9e-0f1a-2b3c4d5e6f7a
+# ID: bc0511f9-40b7-4eb6-94cc-e7681c145c50
 class RefusalResult(ComponentResult):
     """
     First-class refusal outcome.

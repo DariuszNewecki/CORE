@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .knowledge import Base
 
 
-# ID: b1c2d3e4-f5a6-7890-bcde-f12345678901
+# ID: 33dbabce-03bc-4073-b8af-a07f9611f948
 class WorkerRegistry(Base):
     """
     Constitutional identity register.
@@ -53,7 +53,7 @@ class WorkerRegistry(Base):
     )
 
 
-# ID: c2d3e4f5-a6b7-8901-cdef-234567890123
+# ID: fb1df1ca-3412-4b34-84b5-63046da94ca2
 class BlackboardEntry(Base):
     """
     Constitutional coordination ledger.

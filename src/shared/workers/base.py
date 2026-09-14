@@ -83,7 +83,7 @@ class WorkerDeclaration:
     config: dict[str, Any] | None = None
 
 
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f90
+# ID: e527fefa-ee84-488c-b486-f3c72d74f345
 class Worker(ABC):
     """
     Constitutional base class for all autonomous Workers.

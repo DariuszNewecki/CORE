@@ -265,7 +265,7 @@ def _call_has_require_governor(call: ast.Call) -> bool:
 _MUTATION_VERBS = frozenset({"post", "put", "delete", "patch"})
 
 
-# ID: 6d2e9f3b-0a5c-4b78-c4d9-3e6f7a8b9c0d
+# ID: 0412e136-9b6d-4913-8437-50be6346a225
 def _find_mutation_route_decorator(
     func: ast.AsyncFunctionDef | ast.FunctionDef,
 ) -> ast.Call | None:
@@ -280,7 +280,7 @@ def _find_mutation_route_decorator(
     return None
 
 
-# ID: 7e3f0a4c-1b6d-4c89-d5ea-4f7a8b9c0d1e
+# ID: fb5a98fa-01c1-4ee4-8fac-8d42bf5be286
 def _route_verb(deco: ast.Call) -> str:
     """Return the HTTP verb name from a route decorator call (e.g. 'post')."""
     func_expr = deco.func
@@ -288,7 +288,7 @@ def _route_verb(deco: ast.Call) -> str:
     return func_expr.attr
 
 
-# ID: 8f4a1b5d-2c7e-4d9a-e6fb-5a8b9c0d1e2f
+# ID: 057ee209-da6b-4a30-a447-2109a13af97a
 def _params_have_require_governor(func: ast.AsyncFunctionDef | ast.FunctionDef) -> bool:
     """Return True if any handler parameter defaults to require_governor or
     Depends(require_governor) — the FastAPI DI-parameter gating idiom."""

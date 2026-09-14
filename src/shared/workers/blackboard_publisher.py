@@ -175,7 +175,7 @@ class BlackboardPublisher:
             status="resolved",
         )
 
-    # ID: 4d5e6f7a-8b9c-4d0e-1f2a-3b4c5d6e7f8a
+    # ID: 35821807-e7be-4065-a431-1c1eb38b4edd
     async def post_heartbeat(self) -> uuid.UUID:
         """Post a heartbeat — proves worker is alive and constitutionally compliant."""
         return await self._post_entry(
@@ -185,7 +185,7 @@ class BlackboardPublisher:
             status="resolved",
         )
 
-    # ID: 5e6f7a8b-9c0d-4e1f-2a3b-4c5d6e7f8a9b
+    # ID: dc773dfa-f044-4200-96ff-275a5a383e7e
     async def post_observation(
         self, subject: str, payload: dict[str, Any], *, status: str
     ) -> uuid.UUID:

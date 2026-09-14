@@ -64,7 +64,7 @@ class AuditReport:
         return len(self.violations) > 0
 
 
-# ID: f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c
+# ID: 3b3482da-847f-4d35-9482-c245e6cb57be
 class RemediationOrchestrator:
     """
     Will layer orchestrator for constitutional remediation.
@@ -212,7 +212,7 @@ class RemediationOrchestrator:
 
         return result
 
-    # ID: c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f
+    # ID: 98aff82b-fa06-4444-9bdc-f476dae1fdd2
     async def remediate_single_file_async(self, file_path: str) -> bool:
         """
         ORCHESTRATION: Decide to remediate single file and delegate execution.
@@ -244,7 +244,7 @@ class RemediationOrchestrator:
 
         return success
 
-    # ID: d5e6f7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a
+    # ID: 2a3d748e-95b2-4ff7-9e4b-f6285a46e263
     def validate_remediation(self, file_path: str) -> bool:
         """
         ORCHESTRATION: Decide to validate remediation and delegate check.
@@ -266,7 +266,7 @@ class RemediationOrchestrator:
         return self.remediation_service.validate_remediation(file_path)
 
 
-# ID: e6f7a8b9-c0d1-2e3f-4a5b-6c7d8e9f0a1b
+# ID: 6a03caef-d7d2-4188-ac3d-61e91a4f4a74
 def get_remediation_orchestrator(
     repo_path: Path | str | None = None,
     knowledge_builder: KnowledgeGraphBuilderProtocol | None = None,

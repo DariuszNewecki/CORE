@@ -27,7 +27,7 @@ run_app = typer.Typer(
 
 @run_app.command("vectorize")
 @core_command(dangerous=True, requires_context=False)
-# ID: f8e9d0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3a
+# ID: e4ea4820-ca61-4a79-9fae-1a0130a1aa21
 async def vectorize_command(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Commit vectors to Qdrant."),

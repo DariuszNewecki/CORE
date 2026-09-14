@@ -196,7 +196,7 @@ class DecisionTracer:
             return self._paths.repo_root / rel_path
         return Path(rel_path)
 
-    # ID: c8f9a0b1-d2e3-4567-cdef-890123456789
+    # ID: 663d95d9-1574-4f83-bdb2-2407c39b7760
     async def _save_to_database(self, trace_file: Path) -> None:
         """
         Save to database for observability.
@@ -237,7 +237,7 @@ class DecisionTracer:
             len(self.decisions),
         )
 
-    # ID: d9e0f1a2-b3c4-5678-defa-901234567890
+    # ID: f8d11ee8-8aec-4fa2-b175-30b5b136bc10
     def _calculate_pattern_stats(self) -> dict[str, int]:
         """Calculate statistics about decision types."""
         stats: dict[str, int] = {}
@@ -246,7 +246,7 @@ class DecisionTracer:
             stats[t] = stats.get(t, 0) + 1
         return stats
 
-    # ID: e0f1a2b3-c4d5-6789-efab-012345678901
+    # ID: 4bca6e71-106d-43e1-8628-d6b7522dc95e
     def _check_violations(self) -> tuple[bool, int]:
         """Check if any decisions indicate violations."""
         violation_count = 0

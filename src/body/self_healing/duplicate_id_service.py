@@ -64,7 +64,7 @@ class IdOccurrence:
 # ---------------------------------------------------------------------------
 
 
-# ID: 7c3e9a1b-4d5f-6e7a-8b9c-0d1e2f3a4b5c
+# ID: d378f7fa-be8e-47cd-980b-73904572f450
 def scan_filesystem_for_ids(src_root: Path) -> dict[str, list[IdOccurrence]]:
     """
     Scan all Python files under src_root for '# ID:' comment tags.
@@ -109,7 +109,7 @@ def scan_filesystem_for_ids(src_root: Path) -> dict[str, list[IdOccurrence]]:
     return id_map
 
 
-# ID: 8d4f0b2c-5e6a-7f8b-9c0d-1e2f3a4b5c6d
+# ID: eca8ace8-90af-45a0-814e-5a356ac170f0
 def _is_valid_uuid(value: str) -> bool:
     """Check if a string is a valid UUID."""
     try:
@@ -184,7 +184,7 @@ async def _get_symbol_creation_dates(session: AsyncSession) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-# ID: 9e5f0c3d-6a7b-8c9d-0e1f-2a3b4c5d6e7f
+# ID: b582a75d-d2ce-482d-acdb-800e812f45f5
 def _build_replacement_plan(
     duplicates: dict[str, list[IdOccurrence]],
 ) -> dict[Path, list[tuple[int, str, str]]]:
@@ -272,7 +272,7 @@ def _apply_replacements(
 # ---------------------------------------------------------------------------
 
 
-# ID: 0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+# ID: e5345d81-0b8a-437f-89f9-9deaead8c591
 async def resolve_duplicate_ids(
     context: CoreContext, session: AsyncSession, dry_run: bool = True
 ) -> int:

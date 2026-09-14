@@ -217,7 +217,7 @@ class IntentRepository(RootedRepository):
             except GovernanceError as exc:
                 logger.warning("iter_flow_documents: skipping %s: %s", path, exc)
 
-    # ID: a2b3c4d5-e6f7-8901-abcd-ef1234567890
+    # ID: 3591adf1-4dda-4428-abab-24a0e0c35846
     def load_text(self, rel: str | Path) -> str:
         """
         Load a raw text artifact from .intent/ (e.g. markdown files).

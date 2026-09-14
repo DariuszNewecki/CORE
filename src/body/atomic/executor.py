@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 8988e815-6c7f-4b4e-995b-ada1118a15ee
 def _validate_action_result(action_id: str, result: Any) -> ActionResult:
     """
     Validate action result against constitutional requirements.

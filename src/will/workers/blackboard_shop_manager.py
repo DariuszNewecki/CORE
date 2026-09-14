@@ -84,7 +84,7 @@ _CFG = load_operational_config().blackboard
 _HEALTH = load_operational_config().health
 
 
-# ID: d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b
+# ID: ab73120e-8c98-42ed-b770-cbafe825b4a1
 class BlackboardShopManager(ScheduledWorker):
     """
     Governance worker. Scans the Blackboard for entries that have
@@ -103,7 +103,7 @@ class BlackboardShopManager(ScheduledWorker):
     # Single audit cycle
     # -------------------------------------------------------------------------
 
-    # ID: f6a7b8c9-e0f1-4a2b-3c4d-5e6f7a8b9c0d
+    # ID: 7107d0ba-057e-479e-990c-69ac3d423772
     async def run(self) -> None:
         """
         Execute one Blackboard health cycle:
