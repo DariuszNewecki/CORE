@@ -1814,6 +1814,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/attestations/soak-closure-f7430b25-20260726.md
     governance_namespace: project::core
+  - path: .specs/attestations/soak-f7430b25-findings-to-outcome-20260914.md
+    governance_namespace: project::core
   - path: .specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
