@@ -128,7 +128,7 @@ pytest-xdist = "^3.8.0"
 aiosqlite = "^0.21.0"
 
 # Code Quality
-pre-commit = "^3.7.1"
+pre-commit = "^4.6.2"
 mypy = "^1.11"
 types-PyYAML = "^6.0"
 types-jsonschema = "^4.0"
