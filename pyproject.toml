@@ -46,9 +46,9 @@ dependencies = [
     # Configuration & Validation
     "pydantic>=2.13.5,<3.0",
     "pydantic-settings>=2.15.0,<3.0.0",
-    "python-dotenv>=1.0.0,<2.0.0",
+    "python-dotenv>=1.2.3,<2.0.0",
     # Security
-    "cryptography>=50.0.0,<51.0.0",
+    "cryptography>=50.0.1,<51.0.0",
     "PyJWT>=2.8,<3.0",
     "argon2-cffi>=23.1,<24.0",
     "email-validator>=2.0,<3.0",
@@ -56,7 +56,7 @@ dependencies = [
     "typer>=0.16.1,<0.17.0",
     "rich>=13,<16",
     # Data Processing
-    "pyyaml>=6.0,<7.0",
+    "pyyaml>=6.0.3,<7.0",
     "jsonschema>=4.26.0,<5",
     "httpx>=0.28.0,<0.29.0",
     # Code Quality Tools
@@ -64,12 +64,12 @@ dependencies = [
     "radon>=6.0.1,<7.0.0",
     "sqlparse>=0.6.0,<0.7.0",
     # Vector Database
-    "qdrant-client>=1.18.0,<2.0.0",
+    "qdrant-client>=1.19.0,<2.0.0",
     # Scientific Computing
-    "numpy>=2.5.0,<3.0.0",
-    "scikit-learn>=1.5.1,<2.0.0",
+    "numpy>=2.5.3,<3.0.0",
+    "scikit-learn>=1.9.1,<2.0.0",
     # Utilities
-    "msgpack>=1.2.1,<2.0.0",
+    "msgpack>=1.2.2,<2.0.0",
     "filelock>=3.32.6,<4.0.0",
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
@@ -125,14 +125,14 @@ pytest-mock = "^3.15.1"
 pytest-cov = "^7.1"
 pytest-dotenv = "^0.5.2"
 pytest-xdist = "^3.8.0"
-aiosqlite = "^0.21.0"
+aiosqlite = "^0.22.1"
 
 # Code Quality
 pre-commit = "^4.6.2"
 mypy = "^1.11"
 types-PyYAML = "^6.0"
 types-jsonschema = "^4.0"
-ruff = "^0.15.20"
+ruff = "^0.16.7"
 
 # Documentation
 sphinx = "^7.0"
@@ -141,12 +141,12 @@ sphinx-rtd-theme = "^3.1"
 # Development Tools
 httpx = "^0.28.1"
 ipython = "^9.17"
-anyio = "^4.11.0"
+anyio = "^4.15.1"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.7.7"
-vulture = "^2.14"
+vulture = "^2.16"
 pip-audit = "^2.10.1"
-bandit = "^1.9.2"
+bandit = "^1.9.4"
 
 [tool.black]
 line-length = 88
