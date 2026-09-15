@@ -3,7 +3,7 @@
 #
 # Independently governed action-and-path envelope for
 # risk_classification.safe_auto_approval (ProposalStateManager.approve()).
-# impact_level: safe (above) classifies action RISK; it does NOT by itself
+# impact_level: safe (in action_risk.yaml) classifies action RISK; it does NOT by itself
 # authorize autonomous approval -- several impact_level: safe actions above
 # (build.test_for_symbol, check.imports, admin.meta, claim.proposal, ...)
 # are NOT in this envelope. Authorization is a separate, narrower,

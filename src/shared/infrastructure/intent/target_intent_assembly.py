@@ -22,14 +22,16 @@ Productionized from ``tests/fixtures/external_target/materialize.py``
 (Unit C) so the external-run command and the future offline onboard share
 one builder; the fixture now calls this.
 
-Writes: the destination is, by construction, OUTSIDE any repository CORE is
-bound to (an evidence-root run directory, or a pytest ``tmp_path``), so
-``FileHandler``'s repo-relative path guards cannot classify it -- the same
-situation ADR-147 D4 records for ``canary_janitor``. Copies use ``shutil``
-directly for that reason and for no other; nothing here writes inside
-``REPO_PATH`` or CORE's own checkout. No ``get_intent_repository()``
-import, directly or transitively (pre-bootstrap constraint; see
-``external_target_binding.py``).
+Writes: the authority for writing here at all is ADR-159's materialized-
+copy ruling (Note 2026-09-15, Condition 2): the destination is, by
+construction, OUTSIDE any repository CORE is bound to -- an evidence-root
+run directory, or a pytest ``tmp_path``. ``FileHandler`` is repo-bound and
+cannot classify such a location (ADR-147 D4 and ADR-155 record the same
+limitation for ``work/`` and the demo state dir; they are precedent for
+the limitation, not the authority for this write). Copies therefore use
+``shutil`` directly; nothing here writes inside ``REPO_PATH`` or CORE's
+own checkout. No ``get_intent_repository()`` import, directly or
+transitively (pre-bootstrap constraint; see ``external_target_binding.py``).
 """
 
 from __future__ import annotations
