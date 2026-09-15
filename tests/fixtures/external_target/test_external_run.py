@@ -38,6 +38,7 @@ from cli.runtime_external_run import (
     execute,
     guard_legacy_direct_write,
     matches_route,
+    runner_prompt_sources,
     vector_store_leak,
 )
 from shared.infrastructure.intent.machinery_floor_integrity import verify_floor
@@ -561,6 +562,27 @@ def test_runner_prompt_is_installed_into_the_copy(tmp_path: Path) -> None:
         == (REPO_ROOT / "var" / "prompts" / "plan_goal" / "model.yaml").read_bytes()
     )
     assert (run / "evidence" / "prompt_collision_manifest.json").is_file()
+    # Ruling B at its principle: the runner's WHOLE prompt set is machinery.
+    runner_ids = {
+        d.name
+        for d in (REPO_ROOT / "var" / "prompts").iterdir()
+        if d.is_dir() and (d / "model.yaml").is_file()
+    }
+    copy_ids = {d.name for d in (run / "target" / "var" / "prompts").iterdir()}
+    assert copy_ids == runner_ids and len(runner_ids) > 2
+    assert set(runner_prompt_sources(REPO_ROOT)) == runner_ids
+
+
+def test_runner_prompt_sources_require_the_planner_artifacts(tmp_path: Path) -> None:
+    """A runner root whose prompt set lacks the planner's ids is refused
+    before anything is copied -- the readiness probe would fail later anyway,
+    but the refusal names the cause at the source."""
+    (tmp_path / "var" / "prompts" / "something_else").mkdir(parents=True)
+    (tmp_path / "var" / "prompts" / "something_else" / "model.yaml").write_text(
+        "id: x\n"
+    )
+    with pytest.raises(Exception, match="lacks the planner artifacts"):
+        runner_prompt_sources(tmp_path)
 
 
 # --- 2. child-process: real entry point, early dispatch ------------------------
@@ -649,11 +671,14 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     planner prompts installed (ruling B) and no vector store (ruling C).
 
     Expected today: the seeded planner PLANS (PARSE ok on the pinned
-    qwen2.5-coder:3b) and the workflow FAILS at `runtime`, because
-    ContextValidator hard-requires `var/context/schema.yaml`, deleted from
-    CORE in e5611005 (2026-02-03) -- a CORE defect, not an apparatus one,
-    reachable by any code_modification goal run. The pin below names that
-    defect exactly: any OTHER failure is red, and once the defect is fixed
+    qwen2.5-coder:3b), RUNTIME generates code for every step on the same
+    resource (Coder/RemoteCoder assignments), and the workflow FAILS at
+    `audit`: canary_validation runs `check.imports`, whose declared policy
+    `rules/code/imports` is in neither the machinery floor nor the fixture
+    overlay, so the action's policy validation fails and the gate blocks.
+    Whether that policy is floor or overlay is the Governor's (same question
+    a6bcc082 raised for the phase declarations). The pin below names that
+    phase exactly: any OTHER failure is red, and once the policy is delivered
     this pin goes red too and must be replaced by RAN. The run's outcome
     must be RECORDED either way (export reconstructs it complete)."""
     sys.path.insert(0, str(_HERE))
@@ -709,13 +734,13 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
         )
     finally:
         stop_disposable_database(db)
-    known_core_defect = (
+    known_gap = (
         outcome["outcome"] == "FAILED"
         and outcome["stage"] == "develop"
-        and outcome["message"].startswith("Workflow failed at phase: runtime")
+        and outcome["message"].startswith("Workflow failed at phase: audit")
     )
     assert completed.returncode == EXIT_RAN or (
-        completed.returncode == EXIT_INTERNAL_FAILURE and known_core_defect
+        completed.returncode == EXIT_INTERNAL_FAILURE and known_gap
     ), completed.stderr[-3000:]
     assert (run / "evidence" / "binding.json").is_file()
     assert outcome["outcome"] in ("RAN", "FAILED")
@@ -746,6 +771,10 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     assert plan["steps_count"] >= 1 and isinstance(plan["execution_plan"], list), (
         "the seeded planner planned, and the plan is on the Blackboard as data"
     )
-    if known_core_defect:
-        assert outcome_entry["payload"]["failed_phase"] == "runtime"
-        assert "var/context/schema.yaml" in outcome_entry["payload"]["reason"]
+    phases = {p["name"]: p for p in outcome_entry["payload"]["phases"]}
+    assert phases["parse"]["ok"] and phases["runtime"]["ok"], (
+        "the seeded resource planned AND generated code"
+    )
+    if known_gap:
+        assert outcome_entry["payload"]["failed_phase"] == "audit"
+        assert "canary_validation" in outcome_entry["payload"]["reason"]

@@ -5,3 +5,11 @@ assignments:
     resource: ollama_qwen_coder_3b_trial
     priority: 1
     is_active: true
+  - role: Coder
+    resource: ollama_qwen_coder_3b_trial
+    priority: 1
+    is_active: true
+  - role: RemoteCoder
+    resource: ollama_qwen_coder_3b_trial
+    priority: 1
+    is_active: true

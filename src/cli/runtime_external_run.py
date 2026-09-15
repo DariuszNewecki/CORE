@@ -366,20 +366,36 @@ async def _default_cognitive_init(core_context: Any) -> None:
     core_context.cognitive_service = cognitive
 
 
-# The planner's prompt artifacts (ruling B: runner machinery). Both are loaded
-# under the bound copy's prompt root: `plan_goal` via PromptModel.load and
-# `planner_agent` via PathResolver.prompt() (planner_agent.py:116). The live
-# seeded run found the second one; keep this list the single place they are named.
+# Ruling B (runner's prompt wins on collision) read at its principle: the
+# prompt artifacts are runner machinery, so the copy carries the runner's
+# WHOLE set, not a hand-kept list. Each seeded live run had grown the list
+# by one (plan_goal; then planner_agent via PathResolver.prompt(); then the
+# coder's code_generation_task_step_prompt and test_gen_prompt) -- a run
+# reaching a new phase would keep finding the next one. Every artifact is
+# hashed into the seed manifest, so the identity stays exact. The
+# planner's own ids remain named for the readiness probe (planner_readiness).
 PLANNER_PROMPT_IDS: tuple[str, ...] = ("plan_goal", "planner_agent")
 
 
-def _runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
-    """Ruling B: the planner prompts are runner machinery; their source is the
-    runner's own prompt root (PathResolver, never a literal)."""
+# ID: 3f5c41d2-b812-44cf-946c-54307598a6d4
+def runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
+    """``{prompt_id: <runner dir>}`` for every prompt artifact under the
+    runner's own prompt root (PathResolver, never a literal): each directory
+    carrying a ``model.yaml``. The planner's ids must be among them."""
     from shared.path_resolver import PathResolver
 
     prompts_dir = PathResolver(core_repo_root).prompts_dir
-    return {prompt_id: prompts_dir / prompt_id for prompt_id in PLANNER_PROMPT_IDS}
+    sources = {
+        entry.name: entry
+        for entry in sorted(prompts_dir.iterdir())
+        if entry.is_dir() and (entry / "model.yaml").is_file()
+    }
+    missing = [pid for pid in PLANNER_PROMPT_IDS if pid not in sources]
+    if missing:
+        raise _Refused(
+            f"runner prompt root {prompts_dir} lacks the planner artifacts {missing}"
+        )
+    return sources
 
 
 async def _default_seed_environment(
@@ -636,7 +652,7 @@ def execute(
                 subject,
                 run_root,
                 opts.overlay,
-                prompt_sources=_runner_prompt_sources(core_repo_root),
+                prompt_sources=runner_prompt_sources(core_repo_root),
             )
         except (OverlayCollisionError, SubjectCopyError, FileExistsError) as exc:
             raise _Refused(str(exc))

@@ -1,14 +1,18 @@
 # Fixture-owned seed (Governor ruling A, 2026-09-15): the trial planner resource.
 # Local Ollama qwen2.5-coder:3b, pinned by exact digest (same digest on both
 # lab hosts: .40 as qwen2.5-coder:3b, .200 as qwen2.5-coder:3b-instruct-q4_k_m).
-# provides `planning`; assigned explicitly to Planner in assignments.yaml; no
-# fallback. Not copied from CORE's live database.
+# Assigned explicitly (assignments.yaml) to every role a code_modification
+# run exercises -- Planner, and the coder roles the code-generation prompts
+# declare (Coder, RemoteCoder); no fallback. The capabilities are the ones
+# this coder model honestly has. Not copied from CORE's live database.
 name: ollama_qwen_coder_3b_trial
 env_prefix: OLLAMA_QWEN_CODER_3B_TRIAL
 provided_capabilities:
   - planning
   - json_output
   - reasoning
+  - code_generation
+  - code_understanding
 model_name: qwen2.5-coder:3b
 model_digest: f72c60cabf6237b07f6e
 api_url: http://192.168.20.40:11434
