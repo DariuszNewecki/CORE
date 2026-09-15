@@ -1,0 +1,7 @@
+# Explicit role -> resource assignment (ruling A: no fallback; the selector
+# honours an active priority-1 assignment as a deliberate override).
+assignments:
+  - role: Planner
+    resource: ollama_qwen_coder_3b_trial
+    priority: 1
+    is_active: true

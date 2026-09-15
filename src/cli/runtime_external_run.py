@@ -118,6 +118,7 @@ class ExternalRunOptions:
     goal: str
     workflow_type: str
     overlay: Path | None
+    seed: Path | None
     evidence_dir: Path | None
     write: bool
 
@@ -234,6 +235,14 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
         "--overlay", default=None, help="Overlay directory mirroring .intent/ layout"
     )
     parser.add_argument(
+        "--seed",
+        default=None,
+        help=(
+            "Seed directory (llm_resources/*.yaml, assignments.yaml, "
+            "system_config.yaml) applied to the isolated database; required"
+        ),
+    )
+    parser.add_argument(
         "--evidence-dir",
         default=None,
         help="Evidence root (else CORE_EVIDENCE_DIR); must be outside the subject and CORE",
@@ -247,6 +256,7 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
         goal=ns.goal,
         workflow_type=ns.workflow,
         overlay=Path(ns.overlay) if ns.overlay else None,
+        seed=Path(ns.seed) if ns.seed else None,
         evidence_dir=Path(ns.evidence_dir) if ns.evidence_dir else None,
         write=bool(ns.write),
     )
@@ -304,11 +314,142 @@ async def _default_bootstrap(expected_target: Path, expected_mind: Path) -> Any:
             "safe-auto-approval envelope does not load through the bound "
             f"IntentRepository: {envelope.get('reason')}"
         )
+    return core_context
+
+
+async def _default_cognitive_init(core_context: Any) -> None:
+    """Initialize the cognitive service AFTER the isolated database is seeded
+    (it loads roles/resources/assignments once, on first initialize)."""
+    from body.services.service_registry import service_registry
+
     cognitive = await service_registry.get_cognitive_service()
     async with service_registry.session() as session:
         await cognitive.initialize(session)
     core_context.cognitive_service = cognitive
-    return core_context
+
+
+def _runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
+    """Ruling B: the planner prompt is runner machinery; its source is the
+    runner's own prompt root (PathResolver, never a literal)."""
+    from shared.path_resolver import PathResolver
+
+    return {"plan_goal": PathResolver(core_repo_root).prompts_dir / "plan_goal"}
+
+
+async def _default_seed_environment(
+    core_context: Any,
+    seed_dir: Path,
+    database_url: str,
+    copy: Any,
+    evidence_root: Path,
+) -> str:
+    """Rulings A/D/E, in order: roles from the copy's taxonomy
+    (project.cognitive_roles), seed document checked against those roles,
+    pinned digests verified at the pinned endpoint, resources/assignments/
+    system_config written by seed.external_run_resources -- both actions via
+    ActionExecutor. Returns the canonical seed_hash; writes
+    evidence/seed_manifest.json. Raises _Refused on any refusal."""
+    from urllib.parse import urlsplit
+
+    from shared.infrastructure.intent.cognitive_roles import (
+        load_cognitive_role_capabilities,
+    )
+    from shared.infrastructure.intent.external_run_seed import (
+        SeedError,
+        check_seed_serves_roles,
+        load_seed_document,
+        probe_ollama_digest,
+        seed_hash,
+        seed_manifest,
+    )
+    from shared.infrastructure.intent.target_intent_assembly import write_evidence_json
+
+    executor = getattr(core_context, "action_executor", None)
+    if executor is None:
+        raise _Refused(
+            "CoreContext has no action_executor after bootstrap", EXIT_INTERNAL_FAILURE
+        )
+
+    try:
+        seed = load_seed_document(seed_dir)
+    except SeedError as exc:
+        raise _Refused(f"seed document refused: {exc}")
+
+    # E: roles from the execution copy's own taxonomy (bound singleton).
+    projection = await executor.execute("project.cognitive_roles", write=True)
+    if not projection.ok:
+        raise _Refused(f"role projection failed: {projection.data.get('error')}")
+    taxonomy = load_cognitive_role_capabilities()
+    needed_roles = {a["role"] for a in seed.assignments} | {"Planner"}
+    missing = sorted(r for r in needed_roles if r not in taxonomy)
+    if missing:
+        raise _Refused(f"roles absent from the copy's taxonomy: {missing}")
+    required = {r: taxonomy[r] for r in sorted(needed_roles)}
+    try:
+        check_seed_serves_roles(seed, required)
+    except SeedError as exc:
+        raise _Refused(f"seed cannot serve the run's roles: {exc}")
+
+    # A: pinned digest verified against the pinned endpoint.
+    verified: dict[str, str] = {}
+    for resource in seed.resources:
+        pinned = resource.get("model_digest")
+        if not pinned:
+            continue
+        try:
+            observed = probe_ollama_digest(resource["api_url"], resource["model_name"])
+        except SeedError as exc:
+            raise _Refused(str(exc))
+        if observed is None:
+            raise _Refused(
+                f"model {resource['model_name']!r} is not present at {resource['api_url']}"
+            )
+        if not observed.startswith(pinned) and not pinned.startswith(observed):
+            raise _Refused(
+                f"digest mismatch for {resource['name']!r}: pinned {pinned}, "
+                f"endpoint reports {observed}"
+            )
+        verified[resource["name"]] = observed
+
+    # D: the one governed writer, isolated-database proof inside the action.
+    expected_database = urlsplit(database_url).path.lstrip("/")
+    seeded = await executor.execute(
+        "seed.external_run_resources",
+        write=True,
+        seed=seed,
+        expected_database=expected_database,
+    )
+    if not seeded.ok:
+        raise _Refused(f"seeding refused: {seeded.data.get('error')}")
+
+    from shared.infrastructure.intent.machinery_floor_integrity import floor_manifest
+
+    manifest = seed_manifest(
+        seed,
+        verified_digests=verified,
+        prompts=[
+            {
+                "id": p.prompt_id,
+                "files": dict(sorted(p.files.items())),
+                "displaced_subject_sha256": dict(
+                    sorted(p.displaced_original_sha256.items())
+                ),
+            }
+            for p in copy.prompts
+        ],
+        roles=[
+            {
+                "role": role,
+                "taxonomy_sha256": floor_manifest().get(
+                    "taxonomies/cognitive_roles.yaml"
+                ),
+                "created": role in (projection.data.get("created") or []),
+            }
+            for role in sorted(needed_roles)
+        ],
+    )
+    write_evidence_json(evidence_root, "seed_manifest.json", manifest)
+    return seed_hash(manifest)
 
 
 async def _default_develop(
@@ -341,6 +482,10 @@ def execute(
     core_repo_root: Path,
     environ: dict[str, str] | None = None,
     bootstrap: Callable[[Path, Path], Awaitable[Any]] = _default_bootstrap,
+    seed_environment: Callable[
+        [Any, Path, str, Any, Path], Awaitable[str]
+    ] = _default_seed_environment,
+    cognitive_init: Callable[[Any], Awaitable[None]] = _default_cognitive_init,
     develop: Callable[
         [Any, str, str, bool], Awaitable[tuple[bool, str]]
     ] = _default_develop,
@@ -399,10 +544,16 @@ def execute(
                 "DATABASE_URL is not set: an external run needs its own isolated database"
             )
 
+        if opts.seed is None:
+            raise _Refused("no seed directory: pass --seed (rulings D/E, 2026-09-15)")
         # 2b. bind BEFORE the first `shared` import (see step 1). The copy does
-        # not exist yet; Settings only records the paths.
+        # not exist yet; Settings only records the paths. Ruling C: no
+        # target-bound policy-vector store exists, so QDRANT_URL is removed
+        # here -- CORE's own policy vectors must not enter through a side
+        # channel; the Worker records the degradation on the run's identity.
         env["REPO_PATH"] = str(bound_target)
         env["MIND"] = str(bound_mind)
+        env.pop("QDRANT_URL", None)
 
         from shared.infrastructure.external_target_binding import (
             ExternalTargetBindingError,
@@ -430,7 +581,12 @@ def execute(
 
         # 4. materialize
         try:
-            copy = materialize_execution_copy(subject, run_root, opts.overlay)
+            copy = materialize_execution_copy(
+                subject,
+                run_root,
+                opts.overlay,
+                prompt_sources=_runner_prompt_sources(core_repo_root),
+            )
         except (OverlayCollisionError, SubjectCopyError, FileExistsError) as exc:
             raise _Refused(str(exc))
         evidence_root = copy.evidence_root
@@ -507,6 +663,20 @@ def execute(
             # agreement and the envelope through the bound singleton itself.
             core_context = await bootstrap(copy.target_root, copy.intent_root)
 
+            # 6b. seed the isolated environment (rulings A/D/E): roles from the
+            # copy's own taxonomy via project.cognitive_roles; resources,
+            # assignments and system_config from the operator's seed document
+            # via seed.external_run_resources; pinned digest verified against
+            # the pinned endpoint. Both actions go through ActionExecutor.
+            seed_hash_value = await seed_environment(
+                core_context,
+                opts.seed,  # type: ignore[arg-type]
+                env["DATABASE_URL"],
+                copy,
+                evidence_root,  # type: ignore[arg-type]
+            )
+            await cognitive_init(core_context)
+
             # 7. attach the binding facts to the context. GoalExecutionWorker
             # spreads them into goal_run.<run_id>.start (Unit 3) -- the
             # Blackboard record, as distinct from the apparatus's binding.json.
@@ -529,6 +699,7 @@ def execute(
                     )
                     for d in copy.displaced
                 ),
+                seed_hash=seed_hash_value,
             )
 
             # 8. the run (default legacy_direct_write; guard is the contract).

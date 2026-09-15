@@ -1,0 +1,3 @@
+# local_only: a remote resource can never be selected in the trial environment.
+operating_mode: local_only
+llm_enabled: true

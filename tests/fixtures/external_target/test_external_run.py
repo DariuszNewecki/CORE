@@ -69,8 +69,14 @@ def _subject(tmp_path: Path, *, with_intent: bool = False) -> Path:
     return s
 
 
+SEED_DIR = _HERE / "seed"
+
+
 def _opts(
-    subject: Path, evidence: Path | None, overlay: Path | None = OVERLAY_DIR
+    subject: Path,
+    evidence: Path | None,
+    overlay: Path | None = OVERLAY_DIR,
+    seed: Path | None = SEED_DIR,
 ) -> ExternalRunOptions:
     return ExternalRunOptions(
         subject=subject,
@@ -79,6 +85,7 @@ def _opts(
         overlay=overlay,
         evidence_dir=evidence,
         write=False,
+        seed=seed,
     )
 
 
@@ -102,6 +109,26 @@ class _Fakes:
         self.develop_env: dict[str, str] = {}
         # a bare object with a settable attribute, like CoreContext
         self.context = type("Ctx", (), {"target_binding": None})()
+
+    async def seed_environment(
+        self,
+        context: Any,
+        seed_dir: Path,
+        database_url: str,
+        copy: Any,
+        evidence_root: Path,
+    ) -> str:
+        assert context is self.context
+        assert seed_dir.is_dir()
+        assert evidence_root.name == "evidence"
+        self.seeded = True
+        assert "QDRANT_URL" not in self.env, (
+            "ruling C: unset before any seeding/bootstrap"
+        )
+        return "5" * 64
+
+    async def cognitive_init(self, context: Any) -> None:
+        assert getattr(self, "seeded", False), "cognitive init must follow seeding"
 
     async def bootstrap(self, expected_target: Path, expected_mind: Path) -> Any:
         self.bootstrap_env = {k: self.env.get(k, "") for k in ("REPO_PATH", "MIND")}
@@ -139,6 +166,8 @@ def test_happy_path_binds_materializes_and_invokes(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
 
@@ -156,6 +185,8 @@ def test_happy_path_binds_materializes_and_invokes(tmp_path: Path) -> None:
     assert tb is not None, "the binding is attached to the context for the Worker"
     assert tb.bound_repo_path == str(target) and tb.subject_path == str(subject)
     assert len(tb.bound_sha) == 40 and tb.displaced == ()
+    assert tb.seed_hash == "5" * 64
+    assert "QDRANT_URL" not in env
     binding = json.loads((ev / "binding.json").read_text())
     assert binding["bound_repo_path"] == str(target)
     assert binding["subject_fingerprint_before"] == before
@@ -180,6 +211,8 @@ def test_unavailable_is_explicit_not_a_generic_failure(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_UNAVAILABLE
@@ -207,6 +240,8 @@ def test_floor_wins_on_a_subject_with_colliding_intent(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_RAN
@@ -258,6 +293,8 @@ def test_pre_bootstrap_refusals(tmp_path: Path, case: str) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -276,6 +313,8 @@ def test_overlay_colliding_with_subject_law_is_refused(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -296,6 +335,8 @@ def test_missing_envelope_in_copy_is_refused_at_bind_time(tmp_path: Path) -> Non
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -319,6 +360,8 @@ def test_floor_modified_in_copy_is_refused(tmp_path: Path, monkeypatch) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -342,6 +385,8 @@ def test_subject_changed_during_run_is_internal_failure(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
         develop=fakes.develop,
     )
     assert code == EXIT_INTERNAL_FAILURE
@@ -367,6 +412,68 @@ def test_route_source_never_passes_legacy_direct_write() -> None:
                 ("#", '"', "'")
             ), line
     assert "develop_from_goal(" in src
+
+
+def test_missing_seed_is_refused_before_bootstrap(tmp_path: Path) -> None:
+    subject = _subject(tmp_path)
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    code = execute(
+        _opts(subject, tmp_path / "evidence", seed=None),
+        core_repo_root=REPO_ROOT,
+        environ=env,
+        bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
+        develop=fakes.develop,
+    )
+    assert code == EXIT_BINDING_REFUSED
+    assert fakes.bootstrap_env == {} and fakes.develop_calls == []
+
+
+def test_qdrant_url_is_removed_from_the_bound_environment(tmp_path: Path) -> None:
+    subject = _subject(tmp_path)
+    env = {
+        "DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db",
+        "QDRANT_URL": "http://cores-own-vectors:6333",
+    }
+    fakes = _Fakes(env)
+    code = execute(
+        _opts(subject, tmp_path / "evidence"),
+        core_repo_root=REPO_ROOT,
+        environ=env,
+        bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
+        develop=fakes.develop,
+    )
+    assert code == EXIT_RAN
+    assert "QDRANT_URL" not in env
+
+
+def test_runner_prompt_is_installed_into_the_copy(tmp_path: Path) -> None:
+    subject = _subject(tmp_path)
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    assert (
+        execute(
+            _opts(subject, tmp_path / "evidence"),
+            core_repo_root=REPO_ROOT,
+            environ=env,
+            bootstrap=fakes.bootstrap,
+            seed_environment=fakes.seed_environment,
+            cognitive_init=fakes.cognitive_init,
+            develop=fakes.develop,
+        )
+        == EXIT_RAN
+    )
+    run = next((tmp_path / "evidence" / "runs").iterdir())
+    installed = run / "target" / "var" / "prompts" / "plan_goal" / "model.yaml"
+    assert (
+        installed.read_bytes()
+        == (REPO_ROOT / "var" / "prompts" / "plan_goal" / "model.yaml").read_bytes()
+    )
+    assert (run / "evidence" / "prompt_collision_manifest.json").is_file()
 
 
 # --- 2. child-process: real entry point, early dispatch ------------------------
@@ -479,6 +586,8 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
                 "Evaluate the package",
                 "--overlay",
                 str(OVERLAY_DIR),
+                "--seed",
+                str(SEED_DIR),
             ],
             cwd=REPO_ROOT,
             env=env,
