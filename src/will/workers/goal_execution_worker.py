@@ -148,17 +148,33 @@ class GoalExecutionWorker(Worker):
                 "started_at": datetime.now(UTC).isoformat(),
                 "action_results_correlation_key": run_id,
             }
+            # Resolve the vector store BEFORE the run's identity is written:
+            # `policy_counsel` below states what this run actually planned
+            # with, so the resolution attempt has to precede the record, not
+            # follow it. (Was after the start report; a bound run whose
+            # registry still resolved CORE's own Qdrant then recorded
+            # "unavailable" while PARSE queried it -- #894 ruling C live run.)
+            if self._context.qdrant_service is None:
+                try:
+                    self._context.qdrant_service = (
+                        await self._context.registry.get_qdrant_service()
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Could not resolve qdrant_service from registry: %s", exc
+                    )
+
             # #894 Unit 3: carry the binding facts when the context has them;
             # a CORE-internal run's payload is unchanged (key omitted, not null).
             binding = getattr(self._context, "target_binding", None)
             if binding is not None:
                 start_payload["target_binding"] = binding.to_payload()
                 # Ruling C (2026-09-15): an external run has no target-bound
-                # policy-vector store (QDRANT_URL is unset for it); say so on
-                # the run's own identity. Recorded only when a binding is
-                # present so an internal Qdrant outage never changes an
+                # policy-vector store (QDRANT_URL is bound empty for it); say
+                # so on the run's own identity. Recorded only when a binding
+                # is present so an internal Qdrant outage never changes an
                 # internal run's payload.
-                if getattr(self._context, "qdrant_service", None) is None:
+                if self._context.qdrant_service is None:
                     start_payload["policy_counsel"] = (
                         "unavailable — no target-bound policy-vector store"
                     )
@@ -180,9 +196,10 @@ class GoalExecutionWorker(Worker):
                     "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
                 )
 
-            # Warm up brain services on the CoreContext, matching the prior
-            # develop_from_goal behavior for callers whose context hasn't
-            # been through the strategic-audit CLI bootstrap.
+            # Warm up the cognitive service on the CoreContext (the vector
+            # store was resolved above, before the identity record), matching
+            # the prior develop_from_goal behavior for callers whose context
+            # hasn't been through the strategic-audit CLI bootstrap.
             if self._context.cognitive_service is None:
                 try:
                     self._context.cognitive_service = (
@@ -191,15 +208,6 @@ class GoalExecutionWorker(Worker):
                 except Exception as exc:
                     logger.warning(
                         "Could not resolve cognitive_service from registry: %s", exc
-                    )
-            if self._context.qdrant_service is None:
-                try:
-                    self._context.qdrant_service = (
-                        await self._context.registry.get_qdrant_service()
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Could not resolve qdrant_service from registry: %s", exc
                     )
 
             # #894 Unit 3 (item 3 of the ADR-159 remediation scope): explicit

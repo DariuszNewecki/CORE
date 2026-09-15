@@ -646,3 +646,24 @@ async def test_policy_counsel_recorded_only_for_bound_run_without_vector_store()
         await internal.run()
     _, payload = internal._blackboard.post_report.call_args_list[0].args
     assert "policy_counsel" not in payload and "target_binding" not in payload
+
+
+async def test_policy_counsel_reflects_the_vector_store_resolved_before_the_record() -> (
+    None
+):
+    """The identity record states what the run actually planned with: the
+    registry resolution happens BEFORE goal_run.<id>.start is posted. A bound
+    run whose registry still hands out a vector store (the ruling C leak the
+    live run found) must not record "unavailable" while PARSE then uses it."""
+    bound = _make_worker()
+    bound._context.target_binding = _binding()
+    bound._context.qdrant_service = None
+    resolved = MagicMock(name="qdrant_from_registry")
+    bound._context.registry.get_qdrant_service = AsyncMock(return_value=resolved)
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await bound.run()
+    _, payload = bound._blackboard.post_report.call_args_list[0].args
+    assert "policy_counsel" not in payload, "the run HAD a vector store"
+    assert bound._context.qdrant_service is resolved
+    bound._context.registry.get_qdrant_service.assert_awaited_once()

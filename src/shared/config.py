@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from shared.logger import getLogger
@@ -145,6 +145,26 @@ class Settings(BaseSettings):
     # time. See #544 for the full incident.
     DATABASE_URL: str | None = Field(None, validation_alias="DATABASE_URL")
     QDRANT_URL: str | None = Field(None, validation_alias="QDRANT_URL")
+
+    @field_validator("QDRANT_URL", mode="before")
+    @classmethod
+    # ID: 3c2f38f5-7d2b-4179-8538-40f737e4d037
+    def empty_qdrant_url_is_unset(cls, value: object) -> object:
+        """An empty ``QDRANT_URL`` means "no vector store", not "a URL of ''".
+
+        A process that must run WITHOUT CORE's policy-vector store cannot
+        simply unset the variable: the dotenv cascade in ``__init__`` reloads
+        ``.env`` with ``override=True`` and only restores keys the process had
+        preset, so a deleted key comes back with CORE's own value. Presetting
+        it to the empty string survives the cascade; this validator turns
+        that sentinel into the same ``None`` an absent variable yields, so
+        every consumer's ``is None`` / ``not url`` check keeps its meaning
+        (#894 ruling C, 2026-09-15).
+        """
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"
     )

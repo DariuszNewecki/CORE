@@ -271,6 +271,38 @@ def _write_evidence(evidence_root: Path, name: str, payload: dict[str, Any]) -> 
     write_evidence_json(evidence_root, name, payload)
 
 
+# Ruling C (2026-09-15): the value QDRANT_URL is bound to for an external run.
+# Empty, not absent -- see step 2b in :func:`execute` for why deletion leaks.
+QDRANT_URL_UNBOUND = ""
+
+
+# ID: 095ec12b-fa88-4b65-9ceb-eb178160aa88
+def vector_store_leak(
+    *, settings_qdrant_url: str | None, service_registry_qdrant_url: str | None
+) -> str | None:
+    """Ruling C proof, evaluated on the bound process AFTER Settings was born:
+    neither the bound ``Settings`` nor the service registry may carry a
+    policy-vector-store URL. Returns the refusal text, or ``None`` when the
+    run is honestly without one. Pure; the bootstrap calls it with the live
+    values so a future change to the dotenv cascade fails here, loudly,
+    instead of quietly re-admitting CORE's own vectors."""
+    carriers = [
+        name
+        for name, value in (
+            ("Settings.QDRANT_URL", settings_qdrant_url),
+            ("service_registry.qdrant_url", service_registry_qdrant_url),
+        )
+        if value
+    ]
+    if not carriers:
+        return None
+    return (
+        "ruling C violated: the bound process carries a policy-vector-store URL "
+        f"({', '.join(carriers)}); an external run has no target-bound vector "
+        "store and must not reach CORE's own"
+    )
+
+
 async def _default_bootstrap(expected_target: Path, expected_mind: Path) -> Any:
     """Construct the ordinary CoreContext against the bound environment and
     prove it is bound where we think: every runtime root must agree with
@@ -308,6 +340,12 @@ async def _default_bootstrap(expected_target: Path, expected_mind: Path) -> Any:
             "runtime roots disagree after bootstrap: " + "; ".join(disagreements),
             EXIT_INTERNAL_FAILURE,
         )
+    leak = vector_store_leak(
+        settings_qdrant_url=settings.QDRANT_URL,
+        service_registry_qdrant_url=service_registry.qdrant_url,
+    )
+    if leak is not None:
+        raise _Refused(leak, EXIT_INTERNAL_FAILURE)
     envelope = load_safe_auto_approval_envelope()
     if envelope.get("_error"):
         raise _Refused(
@@ -556,12 +594,17 @@ def execute(
             raise _Refused("no seed directory: pass --seed (rulings D/E, 2026-09-15)")
         # 2b. bind BEFORE the first `shared` import (see step 1). The copy does
         # not exist yet; Settings only records the paths. Ruling C: no
-        # target-bound policy-vector store exists, so QDRANT_URL is removed
-        # here -- CORE's own policy vectors must not enter through a side
-        # channel; the Worker records the degradation on the run's identity.
+        # target-bound policy-vector store exists, so QDRANT_URL is bound to
+        # the EMPTY STRING here -- not deleted. Settings' dotenv cascade
+        # reloads CORE's own .env with override=True and restores only keys
+        # the process had preset, so a deleted key would come back carrying
+        # CORE's live vector store (the side channel this ruling closes);
+        # a preset empty string survives the cascade and Settings normalizes
+        # it to None. The bootstrap re-proves the absence (step 6) and the
+        # Worker records the degradation on the run's identity.
         env["REPO_PATH"] = str(bound_target)
         env["MIND"] = str(bound_mind)
-        env.pop("QDRANT_URL", None)
+        env["QDRANT_URL"] = QDRANT_URL_UNBOUND
 
         from shared.infrastructure.external_target_binding import (
             ExternalTargetBindingError,

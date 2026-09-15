@@ -33,10 +33,12 @@ from cli.runtime_external_run import (
     EXIT_INTERNAL_FAILURE,
     EXIT_RAN,
     EXIT_UNAVAILABLE,
+    QDRANT_URL_UNBOUND,
     ExternalRunOptions,
     execute,
     guard_legacy_direct_write,
     matches_route,
+    vector_store_leak,
 )
 from shared.infrastructure.intent.machinery_floor_integrity import verify_floor
 from shared.infrastructure.intent.target_intent_assembly import subject_fingerprint
@@ -122,8 +124,8 @@ class _Fakes:
         assert seed_dir.is_dir()
         assert evidence_root.name == "evidence"
         self.seeded = True
-        assert "QDRANT_URL" not in self.env, (
-            "ruling C: unset before any seeding/bootstrap"
+        assert self.env.get("QDRANT_URL") == QDRANT_URL_UNBOUND, (
+            "ruling C: bound empty before any seeding/bootstrap"
         )
         return "5" * 64
 
@@ -186,7 +188,7 @@ def test_happy_path_binds_materializes_and_invokes(tmp_path: Path) -> None:
     assert tb.bound_repo_path == str(target) and tb.subject_path == str(subject)
     assert len(tb.bound_sha) == 40 and tb.displaced == ()
     assert tb.seed_hash == "5" * 64
-    assert "QDRANT_URL" not in env
+    assert env.get("QDRANT_URL") == QDRANT_URL_UNBOUND
     binding = json.loads((ev / "binding.json").read_text())
     assert binding["bound_repo_path"] == str(target)
     assert binding["subject_fingerprint_before"] == before
@@ -431,7 +433,11 @@ def test_missing_seed_is_refused_before_bootstrap(tmp_path: Path) -> None:
     assert fakes.bootstrap_env == {} and fakes.develop_calls == []
 
 
-def test_qdrant_url_is_removed_from_the_bound_environment(tmp_path: Path) -> None:
+def test_qdrant_url_is_bound_empty_not_deleted(tmp_path: Path) -> None:
+    """Ruling C. The variable is PRESET to the empty sentinel, not popped:
+    Settings' dotenv cascade restores only preset keys, so a popped key would
+    come back carrying CORE's own vector store (proved by
+    test_settings_cascade_* below)."""
     subject = _subject(tmp_path)
     env = {
         "DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db",
@@ -448,7 +454,88 @@ def test_qdrant_url_is_removed_from_the_bound_environment(tmp_path: Path) -> Non
         develop=fakes.develop,
     )
     assert code == EXIT_RAN
-    assert "QDRANT_URL" not in env
+    assert env["QDRANT_URL"] == QDRANT_URL_UNBOUND == ""
+
+
+@pytest.mark.parametrize(
+    ("settings_url", "registry_url", "leaks"),
+    [
+        (None, None, False),
+        ("", None, False),
+        ("http://cores-own-vectors:6333", None, True),
+        (None, "http://cores-own-vectors:6333", True),
+        ("http://a:6333", "http://b:6333", True),
+    ],
+)
+def test_vector_store_leak_names_every_carrier(
+    settings_url: str | None, registry_url: str | None, leaks: bool
+) -> None:
+    text = vector_store_leak(
+        settings_qdrant_url=settings_url, service_registry_qdrant_url=registry_url
+    )
+    assert (text is not None) is leaks
+    if leaks:
+        assert "ruling C" in text
+        if settings_url:
+            assert "Settings.QDRANT_URL" in text
+        if registry_url:
+            assert "service_registry.qdrant_url" in text
+
+
+def _fresh_settings_qdrant_url(
+    extra_env: dict[str, str], *, drop: tuple[str, ...]
+) -> str:
+    """What `shared.config.settings.QDRANT_URL` resolves to in a fresh,
+    NON-pytest process (PYTEST_CURRENT_TEST stripped so Settings takes the
+    real dotenv-cascade branch, exactly like `core-admin` from a shell)."""
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("PYTEST_CURRENT_TEST", "CORE_ENV", "DATABASE_URL", *drop)
+    }
+    env["PYTHONPATH"] = str(REPO_ROOT / "src")
+    env.update(extra_env)
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from shared.config import settings; print(repr(settings.QDRANT_URL))",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert completed.returncode == 0, completed.stderr[-2000:]
+    return completed.stdout.strip().splitlines()[-1]
+
+
+@pytest.mark.skipif(
+    not (REPO_ROOT / ".env").is_file(),
+    reason="needs CORE's own .env to prove the cascade",
+)
+def test_settings_cascade_reinstates_a_deleted_qdrant_url() -> None:
+    """The failure mode ruling C's implementation must not rely on: with the
+    variable ABSENT, a fresh process gets whatever CORE's .env says. This
+    test documents the cascade; it passes whether .env sets QDRANT_URL or not,
+    but when it does, the value is CORE's own -- which is the leak."""
+    resolved = _fresh_settings_qdrant_url({}, drop=("QDRANT_URL",))
+    dotenv_value = None
+    for line in (REPO_ROOT / ".env").read_text().splitlines():
+        if line.startswith("QDRANT_URL="):
+            dotenv_value = line.split("=", 1)[1].strip().strip("'\"")
+    assert resolved == repr(dotenv_value)
+
+
+def test_settings_cascade_honours_the_empty_sentinel() -> None:
+    """Ruling C's mechanism: a PRESET empty QDRANT_URL survives the cascade
+    and Settings normalizes it to None -- the same value an unconfigured
+    vector store yields, so every `is None` consumer keeps its meaning."""
+    assert (
+        _fresh_settings_qdrant_url({"QDRANT_URL": QDRANT_URL_UNBOUND}, drop=())
+        == "None"
+    )
 
 
 def test_runner_prompt_is_installed_into_the_copy(tmp_path: Path) -> None:
