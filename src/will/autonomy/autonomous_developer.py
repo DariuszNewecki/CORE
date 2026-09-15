@@ -86,6 +86,12 @@ _GRANDFATHERED_DIRECT_WRITE_CALLERS: MappingProxyType[str, str] = MappingProxyTy
 )
 
 
+# Stable token on develop_from_goal's message when the run was UNAVAILABLE
+# (planner prompt / cognitive-role client unobtainable). Callers that need
+# the distinction (runtime external-run's exit code) check startswith().
+UNAVAILABLE_PREFIX = "UNAVAILABLE: "
+
+
 # ID: ad8b2dd6-6874-431f-9fba-9d22a2d6a04c
 async def develop_from_goal(
     context: CoreContext,
@@ -168,6 +174,17 @@ async def develop_from_goal(
         "GoalExecutionWorker.start() returned without raising, but "
         "run() did not set self.result — this should be unreachable."
     )
+
+    # #894 Unit 3: explicit unavailability is its own outcome, never folded
+    # into "failed at phase X". The worker already recorded it on the
+    # Blackboard (goal_run.<run_id>.outcome, instrument_result=unavailable);
+    # this message is the stable, machine-checkable form for callers that
+    # only see (ok, message) -- it always starts with UNAVAILABLE_PREFIX.
+    if worker.unavailable_reason is not None:
+        return (
+            False,
+            f"{UNAVAILABLE_PREFIX}{worker.unavailable_reason} (run_id={worker.run_id})",
+        )
 
     if create_proposal_only:
         if result.ok and worker.proposal_id:

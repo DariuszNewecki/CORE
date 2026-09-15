@@ -1,0 +1,50 @@
+# Fixture-owned overlay worker declaration, applied at materialization time
+# (Governor ruling 2026-09-15, #894 Unit 3): gives GoalExecutionWorker
+# constitutional standing to run one PLAN-ONLY goal inside the disposable
+# target, so the run's Blackboard identity (goal_run.<run_id>.start with
+# target_binding; goal_run.<run_id>.outcome, including an explicit
+# unavailable instrument result) can be recorded and exported.
+#
+# Fixture-local: unique UUID (never CORE's c9b6d171-...), scope limited to
+# package/**, and only the tools the exercised plan-only workflow reaches
+# (interpret -> plan -> context). No change.* / test.* / commit tools: this
+# declaration cannot be used to mutate the target. It is NOT universal
+# external-target law -- a subject outside this controlled overlay that
+# lacks a goal_execution_worker declaration is a binding refusal.
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.goal_execution_worker
+  title: Goal Execution Worker (fixture, plan-only)
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "71adb9e6-864a-4f4d-bba4-283c17dbb91a"
+  class: acting
+
+mandate:
+  responsibility: >
+    Execute one plan-only goal-driven workflow inside the disposable
+    fixture target, recording its identity and outcome to the Blackboard.
+  phase: execution
+  permitted_tools:
+    - intent.normalize
+    - intent.classify
+    - workflow.select
+    - action.plan
+    - scope.assess
+    - context.resolve
+  scope:
+    paths:
+      - "package/**"
+    domains:
+      - autonomy
+      - goal_execution
+
+implementation:
+  module: will.workers.goal_execution_worker
+  class: GoalExecutionWorker
+  requires_core_context: true

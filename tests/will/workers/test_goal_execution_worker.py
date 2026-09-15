@@ -27,6 +27,32 @@ async def _never_returns() -> None:
     await asyncio.Event().wait()
 
 
+@pytest.fixture(autouse=True)
+def _planner_ready(request):
+    """#894 Unit 3: run() probes planner readiness before planning. The
+    existing tests model a ready apparatus; the unavailable path has its own
+    tests below (marked with the `planner_unavailable` fixture)."""
+    if "planner_unavailable" in request.fixturenames:
+        yield
+        return
+    with patch(
+        "will.workers.goal_execution_worker.probe_planner_readiness",
+        new=AsyncMock(return_value=None),
+    ):
+        yield
+
+
+@pytest.fixture
+def planner_unavailable():
+    with patch(
+        "will.workers.goal_execution_worker.probe_planner_readiness",
+        new=AsyncMock(
+            return_value="no cognitive-role client for planner role 'planner'"
+        ),
+    ):
+        yield
+
+
 def _make_worker(**overrides: object) -> GoalExecutionWorker:
     """Real __init__ (loads the real .intent/ declaration); DB-touching
     lifecycle leaves and the blackboard write surface are faked out."""
@@ -492,3 +518,106 @@ async def test_create_proposal_only_refuses_high_risk_proposal_unapproved() -> N
     assert worker.result is not None and worker.result.ok is False
     _, payload = worker._blackboard.post_observation.call_args.args
     assert payload["reason"] == "proposal_invalid"
+
+
+# --- #894 Unit 3: run identity carries the binding; unavailability is recorded ---
+
+
+def _binding():
+    from shared.models.target_binding import DisplacedFile, TargetBinding
+
+    return TargetBinding(
+        subject_path="/subjects/frozen",
+        subject_sha="a" * 40,
+        subject_tree_hash="b" * 40,
+        bound_repo_path="/evidence/runs/r1/target",
+        bound_sha="c" * 40,
+        bound_tree_hash="d" * 40,
+        floor_hash="e" * 64,
+        overlay_hash="f" * 64,
+        displaced=(DisplacedFile("META/enums.json", "1" * 64, "2" * 64),),
+    )
+
+
+async def test_internal_run_start_payload_has_no_target_binding_key() -> None:
+    """Preserve internal-run payloads exactly: the key is omitted, not null."""
+    worker = _make_worker()
+    worker._context.target_binding = None
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await worker.run()
+    _, start_payload = worker._blackboard.post_report.call_args_list[0].args
+    assert "target_binding" not in start_payload
+
+
+async def test_bound_run_start_payload_carries_the_binding() -> None:
+    worker = _make_worker()
+    worker._context.target_binding = _binding()
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await worker.run()
+    _, start_payload = worker._blackboard.post_report.call_args_list[0].args
+    tb = start_payload["target_binding"]
+    assert tb["subject_sha"] == "a" * 40
+    assert tb["bound_tree_hash"] == "d" * 40
+    assert tb["floor_hash"] == "e" * 64 and tb["overlay_hash"] == "f" * 64
+    assert tb["displaced"] == [
+        {
+            "path": "META/enums.json",
+            "original_sha256": "1" * 64,
+            "installed_floor_sha256": "2" * 64,
+        }
+    ]
+
+
+async def test_unavailable_planner_is_recorded_on_the_blackboard_and_exposed(
+    planner_unavailable,
+) -> None:
+    """Explicit unavailability is CORE's record: goal_run.<id>.outcome as an
+    unavailable instrument result, and worker.unavailable_reason for the shim."""
+    worker = _make_worker()
+    worker._context.target_binding = _binding()
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch as orch_cls, registry_patch:
+        await worker.run()
+        orch_cls.return_value.execute_goal.assert_not_called()
+
+    assert worker.unavailable_reason is not None
+    assert "planner" in worker.unavailable_reason
+    assert worker.result is not None and worker.result.ok is False
+    # start was posted (with the binding) ...
+    start_subject, start_payload = worker._blackboard.post_report.call_args_list[0].args
+    assert start_subject == f"goal_run.{worker.run_id}.start"
+    assert "target_binding" in start_payload
+    # ... and the outcome is an unavailable observation, not a failure report
+    subject, payload = worker._blackboard.post_observation.call_args.args
+    status = worker._blackboard.post_observation.call_args.kwargs["status"]
+    assert subject == f"goal_run.{worker.run_id}.outcome"
+    assert status == "indeterminate"
+    assert payload["instrument_result"] == "unavailable"
+    assert payload["reason"] == "planner_unavailable"
+    assert payload["outcome"] == "unavailable"
+    assert payload["run_id"] == worker.run_id
+
+
+async def test_develop_from_goal_returns_stable_unavailable_message(
+    planner_unavailable,
+) -> None:
+    """The (ok, message) contract is unchanged; UNAVAILABLE is a stable prefix
+    the external-run route can check, set explicitly from
+    worker.unavailable_reason -- never from a phase error."""
+    from will.autonomy import autonomous_developer as ad
+
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with (
+        orch_patch,
+        registry_patch,
+        patch.object(ad, "GoalExecutionWorker", return_value=worker),
+    ):
+        ok, message = await ad.develop_from_goal(
+            worker._context, "goal", "refactor_modularity", write=False
+        )
+    assert ok is False
+    assert message.startswith(ad.UNAVAILABLE_PREFIX)
+    assert worker.run_id in message

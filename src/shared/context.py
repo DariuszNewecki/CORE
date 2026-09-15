@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from shared.infrastructure.git_service import GitService
     from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
     from shared.models.execution_models import PlannerConfig
+    from shared.models.target_binding import TargetBinding
     from shared.path_resolver import PathResolver
     from shared.protocols.executor import ActionExecutorProtocol
     from will.orchestration.cognitive_service import CognitiveService
@@ -77,6 +78,11 @@ class CoreContext:
     auditor_context: AuditorContext | None = None
     planner_config: PlannerConfig | None = None
     qdrant_service: QdrantService | None = None
+    # ADR-159 Note 2026-09-15 (#894 Unit 3): what repository this process's
+    # goal-driven run is bound to. Set by `runtime external-run` after
+    # bootstrap; None for a CORE-internal run. Consumed by
+    # GoalExecutionWorker's start report -- never branched on elsewhere.
+    target_binding: TargetBinding | None = None
     debug: bool = False
     verbose: bool = False
 

@@ -76,6 +76,7 @@ from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import Worker
 from will.orchestration.phase_registry import PhaseRegistry
+from will.orchestration.planner_readiness import probe_planner_readiness
 from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
 
 
@@ -120,6 +121,11 @@ class GoalExecutionWorker(Worker):
         self.create_proposal_only = create_proposal_only
         self.run_id: str | None = None
         self.result: PhaseWorkflowResult | None = None
+        # #894 Unit 3: set when the apparatus could not run the goal at all
+        # (planner prompt or cognitive-role client unobtainable). Recorded on
+        # the Blackboard as goal_run.<run_id>.outcome via post_unavailable;
+        # develop_from_goal turns it into its stable "UNAVAILABLE: ..." message.
+        self.unavailable_reason: str | None = None
         self.proposal_id: str | None = None
         self.proposal_approval_required: bool | None = None
 
@@ -133,18 +139,21 @@ class GoalExecutionWorker(Worker):
             run_id = activity.run_id
             self.run_id = run_id
 
-            await self.post_report(
-                f"goal_run.{run_id}.start",
-                {
-                    "run_id": run_id,
-                    "goal": self.goal,
-                    "workflow_type": self.workflow_type,
-                    "write": self.write,
-                    "task_id": self.task_id,
-                    "started_at": datetime.now(UTC).isoformat(),
-                    "action_results_correlation_key": run_id,
-                },
-            )
+            start_payload: dict[str, Any] = {
+                "run_id": run_id,
+                "goal": self.goal,
+                "workflow_type": self.workflow_type,
+                "write": self.write,
+                "task_id": self.task_id,
+                "started_at": datetime.now(UTC).isoformat(),
+                "action_results_correlation_key": run_id,
+            }
+            # #894 Unit 3: carry the binding facts when the context has them;
+            # a CORE-internal run's payload is unchanged (key omitted, not null).
+            binding = getattr(self._context, "target_binding", None)
+            if binding is not None:
+                start_payload["target_binding"] = binding.to_payload()
+            await self.post_report(f"goal_run.{run_id}.start", start_payload)
 
             path_resolver = getattr(self._context, "path_resolver", None)
             if not path_resolver:
@@ -183,6 +192,30 @@ class GoalExecutionWorker(Worker):
                     logger.warning(
                         "Could not resolve qdrant_service from registry: %s", exc
                     )
+
+            # #894 Unit 3 (item 3 of the ADR-159 remediation scope): explicit
+            # unavailability is CORE's own record, not the apparatus's. If the
+            # planner cannot obtain its prompt or its cognitive-role client,
+            # record goal_run.<run_id>.outcome as an unavailable instrument
+            # result and stop -- distinct from a run that planned and failed.
+            reason = await probe_planner_readiness(self._context)
+            if reason is not None:
+                self.unavailable_reason = reason
+                await self.post_unavailable(
+                    f"goal_run.{run_id}.outcome",
+                    reason="planner_unavailable",
+                    detail={
+                        "run_id": run_id,
+                        "goal": self.goal,
+                        "workflow_type": self.workflow_type,
+                        "detail": reason,
+                        "outcome": "unavailable",
+                    },
+                )
+                self.result = PhaseWorkflowResult(
+                    ok=False, phase_results=[], workflow_type=self.workflow_type
+                )
+                return
 
             if self.create_proposal_only:
                 await self._run_create_proposal_only(run_id)

@@ -185,3 +185,76 @@ def test_no_entries_is_refused_and_says_the_two_facts_are_indistinguishable() ->
     # allow_partial does not turn nothing into something
     with pytest.raises(RunExportRefused):
         build_run_export(RID, [], allow_partial=True)
+
+
+# ── #894 Unit 3: the export carries the target binding, fail-honest ───────────
+
+
+def _binding_payload() -> dict[str, Any]:
+    return {
+        "subject_path": "/subjects/frozen",
+        "subject_sha": "a" * 40,
+        "subject_tree_hash": "b" * 40,
+        "bound_repo_path": "/evidence/runs/r1/target",
+        "bound_sha": "c" * 40,
+        "bound_tree_hash": "d" * 40,
+        "floor_hash": "e" * 64,
+        "overlay_hash": "f" * 64,
+        "displaced": [
+            {
+                "path": "META/enums.json",
+                "original_sha256": "1" * 64,
+                "installed_floor_sha256": "2" * 64,
+            }
+        ],
+    }
+
+
+def _bound_run() -> list[dict[str, Any]]:
+    rows = _complete_run()
+    rows[0]["payload"] = {"run_id": RID, "target_binding": _binding_payload()}
+    return rows
+
+
+def test_internal_run_exports_target_binding_null() -> None:
+    doc = build_run_export(RID, _complete_run())
+    assert doc["target_binding"] is None
+
+
+def test_bound_run_exports_the_binding_from_the_start_entry() -> None:
+    doc = build_run_export(RID, _bound_run())
+    assert doc["target_binding"] == _binding_payload()
+    # and it survives canonical serialization byte-stably
+    assert serialize_run_export(doc) == serialize_run_export(
+        build_run_export(RID, list(reversed(_bound_run())))
+    )
+
+
+def test_two_start_entries_refuse_export() -> None:
+    rows = _bound_run()
+    rows.append(_row("e3", f"goal_run.{RID}.start", "2026-09-13T11:24:37.000000+00:00"))
+    with pytest.raises(RunExportRefused, match="ambiguous_start"):
+        build_run_export(RID, rows)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda b: b.pop("floor_hash"),
+        lambda b: b.__setitem__("bound_sha", ""),
+        lambda b: b.__setitem__("displaced", "not-a-list"),
+        lambda b: b["displaced"].append({"path": "x"}),
+    ],
+)
+def test_malformed_binding_refuses_export(mutate) -> None:
+    rows = _bound_run()
+    mutate(rows[0]["payload"]["target_binding"])
+    with pytest.raises(RunExportRefused, match="malformed_target_binding"):
+        build_run_export(RID, rows)
+
+
+def test_non_object_binding_refuses_export() -> None:
+    rows = _bound_run()
+    rows[0]["payload"]["target_binding"] = "surprise"
+    with pytest.raises(RunExportRefused, match="malformed_target_binding"):
+        build_run_export(RID, rows)

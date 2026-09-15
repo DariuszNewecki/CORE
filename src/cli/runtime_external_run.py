@@ -37,9 +37,13 @@ its check passes:
    (``find_root_disagreements``); require the safe-auto-approval envelope to
    load from the copy's ``.intent/`` (a copy missing its overlay-owned
    envelope refuses here -- the bind-time close of #903's new entry);
-7. readiness probe: the planner prompt and its cognitive-role client must
-   be obtainable; if not, the outcome is an explicit ``UNAVAILABLE`` -- not a
-   generic failure -- recorded in ``<run>/evidence/outcome.json``;
+7. attach the binding facts (``TargetBinding``) to the context so
+   ``GoalExecutionWorker`` records them in ``goal_run.<run_id>.start``; the
+   Worker also probes planner readiness itself and records an explicit
+   *unavailable* outcome on the Blackboard (``post_unavailable``) -- the
+   route never impersonates a Worker; it maps the shim's stable
+   ``UNAVAILABLE: `` message to exit code 4 and mirrors it in
+   ``<run>/evidence/outcome.json``;
 8. ``develop_from_goal(context, goal, workflow_type, write=write)`` with the
    DEFAULT ``legacy_direct_write`` (the route exposes no flag and refuses any
    value but False: ``dev refactor`` is a grandfathered opt-out and not a
@@ -60,9 +64,9 @@ the IntentRepository singleton against the wrong root; the one small
 
 Unit 2 delivers binding, materialization, refusals and invocation. It does
 NOT claim the complete runner is operational: an isolated database seeded
-from ``schema.sql`` carries no cognitive-role assignments, so step 7 will
-report ``UNAVAILABLE`` until role/resource seeding lands (the next blocking
-unit). Run identity carrying the binding facts is Unit 3.
+from ``schema.sql`` carries no cognitive-role assignments, so the Worker
+will record ``unavailable`` until role/resource/prompt seeding lands (the
+next blocking unit).
 """
 
 from __future__ import annotations
@@ -307,23 +311,6 @@ async def _default_bootstrap(expected_target: Path, expected_mind: Path) -> Any:
     return core_context
 
 
-async def _default_readiness(core_context: Any) -> str | None:
-    """Return a reason the run is UNAVAILABLE, or None when the planner's
-    prompt and its cognitive-role client are both obtainable."""
-    from shared.ai.prompt_model import PromptModel
-
-    try:
-        model = PromptModel.load("plan_goal")
-    except Exception as exc:
-        return f"planner prompt 'plan_goal' unavailable under the bound copy: {exc}"
-    role = model._artifact.manifest.role
-    try:
-        await core_context.cognitive_service.aget_client_for_role(role)
-    except Exception as exc:
-        return f"no cognitive-role client for planner role {role!r} in the isolated database: {exc}"
-    return None
-
-
 async def _default_develop(
     core_context: Any, goal: str, workflow_type: str, write: bool
 ) -> tuple[bool, str]:
@@ -354,7 +341,6 @@ def execute(
     core_repo_root: Path,
     environ: dict[str, str] | None = None,
     bootstrap: Callable[[Path, Path], Awaitable[Any]] = _default_bootstrap,
-    readiness: Callable[[Any], Awaitable[str | None]] = _default_readiness,
     develop: Callable[
         [Any, str, str, bool], Awaitable[tuple[bool, str]]
     ] = _default_develop,
@@ -521,22 +507,47 @@ def execute(
             # agreement and the envelope through the bound singleton itself.
             core_context = await bootstrap(copy.target_root, copy.intent_root)
 
-            # 7. readiness -> explicit UNAVAILABLE
-            reason = await readiness(core_context)
-            if reason is not None:
-                _write_evidence(
-                    evidence_root,  # type: ignore[arg-type]
-                    "outcome.json",
-                    {"outcome": "UNAVAILABLE", "reason": reason, "stage": "readiness"},
-                )
-                _err_console.print(f"UNAVAILABLE — {reason}")
-                return EXIT_UNAVAILABLE
+            # 7. attach the binding facts to the context. GoalExecutionWorker
+            # spreads them into goal_run.<run_id>.start (Unit 3) -- the
+            # Blackboard record, as distinct from the apparatus's binding.json.
+            from shared.models.target_binding import DisplacedFile, TargetBinding
 
-            # 8. the run (default legacy_direct_write; guard is the contract)
+            core_context.target_binding = TargetBinding(
+                subject_path=str(subject),
+                subject_sha=subject_sha,
+                subject_tree_hash=subject_tree,
+                bound_repo_path=str(copy.target_root),
+                bound_sha=copy_sha,
+                bound_tree_hash=copy_tree,
+                floor_hash=copy.floor_hash,
+                overlay_hash=copy.overlay_hash,
+                displaced=tuple(
+                    DisplacedFile(
+                        path=d.path,
+                        original_sha256=d.original_sha256,
+                        installed_floor_sha256=d.installed_floor_sha256,
+                    )
+                    for d in copy.displaced
+                ),
+            )
+
+            # 8. the run (default legacy_direct_write; guard is the contract).
+            # Readiness is the Worker's to probe and record (post_unavailable);
+            # the route only maps its stable UNAVAILABLE_PREFIX to an exit code.
             guard_legacy_direct_write()
             ok, message = await develop(
                 core_context, opts.goal, opts.workflow_type, opts.write
             )
+            from will.autonomy.autonomous_developer import UNAVAILABLE_PREFIX
+
+            if not ok and message.startswith(UNAVAILABLE_PREFIX):
+                _write_evidence(
+                    evidence_root,  # type: ignore[arg-type]
+                    "outcome.json",
+                    {"outcome": "UNAVAILABLE", "message": message, "stage": "develop"},
+                )
+                _err_console.print(f"UNAVAILABLE — {message}")
+                return EXIT_UNAVAILABLE
             _write_evidence(
                 evidence_root,  # type: ignore[arg-type]
                 "outcome.json",

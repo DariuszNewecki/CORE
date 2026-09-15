@@ -138,6 +138,7 @@ def build_run_export(
     ordered = sorted(
         entries, key=lambda e: (e.get("created_at") or "", e.get("id") or "")
     )
+    target_binding = _extract_target_binding(run_id, ordered)
 
     counts: dict[str, int] = {}
     for entry in ordered:
@@ -167,9 +168,45 @@ def build_run_export(
                 "GROUP BY 1"
             ),
         },
+        # #894 Unit 3: which repository the run was about -- lifted from the
+        # single goal_run.<run_id>.start entry; null for a CORE-internal run.
+        "target_binding": target_binding,
         "omissions": [dict(o) for o in _OMISSIONS],
         "entries": ordered,
     }
+
+
+def _extract_target_binding(
+    run_id: str, ordered: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Exactly one start entry may supply ``target_binding``; more than one
+    start entry, or a malformed binding, refuses the export rather than
+    silently choosing -- a record "about" an unknown repository is worse than
+    no record (#894 Unit 3)."""
+    from shared.models.target_binding import validate_binding_payload
+
+    start_subject = f"goal_run.{run_id}.start"
+    starts = [e for e in ordered if e.get("subject") == start_subject]
+    if len(starts) > 1:
+        raise RunExportRefused(
+            "ambiguous_start",
+            f"{len(starts)} entries carry subject {start_subject!r}; the run's "
+            "identity (and any target_binding) cannot be attributed to one of them",
+        )
+    if not starts:
+        return None
+    payload = starts[0].get("payload") or {}
+    if "target_binding" not in payload:
+        return None
+    binding = payload["target_binding"]
+    problem = validate_binding_payload(binding)
+    if problem is not None:
+        raise RunExportRefused(
+            "malformed_target_binding",
+            f"{start_subject} carries a target_binding this export cannot vouch "
+            f"for: {problem}",
+        )
+    return dict(binding)
 
 
 # ID: 0933c736-d099-42f4-b05d-76ee4e89b9f2

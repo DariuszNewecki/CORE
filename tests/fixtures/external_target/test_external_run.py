@@ -100,7 +100,8 @@ class _Fakes:
         self.bootstrap_env: dict[str, str] = {}
         self.develop_calls: list[tuple[str, str, bool]] = []
         self.develop_env: dict[str, str] = {}
-        self.context = object()
+        # a bare object with a settable attribute, like CoreContext
+        self.context = type("Ctx", (), {"target_binding": None})()
 
     async def bootstrap(self, expected_target: Path, expected_mind: Path) -> Any:
         self.bootstrap_env = {k: self.env.get(k, "") for k in ("REPO_PATH", "MIND")}
@@ -108,16 +109,18 @@ class _Fakes:
         assert Path(self.bootstrap_env["MIND"]) == expected_mind
         return self.context
 
-    async def readiness(self, context: Any) -> str | None:
-        assert context is self.context
-        return self.readiness_reason
-
     async def develop(
         self, context: Any, goal: str, workflow: str, write: bool
     ) -> tuple[bool, str]:
         assert context is self.context
         self.develop_env = {k: self.env.get(k, "") for k in ("REPO_PATH", "MIND")}
         self.develop_calls.append((goal, workflow, write))
+        if self.readiness_reason is not None:
+            # what develop_from_goal returns after the Worker recorded
+            # post_unavailable (Unit 3): the stable prefix, never a phase error
+            from will.autonomy.autonomous_developer import UNAVAILABLE_PREFIX
+
+            return (False, f"{UNAVAILABLE_PREFIX}{self.readiness_reason} (run_id=r)")
         return (self.develop_ok, "fake run")
 
 
@@ -136,7 +139,6 @@ def test_happy_path_binds_materializes_and_invokes(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
 
@@ -150,6 +152,10 @@ def test_happy_path_binds_materializes_and_invokes(tmp_path: Path) -> None:
     assert (target / ".intent" / "workers" / "proposal_consumer_worker.yaml").is_file()
     assert env["REPO_PATH"] == str(target) and env["MIND"] == str(target / ".intent")
     assert fakes.develop_calls == [("Evaluate the package", "code_modification", False)]
+    tb = fakes.context.target_binding
+    assert tb is not None, "the binding is attached to the context for the Worker"
+    assert tb.bound_repo_path == str(target) and tb.subject_path == str(subject)
+    assert len(tb.bound_sha) == 40 and tb.displaced == ()
     binding = json.loads((ev / "binding.json").read_text())
     assert binding["bound_repo_path"] == str(target)
     assert binding["subject_fingerprint_before"] == before
@@ -174,18 +180,17 @@ def test_unavailable_is_explicit_not_a_generic_failure(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_UNAVAILABLE
-    assert fakes.develop_calls == [], (
-        "the run never starts when the apparatus is unavailable"
+    assert len(fakes.develop_calls) == 1, (
+        "the Worker is what records unavailability; the route does not pre-empt it"
     )
     run = next((tmp_path / "evidence" / "runs").iterdir())
     outcome = json.loads((run / "evidence" / "outcome.json").read_text())
     assert outcome["outcome"] == "UNAVAILABLE"
-    assert outcome["stage"] == "readiness"
-    assert "planner" in outcome["reason"]
+    assert outcome["stage"] == "develop"
+    assert "planner" in outcome["message"]
 
 
 def test_floor_wins_on_a_subject_with_colliding_intent(tmp_path: Path) -> None:
@@ -202,13 +207,15 @@ def test_floor_wins_on_a_subject_with_colliding_intent(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_RAN
     run = next((tmp_path / "evidence" / "runs").iterdir())
     binding = json.loads((run / "evidence" / "binding.json").read_text())
     assert binding["collisions_displaced"] == ["META/vocabulary.json"]
+    assert [d.path for d in fakes.context.target_binding.displaced] == [
+        "META/vocabulary.json"
+    ]
     manifest = json.loads((run / "evidence" / "collision_manifest.json").read_text())
     assert [d["path"] for d in manifest["displaced"]] == ["META/vocabulary.json"]
     assert (
@@ -251,7 +258,6 @@ def test_pre_bootstrap_refusals(tmp_path: Path, case: str) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -270,7 +276,6 @@ def test_overlay_colliding_with_subject_law_is_refused(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -291,7 +296,6 @@ def test_missing_envelope_in_copy_is_refused_at_bind_time(tmp_path: Path) -> Non
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -315,7 +319,6 @@ def test_floor_modified_in_copy_is_refused(tmp_path: Path, monkeypatch) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_BINDING_REFUSED
@@ -339,7 +342,6 @@ def test_subject_changed_during_run_is_internal_failure(tmp_path: Path) -> None:
         core_repo_root=REPO_ROOT,
         environ=env,
         bootstrap=fakes.bootstrap,
-        readiness=fakes.readiness,
         develop=fakes.develop,
     )
     assert code == EXIT_INTERNAL_FAILURE
@@ -484,13 +486,49 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
             text=True,
             timeout=600,
         )
+        # Unit 3 proof, while the disposable DB is still up: the Blackboard
+        # on the isolated database carries the run's identity WITH the
+        # binding, and `export-run` bound to the copy reconstructs it.
+        run = next((tmp_path / "evidence" / "runs").iterdir())
+        outcome = json.loads((run / "evidence" / "outcome.json").read_text())
+        run_id = outcome["message"].rsplit("run_id=", 1)[-1].rstrip(")")
+        export_env = dict(env)
+        export_env["REPO_PATH"] = str(run / "target")
+        export_env["MIND"] = str(run / "target" / ".intent")
+        exported = subprocess.run(
+            [*_core_admin(), "workers", "export-run", run_id, "--stdout"],
+            cwd=REPO_ROOT,
+            env=export_env,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
     finally:
         stop_disposable_database(db)
     assert completed.returncode in (EXIT_RAN, EXIT_UNAVAILABLE), completed.stderr[
         -3000:
     ]
-    run = next((tmp_path / "evidence" / "runs").iterdir())
     assert (run / "evidence" / "binding.json").is_file()
-    outcome = json.loads((run / "evidence" / "outcome.json").read_text())
     assert outcome["outcome"] in ("RAN", "UNAVAILABLE")
     assert subject_fingerprint(subject) == before
+    assert exported.returncode == 0, exported.stderr[-3000:]
+    doc = json.loads(exported.stdout.splitlines()[-1])
+    assert doc["run_id"] == run_id
+    assert doc["completeness"] == "complete", (
+        "the unavailable outcome IS the terminal entry"
+    )
+    tb = doc["target_binding"]
+    assert tb is not None
+    binding = json.loads((run / "evidence" / "binding.json").read_text())
+    assert tb["subject_sha"] == binding["subject_sha"]
+    assert tb["bound_tree_hash"] == binding["bound_tree_hash"]
+    assert tb["floor_hash"] == binding["floor_hash"]
+    assert tb["overlay_hash"] == binding["overlay_hash"]
+    subjects = [e["subject"] for e in doc["entries"]]
+    assert f"goal_run.{run_id}.start" in subjects
+    assert f"goal_run.{run_id}.outcome" in subjects
+    if outcome["outcome"] == "UNAVAILABLE":
+        outcome_entry = next(
+            e for e in doc["entries"] if e["subject"].endswith(".outcome")
+        )
+        assert outcome_entry["payload"]["instrument_result"] == "unavailable"

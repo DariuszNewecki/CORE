@@ -112,6 +112,15 @@ async def export_run_cmd(
     console.print(
         f"  first={recon['first_created_at']} last={recon['last_created_at']}"
     )
+    binding = document.get("target_binding")
+    if binding is None:
+        console.print("  target_binding=none (CORE-internal run)")
+    else:
+        console.print(
+            f"  target_binding: subject={binding['subject_sha'][:12]} "
+            f"copy={binding['bound_sha'][:12]} floor={binding['floor_hash'][:12]} "
+            f"overlay={binding['overlay_hash'][:12]} displaced={len(binding['displaced'])}"
+        )
     console.print(f"  exported_at={exported_at} (console only; not in the file)")
     if document["completeness"] == "partial":
         console.print(
