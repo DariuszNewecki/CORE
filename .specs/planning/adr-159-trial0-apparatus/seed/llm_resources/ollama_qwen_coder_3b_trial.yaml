@@ -1,0 +1,20 @@
+# ADR-159 Trial 0 seed resource (Governor ruling A, 2026-09-15, confirmed same day):
+# the trial's single LLM resource. Local Ollama qwen2.5-coder:3b pinned by
+# exact digest (verified 2026-09-15 on .40 as `qwen2.5-coder:3b` and on .200
+# as `qwen2.5-coder:3b-instruct-q4_k_m`, same digest). Assigned explicitly
+# (assignments.yaml) to Planner, Coder and RemoteCoder -- no fallback. Any
+# model weakness is trial evidence. Trial-owned: not the test fixture's copy,
+# not CORE's live database.
+name: ollama_qwen_coder_3b_trial
+env_prefix: OLLAMA_QWEN_CODER_3B_TRIAL
+provided_capabilities:
+  - planning
+  - json_output
+  - reasoning
+  - code_generation
+  - code_understanding
+model_name: qwen2.5-coder:3b
+model_digest: f72c60cabf6237b07f6e
+api_url: http://192.168.20.40:11434
+locality: local
+is_available: true

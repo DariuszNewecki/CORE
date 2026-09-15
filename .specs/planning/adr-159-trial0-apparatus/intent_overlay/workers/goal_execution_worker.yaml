@@ -1,0 +1,50 @@
+# ADR-159 Trial 0 overlay worker declaration (Governor ruling 2026-09-15:
+# trial-specific execution apparatus belongs in the overlay, never the
+# machinery floor). Gives GoalExecutionWorker constitutional standing to run
+# the ONE goal-driven run Document A §A6 describes, inside the materialized
+# execution copy of the frozen subject (c4d9fdf9), recording its identity,
+# findings and outcome to the Blackboard for export.
+#
+# Trial-owned: unique UUID (never CORE's own, never the test fixture's
+# 71adb9e6-...). Scope = the whole subject, because the subject IS what is
+# evaluated. Tools = the ones the run reaches; no commit tool: this
+# declaration cannot be used to commit to the copy, and the subject itself
+# is never written by construction. Reads only through the bound copy.
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.goal_execution_worker
+  title: Goal Execution Worker (ADR-159 Trial 0)
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "cca1648d-2e47-4660-9058-147acb1af3dd"
+  class: acting
+
+mandate:
+  responsibility: >
+    Execute the single Document A task statement against the materialized
+    execution copy of the frozen Trial 0 subject, recording identity,
+    findings, refusals, explicit unavailability and outcome to the Blackboard.
+  phase: execution
+  permitted_tools:
+    - intent.normalize
+    - intent.classify
+    - workflow.select
+    - action.plan
+    - scope.assess
+    - context.resolve
+  scope:
+    paths:
+      - "**"
+    domains:
+      - autonomy
+      - goal_execution
+
+implementation:
+  module: will.workers.goal_execution_worker
+  class: GoalExecutionWorker
+  requires_core_context: true

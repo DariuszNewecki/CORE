@@ -1,0 +1,4 @@
+# ADR-159 Trial 0: local_only -- a remote resource can never be selected in
+# the trial environment (ADR-159 network rule, 2026-09-10).
+operating_mode: local_only
+llm_enabled: true
