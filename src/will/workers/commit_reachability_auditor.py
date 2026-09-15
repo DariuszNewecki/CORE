@@ -39,6 +39,12 @@ class CommitReachabilityAuditor(Worker):
     governance.edge5.orphan_sha::{proposal_id} findings for any
     unreachable commit.
 
+    Rows whose pre_execution_sha equals post_execution_sha are skipped:
+    the proposal committed nothing (CommitOutcome.NOTHING_TO_COMMIT), so
+    the recorded sha is just HEAD-at-the-time, not an Edge 5 link
+    (ADR-019 D3: Execution -> file changes). If some other actor later
+    rebases that HEAD away, no proposal consequence was lost.
+
     Runs hourly (schedule.max_interval: 3600 in YAML).
     """
 
@@ -70,15 +76,19 @@ class CommitReachabilityAuditor(Worker):
         consequence_svc = (
             await self._core_context.registry.get_consequence_log_service()
         )
-        triples = await consequence_svc.get_all_shas_with_status()
+        rows = await consequence_svc.get_all_shas_with_status()
 
         git_service = self._core_context.git_service
 
         checked = 0
         orphans = 0
         suppressed = 0
+        no_commit = 0
 
-        for proposal_id, sha, proposal_status in triples:
+        for proposal_id, pre_sha, sha, proposal_status in rows:
+            if pre_sha == sha:
+                no_commit += 1
+                continue
             checked += 1
             is_reachable = await git_service.is_commit_on_branch(sha)
             if is_reachable:
@@ -123,11 +133,14 @@ class CommitReachabilityAuditor(Worker):
                 "checked": checked,
                 "orphans_detected": orphans,
                 "suppressed": suppressed,
+                "no_commit_skipped": no_commit,
             },
         )
         logger.info(
-            "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d",
+            "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d "
+            "no_commit_skipped=%d",
             checked,
             orphans,
             suppressed,
+            no_commit,
         )

@@ -342,22 +342,30 @@ class ConsequenceLogService:
         return row.proposal_id  # may be None if key absent
 
     # ID: 8e67aa3b-5ac7-4fc3-8874-6c7876e2531e
-    async def get_all_shas_with_status(self) -> list[tuple[str, str, str | None]]:
+    async def get_all_shas_with_status(
+        self,
+    ) -> list[tuple[str, str | None, str, str | None]]:
         """
-        Return all (proposal_id, post_execution_sha, proposal_status) triples
-        by joining core.proposal_consequences with core.autonomous_proposals.
+        Return all (proposal_id, pre_execution_sha, post_execution_sha,
+        proposal_status) tuples by joining core.proposal_consequences with
+        core.autonomous_proposals.
 
         proposal_status is None when no matching proposal row exists.
         Used by CommitReachabilityAuditor (ADR-019 D1) to include proposal_status
-        in orphan-commit findings so the governor has full context.
+        in orphan-commit findings so the governor has full context. The
+        pre-execution sha lets the auditor tell a proposal that produced a
+        commit (pre != post) from one that produced nothing (pre == post,
+        CommitOutcome.NOTHING_TO_COMMIT): the latter's post sha is merely
+        whatever HEAD was, and its later unreachability says nothing about
+        the proposal.
         """
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
             result = await session.execute(
                 text(
-                    "SELECT pc.proposal_id, pc.post_execution_sha, "
-                    "ap.status AS proposal_status "
+                    "SELECT pc.proposal_id, pc.pre_execution_sha, "
+                    "pc.post_execution_sha, ap.status AS proposal_status "
                     "FROM core.proposal_consequences pc "
                     "LEFT JOIN core.autonomous_proposals ap "
                     "  ON ap.proposal_id = pc.proposal_id "
@@ -365,6 +373,11 @@ class ConsequenceLogService:
                 )
             )
             return [
-                (row.proposal_id, row.post_execution_sha, row.proposal_status)
+                (
+                    row.proposal_id,
+                    row.pre_execution_sha,
+                    row.post_execution_sha,
+                    row.proposal_status,
+                )
                 for row in result.fetchall()
             ]
