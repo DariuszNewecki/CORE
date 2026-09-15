@@ -586,6 +586,17 @@ subject's SHA and tree hash, the copy's tree hash, the floor hash, and the overl
 also closes the run-identity gap the #894 reconnaissance found (today's payload names goal,
 workflow, write flag and task id, but not the repository the run was about).
 
+*Collision rule (Governor ruling, same day, after the Trial 0 subject `c4d9fdf9` was found to
+differ from the shipped floor on 12 floor paths — 7 `META/*`, 3 `enforcement/config/*`,
+2 `taxonomies/*`).* On collision, the current framework-owned floor replaces the subject's floor
+file in the materialized execution copy. The displaced original is preserved byte-for-byte as
+evidence, and a deterministic manifest records its path, original hash, and installed-floor hash.
+The frozen subject remains untouched. Rationale: the floor is framework-owned runtime substrate,
+not the subject's applied law; refusing a version collision that is already understood would stop
+Trial 0 on known apparatus incompatibility and produce no new evidence, whereas floor-wins tests
+the certified runner against the frozen subject payload while keeping the adaptation fully
+reconstructable from the manifest.
+
 **Also recorded.**
 
 - *ADR-160 external-target gate.* `develop_from_goal`
