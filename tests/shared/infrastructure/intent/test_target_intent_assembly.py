@@ -279,3 +279,127 @@ def test_execution_copy_refuses_existing_run_root(tmp_path: Path) -> None:
     (tmp_path / "run").mkdir()
     with pytest.raises(FileExistsError):
         materialize_execution_copy(s, tmp_path / "run")
+
+
+# --- Seeding unit, ruling B: runner prompt wins in the execution copy ------------------
+
+
+def _runner_prompt(tmp_path: Path, body: str = "runner") -> Path:
+    d = tmp_path / "runner_prompts" / "plan_goal"
+    d.mkdir(parents=True)
+    (d / "model.yaml").write_text(f"id: plan_goal\nrole: Planner\nbody: {body}\n")
+    (d / "system.txt").write_text(f"system {body}\n")
+    (d / "user.txt").write_text(f"user {body}\n")
+    return d
+
+
+def test_prompt_layer_installs_runner_prompt_into_promptless_subject(
+    tmp_path: Path,
+) -> None:
+    s = _subject(tmp_path, with_intent=False)
+    src = _runner_prompt(tmp_path)
+    copy = materialize_execution_copy(
+        s, tmp_path / "run", prompt_sources={"plan_goal": src}
+    )
+    assert (
+        copy.target_root / "var" / "prompts" / "plan_goal" / "model.yaml"
+    ).read_text() == (src / "model.yaml").read_text()
+    assert len(copy.prompts) == 1 and copy.prompts[0].prompt_id == "plan_goal"
+    assert set(copy.prompts[0].files) == {"model.yaml", "system.txt", "user.txt"}
+    assert copy.prompts[0].displaced_original_sha256 == {}
+    m = json.loads(copy.prompt_collision_manifest_path.read_text())
+    assert m["prompts"][0]["displaced_subject_sha256"] == {}
+
+
+def test_prompt_layer_displaces_differing_subject_prompt_and_preserves_it(
+    tmp_path: Path,
+) -> None:
+    s = _subject(tmp_path, with_intent=False)
+    sub_dir = s / "var" / "prompts" / "plan_goal"
+    sub_dir.mkdir(parents=True)
+    (sub_dir / "model.yaml").write_text("id: plan_goal\nrole: Planner\nbody: subject\n")
+    (sub_dir / "system.txt").write_text("system runner\n")  # identical to the runner's
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A"],
+        cwd=s,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "p"],
+        cwd=s,
+        check=True,
+    )
+    before = subject_fingerprint(s)
+    src = _runner_prompt(tmp_path)
+    copy = materialize_execution_copy(
+        s, tmp_path / "run", prompt_sources={"plan_goal": src}
+    )
+    installed = copy.target_root / "var" / "prompts" / "plan_goal"
+    assert (installed / "model.yaml").read_text() == (src / "model.yaml").read_text(), (
+        "runner wins"
+    )
+    assert (installed / "user.txt").exists(), "runner file the subject lacked is added"
+    kept = (
+        copy.evidence_root
+        / "displaced"
+        / "var"
+        / "prompts"
+        / "plan_goal"
+        / "model.yaml"
+    )
+    assert kept.read_text() == "id: plan_goal\nrole: Planner\nbody: subject\n"
+    assert not (
+        copy.evidence_root
+        / "displaced"
+        / "var"
+        / "prompts"
+        / "plan_goal"
+        / "system.txt"
+    ).exists(), "an identical file is not a collision"
+    rec = json.loads(copy.prompt_collision_manifest_path.read_text())["prompts"][0]
+    assert set(rec["displaced_subject_sha256"]) == {"model.yaml"}
+    assert (
+        rec["displaced_subject_sha256"]["model.yaml"]
+        == hashlib.sha256(b"id: plan_goal\nrole: Planner\nbody: subject\n").hexdigest()
+    )
+    assert (
+        rec["installed_runner_sha256"]["model.yaml"]
+        == hashlib.sha256((src / "model.yaml").read_bytes()).hexdigest()
+    )
+    assert subject_fingerprint(s) == before, "frozen subject untouched"
+
+
+def test_prompt_layer_refuses_missing_or_partial_runner_prompt(tmp_path: Path) -> None:
+    s = _subject(tmp_path, with_intent=False)
+    with pytest.raises(SubjectCopyError, match="unavailable or partial"):
+        materialize_execution_copy(
+            s, tmp_path / "run1", prompt_sources={"plan_goal": tmp_path / "nowhere"}
+        )
+    partial = tmp_path / "partial" / "plan_goal"
+    partial.mkdir(parents=True)
+    (partial / "system.txt").write_text("no model.yaml here\n")
+    with pytest.raises(SubjectCopyError, match="unavailable or partial"):
+        materialize_execution_copy(
+            s, tmp_path / "run2", prompt_sources={"plan_goal": partial}
+        )
+
+
+def test_prompt_layer_refuses_non_regular_subject_prompt_file(tmp_path: Path) -> None:
+    s = _subject(tmp_path, with_intent=False)
+    sub_dir = s / "var" / "prompts" / "plan_goal"
+    sub_dir.mkdir(parents=True)
+    os.symlink("/etc/hostname", sub_dir / "model.yaml")
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A"],
+        cwd=s,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "p"],
+        cwd=s,
+        check=True,
+    )
+    with pytest.raises(SubjectCopyError, match="non-regular"):
+        materialize_execution_copy(
+            s, tmp_path / "run", prompt_sources={"plan_goal": _runner_prompt(tmp_path)}
+        )

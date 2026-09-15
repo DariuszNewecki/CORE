@@ -194,6 +194,19 @@ class DisplacedFloorFile:
 
 
 @dataclass(frozen=True)
+# ID: 0ba83394-f776-4341-908a-e490db8a2b64
+class InstalledPrompt:
+    """One runner prompt artifact installed into the execution copy
+    (ruling B: the planner prompt is runner machinery, not subject law)."""
+
+    prompt_id: str
+    files: dict[str, str]  # filename -> sha256 of the installed (runner) bytes
+    displaced_original_sha256: dict[
+        str, str
+    ]  # filename -> subject's sha256, if displaced
+
+
+@dataclass(frozen=True)
 # ID: 81120df0-b4dc-419b-b384-607a7fd95460
 class ExecutionCopy:
     """What :func:`materialize_execution_copy` produced."""
@@ -206,6 +219,8 @@ class ExecutionCopy:
     overlay_files: tuple[str, ...]
     displaced: tuple[DisplacedFloorFile, ...]
     collision_manifest_path: Path
+    prompts: tuple[InstalledPrompt, ...] = ()
+    prompt_collision_manifest_path: Path | None = None
 
 
 def _iter_tree(root: Path, *, skip_root_git: bool) -> list[Path]:
@@ -305,6 +320,8 @@ def materialize_execution_copy(
     subject_root: Path,
     run_root: Path,
     overlay_dir: Path | None = None,
+    *,
+    prompt_sources: dict[str, Path] | None = None,
 ) -> ExecutionCopy:
     """Build ``<run_root>/target/`` (the execution copy) and ``<run_root>/evidence/``.
 
@@ -321,6 +338,14 @@ def materialize_execution_copy(
     A non-regular file (symlink, dir) at a floor path is refused. Then the
     overlay is applied additively; an overlay path that already exists in
     the copy's ``.intent/`` (a subject non-floor file) is refused.
+
+    *prompt_sources* (ruling B, 2026-09-15): ``{prompt_id: <runner dir>}`` --
+    runner prompt artifacts installed at ``target/var/prompts/<id>/``. The
+    runner's prompt wins: a subject copy with different bytes is preserved
+    byte-for-byte under ``evidence/displaced/var/prompts/<id>/`` and both
+    hashes are recorded in ``evidence/prompt_collision_manifest.json``. A
+    source directory that is missing or lacks ``model.yaml`` is refused --
+    a partial prompt must never be installed.
     """
     subject_root = Path(subject_root).resolve()
     run_root = Path(run_root)
@@ -389,6 +414,72 @@ def materialize_execution_copy(
             shutil.copyfile(src_path, dest)
             written.append(rel_p.as_posix())
 
+    installed_prompts: list[InstalledPrompt] = []
+    prompt_manifest_path: Path | None = None
+    if prompt_sources:
+        # The prompt root is wherever the bound runtime will look for it --
+        # PathResolver over the execution copy, never a literal.
+        from shared.path_resolver import PathResolver
+
+        prompts_root = PathResolver(target_root).prompts_dir
+        prompts_rel = prompts_root.relative_to(target_root.resolve())
+        displaced_prompts_root = displaced_root / prompts_rel
+        prompt_records: list[dict[str, Any]] = []
+        for prompt_id, source in sorted(prompt_sources.items()):
+            source_dir = Path(source)
+            if not source_dir.is_dir() or not (source_dir / "model.yaml").is_file():
+                raise SubjectCopyError(
+                    f"runner prompt {prompt_id!r} unavailable or partial at {source_dir}"
+                )
+            dest_dir = prompts_root / prompt_id
+            if dest_dir.exists() and not dest_dir.is_dir():
+                raise SubjectCopyError(
+                    f"non-directory at subject prompt path {prompts_rel}/{prompt_id}"
+                )
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            files: dict[str, str] = {}
+            displaced_hashes: dict[str, str] = {}
+            for src_file in sorted(p for p in source_dir.iterdir() if p.is_file()):
+                dest_file = dest_dir / src_file.name
+                runner_digest = _sha256_file(src_file)
+                if dest_file.is_symlink() or (
+                    dest_file.exists() and not dest_file.is_file()
+                ):
+                    raise SubjectCopyError(
+                        "non-regular file at subject prompt path "
+                        f"{prompts_rel}/{prompt_id}/{src_file.name}"
+                    )
+                if dest_file.is_file():
+                    original_digest = _sha256_file(dest_file)
+                    if original_digest == runner_digest:
+                        files[src_file.name] = runner_digest
+                        continue
+                    keep = displaced_prompts_root / prompt_id / src_file.name
+                    keep.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(dest_file), str(keep))
+                    displaced_hashes[src_file.name] = original_digest
+                shutil.copyfile(src_file, dest_file)
+                files[src_file.name] = runner_digest
+            installed_prompts.append(
+                InstalledPrompt(
+                    prompt_id=prompt_id,
+                    files=files,
+                    displaced_original_sha256=displaced_hashes,
+                )
+            )
+            prompt_records.append(
+                {
+                    "prompt_id": prompt_id,
+                    "installed_runner_sha256": dict(sorted(files.items())),
+                    "displaced_subject_sha256": dict(sorted(displaced_hashes.items())),
+                }
+            )
+        prompt_manifest_path = evidence_root / "prompt_collision_manifest.json"
+        prompt_manifest_path.write_text(
+            json.dumps({"prompts": prompt_records}, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
     manifest_path = evidence_root / "collision_manifest.json"
     manifest_path.write_text(
         json.dumps(
@@ -428,6 +519,8 @@ def materialize_execution_copy(
         overlay_files=tuple(written),
         displaced=tuple(displaced),
         collision_manifest_path=manifest_path,
+        prompts=tuple(installed_prompts),
+        prompt_collision_manifest_path=prompt_manifest_path,
     )
 
 
