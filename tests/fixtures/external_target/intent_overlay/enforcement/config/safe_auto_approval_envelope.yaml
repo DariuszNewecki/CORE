@@ -1,0 +1,13 @@
+# Fixture-owned overlay file, copied additively into the materialized
+# target's .intent/ at this same path (Unit C, Governor-authorized
+# external-target safety package; location per ADR-159 Note 2026-09-15,
+# #894 Condition 1 -- the envelope is overlay-owned and never a floor
+# file). Records exactly the Governor-ratified envelope (ADR-159 Notes,
+# 2026-09-06) -- nothing broader.
+safe_auto_approval_envelope:
+  authorized_actions:
+    - fix.format
+  authorized_path_prefixes:
+    - package/
+  authorized_extensions:
+    - .py

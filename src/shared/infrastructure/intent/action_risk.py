@@ -227,10 +227,26 @@ def _validate_envelope(envelope: dict[str, Any]) -> None:
                 )
 
 
+# Governed location of the envelope (ADR-159 Note 2026-09-15, #894 Condition 1).
+# Overlay-owned: never a floor file. `.intent/`-relative, as IntentRepository
+# resolves it.
+SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH = (
+    "enforcement/config/safe_auto_approval_envelope.yaml"
+)
+
+
 # ID: 2d9e4f1a-7b3c-4e8d-9a5f-1c6b8d3e7f2a
 def load_safe_auto_approval_envelope() -> dict[str, Any]:
     """
-    Load the safe_auto_approval_envelope section of action_risk.yaml (#853).
+    Load the safe_auto_approval_envelope from its own governed file (#853, #894).
+
+    Location: ``enforcement/config/safe_auto_approval_envelope.yaml``,
+    top-level key ``safe_auto_approval_envelope``. It lived as a section of
+    ``action_risk.yaml`` until ADR-159 Note 2026-09-15 (#894 Condition 1):
+    under one Mind per process the floor's ``action_risk.yaml`` must stay
+    byte-identical to the shipped floor, so the envelope -- overlay-owned,
+    target-specific -- moved to a file the overlay owns. There is NO
+    fallback to the old location.
 
     Independently governed authorization boundary for
     risk_classification.safe_auto_approval — distinct from, and never
@@ -261,11 +277,11 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
         )
 
         repo = get_intent_repository()
-        config_path = repo.resolve_rel("enforcement/config/action_risk.yaml")
+        config_path = repo.resolve_rel(SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH)
         config = repo.load_document(config_path)
         if not isinstance(config, dict):
             reason = (
-                f"action_risk.yaml did not parse as a dict "
+                f"{SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH} did not parse as a dict "
                 f"(got {type(config).__name__})"
             )
             logger.error("safe_auto_approval_envelope: %s", reason)
@@ -273,7 +289,10 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
 
         envelope = config.get("safe_auto_approval_envelope")
         if not isinstance(envelope, dict):
-            reason = "action_risk.yaml missing 'safe_auto_approval_envelope' dict"
+            reason = (
+                f"{SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH} missing "
+                "'safe_auto_approval_envelope' dict"
+            )
             logger.error("safe_auto_approval_envelope: %s", reason)
             return {"_error": True, "reason": reason}
 
@@ -287,8 +306,8 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
     except Exception as exc:
         reason = f"{type(exc).__name__}: {exc}"
         logger.error(
-            "safe_auto_approval_envelope: could not load .intent/enforcement/"
-            "config/action_risk.yaml (%s)",
+            "safe_auto_approval_envelope: could not load .intent/%s (%s)",
+            SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH,
             reason,
         )
         return {"_error": True, "reason": reason}

@@ -15,11 +15,15 @@ from pathlib import Path
 import pytest
 import yaml
 
+from shared.infrastructure.intent.machinery_floor_integrity import (
+    floor_manifest,
+    verify_floor,
+)
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from materialize import (
-    MACHINERY_FLOOR,
     OVERLAY_DIR,
     REPO_ROOT,
     TEMPLATE_DIR,
@@ -54,16 +58,17 @@ class TestFileManifest:
     ) -> None:
         target = materialize_external_target(tmp_path / "target")
 
-        # Every machinery-floor file is present (copied, not replaced).
-        for src in MACHINERY_FLOOR.rglob("*"):
-            if src.is_dir() or "__pycache__" in src.parts:
-                continue
-            rel = src.relative_to(MACHINERY_FLOOR)
-            if rel == Path("enforcement/config/action_risk.yaml"):
-                continue  # merged, not byte-identical -- checked separately below
-            dest = target.intent_root / rel
-            assert dest.is_file(), f"machinery floor file missing: {rel}"
-            assert dest.read_bytes() == src.read_bytes()
+        # Condition 1 (ADR-159 Note 2026-09-15): EVERY machinery-floor file is
+        # present and byte-identical -- action_risk.yaml included, now that the
+        # envelope no longer merges into it. Count derived from the manifest,
+        # never hardcoded (D-c).
+        report = verify_floor(target.intent_root)
+        manifest = floor_manifest()
+        assert report.clean, report.describe()
+        assert set(report.ok) == set(manifest), "every manifest file must be ok"
+        assert len(report.ok) == len(manifest)
+        assert "enforcement/config/action_risk.yaml" in report.ok
+        assert "__init__.py" in report.ok, "floor __init__.py markers are floor content"
 
         # The exact fixture overlay is present and nothing extra crept in.
         overlay_purity = target.intent_root / "rules" / "code" / "purity.json"
@@ -89,22 +94,34 @@ class TestFileManifest:
         assert (
             overlay_proposal_lifecycle.read_bytes()
             == canonical_proposal_lifecycle.read_bytes()
-        ), "fixture overlay must carry claim.proposal's policy dependency byte-identical to CORE's own"
+        ), (
+            "fixture overlay must carry claim.proposal's policy dependency byte-identical to CORE's own"
+        )
 
-        merged = yaml.safe_load(
+        # The envelope lives in its own overlay-owned file (D-a), never in
+        # the floor's action_risk.yaml.
+        envelope_path = (
+            target.intent_root / "enforcement/config/safe_auto_approval_envelope.yaml"
+        )
+        assert (
+            envelope_path.read_bytes()
+            == (
+                OVERLAY_DIR / "enforcement/config/safe_auto_approval_envelope.yaml"
+            ).read_bytes()
+        )
+        assert yaml.safe_load(envelope_path.read_text("utf-8")) == {
+            "safe_auto_approval_envelope": {
+                "authorized_actions": ["fix.format"],
+                "authorized_path_prefixes": ["package/"],
+                "authorized_extensions": [".py"],
+            }
+        }
+        floor_action_risk = yaml.safe_load(
             (target.intent_root / "enforcement/config/action_risk.yaml").read_text(
                 "utf-8"
             )
         )
-        floor_original = yaml.safe_load(
-            (MACHINERY_FLOOR / "enforcement/config/action_risk.yaml").read_text("utf-8")
-        )
-        assert merged["actions"] == floor_original["actions"]
-        assert merged["safe_auto_approval_envelope"] == {
-            "authorized_actions": ["fix.format"],
-            "authorized_path_prefixes": ["package/"],
-            "authorized_extensions": [".py"],
-        }
+        assert "safe_auto_approval_envelope" not in floor_action_risk
 
 
 class TestGitAssembly:

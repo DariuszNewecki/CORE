@@ -415,14 +415,20 @@ class TestScopeConsistency:
 
 class TestEnvelopeFailsClosed:
     def _variant_intent(self, pristine_target: Path, tmp_path: Path, mutate) -> Path:
+        # The envelope lives in its own overlay-owned file (#894 Condition 1);
+        # the floor's action_risk.yaml is never the place to mutate it.
         variant_root = tmp_path / "variant"
         shutil.copytree(pristine_target, variant_root)
-        action_risk_path = (
-            variant_root / ".intent" / "enforcement" / "config" / "action_risk.yaml"
+        envelope_path = (
+            variant_root
+            / ".intent"
+            / "enforcement"
+            / "config"
+            / "safe_auto_approval_envelope.yaml"
         )
-        config = yaml.safe_load(action_risk_path.read_text("utf-8"))
+        config = yaml.safe_load(envelope_path.read_text("utf-8"))
         mutate(config)
-        action_risk_path.write_text(yaml.safe_dump(config, sort_keys=False), "utf-8")
+        envelope_path.write_text(yaml.safe_dump(config, sort_keys=False), "utf-8")
         return variant_root
 
     def test_missing_envelope_configuration_fails_closed(

@@ -4,17 +4,22 @@ package; Governor ruling 2026-09-06, recorded in
 .specs/decisions/ADR-159-autonomy-thesis-acceptance-boundary.md Notes).
 
 Assembles a target-local ``.intent/`` from two layers, per the Governor's
-instruction:
+instruction, via the production builder
+``shared.infrastructure.intent.target_intent_assembly.assemble_target_intent``
+(#894 D-b: one builder for the fixture, the external-run command and the
+future offline onboard):
 
 1. the existing bundled machinery floor (``src/shared/_machinery_floor``,
    copied verbatim -- the same mechanism Units A and B's own tests already
    use for a disposable external repository);
 2. the smallest reviewable fixture-owned overlay carrying the ratified
-   authority (``intent_overlay/``): one new rule document at
-   ``rules/code/purity.json``, a ``safe_auto_approval_envelope`` section
-   merged into the floor's own copy of
-   ``enforcement/config/action_risk.yaml`` (its existing ``actions:``
-   mapping is preserved untouched -- this is a merge, not a replacement),
+   authority (``intent_overlay/``, a tree mirroring ``.intent/`` layout,
+   copied additively -- an overlay path that is also a floor path is
+   refused, ADR-159 Note 2026-09-15 Condition 1): one new rule document at
+   ``rules/code/purity.json``, the ``safe_auto_approval_envelope`` in its
+   own overlay-owned file ``enforcement/config/safe_auto_approval_envelope.yaml``
+   (it was merged into the floor's ``action_risk.yaml`` until #894
+   Condition 1 forbade modifying any floor file),
    one ``workers/proposal_consumer_worker.yaml`` declaration (Governor
    ruling 2026-09-07) giving the worker constitutional standing scoped
    exactly to ``package/example.py`` -- it does not touch the envelope
@@ -42,7 +47,9 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
+from shared.infrastructure.intent.target_intent_assembly import (
+    assemble_target_intent,
+)
 
 
 _HERE = Path(__file__).resolve().parent
@@ -75,44 +82,9 @@ def _git(args: list[str], cwd: Path) -> str:
 
 
 def _assemble_intent(target_root: Path) -> Path:
-    """Copy the machinery floor, then apply the fixture-owned overlay."""
-    intent_root = target_root / ".intent"
-    shutil.copytree(
-        MACHINERY_FLOOR,
-        intent_root,
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
-    )
-
-    overlay_purity = OVERLAY_DIR / "rules" / "code" / "purity.json"
-    dest_purity = intent_root / "rules" / "code" / "purity.json"
-    dest_purity.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(overlay_purity, dest_purity)
-
-    overlay_worker = OVERLAY_DIR / "workers" / "proposal_consumer_worker.yaml"
-    dest_worker = intent_root / "workers" / "proposal_consumer_worker.yaml"
-    dest_worker.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(overlay_worker, dest_worker)
-
-    overlay_proposal_lifecycle = (
-        OVERLAY_DIR / "rules" / "will" / "proposal_lifecycle.json"
-    )
-    dest_proposal_lifecycle = intent_root / "rules" / "will" / "proposal_lifecycle.json"
-    dest_proposal_lifecycle.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(overlay_proposal_lifecycle, dest_proposal_lifecycle)
-
-    action_risk_path = intent_root / "enforcement" / "config" / "action_risk.yaml"
-    action_risk = yaml.safe_load(action_risk_path.read_text("utf-8")) or {}
-    overlay_envelope = yaml.safe_load(
-        (OVERLAY_DIR / "safe_auto_approval_envelope.yaml").read_text("utf-8")
-    )
-    action_risk["safe_auto_approval_envelope"] = overlay_envelope[
-        "safe_auto_approval_envelope"
-    ]
-    action_risk_path.write_text(
-        yaml.safe_dump(action_risk, sort_keys=False), encoding="utf-8"
-    )
-
-    return intent_root
+    """Floor + fixture overlay, via the production builder (#894 D-b)."""
+    assembled = assemble_target_intent(target_root / ".intent", OVERLAY_DIR)
+    return assembled.intent_root
 
 
 # ID: 2a3b4c5d-6e7f-8091-a2b3-c4d5e6f7a8b9

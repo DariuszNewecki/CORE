@@ -913,6 +913,8 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/config/action_risk.yaml
     governance_namespace: project::core
+  - path: .intent/enforcement/config/safe_auto_approval_envelope.yaml
+    governance_namespace: project::core
   - path: .intent/enforcement/config/audit_verdict.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/circuit_breaker.yaml

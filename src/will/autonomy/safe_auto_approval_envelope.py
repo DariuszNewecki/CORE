@@ -10,9 +10,9 @@ from a proposal's self-declared ProposalScope: every action's actual
 target path is validated here, then cross-checked against the proposal's
 declared scope.files for consistency.
 
-Governed by the safe_auto_approval_envelope section of
-.intent/enforcement/config/action_risk.yaml (loaded via
-shared.infrastructure.intent.action_risk.load_safe_auto_approval_envelope).
+Governed by .intent/enforcement/config/safe_auto_approval_envelope.yaml
+(loaded via shared.infrastructure.intent.action_risk.load_safe_auto_approval_envelope;
+moved out of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1).
 
 Fail-closed by construction: an envelope-load failure, an unlisted action,
 a flow reference, a missing/malformed/absolute/traversal/out-of-envelope

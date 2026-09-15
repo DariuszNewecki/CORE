@@ -14,7 +14,10 @@ from __future__ import annotations
 
 from unittest.mock import Mock, patch
 
-from shared.infrastructure.intent.action_risk import load_safe_auto_approval_envelope
+from shared.infrastructure.intent.action_risk import (
+    SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH,
+    load_safe_auto_approval_envelope,
+)
 
 
 _VALID_ENVELOPE = {
@@ -28,7 +31,7 @@ _VALID_ENVELOPE = {
 
 def _load_with_document(document) -> dict:
     mock_repo = Mock()
-    mock_repo.resolve_rel.return_value = "enforcement/config/action_risk.yaml"
+    mock_repo.resolve_rel.return_value = SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH
     mock_repo.load_document.return_value = document
     with patch(
         "shared.infrastructure.intent.intent_repository.get_intent_repository",
@@ -108,11 +111,29 @@ def test_loader_exception_returns_error_sentinel_not_a_raise() -> None:
     assert "boom" in result["reason"]
 
 
-def test_real_action_risk_yaml_loads_the_governed_envelope() -> None:
-    """End-to-end against the real .intent/enforcement/config/action_risk.yaml
-    on disk (via the real IntentRepository, not mocked) — proves the section
-    added for #853 actually parses and contains the five governor-named
-    actions."""
+def test_loader_resolves_the_governed_envelope_path_not_action_risk() -> None:
+    """#894 Condition 1: the envelope is overlay-owned and lives in its own
+    file. The loader must resolve exactly that path and never fall back to
+    action_risk.yaml -- a floor file that must stay byte-identical."""
+    mock_repo = Mock()
+    mock_repo.resolve_rel.return_value = SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH
+    mock_repo.load_document.return_value = _VALID_ENVELOPE
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        load_safe_auto_approval_envelope()
+    mock_repo.resolve_rel.assert_called_once_with(
+        "enforcement/config/safe_auto_approval_envelope.yaml"
+    )
+
+
+def test_real_envelope_file_loads_the_governed_envelope() -> None:
+    """End-to-end against the real
+    .intent/enforcement/config/safe_auto_approval_envelope.yaml on disk (via
+    the real IntentRepository, not mocked) — proves the governed file (#853
+    content, #894 location) actually parses and contains the five
+    governor-named actions."""
     result = load_safe_auto_approval_envelope()
     assert "_error" not in result
     assert result["authorized_actions"] == frozenset(
