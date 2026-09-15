@@ -691,9 +691,10 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     and EXECUTION is a dry run (no --write).
 
     What the APPARATUS guarantees, and what this test therefore pins: the
-    instrument reaches a recorded verdict -- RAN, or an audit FAILED that
-    carries a genuine gate finding (an integer violation_count > 0 from an
-    action that ran; never a "?" refusal, #904) -- and export-run
+    instrument reaches a recorded verdict -- RAN, or a FAILED that STATES a
+    model verdict: the coder's own "succeeded for N/M steps" at runtime, or
+    an audit gate finding with an integer count from an action that ran
+    (never a "?" refusal, #904; never an empty reason) -- and export-run
     reconstructs the run complete. Governor ruling 2026-09-15: model weakness
     is trial evidence, not something to patch; the pinned 3b has produced
     both a clean 5-step run (RAN, 412ce4a8, 120s) and a 2-step run with a
@@ -763,13 +764,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     finally:
         stop_disposable_database(db)
     log_hint = f"full log: {run / 'evidence' / 'child.stderr.log'}"
-    audit_finding = (
+    model_verdict = (
         outcome["outcome"] == "FAILED"
         and outcome["stage"] == "develop"
-        and outcome["message"].startswith("Workflow failed at phase: audit")
+        and (
+            outcome["message"].startswith("Workflow failed at phase: audit")
+            or outcome["message"].startswith("Workflow failed at phase: runtime")
+        )
     )
     assert completed.returncode == EXIT_RAN or (
-        completed.returncode == EXIT_INTERNAL_FAILURE and audit_finding
+        completed.returncode == EXIT_INTERNAL_FAILURE and model_verdict
     ), f"{log_hint}\n{completed.stderr[-3000:]}"
     assert (run / "evidence" / "binding.json").is_file()
     assert subject_fingerprint(subject) == before
@@ -800,16 +804,24 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
         "the seeded planner planned, and the plan is on the Blackboard as data"
     )
     phases = {p["name"]: p for p in outcome_entry["payload"]["phases"]}
-    assert phases["parse"]["ok"] and phases["runtime"]["ok"], phases
+    assert phases["parse"]["ok"], phases
     if outcome["outcome"] == "RAN":
         assert outcome_entry["payload"]["ok"] is True
-        assert phases["audit"]["ok"] and phases["execution"]["ok"], phases
+        assert all(phases[n]["ok"] for n in ("runtime", "audit", "execution")), phases
     else:
-        # a genuine gate finding, never a refusal presented as one (#904)
+        # A STATED model verdict from an instrument that ran -- never a
+        # refusal presented as one (#904), never an empty reason.
         reason = outcome_entry["payload"]["reason"]
-        assert outcome_entry["payload"]["failed_phase"] == "audit"
-        assert "? unresolvable" not in reason, f"refusal misreported: {reason}"
-        count = re.search(r"(\d+) unresolvable import", reason)
-        assert count and int(count.group(1)) > 0, (
-            f"audit failed without a gate finding: {reason} ({log_hint})"
-        )
+        failed_phase = outcome_entry["payload"]["failed_phase"]
+        if failed_phase == "runtime":
+            verdict = re.search(r"succeeded for (\d+)/(\d+) steps", reason)
+            assert verdict and int(verdict.group(1)) < int(verdict.group(2)), (
+                f"runtime failed without a stated verdict: {reason!r} ({log_hint})"
+            )
+        else:
+            assert failed_phase == "audit" and phases["runtime"]["ok"], phases
+            assert "? unresolvable" not in reason, f"refusal misreported: {reason}"
+            count = re.search(r"(\d+) unresolvable import", reason)
+            assert count and int(count.group(1)) > 0, (
+                f"audit failed without a gate finding: {reason} ({log_hint})"
+            )

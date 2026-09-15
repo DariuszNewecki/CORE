@@ -179,9 +179,23 @@ class CodeGenerationPhase:
         )
         detailed_plan_dict = _serialize_detailed_plan(detailed_plan)
 
+        ok = success_rate >= 0.8
         return PhaseResult(
             name="code_generation",
-            ok=success_rate >= 0.8,
+            ok=ok,
+            # The verdict must be STATED, not only carried in data: the
+            # Worker's outcome record keeps a phase's name/ok/error, and an
+            # exported run with "code_generation failed: None" says nothing
+            # about why (#894 seeded live run, 3/5 steps on the pinned model).
+            error=(
+                ""
+                if ok
+                else (
+                    f"code generation succeeded for {success_count}/"
+                    f"{len(detailed_steps)} steps (success_rate "
+                    f"{success_rate:.2f} < 0.80)"
+                )
+            ),
             data={
                 "detailed_plan": detailed_plan,
                 "detailed_plan_dict": detailed_plan_dict,
