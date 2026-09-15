@@ -643,3 +643,22 @@ and on #894).*
 D4 accounting is unchanged by this Note (see the 2026-09-12 tightening c): the external-run
 route and any evidence-root plumbing are documented as adaptations at their implementation, no
 new ADR.
+
+### 2026-09-15 — Governor ruling: Trial 0 runner baseline pinned at `a2adc03c`
+
+#894 (remediation item 1 of the 2026-09-12 Note) is closed as functionally achieved: the seeded
+external runner completed governed execution at least once (`412ce4a8`, 2026-09-15) and converts
+model limitations and audit findings into recorded outcomes rather than infrastructure failures.
+That is the claim; it is not a reliability claim.
+
+The Trial 0 runner baseline is `a2adc03c65900c3588fd0a4639579dcb372efeea` (tree
+`04a09d22585bc65806940cdd48f776af06ddddb2`). The exact SHA controls; `origin/main` and CORE CI run
+35020631816 (green) are provenance. Disclosed by SHA only, no tag. `27160a0a…` and its T-A tag
+`autonomy-experiment-ready-2026-09-04` are unchanged as the historical T-A record.
+
+This is a pin, not a certification. The 2026-09-12 tightening (a) still requires the baseline to
+be certified as capable of executing the frozen procedures (Document A for Trial 0) and producing
+the evidence D5 needs; that rests on #895 (item 2). The pin moves only by a further ruling, never
+during a trial (D5). Trial 0 does not execute until the original Phase 1 seal is recovered,
+verified, scanned and published under D9 / §7 of the apparatus design; an apparatus-only run is
+not "Trial 0".

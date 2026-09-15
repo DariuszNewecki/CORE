@@ -121,11 +121,13 @@ anything above.
 
 | | Value |
 |---|---|
-| Runner | T-A certified baseline: tag `autonomy-experiment-ready-2026-09-04`, commit `27160a0a8768cf72bbe2a8fecc3d9169db758efc` |
+| Runner | **Rebaselined 2026-09-15 (Governor ruling):** `a2adc03c65900c3588fd0a4639579dcb372efeea` (tree `04a09d22585bc65806940cdd48f776af06ddddb2`); provenance: `origin/main`, CORE CI run 35020631816 green. Disclosed by exact SHA only, no tag. Supersedes `27160a0a8768cf72bbe2a8fecc3d9169db758efc` (the T-A tag `autonomy-experiment-ready-2026-09-04`, which stays where it is as the historical T-A record). **A pin, not a certification** (2026-09-12 tightening a): #894 (remediation item 1) complete at this SHA; #895 (item 2) pending. |
 | Subject | frozen CORE at `c4d9fdf9dc52c7d71981e367b64d00b0c994910b` (the Phase 1 `core_baseline_pin`), read-only, no later issues/commits/ADRs/benchmark answers visible |
 | Outputs | stored separately from the subject and from the runner's own repository (D5) |
 
-Not rebaselined by this unit. If the frozen runner cannot execute the preregistered trial, that
+Rebaselined per ADR-159 Note 2026-09-15 ("Trial 0 runner baseline pinned at `a2adc03c`"). D5's
+rule stands: the frozen runner is never patched during a trial; the pin moves only by a further
+Governor ruling before the run. If the pinned runner cannot execute the preregistered trial, that
 is an honest Trial 0 result, not permission to patch it (Governor ruling, 2026-09-10).
 
 ### Trial 1 — the proof (ADR-159 D6)
