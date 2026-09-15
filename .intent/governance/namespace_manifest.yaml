@@ -1838,6 +1838,18 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md
     governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/README.md
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workers/goal_execution_worker.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/seed/assignments.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/seed/llm_resources/ollama_qwen_coder_3b_trial.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/seed/system_config.yaml
+    governance_namespace: project::core
   - path: .specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
