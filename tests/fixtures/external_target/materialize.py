@@ -20,6 +20,17 @@ future offline onboard):
    own overlay-owned file ``enforcement/config/safe_auto_approval_envelope.yaml``
    (it was merged into the floor's ``action_risk.yaml`` until #894
    Condition 1 forbade modifying any floor file),
+   ``rules/ai/capability_taxonomy_governance.json`` copied byte-identical
+   from CORE's own tree (2026-09-15, #894 seeding unit: the mandatory policy
+   dependency of ``project.cognitive_roles`` and ``seed.external_run_resources``,
+   which ActionExecutor validates against the BOUND copy's ``.intent/`` --
+   the same shape as the ``proposal_lifecycle`` dependency below),
+   ``workflows/definitions/code_modification.yaml`` copied byte-identical from
+   CORE's own tree (2026-09-15, #894 seeding unit: the workflow definition
+   ``WorkflowOrchestrator.execute_goal`` resolves through the BOUND
+   IntentRepository -- absent from the floor, so an external run stopped at
+   "Workflow not found"; overlaid here as configuration, with the open
+   question of whether workflow definitions are floor content),
    one ``workers/proposal_consumer_worker.yaml`` declaration (Governor
    ruling 2026-09-07) giving the worker constitutional standing scoped
    exactly to ``package/example.py`` -- it does not touch the envelope
