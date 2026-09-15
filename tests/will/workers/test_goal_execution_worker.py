@@ -750,3 +750,27 @@ async def test_outcome_with_a_real_plan_is_json_serializable(
         }
     ]
     assert payload["plan"]["steps_count"] == 1
+
+
+async def test_auditor_context_is_resolved_like_the_cli_decorator_does() -> None:
+    """A Worker started outside `@core_command` (the external-run route) must
+    resolve auditor_context itself; CodeGenerationPhase refuses without it."""
+    worker = _make_worker()
+    worker._context.auditor_context = None
+    resolved = MagicMock(name="auditor_context")
+    worker._context.registry.get_auditor_context = AsyncMock(return_value=resolved)
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await worker.run()
+    assert worker._context.auditor_context is resolved
+
+    # a registry that cannot provide one degrades with a warning, not a crash
+    worker = _make_worker()
+    worker._context.auditor_context = None
+    worker._context.registry.get_auditor_context = AsyncMock(
+        side_effect=RuntimeError("x")
+    )
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await worker.run()
+    assert worker._context.auditor_context is None

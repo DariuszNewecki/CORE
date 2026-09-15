@@ -219,10 +219,12 @@ class GoalExecutionWorker(Worker):
                     "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
                 )
 
-            # Warm up the cognitive service on the CoreContext (the vector
-            # store was resolved above, before the identity record), matching
-            # the prior develop_from_goal behavior for callers whose context
-            # hasn't been through the strategic-audit CLI bootstrap.
+            # Warm up the remaining brain services on the CoreContext (the
+            # vector store was resolved above, before the identity record):
+            # the same three `@core_command(requires_context=True)` resolves
+            # for a CLI-entered run, so a Worker started from any other entry
+            # point (the pre-bootstrap external-run route, #894) is not short
+            # of them. CodeGenerationPhase refuses without auditor_context.
             if self._context.cognitive_service is None:
                 try:
                     self._context.cognitive_service = (
@@ -231,6 +233,15 @@ class GoalExecutionWorker(Worker):
                 except Exception as exc:
                     logger.warning(
                         "Could not resolve cognitive_service from registry: %s", exc
+                    )
+            if getattr(self._context, "auditor_context", None) is None:
+                try:
+                    self._context.auditor_context = (
+                        await self._context.registry.get_auditor_context()
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Could not resolve auditor_context from registry: %s", exc
                     )
 
             # #894 Unit 3 (item 3 of the ADR-159 remediation scope): explicit
