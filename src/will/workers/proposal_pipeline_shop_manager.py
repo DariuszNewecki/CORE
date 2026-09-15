@@ -48,17 +48,26 @@ ADR-091 D2 Revision B resolution classification:
   resolving it re-arms detection (ADR-150 D3).
 
 stuck_undeferred redrive contract (#764 — creation-side outbox):
-- create_proposal and defer_entries_to_proposal
-  (ViolationRemediatorWorker.run) are separate, independently-committed
-  transactions; defer_entries_to_proposal is documented fail-soft. A
-  finding stuck at 'claimed' (never reached 'deferred_to_proposal') is
-  invisible to both revival and re-claim — permanently orphaned without
-  this redrive. _redrive_undeferred_findings re-attempts
-  defer_entries_to_proposal every cycle the proposal appears in
-  fetch_stuck_undeferred; the UPDATE's own status guard (only 'open'/
-  'claimed' rows match) makes retries idempotent, and once all findings
-  are deferred the proposal stops matching the query, so the finding
-  self-resolves via the existing resolve pass.
+- Originally: create_proposal and defer_entries_to_proposal
+  (ViolationRemediatorWorker.run) were separate, independently-committed
+  transactions, so a finding could be left at 'claimed' (never reached
+  'deferred_to_proposal') — invisible to both revival and re-claim.
+  Since #886 the mapped lane creates, defers and (when safe) approves in
+  ONE transaction (submit_mapped_proposal), and the test_remediator lane
+  has not deferred since #773 T5.3; no live two-step creator remains.
+  The redrive is kept as a backstop for a lane that reintroduces the
+  two-step shape, not as a path any current lane exercises.
+- fetch_stuck_undeferred matches ACTIVE proposals only
+  (proposal_status_active: pending/approved/executing/finalizing). A
+  terminal proposal's findings are revived by its own failure/rejection
+  path and may legitimately be 'open' again — matching those re-deferred
+  live findings to a dead proposal every cycle (the #764 mis-fire).
+- _redrive_undeferred_findings re-attempts defer_entries_to_proposal
+  every cycle the proposal appears in fetch_stuck_undeferred; the
+  UPDATE's own status guard (only 'open'/'claimed' rows match) makes
+  retries idempotent, and once all findings are deferred the proposal
+  stops matching the query, so the finding self-resolves via the
+  existing resolve pass.
 
 stuck_executing termination contract:
 - _retire_stuck_proposal runs EVERY cycle the proposal appears in

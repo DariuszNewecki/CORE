@@ -66,9 +66,7 @@ async def test_fetch_completed_without_consequence_passes_barrier_cutoff() -> No
     params = call_args.args[1]
     assert params["limit"] == 50
     assert params["barrier_live_at"] == svc._ADR_148_BARRIER_LIVE_AT
-    assert svc._ADR_148_BARRIER_LIVE_AT == datetime(
-        2026, 7, 12, 20, 25, 34, tzinfo=UTC
-    )
+    assert svc._ADR_148_BARRIER_LIVE_AT == datetime(2026, 7, 12, 20, 25, 34, tzinfo=UTC)
 
 
 async def test_fetch_completed_without_consequence_checks_row_existence_not_marker() -> (
@@ -111,9 +109,7 @@ async def test_fetch_stuck_undeferred_maps_rows() -> None:
     """Rows returned by the query are mapped into the expected dict shape,
     including the finding_ids array (#764)."""
     created_at = datetime(2026, 7, 13, 1, 0, 0, tzinfo=UTC)
-    session = _mock_session(
-        [("pid-undeferred-1", ["fid-a", "fid-b"], created_at, 300)]
-    )
+    session = _mock_session([("pid-undeferred-1", ["fid-a", "fid-b"], created_at, 300)])
 
     svc = ProposalSupervisionService()
     with patch(
@@ -163,6 +159,33 @@ async def test_fetch_stuck_undeferred_passes_sla_cutoff() -> None:
     params = call_args.args[1]
     assert params["limit"] == 75
     assert "cutoff" in params
+
+
+async def test_fetch_stuck_undeferred_matches_only_active_statuses() -> None:
+    """The query binds the canonical active set (pending/approved/executing/
+    finalizing) and uses it as the status filter -- never a `!= 'rejected'`
+    exclusion, which let failed/completed proposals re-capture findings the
+    revival path had just reopened (#764 mis-fire, #886 recon)."""
+    session = _mock_session([])
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        await svc.fetch_stuck_undeferred(sla_sec=120, limit=10)
+
+    call_args = session.execute.await_args
+    sql = str(call_args.args[0])
+    params = call_args.args[1]
+    assert "p.status = ANY(:active_statuses)" in sql
+    assert "!= 'rejected'" not in sql
+    assert params["active_statuses"] == [
+        "pending",
+        "approved",
+        "executing",
+        "finalizing",
+    ]
 
 
 async def test_fetch_stuck_undeferred_empty_result() -> None:

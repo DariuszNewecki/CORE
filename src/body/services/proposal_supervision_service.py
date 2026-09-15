@@ -23,6 +23,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.lifecycles.proposal import ProposalStatus
 from shared.logger import getLogger
 
 
@@ -290,10 +291,24 @@ class ProposalSupervisionService:
         forward-only per ADR-015 D7 (historical proposals predating the
         field are not backfilled, so they never match jsonb_typeof=='array'
         with elements).
+
+        Only ACTIVE proposals (``proposal_status_active`` in
+        .intent/META/enums.json: pending/approved/executing/finalizing)
+        qualify. A terminal proposal (completed/failed/rejected) has already
+        had its findings revived -- ``failed`` flips them to
+        ``awaiting_reaudit`` and the sensor may reopen them to ``open`` --
+        so matching it here re-deferred live findings to a dead proposal
+        every cycle (#764 mis-fire, surfaced by the #886 recon).
         """
         from body.services.service_registry import ServiceRegistry
 
         cutoff = datetime.now(UTC) - timedelta(seconds=sla_sec)
+        active_statuses = [
+            ProposalStatus.PENDING.value,
+            ProposalStatus.APPROVED.value,
+            ProposalStatus.EXECUTING.value,
+            ProposalStatus.FINALIZING.value,
+        ]
 
         async with ServiceRegistry.session() as session:
             result = await session.execute(
@@ -306,7 +321,7 @@ class ProposalSupervisionService:
                         EXTRACT(EPOCH FROM (now() - p.created_at))::int
                             AS seconds_stuck
                     FROM core.autonomous_proposals p
-                    WHERE p.status != 'rejected'
+                    WHERE p.status = ANY(:active_statuses)
                       AND jsonb_typeof(p.constitutional_constraints->'finding_ids')
                           = 'array'
                       AND p.created_at < :cutoff
@@ -323,7 +338,7 @@ class ProposalSupervisionService:
                     LIMIT :limit
                     """
                 ),
-                {"cutoff": cutoff, "limit": limit},
+                {"cutoff": cutoff, "limit": limit, "active_statuses": active_statuses},
             )
             rows = result.fetchall()
 
