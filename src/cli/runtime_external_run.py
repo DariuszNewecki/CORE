@@ -328,12 +328,20 @@ async def _default_cognitive_init(core_context: Any) -> None:
     core_context.cognitive_service = cognitive
 
 
+# The planner's prompt artifacts (ruling B: runner machinery). Both are loaded
+# under the bound copy's prompt root: `plan_goal` via PromptModel.load and
+# `planner_agent` via PathResolver.prompt() (planner_agent.py:116). The live
+# seeded run found the second one; keep this list the single place they are named.
+PLANNER_PROMPT_IDS: tuple[str, ...] = ("plan_goal", "planner_agent")
+
+
 def _runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
-    """Ruling B: the planner prompt is runner machinery; its source is the
+    """Ruling B: the planner prompts are runner machinery; their source is the
     runner's own prompt root (PathResolver, never a literal)."""
     from shared.path_resolver import PathResolver
 
-    return {"plan_goal": PathResolver(core_repo_root).prompts_dir / "plan_goal"}
+    prompts_dir = PathResolver(core_repo_root).prompts_dir
+    return {prompt_id: prompts_dir / prompt_id for prompt_id in PLANNER_PROMPT_IDS}
 
 
 async def _default_seed_environment(

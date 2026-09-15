@@ -31,6 +31,11 @@ future offline onboard):
    IntentRepository -- absent from the floor, so an external run stopped at
    "Workflow not found"; overlaid here as configuration, with the open
    question of whether workflow definitions are floor content),
+   the six ``phases/*.yaml`` constitutional phase declarations copied
+   byte-identical from CORE's own tree (2026-09-15, #894 seeding unit:
+   ``PhaseRegistry`` loads phases through the BOUND IntentRepository; the
+   floor ships none, so the seeded live run crashed at
+   ``PhaseRegistry.get("interpret")`` -- same floor-vs-overlay question),
    one ``workers/proposal_consumer_worker.yaml`` declaration (Governor
    ruling 2026-09-07) giving the worker constitutional standing scoped
    exactly to ``package/example.py`` -- it does not touch the envelope

@@ -1,0 +1,60 @@
+$schema: "META/phase.schema.json"
+kind: phase
+
+phase_type: interpret
+description: 'Convert natural language user intent into canonical task structure.
+  This is the constitutional entry point for the Will layer.
+
+  Interpret bridges ungoverned (human communication) with governed (system execution).
+
+  '
+inputs:
+- user_request
+- conversation_context
+- available_workflows
+outputs:
+- task_structure
+- workflow_type
+- clarification_needed
+constitutional_requirements:
+- governance.no_governance_bypass
+- autonomy.tracing.mandatory
+authority: policy
+failure_modes:
+  ambiguity: clarify
+  contradiction: block
+max_retries: 3
+agent_role: IntentInterpreter
+llm_tier: high
+permitted_actions:
+- parse_natural_language
+- classify_intent
+- map_to_workflow
+- request_clarification
+- validate_task_structure
+forbidden_actions:
+- execute_code
+- modify_files
+- create_policies
+- bypass_parse_validation
+- assert_authority
+success_criteria:
+  task_structure_valid: true
+  workflow_identified: true
+notes: 'INTERPRET is the first constitutional phase. It does NOT have authority to
+  execute - only to propose task structures that will be validated in subsequent
+  phases.
+
+  Per UR-03 (CORE-USER-REQUIREMENTS S3), INTERPRET has two orthogonal failure
+  classes: ambiguity (input unclear -> CORE asks via the `clarify` strategy) and
+  contradiction (input internally inconsistent -> CORE stops via the `block`
+  strategy). These are not substitutable: ambiguity is missing-input that the
+  user can supply; contradiction is malformed-input that the user must resolve.
+  Modeling them as a single failure_mode value erases UR-03''s distinction
+  (ADR-074).
+
+  This phase completes the Mind-Body-Will architecture by giving the Will layer
+  a constitutional entry point with clear boundaries.
+
+  '
+implementation: will.phases.interpret_phase.InterpretPhase

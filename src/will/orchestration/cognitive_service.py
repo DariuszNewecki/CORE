@@ -108,21 +108,26 @@ class CognitiveService:
             raise ValueError(f"Missing config for resource '{resource.name}'.")
 
         # API key is optional — Ollama and similar local providers don't require one.
+        # A `locality: local` resource has no api key BY DEFINITION (ADR-052
+        # locality), so the secret store is not consulted for it at all: an
+        # isolated external run (#894) carries no CORE_MASTER_KEY and must not
+        # need one to talk to a local model. Remote resources keep the lookup.
         api_key: str | None = None
-        try:
-            if self._session_factory:
-                async with self._session_factory() as session:
-                    jit_config = await ConfigService.create(session)
-                    api_key = await jit_config.get_secret(
-                        f"{prefix}.api_key", resource_name=resource.name
-                    )
-            else:
-                api_key = await self._config.get_secret(f"{prefix}.api_key")
-        except (KeyError, SecretNotFoundError):
-            logger.debug(
-                "No API key configured for resource '%s' — proceeding without one.",
-                resource.name,
-            )
+        if getattr(resource, "locality", "local") != "local":
+            try:
+                if self._session_factory:
+                    async with self._session_factory() as session:
+                        jit_config = await ConfigService.create(session)
+                        api_key = await jit_config.get_secret(
+                            f"{prefix}.api_key", resource_name=resource.name
+                        )
+                else:
+                    api_key = await self._config.get_secret(f"{prefix}.api_key")
+            except (KeyError, SecretNotFoundError):
+                logger.debug(
+                    "No API key configured for resource '%s' — proceeding without one.",
+                    resource.name,
+                )
 
         if "anthropic" in api_url.lower():
             from shared.infrastructure.llm.providers.anthropic import AnthropicProvider
