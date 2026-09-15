@@ -65,6 +65,12 @@ mappings:
       # (adopt-pack, consequence-chain) -- governor-inbox findings for
       # project.adopt-pack and demo.consequence-chain, same shape as prior
       # additions (audit-duplicates, check-imports, fix-atomic, ...).
+      # 2026-09-15 vocabulary expansion: 3 verbs added (author, export-run,
+      # project) -- governor-inbox cli.standard_verbs findings for
+      # llm-resources.author (#821 Unit 2), workers.export-run (#893, same
+      # shape as export-context) and cognitive-roles.project (#821 Unit 2:
+      # the command *projects* cognitive-role capabilities). Same shape as
+      # the 2026-08-26 additions.
       allowed_verbs:
         - accept
         - accessibility
@@ -74,6 +80,7 @@ mappings:
         - approve
         - audit
         - audit-duplicates
+        - author
         - baseline
         - bootstrap
         - build
@@ -99,6 +106,7 @@ mappings:
         - explain
         - export
         - export-context
+        - export-run
         - fix-atomic
         - fix-ids
         - forensics
@@ -124,6 +132,7 @@ mappings:
         - onboard
         - patterns
         - promote
+        - project
         - propose
         - purge
         - query
