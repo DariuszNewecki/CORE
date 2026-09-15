@@ -56,8 +56,8 @@ class OverlayCollisionError(CoreError):
     """The overlay names a path the floor owns (Condition 1: additive-only)."""
 
 
-# ID: aa4ba13d-05a1-4186-9a08-bd4bc884498f
 @dataclass(frozen=True)
+# ID: af36b8d6-aaf4-481e-b2d3-323fb60c9caf
 class AssembledIntent:
     """What :func:`assemble_target_intent` produced."""
 

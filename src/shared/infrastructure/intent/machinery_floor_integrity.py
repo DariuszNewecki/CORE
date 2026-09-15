@@ -56,8 +56,8 @@ def _iter_floor_files(root: Path) -> list[Path]:
     )
 
 
-# ID: 540f2544-cd26-4933-a07d-89d1411b3e73
 @dataclass(frozen=True)
+# ID: 9f816b13-49c7-4b91-9237-2ec67161925f
 class FloorIntegrityReport:
     """Outcome of :func:`verify_floor` for one target ``.intent/``.
 
@@ -71,9 +71,11 @@ class FloorIntegrityReport:
     missing: tuple[str, ...] = field(default_factory=tuple)
 
     @property
+    # ID: 7f396b49-61d0-4686-a407-0239cb37fa41
     def clean(self) -> bool:
         return not self.modified and not self.missing
 
+    # ID: 0cc859d9-4655-45f6-8ea7-5260ecdea1ee
     def describe(self) -> str:
         """Human-readable summary, safe to print in a refusal message."""
         parts = [
