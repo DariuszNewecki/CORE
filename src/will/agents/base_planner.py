@@ -11,6 +11,8 @@ CONSTITUTIONAL ENHANCEMENT (V2.3):
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import ValidationError
 
 from shared.logger import getLogger
@@ -62,6 +64,31 @@ Keep the plan lean. Focus exclusively on the final state of the code.
     return prompt_pipeline.process(final_prompt)
 
 
+PLAN_KEY = "plan"
+
+
+# ID: d09b1a07-6800-4c11-88e2-3da4eaefd6bc
+def plan_steps(parsed: object) -> list[Any] | None:
+    """Return the plan's step list from the LLM's parsed JSON, or ``None``.
+
+    The ``plan_goal`` artifact asks for ``{"plan": [...]}`` -- an OBJECT,
+    because provider JSON-object mode (``output.format: json``) constrains
+    the root to an object on providers that honour it strictly (Ollama
+    coerces a top-level array into a single object; found by the #894
+    seeded live run against the pinned ``qwen2.5-coder:3b``), and a
+    ``json_schema`` contract is unavailable on DeepSeek (#425). A bare list
+    is still accepted: it is what looser providers returned under the
+    previous ``[...]`` contract and remains a valid plan.
+    """
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        inner = parsed.get(PLAN_KEY)
+        if isinstance(inner, list):
+            return inner
+    return None
+
+
 # ID: 53af1563-669b-4cd0-b636-671bdd46570d
 def parse_and_validate_plan(response_text: str) -> list[ExecutionTask]:
     """
@@ -69,15 +96,18 @@ def parse_and_validate_plan(response_text: str) -> list[ExecutionTask]:
     """
     try:
         parsed_json = extract_json_from_response(response_text)
-        if not isinstance(parsed_json, list):
-            raise ValueError("LLM did not return a valid JSON list for the plan.")
+        steps = plan_steps(parsed_json)
+        if steps is None:
+            raise ValueError(
+                'LLM did not return a plan: expected {"plan": [...]} or a JSON list.'
+            )
 
         validated_plan: list[ExecutionTask] = []
 
         # Forbidden actions in an Execution Plan (belong to Reconnaissance)
         forbidden_actions = {"file.read", "inspect", "analyze", "check.audit"}
 
-        for i, task_dict in enumerate(parsed_json, 1):
+        for i, task_dict in enumerate(steps, 1):
             if not isinstance(task_dict, dict):
                 continue
 
