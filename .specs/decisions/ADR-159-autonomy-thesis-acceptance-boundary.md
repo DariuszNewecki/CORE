@@ -597,6 +597,29 @@ Trial 0 on known apparatus incompatibility and produce no new evidence, whereas 
 the certified runner against the frozen subject payload while keeping the adaptation fully
 reconstructable from the manifest.
 
+*Seeding rulings (Governor, same day, after the #894 seeding reconnaissance — recorded here
+because they shape trial validity and isolation; the writer authorization and role-authority
+decisions that accompany them are implementation matters recorded in the seeding unit's commit
+and on #894).*
+
+- **Trial resource.** Trials pin one trial-specific local Ollama resource, `qwen2.5-coder:3b`,
+  identified by its exact model digest; it provides `planning`, is assigned explicitly to
+  `Planner`, and has no fallback. The digest lives in the seed document and the run's
+  `seed_manifest.json`; seed time verifies it against the pinned endpoint's observed digest and
+  refuses any mismatch. Both comparison arms use the same pinned model where applicable.
+  Rationale: reproducible, locally contained, previously demonstrated by CORE, independent of
+  changing remote services. Live CORE's remote planner assignment is not the trial's.
+- **Prompt collision.** The planner prompt (`plan_goal`) is runner machinery, not subject law.
+  The runner-pinned prompt is installed into the execution copy; when the subject carries a
+  different copy, the subject's original is preserved byte-for-byte under evidence and both
+  hashes are recorded in a deterministic prompt-collision manifest. The frozen subject is never
+  modified. Same mechanics as the floor-wins rule above.
+- **Vector store.** `QDRANT_URL` is unset for external runs: CORE's own policy vectors must not
+  enter the subject's planning through a side channel. The run records, on its Blackboard
+  identity and only when a target binding is present, `policy_counsel: unavailable — no
+  target-bound policy-vector store`. A future target-specific vector store may replace this
+  degradation; inherited CORE vectors may not.
+
 **Also recorded.**
 
 - *ADR-160 external-target gate.* `develop_from_goal`
