@@ -21,6 +21,9 @@ from shared.infrastructure.intent.filesystem_operations import FsOperationTaxono
 from ..base import ASTHelpers
 
 
+CORE_ROLE = "catalog"  # ADR-095 D3
+
+
 # ID: 318924b3-cfe8-4ae2-a856-88deacf02a9b
 class PurityChecks:
     """

@@ -70,6 +70,8 @@ from .models import _RemediationPlan
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "algorithm"  # ADR-095 D3
+
 _DRY_RUN_SUBJECT = "audit.remediation.dry_run"
 _COMPLETE_SUBJECT = "audit.remediation.complete"
 _DRAFT_SUBJECT = "audit.remediation.draft_created"

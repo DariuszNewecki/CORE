@@ -58,6 +58,8 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
 _SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"

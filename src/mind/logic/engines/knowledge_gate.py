@@ -35,6 +35,8 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 # ID: 8d880004-d06c-43ba-b15e-9c934097e409
 class KnowledgeGateEngine(BaseEngine):

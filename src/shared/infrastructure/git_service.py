@@ -31,6 +31,8 @@ from shared.path_resolver import PathResolver
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 _CFG_GIT = load_operational_config().git
 
 
