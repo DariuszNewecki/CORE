@@ -42,6 +42,10 @@ class TargetBinding:
     floor_hash: str
     overlay_hash: str
     displaced: tuple[DisplacedFile, ...] = field(default_factory=tuple)
+    # #894 seeding unit (ruling E): ONE canonical hash over the seed manifest
+    # (prompts, roles, resources, assignments, system_config); component
+    # hashes live in evidence/seed_manifest.json, not here.
+    seed_hash: str | None = None
 
     # ID: 696b3171-1cc8-47a2-9e01-6139ce4d6e93
     def to_payload(self) -> dict[str, Any]:
@@ -55,6 +59,7 @@ class TargetBinding:
             "bound_tree_hash": self.bound_tree_hash,
             "floor_hash": self.floor_hash,
             "overlay_hash": self.overlay_hash,
+            "seed_hash": self.seed_hash,
             "displaced": [
                 {
                     "path": d.path,
@@ -76,6 +81,7 @@ REQUIRED_BINDING_KEYS: frozenset[str] = frozenset(
         "bound_tree_hash",
         "floor_hash",
         "overlay_hash",
+        "seed_hash",
         "displaced",
     }
 )
@@ -93,9 +99,12 @@ def validate_binding_payload(value: Any) -> str | None:
     missing = sorted(REQUIRED_BINDING_KEYS - set(value))
     if missing:
         return f"target_binding missing keys: {', '.join(missing)}"
-    for key in REQUIRED_BINDING_KEYS - {"displaced"}:
+    for key in REQUIRED_BINDING_KEYS - {"displaced", "seed_hash"}:
         if not isinstance(value[key], str) or not value[key]:
             return f"target_binding.{key} must be a non-empty string"
+    seed = value["seed_hash"]
+    if seed is not None and (not isinstance(seed, str) or len(seed) != 64):
+        return "target_binding.seed_hash must be null or a 64-hex sha256"
     displaced = value["displaced"]
     if not isinstance(displaced, list):
         return "target_binding.displaced must be a list"

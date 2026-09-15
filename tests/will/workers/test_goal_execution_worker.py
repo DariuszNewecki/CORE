@@ -621,3 +621,28 @@ async def test_develop_from_goal_returns_stable_unavailable_message(
     assert ok is False
     assert message.startswith(ad.UNAVAILABLE_PREFIX)
     assert worker.run_id in message
+
+
+async def test_policy_counsel_recorded_only_for_bound_run_without_vector_store() -> (
+    None
+):
+    """Ruling C: `policy_counsel` appears when a target binding is present and
+    no qdrant_service is wired; never on an internal run, even with Qdrant down."""
+    bound = _make_worker()
+    bound._context.target_binding = _binding()
+    bound._context.qdrant_service = None
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await bound.run()
+    _, payload = bound._blackboard.post_report.call_args_list[0].args
+    assert payload["policy_counsel"].startswith("unavailable")
+    assert payload["target_binding"]["seed_hash"] is None
+
+    internal = _make_worker()
+    internal._context.target_binding = None
+    internal._context.qdrant_service = None  # an internal Qdrant outage
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with orch_patch, registry_patch:
+        await internal.run()
+    _, payload = internal._blackboard.post_report.call_args_list[0].args
+    assert "policy_counsel" not in payload and "target_binding" not in payload

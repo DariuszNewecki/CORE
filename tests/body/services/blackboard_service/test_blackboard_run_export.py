@@ -200,6 +200,7 @@ def _binding_payload() -> dict[str, Any]:
         "bound_tree_hash": "d" * 40,
         "floor_hash": "e" * 64,
         "overlay_hash": "f" * 64,
+        "seed_hash": None,
         "displaced": [
             {
                 "path": "META/enums.json",
@@ -256,5 +257,14 @@ def test_malformed_binding_refuses_export(mutate) -> None:
 def test_non_object_binding_refuses_export() -> None:
     rows = _bound_run()
     rows[0]["payload"]["target_binding"] = "surprise"
+    with pytest.raises(RunExportRefused, match="malformed_target_binding"):
+        build_run_export(RID, rows)
+
+
+def test_seed_hash_null_or_sha256_accepted_else_refused() -> None:
+    rows = _bound_run()
+    rows[0]["payload"]["target_binding"]["seed_hash"] = "9" * 64
+    assert build_run_export(RID, rows)["target_binding"]["seed_hash"] == "9" * 64
+    rows[0]["payload"]["target_binding"]["seed_hash"] = "short"
     with pytest.raises(RunExportRefused, match="malformed_target_binding"):
         build_run_export(RID, rows)

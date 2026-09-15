@@ -153,6 +153,15 @@ class GoalExecutionWorker(Worker):
             binding = getattr(self._context, "target_binding", None)
             if binding is not None:
                 start_payload["target_binding"] = binding.to_payload()
+                # Ruling C (2026-09-15): an external run has no target-bound
+                # policy-vector store (QDRANT_URL is unset for it); say so on
+                # the run's own identity. Recorded only when a binding is
+                # present so an internal Qdrant outage never changes an
+                # internal run's payload.
+                if getattr(self._context, "qdrant_service", None) is None:
+                    start_payload["policy_counsel"] = (
+                        "unavailable — no target-bound policy-vector store"
+                    )
             await self.post_report(f"goal_run.{run_id}.start", start_payload)
 
             path_resolver = getattr(self._context, "path_resolver", None)
