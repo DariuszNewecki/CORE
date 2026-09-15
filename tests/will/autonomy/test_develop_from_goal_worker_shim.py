@@ -29,6 +29,9 @@ def _fake_worker(
     worker.run_id = run_id
     worker.proposal_id = proposal_id
     worker.proposal_approval_required = proposal_approval_required
+    # #894 Unit 3: the shim checks this first; a bare MagicMock attribute is
+    # truthy and would read as "unavailable". A ready worker leaves it None.
+    worker.unavailable_reason = None
     return worker
 
 
