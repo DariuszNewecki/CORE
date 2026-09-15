@@ -71,6 +71,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 from shared.activity_logging import activity_run
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
@@ -81,6 +83,27 @@ from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
 
 
 logger = getLogger(__name__)
+
+
+def _blackboard_safe(value: Any) -> Any:
+    """Return *value* with every pydantic model rendered as JSON-safe data.
+
+    ParsePhase leaves the plan under ``data["execution_plan"]`` as
+    ``list[ExecutionTask]`` -- the objects CodeGenerationPhase consumes. The
+    Blackboard stores ``json.dumps(payload)``, so posting that dict raw fails
+    with "Object of type ExecutionTask is not JSON serializable" on EVERY
+    outcome path once a plan exists, and the run's outcome is never recorded
+    (the #894 seeded live run was the first orchestrator-path run with a
+    real plan to reach this line; the ADR-160 create_proposal_only path posts
+    no plan). Containers are walked; other values pass through unchanged.
+    """
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    if isinstance(value, dict):
+        return {k: _blackboard_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_blackboard_safe(v) for v in value]
+    return value
 
 
 # ID: ed11bc55-9c7a-4a95-a953-1ce16023104a
@@ -263,8 +286,8 @@ class GoalExecutionWorker(Worker):
 
             self.result = result
 
-            plan_data = next(
-                (p.data for p in result.phase_results if p.name == "parse"), {}
+            plan_data = _blackboard_safe(
+                next((p.data for p in result.phase_results if p.name == "parse"), {})
             )
             phase_summary = [
                 {

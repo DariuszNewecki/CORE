@@ -128,6 +128,43 @@ def _criteria_not_met_result() -> PhaseWorkflowResult:
     )
 
 
+def _real_plan_data() -> dict[str, object]:
+    """What ParsePhase actually leaves under data: pydantic ExecutionTask
+    objects (CodeGenerationPhase's input), not JSON."""
+    return {
+        "execution_plan": [
+            ExecutionTask(
+                step="Add a docstring",
+                action="fix.docstrings",
+                params=TaskParams(file_path="package/mod.py"),
+            )
+        ],
+        "steps_count": 1,
+        "goal": "Evaluate the package",
+    }
+
+
+def _failed_after_real_plan_result() -> PhaseWorkflowResult:
+    return PhaseWorkflowResult(
+        ok=False,
+        workflow_type="code_modification",
+        total_duration=19.0,
+        phase_results=[
+            PhaseResult(name="interpret", ok=True, data={}, duration_sec=0.0),
+            PhaseResult(
+                name="parse", ok=True, data=_real_plan_data(), duration_sec=3.0
+            ),
+            PhaseResult(
+                name="runtime",
+                ok=False,
+                data={},
+                error="Schema not found: .../var/context/schema.yaml",
+                duration_sec=1.0,
+            ),
+        ],
+    )
+
+
 def _patched_orchestrator(result: PhaseWorkflowResult):
     executor_instance = MagicMock()
     executor_instance.execute_goal = AsyncMock(return_value=result)
@@ -667,3 +704,49 @@ async def test_policy_counsel_reflects_the_vector_store_resolved_before_the_reco
     assert "policy_counsel" not in payload, "the run HAD a vector store"
     assert bound._context.qdrant_service is resolved
     bound._context.registry.get_qdrant_service.assert_awaited_once()
+
+
+# --------------------------------------------------------------------------- plan serialization
+
+
+@pytest.mark.parametrize(
+    ("result", "method"),
+    [
+        (_success_result(_real_plan_data()), "post_report"),
+        (_failed_after_real_plan_result(), "post_observation"),
+    ],
+    ids=["success", "failed-phase"],
+)
+async def test_outcome_with_a_real_plan_is_json_serializable(
+    result: PhaseWorkflowResult, method: str
+) -> None:
+    """ParsePhase's plan is list[ExecutionTask]; the Blackboard stores
+    json.dumps(payload). Before the fix every outcome path with a real plan
+    raised "Object of type ExecutionTask is not JSON serializable" and the
+    run's outcome was never recorded (#894 seeded live run)."""
+    import json
+
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(result)
+    with orch_patch, registry_patch:
+        await worker.run()
+    poster = getattr(worker._blackboard, method)
+    subject, payload = poster.call_args_list[-1].args[:2]
+    assert subject == f"goal_run.{worker.run_id}.outcome"
+    json.dumps(payload)  # the Blackboard's own serialization must succeed
+    steps = payload["plan"]["execution_plan"]
+    assert steps == [
+        {
+            "step": "Add a docstring",
+            "action": "fix.docstrings",
+            "params": {
+                "file_path": "package/mod.py",
+                "code": None,
+                "symbol_name": None,
+                "justification": None,
+                "tag": None,
+            },
+            "task_type": "code_generation",
+        }
+    ]
+    assert payload["plan"]["steps_count"] == 1
