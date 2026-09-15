@@ -135,15 +135,17 @@ def _chunk_by_function(content: str, source: str) -> list[dict[str, Any]]:
                 end = node.end_lineno or (start + 20)
                 text = "\n".join(lines[start:end]).strip()
                 if text:
-                    chunks.append(
-                        {
-                            "text": text,
-                            "metadata": {
-                                "source": source,
-                                "section": node.name,
-                                "chunk_type": "test_function",
-                            },
-                        }
+                    # #890: split like every other chunker does. A single
+                    # test function longer than the embedder's context was
+                    # sent whole -> deterministic 400 from Ollama, retried
+                    # every cycle, artifact never embedded.
+                    chunks.extend(
+                        _split_large(
+                            text,
+                            source,
+                            node.name,
+                            chunk_type="test_function",
+                        )
                     )
 
     if not chunks:
