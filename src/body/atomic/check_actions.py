@@ -21,7 +21,8 @@ import asyncio
 import json
 import subprocess
 import time
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
@@ -34,7 +35,29 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-_TARGET = "src/"
+# The conventional Python tree of a CORE-shaped repository. The check binds
+# to the repository the process is BOUND to, never to the process cwd: a
+# literal "src/" resolved against cwd examined the runner's own source when
+# the runner was bound to an execution copy elsewhere (#894 seeded live run
+# -- a false pass on the subject's behalf). A repository without src/ is
+# checked at its root.
+_SRC_SUBDIR = "src"
+
+
+def _import_check_target(core_context: Any | None) -> Path:
+    """The tree ``check.imports`` examines: ``<bound repo>/src`` when it
+    exists, else the bound repository root. The bound repository is the
+    context's git root (what ActionExecutor injects); a direct call without
+    a context falls back to the bootstrap registry's bound path."""
+    if core_context is not None and getattr(core_context, "git_service", None):
+        root = Path(core_context.git_service.repo_path)
+    else:
+        from shared.infrastructure.bootstrap_registry import bootstrap_registry
+
+        root = bootstrap_registry.get_repo_path()
+    root = root.resolve()
+    src = root / _SRC_SUBDIR
+    return src if src.is_dir() else root
 
 
 @register_action(
@@ -50,9 +73,12 @@ _TARGET = "src/"
     policies=["atomic_actions"],
 )
 # ID: dd985101-edb8-4256-ad7f-c6088b68183b
-async def action_check_imports(*, write: bool = False, **kwargs) -> ActionResult:
+async def action_check_imports(
+    *, core_context: Any | None = None, write: bool = False, **kwargs
+) -> ActionResult:
     """
-    Verify all import statements in src/ resolve to existing modules.
+    Verify all import statements in the bound repository resolve to existing
+    modules (its ``src/`` tree when it has one, else its root).
 
     Runs ruff with rules:
     - F821: Undefined name (catches references to moved/deleted symbols)
@@ -63,11 +89,12 @@ async def action_check_imports(*, write: bool = False, **kwargs) -> ActionResult
     ok=False means violations exist — callers treat this as a blocking signal.
     """
     start = time.time()
+    target = _import_check_target(core_context)
 
     cmd = [
         "ruff",
         "check",
-        _TARGET,
+        str(target),
         "--select",
         "F821,F401",
         "--output-format",
@@ -113,7 +140,7 @@ async def action_check_imports(*, write: bool = False, **kwargs) -> ActionResult
             data={
                 "violations": violations,
                 "violation_count": len(violations),
-                "target": _TARGET,
+                "target": str(target),
                 "rules_checked": ["F821", "F401"],
             },
             duration_sec=time.time() - start,

@@ -18,7 +18,10 @@ and would fail if either action's scope drifted into the other's.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from body.atomic.check_actions import action_check_imports
 from body.atomic.fix import action_fix_imports
@@ -105,3 +108,60 @@ async def test_fix_imports_and_check_imports_select_sets_are_disjoint() -> None:
     check_select = set(_select_arg(mock_check.call_args[0][0]).split(","))
 
     assert fix_select.isdisjoint(check_select)
+
+
+# --- check.imports binds to the BOUND repository, never the process cwd --------
+
+
+def _context_at(root: Path) -> MagicMock:
+    ctx = MagicMock()
+    ctx.git_service.repo_path = str(root)
+    return ctx
+
+
+async def test_check_imports_targets_the_bound_repository_src(tmp_path: Path) -> None:
+    """#894 seeded live run: a literal "src/" resolved against cwd examined
+    the runner's own source while bound to an execution copy elsewhere."""
+    (tmp_path / "src").mkdir()
+    fake_result = MagicMock(stdout="[]", returncode=0)
+    with patch(
+        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+    ) as mock_run:
+        with authorize_execution("check.imports"):
+            result = await action_check_imports(
+                core_context=_context_at(tmp_path), write=False
+            )
+    cmd = mock_run.call_args[0][0]
+    assert cmd[2] == str((tmp_path / "src").resolve())
+    assert result.data["target"] == str((tmp_path / "src").resolve())
+
+
+async def test_check_imports_targets_the_repository_root_without_src(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "package").mkdir()
+    fake_result = MagicMock(stdout="[]", returncode=0)
+    with patch(
+        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+    ) as mock_run:
+        with authorize_execution("check.imports"):
+            await action_check_imports(core_context=_context_at(tmp_path), write=False)
+    assert mock_run.call_args[0][0][2] == str(tmp_path.resolve())
+
+
+async def test_check_imports_never_uses_the_process_cwd_when_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "src").mkdir(parents=True)
+    monkeypatch.chdir(elsewhere)
+    bound = tmp_path / "bound"
+    bound.mkdir()
+    fake_result = MagicMock(stdout="[]", returncode=0)
+    with patch(
+        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+    ) as mock_run:
+        with authorize_execution("check.imports"):
+            await action_check_imports(core_context=_context_at(bound), write=False)
+    target = mock_run.call_args[0][0][2]
+    assert target == str(bound.resolve()) and "elsewhere" not in target
