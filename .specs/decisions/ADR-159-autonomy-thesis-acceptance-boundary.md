@@ -533,3 +533,79 @@ thesis-negative categories (new `src/` modules, new check/rule classes, target-s
 schema changes) remains quantified and reported in the eventual Trial 1 result. Rebaselining the
 runner does not zero this accounting — it is cumulative across the remediation, not reset at each
 new frozen pin.
+
+### 2026-09-15 — Governor ruling: #894 external-target binding is one Mind per process, under two conditions
+
+Records the Governor's ruling on #894 (ADR-159 runner rebaseline item 1). Documentation only:
+no `src/`, no tests, no `.intent/`, no behaviour change. Recorded from `main` at `36fcf48e`
+(local == origin, clean tree); every code claim below was verified against that commit.
+
+**Ruling.** #894 is built on **one Mind per process**. The bound process reads exactly one law:
+the target's `.intent/`, composed of the shipped machinery floor plus an overlay. There is no
+two-Minds split (runner's `.intent/` for machinery, target's for applied law). The #894 issue
+text asserting that CORE's own `.intent/` must keep governing "how CORE behaves" during an
+external run is superseded by this Note.
+
+This is not a new decision so much as the 2026-09-05 package's existing behaviour, now named:
+`validate_external_target_binding` already refuses any `MIND` other than `<target>/.intent`
+(`src/shared/infrastructure/external_target_binding.py:173-199` — requires the directory to
+exist, resolves `MIND`, refuses `resolved_mind != resolved_intent_dir`). One Mind per process is
+enforced today, not merely intended. What the #894 text was protecting is real, and is addressed
+by the two conditions below rather than by a second Mind: under one Mind, whatever sits in the
+target's `.intent/` decides machinery behaviour too.
+
+**Condition 1 — Floor integrity; overlay additive-only.** Before bootstrap, every floor file in
+the target's `.intent/` must be byte-identical to the runner's shipped
+`src/shared/_machinery_floor`, or the run refuses to start. The floor hash set is every file
+shipped under `src/shared/_machinery_floor`, **including the `__init__.py` markers** — they are
+floor content and are verified like any other floor file. Only `__pycache__/` is excluded, as
+non-deterministic and not shipped content. The overlay is additive-only: it may add files (applied
+rules, the goal worker's declaration, `__init__.py` markers in directories it creates) and may
+not modify any floor file.
+
+Consequence, stated plainly: the safe-auto-approval envelope may not stay merged into the floor's
+`enforcement/config/action_risk.yaml`; it must live in an overlay-owned file. Reason: the target's
+law is the only law the process reads, so an overlay able to edit a floor file could demote
+machinery risk levels — and under ADR-160 only the Governor may demote risk. The exposure is
+concrete: `tests/fixtures/external_target/materialize.py:103-112` loads the floor's
+`action_risk.yaml`, sets `action_risk["safe_auto_approval_envelope"]` from the overlay, and
+writes the merged file back. The helper does this carefully; nothing structural prevents an
+overlay from rewriting the `actions:` risk table the same way.
+
+Verification recorded as fact: materializing the existing Unit C fixture and hashing every floor
+file against `src/shared/_machinery_floor` (29 files, `__pycache__/` excluded) finds **exactly one
+difference — `enforcement/config/action_risk.yaml`, the envelope merge — and no missing files.**
+Condition 1 therefore fails on the existing fixture for exactly the file this ruling moves, and
+for nothing else.
+
+**Condition 2 — Subject isolation.** The bound `REPO_PATH` is always a **materialized copy**
+(subject + floor + overlay), never the frozen subject itself. The validator forces `.intent/` to
+sit inside the target, and a subject without one (Trial 1's corpus) could otherwise only be bound
+by writing into it. The original stays untouched. `goal_run.<id>.start` records the original
+subject's SHA and tree hash, the copy's tree hash, the floor hash, and the overlay hash — which
+also closes the run-identity gap the #894 reconnaissance found (today's payload names goal,
+workflow, write flag and task id, but not the repository the run was about).
+
+**Also recorded.**
+
+- *ADR-160 external-target gate.* `develop_from_goal`
+  (`src/will/autonomy/autonomous_developer.py:96`) defaults `legacy_direct_write=False` and
+  constructs `GoalExecutionWorker` with `create_proposal_only = write and not legacy_direct_write`
+  (`autonomous_developer.py:149`); ADR-160's external-target gate is satisfied for every caller
+  that does not opt out. `dev refactor` (`src/cli/resources/dev/refactor.py:96`) *does* opt out
+  and is not a valid base for the external-run command. The external-run command must call
+  `develop_from_goal` with the default and must refuse `legacy_direct_write=True`; this refusal
+  is load-bearing, because the only existing CLI goal surface (`dev refactor`) is a grandfathered
+  opt-out.
+- *Offline onboard.* Productionizing floor+overlay delivery into an external repository is the
+  offline onboard and requires an ADR-146 D1 amendment ("no command in both surfaces"). That
+  amendment gates **Trial 1 only** (its subject has no `.intent/`), not Trial 0 (its subject is
+  frozen CORE, which has one).
+- *Out-of-repo evidence root.* Required, because `PathResolver` roots every `var/*` output under
+  `REPO_PATH` and the frozen procedures forbid writes inside the subject or the runner's own
+  repository. Precedent: ADR-155's `CORE_DEMO_STATE_DIR`. Named here as required; not designed by
+  this Note.
+
+D4 accounting is unchanged by this Note (see the 2026-09-12 tightening c): the external-run
+route and any evidence-root plumbing are documented as adaptations at their implementation, no
+new ADR.
