@@ -14,6 +14,7 @@ from body.atomic import (
     cognitive_role_projection_actions,
     crate_ops,
     document,
+    external_run_seed_actions,
     file_ops,
     fix,
     llm_resource_authoring_actions,

@@ -57,6 +57,11 @@ actions:
   project.cognitive_roles: moderate
   refactor.apply_split: dangerous
   remediate.cognitive_role: moderate
+  # #894 seeding unit (Governor ruling D, 2026-09-15): the one governed writer for an
+  # isolated external-run database (llm_resources, role_resource_assignments,
+  # system_config from a seed document); refuses any other database. Never in the
+  # safe-auto-approval envelope.
+  seed.external_run_resources: moderate
   sync.db: moderate
   sync.vectors_code: moderate
   sync.vectors_constitution: moderate
