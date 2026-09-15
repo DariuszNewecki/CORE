@@ -425,6 +425,20 @@ def test_prompt_layer_installs_loose_prompt_files_under_the_same_rule(
     assert by_id["fresh.prompt"]["displaced_subject_sha256"] == {}
 
 
+def test_copy_carries_the_required_runtime_structure(tmp_path: Path) -> None:
+    """The copy is the bound REPO_PATH: every directory PathResolver requires
+    exists in it, so runtime scratch (the style check's ruff temp dirs under
+    var/tmp) never dies on ENOENT. Empty, and invisible to the git baseline."""
+    from shared.path_resolver import PathResolver
+
+    s = _subject(tmp_path, with_intent=False)
+    copy = materialize_execution_copy(s, tmp_path / "run")
+    resolver = PathResolver(copy.target_root)
+    assert resolver.validate_structure().ok
+    assert (copy.target_root / "var" / "tmp").is_dir()
+    assert not (s / "var").exists(), "frozen subject untouched"
+
+
 def test_prompt_layer_refuses_missing_or_partial_runner_prompt(tmp_path: Path) -> None:
     s = _subject(tmp_path, with_intent=False)
     with pytest.raises(SubjectCopyError, match="unavailable or partial"):

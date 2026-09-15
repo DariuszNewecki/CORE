@@ -414,6 +414,21 @@ def materialize_execution_copy(
             shutil.copyfile(src_path, dest)
             written.append(rel_p.as_posix())
 
+    # The copy is the repository CORE will be BOUND to: it must carry the
+    # runtime directory structure PathResolver requires (var/tmp for the
+    # ruff scratch dirs the style check makes, var/cache, var/logs, ...).
+    # Runtime output and scratch, never subject content; empty directories
+    # are invisible to the copy's git baseline. The seeded live run's style
+    # check died on ENOENT under <copy>/var/tmp/ without this (#894).
+    from shared.path_resolver import PathResolver
+
+    for runtime_dir, _label in PathResolver(target_root).required_runtime_dirs():
+        if runtime_dir.exists() and not runtime_dir.is_dir():
+            raise SubjectCopyError(
+                f"non-directory at required runtime path {runtime_dir}"
+            )
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+
     installed_prompts: list[InstalledPrompt] = []
     prompt_manifest_path: Path | None = None
     if prompt_sources:

@@ -312,17 +312,15 @@ class PathResolver:
     # VALIDATION
     # =========================================================================
 
-    # ID: 3f6e9c2a-1b4d-4e7f-8a0c-5d2e9b3c6a1f
-    def validate_structure(self) -> ValidationResult:
-        """
-        Validate that the expected runtime directory structure exists.
-
-        Returns:
-            ValidationResult with ok=True if all required dirs exist.
-        """
-        from shared.models.validation_result import ValidationResult
-
-        required_dirs: list[tuple[Path, str]] = [
+    # ID: 5b4c6292-dd8a-4d88-9046-13cc970e678c
+    def required_runtime_dirs(self) -> list[tuple[Path, str]]:
+        """The runtime directory structure a bound repository must carry,
+        as ``(absolute path, label)`` pairs. One list for the validator
+        below and for whoever materializes a repository CORE will be bound
+        to (an execution copy, #894): runtime output and scratch, never
+        subject content. This class does not create them (FileHandler or
+        the materializer does)."""
+        return [
             (self.var_dir, "var/"),
             (self.workflows_dir, "var/workflows/"),
             (self.canary_dir, "var/workflows/canary/"),
@@ -340,6 +338,17 @@ class PathResolver:
             (self.run_dir, "var/run/"),
         ]
 
+    # ID: 3f6e9c2a-1b4d-4e7f-8a0c-5d2e9b3c6a1f
+    def validate_structure(self) -> ValidationResult:
+        """
+        Validate that the expected runtime directory structure exists.
+
+        Returns:
+            ValidationResult with ok=True if all required dirs exist.
+        """
+        from shared.models.validation_result import ValidationResult
+
+        required_dirs = self.required_runtime_dirs()
         errors: list[str] = []
         for p, label in required_dirs:
             if not p.exists():
