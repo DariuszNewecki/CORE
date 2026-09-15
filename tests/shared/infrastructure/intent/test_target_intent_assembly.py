@@ -369,6 +369,62 @@ def test_prompt_layer_displaces_differing_subject_prompt_and_preserves_it(
     assert subject_fingerprint(s) == before, "frozen subject untouched"
 
 
+def test_prompt_layer_installs_loose_prompt_files_under_the_same_rule(
+    tmp_path: Path,
+) -> None:
+    """Governor ruling 2026-09-15: ruling B covers the COMPLETE corpus -- the
+    pre-PromptModel loose ``<name>.prompt`` files at the prompt root too
+    (the alignment specialists still load them). Same collision rule: the
+    runner's bytes win, the subject's differing file is preserved under
+    evidence/displaced/var/prompts/<name>, both hashes are recorded."""
+    s = _subject(tmp_path, with_intent=False)
+    sub_root = s / "var" / "prompts"
+    sub_root.mkdir(parents=True)
+    (sub_root / "enrich_symbol.prompt").write_text("subject body\n")
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A"],
+        cwd=s,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "p"],
+        cwd=s,
+        check=True,
+    )
+    runner_root = tmp_path / "runner_prompts"
+    runner_root.mkdir(exist_ok=True)
+    (runner_root / "enrich_symbol.prompt").write_text("runner body\n")
+    (runner_root / "fresh.prompt").write_text("fresh\n")
+    src_dir = _runner_prompt(tmp_path)
+    copy = materialize_execution_copy(
+        s,
+        tmp_path / "run",
+        prompt_sources={
+            "enrich_symbol.prompt": runner_root / "enrich_symbol.prompt",
+            "fresh.prompt": runner_root / "fresh.prompt",
+            "plan_goal": src_dir,
+        },
+    )
+    installed_root = copy.target_root / "var" / "prompts"
+    assert (installed_root / "enrich_symbol.prompt").read_text() == "runner body\n"
+    assert (installed_root / "fresh.prompt").read_text() == "fresh\n"
+    assert (installed_root / "plan_goal" / "model.yaml").is_file()
+    kept = copy.evidence_root / "displaced" / "var" / "prompts" / "enrich_symbol.prompt"
+    assert kept.read_text() == "subject body\n"
+    by_id = {
+        r["prompt_id"]: r
+        for r in json.loads(copy.prompt_collision_manifest_path.read_text())["prompts"]
+    }
+    assert set(by_id) == {"enrich_symbol.prompt", "fresh.prompt", "plan_goal"}
+    assert by_id["enrich_symbol.prompt"]["displaced_subject_sha256"] == {
+        "enrich_symbol.prompt": hashlib.sha256(b"subject body\n").hexdigest()
+    }
+    assert by_id["enrich_symbol.prompt"]["installed_runner_sha256"] == {
+        "enrich_symbol.prompt": hashlib.sha256(b"runner body\n").hexdigest()
+    }
+    assert by_id["fresh.prompt"]["displaced_subject_sha256"] == {}
+
+
 def test_prompt_layer_refuses_missing_or_partial_runner_prompt(tmp_path: Path) -> None:
     s = _subject(tmp_path, with_intent=False)
     with pytest.raises(SubjectCopyError, match="unavailable or partial"):

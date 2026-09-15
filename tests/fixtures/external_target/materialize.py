@@ -49,6 +49,15 @@ future offline onboard):
    ``claim.proposal`` failed its own policy validation on the prior live
    attempt -- adding it does not widen the safe-auto-approval envelope
    past ``fix.format`` on ``package/*.py``.
+   ``rules/code/imports.json`` copied byte-identical from CORE's own tree
+   (Governor ruling 2026-09-15: policies belong in the overlay, never the
+   floor -- ADR-119 excludes ``rules/`` from the floor -- and only the
+   mechanically enumerated policy dependencies of the exercised audit
+   path, never CORE's rules wholesale): the declared policy of
+   ``check.imports``, which ``canary_validation`` executes for a
+   ``code_modification`` run; ``test_external_run_audit_path`` derives the
+   required set from the executed actions' registrations, so a widened
+   path fails there before it fails live.
 
 Performs no side effects against CORE itself: every write lands under the
 caller-supplied *dest* (a pytest ``tmp_path``), never inside this checkout.

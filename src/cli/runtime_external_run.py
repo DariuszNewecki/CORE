@@ -371,24 +371,28 @@ async def _default_cognitive_init(core_context: Any) -> None:
 # WHOLE set, not a hand-kept list. Each seeded live run had grown the list
 # by one (plan_goal; then planner_agent via PathResolver.prompt(); then the
 # coder's code_generation_task_step_prompt and test_gen_prompt) -- a run
-# reaching a new phase would keep finding the next one. Every artifact is
-# hashed into the seed manifest, so the identity stays exact. The
-# planner's own ids remain named for the readiness probe (planner_readiness).
+# reaching a new phase would keep finding the next one. Governor ruling
+# 2026-09-15: the complete corpus, artifact directories and loose files
+# alike. Every file is hashed into the seed manifest, so the identity stays
+# exact. The planner's own ids remain named for the readiness probe.
 PLANNER_PROMPT_IDS: tuple[str, ...] = ("plan_goal", "planner_agent")
 
 
 # ID: 3f5c41d2-b812-44cf-946c-54307598a6d4
 def runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
-    """``{prompt_id: <runner dir>}`` for every prompt artifact under the
-    runner's own prompt root (PathResolver, never a literal): each directory
-    carrying a ``model.yaml``. The planner's ids must be among them."""
+    """``{prompt_id: <runner path>}`` for the COMPLETE prompt corpus under
+    the runner's own prompt root (PathResolver, never a literal): every
+    PromptModel artifact directory (``model.yaml`` present) and every loose
+    prompt file at the root (the pre-PromptModel form the alignment
+    specialists still load). The planner's ids must be among them."""
     from shared.path_resolver import PathResolver
 
     prompts_dir = PathResolver(core_repo_root).prompts_dir
     sources = {
         entry.name: entry
         for entry in sorted(prompts_dir.iterdir())
-        if entry.is_dir() and (entry / "model.yaml").is_file()
+        if (entry.is_dir() and (entry / "model.yaml").is_file())
+        or (entry.is_file() and not entry.name.startswith("."))
     }
     missing = [pid for pid in PLANNER_PROMPT_IDS if pid not in sources]
     if missing:

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -563,14 +564,26 @@ def test_runner_prompt_is_installed_into_the_copy(tmp_path: Path) -> None:
     )
     assert (run / "evidence" / "prompt_collision_manifest.json").is_file()
     # Ruling B at its principle: the runner's WHOLE prompt set is machinery.
+    runner_root = REPO_ROOT / "var" / "prompts"
     runner_ids = {
-        d.name
-        for d in (REPO_ROOT / "var" / "prompts").iterdir()
-        if d.is_dir() and (d / "model.yaml").is_file()
+        e.name
+        for e in runner_root.iterdir()
+        if (e.is_dir() and (e / "model.yaml").is_file())
+        or (e.is_file() and not e.name.startswith("."))
     }
-    copy_ids = {d.name for d in (run / "target" / "var" / "prompts").iterdir()}
+    copy_ids = {e.name for e in (run / "target" / "var" / "prompts").iterdir()}
     assert copy_ids == runner_ids and len(runner_ids) > 2
     assert set(runner_prompt_sources(REPO_ROOT)) == runner_ids
+    loose = sorted(e.name for e in runner_root.iterdir() if e.is_file())
+    assert loose, "CORE's corpus has loose prompt files; the copy carries them"
+    for name in loose:
+        assert (run / "target" / "var" / "prompts" / name).read_bytes() == (
+            runner_root / name
+        ).read_bytes()
+    manifest = json.loads(
+        (run / "evidence" / "prompt_collision_manifest.json").read_text()
+    )
+    assert {p["prompt_id"] for p in manifest["prompts"]} == runner_ids
 
 
 def test_runner_prompt_sources_require_the_planner_artifacts(tmp_path: Path) -> None:
@@ -670,17 +683,26 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     Postgres, seeded from the fixture seed (rulings A/D/E) with the runner's
     planner prompts installed (ruling B) and no vector store (ruling C).
 
-    Expected today: the seeded planner PLANS (PARSE ok on the pinned
-    qwen2.5-coder:3b), RUNTIME generates code for every step on the same
-    resource (Coder/RemoteCoder assignments), and the workflow FAILS at
-    `audit`: canary_validation runs `check.imports`, whose declared policy
-    `rules/code/imports` is in neither the machinery floor nor the fixture
-    overlay, so the action's policy validation fails and the gate blocks.
-    Whether that policy is floor or overlay is the Governor's (same question
-    a6bcc082 raised for the phase declarations). The pin below names that
-    phase exactly: any OTHER failure is red, and once the policy is delivered
-    this pin goes red too and must be replaced by RAN. The run's outcome
-    must be RECORDED either way (export reconstructs it complete)."""
+    Expected: RAN. The seeded planner plans on the pinned qwen2.5-coder:3b,
+    RUNTIME generates code for every step on the same resource
+    (Coder/RemoteCoder assignments, ruling A), AUDIT passes -- check.imports
+    bound to the execution copy (its policy rules/code/imports delivered by
+    the fixture overlay, Governor ruling 2026-09-15) and the style check --
+    and EXECUTION is a dry run (no --write).
+
+    What the APPARATUS guarantees, and what this test therefore pins: the
+    instrument reaches a recorded verdict -- RAN, or an audit FAILED that
+    carries a genuine gate finding (an integer violation_count > 0 from an
+    action that ran; never a "?" refusal, #904) -- and export-run
+    reconstructs the run complete. Governor ruling 2026-09-15: model weakness
+    is trial evidence, not something to patch; the pinned 3b has produced
+    both a clean 5-step run (RAN, 412ce4a8, 120s) and a 2-step run with a
+    stale `typing.List` import in its generated code (FAILED at audit with
+    count 2), so a strict RAN pin would measure the model, not the apparatus.
+    A crash, a refusal-before-execution, or an unrecorded outcome is red. The
+    child's complete logs are in the run's evidence directory for that case.
+    Requires ruff on PATH (the daemon unit has .venv/bin; a plain shell may
+    not -- check.imports then reports "ruff not found", see #904)."""
     sys.path.insert(0, str(_HERE))
     from db_provisioning import (  # type: ignore[import-not-found]
         start_disposable_database,
@@ -715,10 +737,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
             text=True,
             timeout=600,
         )
+        # The child's COMPLETE stdout/stderr, from process start, lands in
+        # the run's own evidence directory before any assertion can fail:
+        # an early failure that leaves no trace is not evidence of anything
+        # (the 1-of-7 unlogged failure on 2026-09-15 is "cause unknown").
+        run = next((tmp_path / "evidence" / "runs").iterdir())
+        (run / "evidence" / "child.stdout.log").write_text(completed.stdout)
+        (run / "evidence" / "child.stderr.log").write_text(completed.stderr)
         # Unit 3 proof, while the disposable DB is still up: the Blackboard
         # on the isolated database carries the run's identity WITH the
         # binding, and `export-run` bound to the copy reconstructs it.
-        run = next((tmp_path / "evidence" / "runs").iterdir())
         outcome = json.loads((run / "evidence" / "outcome.json").read_text())
         run_id = outcome["message"].rsplit("run_id=", 1)[-1].rstrip(")")
         export_env = dict(env)
@@ -734,16 +762,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
         )
     finally:
         stop_disposable_database(db)
-    known_gap = (
+    log_hint = f"full log: {run / 'evidence' / 'child.stderr.log'}"
+    audit_finding = (
         outcome["outcome"] == "FAILED"
         and outcome["stage"] == "develop"
         and outcome["message"].startswith("Workflow failed at phase: audit")
     )
     assert completed.returncode == EXIT_RAN or (
-        completed.returncode == EXIT_INTERNAL_FAILURE and known_gap
-    ), completed.stderr[-3000:]
+        completed.returncode == EXIT_INTERNAL_FAILURE and audit_finding
+    ), f"{log_hint}\n{completed.stderr[-3000:]}"
     assert (run / "evidence" / "binding.json").is_file()
-    assert outcome["outcome"] in ("RAN", "FAILED")
     assert subject_fingerprint(subject) == before
     assert exported.returncode == 0, exported.stderr[-3000:]
     doc = json.loads(exported.stdout.splitlines()[-1])
@@ -772,9 +800,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
         "the seeded planner planned, and the plan is on the Blackboard as data"
     )
     phases = {p["name"]: p for p in outcome_entry["payload"]["phases"]}
-    assert phases["parse"]["ok"] and phases["runtime"]["ok"], (
-        "the seeded resource planned AND generated code"
-    )
-    if known_gap:
+    assert phases["parse"]["ok"] and phases["runtime"]["ok"], phases
+    if outcome["outcome"] == "RAN":
+        assert outcome_entry["payload"]["ok"] is True
+        assert phases["audit"]["ok"] and phases["execution"]["ok"], phases
+    else:
+        # a genuine gate finding, never a refusal presented as one (#904)
+        reason = outcome_entry["payload"]["reason"]
         assert outcome_entry["payload"]["failed_phase"] == "audit"
-        assert "canary_validation" in outcome_entry["payload"]["reason"]
+        assert "? unresolvable" not in reason, f"refusal misreported: {reason}"
+        count = re.search(r"(\d+) unresolvable import", reason)
+        assert count and int(count.group(1)) > 0, (
+            f"audit failed without a gate finding: {reason} ({log_hint})"
+        )

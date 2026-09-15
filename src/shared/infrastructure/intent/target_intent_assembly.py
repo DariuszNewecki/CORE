@@ -426,20 +426,36 @@ def materialize_execution_copy(
         displaced_prompts_root = displaced_root / prompts_rel
         prompt_records: list[dict[str, Any]] = []
         for prompt_id, source in sorted(prompt_sources.items()):
-            source_dir = Path(source)
-            if not source_dir.is_dir() or not (source_dir / "model.yaml").is_file():
+            source_path = Path(source)
+            # Two shapes in the runner's corpus: a PromptModel artifact
+            # directory (model.yaml required -- a partial artifact is never
+            # installed) and a loose prompt file at the root (the pre-
+            # PromptModel form, still loaded by e.g. the alignment
+            # specialists). Governor ruling 2026-09-15: ruling B covers the
+            # COMPLETE corpus, both shapes, under one collision rule.
+            if source_path.is_file():
+                source_files = [source_path]
+                dest_dir = prompts_root
+                if dest_dir.exists() and not dest_dir.is_dir():
+                    raise SubjectCopyError(
+                        f"non-directory at subject prompt root {prompts_rel}"
+                    )
+                dest_dir.mkdir(parents=True, exist_ok=True)
+            elif source_path.is_dir() and (source_path / "model.yaml").is_file():
+                source_files = sorted(p for p in source_path.iterdir() if p.is_file())
+                dest_dir = prompts_root / prompt_id
+                if dest_dir.exists() and not dest_dir.is_dir():
+                    raise SubjectCopyError(
+                        f"non-directory at subject prompt path {prompts_rel}/{prompt_id}"
+                    )
+                dest_dir.mkdir(parents=True, exist_ok=True)
+            else:
                 raise SubjectCopyError(
-                    f"runner prompt {prompt_id!r} unavailable or partial at {source_dir}"
+                    f"runner prompt {prompt_id!r} unavailable or partial at {source_path}"
                 )
-            dest_dir = prompts_root / prompt_id
-            if dest_dir.exists() and not dest_dir.is_dir():
-                raise SubjectCopyError(
-                    f"non-directory at subject prompt path {prompts_rel}/{prompt_id}"
-                )
-            dest_dir.mkdir(parents=True, exist_ok=True)
             files: dict[str, str] = {}
             displaced_hashes: dict[str, str] = {}
-            for src_file in sorted(p for p in source_dir.iterdir() if p.is_file()):
+            for src_file in source_files:
                 dest_file = dest_dir / src_file.name
                 runner_digest = _sha256_file(src_file)
                 if dest_file.is_symlink() or (
@@ -454,7 +470,11 @@ def materialize_execution_copy(
                     if original_digest == runner_digest:
                         files[src_file.name] = runner_digest
                         continue
-                    keep = displaced_prompts_root / prompt_id / src_file.name
+                    keep = (
+                        displaced_prompts_root / src_file.name
+                        if dest_dir == prompts_root
+                        else displaced_prompts_root / prompt_id / src_file.name
+                    )
                     keep.parent.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(dest_file), str(keep))
                     displaced_hashes[src_file.name] = original_digest
