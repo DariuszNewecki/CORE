@@ -208,6 +208,12 @@ jobs:
       # test's own logic (not a workaround) picks it up.
       - name: Build wheel
         run: poetry build
+      # Raw zero-error gate over the live .intent/ + .specs/ (MetaValidator);
+      # exits 1 on any error. Companion to the pytest-side ratchet in
+      # tests/mind/governance/test_meta_validator_live_intent_ratchet.py,
+      # which pins the exact error set (empty since 2026-09-14).
+      - name: Constitution validate (zero-error gate)
+        run: poetry run core-admin constitution validate
       # addopts (pyproject.toml) already supplies --cov=src and the
       # html/term-missing report types; --cov-report= does NOT clear an
       # already-accumulated report list (verified empirically -- it's
@@ -288,13 +294,15 @@ jobs:
         run: poetry install --no-interaction
 
       # ADR-115 D1: point the test config at the ephemeral localhost services.
-      # The committed .env.test targets the LAN dev DB; rewrite only the runner's
-      # copy. shared.config loads .env.test with override=True under pytest, so a
-      # job-level env var would not win — the file itself must be rewritten.
+      # The committed .env.test targets the dev host's local Docker PG
+      # (127.0.0.1, since the 2026-09-13 rebuild) and the LAN Qdrant; rewrite
+      # only the runner's copy. shared.config loads .env.test with
+      # override=True under pytest, so a job-level env var would not win — the
+      # file itself must be rewritten.
       - name: Point test config at ephemeral services
         run: |
           sed -i \
-            -e 's#@192\.168\.20\.23:5432#@localhost:5432#' \
+            -e 's#@127\.0\.0\.1:5432#@localhost:5432#' \
             -e 's#http://192\.168\.20\.22:6333#http://localhost:6333#' \
             .env.test
 
