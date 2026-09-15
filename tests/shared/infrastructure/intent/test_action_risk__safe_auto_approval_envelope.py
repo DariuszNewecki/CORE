@@ -141,3 +141,35 @@ def test_real_envelope_file_loads_the_governed_envelope() -> None:
     )
     assert set(result["authorized_path_prefixes"]) == {"src/", "tests/"}
     assert result["authorized_extensions"] == (".py",)
+
+
+# --- #894 Unit 2: singleton-free bind-time check on an explicit .intent/ root ---
+
+
+def test_validate_envelope_file_ok(tmp_path) -> None:
+    from shared.infrastructure.intent.action_risk import validate_envelope_file
+
+    root = tmp_path / ".intent"
+    (root / "enforcement" / "config").mkdir(parents=True)
+    (root / "enforcement" / "config" / "safe_auto_approval_envelope.yaml").write_text(
+        "safe_auto_approval_envelope:\n  authorized_actions: [fix.format]\n"
+        "  authorized_path_prefixes: [package/]\n  authorized_extensions: [.py]\n"
+    )
+    result = validate_envelope_file(root)
+    assert "_error" not in result
+    assert result["authorized_actions"] == frozenset({"fix.format"})
+
+
+def test_validate_envelope_file_missing_and_malformed_fail_closed(tmp_path) -> None:
+    from shared.infrastructure.intent.action_risk import validate_envelope_file
+
+    root = tmp_path / ".intent"
+    (root / "enforcement" / "config").mkdir(parents=True)
+    assert validate_envelope_file(root).get("_error") is True
+    (root / "enforcement" / "config" / "safe_auto_approval_envelope.yaml").write_text(
+        "safe_auto_approval_envelope:\n  authorized_actions: []\n"
+        "  authorized_path_prefixes: [package/]\n  authorized_extensions: [.py]\n"
+    )
+    result = validate_envelope_file(root)
+    assert result.get("_error") is True
+    assert "authorized_actions" in result["reason"]

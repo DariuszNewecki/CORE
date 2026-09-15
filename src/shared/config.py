@@ -193,6 +193,14 @@ class Settings(BaseSettings):
         validation_alias="CORE_DEMO_STATE_DIR",
     )
 
+    # --- External-run evidence root (ADR-159 Note 2026-09-15, #894 Condition 2) ---
+    # Where `core-admin runtime external-run` creates `<run_id>/{target,evidence}`:
+    # the materialized execution copy and its evidence, as siblings. MUST
+    # resolve outside the subject and outside CORE's own checkout; the route
+    # refuses otherwise. No default: unset means the route refuses -- an
+    # external run never picks an evidence location on the operator's behalf.
+    CORE_EVIDENCE_DIR: Path | None = Field(None, validation_alias="CORE_EVIDENCE_DIR")
+
     def __init__(self, **values: Any) -> None:
         is_testing = (
             "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None

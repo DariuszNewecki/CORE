@@ -24,6 +24,7 @@ will/, body/, or cli/.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -311,3 +312,41 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
             reason,
         )
         return {"_error": True, "reason": reason}
+
+
+# ID: 7da5d029-f802-40cb-bd1a-6d74cdc7d991
+def validate_envelope_file(intent_root: Path) -> dict[str, Any]:
+    """Load and validate the envelope from an explicit ``.intent/`` root -- no
+    IntentRepository singleton (#894 Unit 2, bind-time check on a materialized
+    copy BEFORE bootstrap binds the singleton to it).
+
+    Same contract as :func:`load_safe_auto_approval_envelope`: the parsed
+    triple on success, the ``{"_error": True, "reason": ...}`` sentinel on
+    any failure. Never raises.
+    """
+    import yaml
+
+    path = Path(intent_root) / SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH
+    try:
+        if not path.is_file():
+            return {
+                "_error": True,
+                "reason": f"{SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH} not found under {intent_root}",
+            }
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(config, dict):
+            return {"_error": True, "reason": f"{path.name} did not parse as a dict"}
+        envelope = config.get("safe_auto_approval_envelope")
+        if not isinstance(envelope, dict):
+            return {
+                "_error": True,
+                "reason": f"{path.name} missing 'safe_auto_approval_envelope' dict",
+            }
+        _validate_envelope(envelope)
+        return {
+            "authorized_actions": frozenset(envelope["authorized_actions"]),
+            "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
+            "authorized_extensions": tuple(envelope["authorized_extensions"]),
+        }
+    except Exception as exc:
+        return {"_error": True, "reason": f"{type(exc).__name__}: {exc}"}

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import sys
 
+from cli.runtime_external_run import matches_route as matches_external_run
+from cli.runtime_external_run import run as run_external_run
 from cli.runtime_external_verify import matches_route
 from cli.runtime_external_verify import run as run_external_verify
 
@@ -26,6 +28,12 @@ from cli.runtime_external_verify import run as run_external_verify
 # the Typer application defined below.
 if matches_route(sys.argv[1:]):
     sys.exit(run_external_verify(sys.argv[1:]))
+# #894 (ADR-159 Note 2026-09-15): the second and only other pre-bootstrap
+# route -- `runtime external-run` binds a materialized execution copy of an
+# external subject before the same heavy imports. Same exact two-token
+# match; still not a general router.
+if matches_external_run(sys.argv[1:]):
+    sys.exit(run_external_run(sys.argv[1:]))
 
 import typer
 from rich.console import Console

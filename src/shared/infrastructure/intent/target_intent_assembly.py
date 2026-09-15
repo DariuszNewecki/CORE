@@ -22,6 +22,19 @@ Productionized from ``tests/fixtures/external_target/materialize.py``
 (Unit C) so the external-run command and the future offline onboard share
 one builder; the fixture now calls this.
 
+A second entry point, :func:`materialize_execution_copy`, builds the
+**execution copy** of a frozen subject for an external run (Condition 2 +
+the collision rule, ADR-159 Note 2026-09-15): the subject tree is copied
+(symlinks preserved, never dereferenced; only the subject root's ``.git``
+excluded), then its ``.intent/`` is reconciled with the floor -- on
+collision the framework-owned floor replaces the subject's floor file, the
+displaced original is preserved byte-for-byte under the run's evidence
+tree, and a deterministic manifest records path, original hash and
+installed-floor hash. The frozen subject is never written to. An overlay
+path that collides with a subject's NON-floor file is refused: no ruling
+chooses a winner there, and silently replacing subject law would breach
+the additive-only boundary.
+
 Writes: the authority for writing here at all is ADR-159's materialized-
 copy ruling (Note 2026-09-15, Condition 2): the destination is, by
 construction, OUTSIDE any repository CORE is bound to -- an evidence-root
@@ -38,14 +51,19 @@ from __future__ import annotations
 
 import hashlib
 import importlib.resources
+import json
+import os
 import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from shared.exceptions import CoreError
 from shared.infrastructure.intent.machinery_floor_integrity import (
     floor_hash,
     floor_manifest,
+    verify_floor,
 )
 
 
@@ -157,3 +175,280 @@ def assemble_target_intent(
         overlay_hash=overlay_hash(overlay_dir),
         overlay_files=tuple(written),
     )
+
+
+# ID: ab88a4be-1ab2-460e-8d5c-8ed9467ee81b
+class SubjectCopyError(CoreError):
+    """The subject cannot be copied faithfully (unsupported special file,
+    a non-regular file at a floor path, or an overlay/subject collision)."""
+
+
+@dataclass(frozen=True)
+# ID: ffdf71d7-40f6-4c0a-93a3-f03916fb3bf5
+class DisplacedFloorFile:
+    """One subject floor file the floor replaced in the execution copy."""
+
+    path: str
+    original_sha256: str
+    installed_floor_sha256: str
+
+
+@dataclass(frozen=True)
+# ID: 81120df0-b4dc-419b-b384-607a7fd95460
+class ExecutionCopy:
+    """What :func:`materialize_execution_copy` produced."""
+
+    target_root: Path
+    intent_root: Path
+    evidence_root: Path
+    floor_hash: str
+    overlay_hash: str
+    overlay_files: tuple[str, ...]
+    displaced: tuple[DisplacedFloorFile, ...]
+    collision_manifest_path: Path
+
+
+def _iter_tree(root: Path, *, skip_root_git: bool) -> list[Path]:
+    """Every entry under *root* (files, symlinks, dirs), depth-first, sorted,
+    via ``os.walk(followlinks=False)`` so symlinked directories are listed as
+    the links they are and never descended into."""
+    entries: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        d = Path(dirpath)
+        if skip_root_git and d == root and ".git" in dirnames:
+            dirnames.remove(".git")
+        dirnames.sort()
+        for name in sorted(dirnames):
+            entries.append(d / name)
+        for name in sorted(filenames):
+            entries.append(d / name)
+    return sorted(entries)
+
+
+def _entry_kind(st: os.stat_result) -> str:
+    mode = st.st_mode
+    if stat.S_ISLNK(mode):
+        return "symlink"
+    if stat.S_ISREG(mode):
+        return "file"
+    if stat.S_ISDIR(mode):
+        return "dir"
+    return "special"
+
+
+# ID: 799071c5-86a0-4ffd-8cc5-2ce0efadf76d
+def subject_fingerprint(subject_root: Path) -> str:
+    """SHA-256 over every entry under *subject_root* except the root ``.git``.
+
+    Each line: ``relative_path \0 kind \0 mode(octal) \0 content_hash``.
+    Regular files hash their bytes; symlinks hash their link-target TEXT
+    (``os.readlink``, taken via ``lstat`` -- the link is never followed, so
+    a link pointing outside the subject contributes only its text);
+    directories hash nothing. Mode is the full ``st_mode`` so a chmod
+    (executable bit) changes the fingerprint. Raises
+    :class:`SubjectCopyError` on any special file (socket, fifo, device),
+    which the copy would not reproduce either.
+    """
+    subject_root = Path(subject_root)
+    h = hashlib.sha256()
+    for entry in _iter_tree(subject_root, skip_root_git=True):
+        st = entry.lstat()
+        kind = _entry_kind(st)
+        rel = entry.relative_to(subject_root).as_posix()
+        if kind == "special":
+            raise SubjectCopyError(f"unsupported special file in subject: {rel}")
+        if kind == "file":
+            content = _sha256_file(entry)
+        elif kind == "symlink":
+            content = hashlib.sha256(
+                os.readlink(entry).encode("utf-8", "surrogateescape")
+            ).hexdigest()
+        else:
+            content = ""
+        h.update(rel.encode("utf-8", "surrogateescape"))
+        h.update(b"\0")
+        h.update(kind.encode("ascii"))
+        h.update(b"\0")
+        h.update(oct(st.st_mode).encode("ascii"))
+        h.update(b"\0")
+        h.update(content.encode("ascii"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
+def _copy_subject_tree(subject_root: Path, dest: Path) -> None:
+    """Copy *subject_root* to *dest* preserving symlinks (never dereferenced),
+    modes and timestamps; only the subject root's ``.git`` is excluded.
+    Refuses special files rather than silently dropping them."""
+    for entry in _iter_tree(subject_root, skip_root_git=True):
+        if _entry_kind(entry.lstat()) == "special":
+            raise SubjectCopyError(
+                f"unsupported special file in subject: {entry.relative_to(subject_root)}"
+            )
+
+    def _ignore_root_git(directory: str, names: list[str]) -> set[str]:
+        return (
+            {".git"} if Path(directory) == subject_root and ".git" in names else set()
+        )
+
+    shutil.copytree(
+        subject_root,
+        dest,
+        symlinks=True,
+        ignore=_ignore_root_git,
+        copy_function=shutil.copy2,
+    )
+
+
+# ID: 749a6d78-985b-49d8-ab6f-2a423867b48f
+def materialize_execution_copy(
+    subject_root: Path,
+    run_root: Path,
+    overlay_dir: Path | None = None,
+) -> ExecutionCopy:
+    """Build ``<run_root>/target/`` (the execution copy) and ``<run_root>/evidence/``.
+
+    Siblings by construction: CORE executes against ``target/`` and never
+    against or through ``evidence/``. *run_root* must not exist. The frozen
+    *subject_root* is only read.
+
+    Floor reconciliation inside ``target/.intent/`` (creating it if the
+    subject has none): for each shipped floor path -- absent: install the
+    floor file; byte-identical: leave; different (a collision): move the
+    subject's original to ``evidence/displaced/<path>``, install the floor
+    file, and record ``(path, original_sha256, installed_floor_sha256)`` in
+    ``evidence/collision_manifest.json`` (sorted by path, deterministic).
+    A non-regular file (symlink, dir) at a floor path is refused. Then the
+    overlay is applied additively; an overlay path that already exists in
+    the copy's ``.intent/`` (a subject non-floor file) is refused.
+    """
+    subject_root = Path(subject_root).resolve()
+    run_root = Path(run_root)
+    if run_root.exists():
+        raise FileExistsError(
+            f"refusing to materialize into an existing path: {run_root}"
+        )
+    if overlay_dir is not None and not Path(overlay_dir).is_dir():
+        raise OverlayCollisionError(f"overlay directory not found: {overlay_dir}")
+
+    target_root = run_root / "target"
+    evidence_root = run_root / "evidence"
+    displaced_root = evidence_root / "displaced"
+    evidence_root.mkdir(parents=True)
+    _copy_subject_tree(subject_root, target_root)
+
+    intent_root = target_root / ".intent"
+    intent_root.mkdir(exist_ok=True)
+    floor_root = Path(str(importlib.resources.files(_FLOOR_PACKAGE)))
+    manifest = floor_manifest()
+
+    displaced: list[DisplacedFloorFile] = []
+    for rel, floor_digest in sorted(manifest.items()):
+        dest = intent_root / rel
+        src = floor_root / rel
+        if dest.is_symlink() or (dest.exists() and not dest.is_file()):
+            raise SubjectCopyError(
+                f"non-regular file at floor path in subject .intent/: {rel}"
+            )
+        if dest.is_file():
+            original_digest = _sha256_file(dest)
+            if original_digest == floor_digest:
+                continue
+            keep = displaced_root / rel
+            keep.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(dest), str(keep))
+            displaced.append(
+                DisplacedFloorFile(
+                    path=rel,
+                    original_sha256=original_digest,
+                    installed_floor_sha256=floor_digest,
+                )
+            )
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dest)
+
+    written: list[str] = []
+    if overlay_dir is not None:
+        overlay_dir = Path(overlay_dir)
+        overlay_paths = _overlay_files(overlay_dir)
+        clashes = [
+            p.relative_to(overlay_dir).as_posix()
+            for p in overlay_paths
+            if (intent_root / p.relative_to(overlay_dir)).exists()
+        ]
+        if clashes:
+            raise OverlayCollisionError(
+                "overlay collides with files already present in the copy's "
+                ".intent/ (floor or subject law); no ruling chooses a winner: "
+                + ", ".join(clashes)
+            )
+        for src_path in overlay_paths:
+            rel_p = src_path.relative_to(overlay_dir)
+            dest = intent_root / rel_p
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src_path, dest)
+            written.append(rel_p.as_posix())
+
+    manifest_path = evidence_root / "collision_manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "subject_root": str(subject_root),
+                "floor_hash": floor_hash(),
+                "displaced": [
+                    {
+                        "path": d.path,
+                        "original_sha256": d.original_sha256,
+                        "installed_floor_sha256": d.installed_floor_sha256,
+                    }
+                    for d in displaced
+                ],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = verify_floor(intent_root)
+    if (
+        not report.clean
+    ):  # pragma: no cover - defensive; reconciliation guarantees clean
+        raise SubjectCopyError(
+            f"floor not clean after reconciliation: {report.describe()}"
+        )
+
+    return ExecutionCopy(
+        target_root=target_root,
+        intent_root=intent_root,
+        evidence_root=evidence_root,
+        floor_hash=floor_hash(),
+        overlay_hash=overlay_hash(overlay_dir),
+        overlay_files=tuple(written),
+        displaced=tuple(displaced),
+        collision_manifest_path=manifest_path,
+    )
+
+
+# ID: 280c2998-cefb-4e53-a974-cc4a45a27580
+def write_evidence_json(
+    evidence_root: Path, name: str, payload: dict[str, Any]
+) -> Path:
+    """Write one JSON document into a run's evidence tree (and only there).
+
+    *evidence_root* is the ``<run>/evidence/`` directory
+    :func:`materialize_execution_copy` created; *name* is a bare filename.
+    Deterministic encoding (sorted keys) so evidence is diffable.
+    """
+    evidence_root = Path(evidence_root)
+    if "/" in name or name in ("", ".", ".."):
+        raise ValueError(f"evidence file name must be a bare filename: {name!r}")
+    if not evidence_root.is_dir() or evidence_root.name != "evidence":
+        raise ValueError(f"not a run evidence directory: {evidence_root}")
+    path = evidence_root / name
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n",
+        encoding="utf-8",
+    )
+    return path
