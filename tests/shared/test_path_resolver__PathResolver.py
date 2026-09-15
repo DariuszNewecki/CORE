@@ -167,15 +167,6 @@ class TestPathResolver:
             expected = repo_root / "var" / "cache" / "context"
             assert resolver.context_cache_dir == expected
 
-    def test_context_schema_path_method(self):
-        """Test context_schema_path method."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            expected = repo_root / "var" / "context" / "schema.yaml"
-            assert resolver.context_schema_path() == expected
-
     def test_knowledge_dir_property(self):
         """Test knowledge_dir property."""
         with tempfile.TemporaryDirectory() as tmpdir:

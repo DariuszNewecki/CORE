@@ -172,10 +172,6 @@ class PathResolver:
     def context_cache_dir(self) -> Path:
         return self._repo_root.joinpath(*self._DEFAULT_CONTEXT_CACHE_SUBDIR)
 
-    # ID: 71eea8fd-38ae-4707-8dac-2ecc7a52af08
-    def context_schema_path(self) -> Path:
-        return self.context_dir / "schema.yaml"
-
     @property
     # ID: da01c682-35df-48d5-af6c-2a68a031b582
     def knowledge_dir(self) -> Path:

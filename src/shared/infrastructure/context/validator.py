@@ -12,16 +12,22 @@ Validates doctrine-aligned packets with sections:
     evidence
     runtime
     provenance
+
+The schema IS this class. It used to be read from ``var/context/schema.yaml``
+as well: that file was untracked in e5611005 (2026-02-03, ``var/*`` had been
+gitignored since bb96bf41) and the doctrine rewrite six weeks later
+(87e19929) moved every check into the class variables below -- but left the
+file load in place, feeding one ``required_fields`` list whose contents
+(``problem``/``scope``/``context``) belonged to the pre-doctrine packet
+layout. Any machine without a lingering local copy could not construct a
+ContextValidator at all (the #894 seeded external run found it); a machine
+WITH the copy would have rejected every doctrine packet. No file is read.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, ClassVar
 
-import yaml
-
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models.validation_result import ValidationResult
 
@@ -68,42 +74,17 @@ class ContextValidator:
         "runtime",
         "provenance",
     }
-
-    def __init__(self, schema_path: Path | None = None) -> None:
-        self.schema_path: Path = schema_path or self._default_schema_path()
-        self.schema: dict[str, Any] = self._load_schema()
-
-    def _default_schema_path(self) -> Path:
-        return settings.paths.context_schema_path()
-
-    def _load_schema(self) -> dict[str, Any]:
-        if not self.schema_path.exists():
-            raise FileNotFoundError(f"Schema not found: {self.schema_path}")
-
-        try:
-            content = self.schema_path.read_text(encoding="utf-8")
-            data = yaml.safe_load(content) or {}
-        except Exception as exc:
-            raise RuntimeError(
-                f"Failed to load schema: {self.schema_path} ({exc})"
-            ) from exc
-
-        if not isinstance(data, dict):
-            raise ValueError(
-                f"Invalid schema format (expected mapping): {self.schema_path}"
-            )
-
-        return data
+    # The sections a packet must carry; the section validators below define
+    # their shape. Everything else is an optional object section.
+    _REQUIRED_SECTIONS: ClassVar[tuple[str, ...]] = ("header", "phase", "evidence")
 
     # ID: decfe9e4-f915-4bcc-9ba0-46ea5bc713d7
     def validate(self, packet: dict[str, Any]) -> ValidationResult:
         errors: list[str] = []
 
-        required_fields = self.schema.get("required_fields", [])
-        if isinstance(required_fields, list):
-            for field in required_fields:
-                if field not in packet:
-                    errors.append(f"Missing required field: {field}")
+        for field in self._REQUIRED_SECTIONS:
+            if field not in packet:
+                errors.append(f"Missing required field: {field}")
 
         errors.extend(self._validate_header(packet.get("header", {})))
         errors.extend(self._validate_phase(packet.get("phase")))
