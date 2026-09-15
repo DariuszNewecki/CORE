@@ -645,9 +645,17 @@ def test_child_process_refuses_evidence_root_inside_core(tmp_path: Path) -> None
 )
 def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     """Real entry point, real bootstrap against a disposable schema-only
-    Postgres. Expected outcome today: UNAVAILABLE (no cognitive roles seeded
-    -- the next blocking unit), with binding.json and outcome.json written
-    and the subject untouched. RAN is accepted if roles happen to be seeded."""
+    Postgres, seeded from the fixture seed (rulings A/D/E) with the runner's
+    planner prompts installed (ruling B) and no vector store (ruling C).
+
+    Expected today: the seeded planner PLANS (PARSE ok on the pinned
+    qwen2.5-coder:3b) and the workflow FAILS at `runtime`, because
+    ContextValidator hard-requires `var/context/schema.yaml`, deleted from
+    CORE in e5611005 (2026-02-03) -- a CORE defect, not an apparatus one,
+    reachable by any code_modification goal run. The pin below names that
+    defect exactly: any OTHER failure is red, and once the defect is fixed
+    this pin goes red too and must be replaced by RAN. The run's outcome
+    must be RECORDED either way (export reconstructs it complete)."""
     sys.path.insert(0, str(_HERE))
     from db_provisioning import (  # type: ignore[import-not-found]
         start_disposable_database,
@@ -701,11 +709,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
         )
     finally:
         stop_disposable_database(db)
-    assert completed.returncode in (EXIT_RAN, EXIT_UNAVAILABLE), completed.stderr[
-        -3000:
-    ]
+    known_core_defect = (
+        outcome["outcome"] == "FAILED"
+        and outcome["stage"] == "develop"
+        and outcome["message"].startswith("Workflow failed at phase: runtime")
+    )
+    assert completed.returncode == EXIT_RAN or (
+        completed.returncode == EXIT_INTERNAL_FAILURE and known_core_defect
+    ), completed.stderr[-3000:]
     assert (run / "evidence" / "binding.json").is_file()
-    assert outcome["outcome"] in ("RAN", "UNAVAILABLE")
+    assert outcome["outcome"] in ("RAN", "FAILED")
     assert subject_fingerprint(subject) == before
     assert exported.returncode == 0, exported.stderr[-3000:]
     doc = json.loads(exported.stdout.splitlines()[-1])
@@ -723,8 +736,16 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
     subjects = [e["subject"] for e in doc["entries"]]
     assert f"goal_run.{run_id}.start" in subjects
     assert f"goal_run.{run_id}.outcome" in subjects
-    if outcome["outcome"] == "UNAVAILABLE":
-        outcome_entry = next(
-            e for e in doc["entries"] if e["subject"].endswith(".outcome")
-        )
-        assert outcome_entry["payload"]["instrument_result"] == "unavailable"
+    start_entry = next(e for e in doc["entries"] if e["subject"].endswith(".start"))
+    assert start_entry["payload"]["policy_counsel"].startswith("unavailable"), (
+        "ruling C: the run's own identity records the absent vector store"
+    )
+    assert tb["seed_hash"] and len(tb["seed_hash"]) == 64
+    outcome_entry = next(e for e in doc["entries"] if e["subject"].endswith(".outcome"))
+    plan = outcome_entry["payload"]["plan"]
+    assert plan["steps_count"] >= 1 and isinstance(plan["execution_plan"], list), (
+        "the seeded planner planned, and the plan is on the Blackboard as data"
+    )
+    if known_core_defect:
+        assert outcome_entry["payload"]["failed_phase"] == "runtime"
+        assert "var/context/schema.yaml" in outcome_entry["payload"]["reason"]
