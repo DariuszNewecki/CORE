@@ -153,6 +153,21 @@ def _configure_root_logger(
         logging.getLogger(lib).setLevel(logging.WARNING)
 
 
+# ID: 7d97f8a7-a7c6-4219-a63e-2ee4ad593586
+def apply_log_level(level: str) -> None:
+    """
+    Set the root logger level at runtime -- the plain primitive.
+
+    For bootstrap/composition-root callers (API lifespan applying the
+    DB-held ``LOG_LEVEL``, ADR-052) that run before any ActionExecutor
+    exists. ``reconfigure_log_level`` below is the governed wrapper over
+    this same primitive for callers inside an executor context; calling
+    that one directly raises GovernanceBypassError, which is why lifespan
+    must not (#889). Raises ValueError on an unknown level name.
+    """
+    _configure_root_logger(level=level)
+
+
 # Break circular dependency by importing only when needed
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
@@ -175,7 +190,7 @@ async def reconfigure_log_level(level: str, **kwargs) -> ActionResult:
 
     start_time = time.time()
     try:
-        _configure_root_logger(level=level)
+        apply_log_level(level)
         getLogger(__name__).info("Log level reconfigured to %s", level.upper())
         return ActionResult(
             action_id="logging.reconfigure",

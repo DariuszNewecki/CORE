@@ -19,7 +19,7 @@ from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.diagnostic_service import DiagnosticService
-from shared.logger import getLogger, reconfigure_log_level
+from shared.logger import apply_log_level, getLogger
 
 
 if TYPE_CHECKING:
@@ -82,7 +82,20 @@ async def core_lifespan(app: FastAPI):
             async with service_registry.session() as session:
                 config = await ConfigService.create(session)
                 log_level_from_db = await config.get("LOG_LEVEL", "INFO")
-                reconfigure_log_level(log_level_from_db)
+                # #889: was `reconfigure_log_level(...)` un-awaited -- a
+                # coroutine that never ran, so the DB LOG_LEVEL never
+                # applied. Awaiting it is not the fix: it is an
+                # @atomic_action and raises GovernanceBypassError outside
+                # an executor. Bootstrap applies the primitive directly.
+                try:
+                    apply_log_level(str(log_level_from_db))
+                    logger.info("Log level set from DB config: %s", log_level_from_db)
+                except ValueError as exc:
+                    logger.warning(
+                        "Ignoring invalid LOG_LEVEL from DB config (%r): %s",
+                        log_level_from_db,
+                        exc,
+                    )
                 await cognitive.initialize(session)
 
             # 5. LOAD KNOWLEDGE GRAPH
