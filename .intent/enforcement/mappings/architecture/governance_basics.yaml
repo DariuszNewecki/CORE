@@ -74,6 +74,9 @@
           # --- ADDED 2026-07-23 (ADR-155 isolated consequence-chain demo, Phase 1) ---
           # Mirrored in mutation_surface.yaml's excludes set.
           - "src/cli/logic/demo/isolation.py" # ADR-155 D3: writes run-identity marker + isolation-fingerprint records under CORE_DEMO_STATE_DIR (outside any repo root); FileHandler is repo-bound and refuses out-of-repo paths
+          # --- ADDED 2026-09-15 (ADR-159 Note 2026-09-15, #894 Condition 2: materialized execution copy) ---
+          # Mirrored in mutation_surface.yaml's excludes set.
+          - "src/shared/infrastructure/intent/target_intent_assembly.py" # #894: assembles floor+overlay .intent/ and the execution copy under an evidence root (outside any repo root, by construction); FileHandler is repo-bound and hard-blocks the literal .intent/ prefix -- same limitation byor.py records
           # --- AUTONOMOUS CODE: Now enforced (no exclusions for self-healing) ---
           # Self-healing modules MUST route writes through FileHandler
           # (sandbox.py above is test-generation, not self-healing)
