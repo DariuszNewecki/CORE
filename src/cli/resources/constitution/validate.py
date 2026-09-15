@@ -13,7 +13,7 @@ console = Console()
 
 
 @app.command("validate")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=False, requires_brain_services=False)
 # ID: b75321ea-88dd-4ed1-93d8-b6730590777a
 def validate_constitution(ctx: typer.Context) -> None:
     """
