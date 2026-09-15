@@ -210,9 +210,11 @@ async def test_yaml_taxonomy_unreadable_fails_closed(
 async def test_db_only_and_yaml_only_roles_are_never_mutated(
     db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A role name present on only one side is reported, never inserted or
-    deleted -- name-set changes are a schema/migration concern, not this
-    action's boundary."""
+    """A DB-only role is never deleted. A YAML-only role whose NAME the
+    schema's closed vocabulary (cognitive_roles_role_check) does not admit is
+    reported and blocked, never inserted -- name-set changes stay a
+    schema/migration concern. (A YAML-only role the schema DOES admit is
+    created: see test_yaml_only_role_admitted_by_schema_is_created, #894 E.)"""
     real = load_cognitive_role_capabilities()
     faked = dict(real)
     faked["TotallyMadeUpRole"] = frozenset({"reasoning"})
@@ -225,8 +227,63 @@ async def test_db_only_and_yaml_only_roles_are_never_mutated(
     result = await _run(write=True)
     assert result.ok is True
     assert "TotallyMadeUpRole" in result.data["yaml_only_roles"]
+    assert "TotallyMadeUpRole" in result.data["blocked"]
+    assert "TotallyMadeUpRole" not in result.data["created"]
 
     verify = await db_session.execute(
         select(CognitiveRole.role).where(CognitiveRole.role == "TotallyMadeUpRole")
     )
     assert verify.scalar_one_or_none() is None
+
+
+async def test_yaml_only_role_admitted_by_schema_is_created(
+    db_session: AsyncSession,
+) -> None:
+    """#894 seeding unit (ruling E): projection is create-or-update. A role the
+    taxonomy declares and the schema admits, but the table lacks, is created
+    from the taxonomy -- the isolated external-run database case. Induced by
+    removing Planner in this test and restoring it afterwards."""
+    from sqlalchemy import delete
+
+    saved = (
+        await db_session.execute(
+            select(CognitiveRole).where(CognitiveRole.role == "Planner")
+        )
+    ).scalar_one()
+    saved_caps = list(saved.required_capabilities)
+    saved_desc, saved_spec, saved_active = (
+        saved.description,
+        saved.specialization,
+        saved.is_active,
+    )
+    await db_session.execute(
+        delete(CognitiveRole).where(CognitiveRole.role == "Planner")
+    )
+    await db_session.commit()
+    try:
+        result = await _run(write=True)
+        assert result.ok is True, result.data
+        assert "Planner" in result.data["yaml_only_roles"]
+        assert "Planner" in result.data["created"]
+        row = (
+            await db_session.execute(
+                select(CognitiveRole).where(CognitiveRole.role == "Planner")
+            )
+        ).scalar_one()
+        assert set(row.required_capabilities) == {"planning"}
+        assert row.is_active is True
+        assert row.description, "description comes from the taxonomy"
+    finally:
+        await db_session.execute(
+            delete(CognitiveRole).where(CognitiveRole.role == "Planner")
+        )
+        db_session.add(
+            CognitiveRole(
+                role="Planner",
+                description=saved_desc,
+                required_capabilities=saved_caps,
+                specialization=saved_spec,
+                is_active=saved_active,
+            )
+        )
+        await db_session.commit()

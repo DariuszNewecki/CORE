@@ -147,3 +147,20 @@ def load_cognitive_role_capabilities(
         result[str(role_name)] = frozenset(str(c) for c in capabilities)
 
     return result
+
+
+# ID: f722eda4-ae04-4507-9b23-c056194bc173
+def load_cognitive_role_descriptions(
+    repo_root: Path | None = None,
+) -> dict[str, str]:
+    """Return each declared cognitive role's ``description`` (empty string when
+    the taxonomy declares none). Same fail-closed loading as
+    :func:`load_cognitive_role_capabilities`; used by the role projection
+    when it creates a role that exists in the taxonomy but not yet in the
+    database (#894 seeding unit, ruling E)."""
+    roles_block = _load_roles_block(repo_root)
+    result: dict[str, str] = {}
+    for role, spec in roles_block.items():
+        desc = (spec or {}).get("description") if isinstance(spec, dict) else None
+        result[str(role)] = str(desc) if desc else ""
+    return result

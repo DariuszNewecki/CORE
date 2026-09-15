@@ -31,6 +31,7 @@ import time
 from typing import Any
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
@@ -45,6 +46,7 @@ from shared.infrastructure.intent.capability_taxonomy import (
 from shared.infrastructure.intent.cognitive_roles import (
     CognitiveRolesTaxonomyError,
     load_cognitive_role_capabilities,
+    load_cognitive_role_descriptions,
 )
 from shared.logger import getLogger
 
@@ -182,10 +184,49 @@ async def action_project_cognitive_roles(
                     .values(required_capabilities=entry["yaml_capabilities"])
                 )
                 applied.append(role)
+            # #894 seeding unit (Governor ruling E, 2026-09-15): projection is
+            # create-or-update. A role the taxonomy declares but the database
+            # lacks is CREATED from the taxonomy (role, description,
+            # required_capabilities, is_active) -- this is what lets an
+            # isolated external-run database, seeded from schema.sql alone,
+            # obtain its roles from the bound copy's own machinery-floor
+            # taxonomy and from nowhere else. Two limits keep the boundary:
+            # non-canonical capabilities are never created (same block as the
+            # update path), and the schema's closed role vocabulary
+            # (cognitive_roles_role_check) stays the arbiter of NAMES -- a
+            # taxonomy name the schema does not admit is attempted inside a
+            # savepoint, rolled back on the constraint violation, and
+            # reported as blocked. Name-set changes remain a migration concern.
+            created: list[str] = []
+            blocked_creates: list[str] = []
+            descriptions = load_cognitive_role_descriptions()
+            for role in yaml_only_roles:
+                yaml_caps = yaml_capabilities[role]
+                if yaml_caps - canonical_capabilities:
+                    blocked_creates.append(role)
+                    continue
+                try:
+                    async with session.begin_nested():
+                        session.add(
+                            CognitiveRole(
+                                role=role,
+                                description=descriptions.get(role) or None,
+                                required_capabilities=sorted(yaml_caps),
+                                is_active=True,
+                            )
+                        )
+                        await session.flush()
+                except IntegrityError:
+                    blocked_creates.append(role)
+                    continue
+                created.append(role)
             await session.commit()
 
             data["applied"] = applied
-            data["blocked"] = [entry["role"] for entry in non_canonical]
+            data["created"] = created
+            data["blocked"] = [
+                entry["role"] for entry in non_canonical
+            ] + blocked_creates
 
             return ActionResult(
                 action_id="project.cognitive_roles",
