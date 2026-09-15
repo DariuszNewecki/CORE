@@ -24,14 +24,27 @@ from will.autonomy.safe_auto_approval_envelope import (
 )
 
 
-_AUTHORIZED_ACTIONS = ["fix.imports", "fix.ids", "fix.logging", "fix.headers", "fix.format"]
+_AUTHORIZED_ACTIONS = [
+    "fix.imports",
+    "fix.ids",
+    "fix.logging",
+    "fix.headers",
+    "fix.format",
+]
 
 
-def _action(action_id: str | None, file_path: str | None, *, flow_id: str | None = None) -> dict:
+def _action(
+    action_id: str | None, file_path: str | None, *, flow_id: str | None = None
+) -> dict:
     params: dict = {}
     if file_path is not None:
         params["file_path"] = file_path
-    return {"action_id": action_id, "flow_id": flow_id, "parameters": params, "order": 0}
+    return {
+        "action_id": action_id,
+        "flow_id": flow_id,
+        "parameters": params,
+        "order": 0,
+    }
 
 
 def _scope(*files: str) -> dict:
@@ -57,7 +70,9 @@ def _scope(*files: str) -> dict:
 def test_authorized_action_within_src_approves(action_id: str, file_path: str) -> None:
     """Each of the five envelope actions auto-approves for direct-child and
     nested Python paths under both src/ and tests/."""
-    validate_envelope([_action(action_id, file_path)], _scope(file_path))  # must not raise
+    validate_envelope(
+        [_action(action_id, file_path)], _scope(file_path)
+    )  # must not raise
 
 
 # --- Governor ruling 5: unlisted action ------------------------------------
@@ -66,20 +81,30 @@ def test_authorized_action_within_src_approves(action_id: str, file_path: str) -
 def test_action_outside_envelope_denies() -> None:
     """An action not in the five-item envelope must never auto-approve --
     canonical violating fixture for autonomy.proposals.safe_auto_approval_envelope."""
-    with pytest.raises(SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"):
-        validate_envelope([_action("check.imports", "src/foo.py")], _scope("src/foo.py"))
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"
+    ):
+        validate_envelope(
+            [_action("check.imports", "src/foo.py")], _scope("src/foo.py")
+        )
 
 
 def test_moderate_action_outside_envelope_denies() -> None:
-    with pytest.raises(SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"):
-        validate_envelope([_action("fix.docstrings", "src/foo.py")], _scope("src/foo.py"))
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"
+    ):
+        validate_envelope(
+            [_action("fix.docstrings", "src/foo.py")], _scope("src/foo.py")
+        )
 
 
 # --- Governor ruling 4: no flow, including test-generation flows -----------
 
 
 def test_flow_denies() -> None:
-    with pytest.raises(SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"):
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"
+    ):
         validate_envelope(
             [_action(None, None, flow_id="flow.build_test_for_symbol")],
             _scope(),
@@ -95,7 +120,9 @@ def test_test_generation_flow_denies_even_with_valid_looking_scope() -> None:
         "parameters": {"source_file": "src/foo.py", "test_file": "tests/test_foo.py"},
         "order": 0,
     }
-    with pytest.raises(SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"):
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"
+    ):
         validate_envelope([action], _scope("src/foo.py", "tests/test_foo.py"))
 
 
@@ -157,12 +184,16 @@ def test_absolute_or_malformed_path_denies(file_path: str) -> None:
 
 
 def test_missing_target_path_denies() -> None:
-    with pytest.raises(SafeAutoApprovalDeniedError, match="declares no target file_path"):
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="declares no target file_path"
+    ):
         validate_envelope([_action("fix.format", None)], _scope())
 
 
 def test_empty_string_target_path_denies() -> None:
-    with pytest.raises(SafeAutoApprovalDeniedError, match="declares no target file_path"):
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="declares no target file_path"
+    ):
         validate_envelope([_action("fix.format", "")], _scope(""))
 
 
@@ -211,7 +242,9 @@ def test_one_out_of_envelope_action_denies_whole_proposal() -> None:
         _action("fix.format", "src/a.py"),
         _action("fix.docstrings", "src/b.py"),
     ]
-    with pytest.raises(SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"):
+    with pytest.raises(
+        SafeAutoApprovalDeniedError, match="not in the safe auto-approval envelope"
+    ):
         validate_envelope(actions, _scope("src/a.py", "src/b.py"))
 
 
@@ -230,3 +263,64 @@ def test_envelope_load_failure_denies(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     with pytest.raises(SafeAutoApprovalDeniedError, match="could not be loaded"):
         validate_envelope([_action("fix.format", "src/foo.py")], _scope("src/foo.py"))
+
+
+# --- Governor rulings D and F (2026-09-15, ADR-159 Trial 0): deny_all and the
+# rule identifier on every denial ------------------------------------------------
+
+
+from unittest.mock import patch
+
+from will.autonomy.safe_auto_approval_envelope import ENVELOPE_RULE_ID
+
+
+_DENY_ALL = {
+    "authorization_mode": "deny_all",
+    "authorized_actions": frozenset(),
+    "authorized_path_prefixes": (),
+    "authorized_extensions": (),
+}
+
+
+def test_deny_all_denies_an_otherwise_authorized_action_naming_mode_and_rule() -> None:
+    """Probe I-6's refusal: under deny_all even fix.format on src/ is refused,
+    and the refusal names the mode and the governing rule -- the rule's own
+    id, not a harness-invented one."""
+    with patch(
+        "will.autonomy.safe_auto_approval_envelope.load_safe_auto_approval_envelope",
+        return_value=_DENY_ALL,
+    ):
+        with pytest.raises(SafeAutoApprovalDeniedError) as excinfo:
+            validate_envelope(
+                [_action("fix.format", "src/foo.py")], _scope("src/foo.py")
+            )
+    denial = excinfo.value
+    assert "authorization_mode: deny_all" in str(denial)
+    assert denial.authorization_mode == "deny_all"
+    assert (
+        denial.rule_id
+        == ENVELOPE_RULE_ID
+        == "autonomy.proposals.safe_auto_approval_envelope"
+    )
+
+
+def test_every_denial_carries_the_rule_id() -> None:
+    with pytest.raises(SafeAutoApprovalDeniedError) as excinfo:
+        validate_envelope(
+            [_action("check.imports", "src/foo.py")], _scope("src/foo.py")
+        )
+    assert excinfo.value.rule_id == ENVELOPE_RULE_ID
+    assert excinfo.value.authorization_mode == "allow_listed"
+
+
+def test_rule_id_names_a_rule_that_exists_in_intent() -> None:
+    """The identifier must be a real rule document's id at this commit."""
+    import json
+    from pathlib import Path
+
+    doc = json.loads(
+        (
+            Path(__file__).resolve().parents[3] / ".intent/rules/will/autonomy.json"
+        ).read_text()
+    )
+    assert ENVELOPE_RULE_ID in {r["id"] for r in doc["rules"]}

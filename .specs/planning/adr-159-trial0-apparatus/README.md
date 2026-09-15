@@ -12,15 +12,16 @@ already carries its own phases, workflow definitions and policies; the test fixt
 collides on 11 of 13 paths and cannot be used. Only paths absent from the subject may be
 overlaid: the worker declaration below and the safe-auto-approval envelope.
 
-**Not yet written:** `intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml` —
-pending the Governor's ruling on its content (the loader rejects an empty `authorized_actions`,
-and Trial 0 authorizes no mutation; see `var/reports/2026-09-15_895_document_a_runnable_checks.md`
-ambiguity F). Materialization refuses without it, so the overlay is not usable until then.
+The envelope is an explicit `authorization_mode: deny_all` (Governor ruling F, 2026-09-15): nothing is
+authorized for safe auto-approval, by declaration. Materialization of this overlay onto the frozen
+subject was proven 2026-09-15: 2 overlay files installed, 12 floor collisions displaced and
+manifested, floor clean, envelope loads as deny_all.
 
 Provenance: seed resource digest `f72c60cabf6237b07f6e` verified 2026-09-15 on `.40` and `.200`.
 
 | file | sha256 | bytes |
 |---|---|---|
+| `intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml` | `bac3d4bb62fb37553c4d14278e6b581776e8387578b5ad4cea1c31800a46bf5f` | 767 |
 | `intent_overlay/workers/goal_execution_worker.yaml` | `ab8d279420eab934f246462f566ba9ed0344b383c8cff734fa09551e7db4db47` | 1687 |
 | `seed/assignments.yaml` | `247ba8c05be49dd9e6357f40480ae00dd92d598f9f5c2572e60efbb3c985367d` | 553 |
 | `seed/llm_resources/ollama_qwen_coder_3b_trial.yaml` | `7d1d94725bbff59c6b3e5a2a1d5115a5fae0f63613252328f3641d7fa959d3e7` | 809 |

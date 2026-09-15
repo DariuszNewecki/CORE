@@ -31,11 +31,23 @@ from __future__ import annotations
 from typing import Any
 
 from shared.exceptions import CoreError
-from shared.infrastructure.intent.action_risk import load_safe_auto_approval_envelope
+from shared.infrastructure.intent.action_risk import (
+    ENVELOPE_MODE_ALLOW_LISTED,
+    ENVELOPE_MODE_DENY_ALL,
+    load_safe_auto_approval_envelope,
+)
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+
+# The constitutional rule this validator enforces (.intent/rules/will/autonomy.json).
+# Every denial names it, so a refusal record can cite the governing rule
+# rather than only the mechanism (ADR-159 Trial 0 probe I-6, Governor
+# ruling D, 2026-09-15: "add the missing evidence field, do not invent a
+# rule name"). The identifier is the rule's own; nothing new is named here.
+ENVELOPE_RULE_ID = "autonomy.proposals.safe_auto_approval_envelope"
 
 
 # ID: 9abfb360-d633-44b9-bc2c-083ccd471d42
@@ -48,7 +60,17 @@ class SafeAutoApprovalDeniedError(CoreError):
     proposal creators) MUST catch this and commit the already-created
     proposal in PENDING rather than treat it as a persistence failure; the
     proposal remains in the approval queue for principal.governor review.
+
+    ``rule_id`` names the governing rule (:data:`ENVELOPE_RULE_ID`) and
+    ``authorization_mode`` the envelope mode in force when the denial was
+    decided (``None`` when the envelope itself could not be loaded).
     """
+
+    rule_id: str = ENVELOPE_RULE_ID
+
+    def __init__(self, message: str, *, authorization_mode: str | None = None):
+        super().__init__(message)
+        self.authorization_mode = authorization_mode
 
 
 # ID: 3a05c487-5eb6-46e9-8fa3-4399ed65405d
@@ -70,12 +92,25 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
             "auto-approval; envelope failures must never silently authorize."
         )
 
+    mode: str = envelope.get("authorization_mode", ENVELOPE_MODE_ALLOW_LISTED)
     authorized_actions: frozenset[str] = envelope["authorized_actions"]
     path_prefixes: tuple[str, ...] = envelope["authorized_path_prefixes"]
     extensions: tuple[str, ...] = envelope["authorized_extensions"]
 
+    if mode == ENVELOPE_MODE_DENY_ALL:
+        # Explicit deny-all (Governor ruling F): nothing is authorized, by
+        # declaration. Decided before any per-action check so the refusal
+        # names the mode, not an incidental "action not listed".
+        raise SafeAutoApprovalDeniedError(
+            "the safe auto-approval envelope is authorization_mode: deny_all "
+            "-- no action is authorized for safe auto-approval",
+            authorization_mode=mode,
+        )
+
     if not actions:
-        raise SafeAutoApprovalDeniedError("proposal declares no actions")
+        raise SafeAutoApprovalDeniedError(
+            "proposal declares no actions", authorization_mode=mode
+        )
 
     action_target_files: set[str] = set()
     for action in actions:
@@ -85,19 +120,22 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
             raise SafeAutoApprovalDeniedError(
                 f"flow {flow_id!r} is not authorized for safe auto-approval "
                 "— no flow is initially authorized, including test-"
-                "generation flows"
+                "generation flows",
+                authorization_mode=mode,
             )
         if action_id not in authorized_actions:
             raise SafeAutoApprovalDeniedError(
                 f"action {action_id!r} is not in the safe auto-approval "
-                f"envelope (authorized: {sorted(authorized_actions)})"
+                f"envelope (authorized: {sorted(authorized_actions)})",
+                authorization_mode=mode,
             )
         parameters = action.get("parameters") or {}
         file_path = parameters.get("file_path")
         if not file_path or not isinstance(file_path, str):
             raise SafeAutoApprovalDeniedError(
                 f"action {action_id!r} declares no target file_path — "
-                "safe auto-approval requires a concrete target"
+                "safe auto-approval requires a concrete target",
+                authorization_mode=mode,
             )
         _validate_target_path(file_path, path_prefixes, extensions)
         action_target_files.add(file_path)
@@ -107,7 +145,8 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
         raise SafeAutoApprovalDeniedError(
             "action targets and declared scope.files are inconsistent "
             f"(action targets: {sorted(action_target_files)}, "
-            f"scope.files: {sorted(scope_files)})"
+            f"scope.files: {sorted(scope_files)})",
+            authorization_mode=mode,
         )
 
 

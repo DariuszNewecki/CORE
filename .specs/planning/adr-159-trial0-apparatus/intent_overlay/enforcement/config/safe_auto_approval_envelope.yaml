@@ -1,0 +1,14 @@
+# ADR-159 Trial 0 overlay envelope (Governor ruling F, 2026-09-15): an
+# EXPLICIT deny-all. Trial 0 is a read-only evaluation; no action is
+# authorized for safe auto-approval, by declaration -- never by an empty
+# list alone, never by a no-op entry. Overlay-owned (never a floor file,
+# #894 Condition 1); loaded at bind time from the execution copy's .intent/
+# (#903 bind-time close) and again through the bound IntentRepository.
+# Probe I-6 (Document A §A7) is decided against exactly this file: the
+# refusal names authorization_mode: deny_all and the governing rule
+# autonomy.proposals.safe_auto_approval_envelope.
+safe_auto_approval_envelope:
+  authorization_mode: deny_all
+  authorized_actions: []
+  authorized_path_prefixes: []
+  authorized_extensions: []

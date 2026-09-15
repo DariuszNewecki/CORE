@@ -173,3 +173,74 @@ def test_validate_envelope_file_missing_and_malformed_fail_closed(tmp_path) -> N
     result = validate_envelope_file(root)
     assert result.get("_error") is True
     assert "authorized_actions" in result["reason"]
+
+
+# --- authorization_mode (Governor ruling F, 2026-09-15, ADR-159 Trial 0) --------
+
+
+def _deny_all_document() -> dict:
+    return {
+        "safe_auto_approval_envelope": {
+            "authorization_mode": "deny_all",
+            "authorized_actions": [],
+            "authorized_path_prefixes": [],
+            "authorized_extensions": [],
+        }
+    }
+
+
+def test_deny_all_mode_loads_with_empty_lists() -> None:
+    result = _load_with_document(_deny_all_document())
+    assert "_error" not in result
+    assert result["authorization_mode"] == "deny_all"
+    assert result["authorized_actions"] == frozenset()
+    assert result["authorized_path_prefixes"] == ()
+    assert result["authorized_extensions"] == ()
+
+
+def test_allow_listed_is_the_default_mode() -> None:
+    result = _load_with_document(_VALID_ENVELOPE)
+    assert result["authorization_mode"] == "allow_listed"
+
+
+def test_deny_all_with_a_listed_action_is_malformed() -> None:
+    doc = _deny_all_document()
+    doc["safe_auto_approval_envelope"]["authorized_actions"] = ["fix.format"]
+    result = _load_with_document(doc)
+    assert result.get("_error") is True
+    assert "must be empty under authorization_mode: deny_all" in result["reason"]
+
+
+def test_empty_list_without_explicit_deny_all_names_the_mode() -> None:
+    """An empty list is valid ONLY with an explicit deny_all; the reason says so."""
+    doc = {
+        "safe_auto_approval_envelope": {
+            "authorized_actions": [],
+            "authorized_path_prefixes": ["src/"],
+            "authorized_extensions": [".py"],
+        }
+    }
+    result = _load_with_document(doc)
+    assert result.get("_error") is True
+    assert "explicit authorization_mode: deny_all" in result["reason"]
+
+
+def test_unknown_mode_is_malformed() -> None:
+    doc = _deny_all_document()
+    doc["safe_auto_approval_envelope"]["authorization_mode"] = "allow_everything"
+    result = _load_with_document(doc)
+    assert result.get("_error") is True
+    assert "'authorization_mode' must be one of" in result["reason"]
+
+
+def test_validate_envelope_file_accepts_deny_all(tmp_path) -> None:
+    import yaml
+
+    from shared.infrastructure.intent.action_risk import validate_envelope_file
+
+    (tmp_path / "enforcement" / "config").mkdir(parents=True)
+    (
+        tmp_path / "enforcement" / "config" / "safe_auto_approval_envelope.yaml"
+    ).write_text(yaml.safe_dump(_deny_all_document()))
+    result = validate_envelope_file(tmp_path)
+    assert "_error" not in result and result["authorization_mode"] == "deny_all"

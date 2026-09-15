@@ -206,19 +206,55 @@ _SAFE_AUTO_APPROVAL_ENVELOPE_KEYS: frozenset[str] = frozenset(
     {"authorized_actions", "authorized_path_prefixes", "authorized_extensions"}
 )
 
+# Envelope authorization modes (Governor ruling F, 2026-09-15, ADR-159 Trial 0).
+# `allow_listed` -- the original and default shape: every list non-empty, the
+# listed actions/paths/extensions are what safe auto-approval may grant.
+# `deny_all` -- an EXPLICIT nothing-is-authorized envelope: every list must be
+# empty. An empty list is valid ONLY under this explicit mode; it is never
+# inferred, and a no-op entry is never used to satisfy the loader.
+ENVELOPE_MODE_ALLOW_LISTED = "allow_listed"
+ENVELOPE_MODE_DENY_ALL = "deny_all"
+_ENVELOPE_MODES: frozenset[str] = frozenset(
+    {ENVELOPE_MODE_ALLOW_LISTED, ENVELOPE_MODE_DENY_ALL}
+)
+
+
+def _envelope_mode(envelope: dict[str, Any]) -> str:
+    mode = envelope.get("authorization_mode", ENVELOPE_MODE_ALLOW_LISTED)
+    if mode not in _ENVELOPE_MODES:
+        raise ValueError(
+            "safe_auto_approval_envelope: 'authorization_mode' must be one of "
+            f"{sorted(_ENVELOPE_MODES)}, got {mode!r}"
+        )
+    return str(mode)
+
 
 def _validate_envelope(envelope: dict[str, Any]) -> None:
     """Raise ValueError on the first malformed field in the envelope section."""
+    mode = _envelope_mode(envelope)
     for key in _SAFE_AUTO_APPROVAL_ENVELOPE_KEYS:
         if key not in envelope:
             raise ValueError(
                 f"safe_auto_approval_envelope: required key {key!r} is missing"
             )
         value = envelope[key]
-        if not isinstance(value, list) or not value:
+        if not isinstance(value, list):
             raise ValueError(
-                f"safe_auto_approval_envelope: {key!r} must be a non-empty list, "
-                f"got {value!r}"
+                f"safe_auto_approval_envelope: {key!r} must be a list, got {value!r}"
+            )
+        if mode == ENVELOPE_MODE_DENY_ALL:
+            if value:
+                raise ValueError(
+                    f"safe_auto_approval_envelope: {key!r} must be empty under "
+                    f"authorization_mode: {ENVELOPE_MODE_DENY_ALL}, got {value!r}"
+                )
+            continue
+        if not value:
+            raise ValueError(
+                f"safe_auto_approval_envelope: {key!r} must be a non-empty list "
+                f"under authorization_mode: {ENVELOPE_MODE_ALLOW_LISTED} (an empty "
+                f"list is valid only with an explicit authorization_mode: "
+                f"{ENVELOPE_MODE_DENY_ALL}), got {value!r}"
             )
         for item in value:
             if not isinstance(item, str) or not item:
@@ -226,6 +262,16 @@ def _validate_envelope(envelope: dict[str, Any]) -> None:
                     f"safe_auto_approval_envelope: {key!r} entries must be "
                     f"non-empty strings, got {item!r}"
                 )
+
+
+def _parsed_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
+    """The loader's success shape (both loaders return exactly this)."""
+    return {
+        "authorization_mode": _envelope_mode(envelope),
+        "authorized_actions": frozenset(envelope["authorized_actions"]),
+        "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
+        "authorized_extensions": tuple(envelope["authorized_extensions"]),
+    }
 
 
 # Governed location of the envelope (ADR-159 Note 2026-09-15, #894 Condition 1).
@@ -267,10 +313,15 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
 
     On success, returns:
         {
+            "authorization_mode": "allow_listed" | "deny_all",
             "authorized_actions": frozenset[str],
             "authorized_path_prefixes": tuple[str, ...],
             "authorized_extensions": tuple[str, ...],
         }
+
+    ``authorization_mode: deny_all`` (Governor ruling F, 2026-09-15) is the
+    explicit nothing-is-authorized envelope -- every list empty, by
+    declaration, never by inference.
     """
     try:
         from shared.infrastructure.intent.intent_repository import (
@@ -298,11 +349,7 @@ def load_safe_auto_approval_envelope() -> dict[str, Any]:
             return {"_error": True, "reason": reason}
 
         _validate_envelope(envelope)
-        return {
-            "authorized_actions": frozenset(envelope["authorized_actions"]),
-            "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
-            "authorized_extensions": tuple(envelope["authorized_extensions"]),
-        }
+        return _parsed_envelope(envelope)
 
     except Exception as exc:
         reason = f"{type(exc).__name__}: {exc}"
@@ -343,10 +390,6 @@ def validate_envelope_file(intent_root: Path) -> dict[str, Any]:
                 "reason": f"{path.name} missing 'safe_auto_approval_envelope' dict",
             }
         _validate_envelope(envelope)
-        return {
-            "authorized_actions": frozenset(envelope["authorized_actions"]),
-            "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
-            "authorized_extensions": tuple(envelope["authorized_extensions"]),
-        }
+        return _parsed_envelope(envelope)
     except Exception as exc:
         return {"_error": True, "reason": f"{type(exc).__name__}: {exc}"}
