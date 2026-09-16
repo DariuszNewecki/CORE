@@ -127,6 +127,7 @@ class RepositoryBoundaryViolationError(CoreError, ValueError):
             f"(bound root: {bound_root})"
         )
 
+    # ID: 377bf03e-180f-47f5-9182-97e6e9f83c36
     def to_payload(self) -> dict[str, str]:
         """Structured refusal evidence for records and probes."""
         return {
