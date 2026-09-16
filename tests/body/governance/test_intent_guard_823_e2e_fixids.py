@@ -241,7 +241,7 @@ def test_fixids_write_succeeds_end_to_end(
         re.MULTILINE,
     ), f"fix.ids did not tag the unrelated symbol:\n{orphan_written}"
     assert payload["orphans"] == [
-        ["src/body/analyzers/_test_orphan_anchor_probe.py", 5, "probe_fn_orphan_shadowed"]
+        ["src/body/analyzers/_test_orphan_anchor_probe.py", 6, "probe_fn_orphan_shadowed"]
     ], payload["orphans"]
 
 

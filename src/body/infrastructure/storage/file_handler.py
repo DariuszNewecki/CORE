@@ -20,6 +20,7 @@ from typing import Any
 
 from body.governance.intent_guard import get_intent_guard
 from mind.governance.violation_report import ConstitutionalViolationError
+from shared.ast_utility import find_orphan_shadowed_symbols
 from shared.config import settings
 from shared.governance_token import current_capability
 from shared.infrastructure.intent.operational_mode import current_mode
@@ -71,9 +72,19 @@ class FileHandler:
     # ---------------------------------------------------------------------
 
     def _ensure_id_anchors(self, content: str) -> str:
-        """Injects missing # ID: tags for public symbols automatically."""
+        """Injects missing # ID: tags for public symbols automatically.
+
+        linkage.no_orphan_ids: a public def whose anchor sits above it,
+        split off by a blank line or a decorator, is NOT given a fresh one
+        here -- that would regenerate the identity the orphan still carries.
+        Such symbols are left for manual re-attachment; the orphan's bytes
+        pass through untouched.
+        """
         lines = content.splitlines()
         new_lines: list[str] = []
+        shadowed = {
+            sym.definition_line: sym for sym in find_orphan_shadowed_symbols(content)
+        }
 
         for i, line in enumerate(lines):
             stripped = line.strip()
@@ -87,7 +98,17 @@ class FileHandler:
 
             if is_def and not is_private:
                 prev_line = lines[i - 1].strip() if i > 0 else ""
-                if not prev_line.startswith("# ID:"):
+                shadow = shadowed.get(i + 1)
+                if shadow is not None:
+                    logger.warning(
+                        "Not injecting an ID for '%s' (line %d): orphaned anchor "
+                        "at line %d shadows it; re-attach manually "
+                        "(linkage.no_orphan_ids)",
+                        shadow.name,
+                        shadow.definition_line,
+                        shadow.orphan_line,
+                    )
+                elif not prev_line.startswith("# ID:"):
                     indent = " " * (len(line) - len(line.lstrip()))
                     new_id = str(uuid.uuid4())
                     new_lines.append(f"{indent}# ID: {new_id}")

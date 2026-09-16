@@ -134,6 +134,84 @@ def find_orphan_id_lines(source: str) -> list[tuple[int, str]]:
     ]
 
 
+@dataclass
+# ID: afbec0f8-a6dc-46f6-8fc9-a149ca990964
+class ShadowedSymbol:
+    """A public symbol lacking an anchor whose nearest anchor above is an orphan."""
+
+    name: str
+    definition_line: int
+    orphan_line: int
+
+
+def _orphan_shadowing(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+    def_line: int,
+    lines: list[str],
+    orphan_linenos: set[int],
+) -> int | None:
+    """Return the orphan anchor line that most plausibly belongs to ``node``.
+
+    Either an orphan inside the symbol's own span (between its first
+    decorator and the def line -- e.g. an anchor followed by a blank line),
+    or one reached by walking upward from the span over blank lines and
+    ordinary comments only. Any other line ends the search. 1-based.
+    """
+    span_start = min((d.lineno for d in node.decorator_list), default=def_line)
+    inside = [n for n in orphan_linenos if span_start <= n < def_line]
+    if inside:
+        return max(inside)
+    i = span_start - 1
+    while i >= 1:
+        if i in orphan_linenos:
+            return i
+        stripped = lines[i - 1].strip()
+        if stripped and not stripped.startswith("#"):
+            return None
+        i -= 1
+    return None
+
+
+# ID: 51716589-7d06-4edc-8112-71bae52f1720
+def find_orphan_shadowed_symbols(source: str) -> list[ShadowedSymbol]:
+    """Public symbols that must NOT be handed a fresh ``# ID:``.
+
+    Each has no anchor of its own, but an orphaned anchor sits directly
+    above it (across blank lines, comments or its decorator span). That
+    anchor is almost certainly the symbol's own identity, split from it;
+    regenerating would discard it. linkage.no_orphan_ids wants the anchor
+    re-attached by a human, so every ID-assigning site -- fix.ids, the
+    finding handler, FileHandler's write-time injection -- consults this
+    one function and leaves such symbols alone. Unparseable source yields
+    an empty list (callers gate on syntax separately).
+    """
+    orphan_linenos = {n for n, _ in find_orphan_id_lines(source)}
+    if not orphan_linenos:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    lines = source.splitlines()
+    shadowed: list[ShadowedSymbol] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if node.name.startswith("_"):
+            continue
+        result = find_symbol_id_and_def_line(node, lines)
+        if result.has_id:
+            continue
+        orphan = _orphan_shadowing(
+            node, result.definition_line_num, lines, orphan_linenos
+        )
+        if orphan is not None:
+            shadowed.append(
+                ShadowedSymbol(node.name, result.definition_line_num, orphan)
+            )
+    return shadowed
+
+
 # --- END OF NEW HELPER FUNCTION ---
 
 

@@ -17,7 +17,11 @@ from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionImpact, ActionResult
-from shared.ast_utility import find_orphan_id_lines, find_symbol_id_and_def_line
+from shared.ast_utility import (
+    find_orphan_id_lines,
+    find_orphan_shadowed_symbols,
+    find_symbol_id_and_def_line,
+)
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
@@ -61,37 +65,10 @@ class IdAssignmentReport:
     orphan_anchors: list[OrphanAnchor] = field(default_factory=list)
 
     @property
+    # ID: b613d3f1-c6d7-447c-9dda-d7957ea8b163
     def reattachment_required(self) -> list[OrphanAnchor]:
         """Orphans that shadow a symbol fix.ids therefore refused to re-tag."""
         return [o for o in self.orphan_anchors if o.symbol is not None]
-
-
-def _orphan_shadowing(
-    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
-    def_line: int,
-    lines: list[str],
-    orphan_linenos: set[int],
-) -> int | None:
-    """Return the orphan anchor line that most plausibly belongs to ``node``.
-
-    Either an orphan inside the symbol's own span (between its first
-    decorator and the def line -- e.g. an anchor followed by a blank line),
-    or one reached by walking upward from the span over blank lines and
-    ordinary comments only. Any other line ends the search. 1-based.
-    """
-    span_start = min((d.lineno for d in node.decorator_list), default=def_line)
-    inside = [n for n in orphan_linenos if span_start <= n < def_line]
-    if inside:
-        return max(inside)
-    i = span_start - 1
-    while i >= 1:
-        if i in orphan_linenos:
-            return i
-        stripped = lines[i - 1].strip()
-        if stripped and not stripped.startswith("#"):
-            return None
-        i -= 1
-    return None
 
 
 # ID: 17328e3a-5e37-48ff-94d4-c3f4697825d5
@@ -138,6 +115,10 @@ async def assign_missing_ids(
                 lineno: OrphanAnchor(rel_path, lineno, text)
                 for lineno, text in find_orphan_id_lines(content)
             }
+            shadowed = {
+                sym.definition_line: sym
+                for sym in find_orphan_shadowed_symbols(content)
+            }
 
             tree = ast.parse(content, filename=str(file_path))
             for node in ast.walk(tree):
@@ -151,11 +132,9 @@ async def assign_missing_ids(
                     if id_result.has_id:
                         continue
 
-                    shadow = _orphan_shadowing(
-                        node, id_result.definition_line_num, source_lines, set(orphans)
-                    )
+                    shadow = shadowed.get(id_result.definition_line_num)
                     if shadow is not None:
-                        orphans[shadow].symbol = node.name
+                        orphans[shadow.orphan_line].symbol = node.name
                         continue
 
                     files_to_fix[file_path].append(

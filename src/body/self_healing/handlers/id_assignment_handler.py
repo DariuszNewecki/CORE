@@ -18,7 +18,7 @@ from pathlib import Path
 
 from body.infrastructure.storage.file_handler import FileHandler
 from body.self_healing.remediation_models import FixResult
-from shared.ast_utility import find_symbol_id_and_def_line
+from shared.ast_utility import find_orphan_shadowed_symbols, find_symbol_id_and_def_line
 from shared.logger import getLogger
 from shared.models import AuditFinding
 
@@ -112,6 +112,12 @@ async def assign_missing_ids_handler(
 
     source_lines = content.splitlines()
 
+    # linkage.no_orphan_ids: a symbol shadowed by an orphaned anchor keeps
+    # its (displaced) identity for manual re-attachment; never regenerate.
+    shadowed = {
+        sym.definition_line: sym for sym in find_orphan_shadowed_symbols(content)
+    }
+
     # Collect all public symbols that are missing an ID tag.
     missing: list[dict] = []
     for node in ast.walk(tree):
@@ -119,6 +125,15 @@ async def assign_missing_ids_handler(
             if not _is_public(node):
                 continue
             id_result = find_symbol_id_and_def_line(node, source_lines)
+            if id_result.definition_line_num in shadowed:
+                logger.warning(
+                    "Skipping '%s' in %s: orphaned anchor at line %d shadows it; "
+                    "re-attach manually (linkage.no_orphan_ids)",
+                    node.name,
+                    finding.file_path,
+                    shadowed[id_result.definition_line_num].orphan_line,
+                )
+                continue
             if not id_result.has_id:
                 missing.append(
                     {
