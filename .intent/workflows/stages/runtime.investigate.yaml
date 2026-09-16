@@ -1,0 +1,52 @@
+$schema: "META/workflow_stage.schema.json"
+kind: workflow_stage
+
+stage_id: runtime.investigate
+version: "1.0"
+status: experimental
+
+phase: runtime
+description: >
+  Execute the investigation plan read-only over the bound target and emit
+  structured findings. No agent_role is declared: the steps are deterministic
+  analyzers and checks, so this stage requires no cognitive role to run.
+
+inputs:
+  required:
+    - execution_context
+    - investigation_plan
+  optional:
+    - reconnaissance_report
+    - context_package
+
+actions:
+  - action_id: investigation.execute
+    purpose: Run each planned read-only step against the bound target
+    required: true
+
+  - action_id: finding.record
+    purpose: Emit each observation as a structured finding on the run's identity
+    required: true
+
+outputs:
+  produces:
+    - findings
+    - investigation_report
+
+invariants:
+  must_hold:
+    - Findings are structured records carrying their own evidence references.
+    - Every step executed is one the investigation plan declared.
+    - An absence observed during investigation is recorded as an absence, never as an empty result.
+  must_not:
+    - Must not mutate the target in any way.
+    - Must not commit changes.
+    - Must not declare an audit pass or fail verdict; findings are evidence, not judgement.
+    - Must not generate candidate code or change artifacts.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - load.operational_context
+  next_on_success: []
+  next_on_failure: []

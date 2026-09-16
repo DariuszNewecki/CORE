@@ -126,6 +126,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/workflows/definitions/refactor_modularity.yaml
     governance_namespace: framework
+  - path: .intent/workflows/definitions/evaluation.yaml
+    governance_namespace: framework
   - path: .intent/workflows/stages/audit.canary_validation.yaml
     governance_namespace: framework
   - path: .intent/workflows/stages/audit.sandbox_validation.yaml
@@ -137,6 +139,10 @@ classifications:
   - path: .intent/workflows/stages/execution.commit_changes.yaml
     governance_namespace: framework
   - path: .intent/workflows/stages/interpret.intent.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/parse.plan_investigation.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/runtime.investigate.yaml
     governance_namespace: framework
   - path: .intent/workflows/stages/load.operational_context.yaml
     governance_namespace: framework

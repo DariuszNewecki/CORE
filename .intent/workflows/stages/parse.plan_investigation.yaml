@@ -1,0 +1,58 @@
+$schema: "META/workflow_stage.schema.json"
+kind: workflow_stage
+
+stage_id: parse.plan_investigation
+version: "1.0"
+status: experimental
+
+phase: parse
+description: >
+  Derive an ordered, read-only investigation plan for an unfamiliar target from
+  normalized intent and a reconnaissance report. The symmetric counterpart to
+  parse.plan_actions: that stage plans mutations, this one plans only looking.
+
+agent_role: Planner
+
+inputs:
+  required:
+    - normalized_intent
+    - workflow_request
+    - reconnaissance_report
+  optional:
+    - constitutional_context
+    - known_capabilities
+
+actions:
+  - action_id: investigation.plan
+    purpose: Produce an ordered plan of read-only investigation steps
+    required: true
+
+  - action_id: scope.assess
+    purpose: Identify which parts of the target the investigation will examine
+    required: false
+
+outputs:
+  produces:
+    - investigation_plan
+    - stage_route
+    - planning_context
+
+invariants:
+  must_hold:
+    - Every planned step is read-only.
+    - The plan is explicit and ordered.
+    - Planning is grounded in the reconnaissance report, which is a required input -- an evaluation that has not examined its target has nothing to plan against.
+  must_not:
+    - Must not plan any step that mutates the target.
+    - Must not execute repository mutations.
+    - Must not evaluate constitutional rules.
+    - Must not commit changes.
+    - Must not proceed when the reconnaissance report is absent; the stage reports the input as unavailable rather than planning blind.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - interpret.intent
+  next_on_success:
+    - load.operational_context
+  next_on_failure: []
