@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.code.linkage",
         "title": "Code Linkage & Identity (V2.3 Reflexive)",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -24,6 +24,14 @@
             "authority": "policy",
             "phase": "audit",
             "enforcement": "blocking"
+        },
+        {
+            "id": "linkage.no_orphan_ids",
+            "statement": "A '# ID:' anchor MUST sit on the line immediately before the def, async def, or class it identifies. An anchor that annotates no symbol is a defect; the identity MUST be re-attached to its symbol, never regenerated.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "The inverse of linkage.assign_ids, which asks whether each public symbol has an anchor and so never inspects anchors on private symbols or stray file-level anchors. An anchor split from its def (by a blank line or an inserted method) is valid Python -- ruff and mypy cannot see it -- and the only code that noticed was the cleanup phase of fix.ids, which deletes it: the identity is lost, and the deletion lands in whatever commit the autonomous remediator makes next (9e9067eb, 2026-09-16: a stray anchor was swept into an unrelated consequence-chain commit). Detection is stateless (ast_gate, shared.ast_utility.find_orphan_id_lines -- the same definition fix.ids uses), so it runs in the offline CI gate. Deliberately not auto-remediated: fix.ids strips orphans, and stripping is the wrong remedy for a rule whose point is identity preservation."
         }
     ]
 }

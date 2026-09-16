@@ -108,6 +108,7 @@ class ASTGateEngine(BaseEngine):
             "max_function_length",
             "stable_id_anchor",
             "id_anchor",
+            "orphan_ids",
             "duplicate_ids",
             "docstrings_present",
             "forbidden_decorators",
@@ -206,6 +207,12 @@ class ASTGateEngine(BaseEngine):
         # --- Purity & Integrity ---
         if check_type in ("stable_id_anchor", "id_anchor"):
             violations.extend(PurityChecks.check_stable_id_anchor(source))
+
+        elif check_type == "orphan_ids":
+            # linkage.no_orphan_ids -- the inverse of id_anchor: an anchor
+            # that annotates no def/class (split by a blank line, above a
+            # decorator, or file-level). Public-only id_anchor cannot see it.
+            violations.extend(PurityChecks.check_orphan_id_anchors(source))
 
         elif check_type == "docstrings_present":
             violations.extend(PurityChecks.check_docstrings_present(tree))

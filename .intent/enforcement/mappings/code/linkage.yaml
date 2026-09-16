@@ -20,3 +20,16 @@
         check_type: duplicate_ids
       scope:
         applies_to: ["src/**/*.py"]
+
+    # LAW: Every anchor annotates a symbol (inverse of assign_ids).
+    # Per-file, text-level, stateless -- runs in the offline CI gate. Public
+    # and private symbols alike; the question is whether the anchor is
+    # attached, not whether the symbol needed one. No auto-remediation on
+    # purpose: fix.ids would strip the anchor (identity loss), the rule wants
+    # it re-attached.
+    linkage.no_orphan_ids:
+      engine: ast_gate
+      params:
+        check_type: orphan_ids
+      scope:
+        applies_to: ["src/**/*.py"]

@@ -8,7 +8,6 @@ Refactored to use the canonical ActionExecutor Gateway for all mutations.
 from __future__ import annotations
 
 import ast
-import re
 import time
 import uuid
 from collections import defaultdict
@@ -17,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionImpact, ActionResult
-from shared.ast_utility import find_symbol_id_and_def_line
+from shared.ast_utility import find_orphan_id_lines, find_symbol_id_and_def_line
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
@@ -34,38 +33,23 @@ def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> b
     return not node.name.startswith("_") and (not is_dunder)
 
 
-def _is_id_tag(line: str) -> bool:
-    """Returns True if the line is a # ID: <uuid> comment."""
-    return bool(re.match(r"^\s*# ID:\s*[0-9a-fA-F\-]+\s*$", line))
-
-
 def _strip_orphan_ids(content: str) -> tuple[str, int]:
     """
     Remove # ID: lines that are NOT immediately before a def/class line.
     These are file-level or orphaned IDs with no functional purpose.
 
+    Detection is shared.ast_utility.find_orphan_id_lines -- the same
+    definition the linkage.no_orphan_ids audit check uses, so what the gate
+    flags and what this strips are one set by construction.
+
     Returns (new_content, removed_count).
     """
+    orphan_linenos = {lineno for lineno, _ in find_orphan_id_lines(content)}
+    if not orphan_linenos:
+        return content, 0
     lines = content.splitlines(keepends=True)
-    symbol_keywords = ("def ", "async def ", "class ")
-
-    # Build set of line indices that are valid anchors (immediately before def/class)
-    valid_anchor_indices: set[int] = set()
-    for i, line in enumerate(lines):
-        stripped = line.lstrip()
-        if any(stripped.startswith(kw) for kw in symbol_keywords):
-            if i > 0 and _is_id_tag(lines[i - 1]):
-                valid_anchor_indices.add(i - 1)
-
-    new_lines = []
-    removed = 0
-    for i, line in enumerate(lines):
-        if _is_id_tag(line) and i not in valid_anchor_indices:
-            removed += 1
-            continue
-        new_lines.append(line)
-
-    return "".join(new_lines), removed
+    kept = [line for i, line in enumerate(lines, start=1) if i not in orphan_linenos]
+    return "".join(kept), len(orphan_linenos)
 
 
 # ID: 17328e3a-5e37-48ff-94d4-c3f4697825d5

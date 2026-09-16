@@ -97,6 +97,43 @@ def find_symbol_id_and_def_line(
     return SymbolIdResult(has_id=False, definition_line_num=definition_line)
 
 
+_ID_TAG_RE = re.compile(r"^\s*# ID:\s*[0-9a-fA-F\-]+\s*$")
+_SYMBOL_KEYWORDS = ("def ", "async def ", "class ")
+
+
+# ID: 157d0bb8-02d5-444f-8079-18132bbac160
+def is_symbol_id_tag(line: str) -> bool:
+    """True if ``line`` is a ``# ID: <hex-uuid>`` comment and nothing else."""
+    return bool(_ID_TAG_RE.match(line))
+
+
+# ID: b55640a0-5445-4c1c-8921-8ea38000b752
+def find_orphan_id_lines(source: str) -> list[tuple[int, str]]:
+    """Return ``(line_number, text)`` for every ``# ID:`` line that annotates nothing.
+
+    An anchor is attached only when the very next line opens a ``def`` /
+    ``async def`` / ``class``. Anything else -- a blank line, a decorator, a
+    file-level stray -- makes it an orphan. This is the single definition of
+    "orphan" shared by the ``linkage.no_orphan_ids`` audit check (Mind) and
+    the cleanup phase of ``fix.ids`` (Body), so the gate and the fixer cannot
+    disagree. Public and private symbols alike: the question is whether the
+    anchor annotates a symbol, not whether the symbol needed one.
+
+    Line numbers are 1-based; text is the line without its newline.
+    """
+    lines = source.splitlines()
+    attached: set[int] = set()
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith(_SYMBOL_KEYWORDS) and i > 0:
+            if is_symbol_id_tag(lines[i - 1]):
+                attached.add(i - 1)
+    return [
+        (i + 1, line)
+        for i, line in enumerate(lines)
+        if is_symbol_id_tag(line) and i not in attached
+    ]
+
+
 # --- END OF NEW HELPER FUNCTION ---
 
 

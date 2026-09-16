@@ -16,6 +16,7 @@ import ast
 from pathlib import Path
 from typing import ClassVar
 
+from shared.ast_utility import find_orphan_id_lines
 from shared.infrastructure.intent.filesystem_operations import FsOperationTaxonomy
 
 from ..base import ASTHelpers
@@ -70,6 +71,28 @@ class PurityChecks:
         except Exception:
             pass
         return violations
+
+    @staticmethod
+    # ID: 03a868c0-3bf5-4d16-bc17-4b731a5a743a
+    def check_orphan_id_anchors(source: str) -> list[str]:
+        """linkage.no_orphan_ids: every '# ID:' anchor must annotate a def/class.
+
+        The inverse of check_stable_id_anchor. That check asks "does each
+        public symbol have an anchor?"; this one asks "does each anchor have
+        a symbol?" -- and so also covers anchors on private symbols (454 in
+        src/ as of 2026-09-16), which the public-only check never inspects.
+        An anchor separated from its def by a blank line or a decorator is
+        valid Python, invisible to ruff and mypy, and would otherwise be
+        silently deleted by fix.ids' cleanup phase, losing the identity
+        (9e9067eb). Detection is shared with that cleanup phase via
+        shared.ast_utility.find_orphan_id_lines. Text-level by design: the
+        anchor is a comment, so no AST node exists to hang it on.
+        """
+        return [
+            f"Orphaned ID anchor {text.strip()!r} at line {lineno} annotates no "
+            "def/class; re-attach it to its symbol, do not regenerate it."
+            for lineno, text in find_orphan_id_lines(source)
+        ]
 
     @staticmethod
     # ID: 4bd29d4a-63e7-4132-8ab2-16865c9d500c
