@@ -90,6 +90,10 @@ _GRANDFATHERED_DIRECT_WRITE_CALLERS: MappingProxyType[str, str] = MappingProxyTy
 # (planner prompt / cognitive-role client unobtainable). Callers that need
 # the distinction (runtime external-run's exit code) check startswith().
 UNAVAILABLE_PREFIX = "UNAVAILABLE: "
+# #895 U3: a failed apparatus-integrity probe (I-5/I-6) is its own outcome --
+# neither unavailability nor a phase failure. Stable prefix for (ok, message)
+# callers; the route maps it to its evidence record and REFUSED exit.
+APPARATUS_INTEGRITY_PREFIX = "APPARATUS_INTEGRITY_FAILED: "
 
 
 # ID: ad8b2dd6-6874-431f-9fba-9d22a2d6a04c
@@ -100,6 +104,7 @@ async def develop_from_goal(
     write: bool = False,
     task_id: str | None = None,
     legacy_direct_write: bool = False,
+    probes: bool = False,
 ) -> tuple[bool, str]:
     """
     Execute a goal using constitutional workflow orchestration.
@@ -107,7 +112,9 @@ async def develop_from_goal(
     Args:
         context: Core context with services
         goal: High-level objective
-        workflow_type: Which workflow to use (refactor_modularity, coverage_remediation, etc.)
+        workflow_type: Which workflow to use (refactor_modularity,
+            code_modification, coverage_remediation, or evaluation -- the
+            read-only investigation workflow, #895 U2)
         write: Whether to apply changes
         task_id: Optional task ID for tracking
         legacy_direct_write: ADR-160 D3 polarity inversion, default False.
@@ -119,6 +126,10 @@ async def develop_from_goal(
             today's direct-write behavior; see
             `_GRANDFATHERED_DIRECT_WRITE_CALLERS` above for which callers and
             why. New callers must not pass this argument.
+        probes: #895 U3 -- run the ADR-159 apparatus-integrity probes I-5/I-6
+            right after the run's start record (externally bound runs only;
+            `core-admin runtime external-run --probes`). A failed probe ends
+            the run before the goal with outcome APPARATUS_INTEGRITY_FAILED.
 
     Returns:
         (success, message) tuple. In proposal-gated mode (the default for a
@@ -161,6 +172,7 @@ async def develop_from_goal(
         write=write,
         task_id=task_id,
         create_proposal_only=create_proposal_only,
+        probes=probes,
     )
 
     try:
@@ -184,6 +196,14 @@ async def develop_from_goal(
         return (
             False,
             f"{UNAVAILABLE_PREFIX}{worker.unavailable_reason} (run_id={worker.run_id})",
+        )
+
+    failed_probes = [r["probe"] for r in worker.probe_records if not r.get("passed")]
+    if failed_probes:
+        return (
+            False,
+            f"{APPARATUS_INTEGRITY_PREFIX}{', '.join(failed_probes)} "
+            f"(run_id={worker.run_id})",
         )
 
     if create_proposal_only:

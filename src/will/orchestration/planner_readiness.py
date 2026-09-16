@@ -26,6 +26,28 @@ logger = getLogger(__name__)
 PLANNER_PROMPT_ID = "plan_goal"
 
 
+# ID: a481d399-10a1-48be-93c7-4d68b2434cd5
+async def resolve_brain_services(context: Any) -> None:
+    """Warm up the cognitive service and auditor context on *context*.
+
+    The same resolves `@core_command(requires_context=True)` performs for a
+    CLI-entered run, so a Worker started from any other entry point (the
+    pre-bootstrap external-run route, #894) is not short of them.
+    CodeGenerationPhase refuses without auditor_context. Failures are
+    logged, never raised: readiness is probed separately.
+    """
+    if context.cognitive_service is None:
+        try:
+            context.cognitive_service = await context.registry.get_cognitive_service()
+        except Exception as exc:
+            logger.warning("Could not resolve cognitive_service from registry: %s", exc)
+    if getattr(context, "auditor_context", None) is None:
+        try:
+            context.auditor_context = await context.registry.get_auditor_context()
+        except Exception as exc:
+            logger.warning("Could not resolve auditor_context from registry: %s", exc)
+
+
 # ID: 48299632-63d0-48b4-a0fd-c2b15e42809c
 async def probe_planner_readiness(context: Any) -> str | None:
     """Return why the planner cannot run in *context*, or None when it can."""

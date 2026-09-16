@@ -39,6 +39,7 @@ from cli.runtime_external_run import (
     execute,
     guard_legacy_direct_write,
     matches_route,
+    parse_args,
     runner_prompt_sources,
     vector_store_leak,
 )
@@ -141,11 +142,12 @@ class _Fakes:
         return self.context
 
     async def develop(
-        self, context: Any, goal: str, workflow: str, write: bool
+        self, context: Any, goal: str, workflow: str, write: bool, probes: bool = False
     ) -> tuple[bool, str]:
         assert context is self.context
         self.develop_env = {k: self.env.get(k, "") for k in ("REPO_PATH", "MIND")}
         self.develop_calls.append((goal, workflow, write))
+        self.develop_probes = probes
         if self.readiness_reason is not None:
             # what develop_from_goal returns after the Worker recorded
             # post_unavailable (Unit 3): the stable prefix, never a phase error
@@ -377,7 +379,12 @@ def test_subject_changed_during_run_is_internal_failure(tmp_path: Path) -> None:
 
     class _Tamper(_Fakes):
         async def develop(
-            self, context: Any, goal: str, workflow: str, write: bool
+            self,
+            context: Any,
+            goal: str,
+            workflow: str,
+            write: bool,
+            probes: bool = False,
         ) -> tuple[bool, str]:
             (subject / "package" / "mod.py").write_text("x = 2\n")
             return (True, "tampered")
@@ -825,3 +832,86 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
             assert count and int(count.group(1)) > 0, (
                 f"audit failed without a gate finding: {reason} ({log_hint})"
             )
+
+
+# --------------------------------------------------------------------------- #895 U3 probes
+
+
+def test_parse_args_probes_and_evaluation_workflow(tmp_path: Path) -> None:
+    opts = parse_args(
+        [
+            "runtime",
+            "external-run",
+            "--subject",
+            str(tmp_path),
+            "--goal",
+            "g",
+            "--workflow",
+            "evaluation",
+            "--probes",
+        ]
+    )
+    assert opts.workflow_type == "evaluation"
+    assert opts.probes is True
+    assert (
+        parse_args(
+            ["runtime", "external-run", "--subject", str(tmp_path), "--goal", "g"]
+        ).probes
+        is False
+    )
+
+
+def test_probes_flag_reaches_develop(tmp_path: Path) -> None:
+    subject = _subject(tmp_path)
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    opts = _opts(subject, tmp_path / "evidence")
+    code = execute(
+        ExternalRunOptions(**{**opts.__dict__, "probes": True}),
+        core_repo_root=REPO_ROOT,
+        environ=env,
+        bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
+        develop=fakes.develop,
+    )
+    assert code == EXIT_RAN
+    assert fakes.develop_probes is True
+
+
+def test_failed_probe_is_an_apparatus_integrity_refusal(tmp_path: Path) -> None:
+    """A failed I-5/I-6 probe: outcome APPARATUS_INTEGRITY_FAILED, exit 2 --
+    neither UNAVAILABLE (4) nor an internal failure (64)."""
+    from will.autonomy.autonomous_developer import APPARATUS_INTEGRITY_PREFIX
+
+    class _ProbeFails(_Fakes):
+        async def develop(
+            self,
+            context: Any,
+            goal: str,
+            workflow: str,
+            write: bool,
+            probes: bool = False,
+        ) -> tuple[bool, str]:
+            assert probes is True
+            return (False, f"{APPARATUS_INTEGRITY_PREFIX}I-5, I-6 (run_id=r)")
+
+    subject = _subject(tmp_path)
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _ProbeFails(env)
+    opts = _opts(subject, tmp_path / "evidence")
+    code = execute(
+        ExternalRunOptions(**{**opts.__dict__, "probes": True}),
+        core_repo_root=REPO_ROOT,
+        environ=env,
+        bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
+        develop=fakes.develop,
+    )
+    assert code == EXIT_BINDING_REFUSED
+    run = next((tmp_path / "evidence" / "runs").iterdir())
+    outcome = json.loads((run / "evidence" / "outcome.json").read_text())
+    assert outcome["outcome"] == "APPARATUS_INTEGRITY_FAILED"
+    assert outcome["stage"] == "probes"
+    assert outcome["failed_probes"] == ["I-5", "I-6"]

@@ -1004,3 +1004,88 @@ async def test_a_non_investigation_run_posts_no_finding_records() -> None:
         if ".finding" in call.args[0]
     ]
     assert finding_subjects == []
+
+
+# --------------------------------------------------------------------------- #895 U3 probes
+
+
+def test_default_probes_is_false() -> None:
+    assert _make_worker().probes is False
+
+
+async def test_probes_run_after_start_record_and_stop_the_run_on_failure() -> None:
+    """Governor correction 1 (2026-09-15): probes run after goal_run.<id>.start
+    and before readiness/goal; a failed probe ends the run, fail closed."""
+    worker = _make_worker(probes=True)
+    worker._context.target_binding = _binding()
+    records = [
+        {"probe": "I-5", "passed": True},
+        {"probe": "I-6", "passed": False, "reason": "approval_granted"},
+    ]
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with (
+        orch_patch as orch_cls,
+        registry_patch,
+        patch(
+            "will.orchestration.goal_run_probes.run_apparatus_probes",
+            new=AsyncMock(return_value=records),
+        ),
+    ):
+        await worker.run()
+        orch_cls.return_value.execute_goal.assert_not_called()
+
+    subjects = [c.args[0] for c in worker._blackboard.post_report.call_args_list]
+    assert subjects == [
+        f"goal_run.{worker.run_id}.start",
+        f"goal_run.{worker.run_id}.probe.I-5",
+        f"goal_run.{worker.run_id}.probe.I-6",
+    ]
+    subject, payload = worker._blackboard.post_observation.call_args.args
+    assert subject == f"goal_run.{worker.run_id}.outcome"
+    assert payload["reason"] == "apparatus_integrity_failed"
+    assert payload["failed_probes"] == ["I-6"]
+    assert worker.probe_records == records
+    assert worker.result is not None and worker.result.ok is False
+    assert worker.unavailable_reason is None
+
+
+async def test_passing_probes_let_the_goal_proceed() -> None:
+    worker = _make_worker(probes=True)
+    worker._context.target_binding = _binding()
+    records = [{"probe": "I-5", "passed": True}, {"probe": "I-6", "passed": True}]
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with (
+        orch_patch as orch_cls,
+        registry_patch,
+        patch(
+            "will.orchestration.goal_run_probes.run_apparatus_probes",
+            new=AsyncMock(return_value=records),
+        ),
+    ):
+        await worker.run()
+        orch_cls.return_value.execute_goal.assert_called_once()
+    assert worker.result is not None and worker.result.ok is True
+
+
+async def test_develop_from_goal_returns_stable_apparatus_integrity_message() -> None:
+    from will.autonomy import autonomous_developer as ad
+
+    worker = _make_worker(probes=True)
+    worker._context.target_binding = _binding()
+    records = [{"probe": "I-5", "passed": False, "reason": "write_landed"}]
+    orch_patch, registry_patch = _patched_orchestrator(_success_result({}))
+    with (
+        orch_patch,
+        registry_patch,
+        patch(
+            "will.orchestration.goal_run_probes.run_apparatus_probes",
+            new=AsyncMock(return_value=records),
+        ),
+        patch.object(ad, "GoalExecutionWorker", return_value=worker),
+    ):
+        ok, message = await ad.develop_from_goal(
+            worker._context, "goal", "evaluation", write=False, probes=True
+        )
+    assert ok is False
+    assert message.startswith(ad.APPARATUS_INTEGRITY_PREFIX)
+    assert "I-5" in message and worker.run_id in message

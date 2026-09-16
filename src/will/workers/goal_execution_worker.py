@@ -75,6 +75,7 @@ from shared.activity_logging import activity_run
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import Worker
+from will.orchestration.goal_run_probes import run_and_record_probes
 from will.orchestration.goal_run_records import (
     blackboard_safe,
     post_decision_records,
@@ -82,7 +83,10 @@ from will.orchestration.goal_run_records import (
     post_reconnaissance_records,
 )
 from will.orchestration.phase_registry import PhaseRegistry
-from will.orchestration.planner_readiness import probe_planner_readiness
+from will.orchestration.planner_readiness import (
+    probe_planner_readiness,
+    resolve_brain_services,
+)
 from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
 
 
@@ -103,6 +107,9 @@ class GoalExecutionWorker(Worker):
     the goal directly via `PlannerAgent`, converts the plan to a Proposal
     (`will.autonomy.plan_to_proposal`), persists it in PENDING, and stops —
     `WorkflowOrchestrator`/`ActionExecutor` are never reached in this mode.
+
+    `probes=True` (#895 U3, ADR-159 §A7): run the apparatus-integrity probes
+    I-5/I-6 right after the start record; see `will.orchestration.goal_run_probes`.
     """
 
     declaration_name = "goal_execution_worker"
@@ -117,6 +124,7 @@ class GoalExecutionWorker(Worker):
         task_id: str | None = None,
         repo_root: Path | None = None,
         create_proposal_only: bool = False,
+        probes: bool = False,
     ) -> None:
         super().__init__(repo_root=repo_root)
         self._context = context
@@ -125,6 +133,8 @@ class GoalExecutionWorker(Worker):
         self.write = write
         self.task_id = task_id
         self.create_proposal_only = create_proposal_only
+        self.probes = probes
+        self.probe_records: list[dict[str, Any]] = []
         self.run_id: str | None = None
         self.result: PhaseWorkflowResult | None = None
         # #894 Unit 3: set when the apparatus could not run the goal at all
@@ -186,6 +196,11 @@ class GoalExecutionWorker(Worker):
                     )
             await self.post_report(f"goal_run.{run_id}.start", start_payload)
 
+            # #895 U3: apparatus probes I-5/I-6 run after the identity record and
+            # before anything else; a failed probe ends the run (fail closed).
+            if self.probes and not await run_and_record_probes(self, run_id):
+                return
+
             path_resolver = getattr(self._context, "path_resolver", None)
             if not path_resolver:
                 await self.post_unavailable(
@@ -202,30 +217,8 @@ class GoalExecutionWorker(Worker):
                     "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
                 )
 
-            # Warm up the remaining brain services on the CoreContext (the
-            # vector store was resolved above, before the identity record):
-            # the same three `@core_command(requires_context=True)` resolves
-            # for a CLI-entered run, so a Worker started from any other entry
-            # point (the pre-bootstrap external-run route, #894) is not short
-            # of them. CodeGenerationPhase refuses without auditor_context.
-            if self._context.cognitive_service is None:
-                try:
-                    self._context.cognitive_service = (
-                        await self._context.registry.get_cognitive_service()
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Could not resolve cognitive_service from registry: %s", exc
-                    )
-            if getattr(self._context, "auditor_context", None) is None:
-                try:
-                    self._context.auditor_context = (
-                        await self._context.registry.get_auditor_context()
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Could not resolve auditor_context from registry: %s", exc
-                    )
+            # Vector store was resolved above, before the identity record.
+            await resolve_brain_services(self._context)
 
             # #894 Unit 3 (item 3 of the ADR-159 remediation scope): explicit
             # unavailability is CORE's own record, not the apparatus's. If the

@@ -99,7 +99,14 @@ EXIT_BINDING_REFUSED = 2
 EXIT_UNAVAILABLE = 4
 EXIT_INTERNAL_FAILURE = 64
 
-_WORKFLOW_TYPES = ("refactor_modularity", "code_modification", "coverage_remediation")
+# #895 U2/U3: `evaluation` is the read-only investigation workflow (Document A
+# "governed evaluation"); without it here the route could not run it.
+_WORKFLOW_TYPES = (
+    "refactor_modularity",
+    "code_modification",
+    "coverage_remediation",
+    "evaluation",
+)
 
 
 # ID: c4d63597-1118-4232-afd5-84a60850ff3c
@@ -121,6 +128,7 @@ class ExternalRunOptions:
     seed: Path | None
     evidence_dir: Path | None
     write: bool
+    probes: bool = False
 
 
 class _Refused(Exception):
@@ -250,6 +258,16 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
     parser.add_argument(
         "--write", action="store_true", help="Create a proposal (default: plan only)"
     )
+    parser.add_argument(
+        "--probes",
+        action="store_true",
+        help=(
+            "#895 U3: run the ADR-159 apparatus-integrity probes I-5 (write "
+            "containment) and I-6 (safe auto-approval envelope) in the bound "
+            "process right after the run's start record; a failed probe ends "
+            "the run with outcome APPARATUS_INTEGRITY_FAILED (exit 2)"
+        ),
+    )
     ns = parser.parse_args(argv[2:])
     return ExternalRunOptions(
         subject=Path(ns.subject),
@@ -259,6 +277,7 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
         seed=Path(ns.seed) if ns.seed else None,
         evidence_dir=Path(ns.evidence_dir) if ns.evidence_dir else None,
         write=bool(ns.write),
+        probes=bool(ns.probes),
     )
 
 
@@ -519,13 +538,21 @@ async def _default_seed_environment(
 
 
 async def _default_develop(
-    core_context: Any, goal: str, workflow_type: str, write: bool
+    core_context: Any,
+    goal: str,
+    workflow_type: str,
+    write: bool,
+    probes: bool = False,
 ) -> tuple[bool, str]:
     from will.autonomy.autonomous_developer import develop_from_goal
 
     # ADR-160 gate: default legacy_direct_write only. Never pass it.
     return await develop_from_goal(
-        context=core_context, goal=goal, workflow_type=workflow_type, write=write
+        context=core_context,
+        goal=goal,
+        workflow_type=workflow_type,
+        write=write,
+        probes=probes,
     )
 
 
@@ -553,7 +580,7 @@ def execute(
     ] = _default_seed_environment,
     cognitive_init: Callable[[Any], Awaitable[None]] = _default_cognitive_init,
     develop: Callable[
-        [Any, str, str, bool], Awaitable[tuple[bool, str]]
+        [Any, str, str, bool, bool], Awaitable[tuple[bool, str]]
     ] = _default_develop,
 ) -> int:
     """Run the nine steps; return the exit code. Dependencies are injectable
@@ -778,10 +805,33 @@ def execute(
             # the route only maps its stable UNAVAILABLE_PREFIX to an exit code.
             guard_legacy_direct_write()
             ok, message = await develop(
-                core_context, opts.goal, opts.workflow_type, opts.write
+                core_context, opts.goal, opts.workflow_type, opts.write, opts.probes
             )
-            from will.autonomy.autonomous_developer import UNAVAILABLE_PREFIX
+            from will.autonomy.autonomous_developer import (
+                APPARATUS_INTEGRITY_PREFIX,
+                UNAVAILABLE_PREFIX,
+            )
 
+            # #895 U3: a failed I-5/I-6 probe is an apparatus-integrity refusal
+            # (exit 2), recorded on the run identity by the Worker; distinct
+            # from unavailability (4) and internal failure (64).
+            if not ok and message.startswith(APPARATUS_INTEGRITY_PREFIX):
+                _write_evidence(
+                    evidence_root,  # type: ignore[arg-type]
+                    "outcome.json",
+                    {
+                        "outcome": "APPARATUS_INTEGRITY_FAILED",
+                        "message": message,
+                        "stage": "probes",
+                        "failed_probes": message.removeprefix(
+                            APPARATUS_INTEGRITY_PREFIX
+                        )
+                        .split(" (run_id=")[0]
+                        .split(", "),
+                    },
+                )
+                _err_console.print(f"APPARATUS INTEGRITY FAILED — {message}")
+                return EXIT_BINDING_REFUSED
             if not ok and message.startswith(UNAVAILABLE_PREFIX):
                 _write_evidence(
                     evidence_root,  # type: ignore[arg-type]
