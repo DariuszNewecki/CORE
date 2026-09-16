@@ -323,6 +323,7 @@ class GoalExecutionWorker(Worker):
             # Reconnaissance happened before planning, so it is recorded on the
             # run's identity whether or not the run went on to succeed.
             await self._post_reconnaissance_records(run_id, plan_data)
+            await self._post_decision_records(run_id, plan_data)
 
             if result.ok:
                 await self.post_report(
@@ -438,6 +439,28 @@ class GoalExecutionWorker(Worker):
                     "topic": topic,
                     "reason": str(item.get("reason", "unspecified")),
                 },
+            )
+
+    async def _post_decision_records(
+        self, run_id: str, plan_data: dict[str, Any]
+    ) -> None:
+        """Put each planning decision on the run's identity as its own record.
+
+        Numbered rather than bundled so a single decision is addressable: a
+        reviewer can point at goal_run.<id>.decision.3 and a later reader can
+        find exactly that one. Structured fields only -- rationale, chosen
+        action, alternatives, confidence -- never chain-of-thought.
+        """
+        decisions = plan_data.get("decisions")
+        if not isinstance(decisions, list):
+            return
+
+        for index, decision in enumerate(decisions, 1):
+            if not isinstance(decision, dict):
+                continue
+            await self.post_report(
+                f"goal_run.{run_id}.decision.{index}",
+                {"run_id": run_id, "index": index, **_blackboard_safe(decision)},
             )
 
     async def _run_create_proposal_only(self, run_id: str) -> None:

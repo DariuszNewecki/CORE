@@ -19,6 +19,7 @@ ARCHITECTURAL NOTE:
 from __future__ import annotations
 
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -115,6 +116,7 @@ class ParsePhase:
             "steps_count": len(plan),
             "goal": goal,
             "reconnaissance": recon_data,
+            "decisions": self._decision_records(),
         }
 
         # Mirror under both keys.
@@ -159,3 +161,25 @@ class ParsePhase:
             "raw": result.data["recon_raw"],
             "unavailable": result.data["unavailable"],
         }
+
+    def _decision_records(self) -> list[dict[str, Any]]:
+        """Mirror the planner's decision trace for the run's own record.
+
+        The tracer keeps its decisions in memory and PlannerAgent never calls
+        save_trace(), so nothing durable exists to read back later. Copying the
+        structured decisions here is what puts the planner's reasoning on the
+        run's identity -- rationale, alternatives considered and confidence, not
+        chain-of-thought.
+        """
+        tracer = getattr(self._planner, "tracer", None)
+        decisions = getattr(tracer, "decisions", None)
+        if not decisions:
+            return []
+
+        records: list[dict[str, Any]] = []
+        for decision in decisions:
+            try:
+                records.append(asdict(decision))
+            except TypeError:  # not a dataclass — record what can be read
+                records.append({"decision": str(decision)})
+        return records

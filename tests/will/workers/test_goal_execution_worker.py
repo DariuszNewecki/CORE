@@ -150,6 +150,13 @@ def _real_plan_data() -> dict[str, object]:
                 {"topic": "artifact_type:infra", "reason": "no file matches"}
             ],
         },
+        "decisions": [
+            {
+                "agent": "PlannerAgent",
+                "decision_type": "plan_created",
+                "rationale": "target has no SQL corpus",
+            }
+        ],
     }
 
 
@@ -872,3 +879,37 @@ async def test_no_plan_means_no_reconnaissance_claim() -> None:
         if call.args[0].endswith(".recon")
     ]
     assert recon_subjects == []
+
+
+async def test_each_planning_decision_is_its_own_addressable_record() -> None:
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_failed_after_real_plan_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    posted = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    record = posted[f"goal_run.{worker.run_id}.decision.1"]
+    assert record["index"] == 1
+    assert record["decision_type"] == "plan_created"
+    assert record["rationale"] == "target has no SQL corpus"
+
+
+async def test_a_plan_without_decisions_posts_no_decision_records() -> None:
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(
+        _success_result({"selected_actions": ["x"]})
+    )
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    decision_subjects = [
+        call.args[0]
+        for call in worker._blackboard.post_report.call_args_list
+        if ".decision." in call.args[0]
+    ]
+    assert decision_subjects == []

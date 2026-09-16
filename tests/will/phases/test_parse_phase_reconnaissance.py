@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -39,11 +40,32 @@ class _StubStep:
     step = "inspect the target"
 
 
+@dataclass
+class _StubDecision:
+    agent: str
+    decision_type: str
+    rationale: str
+    chosen_action: str
+
+
+class _StubTracer:
+    def __init__(self) -> None:
+        self.decisions = [
+            _StubDecision(
+                agent="PlannerAgent",
+                decision_type="plan_created",
+                rationale="target has no SQL corpus",
+                chosen_action="check.imports",
+            )
+        ]
+
+
 class _StubPlanner:
     """Records what the phase handed it."""
 
     def __init__(self) -> None:
         self.received_recon: str | None = None
+        self.tracer = _StubTracer()
 
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
@@ -141,3 +163,26 @@ async def test_a_raising_reconnaissance_is_recorded_as_absent_not_empty(
     recon = result.data["reconnaissance"]
     assert recon["available"] is False
     assert "walk exploded" in recon["reason"]
+
+
+@pytest.mark.asyncio
+async def test_planner_decisions_are_mirrored_into_plan_data(tmp_path: Path) -> None:
+    """The tracer is never persisted, so the mirror is the only durable copy."""
+    phase, _ = _phase(tmp_path, _StubRecon(_recon_ok()))
+
+    result = await phase.execute(_StubWorkflowContext("investigate the target"))
+
+    decisions = result.data["decisions"]
+    assert len(decisions) == 1
+    assert decisions[0]["decision_type"] == "plan_created"
+    assert decisions[0]["rationale"] == "target has no SQL corpus"
+
+
+@pytest.mark.asyncio
+async def test_a_planner_without_a_tracer_yields_no_decisions(tmp_path: Path) -> None:
+    phase, planner = _phase(tmp_path, _StubRecon(_recon_ok()))
+    planner.tracer = None  # type: ignore[assignment]
+
+    result = await phase.execute(_StubWorkflowContext("investigate the target"))
+
+    assert result.data["decisions"] == []
