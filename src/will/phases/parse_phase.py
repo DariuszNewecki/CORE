@@ -21,8 +21,11 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from body.analyzers.target_reconnaissance_analyzer import (
+    TargetReconnaissanceAnalyzer,
+)
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
 from will.agents.planner_agent import PlannerAgent
@@ -60,6 +63,8 @@ class ParsePhase:
             repo_path=repo_path,
             qdrant_service=getattr(core_context, "qdrant_service", None),
         )
+        self._repo_path = repo_path
+        self._recon = TargetReconnaissanceAnalyzer()
 
     # ID: 794bcd6c-de50-4ac2-868c-d6de52b277b9
     async def execute(self, context: WorkflowContext) -> PhaseResult:
@@ -75,10 +80,15 @@ class ParsePhase:
 
         logger.info("🗂️  PARSE Phase: Planning goal: '%s'", goal)
 
+        # Ground the plan in what the target actually contains. Without this the
+        # planner reasons from CORE's own shape, which is wrong for any bound
+        # external target (#895 U1).
+        recon_text, recon_data = await self._reconnoitre()
+
         try:
             # PlannerAgent.create_execution_plan handles constitutional RAG,
             # action-registry introspection, and plan validation internally.
-            plan = await self._planner.create_execution_plan(goal)
+            plan = await self._planner.create_execution_plan(goal, recon_text)
         except Exception as exc:
             logger.error("❌ PARSE: PlannerAgent failed: %s", exc, exc_info=True)
             return PhaseResult(
@@ -105,6 +115,7 @@ class ParsePhase:
             "execution_plan": plan,  # list[ExecutionTask] — consumed by CodeGenerationPhase
             "steps_count": len(plan),
             "goal": goal,
+            "reconnaissance": recon_data,
         }
 
         # Mirror under both keys.
@@ -117,3 +128,35 @@ class ParsePhase:
             data=plan_data,
             duration_sec=time.time() - start,
         )
+
+    async def _reconnoitre(self) -> tuple[str, dict[str, Any]]:
+        """Describe the bound target for the planner.
+
+        A failed reconnaissance degrades planning rather than stopping it: the
+        planner can still work from the goal alone, so the absence is recorded
+        and passed on as an absence instead of being raised. Returning an empty
+        report here would claim the target is empty, which is a different and
+        false statement.
+        """
+        try:
+            result = await self._recon.execute(repo_path=self._repo_path)
+        except Exception as exc:  # defensive: recon must never fail the phase
+            logger.warning("PARSE: reconnaissance raised: %s", exc, exc_info=True)
+            return "", {"available": False, "reason": str(exc)}
+
+        if not result.ok:
+            reason = getattr(result, "reason", "reconnaissance refused")
+            logger.warning("PARSE: reconnaissance unavailable: %s", reason)
+            return "", {"available": False, "reason": reason}
+
+        logger.info(
+            "PARSE: reconnaissance ready — %d files, %d unavailable topics",
+            result.data["recon_raw"]["file_count"],
+            len(result.data["unavailable"]),
+        )
+        return result.data["recon_text"], {
+            "available": True,
+            "digest": result.data["recon_digest"],
+            "raw": result.data["recon_raw"],
+            "unavailable": result.data["unavailable"],
+        }
