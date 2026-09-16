@@ -130,7 +130,8 @@ def _criteria_not_met_result() -> PhaseWorkflowResult:
 
 def _real_plan_data() -> dict[str, object]:
     """What ParsePhase actually leaves under data: pydantic ExecutionTask
-    objects (CodeGenerationPhase's input), not JSON."""
+    objects (CodeGenerationPhase's input), not JSON -- plus the reconnaissance
+    record it now carries (#895 U1)."""
     return {
         "execution_plan": [
             ExecutionTask(
@@ -141,6 +142,14 @@ def _real_plan_data() -> dict[str, object]:
         ],
         "steps_count": 1,
         "goal": "Evaluate the package",
+        "reconnaissance": {
+            "available": True,
+            "digest": "abcdef0123456789",
+            "raw": {"file_count": 3},
+            "unavailable": [
+                {"topic": "artifact_type:infra", "reason": "no file matches"}
+            ],
+        },
     }
 
 
@@ -206,7 +215,13 @@ async def test_silent_run_raises_worker_silence_error() -> None:
 
 async def test_success_posts_correlated_start_and_outcome_with_plan() -> None:
     worker = _make_worker()
-    plan = {"selected_actions": ["split_module"]}
+    # A real ParsePhase plan carries its reconnaissance record (#895 U1); a plan
+    # without one is a gap the worker is expected to flag, so a "clean run" test
+    # must not use that shape.
+    plan = {
+        "selected_actions": ["split_module"],
+        "reconnaissance": {"available": True, "digest": "0123456789abcdef"},
+    }
     orch_patch, registry_patch = _patched_orchestrator(_success_result(plan))
 
     with orch_patch, registry_patch:
@@ -215,11 +230,17 @@ async def test_success_posts_correlated_start_and_outcome_with_plan() -> None:
     assert worker.run_id
     assert worker.result is not None and worker.result.ok is True
 
-    start_call = worker._blackboard.post_report.call_args_list[0]
-    outcome_call = worker._blackboard.post_report.call_args_list[1]
-
-    start_subject, start_payload = start_call.args
-    outcome_subject, outcome_payload = outcome_call.args
+    # Looked up by subject, not by position: the run posts a reconnaissance
+    # record between start and outcome, and positional indexing made this test
+    # brittle against any new record on the run's identity.
+    posted = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    start_subject = f"goal_run.{worker.run_id}.start"
+    outcome_subject = f"goal_run.{worker.run_id}.outcome"
+    start_payload = posted[start_subject]
+    outcome_payload = posted[outcome_subject]
 
     assert start_subject == f"goal_run.{worker.run_id}.start"
     assert start_payload["goal"] == "Improve modularity of demo.py"
@@ -774,3 +795,80 @@ async def test_auditor_context_is_resolved_like_the_cli_decorator_does() -> None
     with orch_patch, registry_patch:
         await worker.run()
     assert worker._context.auditor_context is None
+
+
+# --------------------------------------------------------------- reconnaissance records
+
+
+async def test_reconnaissance_is_recorded_on_the_run_identity() -> None:
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_failed_after_real_plan_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    subjects = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    recon = subjects[f"goal_run.{worker.run_id}.recon"]
+    assert recon["digest"] == "abcdef0123456789"
+    assert recon["observed"] == {"file_count": 3}
+
+
+async def test_absent_artifact_type_is_a_report_not_a_human_adjudication() -> None:
+    """A target legitimately having no SQL is a fact, not an inbox item."""
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_failed_after_real_plan_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    reported = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    subject = f"goal_run.{worker.run_id}.unavailable.artifact_type.infra"
+    assert reported[subject]["topic"] == "artifact_type:infra"
+    assert reported[subject]["reason"] == "no file matches"
+
+    indeterminate_subjects = [
+        call.args[0] for call in worker._blackboard.post_observation.call_args_list
+    ]
+    assert subject not in indeterminate_subjects
+
+
+async def test_a_plan_without_reconnaissance_is_flagged_as_a_gap() -> None:
+    """Every orchestrator run routes through ParsePhase, so a missing record is real."""
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(
+        _success_result({"selected_actions": ["split_module"]})
+    )
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    observed = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_observation.call_args_list
+    }
+    payload = observed[f"goal_run.{worker.run_id}.recon"]
+    assert payload["instrument_result"] == "unavailable"
+    assert payload["reason"] == "reconnaissance_not_recorded"
+
+
+async def test_no_plan_means_no_reconnaissance_claim() -> None:
+    """No parse output -> no gap to report; inventing one would be a false claim."""
+    worker = _make_worker()
+    # _criteria_not_met_result is the fixture whose parse phase produces no plan.
+    orch_patch, registry_patch = _patched_orchestrator(_criteria_not_met_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    recon_subjects = [
+        call.args[0]
+        for call in worker._blackboard.post_observation.call_args_list
+        if call.args[0].endswith(".recon")
+    ]
+    assert recon_subjects == []

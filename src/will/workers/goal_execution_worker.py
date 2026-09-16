@@ -106,6 +106,16 @@ def _blackboard_safe(value: Any) -> Any:
     return value
 
 
+def _subject_segment(topic: str) -> str:
+    """Normalise a recon topic into a dotted blackboard subject segment.
+
+    Topic identity ("artifact_type:infra") is preserved verbatim in the payload;
+    the subject uses dots so it reads like every other subject in the system and
+    dedup keys stay consistent.
+    """
+    return topic.replace(":", ".").replace("/", ".").replace(" ", "_")
+
+
 # ID: ed11bc55-9c7a-4a95-a953-1ce16023104a
 class GoalExecutionWorker(Worker):
     """
@@ -310,6 +320,10 @@ class GoalExecutionWorker(Worker):
                 for p in result.phase_results
             ]
 
+            # Reconnaissance happened before planning, so it is recorded on the
+            # run's identity whether or not the run went on to succeed.
+            await self._post_reconnaissance_records(run_id, plan_data)
+
             if result.ok:
                 await self.post_report(
                     f"goal_run.{run_id}.outcome",
@@ -357,6 +371,75 @@ class GoalExecutionWorker(Worker):
                 )
 
     # ID: a1fb17c6-a4a7-4503-9103-491b28305c2d
+
+    async def _post_reconnaissance_records(
+        self, run_id: str, plan_data: dict[str, Any]
+    ) -> None:
+        """Record what reconnaissance saw, and what it could not see, on the run.
+
+        Two different absences, two different instruments, deliberately:
+
+        - A plan was produced but reconnaissance did not run, or ran and failed
+          -> ``post_unavailable``. That is a genuine "couldn't look": the run
+          planned against a target it never examined, which is a human-resolvable
+          state.
+        - Reconnaissance ran and found no file of some governed type -> an
+          ordinary report. That is a *fact about the target*, terminal and true,
+          not a gap in the evidence.
+
+        Collapsing the second into ``post_unavailable`` would stamp every one of
+        them ``indeterminate`` with ``resolution_mechanism='human'`` and file it
+        in the governor-adjudication backlog -- roughly fifteen rows per external
+        run, each asking a human to adjudicate the fact that a target legitimately
+        has no SQL migrations. The taxonomy leg exists to stop empty from reading
+        as clean; it is not a general channel for absences.
+        """
+        if not plan_data:
+            # No parse output at all -- this workflow produced no plan, so there
+            # is no reconnaissance to have missed. Saying nothing is correct;
+            # an "unavailable" here would invent a gap that does not exist.
+            return
+
+        recon = plan_data.get("reconnaissance")
+
+        if not isinstance(recon, dict):
+            await self.post_unavailable(
+                f"goal_run.{run_id}.recon",
+                reason="reconnaissance_not_recorded",
+                detail={"run_id": run_id},
+            )
+            return
+
+        if not recon.get("available"):
+            await self.post_unavailable(
+                f"goal_run.{run_id}.recon",
+                reason="reconnaissance_unavailable",
+                detail={"run_id": run_id, "detail": str(recon.get("reason", ""))},
+            )
+            return
+
+        await self.post_report(
+            f"goal_run.{run_id}.recon",
+            {
+                "run_id": run_id,
+                "digest": recon.get("digest"),
+                "observed": _blackboard_safe(recon.get("raw", {})),
+            },
+        )
+
+        for item in recon.get("unavailable", []):
+            if not isinstance(item, dict):
+                continue
+            topic = str(item.get("topic", "unspecified"))
+            await self.post_report(
+                f"goal_run.{run_id}.unavailable.{_subject_segment(topic)}",
+                {
+                    "run_id": run_id,
+                    "topic": topic,
+                    "reason": str(item.get("reason", "unspecified")),
+                },
+            )
+
     async def _run_create_proposal_only(self, run_id: str) -> None:
         """ADR-160 D3, first staged conversion.
 
