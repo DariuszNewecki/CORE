@@ -44,6 +44,24 @@ _PROBE_MODULE_CONTENT = (
     '    return "probe"\n'
 )
 
+# linkage.no_orphan_ids companion probe: an anchor split from its def by a
+# blank line (the 9e9067eb shape) shadowing one public symbol, plus an
+# unrelated public symbol with no anchor. fix.ids write=True must leave the
+# orphan's bytes exactly as written, must NOT hand the shadowed symbol a fresh
+# anchor, and must still tag the unrelated one.
+_ORPHAN_ANCHOR_LINE = "# ID: a1fb17c6-a4a7-4503-9103-491b28305c2d"
+_ORPHAN_PROBE_CONTENT = (
+    '"""Throwaway orphan-anchor probe -- not part of any real commit."""\n\n'
+    "from __future__ import annotations\n\n\n"
+    f"{_ORPHAN_ANCHOR_LINE}\n"
+    "\n"
+    "def probe_fn_orphan_shadowed() -> str:\n"
+    '    return "shadowed"\n'
+    "\n\n"
+    "def probe_fn_orphan_unrelated() -> str:\n"
+    '    return "unrelated"\n'
+)
+
 _CHILD_SCRIPT = '''\
 import asyncio
 import json
@@ -58,12 +76,21 @@ async def main() -> None:
     from body.self_healing.id_tagging_service import assign_missing_ids
 
     probe_path = "src/body/analyzers/_test_823_missing_id_probe.py"
+    orphan_path = "src/body/analyzers/_test_orphan_anchor_probe.py"
     context = create_core_context(service_registry)
 
-    total = await assign_missing_ids(context, write=True)
+    report = await assign_missing_ids(context, write=True)
     content = (context.git_service.repo_path / probe_path).read_text()
+    orphan_content = (context.git_service.repo_path / orphan_path).read_text()
 
-    print(json.dumps({"total": total, "content": content}))
+    print(json.dumps({
+        "total": report.ids_assigned,
+        "content": content,
+        "orphan_content": orphan_content,
+        "orphans": [
+            [o.file_path, o.line_number, o.symbol] for o in report.orphan_anchors
+        ],
+    }))
 
 
 asyncio.run(main())
@@ -131,8 +158,10 @@ def _prepare_clone(clone_dir: Path, disposable_infra: dict) -> Path:
     _run(["git", "remote", "remove", "origin"], cwd=clone_dir)
 
     probe_rel = "src/body/analyzers/_test_823_missing_id_probe.py"
+    orphan_rel = "src/body/analyzers/_test_orphan_anchor_probe.py"
     (clone_dir / probe_rel).write_text(_PROBE_MODULE_CONTENT)
-    _run(["git", "add", probe_rel], cwd=clone_dir)
+    (clone_dir / orphan_rel).write_text(_ORPHAN_PROBE_CONTENT)
+    _run(["git", "add", probe_rel, orphan_rel], cwd=clone_dir)
     _run(
         [
             "git", "-c", "user.email=test-823@test.local", "-c", "user.name=Test 823",
@@ -180,7 +209,9 @@ def test_fixids_write_succeeds_end_to_end(
     # cannot distinguish success from #823's silent block. The only proof
     # that matters is the anchor line genuinely present in the file the
     # real fix.ids write path wrote back to disk.
-    assert payload["total"] == 1, f"expected exactly 1 symbol discovered, got {payload}"
+    # 1 for the #823 probe + 1 for the orphan probe's unrelated symbol. The
+    # shadowed symbol must not be counted: it is skipped, not re-tagged.
+    assert payload["total"] == 2, f"expected exactly 2 symbols discovered, got {payload}"
     anchor_pattern = re.compile(
         r"^# ID: [0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
         r"[0-9a-fA-F]{12}\ndef probe_fn_823_missing_id",
@@ -190,6 +221,28 @@ def test_fixids_write_succeeds_end_to_end(
         f"fix.ids did not write a genuine ID anchor immediately above the "
         f"function — write was blocked (#823 regressed): {payload['content']!r}"
     )
+
+    # linkage.no_orphan_ids: the orphan's bytes survived the real write path
+    # untouched (anchor, blank line, def -- exactly as committed), the symbol
+    # it shadows was NOT given a fresh anchor, and the unrelated symbol was.
+    orphan_written = payload["orphan_content"]
+    assert (
+        f"{_ORPHAN_ANCHOR_LINE}\n\ndef probe_fn_orphan_shadowed" in orphan_written
+    ), f"fix.ids altered the orphan anchor bytes:\n{orphan_written}"
+    assert orphan_written.count(_ORPHAN_ANCHOR_LINE) == 1
+    assert not re.search(
+        r"^# ID: [0-9a-fA-F-]{36}\ndef probe_fn_orphan_shadowed",
+        orphan_written,
+        re.MULTILINE,
+    ), f"fix.ids regenerated an ID for the shadowed symbol:\n{orphan_written}"
+    assert re.search(
+        r"^# ID: [0-9a-fA-F-]{36}\ndef probe_fn_orphan_unrelated",
+        orphan_written,
+        re.MULTILINE,
+    ), f"fix.ids did not tag the unrelated symbol:\n{orphan_written}"
+    assert payload["orphans"] == [
+        ["src/body/analyzers/_test_orphan_anchor_probe.py", 5, "probe_fn_orphan_shadowed"]
+    ], payload["orphans"]
 
 
 def test_unauthorized_intent_write_still_blocked(

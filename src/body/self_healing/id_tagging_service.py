@@ -11,6 +11,7 @@ import ast
 import time
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -33,78 +34,112 @@ def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> b
     return not node.name.startswith("_") and (not is_dunder)
 
 
-def _strip_orphan_ids(content: str) -> tuple[str, int]:
-    """
-    Remove # ID: lines that are NOT immediately before a def/class line.
-    These are file-level or orphaned IDs with no functional purpose.
+@dataclass
+# ID: f716d02f-4322-4391-a10f-1caef337c31d
+class OrphanAnchor:
+    """A ``# ID:`` line that annotates no def/class (linkage.no_orphan_ids).
 
-    Detection is shared.ast_utility.find_orphan_id_lines -- the same
-    definition the linkage.no_orphan_ids audit check uses, so what the gate
-    flags and what this strips are one set by construction.
-
-    Returns (new_content, removed_count).
+    ``symbol`` is set when a public symbol lacking an ID sits directly below
+    the orphan (across blank lines, comments or decorators only): the anchor
+    is almost certainly that symbol's own identity, split from it. fix.ids
+    leaves the bytes untouched and skips assigning that symbol a fresh ID --
+    regenerating would discard the identity the rule exists to preserve.
     """
-    orphan_linenos = {lineno for lineno, _ in find_orphan_id_lines(content)}
-    if not orphan_linenos:
-        return content, 0
-    lines = content.splitlines(keepends=True)
-    kept = [line for i, line in enumerate(lines, start=1) if i not in orphan_linenos]
-    return "".join(kept), len(orphan_linenos)
+
+    file_path: str
+    line_number: int
+    text: str
+    symbol: str | None = None
+
+
+@dataclass
+# ID: 388b5db1-13a1-4d8c-9208-ee50168d440c
+class IdAssignmentReport:
+    """Outcome of one fix.ids pass: what was assigned, what needs a human."""
+
+    ids_assigned: int = 0
+    orphan_anchors: list[OrphanAnchor] = field(default_factory=list)
+
+    @property
+    def reattachment_required(self) -> list[OrphanAnchor]:
+        """Orphans that shadow a symbol fix.ids therefore refused to re-tag."""
+        return [o for o in self.orphan_anchors if o.symbol is not None]
+
+
+def _orphan_shadowing(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+    def_line: int,
+    lines: list[str],
+    orphan_linenos: set[int],
+) -> int | None:
+    """Return the orphan anchor line that most plausibly belongs to ``node``.
+
+    Either an orphan inside the symbol's own span (between its first
+    decorator and the def line -- e.g. an anchor followed by a blank line),
+    or one reached by walking upward from the span over blank lines and
+    ordinary comments only. Any other line ends the search. 1-based.
+    """
+    span_start = min((d.lineno for d in node.decorator_list), default=def_line)
+    inside = [n for n in orphan_linenos if span_start <= n < def_line]
+    if inside:
+        return max(inside)
+    i = span_start - 1
+    while i >= 1:
+        if i in orphan_linenos:
+            return i
+        stripped = lines[i - 1].strip()
+        if stripped and not stripped.startswith("#"):
+            return None
+        i -= 1
+    return None
 
 
 # ID: 17328e3a-5e37-48ff-94d4-c3f4697825d5
-async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
+async def assign_missing_ids(
+    context: CoreContext, write: bool = False
+) -> IdAssignmentReport:
     """
-    Scans all Python files in src/, strips orphan file-level # ID: tags,
-    then assigns missing # ID: anchors to public symbols via ActionExecutor.
+    Scans all Python files in src/ and assigns missing # ID: anchors to public
+    symbols via ActionExecutor.
+
+    Orphaned anchors (linkage.no_orphan_ids) are detected with the shared
+    helper and left byte-for-byte untouched: they are reported for manual
+    re-attachment, never stripped, and a public symbol sitting directly
+    below one is NOT given a fresh ID -- that would regenerate an identity
+    the orphan still carries. Unrelated missing IDs are still assigned.
 
     Args:
         context: CoreContext (Required for ActionExecutor)
         write: If True, apply changes; if False, perform dry-run.
 
     Returns:
-        The total number of IDs assigned or proposed.
+        IdAssignmentReport: ids assigned or proposed, plus every orphan found.
     """
     logger.info("🔍 Scanning for missing Constitutional IDs...")
 
     executor = ActionExecutor(context)
-    src_dir = context.git_service.repo_path / "src"
-    total_ids_assigned = 0
+    repo_path = context.git_service.repo_path
+    src_dir = repo_path / "src"
+    report = IdAssignmentReport()
     files_to_fix: dict[Path, list[dict[str, Any]]] = defaultdict(list)
 
     if not src_dir.exists():
         logger.warning("Source directory not found: %s", src_dir)
-        return 0
+        return report
 
-    # 0. Cleanup Phase — strip orphan file-level # ID: tags first
-    for file_path in src_dir.rglob("*.py"):
-        try:
-            content = file_path.read_text("utf-8")
-            cleaned, removed = _strip_orphan_ids(content)
-            if removed > 0:
-                rel_path = str(file_path.relative_to(context.git_service.repo_path))
-                result = await executor.execute(
-                    action_id="file.tag_metadata",
-                    write=write,
-                    file_path=rel_path,
-                    code=cleaned,
-                    allowed_operations=["comment.delete"],
-                )
-                if result.ok:
-                    mode_str = "Removed" if write else "Would remove"
-                    logger.info(
-                        "   -> [%s] %d orphan ID(s) in %s", mode_str, removed, rel_path
-                    )
-        except Exception as e:
-            logger.error("Error stripping orphan IDs in %s: %s", file_path.name, e)
-
-    # 1. Discovery Phase (AST Scan)
+    # 1. Discovery Phase (AST scan + orphan detection, read-only)
     for file_path in src_dir.rglob("*.py"):
         try:
             content = file_path.read_text("utf-8")
             source_lines = content.splitlines()
-            tree = ast.parse(content, filename=str(file_path))
+            rel_path = str(file_path.relative_to(repo_path))
 
+            orphans = {
+                lineno: OrphanAnchor(rel_path, lineno, text)
+                for lineno, text in find_orphan_id_lines(content)
+            }
+
+            tree = ast.parse(content, filename=str(file_path))
             for node in ast.walk(tree):
                 if isinstance(
                     node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -113,19 +148,41 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
                         continue
 
                     id_result = find_symbol_id_and_def_line(node, source_lines)
-                    if not id_result.has_id:
-                        files_to_fix[file_path].append(
-                            {
-                                "line_number": id_result.definition_line_num,
-                                "name": node.name,
-                            }
-                        )
+                    if id_result.has_id:
+                        continue
+
+                    shadow = _orphan_shadowing(
+                        node, id_result.definition_line_num, source_lines, set(orphans)
+                    )
+                    if shadow is not None:
+                        orphans[shadow].symbol = node.name
+                        continue
+
+                    files_to_fix[file_path].append(
+                        {
+                            "line_number": id_result.definition_line_num,
+                            "name": node.name,
+                        }
+                    )
+
+            for orphan in orphans.values():
+                report.orphan_anchors.append(orphan)
+                logger.warning(
+                    "   -> [ORPHAN] %s:%d %s annotates no def/class%s; requires "
+                    "manual re-attachment (linkage.no_orphan_ids) -- left untouched",
+                    orphan.file_path,
+                    orphan.line_number,
+                    orphan.text.strip(),
+                    f" (public '{orphan.symbol}' below it not re-tagged)"
+                    if orphan.symbol
+                    else "",
+                )
         except Exception as e:
             logger.error("Error analyzing %s: %s", file_path.name, e)
 
     if not files_to_fix:
         logger.info("✅ All public symbols have constitutional IDs.")
-        return 0
+        return report
 
     # 2. Execution Phase (Gateway dispatch)
     for file_path, fixes in files_to_fix.items():
@@ -133,7 +190,7 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
         fixes.sort(key=lambda x: int(x["line_number"]), reverse=True)
 
         try:
-            rel_path = str(file_path.relative_to(context.git_service.repo_path))
+            rel_path = str(file_path.relative_to(repo_path))
             lines = file_path.read_text("utf-8").splitlines()
 
             for fix in fixes:
@@ -143,7 +200,7 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
                 new_id = str(uuid.uuid4())
                 tag_line = f"{' ' * indentation}# ID: {new_id}"
                 lines.insert(line_index, tag_line)
-                total_ids_assigned += 1
+                report.ids_assigned += 1
 
             final_code = "\n".join(lines) + "\n"
 
@@ -168,8 +225,8 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
         except Exception as e:
             logger.error("Failed to prepare fix for %s: %s", file_path.name, e)
 
-    logger.info("🏁 ID Assignment complete. Total: %d", total_ids_assigned)
-    return total_ids_assigned
+    logger.info("🏁 ID Assignment complete. Total: %d", report.ids_assigned)
+    return report
 
 
 @atomic_action(
@@ -189,7 +246,8 @@ async def fix_ids_internal(
     """
     start_time = time.time()
     try:
-        total_assigned = await assign_missing_ids(context, write=write)
+        report = await assign_missing_ids(context, write=write)
+        total_assigned = report.ids_assigned
         return ActionResult(
             action_id="fix.ids",
             ok=True,
@@ -198,6 +256,18 @@ async def fix_ids_internal(
                 "files_processed": 1 if total_assigned > 0 else 0,
                 "dry_run": not write,
                 "mode": "write" if write else "dry-run",
+                # linkage.no_orphan_ids: detected, never mutated. Each entry
+                # needs a human to re-attach the anchor to its symbol.
+                "orphan_anchors": [
+                    {
+                        "file_path": o.file_path,
+                        "line_number": o.line_number,
+                        "id_line": o.text.strip(),
+                        "shadowed_symbol": o.symbol,
+                    }
+                    for o in report.orphan_anchors
+                ],
+                "reattachment_required": len(report.reattachment_required),
             },
             duration_sec=time.time() - start_time,
             impact=ActionImpact.WRITE_METADATA,
