@@ -10,7 +10,14 @@ runner can see.
 Why the overlay is exactly this small: the overlay is additive-only and the subject (frozen CORE)
 already carries its own phases, workflow definitions and policies; the test fixture's overlay
 collides on 11 of 13 paths and cannot be used. Only paths absent from the subject may be
-overlaid: the worker declaration below and the safe-auto-approval envelope.
+overlaid: the worker declaration below, the safe-auto-approval envelope, and the three
+evaluation-workflow declarations added for #895 U2.
+
+The U2 additions are additive on the same test: `git ls-tree -r c4d9fdf9 -- .intent/workflows/`
+lists sixteen files and none of the three below, so they displace nothing in the subject. Each is
+a byte-identical copy of the governed declaration under `.intent/` -- verified by sha256, not by
+inspection -- because the subject must evaluate under exactly the law CORE declares, not a
+restatement of it.
 
 The envelope is an explicit `authorization_mode: deny_all` (Governor ruling F, 2026-09-15): nothing is
 authorized for safe auto-approval, by declaration. Materialization of this overlay onto the frozen
@@ -22,6 +29,9 @@ Provenance: seed resource digest `f72c60cabf6237b07f6e` verified 2026-09-15 on `
 | file | sha256 | bytes |
 |---|---|---|
 | `intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml` | `bac3d4bb62fb37553c4d14278e6b581776e8387578b5ad4cea1c31800a46bf5f` | 767 |
+| `intent_overlay/workflows/definitions/evaluation.yaml` | `5abad3bc1610a14bb084205a6b55a938caec56944d75ba0b6833f7423f12bbc6` | 1299 |
+| `intent_overlay/workflows/stages/parse.plan_investigation.yaml` | `0b18505d8ce367bb647d1d745db1e79aa487796dc0e8e1fb50810cd00f27d18a` | 1664 |
+| `intent_overlay/workflows/stages/runtime.investigate.yaml` | `6807a0a4d42fb3587b9a8ac32df8f0c120ef067e2ea18e595a704b6dd77b4fd8` | 1479 |
 | `intent_overlay/workers/goal_execution_worker.yaml` | `ab8d279420eab934f246462f566ba9ed0344b383c8cff734fa09551e7db4db47` | 1687 |
 | `seed/assignments.yaml` | `247ba8c05be49dd9e6357f40480ae00dd92d598f9f5c2572e60efbb3c985367d` | 553 |
 | `seed/llm_resources/ollama_qwen_coder_3b_trial.yaml` | `7d1d94725bbff59c6b3e5a2a1d5115a5fae0f63613252328f3641d7fa959d3e7` | 809 |

@@ -28,6 +28,10 @@ from body.analyzers.target_reconnaissance_analyzer import (
 )
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
+from will.agents.investigation_planner import (
+    InvestigationPlanError,
+    create_investigation_plan,
+)
 from will.agents.planner_agent import PlannerAgent
 
 
@@ -36,6 +40,9 @@ if TYPE_CHECKING:
     from will.orchestration.workflow_orchestrator import WorkflowContext
 
 logger = getLogger(__name__)
+
+# The one workflow for which reconnaissance is mandatory rather than helpful.
+EVALUATION_WORKFLOW = "evaluation"
 
 
 # ID: 15c02b6a-ab2d-4026-ac2b-ab7a385f8c90
@@ -84,6 +91,11 @@ class ParsePhase:
         # planner reasons from CORE's own shape, which is wrong for any bound
         # external target (#895 U1).
         recon_text, recon_data = await self._reconnoitre()
+
+        if context.workflow_type == EVALUATION_WORKFLOW:
+            return await self._plan_investigation(
+                context, goal, recon_text, recon_data, start
+            )
 
         try:
             # PlannerAgent.create_execution_plan handles constitutional RAG,
@@ -183,3 +195,67 @@ class ParsePhase:
             except TypeError:  # not a dataclass — record what can be read
                 records.append({"decision": str(decision)})
         return records
+
+    async def _plan_investigation(
+        self,
+        context: WorkflowContext,
+        goal: str,
+        recon_text: str,
+        recon_data: dict[str, Any],
+        start: float,
+    ) -> PhaseResult:
+        """Plan a read-only investigation, refusing outright without reconnaissance.
+
+        The evaluation workflow does not share the goal-only degradation path the
+        mutation workflows have. A failed reconnaissance here is reported as
+        UNAVAILABLE and the phase stops: findings about a target that was never
+        examined are indistinguishable from findings about one that was, and for
+        a scored trial that is worse than no run at all.
+        """
+        if not recon_data.get("available"):
+            reason = recon_data.get("reason", "reconnaissance did not run")
+            logger.error("PARSE: evaluation refused — reconnaissance unavailable")
+            return PhaseResult(
+                name="parse",
+                ok=False,
+                error=(
+                    f"UNAVAILABLE: evaluation requires reconnaissance and it was "
+                    f"not available ({reason}). Planning blind is refused."
+                ),
+                data={"reconnaissance": recon_data},
+                duration_sec=time.time() - start,
+            )
+
+        try:
+            plan = await create_investigation_plan(
+                cognitive_service=self.context.cognitive_service,
+                goal=goal,
+                reconnaissance_report=recon_text,
+            )
+        except InvestigationPlanError as exc:
+            logger.error("PARSE: investigation planning refused: %s", exc)
+            return PhaseResult(
+                name="parse",
+                ok=False,
+                error=str(exc),
+                data={"reconnaissance": recon_data},
+                duration_sec=time.time() - start,
+            )
+
+        plan_data: dict[str, Any] = {
+            "investigation_plan": plan,
+            "steps_count": len(plan),
+            "goal": goal,
+            "reconnaissance": recon_data,
+            "decisions": self._decision_records(),
+        }
+        context.results["parse"] = plan_data
+        context.results["planning"] = plan_data
+
+        logger.info("PARSE: investigation plan ready — %d read-only steps", len(plan))
+        return PhaseResult(
+            name="parse",
+            ok=True,
+            data=plan_data,
+            duration_sec=time.time() - start,
+        )

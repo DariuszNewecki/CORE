@@ -1,0 +1,36 @@
+$schema: "META/workflow_definition.schema.json"
+kind: workflow_definition
+
+workflow_id: evaluation
+version: "1.0"
+status: experimental
+
+description: >
+  Read-only evaluation of an unfamiliar target: reconnoitre it, plan an
+  investigation, execute that investigation, and emit structured findings. The
+  workflow has no execution stage by construction -- it produces evidence about
+  a target, never changes to it.
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_investigation
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.investigate
+    order: 4
+
+invariants:
+  must_hold:
+    - The workflow is read-only end to end; it declares no execution stage.
+    - Findings are produced only from steps the investigation plan declared.
+    - Reconnaissance is a precondition, not an enhancement. A run that cannot reconnoitre its target returns UNAVAILABLE and produces no findings, because findings from an unexamined target would be indistinguishable from findings about it.
+  must_not:
+    - Workflow must not mutate the target.
+    - Workflow must not commit changes.
+    - Workflow must not generate candidate code, tests, or change sets.
+    - Workflow must not degrade to goal-only planning when reconnaissance is unavailable.

@@ -1850,6 +1850,12 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workers/goal_execution_worker.yaml
     governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/definitions/evaluation.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/parse.plan_investigation.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/runtime.investigate.yaml
+    governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/seed/assignments.yaml
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/seed/llm_resources/ollama_qwen_coder_3b_trial.yaml

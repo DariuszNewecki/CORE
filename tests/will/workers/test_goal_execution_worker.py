@@ -919,3 +919,88 @@ async def test_a_plan_without_decisions_posts_no_decision_records() -> None:
         if ".decision." in call.args[0]
     ]
     assert decision_subjects == []
+
+
+# ------------------------------------------------------------- finding records (U2)
+
+
+def _investigation_result() -> PhaseWorkflowResult:
+    return PhaseWorkflowResult(
+        ok=True,
+        workflow_type="evaluation",
+        total_duration=2.0,
+        phase_results=[
+            PhaseResult(
+                name="parse", ok=True, data=_real_plan_data(), duration_sec=1.0
+            ),
+            PhaseResult(
+                name="runtime",
+                ok=True,
+                data={
+                    "findings": [
+                        {
+                            "path": "",
+                            "scope": "target",
+                            "category": "layout",
+                            "statement": "Target holds 3 files.",
+                            "evidence_refs": ["reconnaissance.layout"],
+                            "confidence": 1.0,
+                        }
+                    ],
+                    "findings_count": 1,
+                    "steps_executed": 1,
+                },
+                duration_sec=1.0,
+            ),
+        ],
+    )
+
+
+async def test_each_finding_is_its_own_addressable_record() -> None:
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_investigation_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    posted = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    record = posted[f"goal_run.{worker.run_id}.finding.1"]
+    assert record["category"] == "layout"
+    assert record["evidence_refs"] == ["reconnaissance.layout"]
+    assert record["index"] == 1
+
+
+async def test_an_investigation_with_no_findings_says_so() -> None:
+    """Silence would be indistinguishable from findings that were lost."""
+    worker = _make_worker()
+    result = _investigation_result()
+    result.phase_results[1].data = {"findings": [], "steps_executed": 2}
+    orch_patch, registry_patch = _patched_orchestrator(result)
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    posted = {
+        call.args[0]: call.args[1]
+        for call in worker._blackboard.post_report.call_args_list
+    }
+    empty = posted[f"goal_run.{worker.run_id}.findings.empty"]
+    assert empty["steps_executed"] == 2
+
+
+async def test_a_non_investigation_run_posts_no_finding_records() -> None:
+    worker = _make_worker()
+    orch_patch, registry_patch = _patched_orchestrator(_failed_after_real_plan_result())
+
+    with orch_patch, registry_patch:
+        await worker.run()
+
+    finding_subjects = [
+        call.args[0]
+        for call in worker._blackboard.post_report.call_args_list
+        if ".finding" in call.args[0]
+    ]
+    assert finding_subjects == []

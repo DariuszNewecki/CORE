@@ -71,49 +71,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
-
 from shared.activity_logging import activity_run
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import Worker
+from will.orchestration.goal_run_records import (
+    blackboard_safe,
+    post_decision_records,
+    post_finding_records,
+    post_reconnaissance_records,
+)
 from will.orchestration.phase_registry import PhaseRegistry
 from will.orchestration.planner_readiness import probe_planner_readiness
 from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
 
 
 logger = getLogger(__name__)
-
-
-def _blackboard_safe(value: Any) -> Any:
-    """Return *value* with every pydantic model rendered as JSON-safe data.
-
-    ParsePhase leaves the plan under ``data["execution_plan"]`` as
-    ``list[ExecutionTask]`` -- the objects CodeGenerationPhase consumes. The
-    Blackboard stores ``json.dumps(payload)``, so posting that dict raw fails
-    with "Object of type ExecutionTask is not JSON serializable" on EVERY
-    outcome path once a plan exists, and the run's outcome is never recorded
-    (the #894 seeded live run was the first orchestrator-path run with a
-    real plan to reach this line; the ADR-160 create_proposal_only path posts
-    no plan). Containers are walked; other values pass through unchanged.
-    """
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json")
-    if isinstance(value, dict):
-        return {k: _blackboard_safe(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_blackboard_safe(v) for v in value]
-    return value
-
-
-def _subject_segment(topic: str) -> str:
-    """Normalise a recon topic into a dotted blackboard subject segment.
-
-    Topic identity ("artifact_type:infra") is preserved verbatim in the payload;
-    the subject uses dots so it reads like every other subject in the system and
-    dedup keys stay consistent.
-    """
-    return topic.replace(":", ".").replace("/", ".").replace(" ", "_")
 
 
 # ID: ed11bc55-9c7a-4a95-a953-1ce16023104a
@@ -307,7 +280,7 @@ class GoalExecutionWorker(Worker):
 
             self.result = result
 
-            plan_data = _blackboard_safe(
+            plan_data = blackboard_safe(
                 next((p.data for p in result.phase_results if p.name == "parse"), {})
             )
             phase_summary = [
@@ -322,8 +295,9 @@ class GoalExecutionWorker(Worker):
 
             # Reconnaissance happened before planning, so it is recorded on the
             # run's identity whether or not the run went on to succeed.
-            await self._post_reconnaissance_records(run_id, plan_data)
-            await self._post_decision_records(run_id, plan_data)
+            await post_reconnaissance_records(self, run_id, plan_data)
+            await post_decision_records(self, run_id, plan_data)
+            await post_finding_records(self, run_id, result)
 
             if result.ok:
                 await self.post_report(
@@ -372,96 +346,6 @@ class GoalExecutionWorker(Worker):
                 )
 
     # ID: a1fb17c6-a4a7-4503-9103-491b28305c2d
-
-    async def _post_reconnaissance_records(
-        self, run_id: str, plan_data: dict[str, Any]
-    ) -> None:
-        """Record what reconnaissance saw, and what it could not see, on the run.
-
-        Two different absences, two different instruments, deliberately:
-
-        - A plan was produced but reconnaissance did not run, or ran and failed
-          -> ``post_unavailable``. That is a genuine "couldn't look": the run
-          planned against a target it never examined, which is a human-resolvable
-          state.
-        - Reconnaissance ran and found no file of some governed type -> an
-          ordinary report. That is a *fact about the target*, terminal and true,
-          not a gap in the evidence.
-
-        Collapsing the second into ``post_unavailable`` would stamp every one of
-        them ``indeterminate`` with ``resolution_mechanism='human'`` and file it
-        in the governor-adjudication backlog -- roughly fifteen rows per external
-        run, each asking a human to adjudicate the fact that a target legitimately
-        has no SQL migrations. The taxonomy leg exists to stop empty from reading
-        as clean; it is not a general channel for absences.
-        """
-        if not plan_data:
-            # No parse output at all -- this workflow produced no plan, so there
-            # is no reconnaissance to have missed. Saying nothing is correct;
-            # an "unavailable" here would invent a gap that does not exist.
-            return
-
-        recon = plan_data.get("reconnaissance")
-
-        if not isinstance(recon, dict):
-            await self.post_unavailable(
-                f"goal_run.{run_id}.recon",
-                reason="reconnaissance_not_recorded",
-                detail={"run_id": run_id},
-            )
-            return
-
-        if not recon.get("available"):
-            await self.post_unavailable(
-                f"goal_run.{run_id}.recon",
-                reason="reconnaissance_unavailable",
-                detail={"run_id": run_id, "detail": str(recon.get("reason", ""))},
-            )
-            return
-
-        await self.post_report(
-            f"goal_run.{run_id}.recon",
-            {
-                "run_id": run_id,
-                "digest": recon.get("digest"),
-                "observed": _blackboard_safe(recon.get("raw", {})),
-            },
-        )
-
-        for item in recon.get("unavailable", []):
-            if not isinstance(item, dict):
-                continue
-            topic = str(item.get("topic", "unspecified"))
-            await self.post_report(
-                f"goal_run.{run_id}.unavailable.{_subject_segment(topic)}",
-                {
-                    "run_id": run_id,
-                    "topic": topic,
-                    "reason": str(item.get("reason", "unspecified")),
-                },
-            )
-
-    async def _post_decision_records(
-        self, run_id: str, plan_data: dict[str, Any]
-    ) -> None:
-        """Put each planning decision on the run's identity as its own record.
-
-        Numbered rather than bundled so a single decision is addressable: a
-        reviewer can point at goal_run.<id>.decision.3 and a later reader can
-        find exactly that one. Structured fields only -- rationale, chosen
-        action, alternatives, confidence -- never chain-of-thought.
-        """
-        decisions = plan_data.get("decisions")
-        if not isinstance(decisions, list):
-            return
-
-        for index, decision in enumerate(decisions, 1):
-            if not isinstance(decision, dict):
-                continue
-            await self.post_report(
-                f"goal_run.{run_id}.decision.{index}",
-                {"run_id": run_id, "index": index, **_blackboard_safe(decision)},
-            )
 
     async def _run_create_proposal_only(self, run_id: str) -> None:
         """ADR-160 D3, first staged conversion.

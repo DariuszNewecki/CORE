@@ -7,11 +7,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from shared.component_primitive import ComponentPhase, ComponentResult
 from shared.models.refusal_result import RefusalResult
+from will.agents.investigation_planner import (
+    InvestigationPlanError,
+    InvestigationStep,
+)
 from will.phases.parse_phase import ParsePhase
 
 
@@ -30,6 +35,8 @@ class _StubCoreContext:
 class _StubWorkflowContext:
     def __init__(self, goal: str) -> None:
         self.goal = goal
+        self.workflow_type = "code_modification"
+        self.write = False
         self.results: dict[str, Any] = {}
 
 
@@ -189,3 +196,71 @@ async def test_a_planner_without_a_tracer_yields_no_decisions(tmp_path: Path) ->
     result = await phase.execute(_StubWorkflowContext("investigate the target"))
 
     assert result.data["decisions"] == []
+
+
+# --------------------------------------------------- evaluation: recon is mandatory
+
+
+@pytest.mark.asyncio
+async def test_evaluation_refuses_with_explicit_unavailable_when_recon_fails(
+    tmp_path: Path,
+) -> None:
+    """Evaluation does not share the goal-only degradation path (#895 U2)."""
+    phase, planner = _phase(tmp_path, _StubRecon(RuntimeError("walk exploded")))
+    ctx = _StubWorkflowContext("evaluate the target")
+    ctx.workflow_type = "evaluation"
+
+    result = await phase.execute(ctx)
+
+    assert result.ok is False
+    assert result.error.startswith("UNAVAILABLE:")
+    assert "requires reconnaissance" in result.error
+    assert planner.received_recon is None  # planning never started
+
+
+@pytest.mark.asyncio
+async def test_a_non_evaluation_workflow_still_degrades(tmp_path: Path) -> None:
+    """The mandatory-recon rule is scoped to evaluation, not imposed on everything."""
+    phase, planner = _phase(tmp_path, _StubRecon(RuntimeError("walk exploded")))
+    ctx = _StubWorkflowContext("improve modularity")
+    ctx.workflow_type = "refactor_modularity"
+
+    result = await phase.execute(ctx)
+
+    assert result.ok is True
+    assert planner.received_recon == ""
+
+
+@pytest.mark.asyncio
+async def test_evaluation_produces_an_investigation_plan(tmp_path: Path) -> None:
+    phase, _ = _phase(tmp_path, _StubRecon(_recon_ok()))
+    ctx = _StubWorkflowContext("evaluate the target")
+    ctx.workflow_type = "evaluation"
+
+    planned = [InvestigationStep("look", "inspect.layout", {})]
+    with patch(
+        "will.phases.parse_phase.create_investigation_plan",
+        new=AsyncMock(return_value=planned),
+    ):
+        result = await phase.execute(ctx)
+
+    assert result.ok is True
+    assert result.data["investigation_plan"] == planned
+    assert result.data["steps_count"] == 1
+    assert "execution_plan" not in result.data
+
+
+@pytest.mark.asyncio
+async def test_a_refused_investigation_plan_fails_the_phase(tmp_path: Path) -> None:
+    phase, _ = _phase(tmp_path, _StubRecon(_recon_ok()))
+    ctx = _StubWorkflowContext("evaluate the target")
+    ctx.workflow_type = "evaluation"
+
+    with patch(
+        "will.phases.parse_phase.create_investigation_plan",
+        new=AsyncMock(side_effect=InvestigationPlanError("step 2 mutates the target")),
+    ):
+        result = await phase.execute(ctx)
+
+    assert result.ok is False
+    assert "mutates the target" in result.error

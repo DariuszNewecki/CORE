@@ -1,0 +1,16 @@
+Goal: {goal}
+
+Investigation vocabulary (use ONLY these action IDs):
+{investigation_step_vocabulary}
+
+Reconnaissance of the target:
+{reconnaissance_report}
+
+Produce a read-only investigation plan as a JSON object: {{"plan": [ ...steps... ]}}
+
+Rules:
+- Each step must use one of the vocabulary action IDs above — nothing else
+- Every step must be read-only; a single mutating step rejects the whole plan
+- params carries only what the step needs (inspect.path takes {{"path": "..."}})
+- Ground each step in what the reconnaissance actually reports
+- Return ONLY the JSON object with the single key "plan", nothing else
