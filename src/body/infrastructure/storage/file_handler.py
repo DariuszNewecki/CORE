@@ -22,6 +22,7 @@ from body.governance.intent_guard import get_intent_guard
 from mind.governance.violation_report import ConstitutionalViolationError
 from shared.ast_utility import find_orphan_shadowed_symbols
 from shared.config import settings
+from shared.exceptions import RepositoryBoundaryViolationError
 from shared.governance_token import current_capability
 from shared.infrastructure.intent.operational_mode import current_mode
 from shared.infrastructure.intent.target_class import resolve_target_class
@@ -361,7 +362,13 @@ class FileHandler:
         rel_path = str(rel_path).removeprefix("./")
         candidate = (self.repo_path / rel_path).resolve()
         if not candidate.is_relative_to(self.repo_path):
-            raise ValueError(f"Attempted to escape repository boundary: {rel_path}")
+            # architecture.execution_write.repository_containment -- the
+            # refusal is the enforcement (passive_gate class A). Typed, and a
+            # ValueError, so existing catchers are unchanged while probes get
+            # rule_id / attempted_path / bound_root as evidence.
+            raise RepositoryBoundaryViolationError(
+                attempted_path=rel_path, bound_root=str(self.repo_path)
+            )
         return candidate
 
     def _guard_paths(

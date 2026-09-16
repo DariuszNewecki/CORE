@@ -1,0 +1,31 @@
+# .intent/enforcement/mappings/architecture/execution_write_containment.yaml
+#
+# Enforcement mapping for architecture.execution_write.repository_containment
+# (#895 D2, governor rulings 2026-09-15 and 2026-09-16).
+#
+# ENFORCEMENT: runtime refusal at the single write chokepoint -- not an audit
+# engine pretending to perform it. passive_gate, attestation class A: the
+# deterministic mechanism named in enforced_by IS the enforcement, and the
+# G2 registry row attests it with a real outside-root refusal fixture and a
+# valid inside-root write fixture.
+
+mappings:
+  architecture.execution_write.repository_containment:
+    engine: passive_gate
+    params:
+      attestation_class: "A"
+      enforced_by: "body.infrastructure.storage.file_handler.FileHandler"
+      enforcement_note: >
+        Runtime check -- FileHandler._resolve_repo_path resolves every
+        write target against the bound repository root (ADR-097 D2 single
+        write chokepoint) and raises RepositoryBoundaryViolationError
+        (shared.exceptions; a ValueError subclass carrying rule_id,
+        attempted_path and bound_root) for any target that does not resolve
+        inside it, before any mutation. ActionExecutor surfaces the rule_id
+        and the structured refusal in ActionResult.data. Cannot be checked
+        statically; enforced on every write that reaches FileHandler,
+        including an externally bound run's attempts against the original
+        subject path (ADR-159 I-5).
+    scope:
+      applies_to:
+        - "src/body/infrastructure/storage/file_handler.py"

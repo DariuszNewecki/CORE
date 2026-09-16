@@ -1848,6 +1848,10 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml
     governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/architecture/execution_write_containment.json
+    governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workers/goal_execution_worker.yaml
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/definitions/evaluation.yaml

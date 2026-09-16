@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.execution_write_containment",
+        "title": "Execution-Time Write Containment",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.execution_write.repository_containment",
+            "statement": "Every execution-time filesystem write MUST resolve within the bound repository root. A write whose resolved target lies outside that root MUST be refused before any mutation occurs, and the refusal MUST name this rule.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "ADR-097 D2 makes FileHandler the single write chokepoint; ADR-159 (Note 2026-09-05) requires physical containment of an externally bound run to the materialized copy. Until this rule existed the refusal was real (FileHandler._resolve_repo_path raised a bare ValueError) but unnamed: no rule document stated the obligation, so nothing could be attested to it and a probe recording the refusal had no rule id to cite (#895 D2, governor ruling 2026-09-15). Enforcement is the runtime refusal itself -- passive_gate, attestation class A -- because the property is not statically decidable: which paths a run will attempt is only known when it attempts them. The refusal is typed (RepositoryBoundaryViolationError, a ValueError subclass) and carries rule_id, attempted_path and bound_root so ADR-159 I-5 probe evidence is structured, not parsed from a message. Complements ActionExecutor's physical-containment check, which guards symlink escapes under an authorized prefix inside the copy; this rule binds the boundary of the copy itself."
+        }
+    ]
+}

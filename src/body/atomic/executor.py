@@ -444,13 +444,25 @@ class ActionExecutor:
             logger.error(
                 "Action %s failed with exception: %s", action_id, e, exc_info=True
             )
+            failure: dict[str, Any] = {
+                "error": str(e),
+                "error_type": type(e).__name__,
+            }
+            # A governed refusal names its rule (e.g. FileHandler's
+            # RepositoryBoundaryViolationError for
+            # architecture.execution_write.repository_containment) so the
+            # caller -- the ADR-159 I-5 probe among them -- records the rule
+            # that refused, not just an exception class name.
+            rule_id = getattr(e, "rule_id", None)
+            if isinstance(rule_id, str):
+                failure["rule_id"] = rule_id
+            to_payload = getattr(e, "to_payload", None)
+            if callable(to_payload):
+                failure["refusal"] = to_payload()
             result = ActionResult(
                 action_id=action_id,
                 ok=False,
-                data={
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                },
+                data=failure,
                 duration_sec=time.time() - start_time,
             )
         finally:

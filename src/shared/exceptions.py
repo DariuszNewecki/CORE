@@ -98,3 +98,40 @@ class ProviderQuotaExhausted(CoreException):
         self.tried_resources = tried_resources
         summary = ", ".join(f"{name}={reason}" for name, reason in tried_resources)
         super().__init__(f"All LLM resources exhausted: {summary}")
+
+
+# ID: 7f7b8042-73a7-4498-82a5-22c33fa51cf0
+class RepositoryBoundaryViolationError(CoreError, ValueError):
+    """An execution-time filesystem write resolved outside the bound repository root.
+
+    Raised by ``FileHandler._resolve_repo_path`` -- the single write chokepoint
+    (ADR-097 D2) -- before any mutation, for every path that does not resolve
+    within ``bound_root``. Governed by
+    ``architecture.execution_write.repository_containment`` (passive_gate,
+    attestation class A: the refusal IS the enforcement, attested to this
+    deterministic mechanism rather than to an audit engine).
+
+    Subclasses ``ValueError`` so every existing ``except ValueError`` around a
+    FileHandler write keeps working unchanged; callers that want structured
+    evidence (the ADR-159 I-5 probe) read ``rule_id``, ``attempted_path`` and
+    ``bound_root`` or take ``to_payload()``.
+    """
+
+    rule_id: str = "architecture.execution_write.repository_containment"
+
+    def __init__(self, attempted_path: str, bound_root: str):
+        self.attempted_path = attempted_path
+        self.bound_root = bound_root
+        super().__init__(
+            f"Attempted to escape repository boundary: {attempted_path} "
+            f"(bound root: {bound_root})"
+        )
+
+    def to_payload(self) -> dict[str, str]:
+        """Structured refusal evidence for records and probes."""
+        return {
+            "rule_id": self.rule_id,
+            "attempted_path": self.attempted_path,
+            "bound_root": self.bound_root,
+            "message": self.message,
+        }
