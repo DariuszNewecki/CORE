@@ -346,7 +346,6 @@ class GoalExecutionWorker(Worker):
                 )
 
     # ID: a1fb17c6-a4a7-4503-9103-491b28305c2d
-
     async def _run_create_proposal_only(self, run_id: str) -> None:
         """ADR-160 D3, first staged conversion.
 
