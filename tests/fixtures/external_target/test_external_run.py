@@ -111,6 +111,7 @@ class _Fakes:
         self.develop_ok = develop_ok
         self.bootstrap_env: dict[str, str] = {}
         self.develop_calls: list[tuple[str, str, bool]] = []
+        self.seed_calls: list[str] = []
         self.develop_env: dict[str, str] = {}
         # a bare object with a settable attribute, like CoreContext
         self.context = type("Ctx", (), {"target_binding": None})()
@@ -127,6 +128,7 @@ class _Fakes:
         assert seed_dir.is_dir()
         assert evidence_root.name == "evidence"
         self.seeded = True
+        self.seed_calls.append(str(seed_dir))
         assert self.env.get("QDRANT_URL") == QDRANT_URL_UNBOUND, (
             "ruling C: bound empty before any seeding/bootstrap"
         )
@@ -915,3 +917,157 @@ def test_failed_probe_is_an_apparatus_integrity_refusal(tmp_path: Path) -> None:
     assert outcome["outcome"] == "APPARATUS_INTEGRITY_FAILED"
     assert outcome["stage"] == "probes"
     assert outcome["failed_probes"] == ["I-5", "I-6"]
+
+
+# --------------------------------------------------------------------------- #895 U3 egress / evidence
+
+
+def _run(
+    tmp_path: Path, fakes: _Fakes, env: dict[str, str], **opt_overrides: Any
+) -> int:
+    opts = _opts(_subject(tmp_path), tmp_path / "evidence")
+    return execute(
+        ExternalRunOptions(**{**opts.__dict__, **opt_overrides}),
+        core_repo_root=REPO_ROOT,
+        environ=env,
+        bootstrap=fakes.bootstrap,
+        seed_environment=fakes.seed_environment,
+        cognitive_init=fakes.cognitive_init,
+        develop=fakes.develop,
+        registered_resources=getattr(fakes, "registered_resources", _no_registry),
+    )
+
+
+async def _no_registry() -> list[dict[str, Any]]:
+    raise AssertionError(
+        "registered endpoints must not be read without --allowed-hosts"
+    )
+
+
+def _evidence(tmp_path: Path) -> Path:
+    return next((tmp_path / "evidence" / "runs").iterdir()) / "evidence"
+
+
+def test_binding_carries_task_statement_sha256_and_allowed_hosts(
+    tmp_path: Path,
+) -> None:
+    import hashlib
+
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    assert _run(tmp_path, fakes, env) == EXIT_RAN
+    binding = json.loads((_evidence(tmp_path) / "binding.json").read_text())
+    assert (
+        binding["task_statement_sha256"]
+        == hashlib.sha256(b"Evaluate the package").hexdigest()
+    )
+    assert binding["allowed_hosts"] == [] and binding["probes"] is False
+
+
+def test_egress_recorded_not_enforced_without_allowed_hosts(tmp_path: Path) -> None:
+    env = {"DATABASE_URL": "postgresql://x:s3cret@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    assert _run(tmp_path, fakes, env) == EXIT_RAN
+    egress = json.loads((_evidence(tmp_path) / "egress.json").read_text())
+    assert egress["enforcement"] == "not_requested"
+    assert egress["reconciled"] == "not_requested"
+    by_name = {e["name"]: e for e in egress["preflight"]}
+    # the seed fixture's endpoint, the DB host/port, the unbound vector store
+    assert by_name["ollama_qwen_coder_3b_trial"]["host"] == "192.168.20.40"
+    assert by_name["DATABASE_URL"] == {
+        **by_name["DATABASE_URL"],
+        "host": "127.0.0.1",
+        "port": 1,
+        "status": "configured",
+    }
+    assert by_name["QDRANT_URL"]["status"] == "unbound"
+    assert "s3cret" not in (_evidence(tmp_path) / "egress.json").read_text()
+
+
+def test_egress_preflight_refuses_before_seeding(tmp_path: Path) -> None:
+    """The seed fixture's LLM host is not allowed: refused with exit 2 and the
+    ruled outcome shape, BEFORE seed_environment (the first egress) ran."""
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    code = _run(tmp_path, fakes, env, allowed_hosts=("127.0.0.1",))
+    assert code == EXIT_BINDING_REFUSED
+    assert fakes.seed_calls == [], "refused before the first egress"
+    assert fakes.develop_calls == []
+    ev = _evidence(tmp_path)
+    outcome = json.loads((ev / "outcome.json").read_text())
+    assert outcome["outcome"] == "REFUSED" and outcome["code"] == EXIT_BINDING_REFUSED
+    assert outcome["stage"] == "preflight.egress"
+    assert outcome["rejected_host"] == "192.168.20.40"
+    assert outcome["rejected_port"] == 11434
+    assert outcome["allowed_hosts"] == ["127.0.0.1"]
+    assert "ADR-159" in outcome["reason"]
+    assert (ev / "refusal.json").is_file()
+    # the inventory is written on the refusal path too, and lists itself
+    inventory = json.loads((ev / "write_inventory.json").read_text())
+    assert "write_inventory.json" in inventory["evidence_dir"]["files"]
+
+
+def test_egress_reconcile_refuses_a_registered_endpoint_outside_the_set(
+    tmp_path: Path,
+) -> None:
+    """Seed documents pass, but what the seeding actually registered points
+    elsewhere: the post-seed reconcile refuses (stage preflight.egress.reconcile)."""
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+
+    async def registered() -> list[dict[str, Any]]:
+        return [{"name": "rogue", "api_url": "http://10.9.9.9:11434"}]
+
+    fakes.registered_resources = registered  # type: ignore[attr-defined]
+    code = _run(
+        tmp_path, fakes, env, allowed_hosts=("192.168.20.40:11434", "127.0.0.1")
+    )
+    assert code == EXIT_BINDING_REFUSED
+    assert len(fakes.seed_calls) == 1, "preflight passed; seeding ran"
+    assert fakes.develop_calls == [], "refused before the goal"
+    outcome = json.loads((_evidence(tmp_path) / "outcome.json").read_text())
+    assert outcome["stage"] == "preflight.egress.reconcile"
+    assert outcome["rejected_host"] == "10.9.9.9"
+    egress = json.loads((_evidence(tmp_path) / "egress.json").read_text())
+    assert egress["enforcement"] == "enforced"
+    assert egress["reconciled"][0]["name"] == "rogue"
+
+
+def test_egress_enforced_and_clean_runs_the_goal(tmp_path: Path) -> None:
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+
+    async def registered() -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "ollama_qwen_coder_3b_trial",
+                "api_url": "http://192.168.20.40:11434",
+            }
+        ]
+
+    fakes.registered_resources = registered  # type: ignore[attr-defined]
+    code = _run(tmp_path, fakes, env, allowed_hosts=("192.168.20.40", "127.0.0.1:1"))
+    assert code == EXIT_RAN
+    assert len(fakes.develop_calls) == 1
+
+
+def test_write_inventory_has_three_sections_and_lists_itself(tmp_path: Path) -> None:
+    env = {"DATABASE_URL": "postgresql://x:y@127.0.0.1:1/db"}
+    fakes = _Fakes(env)
+    assert _run(tmp_path, fakes, env) == EXIT_RAN
+    ev = _evidence(tmp_path)
+    inventory = json.loads((ev / "write_inventory.json").read_text())
+    assert inventory["self"] == "write_inventory.json"
+    assert set(inventory) >= {"subject", "copy", "evidence_dir", "recorded_at"}
+    assert inventory["subject"]["status_porcelain"] == []
+    assert (
+        inventory["subject"]["fingerprint_before"]
+        == inventory["subject"]["fingerprint_after"]
+    )
+    assert inventory["copy"]["status_porcelain"] == []
+    assert inventory["copy"]["diff_name_status_vs_bound_sha"] == []
+    files = inventory["evidence_dir"]["files"]
+    assert "write_inventory.json" in files and "binding.json" in files
+    assert files == sorted(files)
+    on_disk = sorted(str(p.relative_to(ev)) for p in ev.rglob("*") if p.is_file())
+    assert files == on_disk

@@ -73,10 +73,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import functools
+import hashlib
 import os
 import subprocess
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -129,12 +131,28 @@ class ExternalRunOptions:
     evidence_dir: Path | None
     write: bool
     probes: bool = False
+    allowed_hosts: tuple[str, ...] = ()
 
 
 class _Refused(Exception):
-    def __init__(self, message: str, code: int = EXIT_BINDING_REFUSED) -> None:
+    """A refusal with an exit code and, optionally, structured evidence.
+
+    ``evidence`` (when given) is written to ``outcome.json`` next to the
+    plain ``refusal.json`` so a ruled refusal shape -- e.g. the egress
+    preflight's ``{stage, rejected, allowed_hosts, reason}`` -- reaches the
+    export without special-casing any one refusal at the handler.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        code: int = EXIT_BINDING_REFUSED,
+        *,
+        evidence: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
+        self.evidence = evidence
 
 
 class _EnvironScope:
@@ -268,7 +286,22 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
             "the run with outcome APPARATUS_INTEGRITY_FAILED (exit 2)"
         ),
     )
+    parser.add_argument(
+        "--allowed-hosts",
+        action="append",
+        default=None,
+        metavar="HOST[:PORT][,HOST[:PORT]...]",
+        help=(
+            "#895 U3 (ADR-159 §C): every endpoint the run is configured to reach "
+            "(seeded LLM api_url, DATABASE_URL host, vector store) must be in this "
+            "set, checked BEFORE seeding and reconciled after; a host outside it "
+            "refuses the run (exit 2, stage preflight.egress). Repeatable or "
+            "comma-separated. Omitted: recorded, not enforced."
+        ),
+    )
     ns = parser.parse_args(argv[2:])
+    from shared.infrastructure.intent.external_run_egress import parse_allowed_hosts
+
     return ExternalRunOptions(
         subject=Path(ns.subject),
         goal=ns.goal,
@@ -278,6 +311,7 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
         evidence_dir=Path(ns.evidence_dir) if ns.evidence_dir else None,
         write=bool(ns.write),
         probes=bool(ns.probes),
+        allowed_hosts=parse_allowed_hosts(ns.allowed_hosts),
     )
 
 
@@ -288,6 +322,200 @@ def _write_evidence(evidence_root: Path, name: str, payload: dict[str, Any]) -> 
     from shared.infrastructure.intent.target_intent_assembly import write_evidence_json
 
     write_evidence_json(evidence_root, name, payload)
+
+
+def _egress_preflight(
+    opts: ExternalRunOptions, env: Mapping[str, str], evidence_root: Path
+) -> dict[str, Any]:
+    """Check every configured destination BEFORE the first egress (seeding).
+
+    Reads the seed documents and the environment only -- nothing has been
+    contacted yet. Writes ``egress.json`` and raises a structured
+    ``_Refused`` (exit 2, ``stage: preflight.egress``) on the first host
+    outside ``--allowed-hosts``. With no allowed set the destinations are
+    recorded and nothing is enforced.
+    """
+    from shared.infrastructure.intent.external_run_egress import (
+        configured_endpoints,
+        rejected_endpoints,
+    )
+    from shared.infrastructure.intent.external_run_seed import (
+        SeedError,
+        load_seed_document,
+    )
+
+    try:
+        seed = load_seed_document(opts.seed)  # type: ignore[arg-type]
+    except SeedError as exc:
+        raise _Refused(f"seed document refused: {exc}")
+    endpoints = configured_endpoints(
+        seed.resources,
+        database_url=env.get("DATABASE_URL"),
+        qdrant_url=env.get("QDRANT_URL"),
+    )
+    enforced = bool(opts.allowed_hosts)
+    record: dict[str, Any] = {
+        "allowed_hosts": list(opts.allowed_hosts),
+        "enforcement": "enforced" if enforced else "not_requested",
+        "preflight": [e.to_payload() for e in endpoints],
+        "reconciled": None,
+        "observation_ceiling": (
+            "configured destinations only; socket-level egress is the "
+            "coldroom's evidence, not the runner's"
+        ),
+    }
+    _write_evidence(evidence_root, "egress.json", record)
+    if enforced:
+        rejected = rejected_endpoints(endpoints, opts.allowed_hosts)
+        if rejected:
+            _refuse_egress(rejected, opts, "preflight.egress")
+    return record
+
+
+async def _egress_reconcile(
+    opts: ExternalRunOptions,
+    env: Mapping[str, str],
+    evidence_root: Path,
+    record: dict[str, Any],
+    registered_resources: Callable[[], Awaitable[list[dict[str, Any]]]],
+) -> None:
+    """After seeding: the endpoints actually registered in the isolated
+    database must still be inside the allowed set (a seed document is the
+    operator's declaration; the rows are what CORE will use). Only when
+    enforcement was requested; a run without --allowed-hosts records its
+    preflight set and touches nothing more. A reader failure refuses --
+    an unverifiable endpoint set is never assumed allowed."""
+    from shared.infrastructure.intent.external_run_egress import (
+        configured_endpoints,
+        rejected_endpoints,
+    )
+
+    if not opts.allowed_hosts:
+        record["reconciled"] = "not_requested"
+        _write_evidence(evidence_root, "egress.json", record)
+        return
+    try:
+        registered = await registered_resources()
+    except Exception as exc:
+        raise _Refused(
+            f"egress reconcile could not read the registered endpoints: {exc}",
+            EXIT_BINDING_REFUSED,
+            evidence={
+                "stage": "preflight.egress.reconcile",
+                "rejected_host": None,
+                "rejected_port": None,
+                "rejected": [],
+                "allowed_hosts": list(opts.allowed_hosts),
+                "reason": "registered endpoints unverifiable; not assumed allowed",
+            },
+        )
+    endpoints = configured_endpoints(
+        registered,
+        database_url=env.get("DATABASE_URL"),
+        qdrant_url=env.get("QDRANT_URL"),
+    )
+    record["reconciled"] = [e.to_payload() for e in endpoints]
+    _write_evidence(evidence_root, "egress.json", record)
+    rejected = rejected_endpoints(endpoints, opts.allowed_hosts)
+    if rejected:
+        _refuse_egress(rejected, opts, "preflight.egress.reconcile")
+
+
+async def _registered_llm_resources() -> list[dict[str, Any]]:
+    """``name``/``api_url`` of every row in the isolated ``core.llm_resources``."""
+    from sqlalchemy import select
+
+    from body.services.service_registry import service_registry
+    from shared.infrastructure.database.models.operations import LlmResource
+
+    async with service_registry.session() as session:
+        rows = (
+            await session.execute(select(LlmResource.name, LlmResource.api_url))
+        ).all()
+    return [{"name": name, "api_url": api_url} for name, api_url in rows]
+
+
+def _refuse_egress(rejected: list[Any], opts: ExternalRunOptions, stage: str) -> None:
+    first = rejected[0]
+    hosts = ", ".join(f"{e.host}:{e.port}" if e.port else str(e.host) for e in rejected)
+    raise _Refused(
+        f"egress refused at {stage}: {hosts} not in --allowed-hosts "
+        f"({', '.join(opts.allowed_hosts) or '<empty>'})",
+        EXIT_BINDING_REFUSED,
+        evidence={
+            "stage": stage,
+            "rejected_host": first.host,
+            "rejected_port": first.port,
+            "rejected": [e.to_payload() for e in rejected],
+            "allowed_hosts": list(opts.allowed_hosts),
+            "reason": (
+                "ADR-159 §C: the runner may only be configured to reach hosts the "
+                "operator allowed; checked before the first egress (seeding) and "
+                "reconciled against the registered endpoints after it"
+            ),
+        },
+    )
+
+
+def _git_lines(path: Path, *args: str) -> list[str] | None:
+    out = _git_read(path, *args)
+    return None if out is None else [line for line in out.splitlines() if line]
+
+
+# ID: 6a5f0707-7229-4989-9825-b204cb4782bc
+def _write_inventory(
+    subject: Path,
+    subject_sha: str,
+    copy: Any,
+    copy_sha: str,
+    evidence_root: Path,
+    fingerprint_before: str,
+) -> None:
+    """``write_inventory.json`` (#895 U3, I-2): what was written where.
+
+    Three distinct sections -- the frozen subject (must show nothing), the
+    bound execution copy (``git status --porcelain`` plus
+    ``git diff --name-status <bound_sha>``; FileHandler keeps no write log,
+    the copy's own git history is the record) and the evidence directory
+    (every file, this inventory listed explicitly since it is written last).
+    Written on every exit from the run, refusal paths included.
+    """
+    from shared.infrastructure.intent.target_intent_assembly import subject_fingerprint
+
+    evidence_files = sorted(
+        str(p.relative_to(evidence_root))
+        for p in evidence_root.rglob("*")
+        if p.is_file()
+    )
+    if "write_inventory.json" not in evidence_files:
+        evidence_files.append("write_inventory.json")
+        evidence_files.sort()
+    _write_evidence(
+        evidence_root,
+        "write_inventory.json",
+        {
+            "self": "write_inventory.json",
+            "recorded_at": datetime.now(UTC).isoformat(),
+            "subject": {
+                "path": str(subject),
+                "sha": subject_sha,
+                "fingerprint_before": fingerprint_before,
+                "fingerprint_after": subject_fingerprint(subject),
+                "status_porcelain": _git_lines(subject, "status", "--porcelain"),
+            },
+            "copy": {
+                "path": str(copy.target_root),
+                "bound_sha": copy_sha,
+                "status_porcelain": _git_lines(
+                    copy.target_root, "status", "--porcelain"
+                ),
+                "diff_name_status_vs_bound_sha": _git_lines(
+                    copy.target_root, "diff", "--name-status", copy_sha
+                ),
+            },
+            "evidence_dir": {"path": str(evidence_root), "files": evidence_files},
+        },
+    )
 
 
 # Ruling C (2026-09-15): the value QDRANT_URL is bound to for an external run.
@@ -582,6 +810,9 @@ def execute(
     develop: Callable[
         [Any, str, str, bool, bool], Awaitable[tuple[bool, str]]
     ] = _default_develop,
+    registered_resources: Callable[
+        [], Awaitable[list[dict[str, Any]]]
+    ] = _registered_llm_resources,
 ) -> int:
     """Run the nine steps; return the exit code. Dependencies are injectable
     so the orchestration can be proven deterministically in-process; the
@@ -723,8 +954,15 @@ def execute(
                 "overlay_files": list(copy.overlay_files),
                 "collisions_displaced": [d.path for d in copy.displaced],
                 "goal": opts.goal,
+                # #895 U3 (I-1): the task statement's identity, so Document A
+                # can check the runner planned against exactly this text.
+                "task_statement_sha256": hashlib.sha256(
+                    opts.goal.encode("utf-8")
+                ).hexdigest(),
                 "workflow_type": opts.workflow_type,
                 "write": opts.write,
+                "probes": opts.probes,
+                "allowed_hosts": list(opts.allowed_hosts),
             },
         )
 
@@ -761,6 +999,14 @@ def execute(
             # agreement and the envelope through the bound singleton itself.
             core_context = await bootstrap(copy.target_root, copy.intent_root)
 
+            # 6a. egress preflight (#895 U3, governor correction 1, 2026-09-16):
+            # seeding is the first egress (the digest probe contacts the model
+            # endpoint; the seed actions write the isolated database), so the
+            # configured destinations are checked BEFORE it, from the seed
+            # documents and the environment, and reconciled AFTER it against
+            # what was actually registered. Host/port only -- never the URL.
+            egress = _egress_preflight(opts, env, evidence_root)  # type: ignore[arg-type]
+
             # 6b. seed the isolated environment (rulings A/D/E): roles from the
             # copy's own taxonomy via project.cognitive_roles; resources,
             # assignments and system_config from the operator's seed document
@@ -772,6 +1018,13 @@ def execute(
                 env["DATABASE_URL"],
                 copy,
                 evidence_root,  # type: ignore[arg-type]
+            )
+            await _egress_reconcile(
+                opts,
+                env,
+                evidence_root,  # type: ignore[arg-type]
+                egress,
+                registered_resources,
             )
             await cognitive_init(core_context)
 
@@ -852,7 +1105,15 @@ def execute(
             _console.print(f"{'RAN' if ok else 'FAILED'} — {message}")
             return EXIT_RAN if ok else EXIT_INTERNAL_FAILURE
 
-        code = asyncio.run(_rest())
+        inventory = functools.partial(
+            _write_inventory, subject, subject_sha, copy, copy_sha, evidence_root
+        )
+        try:
+            code = asyncio.run(_rest())
+        finally:
+            # 8b. #895 U3 (I-2): what was written where, recorded on every
+            # exit from the run -- refusal paths included.
+            inventory(fingerprint_before)
 
         # 9. subject untouched?
         fingerprint_after = subject_fingerprint(subject)
@@ -880,6 +1141,17 @@ def execute(
             _write_evidence(
                 evidence_root, "refusal.json", {"code": exc.code, "reason": str(exc)}
             )
+            if exc.evidence is not None:
+                _write_evidence(
+                    evidence_root,
+                    "outcome.json",
+                    {
+                        "outcome": "REFUSED",
+                        "code": exc.code,
+                        "message": str(exc),
+                        **exc.evidence,
+                    },
+                )
         _err_console.print(f"REFUSED — {exc}")
         return exc.code
 
