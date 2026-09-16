@@ -1816,6 +1816,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-160-risk-maturity-and-authorization-boundary.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-161-repository-layout.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
