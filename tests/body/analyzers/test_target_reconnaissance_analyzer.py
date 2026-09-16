@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -174,4 +175,14 @@ async def test_report_is_deterministic_across_runs(target_repo: Path) -> None:
 
     assert first.data["recon_text"] == second.data["recon_text"]
     assert first.data["recon_digest"] == second.data["recon_digest"]
-    assert len(first.data["recon_digest"]) == 16
+
+
+@pytest.mark.asyncio
+async def test_digest_is_a_full_sha256_of_the_report(target_repo: Path) -> None:
+    """Trial evidence: the digest must be the whole hash, not a prefix of it."""
+    result = await _analyzer({"python": ["src/**/*.py"]}).execute(repo_path=target_repo)
+
+    digest = result.data["recon_digest"]
+    expected = hashlib.sha256(result.data["recon_text"].encode("utf-8")).hexdigest()
+    assert digest == expected
+    assert len(digest) == 64

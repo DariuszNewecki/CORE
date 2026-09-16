@@ -94,7 +94,7 @@ class TargetReconnaissanceAnalyzer(BaseAnalyzer):
       reconnaissance_report argument
     - recon_raw: structured dict of the same facts, for the blackboard record
     - unavailable: list of {topic, reason} dicts -- observed absences
-    - recon_digest: 16-hex SHA-256 over recon_text, for evidence pinning
+    - recon_digest: full 64-hex SHA-256 over recon_text, for evidence pinning
     """
 
     component_id: str = "target_reconnaissance_analyzer"
@@ -177,7 +177,9 @@ class TargetReconnaissanceAnalyzer(BaseAnalyzer):
         }
 
         text = self._render(raw, unavailable)
-        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+        # Full digest, not a prefix: this is trial evidence, and a truncation
+        # described as "SHA-256" would overstate what it proves.
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
 
         logger.info(
             "Reconnaissance complete: %d files, %d classified types, %d unavailable topics",

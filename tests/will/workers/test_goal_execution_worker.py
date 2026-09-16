@@ -144,7 +144,7 @@ def _real_plan_data() -> dict[str, object]:
         "goal": "Evaluate the package",
         "reconnaissance": {
             "available": True,
-            "digest": "abcdef0123456789",
+            "digest": "596a2e3baeaf6c835ded22ce2106945bb2c3639e53c971aa2130fbf31376d86c",
             "raw": {"file_count": 3},
             "unavailable": [
                 {"topic": "artifact_type:infra", "reason": "no file matches"}
@@ -227,7 +227,10 @@ async def test_success_posts_correlated_start_and_outcome_with_plan() -> None:
     # must not use that shape.
     plan = {
         "selected_actions": ["split_module"],
-        "reconnaissance": {"available": True, "digest": "0123456789abcdef"},
+        "reconnaissance": {
+            "available": True,
+            "digest": "fae85cfce26c135fa06a2a3a2efeac1a6cf18038e22980caa214b484ae36e98b",
+        },
     }
     orch_patch, registry_patch = _patched_orchestrator(_success_result(plan))
 
@@ -819,7 +822,10 @@ async def test_reconnaissance_is_recorded_on_the_run_identity() -> None:
         for call in worker._blackboard.post_report.call_args_list
     }
     recon = subjects[f"goal_run.{worker.run_id}.recon"]
-    assert recon["digest"] == "abcdef0123456789"
+    assert (
+        recon["digest"]
+        == "596a2e3baeaf6c835ded22ce2106945bb2c3639e53c971aa2130fbf31376d86c"
+    )
     assert recon["observed"] == {"file_count": 3}
 
 

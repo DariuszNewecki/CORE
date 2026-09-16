@@ -92,7 +92,7 @@ def _recon_ok() -> ComponentResult:
             "recon_text": "TARGET RECONNAISSANCE\n\nFiles observed: 3",
             "recon_raw": {"file_count": 3},
             "unavailable": [{"topic": "artifact_type:infra", "reason": "no match"}],
-            "recon_digest": "abcdef0123456789",
+            "recon_digest": "596a2e3baeaf6c835ded22ce2106945bb2c3639e53c971aa2130fbf31376d86c",
         },
         phase=ComponentPhase.PARSE,
     )
@@ -125,7 +125,10 @@ async def test_plan_data_carries_the_reconnaissance_record(tmp_path: Path) -> No
 
     recon = result.data["reconnaissance"]
     assert recon["available"] is True
-    assert recon["digest"] == "abcdef0123456789"
+    assert (
+        recon["digest"]
+        == "596a2e3baeaf6c835ded22ce2106945bb2c3639e53c971aa2130fbf31376d86c"
+    )
     assert recon["unavailable"] == [
         {"topic": "artifact_type:infra", "reason": "no match"}
     ]
