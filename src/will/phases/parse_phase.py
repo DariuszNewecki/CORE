@@ -11,7 +11,6 @@ without modification.
 
 ARCHITECTURAL NOTE:
   PlanningPhase (src/will/phases/planning_phase.py) is a generic utility
-  # ID: 0917d5d8-8608-4189-bb0e-e55167696c3e
   class with no constitutional-phase interface.  It has no execute() method
   and must NOT be used here.  The correct agent for constitutional planning
   is PlannerAgent (src/will/agents/planner_agent.py).
