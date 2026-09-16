@@ -14,7 +14,7 @@ status: proposed
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-09-16 — first draft from read-only reconnaissance at `3750aaa2`; this revision re-verified every claim at `a14e5822`; records: `var/reports/2026-09-16_adr161_draft_review.md`, `…_structure_deep_dive.md`, `…_resources_kind_draft.md`)
 **Grounds:** ADR-130 D1 (CORE never writes `.intent/`) together with the `governance.constitution.read_only` rule and the CLAUDE.md confirmation gate (only the Governor edits `.intent/`); ADR-031/032 (runtime paths resolve through PathResolver); ADR-075 D7 (completeness-by-set-difference precedent); ADR-076 D3 (`artifact_gate` is mixed-mode; context-level dispatch); ADR-023 §"The CI gate is upstream prevention" and Alternative E (CI is the authority; pre-commit hooks can be skipped and cannot bear constitutional weight)
-**Relates:** `.intent/META/intent_tree.yaml` (the same pattern, one level down); ADR-115 (corrigendum, D6); ADR-123 and ADR-147 / #772 (`work/`); ADR-086 / #521 (`schema.sql` at root); ADR-116 D2/D8/D9 and ADR-149 (catalog roots — consolidated under `resources/catalogs/` by D1a/D5); ADR-108 D3 / ADR-112 (the shipped machinery floor mirrors the starter law — the precedent for D3a property 3); `.specs/papers/CORE-Repo-Split-Plan.md` Phase 0 (protected-path gate — D2/D3 give it a tripwire, see D2); #908 (`FileHandler.ensure_dir` re-roots absolute paths — the `opt/dev/` cause)
+**Relates:** `.intent/META/intent_tree.yaml` (the same pattern, one level down); ADR-115 (corrigendum, D6); ADR-123 and ADR-147 / #772 (`work/`); ADR-086 / #521 (`schema.sql` at root); ADR-116 D2/D8/D9 and ADR-149 (catalog roots — consolidated under `resources/catalogs/` by D1a/D5); ADR-108 D3 / ADR-112 (the shipped machinery floor mirrors the starter law — the precedent for D3a property 3 and for D2b's verified-mirror choice); `.specs/papers/CORE-Repo-Split-Plan.md` Phase 0 (protected-path gate — D2/D3 give it a tripwire, see D2); #908 (`FileHandler.ensure_dir` re-roots absolute paths — the `opt/dev/` cause)
 
 ---
 
@@ -175,6 +175,54 @@ Rules for the register:
 - The check is a **tripwire**: it catches a force-add, a rename that dropped an ignore line, or a mount at the wrong path — the failure modes `.gitignore` alone cannot report.
 - Its universe is `git ls-files`, which never contains ignored paths. The check proves "nothing licensed is *staged*", not "nothing licensed is *present*". A correctly ignored licensed tree mounted on a developer machine is invisible to it, by design.
 
+### D2b — PathResolver is the register's code twin, and the register governs `var/` one level down
+
+**The fact.** The runtime tree is declared three times today: `PathResolver` (`src/shared/path_resolver.py`,
+fifteen `_DEFAULT_*_SUBDIR` class constants plus `grc_catalogs_dir`, surfaced by `runtime_dirs()`),
+the `no_hardcoded_runtime_dirs` regex alternation in
+`.intent/enforcement/mappings/architecture/path_access.yaml`, and — after D2 — `repo_tree.yaml`.
+Nothing checks one against another; the Makefile's `var/log` against PathResolver's `var/logs`
+(Context) is what that looks like in practice.
+
+**Decision.** `repo_tree.yaml` is the single source. It declares `var/` one level down (as D1a/D1b
+do for `resources/` and `infra/`): one row per runtime directory with `kind: state`, `retained: true|false`
+(retained → `var/`, ephemeral → `var/tmp/` or `work/`), and **`resolver: PathResolver.<property>`** —
+the register names the code that resolves it. PathResolver and the regex mapping are **mirrors**, and
+two standing tests keep them honest:
+
+1. `tests/shared/test_path_resolver_matches_repo_tree.py` — the set of `(relative path, property)`
+   pairs from `PathResolver.runtime_dirs()` equals the set of `var/` rows' `(path, resolver)` in the
+   register; a directory declared without a resolver, or a resolver property without a row, fails.
+   Same shape as `tests/infra/test_claude_md_rule_digest_matches_source.py` (#775).
+2. The two path-rule mappings (`no_hardcoded_runtime_dirs`, and D3a-1 `resources.single_root`) are
+   checked for coverage against the register: every `state` and `resources` directory name appears in
+   the pattern alternation, and no name in the alternation is undeclared. (Generating the patterns from
+   the register is the cleaner end state; the check is enough for this ADR and keeps the mapping a
+   plain file the Governor can read.)
+
+**Why a mirror and not a read.** PathResolver is bootstrap infrastructure in `src/shared/`: it is
+constructed before `IntentRepository` is initialised, it resolves paths for external targets whose
+`.intent/` is *not* CORE's (#894 bindings), and the daemon's path layer must stay deterministic
+without YAML parsing on every construction. Making it read the register at runtime would invert that
+dependency. Verified mirroring is the same choice ADR-112 made for the framework floor ("mirrors
+registry"); it keeps the register authoritative and the runtime path layer boring.
+
+**Consequences for PathResolver in the drains.**
+- `grc_catalogs_dir` → `resources_dir / "catalogs" / "grc"`; new `resources_dir`, `catalogs_dir`,
+  `starter_intent_dir`; `prompts_dir` and `knowledge_dir` re-rooted under `resources/` (D3a-1).
+  Each is a `resources` row in the register with the same `resolver:` field, so test 1 covers both kinds.
+- `_DEFAULT_MIND_SUBDIR` (`var/mind`) and `rollbacks` stay `state`; `var/mind/knowledge` leaves for
+  `resources/knowledge` (D5).
+- The Makefile, `install-core.sh` and `docker-compose*.yml` name runtime directories by string
+  (`var/run`, `var/logs`, `var/log`). They are outside the audit's `src/` scope by design; test 1
+  cannot reach them. D6's Makefile fix stands, and the register's `var/` rows are the reference the
+  next such literal is checked against by a human.
+
+**Registration.** Test 1 and test 2 are new test files (no rule, no engine); the `resolver:` and
+`retained:` fields go in `repo_tree.schema.json`; `runtime_dirs()` gains the property name it already
+implies (it returns `(Path, "var/…")` pairs today — the test needs the attribute name, a one-line
+change to the tuple).
+
 ### D3 — One blocking check: `governance.repo_tree.declared`
 
 **The rule.** A new rule, `governance.repo_tree.declared` (authority: constitution; phase: audit; enforcement: blocking), states:
@@ -296,6 +344,7 @@ These items fall outside the check, because the check governs what is committed.
 **Costs and obligations.**
 - Two new Governor-applied `.intent/META/` files (constitutional core: file-by-file confirmation), three rules (D3, D3a-1, D3a-2), their mappings, one check type, one standing test (D3a-3), plus the eight registration obligations in D3 for each rule.
 - `PathResolver` grows `resources_dir` and typed children; 13 modules that reference `prompts_dir` and the `examples/`/`packs/`/`grc-catalogs` consumers move to them across the drains.
+- `PathResolver` becomes a verified mirror of the register (D2b): two standing tests, two new schema fields, a one-line change to `runtime_dirs()`.
 - The daemon stays blind to repo-level findings until the D4 filter issue is resolved.
 - Second-level structure below `resources/` and `infra/` is governed (D1a, D1b); below `scripts/`, `var/`, `tests/` and inside `.intent/` (the prose files `ARCHITECT.md`, `daily_loop.md`, `CHANGELOG.md` living in the law directory) it is not yet. The register's shape allows it later without a new mechanism.
 
