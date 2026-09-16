@@ -188,7 +188,7 @@ by CORE's own governance, so your report is the only record they leave. Write it
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 38 blocking + 27 reporting + 12 advisory = 77.
+the other two surface findings. At digest time: 39 blocking + 27 reporting + 12 advisory = 78.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -238,6 +238,7 @@ digest has drifted — surface it to the governor.
 **Patterns / mutation surface**
 - `architecture.patterns.action_pattern` (`src/body/atomic/** | src/cli/commands/**`) — Action commands MUST use `@atomic_action` and have a `write` parameter defaulting to `False`.
 - `governance.mutation_surface.filehandler_required` (`src/** | features/**`) — All filesystem writes MUST route through `FileHandler`; direct `write_text()`, `write_bytes()`, or `open(...)` in write/append mode are prohibited in production code.
+- `architecture.execution_write.repository_containment` (passive gate, `enforced_by` FileHandler) — Every execution-time filesystem write MUST resolve within the bound repository root; a write resolving outside it MUST be refused before any mutation (`RepositoryBoundaryViolationError`), and the refusal MUST name this rule. ADR-159 Trial 0 probe I-5 is decided against it (#895 U3 D2).
 
 **Constitution / governance read-only (`src/**`)**
 - `architecture.constitution_read_only` — The constitutional intent directory MUST be immutable.
