@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.exceptions import RepositoryBoundaryViolationError
 from shared.logger import getLogger
 
 
@@ -72,6 +73,14 @@ async def _validate_and_write(
             duration_sec=time.time() - start,
             impact=ActionImpact.WRITE_CODE,
         )
+    except RepositoryBoundaryViolationError:
+        # A governed refusal must reach ActionExecutor as the typed error so
+        # its failure result names the rule (rule_id + refusal payload) --
+        # the ADR-159 I-5 probe scores exactly that. Swallowing it here into
+        # {"error": str(e)} is what the 2026-09-17 cold run caught: the
+        # containment refusal fired and the probe still failed
+        # (refusal_did_not_name_rule).
+        raise
     except Exception as e:
         return ActionResult(
             action_id=action_id,

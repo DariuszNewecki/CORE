@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from body.atomic.file_ops import action_create_file, action_edit_file
+from shared.exceptions import RepositoryBoundaryViolationError
 from shared.governance_token import authorize_execution
 
 
@@ -120,3 +121,41 @@ async def test_action_create_file_dry_run_does_not_call_file_handler() -> None:
     assert result.ok
     assert result.action_id == "file.create"
     assert result.data["written"] is False
+
+
+# ---------------------------------------------------------------------------
+# Governed refusals propagate (ADR-159 I-5, 2026-09-17 cold-run finding)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_action_create_file_lets_containment_refusal_propagate() -> None:
+    """A RepositoryBoundaryViolationError from FileHandler must NOT be
+    swallowed into ``{"error": str(e)}``: ActionExecutor surfaces the typed
+    error's ``rule_id`` / ``refusal`` only when it reaches the executor."""
+    ctx = _make_context(is_git_repo=False)
+    ctx.file_handler.write_runtime_text.side_effect = RepositoryBoundaryViolationError(
+        "/subject/_core_probe_I-5.py", "/evidence/copy"
+    )
+    with authorize_execution("file.create"):
+        with pytest.raises(RepositoryBoundaryViolationError) as excinfo:
+            await action_create_file(
+                file_path="/subject/_core_probe_I-5.py",
+                code="x = 1\n",
+                core_context=ctx,
+                write=True,
+            )
+    assert (
+        excinfo.value.rule_id == "architecture.execution_write.repository_containment"
+    )
+
+
+@pytest.mark.asyncio
+async def test_action_create_file_plain_failure_is_still_a_result() -> None:
+    ctx = _make_context(is_git_repo=False)
+    ctx.file_handler.write_runtime_text.side_effect = OSError("disk full")
+    with authorize_execution("file.create"):
+        result = await action_create_file(
+            file_path="src/foo.py", code="x = 1\n", core_context=ctx, write=True
+        )
+    assert result.ok is False and result.data["error"] == "disk full"
