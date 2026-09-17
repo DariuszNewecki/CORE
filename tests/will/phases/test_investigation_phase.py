@@ -177,3 +177,43 @@ def test_the_boundary_test_would_catch_a_real_violation() -> None:
     }
 
     assert "FileHandler" in referenced
+
+
+@pytest.mark.asyncio
+async def test_bound_run_inspects_paths_in_the_original_subject(tmp_path: Path) -> None:
+    """Ruling M2: bounded reads come from the subject-only view, so a file
+    that exists only in the execution copy (installed apparatus) is reported
+    absent, and the subject's own file is read."""
+    from shared.models.target_binding import TargetBinding
+
+    subject = tmp_path / "subject"
+    copy = tmp_path / "copy"
+    subject.mkdir()
+    copy.mkdir()
+    (subject / "README.md").write_text("subject readme\n")
+    (copy / "README.md").write_text("copy readme\n")
+    (copy / "INSTALLED.md").write_text("apparatus\n")
+    ctx_core = _StubCoreContext(copy)
+    ctx_core.target_binding = TargetBinding(  # type: ignore[attr-defined]
+        subject_path=str(subject),
+        subject_sha="a" * 40,
+        subject_tree_hash="b" * 40,
+        bound_repo_path=str(copy),
+        bound_sha="c" * 40,
+        bound_tree_hash="d" * 40,
+        floor_hash="e" * 64,
+        overlay_hash="f" * 64,
+    )
+    phase = InvestigationPhase(ctx_core)  # type: ignore[arg-type]
+    ctx = _StubWorkflowContext(
+        _parse_data(
+            [
+                InvestigationStep("read it", "inspect.path", {"path": "README.md"}),
+                InvestigationStep("read app", "inspect.path", {"path": "INSTALLED.md"}),
+            ]
+        )
+    )
+    result = await phase.execute(ctx)  # type: ignore[arg-type]
+    by_path = {f["path"]: f["statement"] for f in result.data["findings"]}
+    assert "File exists" in by_path["README.md"]
+    assert "No file exists" in by_path["INSTALLED.md"]

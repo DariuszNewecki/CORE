@@ -15,6 +15,7 @@ runs: the payload carries what the binding supplied, or nothing.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -116,3 +117,41 @@ def validate_binding_payload(value: Any) -> str | None:
         }:
             return f"target_binding.displaced[{i}] has the wrong shape"
     return None
+
+
+# ID: 1f0e893e-290e-4385-8b13-443065964714
+def evaluation_view(core_context: Any) -> tuple[Path, dict[str, Any]]:
+    """The root an evaluation may READ as "the subject", and why.
+
+    ADR-159 Note 2026-09-17, ruling M2: reconnaissance and investigation must
+    operate on a subject-only view. When the process is externally bound the
+    execution copy also holds runner-installed apparatus -- the machinery
+    floor, the overlay, the runner's prompt corpus -- and on a 7-file subject
+    208 of 215 files reconnaissance observed were apparatus. Apparatus may
+    govern execution; it must not masquerade as subject evidence, and any
+    runner-installed file absent at the subject's pin is exactly what I-3
+    forbids an output to reference.
+
+    Bound run: the ORIGINAL read-only subject snapshot (``subject_path``),
+    which by construction contains nothing the runner installed. Unbound run
+    (CORE evaluating itself): the repository root. The returned scope record
+    goes on ``goal_run.<id>.recon`` so a reader can see which view was used
+    and what was thereby excluded.
+    """
+    binding = getattr(core_context, "target_binding", None)
+    if binding is not None:
+        return Path(binding.subject_path), {
+            "scope": "subject",
+            "root": binding.subject_path,
+            "subject_sha": binding.subject_sha,
+            "apparatus_excluded": {
+                "execution_copy": binding.bound_repo_path,
+                "floor_hash": binding.floor_hash,
+                "overlay_hash": binding.overlay_hash,
+                "displaced_paths": [d.path for d in binding.displaced],
+            },
+        }
+    git_service = getattr(core_context, "git_service", None)
+    repo_path = getattr(git_service, "repo_path", None)
+    root = Path(repo_path) if repo_path else Path.cwd()
+    return root, {"scope": "repository", "root": str(root)}

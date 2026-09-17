@@ -27,6 +27,7 @@ from body.analyzers.target_reconnaissance_analyzer import (
     TargetReconnaissanceAnalyzer,
 )
 from shared.logger import getLogger
+from shared.models.target_binding import evaluation_view
 from shared.models.workflow_models import PhaseResult
 from will.agents.investigation_planner import (
     InvestigationPlanError,
@@ -72,6 +73,10 @@ class ParsePhase:
             qdrant_service=getattr(core_context, "qdrant_service", None),
         )
         self._repo_path = repo_path
+        # Reconnaissance reads the subject-only view (ruling M2): the original
+        # snapshot when externally bound, never the execution copy with its
+        # installed apparatus.
+        self._recon_root, self._recon_scope = evaluation_view(core_context)
         self._recon = TargetReconnaissanceAnalyzer()
 
     # ID: 794bcd6c-de50-4ac2-868c-d6de52b277b9
@@ -153,7 +158,7 @@ class ParsePhase:
         false statement.
         """
         try:
-            result = await self._recon.execute(repo_path=self._repo_path)
+            result = await self._recon.execute(repo_path=self._recon_root)
         except Exception as exc:  # defensive: recon must never fail the phase
             logger.warning("PARSE: reconnaissance raised: %s", exc, exc_info=True)
             return "", {"available": False, "reason": str(exc)}
@@ -173,6 +178,7 @@ class ParsePhase:
             "digest": result.data["recon_digest"],
             "raw": result.data["recon_raw"],
             "unavailable": result.data["unavailable"],
+            "view": self._recon_scope,
         }
 
     def _decision_records(self) -> list[dict[str, Any]]:

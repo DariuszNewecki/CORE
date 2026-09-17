@@ -141,6 +141,8 @@ async def post_reconnaissance_records(
             "run_id": run_id,
             "digest": recon.get("digest"),
             "observed": blackboard_safe(recon.get("raw", {})),
+            # ruling M2: which view was reconnoitred and what it excludes
+            "view": blackboard_safe(recon.get("view", {})),
         },
     )
 

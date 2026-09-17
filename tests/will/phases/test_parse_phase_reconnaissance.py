@@ -86,6 +86,7 @@ class _StubRecon:
         self._result = result
 
     async def execute(self, repo_path: Path | str, **kwargs: Any) -> ComponentResult:
+        self.repo_path_seen = Path(repo_path)
         if isinstance(self._result, Exception):
             raise self._result
         return self._result
@@ -264,3 +265,58 @@ async def test_a_refused_investigation_plan_fails_the_phase(tmp_path: Path) -> N
 
     assert result.ok is False
     assert "mutates the target" in result.error
+
+
+# ------------------------------------------------ ruling M2: subject-only view
+
+
+def _bound_context(tmp_path: Path) -> _StubCoreContext:
+    from shared.models.target_binding import DisplacedFile, TargetBinding
+
+    ctx = _StubCoreContext(tmp_path / "copy")
+    ctx.target_binding = TargetBinding(  # type: ignore[attr-defined]
+        subject_path=str(tmp_path / "subject"),
+        subject_sha="a" * 40,
+        subject_tree_hash="b" * 40,
+        bound_repo_path=str(tmp_path / "copy"),
+        bound_sha="c" * 40,
+        bound_tree_hash="d" * 40,
+        floor_hash="e" * 64,
+        overlay_hash="f" * 64,
+        displaced=(DisplacedFile(".intent/META/x.json", "1" * 64, "2" * 64),),
+    )
+    return ctx
+
+
+@pytest.mark.asyncio
+async def test_bound_run_reconnoitres_the_original_subject_not_the_copy(
+    tmp_path: Path,
+) -> None:
+    """ADR-159 Note 2026-09-17 M2: the execution copy carries the floor, the
+    overlay and the runner's prompt corpus; reconnaissance must see none of
+    it. On the 2026-09-17 cold run 208 of 215 observed files were apparatus."""
+    phase = ParsePhase(_bound_context(tmp_path))  # type: ignore[arg-type]
+    recon = _StubRecon(_recon_ok())
+    phase._planner = _StubPlanner()  # type: ignore[assignment]
+    phase._recon = recon  # type: ignore[assignment]
+
+    result = await phase.execute(_StubWorkflowContext("investigate the target"))
+
+    assert result.ok is True
+    assert recon.repo_path_seen == tmp_path / "subject"
+    view = result.data["reconnaissance"]["view"]
+    assert view["scope"] == "subject" and view["root"] == str(tmp_path / "subject")
+    assert view["apparatus_excluded"]["execution_copy"] == str(tmp_path / "copy")
+    assert view["apparatus_excluded"]["displaced_paths"] == [".intent/META/x.json"]
+
+
+@pytest.mark.asyncio
+async def test_unbound_run_reconnoitres_the_repository(tmp_path: Path) -> None:
+    phase, _ = _phase(tmp_path, _StubRecon(_recon_ok()))
+    recon = phase._recon
+    result = await phase.execute(_StubWorkflowContext("investigate the target"))
+    assert recon.repo_path_seen == tmp_path  # type: ignore[attr-defined]
+    assert result.data["reconnaissance"]["view"] == {
+        "scope": "repository",
+        "root": str(tmp_path),
+    }

@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 from shared.models.investigation_finding import InvestigationFinding
+from shared.models.target_binding import evaluation_view
 from shared.models.workflow_models import PhaseResult
 
 
@@ -121,9 +122,10 @@ class InvestigationPhase:
         )
 
     def _target_root(self) -> Path | None:
-        git_service = getattr(self.context, "git_service", None)
-        repo_path = getattr(git_service, "repo_path", None)
-        return Path(repo_path) if repo_path else None
+        # Ruling M2: the same subject-only view reconnaissance used -- the
+        # original snapshot when bound, never the execution copy.
+        root, _scope = evaluation_view(self.context)
+        return root
 
     def _handlers(self) -> dict[str, Any]:
         return {
