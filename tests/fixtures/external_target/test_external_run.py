@@ -39,6 +39,7 @@ from cli.runtime_external_run import (
     execute,
     guard_legacy_direct_write,
     matches_route,
+    parse_allowed_hosts,
     parse_args,
     runner_prompt_sources,
     vector_store_leak,
@@ -837,6 +838,47 @@ def test_live_external_run_against_disposable_database(tmp_path: Path) -> None:
 
 
 # --------------------------------------------------------------------------- #895 U3 probes
+
+
+def test_parse_allowed_hosts_repeatable_comma_separated_normalized() -> None:
+    assert parse_allowed_hosts(["192.168.20.40:11434, Db.Local", "db.local"]) == (
+        "192.168.20.40:11434",
+        "db.local",
+    )
+    assert parse_allowed_hosts(None) == ()
+    assert parse_allowed_hosts([" , "]) == ()
+
+
+def test_route_and_parse_args_import_nothing_under_shared(tmp_path: Path) -> None:
+    """The bind invariant, proven in a fresh interpreter: neither importing
+    the route module nor ``parse_args`` (which runs BEFORE ``execute`` binds
+    REPO_PATH/MIND at step 2b) may import anything under ``shared`` --
+    ``shared/__init__.py`` constructs ``Settings()`` against CORE's own
+    checkout, after which every runtime root disagrees with the execution
+    copy and the run refuses with exit 64. Found live on 2026-09-17: U3-3's
+    ``parse_args`` imported the ``--allowed-hosts`` normalizer from
+    ``shared.infrastructure.intent.external_run_egress``. Pytest cannot see
+    this in-process because ``Settings`` already exists here."""
+    probe = (
+        "import sys\n"
+        "import cli.runtime_external_run as r\n"
+        "r.parse_args(['runtime', 'external-run', '--subject', 'x', '--goal', 'g',"
+        " '--workflow', 'evaluation', '--probes', '--allowed-hosts', 'a,b:1'])\n"
+        "leaked = sorted(m for m in sys.modules if m == 'shared' or m.startswith('shared.'))\n"
+        "print(leaked)\n"
+    )
+    env = {k: v for k, v in os.environ.items() if k not in ("REPO_PATH", "MIND")}
+    env["PYTHONPATH"] = str(REPO_ROOT / "src")
+    completed = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=True,
+    )
+    assert completed.stdout.strip() == "[]", completed.stdout
 
 
 def test_parse_args_probes_and_evaluation_workflow(tmp_path: Path) -> None:

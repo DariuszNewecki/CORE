@@ -59,21 +59,6 @@ class Endpoint:
         return payload
 
 
-# ID: b3eb403c-e051-4c80-9136-2b603d5ac59d
-def parse_allowed_hosts(values: list[str] | tuple[str, ...] | None) -> tuple[str, ...]:
-    """Normalize repeatable / comma-separated ``--allowed-hosts`` values.
-
-    Entries are lower-cased, stripped, de-duplicated, order preserved.
-    """
-    seen: list[str] = []
-    for value in values or ():
-        for raw in str(value).split(","):
-            entry = raw.strip().lower()
-            if entry and entry not in seen:
-                seen.append(entry)
-    return tuple(seen)
-
-
 def _split_entry(entry: str) -> tuple[str, int | None]:
     host, sep, port = entry.rpartition(":")
     if sep and port.isdigit() and host:

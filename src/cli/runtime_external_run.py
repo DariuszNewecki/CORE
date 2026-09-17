@@ -111,6 +111,31 @@ _WORKFLOW_TYPES = (
 )
 
 
+# ID: b3eb403c-e051-4c80-9136-2b603d5ac59d
+def parse_allowed_hosts(values: list[str] | tuple[str, ...] | None) -> tuple[str, ...]:
+    """Normalize repeatable / comma-separated ``--allowed-hosts`` values.
+
+    Entries are lower-cased, stripped, de-duplicated, order preserved.
+
+    Lives here, not in ``shared.infrastructure.intent.external_run_egress``,
+    because :func:`parse_args` runs BEFORE :func:`execute` binds the
+    environment (step 2b) and importing ANY ``shared`` module constructs
+    ``Settings()`` against CORE's own checkout -- after which every runtime
+    root disagrees with the execution copy and the run refuses (exit 64).
+    The 2026-09-17 cold run against a disposable target found exactly that:
+    U3-3 had imported the normalizer from ``shared`` inside ``parse_args``.
+    ``test_route_and_parse_args_import_nothing_under_shared`` pins the
+    invariant in a fresh interpreter.
+    """
+    seen: list[str] = []
+    for value in values or ():
+        for raw in str(value).split(","):
+            entry = raw.strip().lower()
+            if entry and entry not in seen:
+                seen.append(entry)
+    return tuple(seen)
+
+
 # ID: c4d63597-1118-4232-afd5-84a60850ff3c
 def matches_route(argv: list[str]) -> bool:
     """True iff *argv* (``sys.argv[1:]``) invokes ``runtime external-run``.
@@ -300,8 +325,6 @@ def parse_args(argv: list[str]) -> ExternalRunOptions:
         ),
     )
     ns = parser.parse_args(argv[2:])
-    from shared.infrastructure.intent.external_run_egress import parse_allowed_hosts
-
     return ExternalRunOptions(
         subject=Path(ns.subject),
         goal=ns.goal,

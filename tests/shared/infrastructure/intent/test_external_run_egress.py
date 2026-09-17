@@ -10,18 +10,8 @@ from shared.infrastructure.intent.external_run_egress import (
     configured_endpoints,
     endpoint_from_url,
     is_allowed,
-    parse_allowed_hosts,
     rejected_endpoints,
 )
-
-
-def test_parse_allowed_hosts_repeatable_comma_separated_normalized() -> None:
-    assert parse_allowed_hosts(["192.168.20.40:11434, Db.Local", "db.local"]) == (
-        "192.168.20.40:11434",
-        "db.local",
-    )
-    assert parse_allowed_hosts(None) == ()
-    assert parse_allowed_hosts([" , "]) == ()
 
 
 def test_endpoint_from_url_drops_credentials_path_and_query() -> None:
