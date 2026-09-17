@@ -245,7 +245,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-260 rules across 59 rule documents. 250 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
+260 rules across 60 rule documents. 250 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
 
 ---
 
