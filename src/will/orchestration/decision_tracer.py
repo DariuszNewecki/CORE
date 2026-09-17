@@ -92,7 +92,11 @@ class DecisionTracer:
         self.file_service = file_service or FileService(resolved_root)
 
         try:
-            self.file_service.ensure_dir(str(self.trace_dir))
+            # Repo-relative, like every other ensure_dir caller (#908): an
+            # absolute path used to be re-rooted under the repo root.
+            self.file_service.ensure_dir(
+                str(self.trace_dir.relative_to(Path(resolved_root).resolve()))
+            )
         except Exception:
             logger.debug(
                 "DecisionTracer: Could not ensure trace directory (read-only environment?)"

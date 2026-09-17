@@ -254,7 +254,7 @@ class FileHandler:
 
     # ID: 5c958c3b-d6bb-4c30-ad37-5b1abcaac762
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
-        rel_dir = rel_dir.strip().removeprefix("./").strip("/")
+        rel_dir = self._normalize_rel_dir(rel_dir)
         self._guard_paths([rel_dir + "/"], op_class="create")
         abs_dir = self._resolve_repo_path(rel_dir)
         abs_dir.mkdir(parents=True, exist_ok=True)
@@ -291,7 +291,7 @@ class FileHandler:
 
     # ID: 443bb5d6-306d-4d03-ab69-762cc14b1eb3
     def remove_tree(self, rel_dir: str) -> FileOpResult:
-        rel_dir = rel_dir.strip().removeprefix("./").strip("/")
+        rel_dir = self._normalize_rel_dir(rel_dir)
         self._guard_paths([rel_dir + "/"], op_class="delete")
         abs_dir = self._resolve_repo_path(rel_dir)
         if abs_dir.exists():
@@ -300,8 +300,8 @@ class FileHandler:
 
     # ID: c05980dd-b125-49a3-9e9b-0a0c4e1e33b9
     def copy_tree(self, rel_src_dir: str, rel_dst_dir: str) -> FileOpResult:
-        rel_src_dir = rel_src_dir.strip().removeprefix("./").strip("/")
-        rel_dst_dir = rel_dst_dir.strip().removeprefix("./").strip("/")
+        rel_src_dir = self._normalize_rel_dir(rel_src_dir)
+        rel_dst_dir = self._normalize_rel_dir(rel_dst_dir)
         self._guard_paths([rel_src_dir + "/", rel_dst_dir + "/"])
         abs_src = self._resolve_repo_path(rel_src_dir)
         abs_dst = self._resolve_repo_path(rel_dst_dir)
@@ -316,7 +316,7 @@ class FileHandler:
         rel_dst_dir: str,
         exclude_top_level: Iterable[str] = ("var", ".git", "__pycache__", ".venv"),
     ) -> FileOpResult:
-        rel_dst_dir = rel_dst_dir.strip().removeprefix("./").strip("/")
+        rel_dst_dir = self._normalize_rel_dir(rel_dst_dir)
         self._guard_paths([rel_dst_dir + "/"], op_class="create")
         abs_dst = self._resolve_repo_path(rel_dst_dir)
         if abs_dst.exists():
@@ -348,6 +348,32 @@ class FileHandler:
     # ---------------------------------------------------------------------
     # Path + Guard Helpers
     # ---------------------------------------------------------------------
+
+    def _normalize_rel_dir(self, rel_dir: str) -> str:
+        """Normalize a directory argument to a repo-relative posix string.
+
+        #908: the previous ``.strip("/")`` idiom ran BEFORE
+        ``_resolve_repo_path`` and so re-rooted absolute paths under the
+        bound root (``ensure_dir("/opt/dev/CORE/var/x")`` created
+        ``<root>/opt/dev/CORE/var/x``; ``/etc/x`` became ``<root>/etc/x``
+        and was accepted instead of refused). Absolute paths are now
+        decided by the containment rule here, before any guard or
+        mutation: inside the root they are rewritten to their
+        repo-relative form so IntentGuard and target-class resolution
+        see the canonical shape; outside the root they are refused under
+        ``architecture.execution_write.repository_containment`` with the
+        caller's original string as ``attempted_path``. Only a trailing
+        slash is stripped from the relative form.
+        """
+        cleaned = str(rel_dir).strip().removeprefix("./")
+        if Path(cleaned).is_absolute():
+            candidate = Path(cleaned).resolve()
+            if not candidate.is_relative_to(self.repo_path):
+                raise RepositoryBoundaryViolationError(
+                    attempted_path=rel_dir, bound_root=str(self.repo_path)
+                )
+            cleaned = candidate.relative_to(self.repo_path).as_posix()
+        return cleaned.rstrip("/")
 
     def _resolve_repo_path(self, rel_path: str) -> Path:
         """Resolve a repo-relative path to an absolute path, refusing escapes.
