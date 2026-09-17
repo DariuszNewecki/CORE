@@ -71,6 +71,7 @@ from shared.infrastructure.intent.target_intent_assembly import (
     subject_fingerprint,
 )
 from shared.models.target_binding import TargetBinding
+from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from will.autonomy.safe_auto_approval_envelope import (
     ENVELOPE_RULE_ID,
     SafeAutoApprovalDeniedError,
@@ -79,6 +80,7 @@ from will.autonomy.safe_auto_approval_envelope import (
 from will.orchestration import goal_run_probes as probes
 from will.orchestration.goal_run_records import (
     post_decision_records,
+    post_finding_records,
     post_reconnaissance_records,
 )
 
@@ -200,6 +202,30 @@ def _row(
     }
 
 
+def _investigation_result(*, findings: list[dict[str, Any]]) -> PhaseWorkflowResult:
+    """A runtime PhaseResult shaped exactly as RuntimePhase produces it."""
+    return PhaseWorkflowResult(
+        ok=True,
+        workflow_type="evaluation",
+        total_duration=1.0,
+        phase_results=[
+            PhaseResult(
+                name="runtime",
+                ok=True,
+                data={
+                    "candidate_outputs_produced": True,
+                    "investigation": {
+                        "findings": findings,
+                        "findings_count": len(findings),
+                        "steps_executed": 1,
+                    },
+                },
+                duration_sec=1.0,
+            )
+        ],
+    )
+
+
 # ------------------------------------------------------------------ A6 clauses
 
 
@@ -310,6 +336,36 @@ async def test_a6_findings_reasoning_and_unavailability_are_recorded_to_the_blac
     assert decision["index"] == 1 and decision["chosen"] == "inspect.structure"
     assert decision["rationale"] == "start broad"
     assert poster.unavailable == {}, "nothing was unavailable at the instrument level"
+
+    # "record its findings": each investigation finding is its own record,
+    # read from the runtime phase's REAL shape (RuntimePhase nests the
+    # investigation sub-phase's data under its name -- the 2026-09-17 cold
+    # run found the flat lookup posting nothing at all). Mapping-review
+    # addition: the authoring check covered reasoning and unavailability
+    # but not findings.
+    await post_finding_records(
+        poster,
+        RUN_ID,
+        _investigation_result(
+            findings=[
+                {
+                    "path": "",
+                    "scope": "target",
+                    "category": "layout",
+                    "statement": "Target holds 3 files.",
+                    "evidence_refs": ["reconnaissance.layout"],
+                    "confidence": 1.0,
+                }
+            ]
+        ),
+    )
+    finding = poster.reports[f"goal_run.{RUN_ID}.finding.1"]
+    assert finding["index"] == 1 and finding["category"] == "layout"
+    assert finding["evidence_refs"] == ["reconnaissance.layout"]
+    # and an investigation that found nothing says so rather than staying silent
+    silent = _Poster()
+    await post_finding_records(silent, RUN_ID, _investigation_result(findings=[]))
+    assert silent.reports[f"goal_run.{RUN_ID}.findings.empty"]["steps_executed"] == 1
 
     # the other absence: reconnaissance itself could not look
     blind = _Poster()
@@ -554,11 +610,27 @@ async def test_i4_reconstructability_from_the_blackboard_export_alone(
     }
     await post_reconnaissance_records(poster, RUN_ID, plan)
     await post_decision_records(poster, RUN_ID, plan)
+    await post_finding_records(
+        poster,
+        RUN_ID,
+        _investigation_result(
+            findings=[
+                {
+                    "path": "",
+                    "scope": "target",
+                    "category": "layout",
+                    "statement": "Target holds 3 files.",
+                    "evidence_refs": ["reconnaissance.layout"],
+                    "confidence": 1.0,
+                }
+            ]
+        ),
+    )
     for n, (subject, payload) in enumerate(poster.reports.items(), start=4):
         entries.append(_row(n, subject, {**payload}))
     entries.append(
         _row(
-            9,
+            len(entries) + 1,
             f"goal_run.{RUN_ID}.outcome",
             {"run_id": RUN_ID, "ok": True, "outcome": "RAN"},
         )
@@ -571,6 +643,9 @@ async def test_i4_reconstructability_from_the_blackboard_export_alone(
     assert by_subject[f"goal_run.{RUN_ID}.recon"]["observed"] == {"file_count": 3}
     assert f"goal_run.{RUN_ID}.unavailable.artifact_type.infra" in by_subject
     assert by_subject[f"goal_run.{RUN_ID}.decision.1"]["chosen"] == "inspect.structure"
+    assert by_subject[f"goal_run.{RUN_ID}.finding.1"]["evidence_refs"] == [
+        "reconnaissance.layout"
+    ], "the evidence a finding rests on travels in the export"
     assert by_subject[f"goal_run.{RUN_ID}.probe.I-5"]["result"]["rule_id"] == (
         probes.CONTAINMENT_RULE_ID
     )
