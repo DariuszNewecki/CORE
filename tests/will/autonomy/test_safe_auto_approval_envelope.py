@@ -320,7 +320,8 @@ def test_rule_id_names_a_rule_that_exists_in_intent() -> None:
 
     doc = json.loads(
         (
-            Path(__file__).resolve().parents[3] / ".intent/rules/will/autonomy.json"
+            Path(__file__).resolve().parents[3]
+            / ".intent/rules/will/safe_auto_approval_envelope.json"
         ).read_text()
     )
     assert ENVELOPE_RULE_ID in {r["id"] for r in doc["rules"]}

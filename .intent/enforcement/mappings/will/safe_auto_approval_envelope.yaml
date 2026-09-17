@@ -1,0 +1,42 @@
+# .intent/enforcement/mappings/will/safe_auto_approval_envelope.yaml
+#
+# Enforcement mapping for autonomy.proposals.safe_auto_approval_envelope,
+# in its own document since ADR-159 Note 2026-09-17 (ruling M1(a)): the rule
+# and this mapping ship byte-identical in the Trial 0 overlay so the I-6
+# authority probe's refusal names law the bound process actually loaded.
+# Moved verbatim from mappings/will/autonomy.yaml; one stale sentence
+# corrected (the envelope's home is safe_auto_approval_envelope.yaml, not
+# action_risk.yaml, per the 2026-09-15 Note).
+
+mappings:
+    # LAW: A proposal MUST NOT auto-approve under risk_classification.safe_
+    # auto_approval unless every action is in the governed envelope, targets
+    # an in-envelope src/ or tests/ Python path, and action targets exactly
+    # match the declared ProposalScope.files. No flow is authorized.
+    # ENFORCEMENT: Deterministic check in ProposalStateManager.approve(),
+    # called before the UPDATE statement on every safe-auto-approval attempt.
+    autonomy.proposals.safe_auto_approval_envelope:
+      engine: passive_gate
+      params:
+        attestation_class: "A"
+        enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager"
+        enforcement_note: >
+          Runtime check -- ProposalStateManager.approve() calls
+          will.autonomy.safe_auto_approval_envelope.validate_envelope() before
+          the UPDATE whenever approval_authority is
+          'risk_classification.safe_auto_approval' (not for
+          'principal.governor', per governor ruling 7). validate_envelope()
+          raises SafeAutoApprovalDeniedError on any unlisted action, flow
+          reference, missing/malformed/absolute/traversal/out-of-envelope
+          path, or action/scope inconsistency; the caller's UPDATE never
+          runs, so the proposal row is left untouched (still PENDING).
+          The envelope itself (authorized_actions, authorized_path_prefixes,
+          authorized_extensions) is governed by
+          .intent/enforcement/config/safe_auto_approval_envelope.yaml (moved out
+          of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1), loaded via
+          shared.infrastructure.intent.action_risk.load_safe_auto_approval_envelope
+          (fail-closed: an envelope load failure denies, never authorizes).
+      scope:
+        applies_to:
+          - "src/will/autonomy/proposal_state_manager.py"
+          - "src/will/autonomy/safe_auto_approval_envelope.py"

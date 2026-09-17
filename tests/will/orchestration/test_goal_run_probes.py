@@ -65,6 +65,22 @@ def _refused_result() -> Any:
     )
 
 
+@pytest.fixture(autouse=True)
+def _rule_loaded_in_bound_law(monkeypatch: pytest.MonkeyPatch):
+    """Default: the bound law declares both probe rules (the Trial 0 overlay
+    delivers both documents). Individual tests override to prove the gate."""
+
+    def _loaded(rule_id: str) -> dict:
+        return {
+            "loaded": True,
+            "rule_id": rule_id,
+            "document": "rules/x.json",
+            "content_hash": "h",
+        }
+
+    monkeypatch.setattr(probes, "rule_in_bound_law", _loaded)
+
+
 # ------------------------------------------------------------------ I-5
 
 
@@ -251,3 +267,79 @@ async def test_run_apparatus_probes_records_a_crashing_probe() -> None:
         and "RuntimeError" in records[0]["detail"]
     )
     assert records[1]["passed"] is True
+
+
+# ---------------------------------------- the named rule must be LOADED law (M1)
+
+
+async def test_i5_fails_when_the_named_rule_is_not_in_the_bound_law(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Document A I-5/I-6: "names a rule that exists at the pinned commit". A
+    refusal naming a constant that exists only in CORE's source is not enough;
+    the bound process must have loaded the rule's document."""
+    monkeypatch.setattr(
+        probes,
+        "rule_in_bound_law",
+        lambda rule_id: {
+            "loaded": False,
+            "rule_id": rule_id,
+            "reason": "Rule ID not found",
+        },
+    )
+    context = SimpleNamespace(target_binding=_binding(tmp_path))
+    _Executor.result = _refused_result()
+    monkeypatch.setattr("body.atomic.executor.ActionExecutor", _Executor)
+    record = await probes.run_probe_i5(context, "run-1")
+    assert record["passed"] is False, (
+        "the refusal named the rule, but it is not loaded law"
+    )
+    assert record["reason"] == "named_rule_not_in_bound_law"
+    assert record["rule_in_bound_law"]["loaded"] is False
+
+
+async def test_i6_fails_when_the_named_rule_is_not_in_the_bound_law(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        probes,
+        "rule_in_bound_law",
+        lambda rule_id: {
+            "loaded": False,
+            "rule_id": rule_id,
+            "reason": "Rule ID not found",
+        },
+    )
+    _i6_patches(monkeypatch, deny=True)
+    record = await probes.run_probe_i6(SimpleNamespace(target_binding=None), "run-1")
+    assert record["passed"] is False
+    assert record["reason"] == "named_rule_not_in_bound_law"
+
+
+def test_rule_in_bound_law_reads_the_bound_intent_repository(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    from shared.infrastructure.intent import intent_repository as ir
+
+    monkeypatch.undo()  # drop the autouse stub; this test exercises the real helper
+    ref = SimpleNamespace(
+        source_path=tmp_path / ".intent" / "rules" / "will" / "x.json",
+        rule_content_hash="abc",
+    )
+    repo = MagicMock()
+    repo.root = tmp_path / ".intent"
+    repo.get_rule = lambda rid: ref
+    monkeypatch.setattr(ir, "get_intent_repository", lambda: repo)
+    got = probes.rule_in_bound_law("some.rule")
+    assert got == {
+        "loaded": True,
+        "rule_id": "some.rule",
+        "document": "rules/will/x.json",
+        "content_hash": "abc",
+    }
+
+    def _missing(rid):
+        raise ir.GovernanceError(f"Rule ID not found: {rid}")
+
+    repo.get_rule = _missing
+    assert probes.rule_in_bound_law("nope")["loaded"] is False

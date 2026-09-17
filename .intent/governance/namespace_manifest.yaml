@@ -880,6 +880,8 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .intent/rules/will/autonomy.json
     governance_namespace: project::core
+  - path: .intent/rules/will/safe_auto_approval_envelope.json
+    governance_namespace: project::core
   - path: .intent/rules/will/planning.json
     governance_namespace: project::core
   - path: .intent/rules/will/proposal_lifecycle.json
@@ -1212,6 +1214,8 @@ classifications:
   # .intent/enforcement/mappings/will/**
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/will/autonomy.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/will/safe_auto_approval_envelope.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/will/planning.yaml
     governance_namespace: project::core
@@ -1856,7 +1860,11 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml
     governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/will/safe_auto_approval_envelope.yaml
+    governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/architecture/execution_write_containment.json
+    governance_namespace: project::core
+  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/will/safe_auto_approval_envelope.json
     governance_namespace: project::core
   - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workers/goal_execution_worker.yaml
     governance_namespace: project::core

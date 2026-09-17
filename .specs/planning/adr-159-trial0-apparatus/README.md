@@ -24,6 +24,15 @@ ls-tree -r c4d9fdf9` lists neither): the `architecture.execution_write.repositor
 rule document and its `passive_gate` class-A mapping, so the I-5 probe's refusal names a rule
 that exists in the law the subject evaluates under. Byte-identical copies, hashed below.
 
+ADR-159 Note 2026-09-17 (ruling M1(a), cold review of the runner) adds the same shape for the
+I-6 probe: `autonomy.proposals.safe_auto_approval_envelope` was added to CORE on 2026-09-03,
+after the subject `c4d9fdf9` (2026-08-24), so at the subject it did not exist and neither the
+floor nor this overlay delivered its document. The rule now lives in its own additive document
+(`rules/will/safe_auto_approval_envelope.json`, mapping alongside) so it can enter the frozen
+subject without modifying `rules/will/autonomy.json`, which the subject carries. Both paths are
+absent at `c4d9fdf9` (`git cat-file -e c4d9fdf9:.intent/<path>` fails for each). Byte-identical
+copies, hashed below.
+
 The envelope is an explicit `authorization_mode: deny_all` (Governor ruling F, 2026-09-15): nothing is
 authorized for safe auto-approval, by declaration. Materialization of this overlay onto the frozen
 subject was proven 2026-09-15: 2 overlay files installed, 12 floor collisions displaced and
@@ -40,6 +49,8 @@ Provenance: seed resource digest `f72c60cabf6237b07f6e` verified 2026-09-15 on `
 | `intent_overlay/workers/goal_execution_worker.yaml` | `ab8d279420eab934f246462f566ba9ed0344b383c8cff734fa09551e7db4db47` | 1687 |
 | `intent_overlay/rules/architecture/execution_write_containment.json` | `6af0c30cd02e7932b3088882c3df32e4d4a50c8992289d1364003186923c8036` | 1863 |
 | `intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml` | `c26f112cab6dcc10171aaa9c24a19c03067571d80f00da3d40417ba30c680685` | 1565 |
+| `intent_overlay/rules/will/safe_auto_approval_envelope.json` | `f396563a9ffb88341a5269df7f812aa929239960ce02ef40ac454ef593529127` | 3283 |
+| `intent_overlay/enforcement/mappings/will/safe_auto_approval_envelope.yaml` | `f0d99ab81b33457233303ef44654f81f02f628070aa2abfe2da1c0a1bc04dd37` | 2483 |
 | `seed/assignments.yaml` | `247ba8c05be49dd9e6357f40480ae00dd92d598f9f5c2572e60efbb3c985367d` | 553 |
 | `seed/llm_resources/ollama_qwen_coder_3b_trial.yaml` | `7d1d94725bbff59c6b3e5a2a1d5115a5fae0f63613252328f3641d7fa959d3e7` | 809 |
 | `seed/system_config.yaml` | `31ed092d8b356ab600a80cb7842c984dc99fb7846bf094e75a3a8fafbf357436` | 181 |

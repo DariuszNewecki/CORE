@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.will.safe_auto_approval_envelope",
+        "title": "Safe Auto-Approval Envelope",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "autonomy.proposals.safe_auto_approval_envelope",
+            "statement": "A proposal MUST NOT transition to status='approved' under approval_authority='risk_classification.safe_auto_approval' unless every one of its actions references an action_id in the independently governed safe_auto_approval_envelope (.intent/enforcement/config/safe_auto_approval_envelope.yaml; moved out of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1), targets a repository-relative Python file under src/ or tests/ (direct or nested children, no absolute path, no traversal segment), and the set of those target paths exactly matches the proposal's declared ProposalScope.files. No ProposalAction naming flow_id satisfies this rule -- no flow is authorized for safe auto-approval, including test-generation flows. This rule does not constrain approval_authority='principal.governor': a human governor's approval may cross this envelope; the envelope binds only the autonomous approval path.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "#853: impact_level: safe classification in action_risk.yaml is a RISK tier, not an AUTHORIZATION grant -- several impact_level: safe actions (build.test_for_symbol, check.imports, admin.meta, claim.proposal, ...) were never meant to auto-execute without a human step, yet nothing previously stopped ProposalStateManager.approve() from accepting approval_authority='risk_classification.safe_auto_approval' for any proposal regardless of which actions or paths it actually named -- the only prior checks were the approval_authority closed-vocabulary check and the ADR-109 assisted-lane validation gate, neither of which examined the proposal's actions or scope at all. A proposal's self-declared ProposalScope was similarly never independently verified against what its actions actually targeted. This rule closes that gap with a real, governor-decided envelope: exactly five atomic actions (fix.imports, fix.ids, fix.logging, fix.headers, fix.format), Python files under src/ or tests/ only, no flows. Enforcement is deterministic and runs on every safe-auto-approval attempt via ProposalStateManager.approve() -- see will.autonomy.safe_auto_approval_envelope.validate_envelope. A denial leaves the proposal in PENDING for principal.governor review; it is never silently rejected, deleted, or rolled back. Own document since ADR-159 Note 2026-09-17 (ruling M1(a)), moved out of rules/will/autonomy.json unchanged: the ADR-159 I-6 authority probe must name a rule that exists in the law the bound process actually loads, and the Trial 0 subject (c4d9fdf9) predates this rule; an additive document enters the frozen subject through the Trial 0 overlay byte-identical, without modifying any subject file -- the same path as architecture.execution_write.repository_containment (D2)."
+        }
+    ]
+}

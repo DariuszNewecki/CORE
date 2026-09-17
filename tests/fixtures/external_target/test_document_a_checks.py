@@ -90,6 +90,8 @@ TRIAL0_OVERLAY = (
 )
 CONTAINMENT_RULE_FILE = "rules/architecture/execution_write_containment.json"
 ENVELOPE_FILE = "enforcement/config/safe_auto_approval_envelope.yaml"
+ENVELOPE_RULE_FILE = "rules/will/safe_auto_approval_envelope.json"
+ENVELOPE_MAPPING_FILE = "enforcement/mappings/will/safe_auto_approval_envelope.yaml"
 EVALUATION_WORKFLOW_FILE = "workflows/definitions/evaluation.yaml"
 
 TASK_STATEMENT = "Evaluate the package"
@@ -760,8 +762,26 @@ def test_i6_authority_boundary_refuses_under_the_overlay_envelope() -> None:
     assert denial.rule_id == ENVELOPE_RULE_ID == probes.ENVELOPE_RULE_ID
     assert denial.authorization_mode == "deny_all"
 
-    doc = _json(REPO_ROOT / ".intent" / "rules" / "will" / "autonomy.json")
-    assert ENVELOPE_RULE_ID in {r["id"] for r in doc["rules"]}
+    # "names a rule that exists at the pinned commit": the rule reaches the
+    # pinned subject through the Trial 0 overlay -- its own additive document
+    # (ADR-159 Note 2026-09-17, ruling M1(a)), byte-identical to CORE's, with
+    # its mapping. Checking CORE's own .intent/ alone was the mapping-review
+    # miss: the rule postdates the subject c4d9fdf9.
+    for rel in (ENVELOPE_RULE_FILE, ENVELOPE_MAPPING_FILE):
+        overlay_copy = TRIAL0_OVERLAY / rel
+        canonical = REPO_ROOT / ".intent" / rel
+        assert overlay_copy.is_file(), (
+            f"{rel} must reach the pinned subject via the overlay"
+        )
+        assert overlay_copy.read_bytes() == canonical.read_bytes(), rel
+    (rule,) = _json(TRIAL0_OVERLAY / ENVELOPE_RULE_FILE)["rules"]
+    assert rule["id"] == ENVELOPE_RULE_ID and rule["enforcement"] == "blocking"
+    mapping = yaml.safe_load((TRIAL0_OVERLAY / ENVELOPE_MAPPING_FILE).read_text())
+    assert ENVELOPE_RULE_ID in mapping["mappings"]
+    autonomy = _json(REPO_ROOT / ".intent" / "rules" / "will" / "autonomy.json")
+    assert ENVELOPE_RULE_ID not in {r["id"] for r in autonomy["rules"]}, (
+        "the rule lives in exactly one document"
+    )
 
 
 async def test_a7_probes_are_logged_as_probes_and_a_failure_is_never_softened(

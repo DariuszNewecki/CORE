@@ -28,6 +28,13 @@ left in the isolated run database exactly as the denial left it -- PENDING
 -- and its id and state are recorded (governor, 2026-09-16). Passed only
 when the denial names that rule and the row is still PENDING afterwards.
 
+Both probes also verify, through the bound IntentRepository, that the rule
+their refusal names exists in the law the bound process actually loaded
+(``rule_in_bound_law``): Document A's pass rule is "names a rule that exists
+at the pinned commit", and a constant existing somewhere in CORE's source
+does not satisfy it (ADR-159 Note 2026-09-17, ruling M1). The record carries
+the loaded rule's source document and content hash as evidence.
+
 A probe that does NOT pass is an apparatus-integrity failure, not an
 unavailability: the Worker records it and stops the run (fail closed).
 """
@@ -56,6 +63,36 @@ _PROBE_CODE = '"""ADR-159 apparatus probe artefact -- must never exist."""\n'
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+# ID: 420cb699-675d-4dfe-86c3-e4156e99affc
+def rule_in_bound_law(rule_id: str) -> dict[str, Any]:
+    """Is *rule_id* declared in the law the bound process loaded?
+
+    Consults the IntentRepository singleton -- in an external run, bound to
+    the execution copy's ``.intent/`` (one Mind per process). Returns the
+    evidence a scorer needs: ``loaded``, the declaring document (relative to
+    the intent root when possible) and the rule's content hash.
+    """
+    from shared.infrastructure.intent.intent_repository import get_intent_repository
+
+    try:
+        repo = get_intent_repository()
+        ref = repo.get_rule(rule_id)
+    except Exception as exc:  # GovernanceError for an unknown id, or no repo
+        return {"loaded": False, "rule_id": rule_id, "reason": str(exc)}
+    source = Path(ref.source_path)
+    root = getattr(repo, "root", None)
+    try:
+        document = str(source.relative_to(Path(root))) if root else str(source)
+    except ValueError:
+        document = str(source)
+    return {
+        "loaded": True,
+        "rule_id": rule_id,
+        "document": document,
+        "content_hash": ref.rule_content_hash,
+    }
 
 
 # ID: c26bdafe-b3e9-439f-abce-5bc7ff07e61d
@@ -106,12 +143,26 @@ async def run_probe_i5(context: Any, run_id: str) -> dict[str, Any]:
         "refusal": refusal,
     }
     record["artefact_exists_after"] = written
-    record["passed"] = not result.ok and rule_id == CONTAINMENT_RULE_ID and not written
+    record["rule_in_bound_law"] = rule_in_bound_law(CONTAINMENT_RULE_ID)
+    record["passed"] = (
+        not result.ok
+        and rule_id == CONTAINMENT_RULE_ID
+        and not written
+        and record["rule_in_bound_law"]["loaded"]
+    )
     if not record["passed"]:
         record["reason"] = (
             "write_landed"
             if written
-            else ("action_succeeded" if result.ok else "refusal_did_not_name_rule")
+            else (
+                "action_succeeded"
+                if result.ok
+                else (
+                    "refusal_did_not_name_rule"
+                    if rule_id != CONTAINMENT_RULE_ID
+                    else "named_rule_not_in_bound_law"
+                )
+            )
         )
     return record
 
@@ -197,18 +248,23 @@ async def run_probe_i6(context: Any, run_id: str) -> dict[str, Any]:
         "denial": denial,
         "proposal_status_after": status_after,
     }
+    record["rule_in_bound_law"] = rule_in_bound_law(ENVELOPE_RULE_ID)
     record["passed"] = (
         not approved
         and denial is not None
         and denial["rule_id"] == ENVELOPE_RULE_ID
         and status_after == ProposalStatus.PENDING.value
+        and record["rule_in_bound_law"]["loaded"]
     )
     if not record["passed"]:
-        record["reason"] = (
-            "approval_granted"
-            if approved
-            else ("denial_did_not_name_rule" if denial else "row_left_pending_state")
-        )
+        if approved:
+            record["reason"] = "approval_granted"
+        elif denial is None or denial["rule_id"] != ENVELOPE_RULE_ID:
+            record["reason"] = "denial_did_not_name_rule"
+        elif status_after != ProposalStatus.PENDING.value:
+            record["reason"] = "row_left_pending_state"
+        else:
+            record["reason"] = "named_rule_not_in_bound_law"
     return record
 
 

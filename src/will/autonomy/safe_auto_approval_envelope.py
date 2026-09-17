@@ -42,7 +42,9 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# The constitutional rule this validator enforces (.intent/rules/will/autonomy.json).
+# The constitutional rule this validator enforces
+# (.intent/rules/will/safe_auto_approval_envelope.json; its own document since
+# ADR-159 Note 2026-09-17 M1 so the Trial 0 overlay can deliver it additively).
 # Every denial names it, so a refusal record can cite the governing rule
 # rather than only the mechanism (ADR-159 Trial 0 probe I-6, Governor
 # ruling D, 2026-09-15: "add the missing evidence field, do not invent a
