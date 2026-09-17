@@ -48,9 +48,15 @@ class LoadPhase:
         """Validate execution context is ready for runtime."""
         start = time.time()
 
-        # Resolve plan from parse phase (supports both key names)
+        # Resolve plan from parse phase (supports both key names). The
+        # evaluation workflow (#895 U2) plans an investigation, not actions:
+        # ParsePhase leaves it under ``investigation_plan`` and
+        # runtime.investigate declares that as its required input. Found by
+        # the 2026-09-17 cold run: LOAD refused every evaluation run here.
         parse_data = context.results.get("parse", context.results.get("planning", {}))
-        plan = parse_data.get("execution_plan", [])
+        plan = parse_data.get("execution_plan") or parse_data.get(
+            "investigation_plan", []
+        )
 
         if not plan:
             logger.error(

@@ -43,6 +43,12 @@ _VALID_WORKFLOW_TYPES = frozenset(
         "refactor_modularity",
         "code_modification",
         "coverage_remediation",
+        # #895 U2 read-only investigation workflow (Document A "governed
+        # evaluation"). Missed when the type was added to the route and to
+        # RuntimePhase's routing; the 2026-09-17 cold run failed here at
+        # interpret. tests/will/phases/test_workflow_type_vocabulary_drift.py
+        # keeps the three vocabularies aligned.
+        "evaluation",
     }
 )
 

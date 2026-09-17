@@ -20,6 +20,8 @@ import pytest
 from shared.models.execution_models import ExecutionTask, TaskParams
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.workers.base import WorkerSilenceError
+from will.agents.investigation_planner import InvestigationStep
+from will.orchestration.goal_run_records import blackboard_safe
 from will.workers.goal_execution_worker import GoalExecutionWorker
 
 
@@ -936,19 +938,25 @@ def _investigation_result() -> PhaseWorkflowResult:
             PhaseResult(
                 name="runtime",
                 ok=True,
+                # The REAL shape: RuntimePhase nests each sub-phase's data
+                # under its name. A flat {"findings": ...} fixture hid the
+                # 2026-09-17 cold-run finding (no finding records posted).
                 data={
-                    "findings": [
-                        {
-                            "path": "",
-                            "scope": "target",
-                            "category": "layout",
-                            "statement": "Target holds 3 files.",
-                            "evidence_refs": ["reconnaissance.layout"],
-                            "confidence": 1.0,
-                        }
-                    ],
-                    "findings_count": 1,
-                    "steps_executed": 1,
+                    "candidate_outputs_produced": True,
+                    "investigation": {
+                        "findings": [
+                            {
+                                "path": "",
+                                "scope": "target",
+                                "category": "layout",
+                                "statement": "Target holds 3 files.",
+                                "evidence_refs": ["reconnaissance.layout"],
+                                "confidence": 1.0,
+                            }
+                        ],
+                        "findings_count": 1,
+                        "steps_executed": 1,
+                    },
                 },
                 duration_sec=1.0,
             ),
@@ -977,7 +985,10 @@ async def test_an_investigation_with_no_findings_says_so() -> None:
     """Silence would be indistinguishable from findings that were lost."""
     worker = _make_worker()
     result = _investigation_result()
-    result.phase_results[1].data = {"findings": [], "steps_executed": 2}
+    result.phase_results[1].data = {
+        "candidate_outputs_produced": True,
+        "investigation": {"findings": [], "steps_executed": 2},
+    }
     orch_patch, registry_patch = _patched_orchestrator(result)
 
     with orch_patch, registry_patch:
@@ -1089,3 +1100,32 @@ async def test_develop_from_goal_returns_stable_apparatus_integrity_message() ->
     assert ok is False
     assert message.startswith(ad.APPARATUS_INTEGRITY_PREFIX)
     assert "I-5" in message and worker.run_id in message
+
+
+# ---------------------------------------------------------------------------
+# blackboard_safe renders dataclasses (2026-09-17 cold-run finding)
+# ---------------------------------------------------------------------------
+
+
+def test_blackboard_safe_renders_dataclass_plan_steps() -> None:
+    """The evaluation workflow's plan is ``list[InvestigationStep]`` (a frozen
+    dataclass). Posting it raw crashed the outcome post with "Object of type
+    InvestigationStep is not JSON serializable" and lost the run's outcome
+    record -- the same bug class blackboard_safe already handled for the
+    pydantic ``ExecutionTask`` plan."""
+    import json
+
+    plan = {
+        "investigation_plan": [
+            InvestigationStep(step="1", action="inspect.layout", params={"depth": 1})
+        ],
+        "nested": ({"steps": [InvestigationStep("2", "inspect.absences", {})]},),
+    }
+    safe = blackboard_safe(plan)
+    assert safe["investigation_plan"] == [
+        {"step": "1", "action": "inspect.layout", "params": {"depth": 1}}
+    ]
+    assert safe["nested"][0]["steps"][0]["action"] == "inspect.absences"
+    json.dumps(safe)  # the actual contract: the Blackboard stores json.dumps(payload)
+    # a dataclass *type* (not an instance) passes through untouched
+    assert blackboard_safe(InvestigationStep) is InvestigationStep

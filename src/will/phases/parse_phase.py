@@ -31,6 +31,7 @@ from shared.models.workflow_models import PhaseResult
 from will.agents.investigation_planner import (
     InvestigationPlanError,
     create_investigation_plan,
+    investigation_decisions,
 )
 from will.agents.planner_agent import PlannerAgent
 
@@ -247,7 +248,9 @@ class ParsePhase:
             "steps_count": len(plan),
             "goal": goal,
             "reconnaissance": recon_data,
-            "decisions": self._decision_records(),
+            # This planner has no DecisionTracer; its reasoning is the plan's
+            # own stated purpose per step (2026-09-17 cold-run finding).
+            "decisions": investigation_decisions(plan),
         }
         context.results["parse"] = plan_data
         context.results["planning"] = plan_data

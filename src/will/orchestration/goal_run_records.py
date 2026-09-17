@@ -20,6 +20,7 @@ originates, and are only carried faithfully here.
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Protocol
 
 from pydantic import BaseModel
@@ -59,10 +60,17 @@ def blackboard_safe(value: Any) -> Any:
     outcome path once a plan exists, and the run's outcome is never recorded
     (the #894 seeded live run was the first orchestrator-path run with a
     real plan to reach this line; the ADR-160 create_proposal_only path posts
-    no plan). Containers are walked; other values pass through unchanged.
+    no plan). Dataclass instances are rendered via ``asdict``. Containers
+    are walked; other values pass through unchanged.
     """
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        # Same bug class, second instance (2026-09-17 cold run): the
+        # evaluation workflow's plan is list[InvestigationStep], a frozen
+        # dataclass, and the outcome post crashed on it -- losing the run's
+        # outcome record entirely, which is an I-4 failure, not just a log line.
+        return blackboard_safe(dataclasses.asdict(value))
     if isinstance(value, dict):
         return {k: blackboard_safe(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -192,6 +200,13 @@ async def post_finding_records(
     runtime_data = next(
         (p.data for p in result.phase_results if p.name == "runtime"), {}
     )
+    # RuntimePhase nests each sub-phase's data under its name
+    # (``data["investigation"]["findings"]``); reading the flat key alone
+    # found nothing and returned silently -- the 2026-09-17 cold run posted
+    # neither findings nor ``findings.empty`` for a run that produced three.
+    investigation = (runtime_data or {}).get("investigation")
+    if isinstance(investigation, dict) and "findings" in investigation:
+        runtime_data = investigation
     if "findings" not in (runtime_data or {}):
         return
 

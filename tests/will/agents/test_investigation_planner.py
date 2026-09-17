@@ -11,6 +11,8 @@ import pytest
 from will.agents.investigation_planner import (
     INVESTIGATION_STEP_VOCABULARY,
     InvestigationPlanError,
+    InvestigationStep,
+    investigation_decisions,
     parse_and_validate_investigation_plan,
     validate_investigation_plan,
 )
@@ -102,3 +104,26 @@ def test_vocabulary_contains_no_mutating_entry() -> None:
     for action in INVESTIGATION_STEP_VOCABULARY:
         assert not action.startswith(forbidden_prefixes), action
         assert action.startswith("inspect."), action
+
+
+def test_investigation_decisions_put_the_planners_reasoning_on_record() -> None:
+    """One structured decision per planned step: the action chosen, the
+    purpose the planner stated for it, and the closed vocabulary it chose
+    from. No confidence is invented (the planner never states one)."""
+    plan = [
+        InvestigationStep("Establish the layout", "inspect.layout", {}),
+        InvestigationStep(
+            "Read the manifest", "inspect.path", {"path": "pyproject.toml"}
+        ),
+    ]
+    decisions = investigation_decisions(plan)
+    assert [d["step_index"] for d in decisions] == [1, 2]
+    assert decisions[0]["chosen"] == "inspect.layout"
+    assert decisions[0]["rationale"] == "Establish the layout"
+    assert "inspect.layout" not in decisions[0]["alternatives"]
+    assert set(decisions[0]["alternatives"]) | {"inspect.layout"} == set(
+        INVESTIGATION_STEP_VOCABULARY
+    )
+    assert decisions[1]["params"] == {"path": "pyproject.toml"}
+    assert "confidence" not in decisions[0]
+    assert investigation_decisions([]) == []

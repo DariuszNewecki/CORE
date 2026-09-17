@@ -195,6 +195,34 @@ def _is_mutating(action: str, description: str) -> bool:
     return any(verb in lowered_description for verb in _MUTATING_VERBS)
 
 
+# ID: 364f60d7-7f99-4d7a-8a1d-e950f59b06a3
+def investigation_decisions(plan: list[InvestigationStep]) -> list[dict[str, Any]]:
+    """The planner's reasoning as structured decision records, one per step.
+
+    Document A A6 asks the run to "record ... its reasoning to the blackboard".
+    The mutation planners do that through PlannerAgent's DecisionTracer;
+    this planner never touches a tracer, so ParsePhase's mirror found nothing
+    and the 2026-09-17 cold run posted no ``goal_run.<id>.decision.<n>`` at
+    all. What the planner genuinely decided is on hand: which read-only step
+    it chose, the purpose it stated for it, and the closed vocabulary it chose
+    from. Nothing else is claimed -- no confidence is invented.
+    """
+    records: list[dict[str, Any]] = []
+    for index, step in enumerate(plan, 1):
+        records.append(
+            {
+                "agent": "investigation_planner",
+                "decision_type": "investigation_step_planned",
+                "chosen": step.action,
+                "rationale": step.step,
+                "alternatives": sorted(INVESTIGATION_STEP_VOCABULARY - {step.action}),
+                "params": dict(step.params),
+                "step_index": index,
+            }
+        )
+    return records
+
+
 # ID: 74eb4fd7-2d05-4ff0-9413-382ff2f1e329
 async def create_investigation_plan(
     cognitive_service: Any,
