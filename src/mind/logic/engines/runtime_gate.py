@@ -62,11 +62,53 @@ _RULE_ID_MAX_INTERVAL = "runtime.worker_max_interval_within_observed"
 
 # Issue #516 audit parameters. The 1.1 multiplier accommodates measurement
 # jitter without papering over drift; the 10-sample minimum prevents
-# warm-up-window alarms after daemon restart; the 24h window balances
-# evidence sufficiency against tracking workload changes.
+# warm-up-window alarms after daemon restart. The lookback is PER WORKER
+# (governor ruling 2026-09-17, exposed by the #895 cold review): a fixed 24h
+# window can never hold 10 heartbeat gaps for a worker whose declared
+# max_interval exceeds ~2.4h, so slow-cadence workers reported UNKNOWN
+# forever -- a structurally impossible control, not insufficient evidence.
+# Window = max(24h, (min_samples + 1) x declared max_interval); the extra
+# interval keeps boundary timing from making the tenth gap unattainable.
+# No cap: a cap shorter than the required window recreates the defect.
 _MAX_INTERVAL_MULTIPLIER = 1.1
 _MAX_INTERVAL_MIN_SAMPLES = 10
-_MAX_INTERVAL_LOOKBACK_HOURS = 24
+_MAX_INTERVAL_LOOKBACK_HOURS = 24  # the floor, never the ceiling
+_HEARTBEAT_SUBJECT = "worker.heartbeat"
+
+
+# ID: 718965dc-8542-42b7-9a3d-7219104d6951
+def max_interval_lookback_hours(declared_max_interval_sec: int) -> float:
+    """Per-worker evidence window for runtime.worker_max_interval_within_observed.
+
+    ``max(24h, (min_samples + 1) x declared max_interval)``, in hours.
+    Uncapped by design (governor ruling 2026-09-17): a daily worker needs
+    roughly eleven days of uninterrupted evidence to yield ten gaps, and
+    that delay is honest -- a shorter window would make the rule
+    undecidable for exactly the workers it is meant to check.
+    """
+    required_sec = (_MAX_INTERVAL_MIN_SAMPLES + 1) * declared_max_interval_sec
+    return max(float(_MAX_INTERVAL_LOOKBACK_HOURS), required_sec / 3600.0)
+
+
+# ID: e06b6c2d-1bb4-4e5d-82ef-fdb495ae7324
+def heartbeat_retention_hours() -> float | None:
+    """How long ``worker.heartbeat`` rows are retained, or None if unbounded.
+
+    The only Blackboard retention rail that hard-deletes rows by subject is
+    ADR-082 Mechanism 1 (``blackboard.telemetry_subject_prefixes`` past
+    ``telemetry_ttl_days``, run by BlackboardShopManager). Heartbeats are
+    retained only as long as that TTL if their subject matches a listed
+    prefix; otherwise nothing deletes them and the window is unbounded.
+    Read from the governed operational config, never assumed.
+    """
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+
+    bb = load_operational_config().blackboard
+    if any(_HEARTBEAT_SUBJECT.startswith(p) for p in bb.telemetry_subject_prefixes):
+        return float(bb.telemetry_ttl_days) * 24.0
+    return None
 
 
 # ID: 76f91a2c-9253-41b3-996f-48f187bb191c
@@ -368,10 +410,13 @@ async def _check_worker_max_interval_within_observed(
     For each active worker declared in .intent/workers/<stem>.yaml with a
     `schedule.max_interval` and an `identity.uuid`:
 
-    1. Aggregate the last 24h of `worker.heartbeat` blackboard entries
-       for that uuid via SQL window function (LAG over created_at).
-    2. Skip silently if fewer than 10 inter-heartbeat samples are
-       available — insufficient evidence to compare.
+    1. Aggregate `worker.heartbeat` blackboard entries for that uuid over
+       a PER-WORKER window, max(24h, 11 x declared max_interval), via SQL
+       window function (LAG over created_at). A window the retention rail
+       cannot supply is reported as unsatisfiable configuration, never as
+       a worker failure.
+    2. Surface fewer than 10 inter-heartbeat samples as unavailable
+       evidence (#856) — insufficient evidence to compare.
     3. Compute observed p95 inter-heartbeat gap from the SQL aggregation.
     4. Emit a reporting finding when p95 exceeds
        `max_interval x 1.1` — accommodates measurement jitter without
@@ -430,11 +475,23 @@ async def _check_worker_max_interval_within_observed(
     # ENFORCEMENT_UNAVAILABLE finding can be emitted after the loop —
     # insufficient evidence is unavailable, not a pass, for a blocking rule.
     insufficient_evidence: list[tuple[str, int]] = []
+    unsatisfiable: list[tuple[str, float, float]] = []
+    retention_hours = heartbeat_retention_hours()
     for stem, w in workers.items():
+        lookback_hours = max_interval_lookback_hours(w["max_interval"])
+        if retention_hours is not None and lookback_hours > retention_hours:
+            # The evidence this worker needs cannot exist under the
+            # configured retention: a configuration defect, not a worker
+            # failure and not insufficient samples.
+            unsatisfiable.append((stem, lookback_hours, retention_hours))
+            continue
         # Window function over heartbeats: gap to previous heartbeat per
-        # worker_uuid over the lookback window. PERCENTILE_CONT yields the
-        # continuous p95 in seconds. COUNT excludes the first row (its
-        # gap is NULL by definition).
+        # worker_uuid over the per-worker lookback window. PERCENTILE_CONT
+        # yields the continuous p95 in seconds. COUNT excludes the first
+        # row (its gap is NULL by definition). Grouping is by declared
+        # worker_uuid, not process instance: a daemon restart shows up as
+        # one large gap inside the window rather than resetting the
+        # evidence, which is the honest reading of a cycle cap (ADR-103).
         r = await session.execute(
             text(
                 """
@@ -458,7 +515,7 @@ async def _check_worker_max_interval_within_observed(
             ),
             {
                 "worker_uuid": w["uuid"],
-                "hours": _MAX_INTERVAL_LOOKBACK_HOURS,
+                "hours": lookback_hours,
             },
         )
         row = r.first()
@@ -504,7 +561,7 @@ async def _check_worker_max_interval_within_observed(
                     "configured_max_interval_sec": w["max_interval"],
                     "observed_p95_gap_sec": round(p95_gap, 2),
                     "samples": samples,
-                    "lookback_hours": _MAX_INTERVAL_LOOKBACK_HOURS,
+                    "lookback_hours": lookback_hours,
                     "multiplier": _MAX_INTERVAL_MULTIPLIER,
                     "suggested_max_interval_sec": suggested,
                 },
@@ -515,6 +572,8 @@ async def _check_worker_max_interval_within_observed(
         findings.append(
             _unavailable_finding_insufficient_samples(insufficient_evidence)
         )
+    if unsatisfiable:
+        findings.append(_unavailable_finding_retention_too_short(unsatisfiable))
 
     return findings
 
@@ -557,7 +616,9 @@ def _unavailable_finding_insufficient_samples(
         message=(
             f"runtime.worker_max_interval_within_observed: {len(insufficient)} "
             f"active worker(s) have fewer than {_MAX_INTERVAL_MIN_SAMPLES} "
-            f"heartbeat-gap samples in the last {_MAX_INTERVAL_LOOKBACK_HOURS}h "
+            f"heartbeat-gap samples in their evidence window "
+            f"(max({_MAX_INTERVAL_LOOKBACK_HOURS}h, "
+            f"{_MAX_INTERVAL_MIN_SAMPLES + 1} x declared max_interval)) "
             f"— insufficient evidence to compare configured vs. observed "
             f"max_interval. Compliance status UNKNOWN for these workers, not "
             f"a pass: {', '.join(f'{s} ({n} samples)' for s, n in insufficient)}."
@@ -569,5 +630,43 @@ def _unavailable_finding_insufficient_samples(
             "min_samples_required": _MAX_INTERVAL_MIN_SAMPLES,
             "affected_worker_stems": stems,
             "sample_counts": dict(insufficient),
+        },
+    )
+
+
+# ID: 54f7d96a-6b48-4f32-bc56-ba55d5e57bca
+def _unavailable_finding_retention_too_short(
+    unsatisfiable: list[tuple[str, float, float]],
+) -> AuditFinding:
+    """One aggregated ENFORCEMENT_UNAVAILABLE finding for every worker whose
+    required evidence window exceeds the configured heartbeat retention
+    (governor ruling 2026-09-17). The configuration is unsatisfiable: no
+    amount of uptime can produce the evidence, so this is neither a worker
+    failure nor insufficient samples, and it names the two numbers an
+    operator must reconcile."""
+    stems = [stem for stem, _, _ in unsatisfiable]
+    detail = ", ".join(
+        f"{stem} (needs {need:.0f}h, retained {have:.0f}h)"
+        for stem, need, have in unsatisfiable
+    )
+    return AuditFinding(
+        check_id=_RULE_ID_MAX_INTERVAL,
+        severity=AuditSeverity.BLOCK,  # rule_executor maps from rule.enforcement anyway
+        message=(
+            f"runtime.worker_max_interval_within_observed: {len(unsatisfiable)} "
+            f"active worker(s) declare a max_interval whose evidence window "
+            f"({_MAX_INTERVAL_MIN_SAMPLES + 1} x max_interval) exceeds the "
+            f"configured worker.heartbeat retention — the evidence cannot "
+            f"exist under this configuration. Unsatisfiable, not a worker "
+            f"failure: raise blackboard.telemetry_ttl_days or stop retaining "
+            f"heartbeats by TTL. {detail}."
+        ),
+        file_path=".intent/enforcement/config/operational_config.yaml",
+        context={
+            "finding_type": "ENFORCEMENT_UNAVAILABLE",
+            "reason": "retention_shorter_than_required_window",
+            "affected_worker_stems": stems,
+            "required_window_hours": {s: round(n, 2) for s, n, _ in unsatisfiable},
+            "retention_hours": unsatisfiable[0][2],
         },
     )

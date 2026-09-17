@@ -1,7 +1,10 @@
 """Tests for runtime_gate.worker_max_interval_within_observed (#516, #856).
 
 The check aggregates worker.heartbeat rows from core.blackboard_entries
-per worker_uuid over a 24h window and fires when the observed p95
+per worker_uuid over a PER-WORKER window, max(24h, 11 x declared
+max_interval) (governor ruling 2026-09-17, #895 cold review: a fixed 24h
+window made the rule undecidable for 6h and daily workers), and fires when
+the observed p95
 inter-heartbeat gap exceeds the configured ``mandate.schedule.max_interval``
 times 1.1. #856: workers with fewer than 10 samples, or a missing
 db_session entirely, no longer skip silently -- both surface as one
@@ -22,8 +25,11 @@ from unittest.mock import AsyncMock
 import pytest
 import yaml
 
+from mind.logic.engines import runtime_gate
 from mind.logic.engines.runtime_gate import (
     _check_worker_max_interval_within_observed,
+    heartbeat_retention_hours,
+    max_interval_lookback_hours,
 )
 
 
@@ -250,3 +256,182 @@ async def test_worker_without_max_interval_skipped(tmp_path: Path) -> None:
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])
+
+
+# ------------------------------------------------------------------------
+# Per-worker evidence window (governor ruling 2026-09-17, exposed by #895)
+# ------------------------------------------------------------------------
+
+
+def _ctx_capturing_hours(repo_root: Path, rows: list[Any]):
+    """Like _ctx_with_rows, but records the :hours bound parameter of every
+    execute() so the window is asserted, not inferred."""
+    seen: list[float] = []
+
+    async def _execute(_stmt, params=None, **_kwargs):
+        seen.append(float((params or {})["hours"]))
+        return SimpleNamespace(first=lambda: rows.pop(0) if rows else None)
+
+    session = SimpleNamespace(execute=AsyncMock(side_effect=_execute))
+    return SimpleNamespace(repo_path=repo_root, db_session=session), seen
+
+
+@pytest.fixture(autouse=True)
+def _heartbeats_retained_unbounded(monkeypatch: pytest.MonkeyPatch):
+    """Default: no TTL applies to worker.heartbeat (CORE's real configuration:
+    only loop_hold.sample:: is under the telemetry TTL). Tests override."""
+    monkeypatch.setattr(runtime_gate, "heartbeat_retention_hours", lambda: None)
+
+
+@pytest.mark.parametrize(
+    ("max_interval", "expected_hours"),
+    [
+        (600, 24.0),  # fast (10 min): 11 x 600s = 1.8h < 24h floor
+        (7200, 24.0),  # 2h: 22h < 24h floor -- still the floor
+        (21600, 66.0),  # six-hour worker: 11 x 6h = 66h
+        (86400, 264.0),  # daily worker: 11 days
+    ],
+)
+def test_lookback_is_max_of_floor_and_eleven_intervals(
+    max_interval: int, expected_hours: float
+) -> None:
+    assert max_interval_lookback_hours(max_interval) == expected_hours
+
+
+def test_lookback_is_uncapped_for_very_slow_workers() -> None:
+    """No cap (governor ruling): a cap shorter than the required window
+    recreates the defect the ruling fixes."""
+    weekly = 7 * 86400
+    assert max_interval_lookback_hours(weekly) == 11 * 7 * 24.0
+
+
+async def test_six_hour_and_daily_workers_are_queried_over_their_own_windows(
+    tmp_path: Path,
+) -> None:
+    """The three workers the 2026-09-17 DB-backed audit could never decide
+    under a fixed 24h window each get a window that can hold ten gaps."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(
+        workers, "archiver", "11111111-2222-3333-4444-555555555555", 86400
+    )
+    _write_worker_yaml(workers, "fast", "22222222-2222-3333-4444-555555555555", 600)
+    _write_worker_yaml(
+        workers, "janitor", "33333333-2222-3333-4444-555555555555", 21600
+    )
+    rows = [
+        SimpleNamespace(samples=10, p95=86000.0),  # archiver: within cap
+        SimpleNamespace(samples=120, p95=590.0),  # fast: within cap
+        SimpleNamespace(samples=11, p95=21500.0),  # janitor: within cap
+    ]
+    ctx, hours_seen = _ctx_capturing_hours(tmp_path, rows)
+    out = await _check_worker_max_interval_within_observed(ctx)
+    assert out == []
+    # sorted(glob) order: archiver, fast, janitor
+    assert hours_seen == [264.0, 24.0, 66.0]
+
+
+@pytest.mark.parametrize("phase_fraction", [0.0, 0.25, 0.5, 0.99, 0.999])
+def test_window_boundary_timing_cannot_lose_the_tenth_gap(
+    phase_fraction: float,
+) -> None:
+    """A worker heartbeating exactly at its declared cadence has its latest
+    ten gaps spanning 10 x max_interval. The audit runs at an arbitrary
+    moment inside the interval after the last heartbeat (phase 0..1), so a
+    10-interval window would drop the oldest of those eleven heartbeats for
+    any phase > 0 and leave nine gaps. The eleventh interval in the window
+    covers every phase in [0, 1). Phase 1.0 is the instant the next
+    heartbeat is due and the SQL's strict ``created_at >`` excludes the
+    boundary row -- the degenerate case, not timing jitter. Residual, on
+    record: heartbeats that are ALL late by the tolerated 1.1x spend the
+    eleventh interval on jitter alone; that shows up as insufficient
+    samples (UNAVAILABLE), never as a false pass."""
+    max_interval = 21600
+    window_sec = int(max_interval_lookback_hours(max_interval) * 3600)
+    now = 10_000_000
+    last = now - int(phase_fraction * max_interval)
+    heartbeats = [last - k * max_interval for k in range(11)]  # 11 beats, 10 gaps
+    in_window = [hb for hb in heartbeats if hb > now - window_sec]
+    assert len(in_window) - 1 >= 10, (
+        f"phase {phase_fraction}: only {len(in_window) - 1} gaps inside the window"
+    )
+    # and a 10-interval window WOULD lose it for any positive phase
+    ten_interval_window = 10 * max_interval
+    in_short = [hb for hb in heartbeats if hb > now - ten_interval_window]
+    if phase_fraction > 0:
+        assert len(in_short) - 1 < 10
+
+
+async def test_insufficient_history_in_a_long_window_is_still_unavailable(
+    tmp_path: Path,
+) -> None:
+    """A daily worker with only three gaps inside its 264h window: still
+    insufficient evidence -> UNAVAILABLE, and the message no longer claims
+    a 24h window it did not use."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(
+        workers, "archiver", "11111111-2222-3333-4444-555555555555", 86400
+    )
+    ctx, hours_seen = _ctx_capturing_hours(
+        tmp_path, [SimpleNamespace(samples=3, p95=86000.0)]
+    )
+    out = await _check_worker_max_interval_within_observed(ctx)
+    assert hours_seen == [264.0]
+    (finding,) = out
+    assert finding.context["reason"] == "insufficient_samples"
+    assert finding.context["sample_counts"] == {"archiver": 3}
+    assert "24h —" not in finding.message
+    assert "11 x declared max_interval" in finding.message
+
+
+async def test_retention_shorter_than_required_window_is_unsatisfiable_not_a_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If heartbeats were retained for 7 days, a daily worker's 11-day
+    window could never be filled: that is an unsatisfiable configuration,
+    reported as such -- distinct from insufficient samples, never a worker
+    failure -- and the DB is not even queried for that worker."""
+    monkeypatch.setattr(runtime_gate, "heartbeat_retention_hours", lambda: 7 * 24.0)
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(
+        workers, "archiver", "11111111-2222-3333-4444-555555555555", 86400
+    )
+    _write_worker_yaml(
+        workers, "janitor", "33333333-2222-3333-4444-555555555555", 21600
+    )
+    ctx, hours_seen = _ctx_capturing_hours(
+        tmp_path, [SimpleNamespace(samples=12, p95=21000.0)]
+    )
+    out = await _check_worker_max_interval_within_observed(ctx)
+    assert hours_seen == [66.0], "only the satisfiable worker was queried"
+    (finding,) = out
+    assert finding.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert finding.context["reason"] == "retention_shorter_than_required_window"
+    assert finding.context["affected_worker_stems"] == ["archiver"]
+    assert finding.context["required_window_hours"] == {"archiver": 264.0}
+    assert finding.context["retention_hours"] == 168.0
+    assert finding.file_path == ".intent/enforcement/config/operational_config.yaml"
+    assert "not a worker failure" in finding.message
+
+
+def test_heartbeat_retention_reads_the_governed_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.undo()  # drop the autouse stub; exercise the real reader
+    from shared.infrastructure.intent import operational_config as oc
+
+    def _cfg(prefixes: tuple[str, ...], days: int = 7):
+        return SimpleNamespace(
+            blackboard=SimpleNamespace(
+                telemetry_subject_prefixes=prefixes, telemetry_ttl_days=days
+            )
+        )
+
+    monkeypatch.setattr(
+        oc, "load_operational_config", lambda: _cfg(("loop_hold.sample::",))
+    )
+    assert heartbeat_retention_hours() is None, "heartbeats are not under the TTL"
+    monkeypatch.setattr(oc, "load_operational_config", lambda: _cfg(("worker.",), 3))
+    assert heartbeat_retention_hours() == 72.0

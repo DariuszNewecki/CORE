@@ -4,9 +4,11 @@
 # drift in .intent/workers/<stem>.yaml schedule.max_interval.
 #
 # Aggregates worker.heartbeat blackboard entries per worker_uuid over a
-# 24h window, computes p95 inter-heartbeat gap, fires a finding when
+# per-worker window (max(24h, 11 x declared max_interval), uncapped;
+# governor ruling 2026-09-17), computes p95 inter-heartbeat gap, fires a finding when
 # observed p95 exceeds configured max_interval x 1.1. Workers with <10
-# samples in the window are skipped silently.
+# samples in their window surface as ENFORCEMENT_UNAVAILABLE (#856), as
+# does a window the configured heartbeat retention cannot supply.
 #
 # Engine: runtime_gate (the existing runtime telemetry engine; siblings
 # the runtime.worker_process_classification check at ADR-081 D7).
