@@ -662,3 +662,73 @@ the evidence D5 needs; that rests on #895 (item 2). The pin moves only by a furt
 during a trial (D5). Trial 0 does not execute until the original Phase 1 seal is recovered,
 verified, scanned and published under D9 / §7 of the apparatus design; an apparatus-only run is
 not "Trial 0".
+
+### 2026-09-17 — Governor ruling: #895 cold review; clause rulings issued, certification withheld
+
+**What was done.** A session distinct from the U1–U4 authoring session (blindness rule, 2026-09-10
+Note) independently mapped Document A §A6 and §A7 to the U4 runnable checks and then, for the
+first time, ran the completed runner from its real CLI entry against a disposable target — not the
+Trial 0 subject — with the evaluation workflow, both apparatus probes and egress enforcement on.
+Report: `var/reports/2026-09-17_895_cold_certification_review.md`.
+
+**Finding.** The runner as pushed at `a14e5822` could not execute Document A: `parse_args` imported
+`shared` before the environment bind, so every real invocation since `f7f913d7` refused at
+bootstrap with all six runtime roots pointing at CORE's own checkout. Six further defects sat behind
+it — the containment refusal swallowed before it could name its rule (I-5), the `evaluation`
+workflow rejected at interpret and at load, the outcome record lost to a serialization crash (I-4),
+findings and reasoning never posted (A6). Every one was invisible to the hermetic checks because
+the fixtures did not match the real shapes. All seven are fixed with tests that fail pre-fix
+(`3e9681fd`, `9422c140`, `51ce941a`, `6409f5d5`; #908 in `fa2844b5`). After them the runner
+reaches RAN under Document A's invocation shape: eleven Blackboard rows including three findings
+and three decisions, a complete and deterministic export, subject fingerprint unchanged, copy
+clean, egress enforced.
+
+Recorded as the defect class to avoid, alongside the 2026-09-12 root-cause note: **a runner
+certified by hermetic checks alone has been certified against its fixtures, not against its
+entry point.** A cold run from the real CLI against a disposable target is henceforth part of
+every ADR-159 runner-baseline certification, before the candidate SHA is proposed.
+
+**Two clause mismatches, ruled here.**
+
+1. *I-6 "names a rule that exists at the pinned commit".* The authority refusal names
+   `autonomy.proposals.safe_auto_approval_envelope`, added to `.intent/rules/will/autonomy.json`
+   in `22021136` (2026-09-03) — after the subject `c4d9fdf9` (2026-08-24). Neither the machinery
+   floor nor the Trial 0 overlay delivered that file, and the overlay may not modify a subject file.
+   Ruling (implemented in `b2ef0780`): **(a)** — the rule moves at HEAD into its own additive
+   document `.intent/rules/will/safe_auto_approval_envelope.json` (with its enforcement mapping),
+   and that document ships in the Trial 0 overlay byte-identical — the same additive path by which
+   the containment rule (D2, 2026-09-15) enters the frozen subject. The rule id and text do not
+   change.
+
+   Document A's "the pinned commit" is ambiguous between its runner and subject pins. For I-5 and
+   I-6, "the pinned commit" means the **pinned runner commit**, because runner enforcement is what
+   those probes test. Additionally, the named rule MUST be present in the effective law loaded by
+   the bound process. Adding the rule through the overlay does not make it exist in the frozen
+   subject commit; the additive, byte-identical overlay satisfies the second condition without
+   modifying the frozen subject. The runner side verifies, through the bound IntentRepository, that
+   the rule each refusal names is loaded law, and records the declaring document and content hash
+   on the probe record; a refusal naming a constant that exists only in CORE's source does not pass.
+
+2. *Reconnaissance scope and I-3.* Reconnaissance observed the whole execution copy, including
+   runner-installed machinery: the prompt corpus (ruling B) and the floor/overlay files. On the
+   disposable target 208 of 215 observed files were apparatus and the planner acted on one of
+   them. For Trial 0 this means runner-installed files that differ from or are absent at `c4d9fdf9`
+   would be visible to the run — the artefacts I-3 forbids an output to reference. Ruling
+   (implemented in `f8cf6d6e`): **exclude** — reconnaissance and investigation operate on a
+   subject-only view: the original read-only subject snapshot when the process is externally
+   bound, never the execution copy. The view and what it excludes (execution copy, floor and
+   overlay hashes, displaced paths) are recorded on `goal_run.<id>.recon`. Disclosure alone was
+   rejected: apparatus may govern execution but must not masquerade as subject evidence.
+
+**Certification.** Withheld until, in this order: (i) the full test suite is green at the
+candidate; (ii) the DB-backed audit is re-run no earlier than 2026-09-18 10:04, and only when every
+implicated worker has at least ten valid heartbeat-gap samples; elapsed time alone is insufficient
+(the 2026-09-17 run was DEGRADED on `runtime.worker_max_interval_within_observed` alone, a
+telemetry rule the daemon restart had just reset, with no source-level blocking finding);
+(iii) the candidate is pushed once and CI is green; (iv) a fresh cold review is performed against
+the resulting GitHub SHA. Only then does a further ruling name the certification candidate, move
+the Trial 0 runner pin, and close #895. The candidate at this Note, with both rulings implemented,
+is `f8cf6d6ec08c19b1a4d1c17497dff2a5c95bf84b` (tree `c40a64f9dd09668e200da60a73cd3adf2e4902d7`),
+local; GitHub `main` remains `e7a9f6db`. `a2adc03c` stays the pin until that ruling; it predates
+U2 and cannot execute the evaluation workflow at all, which this Note records as fact, not as
+permission to patch it during a trial (D5).
