@@ -1,0 +1,21 @@
+id: plan_goal
+version: "0.2.0"
+role: Planner
+description: Generate a structured multi-step plan to achieve a specified goal using available actions and reconnaissance data.
+input:
+  required:
+    - goal
+    - action_descriptions_str
+    - reconnaissance_report
+output:
+  # `format: json` is provider JSON-object mode. Providers that honour it
+  # strictly (Ollama) constrain the ROOT to an object, so the plan is the
+  # wrapper `{"plan": [...]}` -- the #425 shape -- not a bare array; a
+  # `json_schema:` block is not an option (DeepSeek rejects it, #425).
+  # base_planner.plan_steps unwraps it and still accepts a bare list.
+  format: json
+  must_contain:
+    - '"plan"'
+  must_not_contain:
+    - "```"
+success_criteria: A valid JSON plan with ordered steps, each specifying an action, parameters, and rationale that collectively achieve the goal.

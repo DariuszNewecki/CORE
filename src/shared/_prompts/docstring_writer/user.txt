@@ -1,0 +1,8 @@
+Write a docstring for the following Python symbol.
+
+```python
+{source_code}
+```
+
+Output ONLY the docstring. No code fences. No explanation. No preamble.
+Start your response directly with triple double-quotes: """

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Any
 
@@ -109,7 +110,23 @@ class PromptModelArtifact:
     system_text: str
     user_template: str
     examples: list[dict[str, Any]] = field(default_factory=list)
-    _artifact_path: Path = field(default_factory=Path)
+    _artifact_path: Traversable = field(default_factory=Path)
+
+
+def _resolve_artifact_dir(prompts_root: Path, name: str) -> Traversable:
+    """Repository artifact first; the wheel-bundled copy only when the
+    repository lacks *this* artifact (#909). Falls through to the repository
+    path when neither has it, so the caller's FileNotFoundError names the
+    repository location it looked at."""
+    repo_dir = prompts_root / name
+    if (repo_dir / "model.yaml").is_file():
+        return repo_dir
+    from shared.infrastructure.bundled_prompts import bundled_prompt
+
+    bundled = bundled_prompt(name)
+    if bundled is not None and bundled.joinpath("model.yaml").is_file():
+        return bundled
+    return repo_dir
 
 
 # ---------------------------------------------------------------------------
@@ -166,11 +183,11 @@ class PromptModel:
 
             prompts_root = settings.paths.prompts_dir
 
-        artifact_dir = prompts_root / name
+        artifact_dir = _resolve_artifact_dir(prompts_root, name)
 
         # --- Load manifest ---
         manifest_path = artifact_dir / "model.yaml"
-        if not manifest_path.exists():
+        if not manifest_path.is_file():
             raise FileNotFoundError(
                 f"PromptModel '{name}' missing model.yaml at {manifest_path}. "
                 "See: .intent/rules/ai/prompt_governance.json "
@@ -181,7 +198,7 @@ class PromptModel:
 
         # --- Load system prompt ---
         system_path = artifact_dir / "system.txt"
-        if not system_path.exists():
+        if not system_path.is_file():
             raise FileNotFoundError(
                 f"PromptModel '{name}' missing system.txt at {system_path}. "
                 "See: .intent/rules/ai/prompt_governance.json "
@@ -196,7 +213,7 @@ class PromptModel:
 
         # --- Load user template ---
         user_path = artifact_dir / "user.txt"
-        if not user_path.exists():
+        if not user_path.is_file():
             raise FileNotFoundError(
                 f"PromptModel '{name}' missing user.txt at {user_path}."
             )
@@ -205,7 +222,7 @@ class PromptModel:
         # --- Load examples (optional) ---
         examples: list[dict[str, Any]] = []
         examples_path = artifact_dir / "examples.json"
-        if examples_path.exists():
+        if examples_path.is_file():
             try:
                 examples = json.loads(examples_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as e:

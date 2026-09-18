@@ -1,0 +1,7 @@
+Strategy: {strategy}
+Instruction: {instruction}
+
+Source code to refactor:
+{original_code}
+
+Provide specific refactoring recommendations to achieve the complexity reduction target. Show before/after code examples where helpful.

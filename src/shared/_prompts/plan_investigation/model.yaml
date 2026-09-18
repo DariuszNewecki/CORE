@@ -1,0 +1,19 @@
+id: plan_investigation
+version: "0.1.0"
+role: Planner
+description: Generate an ordered, read-only investigation plan for an unfamiliar target using a closed vocabulary of inspection steps.
+input:
+  required:
+    - goal
+    - investigation_step_vocabulary
+    - reconnaissance_report
+output:
+  # Same wrapper shape as plan_goal: providers that honour JSON-object mode
+  # strictly (Ollama) constrain the ROOT to an object, so the plan is
+  # {"plan": [...]} rather than a bare array (#425).
+  format: json
+  must_contain:
+    - '"plan"'
+  must_not_contain:
+    - "```"
+success_criteria: A valid JSON plan whose every step names an action from the closed read-only vocabulary and mutates nothing.

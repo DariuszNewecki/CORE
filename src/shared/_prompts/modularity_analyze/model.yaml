@@ -1,0 +1,45 @@
+id: modularity_analyze
+version: "1.1"
+role: Architect
+description: >
+  Analyzes a source file to find its natural seam for splitting.
+  Produces a structured split plan with confidence level.
+  Does not write any files. Pure reasoning only.
+
+input:
+  required:
+    - file_path
+    - layer
+    - violations
+    - line_count
+    - content
+    - callers
+    - symbol_inventory
+
+output:
+  # `format: json` maps to OpenAI-compatible `response_format: {"type":
+  # "json_object"}` (see PromptModel._build_response_format). A `json_schema:`
+  # block here would emit `response_format: {"type": "json_schema", ...}`,
+  # which DeepSeek's API rejects with HTTP 400. Shape enforcement falls to
+  # must_contain + post-parse validation via shared.ai.response_parser.
+  # The verbal schema (can_split semantics, confidence-band scale, modules
+  # and import_updates shape) lives in system.txt / user.txt.
+  format: json
+  must_not_contain:
+    - "```"
+  max_length: 8192
+  must_contain:
+    - "can_split"
+    - "confidence"
+    - "reason"
+
+model:
+  max_tokens: 8192
+  temperature: 0.1
+
+adr_anchor: "ADR-134:D8"
+
+success_criteria: >
+  Returns valid JSON with can_split boolean and confidence level.
+  When can_split is true, modules covers every symbol in the file
+  with no symbol appearing in more than one module.

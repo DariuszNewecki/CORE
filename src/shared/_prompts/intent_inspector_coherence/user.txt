@@ -1,0 +1,9 @@
+Inspect the following .intent/ document for narrative clarity and internal coherence.
+
+Document path: {document_path}
+
+--- DOCUMENT START ---
+{document_yaml}
+--- DOCUMENT END ---
+
+Report all issues using the FINDING format, or output NO_FINDINGS if the document is coherent.

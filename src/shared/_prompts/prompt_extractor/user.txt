@@ -1,0 +1,17 @@
+File: {file_path}
+Violation at line: {line_number}
+
+Source code:
+```python
+{source_code}
+```
+
+Extract the inline prompt from the make_request_async() or make_request() call at the reported line.
+
+Respond with this exact JSON structure:
+{{
+  "prompt_text": "<extracted prompt as a template string with {{placeholder}} syntax>",
+  "suggested_name": "<snake_case name for the PromptModel artifact>",
+  "input_vars": ["<list>", "<of>", "<placeholder>", "<names>"],
+  "confidence": <float between 0.0 and 1.0>
+}}

@@ -1,0 +1,12 @@
+{source_context}COMPLIANCE REQUIREMENT:
+{instruction}
+
+CONTROL REFERENCE:
+{rationale}
+
+DOCUMENT CONTENT:
+---
+{content}
+---
+
+Decide whether the document above satisfies the compliance requirement, is deficient (gap), or does not address it at all (silent). Return your verdict in STRICT JSON with keys: coverage, violation, reasoning, finding.

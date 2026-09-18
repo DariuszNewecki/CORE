@@ -1,0 +1,8 @@
+Coherence relation under evaluation: {relation_description}
+
+Documents provided for analysis:
+
+{documents_text}
+
+Identify candidate contradictions, gaps, or drift observations between these
+documents. Output a JSON array per your instructions. If none found, output [].

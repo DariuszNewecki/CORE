@@ -1,0 +1,9 @@
+Analyze this code and suggest an appropriate capability classification.
+
+Code to analyze:
+{code}
+
+Similar existing capabilities for context:
+{similar_capabilities}
+
+Suggested capability:

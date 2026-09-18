@@ -1,0 +1,7 @@
+The user said: {user_message}
+
+Available context: {context_package}
+
+Current task: {task}
+
+Generate a clarifying response that helps the user provide more specific instructions.

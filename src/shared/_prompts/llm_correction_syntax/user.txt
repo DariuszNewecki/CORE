@@ -1,0 +1,9 @@
+File: {file_path}
+
+SYNTAX ERRORS:
+{violations_json}
+
+CODE TO FIX:
+{code}
+
+Fix ONLY the syntax errors listed above. Output the corrected code:

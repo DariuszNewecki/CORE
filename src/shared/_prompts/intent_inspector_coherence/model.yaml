@@ -1,0 +1,28 @@
+id: intent_inspector_coherence
+version: "0.1.0"
+role: LocalReasoner
+description: >
+  Analyse a single .intent/ document for narrative clarity and internal
+  coherence. Does the description match what is actually declared?
+  Are there contradictions, ambiguities, or missing explanations?
+
+input:
+  required:
+    - document_path
+    - document_yaml
+  optional: []
+
+output:
+  format: raw_text
+  max_length: 4000
+  must_contain: []
+  must_not_contain: []
+
+model:
+  preference: local
+  temperature: 0.2
+
+success_criteria: >
+  Returns a list of FINDING blocks, one per issue found, or the literal
+  string "NO_FINDINGS" if the document is coherent. Each FINDING block
+  uses the structured format described in the system prompt.

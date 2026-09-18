@@ -1,0 +1,24 @@
+id: coder_repair
+version: "1.0.0"
+role: Coder
+description: >
+  Reflexive code repair specialist. Given a pain signal (error), the original
+  goal, task description, and previous code, produces corrected Python code.
+
+input:
+  required:
+    - goal
+    - task_step
+    - pain_signal
+    - previous_code
+
+output:
+  format: raw_text
+  must_contain:
+    - "```python"
+
+adr_anchor: "ADR-025"
+
+success_criteria: >
+  Returns corrected Python code in ```python fences that addresses the
+  pain signal without drifting from the original goal.

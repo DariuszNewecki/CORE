@@ -1,0 +1,9 @@
+COMPLIANCE FRAMEWORK (the one whose domain fit you are judging):
+{framework}
+
+CORPUS EXCERPT (a sample of the customer's documents):
+---
+{corpus_excerpt}
+---
+
+Decide whether the framework above is in domain for this corpus. Name the corpus's apparent domain(s). Return your verdict in STRICT JSON format.

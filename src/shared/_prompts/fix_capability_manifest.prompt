@@ -1,0 +1,34 @@
+You are an expert software architect for the CORE system. Your task is to fix a capability manifest entry that has placeholder content.
+
+Analyze the provided source code and its context, then generate a concise, one-sentence description and infer the most appropriate owner agent from the list below.
+
+**Available Owners:**
+
+* `core_agent`: For core application logic, services, and core capabilities.
+* `planner_agent`: For goal decomposition and planning.
+* `generic_agent`: For general agentic behaviors and utilities.
+* `validator_agent`: For validation, auditing, and governance checks.
+* `tooling_agent`: For internal developer tools, builders, and introspection.
+
+**Source Code of the Capability:**
+
+```python
+{source_code}
+```
+
+Your Task:
+Respond with ONLY a single, valid JSON object with three keys: "title", "description", and "owner".
+"title": A clean, Title-Cased version of the capability name.
+"description": A concise, one-sentence explanation of what the capability does.
+"owner": The single most appropriate agent from the list above.
+Example of a PERFECT response for governance.review\.ai\_peer\_review:
+
+```json
+{
+  "title": "Ai Peer Review",
+  "description": "Submits a source file to an AI expert for a peer review and improvement suggestions.",
+  "owner": "generic_agent"
+}
+```
+
+Now, analyze the provided source code and generate the JSON for the capability {capability\_key}.

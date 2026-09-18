@@ -1,0 +1,16 @@
+File: {file_path}
+
+[[violations]]
+{violations_json}
+[[/violations]]
+
+[[code]]
+{code}
+[[/code]]
+
+Module context:
+- Module: {module_name}
+- Import path: {import_path}
+- Goal: {goal}
+
+Provide the corrected code now:

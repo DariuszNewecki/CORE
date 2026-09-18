@@ -78,7 +78,8 @@ import hashlib
 import os
 import subprocess
 import uuid
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -648,21 +649,68 @@ async def _default_cognitive_init(core_context: Any) -> None:
 PLANNER_PROMPT_IDS: tuple[str, ...] = ("plan_goal", "planner_agent")
 
 
+@contextmanager
+# ID: 1d78eed9-03d3-4308-b495-95d905e33009
+def runner_prompt_root(core_repo_root: Path) -> Iterator[Path]:
+    """The runner's prompt root as a real directory, for the ``with`` block.
+
+    Repository first: when the runner is a source checkout its own prompt
+    root (PathResolver, never a literal) is used as-is, complete or not --
+    an incomplete checkout corpus is refused by :func:`runner_prompt_sources`,
+    never silently patched from the bundle. When the runner is an installed
+    wheel with no prompt root at all (#909), the corpus bundled in the wheel
+    is materialised through ``importlib.resources`` for the lifetime of the
+    block, which is what the assembly's file copies need.
+    """
+    from shared.infrastructure.bundled_prompts import bundled_prompts_as_path
+    from shared.path_resolver import PathResolver
+
+    prompts_dir = PathResolver(core_repo_root).prompts_dir
+    if prompts_dir.is_dir():
+        yield prompts_dir
+        return
+    with bundled_prompts_as_path() as bundled_root:
+        yield bundled_root
+
+
 # ID: 3f5c41d2-b812-44cf-946c-54307598a6d4
-def runner_prompt_sources(core_repo_root: Path) -> dict[str, Path]:
+def runner_prompt_sources(
+    core_repo_root: Path, *, prompts_root: Path | None = None
+) -> dict[str, Path]:
     """``{prompt_id: <runner path>}`` for the COMPLETE prompt corpus under
     the runner's own prompt root (PathResolver, never a literal): every
     PromptModel artifact directory (``model.yaml`` present) and every loose
     prompt file at the root (the pre-PromptModel form the alignment
-    specialists still load). The planner's ids must be among them."""
+    specialists still load). The planner's ids must be among them.
+
+    *prompts_root* is the directory :func:`runner_prompt_root` yielded; when
+    omitted the runner's repository prompt root is read directly (a missing
+    root is refused like any other incomplete corpus)."""
     from shared.path_resolver import PathResolver
 
-    prompts_dir = PathResolver(core_repo_root).prompts_dir
+    prompts_dir = (
+        prompts_root
+        if prompts_root is not None
+        else PathResolver(core_repo_root).prompts_dir
+    )
+    if not prompts_dir.is_dir():
+        raise _Refused(
+            f"runner prompt root {prompts_dir} does not exist; the planner "
+            f"artifacts {list(PLANNER_PROMPT_IDS)} are unavailable"
+        )
+    from shared.infrastructure.bundled_prompts import is_package_marker
+
     sources = {
         entry.name: entry
         for entry in sorted(prompts_dir.iterdir())
         if (entry.is_dir() and (entry / "model.yaml").is_file())
-        or (entry.is_file() and not entry.name.startswith("."))
+        or (
+            entry.is_file()
+            and not entry.name.startswith(".")
+            # the bundled root carries an importable-package marker; it is
+            # not a prompt (#909)
+            and not is_package_marker(entry.name)
+        )
     }
     missing = [pid for pid in PLANNER_PROMPT_IDS if pid not in sources]
     if missing:
@@ -931,14 +979,18 @@ def execute(
         # 3. collisions (informational under the floor-wins rule)
         collisions = find_collisions(subject / ".intent")
 
-        # 4. materialize
+        # 4. materialize (the bundled prompt root, if that is what the
+        # runner has, lives only for this block -- #909)
         try:
-            copy = materialize_execution_copy(
-                subject,
-                run_root,
-                opts.overlay,
-                prompt_sources=runner_prompt_sources(core_repo_root),
-            )
+            with runner_prompt_root(core_repo_root) as prompt_root:
+                copy = materialize_execution_copy(
+                    subject,
+                    run_root,
+                    opts.overlay,
+                    prompt_sources=runner_prompt_sources(
+                        core_repo_root, prompts_root=prompt_root
+                    ),
+                )
         except (OverlayCollisionError, SubjectCopyError, FileExistsError) as exc:
             raise _Refused(str(exc))
         evidence_root = copy.evidence_root

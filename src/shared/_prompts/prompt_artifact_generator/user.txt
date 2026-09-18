@@ -1,0 +1,17 @@
+You are generating a PromptModel artifact to replace a direct LLM call in CORE.
+
+Context:
+- File where violation was found: {file_path}
+- Suggested artifact name: {suggested_name}
+- Cognitive role assigned to this task: {cognitive_role}
+- Input variables available: {input_vars}
+
+Original inline prompt (extracted from the violation):
+{prompt_text}
+
+Generate the three artifact files. Respond with this exact JSON structure:
+{{
+  "model_yaml": "<complete model.yaml content as a string>",
+  "system_txt": "<complete system.txt content as a string>",
+  "user_txt": "<complete user.txt content as a string with {{placeholder}} syntax>"
+}}

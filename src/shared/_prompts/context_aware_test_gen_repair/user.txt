@@ -1,0 +1,19 @@
+Fix the rejected test for symbol `{symbol_name}` from `{file_path}`.
+
+Symbol source:
+```python
+{symbol_code}
+```
+
+Module path: {module_path}
+
+VIOLATIONS FROM PREVIOUS ATTEMPT (fix all of these):
+{violations_summary}
+
+PREVIOUS (FAILING) CODE:
+```python
+{previous_code}
+```
+
+Generate a corrected test function named `test_{symbol_name}` that resolves all violations above.
+Output ONLY the corrected test function inside a ```python code block.

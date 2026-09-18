@@ -435,10 +435,26 @@ class PathResolver:
 
     # ID: 4c7e2f91-a3b8-4d05-9e6a-1f8c3b5d7a02
     def prompt(self, prompt_name: str) -> Path:
-        """Resolve a named prompt directory from var/prompts/."""
+        """Resolve a named prompt directory or loose prompt file.
+
+        Repository first (``prompts_dir``), then the corpus bundled in the
+        installed wheel (#909). The bundle is returned only when it is a
+        real filesystem path -- this is a path API, and a zipimported
+        resource has none; use ``PromptModel.load`` to read such a bundle.
+        """
         candidate = self.prompts_dir / prompt_name
         if candidate.exists():
             return candidate
+        from shared.infrastructure.bundled_prompts import bundled_prompt
+
+        bundled = bundled_prompt(prompt_name)
+        if isinstance(bundled, Path):
+            return bundled
+        if bundled is not None:
+            raise FileNotFoundError(
+                f"Prompt '{prompt_name}' not found at {candidate}; the bundled "
+                "copy is not filesystem-addressable in this installation"
+            )
         raise FileNotFoundError(f"Prompt '{prompt_name}' not found at {candidate}")
 
     # ID: 8b2e5a1c-3d6f-4e7a-9b0c-2d5e8a3c7b1e

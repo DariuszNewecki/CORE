@@ -1,0 +1,33 @@
+# var/prompts/capability_definer/model.yaml
+# PromptModel manifest for the CapabilityTagger role.
+# Version: 1.0.0
+
+id: prompt.capability_definer
+version: "1.0.0"
+role: CapabilityTagger
+description: >
+  Analyzes a Python symbol and proposes a single canonical dot-notation
+  capability key that accurately describes its primary purpose.
+
+model:
+  preference: local
+  temperature: 0.1 # deterministic — capability names are not creative
+
+input:
+  required:
+    - code # symbol name, docstring, domain, file
+    - similar_capabilities # list of existing capability keys for consistency
+
+output:
+  format: json
+  max_length: 200
+  must_contain:
+    - "suggested_capability"
+  must_not_contain:
+    - "```"
+    - "```json"
+
+success_criteria: >
+  Response is ONLY a JSON object with a single key "suggested_capability"
+  whose value follows domain.subdomain.action dot-notation.
+  No markdown, no code fences, no explanation — just the JSON object.

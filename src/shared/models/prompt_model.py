@@ -31,7 +31,7 @@ PRINCIPLES:
 from __future__ import annotations
 
 import dataclasses
-from pathlib import Path
+from importlib.resources.abc import Traversable
 from typing import TYPE_CHECKING
 
 import yaml
@@ -148,14 +148,23 @@ class PromptModel:
                                is missing. Missing files are a constitutional
                                violation of the artifact contract.
         """
-        artifact_dir: Path = settings.paths.prompts_dir / name
+        # #909: repository artifact first, wheel-bundled copy when the
+        # repository lacks this artifact; a genuinely missing artifact still
+        # raises below, naming the repository path.
+        artifact_dir: Traversable = settings.paths.prompts_dir / name
+        if not (artifact_dir / "model.yaml").is_file():
+            from shared.infrastructure.bundled_prompts import bundled_prompt
+
+            bundled = bundled_prompt(name)
+            if bundled is not None and bundled.joinpath("model.yaml").is_file():
+                artifact_dir = bundled
 
         model_yaml_path = artifact_dir / "model.yaml"
         system_txt_path = artifact_dir / "system.txt"
         user_txt_path = artifact_dir / "user.txt"
 
         for path in (model_yaml_path, system_txt_path, user_txt_path):
-            if not path.exists():
+            if not path.is_file():
                 raise FileNotFoundError(
                     f"PromptModel artifact '{name}' is missing required file: {path}"
                 )

@@ -1,0 +1,23 @@
+id: pattern_correction
+version: "1.0.0"
+role: Coder
+description: >
+  Fixes code that violates a declared architectural pattern.
+  Given the violating code, violation messages, and pattern requirements,
+  returns corrected Python code.
+
+input:
+  required:
+    - pattern_id
+    - current_code
+    - violation_messages
+    - pattern_requirements
+
+output:
+  format: raw_text
+  must_contain:
+    - "```python"
+
+success_criteria: >
+  Returns corrected Python code that complies with the pattern.
+  Code is inside ```python fences. No explanation outside fences.

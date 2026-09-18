@@ -1,0 +1,15 @@
+id: conversational_agent_response_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Generates conversational responses when the agent needs clarification or more specific instructions from the user.
+
+input:
+  required:
+    - user_message
+    - context_package
+    - task
+
+output:
+  format: raw_text
+
+success_criteria: Response politely requests clarification while acknowledging the user's input and available context.

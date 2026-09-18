@@ -1,0 +1,16 @@
+Generate a high-quality pytest test for this Python symbol from {file_path}:
+
+```python
+{symbol_code}
+```
+
+Requirements:
+
+* Write ONE test function named: test_{symbol_name}
+* Include ALL necessary imports (pytest, unittest.mock, datetime, etc.) at the top of your response.
+* Import the symbol exactly like this: from {module_path} import {symbol_name}
+* Focus on testing basic functionality, edge cases, and correctness.
+* CRITICAL: Do NOT use isinstance() on objects from external libraries (like SQLAlchemy or httpx) unless you are 100% certain of the class name (e.g., SQLAlchemy's 'text' is a function, not a type).
+* If the symbol is async, use @pytest.mark.asyncio.
+* Return ONLY valid Python code in a single code block.
+* Do not include explanations or markdown prose outside the code block.

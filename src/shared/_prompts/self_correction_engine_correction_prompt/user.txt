@@ -1,0 +1,19 @@
+A code generation attempt has failed. Analyze and correct the errors.
+
+File: {file_path}
+
+[[violations]]
+{violations_json}
+[[/violations]]
+
+[[runtime_error]]
+{runtime_error}
+[[/runtime_error]]
+
+{symbol_hints}
+
+[[code]]
+{code}
+[[/code]]
+
+Provide the corrected code in a write block.

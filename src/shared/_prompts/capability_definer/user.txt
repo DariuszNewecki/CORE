@@ -1,0 +1,7 @@
+## Existing Capabilities (for consistency)
+{similar_capabilities}
+
+## Symbol to Analyze
+{code}
+
+Respond with ONLY the JSON object. No markdown. No explanation.

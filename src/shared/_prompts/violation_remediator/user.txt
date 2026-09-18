@@ -1,0 +1,25 @@
+Remediate the target Python file to resolve the constitutional audit violations.
+
+Target file:
+{file_path}
+
+Target rule:
+{rule_id}
+
+Architectural context (advisory evidence):
+{architectural_context}
+
+The architectural context above describes the file's detected role, layer,
+responsibility clusters, and candidate strategies. It is deterministic
+evidence assembled from path analysis and AST inspection. Use it to avoid
+introducing architectural regressions while fixing the violation. It does
+not override your obligation to satisfy the rule.
+
+Violations:
+{violations}
+
+Supplemental context:
+{context_package}
+
+Current source:
+{source_code}
