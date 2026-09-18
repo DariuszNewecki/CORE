@@ -732,3 +732,64 @@ is `f8cf6d6ec08c19b1a4d1c17497dff2a5c95bf84b` (tree `c40a64f9dd09668e200da60a73c
 local; GitHub `main` remains `e7a9f6db`. `a2adc03c` stays the pin until that ruling; it predates
 U2 and cannot execute the evaluation workflow at all, which this Note records as fact, not as
 permission to patch it during a trial (D5).
+
+### 2026-09-18 — Governor ruling: #895 certified; Trial 0 runner baseline moves to `c0ccd6ce`
+
+**Certified.** `c0ccd6ce9f57f457e20c06612fc7d43067b09481` (tree
+`198659de31f8ab70c404210d8ead0c9bdb870d0d`) is the Trial 0 runner baseline, certified under the
+2026-09-12 tightening (a) as capable of executing Document A's procedure and producing the evidence
+D5 needs. The exact SHA controls; `origin/main` and CORE CI run 35207351616 (green) are provenance.
+Disclosed by SHA only, no tag.
+
+**The four gates of the 2026-09-17 Note were satisfied, in order.**
+
+1. *Full suite green at the candidate.* CORE CI run 35207351616 at `c0ccd6ce`: hermetic tests
+   (unit + wheel e2e), integration tests (DB) and the combined coverage gate all `success`.
+2. *DB-backed audit re-run after the required observation window.* Supplement run
+   `d8a1bdb7-10f4-48cd-8613-d7813007f6ba`, 2026-09-18 10:49:33Z → 10:51:35Z (12:49 CEST, after the
+   "no earlier than 2026-09-18 10:04" condition), API mode: 250 rules executed, 0 crashed; 0 BLOCK,
+   83 INFO; verdict **PASS**. `runtime.worker_max_interval_within_observed`: 35 of 35 active
+   workers PASS, minimum 11 samples per worker, 0 UNAVAILABLE; every 24 h window wholly after the
+   DEGRADED anchor (`5663a2b7`, 2026-09-17T08:04:39Z). Daemon and API unrestarted since
+   2026-09-17 11:23 CEST; HEAD unchanged at `c0ccd6ce`; tree clean. Report sha256
+   `370115618467919664a591fd5b5ce18898030815500b689341d31c9d56c97806`.
+3. *Candidate pushed once, CI green.* `origin/main` = `c0ccd6ce`; CORE CI 35207351616 and
+   Push-on-main 35207351316 both `success`.
+4. *Independent fresh-session cold review against the resulting GitHub SHA.* A session distinct
+   from the U1–U4 authoring session and from the first-review session ran the runner from its real
+   CLI entry (`core-admin runtime external-run`) against a disposable target with the evaluation
+   workflow, both apparatus probes and egress enforcement on. Verdict CERTIFIABLE. Amended report
+   sha256 `b62538c4b8a1a45b29a77fd40f9c24cd284aa423c4af703e063c66534bc29ed4`.
+
+**Clause results, runner-controlled scope.** A6, the subject-only reconnaissance ruling (M2), and
+I-1 through I-6 passed on evidence produced by the real entry point at `c0ccd6ce`. I-3 is qualified:
+runner-controlled egress enforcement passed (configured destinations reconciled to the allowed set,
+evidence tree free of credentials, outputs cite no apparatus or later-state artefact), while
+**socket-level proof of total network isolation remains a responsibility of the Trial 0 coldroom
+apparatus (design §11) and must be verified during Trial 0.** This ruling does not certify it.
+
+**Cold-review attempts.** Attempts 1 and 2 were reviewer apparatus-preparation errors, not runner
+defects: a subject lacking the seed's policy dependency (`rules/ai/capability_taxonomy_governance`),
+then a disposable database name outside the `core_unitd_<16 hex>` shape. On both the runner failed
+closed with full evidence (refusal record, write inventory, subject fingerprint unchanged, copy
+clean) and was not changed between attempts; runner, overlay, seed, task statement and probe
+declarations were identical across all three. Attempt 3 reached RAN (run
+`bd7a9f4b-0273-4a71-b2df-9d06012e2a80`; exit 0; export byte-identical on double run). Reviewer
+observations in the report's §7 are non-blocking and are not certification conditions.
+
+**Evidence.** Both reports and the full bundle live outside the repository at the reviewer's
+evidence root, as D5 requires; the two hashes above are the record. The evidence environment is
+retained unchanged; nothing in it was regenerated or modified for this ruling.
+
+**What is certified, narrowly.** The runner baseline at `c0ccd6ce` and its bounded evaluation
+workflow: that the runner, invoked once from its real entry point under Document A's shape, plans,
+executes, records and refuses as the frozen procedure requires. This is not evidence that Trial 0
+succeeded, that Trial 1 succeeded, or that general autonomous production readiness has been
+achieved. Trial 0 has not been run. It does not execute until the original Phase 1 seal is
+recovered, verified, scanned and published under D9 / §7 of the apparatus design (2026-09-15 Note).
+
+**Pin.** The Trial 0 runner pin moves from `a2adc03c65900c3588fd0a4639579dcb372efeea` to
+`c0ccd6ce9f57f457e20c06612fc7d43067b09481`; the 2026-09-15 pin and the `27160a0a…` T-A record stay
+in this ADR as history. D5's rule stands: the frozen runner is never patched during a trial; the pin
+moves only by a further ruling before the run. #895 (remediation item 2 of the 2026-09-12 Note) is
+closed by this ruling.

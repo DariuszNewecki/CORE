@@ -121,14 +121,16 @@ anything above.
 
 | | Value |
 |---|---|
-| Runner | **Rebaselined 2026-09-15 (Governor ruling):** `a2adc03c65900c3588fd0a4639579dcb372efeea` (tree `04a09d22585bc65806940cdd48f776af06ddddb2`); provenance: `origin/main`, CORE CI run 35020631816 green. Disclosed by exact SHA only, no tag. Supersedes `27160a0a8768cf72bbe2a8fecc3d9169db758efc` (the T-A tag `autonomy-experiment-ready-2026-09-04`, which stays where it is as the historical T-A record). **A pin, not a certification** (2026-09-12 tightening a): #894 (remediation item 1) complete at this SHA; #895 (item 2) pending. |
+| Runner | **Certified 2026-09-18 (Governor ruling):** `c0ccd6ce9f57f457e20c06612fc7d43067b09481` (tree `198659de31f8ab70c404210d8ead0c9bdb870d0d`); provenance: `origin/main`, CORE CI run 35207351616 green. Disclosed by exact SHA only, no tag. Supersedes `a2adc03c65900c3588fd0a4639579dcb372efeea` (the 2026-09-15 pin — a pin, not a certification) and `27160a0a8768cf72bbe2a8fecc3d9169db758efc` (the T-A tag `autonomy-experiment-ready-2026-09-04`, which stays where it is as the historical T-A record). **Certified runner baseline** (2026-09-12 tightening a; ADR-159 Note 2026-09-18): #894 (remediation item 1) and #895 (item 2) complete at this SHA. Certification covers the runner baseline and its bounded evaluation workflow only; I-3 is certified for runner-controlled egress enforcement, while socket-level proof of network isolation is this apparatus's responsibility (§11) and is verified during Trial 0. Not evidence that Trial 0 or Trial 1 succeeded. |
 | Subject | frozen CORE at `c4d9fdf9dc52c7d71981e367b64d00b0c994910b` (the Phase 1 `core_baseline_pin`), read-only, no later issues/commits/ADRs/benchmark answers visible |
 | Outputs | stored separately from the subject and from the runner's own repository (D5) |
 
-Rebaselined per ADR-159 Note 2026-09-15 ("Trial 0 runner baseline pinned at `a2adc03c`"). D5's
-rule stands: the frozen runner is never patched during a trial; the pin moves only by a further
-Governor ruling before the run. If the pinned runner cannot execute the preregistered trial, that
-is an honest Trial 0 result, not permission to patch it (Governor ruling, 2026-09-10).
+Certified per ADR-159 Note 2026-09-18 ("#895 certified; Trial 0 runner baseline moves to
+`c0ccd6ce`"), superseding the 2026-09-15 pin at `a2adc03c` ("Trial 0 runner baseline pinned at
+`a2adc03c`"), which stays in the ADR as history. D5's rule stands: the frozen runner is never
+patched during a trial; the pin moves only by a further Governor ruling before the run. If the
+pinned runner cannot execute the preregistered trial, that is an honest Trial 0 result, not
+permission to patch it (Governor ruling, 2026-09-10).
 
 ### Trial 1 — the proof (ADR-159 D6)
 

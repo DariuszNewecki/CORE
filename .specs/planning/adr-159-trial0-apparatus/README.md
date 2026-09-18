@@ -3,9 +3,9 @@
 Governor ruling 2026-09-15: the canonical overlay and seed for Trial 0 are tracked here. Before
 execution they are staged byte-for-byte into the evidence root
 (`/opt/core-trials/adr-159/trial-0`) and their hashes recorded there; the coldroom receives only
-the pinned runner (`a2adc03c`), the frozen subject (`c4d9fdf9`), these staged inputs and the
-evidence destination — never the working CORE checkout. The seal stays outside everything the
-runner can see.
+the pinned runner (`c0ccd6ce`, certified 2026-09-18), the frozen subject (`c4d9fdf9`), these
+staged inputs and the evidence destination — never the working CORE checkout. The seal stays
+outside everything the runner can see.
 
 Why the overlay is exactly this small: the overlay is additive-only and the subject (frozen CORE)
 already carries its own phases, workflow definitions and policies; the test fixture's overlay
