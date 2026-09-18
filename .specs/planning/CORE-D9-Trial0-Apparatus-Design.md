@@ -296,6 +296,44 @@ unit):**
 This document does not publish, copy, hash, or scan the artifact — that is step 5 of §2's ordering,
 performed after both conditions are independently confirmed satisfied.
 
+**Amendment (Governor ruling, ADR-159 Note 2026-09-18 — seal recovery).** The seal was lost with
+the 2026-09-13 host rebuild and recovered 2026-09-16 from the read-only 2026-08-30 VM-100 backup.
+The ruling accepts the recovered artefact as the authoritative Phase-1 seal and narrows the custody
+mechanism above:
+
+- **What is tracked is the digest, not the bytes.** The "exact sealed artifact bytes, committed
+  as-is" option is not exercised. The tracked attestation is
+  `.specs/attestations/adr-159-phase1-seal-digest-20260918.md` — full SHA-256, size, timestamp and
+  provenance of `phase1-benchmark-SEALED.json` and `seal_manifest.py`, nothing more. The seal
+  itself stays at two byte-identical custody copies (Governor workstation; Proxmox recovery host),
+  outside the CORE host, Git and every published evidence bundle. Retrievability (D9) is served by
+  the two custodians plus the published digest; runner-inaccessibility by the seal never entering
+  the CORE host.
+- **Accepted limitation, to be disclosed by Trial 0.** ~71 h separate the sealing event from the
+  backup that preserved it, with no externally recorded digest inside that interval. Provenance is
+  strong; cryptographic continuity to the moment of sealing is not proven. No Trial 0 output may
+  claim stronger historical authenticity.
+- **Condition 2 (non-printing scan) — external pinned scanner.** Satisfied for Trial 0 by one
+  official Gitleaks release pinned and qualified *outside* CORE (executable sha256
+  `88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509`, v8.30.1, official release
+  checksum verified, built-in config, no allowlist; clean fixture passes, dummy-secret fixture
+  blocks, output redacted — qualification record kept beside the binary). It is not a CORE
+  dependency and appears in no CORE source, CI, pre-commit or runtime. Because the seal is not
+  published, the scan applies to the full Trial 0 candidate evidence bundle before publication;
+  any finding blocks publication; no ad-hoc allowlisting.
+- **External custody root and publication location.** Trial 0 evidence is written to the external
+  staging root `/opt/core-trials/adr-159/trial-0/` (never inside the runner or subject checkout),
+  hashed with a deterministic per-file `sha256sum` manifest, verified, scanned, and only then the
+  governed evidence subset and deterministic export are copied under `.specs/attestations/` — the
+  publication location — with their manifest lines in the same commit (§8 pt 1). The written
+  operator procedure lives at that root.
+- **Roles.** *Run Operator* executes the run and the custody steps mechanically; an *Independent
+  Verifier* (fresh session or person that did not run the trial) recomputes the manifest and the
+  published-file hashes; the *Governor* alone certifies, through the governed Git commit that
+  lands the published files and cites the verifier's record in an ADR-159 Note.
+- **Second copy.** Before any teardown, a second copy of the raw evidence bundle is made to the
+  Proxmox recovery host and verified byte-identical against the manifest.
+
 ---
 
 ## 8. Retrievability and integrity-check mechanism

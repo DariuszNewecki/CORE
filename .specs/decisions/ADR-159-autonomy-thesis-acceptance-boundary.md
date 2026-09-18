@@ -793,3 +793,40 @@ recovered, verified, scanned and published under D9 / §7 of the apparatus desig
 in this ADR as history. D5's rule stands: the frozen runner is never patched during a trial; the pin
 moves only by a further ruling before the run. #895 (remediation item 2 of the 2026-09-12 Note) is
 closed by this ruling.
+
+### 2026-09-18 — Governor ruling: recovered Phase-1 seal accepted as authoritative for Trial 0
+
+**Ruling.** The recovered artefact is accepted as the authoritative Phase-1 seal for Trial 0. Two
+byte-identical copies exist under separate custody, recovered from the read-only 2026-08-30 VM-100
+backup, and the complete 4,647-file manifest verifies without failure.
+
+The approximately 71-hour interval between the original sealing event and that backup has no
+contemporaneous externally recorded digest. Provenance is therefore strong, but cryptographic
+continuity to the exact moment of sealing cannot be proven. Trial 0 must disclose this limitation
+and may not claim stronger historical authenticity.
+
+The recovery restores the seal required by the existing Trial 0 design. It does not expand
+Trial 0's authorized scope.
+
+**Custody conditions.**
+
+- The retired first Proxmox host (`.100`) was not involved in the recovery; the source is the
+  read-only 2026-08-30 VM-100 backup held on the recovery host.
+- The seal must remain outside the CORE host (`.22`), outside Git and outside every published
+  evidence bundle. Apparatus Design §7's "exact sealed artifact bytes, committed as-is" option is
+  not exercised; the tracked attestation carries the digest instead.
+- Only digest, size, timestamp and provenance may be attested. The attestation of record is
+  `.specs/attestations/adr-159-phase1-seal-digest-20260918.md` (seal sha256
+  `71835d8b7e905ff8cb1d899b51b6996e2d57f24e01331898de6268c0775d4dd4`, 9421 bytes;
+  `seal_manifest.py` sha256 `a4d5b6d3ac7b9afedc6db9651cc7491851b8583049819f66115ffc4a64a68d7e`,
+  13061 bytes; both mtime 2026-08-27 21:38 +02:00).
+- Both custody copies (Governor workstation; Proxmox recovery host) must remain unchanged.
+
+**Effect on D9 / §7.** The 2026-09-18 D9 qualification's blocker B-1 (seal absent) is superseded by
+a supplement held with that report in external custody; its ruling item R-1 is resolved by this
+Note. §7 condition 2 (non-printing scan) is met for Trial 0 by a pinned external Gitleaks binary
+qualified outside CORE — not a CORE dependency, not in CI, pre-commit or runtime — with the
+scanner condition applying to the Trial 0 evidence bundle, since the seal itself is not published.
+The external custody root and operator procedure for Trial 0 evidence exist; the runner pin stays at
+`c0ccd6ce9f57f457e20c06612fc7d43067b09481`. Trial 0 has not been run and is not authorized to run
+by this Note.

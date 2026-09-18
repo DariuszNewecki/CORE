@@ -7,6 +7,17 @@ the pinned runner (`c0ccd6ce`, certified 2026-09-18), the frozen subject (`c4d9f
 staged inputs and the evidence destination — never the working CORE checkout. The seal stays
 outside everything the runner can see.
 
+Seal status (ADR-159 Note 2026-09-18): the Phase-1 seal was recovered from the read-only
+2026-08-30 VM-100 backup and accepted as authoritative, with the disclosed ~71 h provenance
+limitation; it is attested by digest only in
+`.specs/attestations/adr-159-phase1-seal-digest-20260918.md` and is never staged here. The
+evidence root above is also the external custody root: its `PROCEDURE.md` is the operator
+procedure (deterministic `sha256sum` manifest, verification, full-bundle scan by the pinned
+external Gitleaks v8.30.1 held beside it, publication of the governed subset under
+`.specs/attestations/`, independent fresh-session verification, Governor certification by
+commit, second raw copy to the recovery host before teardown). Apparatus Design §7 amendment
+has the detail.
+
 Why the overlay is exactly this small: the overlay is additive-only and the subject (frozen CORE)
 already carries its own phases, workflow definitions and policies; the test fixture's overlay
 collides on 11 of 13 paths and cannot be used. Only paths absent from the subject may be
