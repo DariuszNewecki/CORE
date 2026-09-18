@@ -8,6 +8,24 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.10.1] — 2026-09-19
+
+### 🔧 GitHub Action `uses:` form now delivers the 2.10.0 fixes
+
+Patch release; no runtime code change. `action.yml` builds the repository `Dockerfile`
+at the referenced ref, and the `Dockerfile` stored at the immutable `v2.10.0` tag still
+carried `CORE_RUNTIME_VERSION=2.7.0` — the pin bump (`a7413ff9`) landed on `main`
+*after* the tag. Result: PyPI `core-runtime 2.10.0` and `core-audit-gate:2.10.0` were
+correct, but `uses: DariuszNewecki/CORE@v2.10.0` installed 2.7.0 and did not carry #907
+(offline audit DEGRADED verdict) or #909 (prompt corpus in the wheel).
+
+- **`Dockerfile` default pin bumped to `2.10.1` in the same commit as the version bump**,
+  so the tag that publishes this version also builds it. `uses: DariuszNewecki/CORE@v2.10.1`
+  installs `core-runtime==2.10.1`, which is 2.10.0 plus this changelog.
+- The `v2.10.0` tag is not moved or recreated (`docs/release.md`: versions are immutable;
+  mistakes ship as a new patch). Its GitHub Release is annotated as superseded for GitHub
+  Action users only.
+
 ## [2.10.0] — 2026-09-18
 
 ### 🚦 Offline audit verdicts are truthful (#907)
