@@ -1838,6 +1838,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/attestations/adr-159-phase1-seal-digest-20260918.md
     governance_namespace: project::core
+  - path: .specs/attestations/adr-159-trial0-result-20260918.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md

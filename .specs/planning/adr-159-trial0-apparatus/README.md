@@ -65,3 +65,21 @@ Provenance: seed resource digest `f72c60cabf6237b07f6e` verified 2026-09-15 on `
 | `seed/assignments.yaml` | `247ba8c05be49dd9e6357f40480ae00dd92d598f9f5c2572e60efbb3c985367d` | 553 |
 | `seed/llm_resources/ollama_qwen_coder_3b_trial.yaml` | `7d1d94725bbff59c6b3e5a2a1d5115a5fae0f63613252328f3641d7fa959d3e7` | 809 |
 | `seed/system_config.yaml` | `31ed092d8b356ab600a80cb7842c984dc99fb7846bf094e75a3a8fafbf357436` | 181 |
+
+## Historical result — Trial 0 invocation of 2026-09-18 (FAIL-before-bootstrap)
+
+Trial 0 was invoked once on 2026-09-18T17:39:44Z with these inputs (staged `SHA256SUMS`
+`ed83b746b24d45faa42d742bdbc9bf00cc33a4b9294667d1ac10338dd4c29670`, 12/12 OK at launch) and
+terminated at runner bootstrap with exit 64 before any of them was read by the runner: the frozen
+launcher did not pin its working directory and the unprivileged runner could not traverse the
+inherited one. Result, hashes and custody:
+`.specs/attestations/adr-159-trial0-result-20260918.md`; ruling: ADR-159 Note 2026-09-18
+(Trial 0 result). No repetition is authorized by that record. The overlay and seed above were not
+implicated and are unchanged.
+
+Launcher corrections recorded for any future, separately authorized apparatus (not implemented
+here; the invoked launcher `48e92536ce8ee1caca44d94a99c9bb10593d6ed1f33b4317b8cf2ae7d536f7f3` is retained as evidence and is not edited):
+
+1. pin an explicit, accessible working directory before invoking the runner;
+2. finalize the launcher's own log before computing its self-manifest, so the manifest covers
+   the file's final bytes.

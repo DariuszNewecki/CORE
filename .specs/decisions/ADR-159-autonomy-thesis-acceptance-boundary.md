@@ -830,3 +830,47 @@ scanner condition applying to the Trial 0 evidence bundle, since the seal itself
 The external custody root and operator procedure for Trial 0 evidence exist; the runner pin stays at
 `c0ccd6ce9f57f457e20c06612fc7d43067b09481`. Trial 0 has not been run and is not authorized to run
 by this Note.
+
+### 2026-09-18 — Governor ruling: Trial 0 result recorded — FAIL-before-bootstrap (apparatus boundary)
+
+ADR-159 Trial 0 was invoked exactly once on 2026-09-18 at 17:39:44Z using certified runner
+`c0ccd6ce9f57f457e20c06612fc7d43067b09481`, frozen subject `c4d9fdf9dc52c7d71981e367b64d00b0c994910b`,
+launcher `48e92536ce8ee1caca44d94a99c9bb10593d6ed1f33b4317b8cf2ae7d536f7f3`, and frozen statement
+`0b948f4db78dd8c67469b5c3ae47342e32062ad6ff3d3e17080175c9e4fe950f`.
+
+Trial 0's terminal verdict is **FAIL-before-bootstrap**. The pinned runner exited 64 before target
+binding because the frozen launcher did not pin its working directory and inherited the operator
+login home, which the unprivileged runner could not traverse. No governed run, Blackboard record,
+outcome, export or recall result was produced.
+
+The failure boundary is **apparatus**. The runner and subject remained unchanged; the database
+remained logically unchanged; network containment held; no retry or intervention occurred.
+
+The result is retained as Trial 0 evidence and will not be rewritten as BLOCKED or PASS. No
+Trial 0-R1 repetition is authorized at this time. Trial 0 provides no evidence for or against the
+autonomy thesis or ADR-159 D1.
+
+The verification record was produced by the same operator session. It is sufficient for recording
+this pre-bootstrap failure and custody integrity, but it is not represented as the independent
+verification required for certification of a successful run.
+
+**Record of certification.** Attestation `.specs/attestations/adr-159-trial0-result-20260918.md`
+(operator report sha256 `51952d626276848820cd40a19c331a1f275dd9e5e6a34f5f8a1f1fb026d93893`;
+verification record `6649fd13edde5074b2efebdf0354bfc926f2f1af94395337ba388a9ede157428`; custody
+manifest `e3d94d36e167a5fce619e3155305a7a98b8e63bdd1161d56391e38f012d6ac4d`, 24/24 on both custody
+copies; Gitleaks v8.30.1 no findings). Raw evidence stays at the external custody root and its
+second copy; it is not published.
+
+**Apparatus findings** (recorded; nothing implemented by this Note):
+
+- the launcher must pin an explicit, accessible working directory;
+- the launcher must finalize its logging before producing its self-manifest;
+- raw `pg_dump` hashes contain generated metadata and require the disclosed normalized comparison
+  (Governor ruling 2026-09-18, pre-invocation: raw drift alone is expected noise; the normalized
+  pre/post hash `f7a9c18d79540fed6c5d84051b4e46bc4c6647ff271653c209897ba33726102d` is equal);
+- the runner's treatment of an unreadable cwd is a separate hardening backlog observation, not
+  the cause assigned to CORE for this trial.
+
+The disposable Trial 0 coldroom and the retained #895 certification apparatus (read-only mounts and
+disposable databases; not the #895 evidence bundle or reports) are torn down after this Note lands
+and CI is green. Pins are unchanged: runner `c0ccd6ce…`, subject `c4d9fdf9…`.
