@@ -122,6 +122,11 @@ def format_skipped_rule(skipped: dict[str, str]) -> str:
     """
     rule_id = skipped.get("rule_id", "")
     reason = skipped.get("reason", "skipped").replace("%", "%25")
+    # #907: a skipped BLOCKING rule is why the verdict is DEGRADED; it
+    # surfaces as a warning, not a notice, and says "not evaluated" so
+    # the workflow log never reads it as passed.
+    if skipped.get("enforcement") == "blocking":
+        return f"::warning title=Blocking rule NOT evaluated: {rule_id}::{reason}"
     return f"::notice title=Rule skipped: {rule_id}::{reason}"
 
 
@@ -153,9 +158,13 @@ def format_payload(payload: dict[str, Any]) -> str:
     verdict = payload.get("verdict", "UNKNOWN")
     finding_count = len(findings)
     skipped_count = len(skipped)
+    skipped_blocking_count = sum(
+        1 for entry in skipped if entry.get("enforcement") == "blocking"
+    )
     summary = (
         f"CORE audit (stateless): verdict={verdict} "
-        f"findings={finding_count} skipped_rules={skipped_count}"
+        f"findings={finding_count} skipped_rules={skipped_count} "
+        f"skipped_blocking_rules={skipped_blocking_count}"
     )
     lines.append(f"::notice title=CORE audit summary::{summary}")
 

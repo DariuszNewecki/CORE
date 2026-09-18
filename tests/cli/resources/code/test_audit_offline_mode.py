@@ -345,3 +345,158 @@ async def test_offline_github_annotations_error_envelope_on_config_error(
     out = capsys.readouterr().out
     assert out.startswith("::error ")
     assert "configuration error" in out
+
+
+# --- #907: skipped BLOCKING rules -> DEGRADED, exit non-success, named ------
+
+
+def _degraded_by_skip_result() -> dict:
+    """F-10.1a-shaped result for the #907 case: every executed rule clean,
+    one blocking + one advisory rule skipped."""
+    return {
+        "verdict": "DEGRADED",
+        "passed": False,
+        "stats": {
+            "total_rules": 10,
+            "runnable_rules": 8,
+            "skipped_rules_count": 2,
+            "skipped_blocking_rules_count": 1,
+            "skipped_blocking_rule_ids": [
+                "capability.taxonomy.roles_require_canonical_capabilities"
+            ],
+        },
+        "findings": [],
+        "executed_rule_ids": [],
+        "skipped_rules": [
+            {
+                "rule_id": "capability.taxonomy.roles_require_canonical_capabilities",
+                "engine": "knowledge_gate",
+                "enforcement": "blocking",
+                "reason": "requires knowledge graph; not available in stateless mode",
+            },
+            {
+                "rule_id": "modularity.unix_philosophy",
+                "engine": "llm_gate",
+                "enforcement": "advisory",
+                "reason": "requires LLM provider + verdict cache",
+            },
+        ],
+        "duration_sec": 0.5,
+        "run_id": None,
+        "finished_at": "2026-09-18T00:00:00+00:00",
+        "mode": "stateless",
+    }
+
+
+async def test_offline_degraded_by_skipped_blocking_rule_exits_findings(
+    tmp_path: Path,
+) -> None:
+    """Governor ruling 3 (#907): DEGRADED uses the existing governed
+    non-success exit (EXIT_FINDINGS, as the online path already does for
+    `passed=False`), even with zero findings at the severity floor."""
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_degraded_by_skip_result()),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="block",
+                output_format="json",
+            )
+    assert exc_info.value.exit_code == EXIT_FINDINGS
+
+
+async def test_offline_json_preserves_skipped_blocking_ids_and_reasons(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ruling 4: machine-readable output carries rule ID, enforcement and
+    reason for every skipped rule, plus the blocking subset in stats."""
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_degraded_by_skip_result()),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit):
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="block",
+                output_format="json",
+            )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["verdict"] == "DEGRADED"
+    assert payload["passed"] is False
+    by_id = {e["rule_id"]: e for e in payload["skipped_rules"]}
+    blocking = by_id["capability.taxonomy.roles_require_canonical_capabilities"]
+    assert blocking["enforcement"] == "blocking"
+    assert blocking["reason"].startswith("requires knowledge graph")
+    assert by_id["modularity.unix_philosophy"]["enforcement"] == "advisory"
+    assert payload["stats"]["skipped_blocking_rules_count"] == 1
+    assert payload["stats"]["skipped_blocking_rule_ids"] == [
+        "capability.taxonomy.roles_require_canonical_capabilities"
+    ]
+
+
+async def test_offline_text_names_skipped_blocking_rules_next_to_verdict(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ruling 4/6: the human-readable output names each skipped blocking
+    rule and says it was NOT evaluated -- not a dim footnote, never 'PASS'."""
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_degraded_by_skip_result()),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="block",
+                output_format="text",
+            )
+    out = capsys.readouterr().out
+    assert "DEGRADED" in out
+    assert "PASS" not in out.replace("DEGRADED, not PASS", "")
+    assert "1 blocking rule(s) NOT" in out
+    assert "capability.taxonomy.roles_require_canonical_capabilities" in out
+    assert "requires knowledge graph" in out
+    assert "1 blocking, 1 reporting/advisory" in out
+    assert exc_info.value.exit_code == EXIT_FINDINGS
+
+
+async def test_offline_advisory_only_skips_still_exit_ok(tmp_path: Path) -> None:
+    """Ruling 5: an advisory-only skip leaves verdict PASS and exit 0; the
+    skip stays visible in the payload but does not gate."""
+    result = _result(passed=True)
+    result["skipped_rules"][0]["enforcement"] = "advisory"
+    result["stats"]["skipped_blocking_rules_count"] = 0
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=result),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="block",
+                output_format="json",
+            )
+    assert exc_info.value.exit_code == EXIT_OK

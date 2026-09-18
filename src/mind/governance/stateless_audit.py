@@ -144,17 +144,25 @@ async def run_stateless_audit(
         runs, plus a `skipped_rules` field:
 
             {
-                "verdict": "PASS" | "FAIL",
+                "verdict": "PASS" | "FAIL" | "DEGRADED",
                 "passed": bool,
-                "stats": {total_rules, executed_rules, skipped_rules_count, ...},
+                "stats": {total_rules, runnable_rules, skipped_rules_count,
+                          skipped_blocking_rules_count,
+                          skipped_blocking_rule_ids, ...},
                 "findings": [...],
                 "executed_rule_ids": [...],
-                "skipped_rules": [{"rule_id": "...", "engine": "...", "reason": "..."}, ...],
+                "skipped_rules": [{"rule_id": "...", "engine": "...",
+                                   "enforcement": "blocking" | "reporting" | "advisory",
+                                   "reason": "..."}, ...],
                 "duration_sec": float,
                 "run_id": None,
                 "finished_at": ISO-8601 string,
                 "mode": "stateless",
             }
+
+        `verdict` is DEGRADED (and `passed` False) whenever any skipped
+        rule carries `enforcement: blocking` (#907): those rules were not
+        evaluated, and "not evaluated" is never counted as passed.
 
         `run_id` is always None — stateless runs are not persisted.
         `mode` is always "stateless" — distinguishes from sync API runs
@@ -174,27 +182,39 @@ async def run_stateless_audit(
     context.reload_governance()
     all_rules = extract_executable_rules(context.policies, context.enforcement_loader)
 
+    # #907: every skipped entry carries the rule's on-disk `enforcement`
+    # level so the JSON payload is self-describing -- a consumer can tell a
+    # skipped advisory rule from a skipped BLOCKING rule without a second
+    # lookup against .intent/. The blocking subset drives the verdict below.
     runnable_ids: list[str] = []
     skipped_rules: list[dict[str, str]] = []
     for rule in all_rules:
         if rule.engine in _STATELESS_SKIP_ENGINES:
             skipped_rules.append(
-                {
-                    "rule_id": rule.rule_id,
-                    "engine": rule.engine,
-                    "reason": _SKIP_REASONS[rule.engine],
-                }
+                _skipped_entry(
+                    rule.rule_id,
+                    rule.engine,
+                    rule.enforcement,
+                    _SKIP_REASONS[rule.engine],
+                )
             )
         elif rule.rule_id in _STATELESS_SKIP_RULE_IDS:
             skipped_rules.append(
-                {
-                    "rule_id": rule.rule_id,
-                    "engine": rule.engine,
-                    "reason": _SKIP_REASONS_BY_RULE_ID[rule.rule_id],
-                }
+                _skipped_entry(
+                    rule.rule_id,
+                    rule.engine,
+                    rule.enforcement,
+                    _SKIP_REASONS_BY_RULE_ID[rule.rule_id],
+                )
             )
         else:
             runnable_ids.append(rule.rule_id)
+
+    skipped_blocking_rule_ids = sorted(
+        entry["rule_id"]
+        for entry in skipped_rules
+        if entry["enforcement"] == "blocking"
+    )
 
     logger.info(
         "stateless_audit: %d rules runnable; %d rules skipped "
@@ -230,6 +250,8 @@ async def run_stateless_audit(
                 "total_rules": 0,
                 "runnable_rules": 0,
                 "skipped_rules_count": len(skipped_rules),
+                "skipped_blocking_rules_count": len(skipped_blocking_rule_ids),
+                "skipped_blocking_rule_ids": skipped_blocking_rule_ids,
                 "declared_rules": declared_rule_count,
             },
             "findings": [],
@@ -299,7 +321,25 @@ async def run_stateless_audit(
         f for f in blocking_findings if f not in degraded_findings
     ]
 
-    if verdict_policy.get("_error") or degraded_findings:
+    # #907: a structurally skipped BLOCKING rule is the same situation
+    # ENFORCEMENT_UNAVAILABLE covers (audit_verdict.yaml: "a DB session not
+    # injected") with no finding object to hang the DEGRADED on -- the rule
+    # was never dispatched. Absence of evidence is not a violation, so this
+    # is DEGRADED (compliance unknown), never FAIL, and never PASS. The
+    # precondition is the governed `any_blocking_unavailable_rules` entry
+    # of degraded_on -- the same one ConstitutionalAuditor._determine_verdict
+    # reads -- not a second private vocabulary. Skipped advisory/reporting
+    # rules stay visible in skipped_rules without forcing DEGRADED.
+    degraded_on = (
+        set(verdict_policy.get("degraded_on", []))
+        if not verdict_policy.get("_error")
+        else {"any_blocking_unavailable_rules"}
+    )
+    blocking_skipped = bool(
+        skipped_blocking_rule_ids and "any_blocking_unavailable_rules" in degraded_on
+    )
+
+    if verdict_policy.get("_error") or degraded_findings or blocking_skipped:
         verdict = "DEGRADED"
         passed = False
     elif genuine_blocking_findings:
@@ -317,6 +357,11 @@ async def run_stateless_audit(
             "total_rules": len(all_rules),
             "runnable_rules": len(runnable_ids),
             "skipped_rules_count": len(skipped_rules),
+            # #907: skipped blocking rules are NOT executed and NOT passed;
+            # they are enumerated here so no consumer has to re-derive
+            # them from skipped_rules[].enforcement.
+            "skipped_blocking_rules_count": len(skipped_blocking_rule_ids),
+            "skipped_blocking_rule_ids": skipped_blocking_rule_ids,
         },
         "findings": findings_dicts,
         "executed_rule_ids": sorted(executed_ids),
@@ -325,6 +370,23 @@ async def run_stateless_audit(
         "run_id": None,
         "finished_at": datetime.now(UTC).isoformat(),
         "mode": "stateless",
+    }
+
+
+def _skipped_entry(
+    rule_id: str, engine: str, enforcement: str, reason: str
+) -> dict[str, str]:
+    """One self-describing `skipped_rules[]` entry (#907).
+
+    `enforcement` is the rule's on-disk level (blocking / reporting /
+    advisory) as carried by ExecutableRule, so a JSON consumer can tell a
+    skipped blocking rule apart without a second lookup.
+    """
+    return {
+        "rule_id": rule_id,
+        "engine": engine,
+        "enforcement": enforcement,
+        "reason": reason,
     }
 
 

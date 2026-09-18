@@ -14,16 +14,83 @@
 #     Inputs come from CORE_* env vars (CORE_SEVERITY, CORE_FORMAT).
 #     Repo is mounted at /workspace (the conventional mount point).
 #     Findings are emitted as plain text to stdout.
-#     Exit code is 0 (PASS), 1 (FAIL), 2 (config error), 64 (internal error).
+#     Exit code is 0 (PASS), 1 (DEGRADED or FAIL), 2 (config error),
+#     64 (internal error / unrecognised verdict).
 #
-# Invokes `core-admin code audit --offline --format=<F> --severity=<S>`.
-# Exit codes per cli/utils/exit_codes.py:
-#   0  -> EXIT_OK            (no findings)
-#   1  -> EXIT_FINDINGS      (findings at or above severity)
-#   2  -> EXIT_CONFIG_ERROR  (missing .intent/, malformed rule)
-#   64 -> EXIT_INTERNAL_ERROR (unexpected exception escaped)
+# Invokes `core-admin code audit --offline --format=json --severity=<S>`
+# and keeps the complete JSON result. The verdict is derived from that JSON
+# (#907), never from the exit code alone, so DEGRADED (blocking rules not
+# evaluated in stateless mode) is reported as DEGRADED -- not relabelled
+# FAIL, never relabelled PASS. The requested --format is rendered from the
+# same JSON afterwards (github-annotations via the runtime's own formatter).
+#
+# Verdict -> exit mapping (exit codes per cli/utils/exit_codes.py):
+#   PASS      -> 0   (requires the CLI to have exited 0; otherwise ERROR/64)
+#   DEGRADED  -> CLI exit, forced non-zero (1)  blocking rule(s) not evaluated
+#   FAIL      -> CLI exit, forced non-zero (1)  findings at/above severity
+#   ERROR     -> CLI exit, forced non-zero (2 config / 64 internal)
+#   anything else (missing/unknown verdict, malformed or missing JSON,
+#   crashed command) -> ERROR, exit 64: fail closed.
 
 set +e
+
+# resolve_verdict <result.json> <raw_exit>
+# Prints "VERDICT EXIT SKIPPED_BLOCKING_IDS" on one line, derived from the
+# JSON; fails closed to "ERROR 64" on anything it cannot read or recognise.
+resolve_verdict() {
+  python3 - "$1" "$2" <<'PY'
+import json
+import sys
+
+path, raw_exit = sys.argv[1], int(sys.argv[2])
+CANONICAL = {"PASS", "DEGRADED", "FAIL", "ERROR"}
+try:
+    with open(path, encoding="utf-8") as fh:
+        result = json.load(fh)
+    verdict = result.get("verdict") if isinstance(result, dict) else None
+except Exception:  # noqa: BLE001 - any parse/IO failure fails closed
+    verdict = None
+if verdict not in CANONICAL:
+    print("ERROR 64")
+    sys.exit(0)
+if verdict == "PASS":
+    exit_code = 0 if raw_exit == 0 else 64
+    verdict = "PASS" if raw_exit == 0 else "ERROR"
+elif verdict == "ERROR":
+    exit_code = raw_exit if raw_exit != 0 else 64
+else:  # DEGRADED / FAIL: non-success, keep the CLI's distinction if it gave one
+    exit_code = raw_exit if raw_exit != 0 else 1
+skipped = result.get("skipped_rules") or []
+ids = ",".join(s.get("rule_id", "?") for s in skipped if s.get("enforcement") == "blocking")
+print(f"{verdict} {exit_code} {ids}")
+PY
+}
+
+# render_output <result.json> <format> <severity>
+render_output() {
+  case "$2" in
+    json) cat "$1"; echo ;;
+    github-annotations)
+      python3 -c 'import json, sys; from cli.utils.annotation_formatter import format_payload; sys.stdout.write(format_payload(json.load(open(sys.argv[1], encoding="utf-8"))))' "$1" \
+        || echo "::error title=CORE audit::could not render annotations from $1"
+      ;;
+    *)
+      # text: the runtime's own Rich renderer, driven from the saved JSON;
+      # plain fallback if the pinned runtime does not expose it.
+      python3 - "$1" "$3" <<'PY' \
+        || python3 -c 'import json, sys; r = json.load(open(sys.argv[1], encoding="utf-8")); print(f"Verdict: {r.get(\"verdict\")} (passed={r.get(\"passed\")}); findings={len(r.get(\"findings\") or [])}; skipped={len(r.get(\"skipped_rules\") or [])}")' "$1"
+import json, sys
+from cli.commands.check.converters import parse_min_severity
+from cli.resources.code.audit import _render_text_summary
+with open(sys.argv[1], encoding="utf-8") as fh:
+    _render_text_summary(json.load(fh), parse_min_severity(sys.argv[2]))
+PY
+      ;;
+  esac
+}
+
+RESULT_DIR="${RUNNER_TEMP:-$(mktemp -d)}"
+RESULT="$RESULT_DIR/core-audit-result.json"
 
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
   # ── GitHub Actions shape ──────────────────────────────────────────────────
@@ -49,21 +116,26 @@ if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
 
   core-admin code audit \
     --offline \
-    --format="$FORMAT" \
-    --severity="$SEVERITY"
-  EXIT_CODE=$?
+    --format=json \
+    --severity="$SEVERITY" > "$RESULT"
+  RAW_EXIT=$?
 
-  case $EXIT_CODE in
-    0) VERDICT="PASS" ;;
-    1) VERDICT="FAIL" ;;
-    *) VERDICT="ERROR" ;;
-  esac
+  read -r VERDICT EXIT_CODE SKIPPED_BLOCKING <<< "$(resolve_verdict "$RESULT" "$RAW_EXIT")"
+  render_output "$RESULT" "$FORMAT" "$SEVERITY"
 
   if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
   fi
 
-  echo "::notice title=CORE audit::Verdict: $VERDICT (exit $EXIT_CODE)"
+  case "$VERDICT" in
+    DEGRADED)
+      echo "::warning title=CORE audit DEGRADED::blocking rule(s) NOT evaluated in stateless mode (not PASS): ${SKIPPED_BLOCKING:-none listed}"
+      ;;
+    ERROR)
+      echo "::error title=CORE audit ERROR::audit did not produce a recognised verdict (raw exit $RAW_EXIT); failing closed"
+      ;;
+  esac
+  echo "::notice title=CORE audit::Verdict: $VERDICT (exit $EXIT_CODE, raw exit $RAW_EXIT)"
 
 else
   # ── Plain docker run shape ────────────────────────────────────────────────
@@ -87,18 +159,18 @@ else
 
   core-admin code audit \
     --offline \
-    --format="$FORMAT" \
-    --severity="$SEVERITY"
-  EXIT_CODE=$?
+    --format=json \
+    --severity="$SEVERITY" > "$RESULT"
+  RAW_EXIT=$?
 
-  case $EXIT_CODE in
-    0) VERDICT="PASS" ;;
-    1) VERDICT="FAIL" ;;
-    *) VERDICT="ERROR" ;;
-  esac
+  read -r VERDICT EXIT_CODE SKIPPED_BLOCKING <<< "$(resolve_verdict "$RESULT" "$RAW_EXIT")"
+  render_output "$RESULT" "$FORMAT" "$SEVERITY"
 
   echo ""
-  echo "CORE audit verdict: $VERDICT (exit $EXIT_CODE)"
+  if [ "$VERDICT" = "DEGRADED" ]; then
+    echo "CORE audit: blocking rule(s) NOT evaluated in stateless mode (not PASS): ${SKIPPED_BLOCKING:-none listed}"
+  fi
+  echo "CORE audit verdict: $VERDICT (exit $EXIT_CODE, raw exit $RAW_EXIT)"
 
 fi
 

@@ -264,3 +264,58 @@ def test_format_payload_handles_missing_optional_fields() -> None:
     lines = [ln for ln in output.split("\n") if ln]
     assert len(lines) == 1
     assert "verdict=UNKNOWN" in lines[0]
+
+
+# --- #907: skipped BLOCKING rules are warnings, and counted in the summary --
+
+
+def test_format_skipped_blocking_rule_is_a_warning_saying_not_evaluated() -> None:
+    """A skipped blocking rule is why the verdict is DEGRADED; it must not
+    read as a routine notice or as passed in the workflow log."""
+    skipped = {
+        "rule_id": "capability.taxonomy.roles_require_canonical_capabilities",
+        "engine": "knowledge_gate",
+        "enforcement": "blocking",
+        "reason": "requires knowledge graph; not available in stateless mode",
+    }
+    line = format_skipped_rule(skipped)
+    assert line.startswith("::warning ")
+    assert "NOT evaluated" in line
+    assert "capability.taxonomy.roles_require_canonical_capabilities" in line
+    assert "knowledge graph" in line
+
+
+def test_format_skipped_advisory_rule_stays_a_notice() -> None:
+    skipped = {
+        "rule_id": "modularity.unix_philosophy",
+        "engine": "llm_gate",
+        "enforcement": "advisory",
+        "reason": "requires LLM provider + verdict cache",
+    }
+    assert format_skipped_rule(skipped).startswith("::notice ")
+
+
+def test_format_payload_summary_counts_skipped_blocking_rules() -> None:
+    payload = {
+        "verdict": "DEGRADED",
+        "passed": False,
+        "findings": [],
+        "skipped_rules": [
+            {
+                "rule_id": "a",
+                "engine": "knowledge_gate",
+                "enforcement": "blocking",
+                "reason": "r",
+            },
+            {
+                "rule_id": "b",
+                "engine": "llm_gate",
+                "enforcement": "advisory",
+                "reason": "r",
+            },
+        ],
+    }
+    lines = [ln for ln in format_payload(payload).split("\n") if ln]
+    assert lines[-1].endswith(
+        "verdict=DEGRADED findings=0 skipped_rules=2 skipped_blocking_rules=1"
+    )

@@ -122,9 +122,115 @@ jobs:
       # Constitutional audit, per push, blocking rules only. See ADR-115's
       # note on --offline: without it the CLI routes through CoreApiClient to
       # a core-api daemon that does not exist on a runner.
+      #
+      # #907: the offline run cannot evaluate CORE's DB-dependent blocking
+      # rules, so its verdict is DEGRADED (exit 1), never PASS. The gate
+      # below reads the JSON verdict: PASS and DEGRADED continue (DEGRADED
+      # with a ::warning + job summary), everything else fails closed. The
+      # full DB-backed audit runs at the certification boundary, not per
+      # commit (issue #907, "Boundary for #895").
       - name: Constitutional audit (blocking rules, stateless engine)
         timeout-minutes: 10
-        run: poetry run core-admin code audit --offline --severity=block
+        run: |
+          set +e
+          RESULT="$RUNNER_TEMP/offline-audit-result.json"
+          poetry run core-admin code audit --offline --severity=block --format=json > "$RESULT"
+          RAW_EXIT=$?
+          echo "raw exit=$RAW_EXIT; result=$RESULT"
+          set -e
+          python3 - "$RESULT" "$RAW_EXIT" <<'PY'
+          # #907 CI policy: gate on the governed verdict in the JSON result, never on
+          # the exit code alone. Continue only for the canonical verdicts PASS and
+          # DEGRADED; fail closed on FAIL, ERROR, a crashed command, malformed or
+          # missing JSON, a missing/unknown verdict, or any BLOCK-severity finding.
+          # DEGRADED is explicit: a ::warning plus the skipped blocking rule IDs in
+          # the job summary. It is never relabelled PASS.
+          import json
+          import os
+          import sys
+
+          result_path, raw_exit = sys.argv[1], int(sys.argv[2])
+          ACCEPTED = {"PASS", "DEGRADED"}
+          BLOCK_SEVERITIES = {"block", "blocking"}
+
+
+          def summary(text: str) -> None:
+              path = os.environ.get("GITHUB_STEP_SUMMARY")
+              if path:
+                  with open(path, "a", encoding="utf-8") as fh:
+                      fh.write(text + "\n")
+              print(text)
+
+
+          def fail(msg: str) -> None:
+              print(f"::error title=CORE offline audit gate::{msg}")
+              summary(f"## CORE offline audit: FAILED CLOSED\n\n{msg} (raw exit {raw_exit})")
+              sys.exit(1)
+
+
+          try:
+              with open(result_path, encoding="utf-8") as fh:
+                  result = json.load(fh)
+          except Exception as exc:  # noqa: BLE001 - any parse/IO failure fails closed
+              fail(f"audit result missing or not JSON: {exc}")
+          if not isinstance(result, dict):
+              fail("audit result is not a JSON object")
+
+          verdict = result.get("verdict")
+          if verdict not in ACCEPTED:
+              fail(f"verdict={verdict!r} is not an accepted stateless verdict {sorted(ACCEPTED)}")
+
+          findings = result.get("findings") or []
+          blocking = [f for f in findings if str(f.get("severity", "")).lower() in BLOCK_SEVERITIES]
+          for f in blocking:
+              print(
+                  f"::error title={f.get('check_id') or f.get('rule_id')}::"
+                  f"{f.get('file_path') or f.get('file')}:{f.get('line_number') or f.get('line')} "
+                  f"{f.get('message')}"
+              )
+          if blocking:
+              fail(f"{len(blocking)} BLOCK-severity finding(s) present (verdict {verdict})")
+
+          if verdict == "PASS" and raw_exit != 0:
+              fail(f"verdict PASS but command exited {raw_exit}")
+          if verdict == "DEGRADED" and raw_exit not in (0, 1):
+              fail(f"verdict DEGRADED but command exited {raw_exit}")
+
+          stats = result.get("stats") or {}
+          skipped = result.get("skipped_rules") or []
+          skipped_blocking = [s for s in skipped if s.get("enforcement") == "blocking"]
+          if verdict == "DEGRADED":
+              ids = ", ".join(s.get("rule_id", "?") for s in skipped_blocking) or "(none listed)"
+              print(
+                  f"::warning title=CORE offline audit DEGRADED::{len(skipped_blocking)} blocking "
+                  f"rule(s) NOT evaluated in stateless mode (accepted, not PASS): {ids}"
+              )
+              lines = [
+                  "## CORE offline audit: DEGRADED (accepted for the stateless step; not PASS)",
+                  "",
+                  f"Executed {stats.get('runnable_rules', '?')} rule(s); {len(skipped)} skipped, "
+                  f"{len(skipped_blocking)} of them blocking. Raw exit {raw_exit}.",
+                  "",
+                  "Blocking rules not evaluated:",
+              ]
+              lines += [
+                  f"- `{s.get('rule_id')}` ({s.get('engine')}): {s.get('reason')}" for s in skipped_blocking
+              ]
+              summary("\n".join(lines))
+          else:
+              summary(
+                  f"## CORE offline audit: PASS\n\nExecuted {stats.get('runnable_rules', '?')} rule(s); "
+                  f"{len(skipped)} skipped (0 blocking). Raw exit {raw_exit}."
+              )
+          PY
+
+      - name: Preserve offline audit result (complete JSON)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: offline-audit-result
+          path: ${{ runner.temp }}/offline-audit-result.json
+          if-no-files-found: warn
 
       # ADR-115 D3: lint statically (ruff), not via the core-api server.
       - name: Lint (ruff — static, no server)

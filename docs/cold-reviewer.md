@@ -80,7 +80,7 @@ Open a pull request that touches a file your rules scope. The check runs, annota
 
 The action emits one output:
 
-- `verdict` — `PASS` (no findings at severity), `FAIL` (findings present), or `ERROR` (internal failure).
+- `verdict` — `PASS` (no findings at severity, every blocking rule evaluated), `DEGRADED` (no findings, but one or more *blocking* rules could not be evaluated offline — compliance for those is unknown, not passed; exit 1), `FAIL` (findings present), or `ERROR` (internal failure, or the audit produced no recognisable verdict). The verdict is derived from the audit's JSON result, never from the exit code alone.
 
 ---
 
@@ -127,6 +127,6 @@ A successful CORE audit on your repo demonstrates three structural claims simult
 
 1. The rules declared in your `.intent/` were loaded, parsed, and evaluated by named engines (`ast_gate`, `glob_gate`, etc.).
 2. Findings, if any, name the rule that produced them — not a generic linter category.
-3. The exit code is deterministic from the findings: severity threshold met → fail; no findings → pass; internal failure → error. No silent passes.
+3. The exit code is deterministic from the result: severity threshold met → fail; a blocking rule not evaluated → degraded (never reported as pass); no findings and full blocking coverage → pass; internal failure → error. No silent passes.
 
 This is the same evaluation path the [Proof Index](proof-index.md) claims hold for; this page just lets you observe it without standing up the full runtime.

@@ -250,8 +250,15 @@ async def _run_offline_audit(
 
     Routes to mind.governance.stateless_audit (F-10.1a). Exit code matrix:
 
-    - EXIT_OK (0)             : no findings >= severity floor
-    - EXIT_FINDINGS (1)       : N findings >= severity floor; merge-block
+    - EXIT_OK (0)             : no findings >= severity floor, verdict PASS
+    - EXIT_FINDINGS (1)       : N findings >= severity floor; merge-block.
+                                Also the exit for verdict DEGRADED (#907):
+                                a blocking rule was skipped / not
+                                evaluated, so compliance is unknown. This
+                                reuses the existing non-success exit the
+                                online path already applies to DEGRADED
+                                (`if not result["passed"]`) -- no private
+                                exit code for "unknown".
     - EXIT_CONFIG_ERROR (2)   : .intent/ unreachable, IntentRepository fails,
                                 or governance collapse (ADR-108 D4 — rules
                                 declared but none map to an enforceable engine)
@@ -340,7 +347,11 @@ async def _run_offline_audit(
     else:
         _render_text_summary(result, min_severity)
 
-    raise typer.Exit(EXIT_FINDINGS if blocking_findings else EXIT_OK)
+    # #907 / ADR-005 S3: DEGRADED must never be silently treated as PASS.
+    # A skipped BLOCKING rule is "not evaluated", which is never "passed",
+    # so the gate exits non-success even when every executed rule is clean.
+    degraded = result.get("verdict") == "DEGRADED"
+    raise typer.Exit(EXIT_FINDINGS if (blocking_findings or degraded) else EXIT_OK)
 
 
 # ID: 4d8287ab-678e-4fb9-bcf5-05eab155ace1
@@ -403,10 +414,25 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
         verdict_str=result["verdict"],
     )
     skipped = result.get("skipped_rules", [])
+    # #907: skipped BLOCKING rules are named next to the verdict, not as a
+    # dim footnote -- they are why the verdict is DEGRADED rather than PASS.
+    # "Not evaluated" is never presented as "passed".
+    skipped_blocking = [e for e in skipped if e.get("enforcement") == "blocking"]
+    if skipped_blocking:
+        console.print(
+            f"[bold yellow]{len(skipped_blocking)} blocking rule(s) NOT "
+            f"evaluated in stateless mode (verdict DEGRADED, not PASS):[/bold yellow]"
+        )
+        for entry in skipped_blocking:
+            console.print(
+                f"  [yellow]{entry.get('rule_id')}[/yellow] "
+                f"[dim]({entry.get('engine')}) — {entry.get('reason')}[/dim]"
+            )
     if skipped:
         console.print(
             f"[dim]Skipped {len(skipped)} rule(s) in stateless mode "
-            f"(knowledge_gate + llm_gate require DB); pass "
+            f"({len(skipped_blocking)} blocking, "
+            f"{len(skipped) - len(skipped_blocking)} reporting/advisory); pass "
             f"--format=json to see structured reasons.[/dim]"
         )
     filtered = [f for f in all_findings if f.severity >= min_severity]
