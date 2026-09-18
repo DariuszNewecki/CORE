@@ -8,6 +8,47 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.10.0] — 2026-09-18
+
+### 🚦 Offline audit verdicts are truthful (#907)
+
+- `core-admin code audit --offline` returns **DEGRADED** (`passed=false`, exit 1), never
+  PASS, whenever a *blocking* rule could not be evaluated in stateless mode. Every skipped
+  rule carries `enforcement` (blocking / reporting / advisory) and its reason in the JSON
+  payload; `stats` gains `skipped_blocking_rules_count` / `skipped_blocking_rule_ids`. Text
+  output names the skipped blocking rules under the verdict; `github-annotations` emits a
+  `::warning` per skipped blocking rule. Skipped advisory/reporting rules stay visible without
+  gating. "Not evaluated" is never counted or presented as "passed".
+- The `core-audit-gate` GitHub Action / Docker image derives its `verdict` output from the
+  audit's JSON result instead of the exit code, so DEGRADED is reported as DEGRADED — not FAIL.
+  Unknown or malformed output fails closed (`ERROR`, exit 64).
+- CORE's own CI gates on the JSON verdict: PASS and DEGRADED continue (DEGRADED with a
+  warning and the skipped ids in the job summary), everything else fails closed.
+
+### 📦 The prompt corpus ships in the wheel (#909)
+
+- `pip install core-runtime` now carries the full prompt corpus as package data
+  (`shared/_prompts/`, a byte-identical mirror of the repository's `var/prompts/`, enforced by
+  a standing parity test). `PromptModel.load`, `PathResolver.prompt` and the external runner
+  resolve **repository first, bundled second** — an adopter's own prompts always win, and a
+  missing prompt still raises the existing clear `FileNotFoundError`. Proven from a clean
+  virtualenv with no checkout and no `var/prompts/`.
+
+### ⚠️ Compatibility note
+
+- The `DRAFT` proposal status was retired (#885); proposals are now created in `PENDING`.
+- The legacy body-contract and legacy-tag mechanisms were retired (`17ec2a42`).
+- Neither was classified as a governed public-surface break under the current ADR-088 D5 /
+  F-48.4 definition (no promoted Python public surface; no `/v1/` → `/v2/` wire bump), so this
+  release is a minor bump. Consumers that used those internal or wire-visible values should
+  review compatibility before upgrading.
+
+### Also in this release
+
+- 468 commits since 2.9.1 (2026-07-12), including the ADR-155…ADR-160 governance arc, the
+  #895 external-run apparatus and its cold-run fixes, `linkage.no_orphan_ids`, and the
+  production-readiness truth chain below. See `git log v2.9.1..v2.10.0`.
+
 ### 🧭 Production-readiness truth chain
 
 A single, self-checking chain now carries CORE's production-readiness claim:

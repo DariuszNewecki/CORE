@@ -4,7 +4,9 @@
 # the `core-runtime` PyPI package (F-48.2) in a Docker container action.
 # Findings appear inline in the PR diff via GitHub annotations; a failing
 # exit code blocks merge when branch protection is configured to require
-# this check.
+# this check. The `verdict` output is derived from the audit's JSON result
+# (PASS / DEGRADED / FAIL / ERROR -- see outputs below), never from the exit
+# code alone (#907).
 #
 # Per ADR-086 D1+D7, this is the Audit-tier slice of CORE's installation
 # architecture: no daemon, no database, no Qdrant — just the stateless
@@ -34,7 +36,13 @@ inputs:
 
 outputs:
   verdict:
-    description: 'PASS if no findings at or above severity; FAIL if findings present; ERROR on internal failure.'
+    description: >-
+      Derived from the audit's JSON result, never from the exit code alone (#907).
+      PASS: no findings at or above severity and every blocking rule evaluated (exit 0).
+      DEGRADED: no findings, but one or more blocking rules could not be evaluated in
+      stateless mode -- compliance for those is unknown, not passed (exit 1; the skipped
+      rule ids are emitted as workflow warnings). FAIL: findings present (exit 1).
+      ERROR: internal failure or no recognisable verdict (exit 2 or 64).
 
 runs:
   using: 'docker'
