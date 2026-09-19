@@ -16,8 +16,8 @@ Proven here:
   refuses and names the remedy; adopting the wrong baseline (v2.10.1) or an
   unknown one refuses without writing; adopting v2.9.1 without ``--write``
   verifies only; with ``--write`` it records exactly the v2.9.1 prefix; then
-  ``migrate --write`` executes the span (the two ``20260722`` files
-  included) and reconciles the ledger column; ``status`` is current, every
+  ``migrate --write`` executes the whole span (the two ``20260722`` files
+  and the ledger column included); ``status`` is current, every
   probe holds, the v2.10.1 fingerprint holds, re-running is a no-op;
 * the ``--bootstrap``-after-upgrade trap: a ledger that falsely claims the
   span is reported as a contradiction and ``migrate --write`` refuses;
@@ -148,11 +148,12 @@ async def test_upgrade_v2_9_1_to_current_end_to_end(
     assert st.pending_migrations == span and st.probe_failures == []
     assert st.baseline_suggestion is None  # only offered for an empty ledger
 
-    # 6. Migrate: the span executes, the ledger column is reconciled.
+    # 6. Migrate: the whole span executes (the ledger column included —
+    #    the engine never adds it out of band).
     report = await migrate_db(write=True, session_factory=db.session_factory)
     assert report.pending_before == span
-    assert report.applied == [m for m in span if m != RECONCILED_COLUMN]
-    assert report.reconciled == [RECONCILED_COLUMN]
+    assert report.applied == span
+    assert report.reconciled == [] and report.markers_backfilled == []
     assert all(
         r.statements_executed > 0
         for r in report.results
@@ -226,7 +227,7 @@ async def test_v2_10_1_shaped_database_refuses_v2_9_1_and_suggests_v2_10_1(
     ]
     report = await migrate_db(write=True, session_factory=db.session_factory)
     assert report.pending_before == [RECONCILED_COLUMN]
-    assert report.reconciled == [RECONCILED_COLUMN]
+    assert report.applied == [RECONCILED_COLUMN]  # idempotent ADD COLUMN IF NOT EXISTS
     assert (await status(session_factory=db.session_factory)).is_current
 
 
@@ -329,7 +330,7 @@ async def test_cli_upgrade_sequence_cold(fresh_database: FreshDatabase) -> None:
 
     code, out, _ = _core_admin(url, "migrate", "--write")
     assert code == 0 and "Migrations complete" in out, out[-800:]
-    assert "9 applied, 1 reconciled" in out
+    assert "10 applied, 0 reconciled" in out
 
     code, out, _ = _core_admin(url, "status", "--format", "json")
     assert code == 0, out[-800:]

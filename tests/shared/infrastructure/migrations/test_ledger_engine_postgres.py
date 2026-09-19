@@ -18,6 +18,10 @@ Proven here:
   rolled back and not recorded;
 * refusals — ``transactional: false`` and foreign transaction control are
   refused before anything runs;
+* one schema authority — ``ensure_ledger`` creates a missing ledger in its
+  legacy shape and never alters an existing one; rows are legacy-shaped
+  until the column migration runs, and a reconciled row's marker is set
+  afterwards by an explicit backfill;
 * read-only inspection — status/get_applied never create the ledger table.
 """
 
@@ -34,6 +38,7 @@ from shared.infrastructure.repositories.db.ledger_engine import (
     LedgerEngineError,
     MigrationOutcome,
     apply_migration,
+    backfill_reconciled_markers,
     ensure_ledger,
     get_applied,
 )
@@ -92,6 +97,15 @@ async def _apply(
 
 
 TABLE_EXISTS = "select to_regclass('core.{t}') is not null"
+RECONCILED_COLUMN_DDL = (
+    "alter table core._migrations add column reconciled boolean not null default false"
+)
+
+
+async def _modern_ledger(db: FreshDatabase) -> None:
+    """A ledger that has taken 20260919_adr162_migrations_reconciled.sql."""
+    await ensure_ledger(db.session_factory)
+    await db.execute(RECONCILED_COLUMN_DDL)
 
 
 # ── atomicity ────────────────────────────────────────────────────────────────
@@ -227,7 +241,7 @@ async def test_reconcilable_entry_with_true_probe_is_recorded_without_execution(
     fresh_database: FreshDatabase, tmp_path: Path
 ) -> None:
     db = fresh_database
-    await ensure_ledger(db.session_factory)
+    await _modern_ledger(db)
     # The change is already present (applied "by hand"); the file would blow
     # up if executed, which is how we know it was not.
     await db.execute("CREATE TABLE core.t_rec (x int)")
@@ -244,7 +258,63 @@ async def test_reconcilable_entry_with_true_probe_is_recorded_without_execution(
     )
     assert result.outcome is MigrationOutcome.RECONCILED
     assert result.statements_executed == 0
+    assert result.marker_recorded is True
     assert await db.ledger_rows() == {"001_rec.sql": True}
+
+
+# ID: 06fa9c25-1bcc-4eb7-aacc-f193fe509fdd
+async def test_reconciled_row_on_a_legacy_ledger_gets_its_marker_by_backfill(
+    fresh_database: FreshDatabase, tmp_path: Path
+) -> None:
+    """Before 20260919_adr162_migrations_reconciled.sql has run the ledger has
+    no ``reconciled`` column: the row is recorded legacy-shaped (nothing
+    executed), the result says the marker is missing, and the explicit
+    backfill sets it once the column exists — never by altering the table
+    behind the migration's back."""
+    db = fresh_database
+    await ensure_ledger(db.session_factory)  # legacy shape only
+    await db.execute("CREATE TABLE core.t_rec (x int)")
+    _write(tmp_path, "001_rec.sql", "CREATE TABLE core.t_rec (x int);")
+    manifest = _manifest(
+        tmp_path,
+        ["001_rec.sql"],
+        {"001_rec.sql": {"verify": PROBE_T_REC, "reconcilable": True}},
+    )
+    result = await apply_migration(
+        manifest.entry("001_rec.sql"),
+        manifest.sql_path("001_rec.sql", Path("/")),
+        session_factory=db.session_factory,
+    )
+    assert result.outcome is MigrationOutcome.RECONCILED
+    assert result.marker_recorded is False
+    assert await db.ledger_rows() == {"001_rec.sql": False}
+    assert (
+        await db.scalar(
+            "select exists (select 1 from information_schema.columns where "
+            "table_schema='core' and table_name='_migrations' and column_name='reconciled')"
+        )
+        is False
+    ), "the engine must not add the column itself"
+
+    # Column still absent: backfill is a no-op.
+    assert (
+        await backfill_reconciled_markers(
+            ["001_rec.sql"], session_factory=db.session_factory
+        )
+        == []
+    )
+    # The ledgered migration adds the column; then the marker can be set.
+    await db.execute(RECONCILED_COLUMN_DDL)
+    assert await backfill_reconciled_markers(
+        ["001_rec.sql"], session_factory=db.session_factory
+    ) == ["001_rec.sql"]
+    assert await db.ledger_rows() == {"001_rec.sql": True}
+    assert (
+        await backfill_reconciled_markers(
+            ["001_rec.sql"], session_factory=db.session_factory
+        )
+        == []
+    )
 
 
 # ID: b909a362-5438-477b-b0f8-b30d1e937986
@@ -377,27 +447,23 @@ async def test_leading_begin_and_trailing_commit_are_stripped_and_atomic(
 
 
 # ID: 509c6514-b5f3-4ccc-816d-3aff25883616
-async def test_ensure_ledger_is_idempotent_and_adds_reconciled_to_legacy_ledger(
+async def test_ensure_ledger_creates_legacy_shape_and_never_alters_an_existing_ledger(
     fresh_database: FreshDatabase,
 ) -> None:
     db = fresh_database
-    # A pre-ADR-162 ledger (id, applied_at) with a historical row.
-    await db.execute("CREATE SCHEMA core")
-    await db.execute(
-        "CREATE TABLE core._migrations (id text primary key, "
-        "applied_at timestamptz not null default now())"
+    columns_sql = (
+        "select array_agg(column_name::text order by ordinal_position) "
+        "from information_schema.columns where table_schema='core' "
+        "and table_name='_migrations'"
     )
+    # Absent ledger: created in the legacy shape only.
+    await ensure_ledger(db.session_factory)
+    assert await db.scalar(columns_sql) == ["id", "applied_at"]
+    # Existing legacy ledger with a historical row: untouched, idempotent.
     await db.execute("INSERT INTO core._migrations (id) VALUES ('legacy.sql')")
     await ensure_ledger(db.session_factory)
-    await ensure_ledger(db.session_factory)
+    assert await db.scalar(columns_sql) == ["id", "applied_at"]
     assert await db.ledger_rows() == {"legacy.sql": False}
-    assert (
-        await db.scalar(
-            "select column_default from information_schema.columns where "
-            "table_schema='core' and table_name='_migrations' and column_name='reconciled'"
-        )
-        == "false"
-    )
 
 
 # ID: 0ae37df0-7053-47a5-9632-030e9977a9e9

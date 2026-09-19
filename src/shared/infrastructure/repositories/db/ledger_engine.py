@@ -23,6 +23,14 @@ Guarantees, per migration:
 * **Fail closed.** Entries flagged ``transactional: false``, files with
   non-transactional statements, and files with foreign transaction control
   are refused before anything is executed.
+* **One schema authority.** The engine owns ledger *rows*; the ledger's
+  *structure* changes only through ledgered migrations. ``ensure_ledger``
+  creates a missing ledger in its legacy shape (``id``, ``applied_at``) and
+  never alters an existing one; the ``reconciled`` column arrives through
+  ``20260919_adr162_migrations_reconciled.sql`` like any other change. Until
+  that migration has executed, rows are recorded legacy-shaped; a
+  reconciled row recorded in that window has its marker set once the column
+  exists (:func:`backfill_reconciled_markers`, an explicit, logged step).
 
 Sessions are injected (``session_factory``) so the engine runs identically
 against the configured database and against a disposable test instance.
@@ -58,19 +66,13 @@ LEDGER_LOCK_KEY = 0x434F52454D494752
 
 LEDGER_TABLE = "core._migrations"
 
+# Legacy shape only: every later column is a ledgered migration's business.
 _LEDGER_DDL = """
 create table if not exists core._migrations (
   id text primary key,
-  applied_at timestamptz not null default now(),
-  reconciled boolean not null default false
+  applied_at timestamptz not null default now()
 )
 """
-# The ledger must be able to describe its own rows before the manifest entry
-# that ledgers this column is reached (that entry is itself reconcilable).
-_LEDGER_RECONCILED_DDL = (
-    "alter table core._migrations "
-    "add column if not exists reconciled boolean not null default false"
-)
 
 
 # ID: e4d4d3ac-2b53-4a8b-9c80-6fde8088d4d8
@@ -91,6 +93,9 @@ class MigrationResult:
     id: str
     outcome: MigrationOutcome
     statements_executed: int
+    # False only for a RECONCILED row recorded while the ledger still lacked
+    # the ``reconciled`` column (see backfill_reconciled_markers).
+    marker_recorded: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -150,21 +155,74 @@ async def run_probe(session: AsyncSession, sql: str) -> bool:
 
 # ID: 8bb15c59-050f-4c0e-bbd1-3fa99d8a35f9
 async def ensure_ledger(session_factory: SessionFactory = get_session) -> None:
-    """Bring the ledger table to the structure the engine writes (write mode only)."""
+    """Create a missing ledger table in its legacy shape (write mode only).
+
+    Never alters an existing ledger: structural changes to ``core._migrations``
+    are ledgered migrations themselves (ADR-162 D7; one schema authority).
+    """
     async with session_factory() as session:
         async with session.begin():
             await session.execute(text("create schema if not exists core"))
             await session.execute(text(_LEDGER_DDL))
-            await session.execute(text(_LEDGER_RECONCILED_DDL))
 
 
-async def _record(session: AsyncSession, mig_id: str, *, reconciled: bool) -> None:
+async def _record(session: AsyncSession, mig_id: str, *, reconciled: bool) -> bool:
+    """Insert the ledger row; legacy-shaped while the column does not exist yet.
+
+    Returns whether the ``reconciled`` marker was persisted.
+    """
+    if await ledger_has_reconciled_column(session):
+        await session.execute(
+            text(
+                "insert into core._migrations (id, applied_at, reconciled) "
+                "values (:id, :ts, :reconciled)"
+            ).bindparams(id=mig_id, ts=datetime.now(tz=UTC), reconciled=reconciled)
+        )
+        return True
     await session.execute(
         text(
-            "insert into core._migrations (id, applied_at, reconciled) "
-            "values (:id, :ts, :reconciled)"
-        ).bindparams(id=mig_id, ts=datetime.now(tz=UTC), reconciled=reconciled)
+            "insert into core._migrations (id, applied_at) values (:id, :ts)"
+        ).bindparams(id=mig_id, ts=datetime.now(tz=UTC))
     )
+    if reconciled:
+        logger.warning(
+            "Migration %s reconciled, but the ledger predates the reconciled "
+            "marker; the marker is set once the column migration has run.",
+            mig_id,
+        )
+    return not reconciled
+
+
+# ID: afe15a5f-35e7-4908-b5df-71a049ac2e06
+async def backfill_reconciled_markers(
+    mig_ids: list[str], *, session_factory: SessionFactory = get_session
+) -> list[str]:
+    """Set ``reconciled = true`` for rows recorded before the column existed.
+
+    Ledger-row maintenance, not a schema change: called by the service after
+    a ``--write`` run in which the column migration executed later than a
+    reconciliation. Returns the ids updated (none when the column is still
+    absent).
+    """
+    if not mig_ids:
+        return []
+    async with session_factory() as session:
+        async with session.begin():
+            if not await ledger_has_reconciled_column(session):
+                return []
+            await session.execute(
+                text("select pg_advisory_xact_lock(:k)").bindparams(k=LEDGER_LOCK_KEY)
+            )
+            result = await session.execute(
+                text(
+                    "update core._migrations set reconciled = true "
+                    "where id = any(:ids) and reconciled = false returning id"
+                ).bindparams(ids=mig_ids)
+            )
+            updated = [r[0] for r in result]
+    for mig_id in updated:
+        logger.info("Ledger marker set: %s recorded as reconciled.", mig_id)
+    return updated
 
 
 # ID: 1d587ce6-c49b-4fbb-ba00-18ea58252e25
@@ -225,11 +283,13 @@ async def apply_migration(
 
             if entry.reconcilable and entry.verify is not None:
                 if await run_probe(session, entry.verify):
-                    await _record(session, entry.id, reconciled=True)
+                    marked = await _record(session, entry.id, reconciled=True)
                     logger.info(
                         "Migration %s reconciled: postcondition already holds", entry.id
                     )
-                    return MigrationResult(entry.id, MigrationOutcome.RECONCILED, 0)
+                    return MigrationResult(
+                        entry.id, MigrationOutcome.RECONCILED, 0, marker_recorded=marked
+                    )
 
             for stmt in prepared.statements:
                 await session.execute(text(stmt))

@@ -32,7 +32,8 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   migration exactly once. A migration file may keep a leading `BEGIN;` / trailing `COMMIT;`
   (stripped); any other transaction control or a statement PostgreSQL cannot run inside a
   transaction block is refused before anything executes. `core._migrations` gains
-  `reconciled boolean` (`20260919_adr162_migrations_reconciled.sql`).
+  `reconciled boolean` through `20260919_adr162_migrations_reconciled.sql` — the only authority
+  for the ledger's structure; the engine never alters an existing ledger out of band.
 - **Manifest completeness (D6, D12).** `20260722_active_finding_dedup.sql` and
   `20260722_active_finding_reconcile.sql` are ledgered in date position. Every `.sql` file in
   the migrations directory appears exactly once in the manifest (no unmanaged list) — the

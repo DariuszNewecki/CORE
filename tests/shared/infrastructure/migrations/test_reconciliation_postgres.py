@@ -12,9 +12,11 @@ Proven here, with the REAL manifest and the REAL migration files:
   by hand (per their ROLLOUT runbook) before the manifest knew them — is
   recorded as ``reconciled`` by ``--write`` with ZERO statements executed;
 * the unapplied case executes the same two files;
-* everything else in the span is executed, the ledger's own column entry is
-  reconciled (the engine created it first), and afterwards every per-entry
-  probe holds, the v2.10.1 baseline fingerprint holds and nothing is pending;
+* everything else in the span is executed — the ledger's own column entry
+  included (one schema authority) — the two reconciled rows, recorded
+  legacy-shaped before that column existed, get their marker in the same
+  pass, and afterwards every per-entry probe holds, the v2.10.1 baseline
+  fingerprint holds and nothing is pending;
 * baseline probes discriminate: v2.9.1 holds and v2.10.1 does not on a
   v2.9.1 database, and the reverse after the upgrade.
 """
@@ -112,18 +114,17 @@ async def test_hand_applied_20260722_state_is_reconciled_without_rerunning_sql(
     for mig_id in (DEDUP, RECONCILE):
         assert by_id[mig_id].outcome is MigrationOutcome.RECONCILED, mig_id
         assert by_id[mig_id].statements_executed == 0, mig_id
-    assert by_id[RECONCILED_COLUMN].outcome is MigrationOutcome.RECONCILED
+        # Recorded before the column migration ran: marker set afterwards.
+        assert by_id[mig_id].marker_recorded is False, mig_id
+    assert by_id[RECONCILED_COLUMN].outcome is MigrationOutcome.APPLIED
     executed = [r.id for r in report.results if r.outcome is MigrationOutcome.APPLIED]
-    assert executed == [
-        m
-        for m in report.pending_before
-        if m not in (DEDUP, RECONCILE, RECONCILED_COLUMN)
-    ]
+    assert executed == [m for m in report.pending_before if m not in (DEDUP, RECONCILE)]
     assert all(r.statements_executed > 0 for r in report.results if r.id in executed)
+    assert report.markers_backfilled == [DEDUP, RECONCILE]
 
     rows = await db.ledger_rows()
     assert set(rows) == set(manifest.order)
-    assert {k for k, v in rows.items() if v} == {DEDUP, RECONCILE, RECONCILED_COLUMN}
+    assert {k for k, v in rows.items() if v} == {DEDUP, RECONCILE}
     await _assert_current(db, manifest)
 
 
@@ -143,9 +144,10 @@ async def test_unapplied_20260722_state_executes_the_files(
     for mig_id in (DEDUP, RECONCILE):
         assert by_id[mig_id].outcome is MigrationOutcome.APPLIED, mig_id
         assert by_id[mig_id].statements_executed > 0, mig_id
+    assert report.reconciled == [] and report.markers_backfilled == []
     rows = await db.ledger_rows()
     assert set(rows) == set(manifest.order)
-    assert {k for k, v in rows.items() if v} == {RECONCILED_COLUMN}
+    assert {k for k, v in rows.items() if v} == set()
     await _assert_current(db, manifest)
 
 

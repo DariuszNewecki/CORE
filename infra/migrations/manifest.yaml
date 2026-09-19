@@ -167,11 +167,10 @@ migrations:
            and exists (select 1 from information_schema.columns
                        where table_schema = 'core' and table_name = 'autonomous_proposals'
                          and column_name = 'status' and column_default like '''pending''%')
-    # The engine brings the ledger to this structure before it records anything
-    # (it must describe its own rows first), so this entry is normally found
-    # already satisfied and reconciled.
+    # The ledger's own structure changes only through this ledgered migration
+    # (one schema authority); rows recorded before it runs are legacy-shaped
+    # and a reconciled row's marker is set once the column exists.
     20260919_adr162_migrations_reconciled.sql:
-      reconcilable: true
       verify: >-
         select exists (select 1 from information_schema.columns
                        where table_schema = 'core' and table_name = '_migrations'

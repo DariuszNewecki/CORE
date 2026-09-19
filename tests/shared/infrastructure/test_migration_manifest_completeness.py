@@ -122,12 +122,13 @@ def test_every_entry_after_the_v2_9_1_baseline_declares_a_verify_probe() -> None
 # ID: c0b0ad58-f5e9-4d2c-8d9e-a2493f3c5b64
 def test_reconcilable_entries_are_exactly_the_ruled_ones() -> None:
     """Reconciliation is exceptional (D12 §2): only the two files applied by
-    hand before they were ledgered, plus the ledger's own column (which the
-    engine creates before it can record anything)."""
+    hand before they were ledgered. The ledger's own column is an ordinary
+    executed migration — the engine never creates it out of band (U4a)."""
     manifest = load_manifest()
     assert sorted(e.id for e in manifest.entries if e.reconcilable) == sorted(
-        [DEDUP, RECONCILE, RECONCILED_COLUMN]
+        [DEDUP, RECONCILE]
     )
+    assert manifest.entry(RECONCILED_COLUMN).reconcilable is False
     for e in manifest.entries:
         if e.reconcilable:
             assert e.verify, f"{e.id}: reconcilable without a probe"

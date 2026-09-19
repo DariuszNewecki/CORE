@@ -37,6 +37,7 @@ from .ledger_engine import (
     MigrationResult,
     SessionFactory,
     apply_migration,
+    backfill_reconciled_markers,
     ensure_ledger,
     ledger_exists,
     read_applied,
@@ -66,6 +67,7 @@ class MigrationReport:
     pending_before: list[str]
     write: bool
     results: list[MigrationResult] = field(default_factory=list)
+    markers_backfilled: list[str] = field(default_factory=list)
 
     @property
     # ID: b04898b5-32f6-4b09-bd7d-3925882f2b88
@@ -219,8 +221,9 @@ async def migrate_db(
 
     Dry run (default) touches nothing — not even the ledger table. The write
     path refuses an empty ledger on a populated schema and any
-    ledger/schema contradiction, then brings the ledger to the engine's
-    structure and applies each pending entry atomically in manifest order,
+    ledger/schema contradiction, creates a missing ledger (legacy shape; the
+    ledger's own structure changes only through ledgered migrations) and
+    applies each pending entry atomically in manifest order,
     stopping at the first failure with that entry unrecorded and rolled back
     (ADR-162 D7).
     """
@@ -271,6 +274,17 @@ async def migrate_db(
         report.results.append(result)
         logger.info("Migration %s: %s.", mig, result.outcome.value)
 
+    unmarked = [
+        r.id
+        for r in report.results
+        if r.outcome is MigrationOutcome.RECONCILED and not r.marker_recorded
+    ]
+    if unmarked:
+        # Rows reconciled before 20260919_adr162_migrations_reconciled.sql ran
+        # in this same pass: the column exists now, set their marker.
+        report.markers_backfilled = await backfill_reconciled_markers(
+            unmarked, session_factory=session_factory
+        )
     logger.info(
         "Migrations complete: %d applied, %d reconciled, %d skipped.",
         len(report.applied),

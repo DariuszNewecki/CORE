@@ -8,12 +8,13 @@
 -- false = the file was executed by the ledger engine (or the row is part of a
 --         fresh-install seed / verified baseline adoption).
 --
--- The engine brings the ledger to this structure itself before it records
--- anything (it must be able to describe its own rows before this entry is
--- reached in manifest order); this entry ledgers the change so that fresh
--- installs, hop-equivalence and status probes see it like any other
--- migration. Idempotent; runs in one transaction (leading BEGIN / trailing
--- COMMIT are stripped by the engine, kept for `psql -f` readability).
+-- This migration is the ONLY authority for the ledger's structure: the engine
+-- creates a missing ledger in its legacy shape (id, applied_at) and never
+-- alters an existing one. Rows the engine records before this entry runs are
+-- legacy-shaped; a row reconciled in that window has its marker set by the
+-- engine once this column exists (ledger-row maintenance, logged). Idempotent;
+-- runs in one transaction (leading BEGIN / trailing COMMIT are stripped by
+-- the engine, kept for `psql -f` readability).
 
 BEGIN;
 
