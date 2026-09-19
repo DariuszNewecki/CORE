@@ -34,7 +34,7 @@ console = Console()
 
 
 @app.command("status")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=False, requires_brain_services=False)
 # ID: 7c22539d-3f8e-4d18-8457-9d194062a94e
 async def database_status(
     ctx: typer.Context,
@@ -91,6 +91,7 @@ async def database_status(
             "pending_migrations": report.pending_migrations,
             "probe_failures": report.probe_failures,
             "baseline_suggestion": report.baseline_suggestion,
+            "assets": report.assets_origin,
             "current": report.is_current,
         }
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
@@ -118,6 +119,7 @@ def _display_status_table(report, detailed: bool) -> None:
     mig_table = Table(show_header=False)
     mig_table.add_column("Metric", style="cyan")
     mig_table.add_column("Value")
+    mig_table.add_row("Assets", report.assets_origin or "N/A")
     mig_table.add_row("Ledger", "present" if report.ledger_present else "absent")
     mig_table.add_row("Applied", str(len(report.applied_migrations)))
     mig_table.add_row("Pending", str(len(report.pending_migrations)))

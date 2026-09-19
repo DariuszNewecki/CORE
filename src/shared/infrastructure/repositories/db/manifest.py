@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .common import REPO_ROOT, load_policy
+from .common import MigrationAssets, load_policy, resolve_migration_assets
 
 
 _ENTRY_KEYS = {"verify", "reconcilable", "transactional"}
@@ -259,17 +259,16 @@ def verify_manifest_matches_disk(manifest: Manifest, repo_root: Path) -> None:
 
 
 # ID: df841458-9938-46ac-9e2d-4c537b12a369
-def load_manifest(*, verify_disk: bool = True) -> Manifest:
-    """Load and validate the repository manifest via :func:`load_policy`.
+def load_manifest(
+    *, verify_disk: bool = True, assets: MigrationAssets | None = None
+) -> Manifest:
+    """Load and validate the manifest from the resolved assets (source or bundle).
 
     With ``verify_disk`` (the default) the manifest is also checked against
-    the migrations directory in both directions.
+    the migrations directory of those assets in both directions.
     """
-    manifest = parse_manifest(load_policy())
+    assets = assets or resolve_migration_assets()
+    manifest = parse_manifest(load_policy(assets))
     if verify_disk:
-        if REPO_ROOT is None:
-            raise ManifestError(
-                "cannot verify the manifest against disk without a source tree"
-            )
-        verify_manifest_matches_disk(manifest, REPO_ROOT)
+        verify_manifest_matches_disk(manifest, assets.root)
     return manifest

@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import text
 
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.repositories.db.common import resolve_migration_assets
 from shared.infrastructure.repositories.db.ledger_engine import SessionFactory
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_service import inspect_ledger
@@ -37,6 +38,7 @@ class StatusReport:
     schema_present: bool = True
     probe_failures: list[str] = field(default_factory=list)
     baseline_suggestion: str | None = None
+    assets_origin: str | None = None  # "source" | "bundled" (ADR-162 D8)
 
     @property
     # ID: 6685ef00-f3c0-47fc-9465-55231b72a51e
@@ -69,7 +71,8 @@ async def status(*, session_factory: SessionFactory = get_session) -> StatusRepo
         )
 
     # 2) manifest & ledger — read-only
-    manifest = load_manifest()
+    assets = resolve_migration_assets()
+    manifest = load_manifest(assets=assets)
     inspection = await inspect_ledger(manifest, session_factory=session_factory)
 
     return StatusReport(
@@ -81,4 +84,5 @@ async def status(*, session_factory: SessionFactory = get_session) -> StatusRepo
         schema_present=inspection.schema_present,
         probe_failures=inspection.probe_failures,
         baseline_suggestion=inspection.baseline_suggestion,
+        assets_origin=assets.origin,
     )

@@ -58,7 +58,7 @@ console = Console()
 
 
 @app.command("migrate")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
 # ID: d8b7978f-d801-4ba2-a669-f0fd48851b01
 async def migrate_database(
     ctx: typer.Context,

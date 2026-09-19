@@ -10,8 +10,15 @@ for database operations without making strategic decisions about what
 migrations to run or how data should be structured.
 
 RESPONSIBILITIES:
-- Locate the repository root and load the migration manifest (policy)
+- Resolve where the migration assets live (source checkout or the wheel's
+  bundled mirror, ADR-162 D8) and load the migration manifest (policy)
 - Retrieve git commit information
+
+Asset precedence (D8): **bundled-first when running from a wheel** -- the
+migration set must match the installed code -- and the source tree when the
+package *is* the checkout (editable install). ``src/shared/_migrations/`` is
+a byte-parity mirror of ``infra/migrations/manifest.yaml``, the manifest's
+``.sql`` files and ``schema.sql`` in the same relative layout.
 
 Ledger reads/writes and migration execution live in ``ledger_engine`` (ADR-162
 D7: one transaction per migration, advisory-locked); the typed manifest view
@@ -36,8 +43,11 @@ See: .specs/papers/CORE-Infrastructure-Definition.md Section 5
 
 from __future__ import annotations
 
+import importlib.resources
 import pathlib
 import subprocess
+from dataclasses import dataclass
+from typing import Literal
 
 import yaml
 
@@ -69,20 +79,58 @@ def _resolve_repo_root() -> pathlib.Path | None:
 
 
 # Lazy sentinel — None when running as a pip-installed wheel outside the source tree.
-# Migration commands check for None and raise a helpful error at call time.
 REPO_ROOT: pathlib.Path | None = _resolve_repo_root()
+
+_BUNDLE_PACKAGE = "shared._migrations"
+_SCHEMA_SQL_REL = pathlib.Path("schema.sql")
+
+AssetOrigin = Literal["source", "bundled"]
+
+
+@dataclass(frozen=True)
+# ID: 8921f01f-001e-4043-a6d4-501ae37fa60a
+class MigrationAssets:
+    """Where the manifest, the migration SQL and schema.sql are read from."""
+
+    root: pathlib.Path
+    origin: AssetOrigin
+
+    @property
+    # ID: da3b76bd-1279-426a-9b92-092c50f60654
+    def manifest_path(self) -> pathlib.Path:
+        return self.root / _MANIFEST_REL
+
+    @property
+    # ID: 5b5deb09-e584-4539-a873-2d0054e99450
+    def schema_sql_path(self) -> pathlib.Path:
+        return self.root / _SCHEMA_SQL_REL
+
+
+def _bundled_root() -> pathlib.Path:
+    # Same precedent as shared.config's machinery-floor lookup: an installed
+    # wheel exposes package data as a real directory.
+    return pathlib.Path(str(importlib.resources.files(_BUNDLE_PACKAGE)))
+
+
+# ID: ea71c3ec-2c6d-47c7-ab72-8d3ec27e15fc
+def resolve_migration_assets() -> MigrationAssets:
+    """Source tree when the package is the checkout; the bundle otherwise (D8)."""
+    if REPO_ROOT is not None:
+        return MigrationAssets(root=REPO_ROOT, origin="source")
+    root = _bundled_root()
+    if not (root / _MANIFEST_REL).is_file():
+        raise RuntimeError(
+            "Migration assets are neither a source checkout nor bundled in this "
+            f"installation ({root}); the installed core-runtime is incomplete."
+        )
+    return MigrationAssets(root=root, origin="bundled")
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
-def load_policy() -> dict:
-    """Load the migration manifest from infra/migrations/manifest.yaml."""
-    if REPO_ROOT is None:
-        raise RuntimeError(
-            "Migration commands require the CORE source tree and cannot run "
-            "from a pip-installed wheel. Clone the repository to use database migrate."
-        )
-    manifest_path = REPO_ROOT / _MANIFEST_REL
-    return yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+def load_policy(assets: MigrationAssets | None = None) -> dict:
+    """Load the migration manifest (infra/migrations/manifest.yaml) as a mapping."""
+    assets = assets or resolve_migration_assets()
+    return yaml.safe_load(assets.manifest_path.read_text(encoding="utf-8"))
 
 
 # ID: c0a84f36-7546-405b-8de4-eba8548ff56b

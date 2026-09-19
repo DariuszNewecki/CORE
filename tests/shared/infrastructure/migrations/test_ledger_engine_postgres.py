@@ -480,10 +480,10 @@ async def test_inspection_never_creates_the_ledger(
     )
     assert report.pending_before == ["001_a.sql"] and report.results == []
 
-    monkeypatch.setattr(migration_service, "load_manifest", lambda: manifest)
+    monkeypatch.setattr(migration_service, "load_manifest", lambda **_: manifest)
     monkeypatch.setattr(
         "shared.infrastructure.repositories.db.status_service.load_manifest",
-        lambda: manifest,
+        lambda **_: manifest,
     )
     st = await status(session_factory=db.session_factory)
     assert st.is_connected is True

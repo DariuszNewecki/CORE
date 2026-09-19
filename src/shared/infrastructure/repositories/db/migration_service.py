@@ -30,7 +30,7 @@ from shared.exceptions import CoreError
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
-from .common import REPO_ROOT
+from .common import MigrationAssets, resolve_migration_assets
 from .ledger_engine import (
     LedgerEngineError,
     MigrationOutcome,
@@ -117,9 +117,17 @@ class AdoptionReport:
     recorded: list[str] = field(default_factory=list)
 
 
-def _load_manifest_or_raise() -> Manifest:
+def _resolve_assets_or_raise() -> MigrationAssets:
     try:
-        return load_manifest()
+        return resolve_migration_assets()
+    except RuntimeError as exc:
+        logger.error("Error locating migration assets: %s", exc)
+        raise MigrationServiceError(str(exc), exit_code=1) from exc
+
+
+def _load_manifest_or_raise(assets: MigrationAssets) -> Manifest:
+    try:
+        return load_manifest(assets=assets)
     except (ManifestError, OSError, RuntimeError, ValueError) as exc:
         logger.error("Error loading migration manifest: %s", exc)
         raise MigrationServiceError(
@@ -227,13 +235,8 @@ async def migrate_db(
     stopping at the first failure with that entry unrecorded and rolled back
     (ADR-162 D7).
     """
-    manifest = manifest or _load_manifest_or_raise()
-    if REPO_ROOT is None:
-        raise MigrationServiceError(
-            "Migration commands require the CORE source tree and cannot run "
-            "from a pip-installed wheel.",
-            exit_code=1,
-        )
+    assets = _resolve_assets_or_raise()
+    manifest = manifest or _load_manifest_or_raise(assets)
 
     inspection = await inspect_ledger(manifest, session_factory=session_factory)
     pending = inspection.pending
@@ -259,7 +262,7 @@ async def migrate_db(
         try:
             result = await apply_migration(
                 entry,
-                manifest.sql_path(mig, REPO_ROOT),
+                manifest.sql_path(mig, assets.root),
                 session_factory=session_factory,
             )
         except LedgerEngineError as exc:
@@ -311,7 +314,7 @@ async def adopt_baseline(
     never sufficient on its own. Without ``write`` the same verification runs
     and the report says what would be recorded; nothing is written.
     """
-    manifest = manifest or _load_manifest_or_raise()
+    manifest = manifest or _load_manifest_or_raise(_resolve_assets_or_raise())
     try:
         baseline = manifest.baseline(tag)
     except KeyError:
