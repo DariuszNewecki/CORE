@@ -8,9 +8,13 @@ creates, alters or records anything, and it decides nothing about *what* to
 migrate (the operator does, through ``core-admin database migrate``).
 
 Before the API serves or the daemon starts workers, the gate evaluates the
-database exactly as ``core-admin database status`` does and **refuses** —
-exit 78, ``EX_CONFIG``, the code the ``core-engine`` entrypoint already uses —
-when serving would run against a schema the code does not match:
+database exactly as ``core-admin database status`` does and **refuses** when
+serving would run against a schema the code does not match. Exit 78
+(``EX_CONFIG``) applies wherever CORE owns the process exit — the daemon and
+the ``core-engine`` container; the API's lifespan refusal exits under
+uvicorn's own contract (3), and ``os._exit`` is never used to force 78
+(Governor clarification 2026-09-19 in ADR-162). The invariant is refusal
+before serving with the exact remedy logged. Refusing states:
 
 * ``PENDING`` — known manifest entries are not recorded;
 * ``EMPTY_LEDGER`` — a populated schema whose ledger records nothing (a
@@ -169,8 +173,8 @@ async def run_startup_schema_gate(
 ) -> SchemaGateVerdict:
     """Evaluate and enforce the gate for ``component`` ("CORE API", "CORE daemon").
 
-    Raises :class:`SchemaGateRefusal` (exit 78) on every refusing state,
-    regardless of ``CORE_STRICT_MODE``. Returns the verdict for ``CURRENT``
+    Raises :class:`SchemaGateRefusal` (exit code 78 where CORE owns the
+    process exit) on every refusing state, regardless of ``CORE_STRICT_MODE``. Returns the verdict for ``CURRENT``
     and for ``DB_UNAVAILABLE`` (the caller's own connectivity handling
     applies to the latter).
     """

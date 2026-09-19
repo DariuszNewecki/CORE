@@ -54,7 +54,7 @@ You will also need an LLM resource — local model server or external API, your 
 > (pending migrations, an unledgered schema, or a ledger/schema contradiction): the daemon and
 > the `core-engine` container exit **78** and the log names the exact remedy
 > (`core-admin database migrate --write`, or `--adopt-baseline <tag> --write` first); the API's
-> startup fails under uvicorn with the same message. A successful start is therefore proof of a
+> startup fails under uvicorn (exit 3, uvicorn's own contract) with the same message. A successful start is therefore proof of a
 > matching schema — but the warning above stands until the release that completes ADR-162.
 
 **One command** (recommended). Clone, then run the installer — it checks

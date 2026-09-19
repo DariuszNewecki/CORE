@@ -60,7 +60,8 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   code does not match — pending migrations, an empty ledger on a populated schema, a
   ledger/schema contradiction, no CORE schema, or unreadable migration assets — naming the
   remedy; the daemon and the `core-engine` container exit 78 (`EX_CONFIG`), the API's startup
-  fails under uvicorn. Read-only, unaffected by `CORE_STRICT_MODE`; an unreachable database keeps
+  fails under uvicorn (exit 3 — ADR-162 Governor clarification 2026-09-19: the invariant is
+  refusal before serving with the remedy logged, and `os._exit` is never used to force 78). Read-only, unaffected by `CORE_STRICT_MODE`; an unreachable database keeps
   the previous connectivity behaviour. **Operators on `main`: run `core-admin database migrate
   --write` before restarting services** (an existing ledger-bootstrapped database has the two
   `20260722` entries and the ledger column pending).

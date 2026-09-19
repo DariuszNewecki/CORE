@@ -224,7 +224,8 @@ poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # record
 - A fresh `schema.sql` load seeds the ledger completely; a fresh install never has an empty ledger.
 - **Startup gate.** `core-admin daemon start` and the API lifespan evaluate the same read-only
   check as `database status` before starting workers / serving and refuse (daemon and
-  `core-engine` exit 78; API startup fails) when migrations are pending, the ledger is empty on a
+  `core-engine` exit 78; the API's startup fails under uvicorn with exit 3 — ADR-162 Governor
+  clarification 2026-09-19) when migrations are pending, the ledger is empty on a
   populated schema, a recorded migration's probe fails, no CORE schema exists, or the manifest
   is unreadable — naming the remedy. `CORE_STRICT_MODE` does not relax it; an unreachable
   database keeps the existing connectivity behaviour.

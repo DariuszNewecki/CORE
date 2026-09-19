@@ -224,3 +224,23 @@ by the Governor as a Path A write in the implementing turn — it is not a conse
   implements and cannot re-open R1–R11 without a new ruling.
 - Until U6 lands, a stale schema still boots; until U8 lands, the installer still skips.
   This ADR changes none of that.
+
+## Governor clarification 2026-09-19 — D2 exit codes where CORE does not own the process
+
+**Context.** U6 implemented the D2 read-only startup gate in the API lifespan, the daemon and
+the `core-engine` entrypoint. D2 names exit 78 (`EX_CONFIG`). uvicorn owns the API process:
+it catches any exception raised during lifespan startup, logs "Application startup failed.
+Exiting." and exits with its own code (3). Forcing 78 there would require `os._exit` inside
+the lifespan, bypassing uvicorn's shutdown.
+
+**Clarification (accepted by the Governor, 2026-09-19).**
+- Exit **78** applies wherever CORE owns the process exit: `core-admin daemon start` and the
+  `core-engine` container (its entrypoint `exec`s the daemon, so the code passes through).
+- The API's lifespan refusal exits under uvicorn's contract (**3**). This satisfies D2.
+- The invariant D2 protects is **refusal before serving or starting workers, with the exact
+  remedy logged** — not the numeric code. `CORE_STRICT_MODE` does not relax the refusal.
+- `os._exit` MUST NOT be used merely to force exit 78.
+
+This clarification changes no runtime behaviour and touches no `.intent/` rule. Operator
+documentation states the two codes explicitly (`docs/cli-reference.md`,
+`docs/getting-started.md`, `CHANGELOG.md`).
