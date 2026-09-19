@@ -161,6 +161,41 @@ def test_probes_are_single_select_statements() -> None:
             assert verb not in lowered, f"{verb!r} in probe: {q[:80]}"
 
 
+# ID: f885b83c-5264-4c24-9d2b-a008d2ac8122
+def test_u5a_structural_probes_read_catalog_structure_not_names() -> None:
+    """U5b guard (ADR-162 D12 §2): the ``audit_findings.run_id`` and
+    ``users.display_name`` probes must prove the canonical shape from the
+    catalog. A probe that only counts names would reconcile a malformed
+    same-named object without executing anything. The executable proof is
+    ``migrations/test_backfill_reconstruction_postgres.py``; this pins the
+    probe text so a later edit cannot quietly weaken it back."""
+    manifest = load_manifest()
+    run_id = manifest.entry("20260919c_adr054_audit_findings_run_id.sql").verify
+    assert run_id is not None
+    for needle in (
+        "column_default is null",  # no default on run_id
+        "c.confrelid = to_regclass('core.audit_runs')",  # FK target relation
+        "unnest(c.conkey)",  # FK source column(s) by position
+        "unnest(c.confkey)",  # FK target column(s) by position
+        "c.convalidated and not c.condeferrable",
+        "c.confupdtype = 'a' and c.confdeltype = 'a'",
+        "am.amname = 'btree'",
+        "not i.indisunique",
+        "i.indpred is null and i.indexprs is null",
+        "i.indnkeyatts = i.indnatts",  # no INCLUDE columns
+        "unnest(i.indoption::int2[])",  # no DESC / NULLS FIRST options
+        "('idx_audit_findings_run_severity', array['run_id', 'severity'])",
+        "('idx_audit_findings_check_run', array['check_id', 'run_id'])",
+        "('idx_audit_findings_file_run', array['file_path', 'run_id'])",
+    ):
+        assert needle in run_id, needle
+    assert "pg_indexes" not in run_id  # the name-count shape is gone
+
+    display = manifest.entry("20260919d_users_display_name.sql").verify
+    assert display is not None
+    assert "is_nullable = 'YES'" in display and "column_default is null" in display
+
+
 # ── baselines (D3, D4) ───────────────────────────────────────────────────────
 
 

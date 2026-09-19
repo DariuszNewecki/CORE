@@ -78,6 +78,19 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   `20260919e_adr052_phase4_drop_runtime_settings.sql` (ADR-052 Phase 4 — encodes the historical
   gate: refuses, recording nothing, while any `runtime_settings` key is not marked migrated or
   retired in `config_migration_log`; never `CASCADE`; the log is retained).
+- **Reconciliation probes hardened (U5b).** The `audit_findings.run_id` and `users.display_name`
+  probes shipped in U5a proved presence by name (an FK constraint with the expected name, four
+  index names, a `text` column) — not the complete postcondition D12 §2 requires, so a same-named
+  object of a different shape could have been reconciled without execution. They now prove the
+  canonical structure from the catalog: column type, nullability and default; the FK's columns,
+  referenced relation and columns (`core.audit_runs(run_id)`), validation, deferrability and
+  action semantics; each index's exact ordered key columns, `btree`, non-unique, no predicate,
+  expression, `INCLUDE` or ordering options; `display_name` nullable with no default. A wrong
+  same-named index or FK, or a `NOT NULL display_name`, no longer reconciles: the append-only DDL
+  cannot repair it, the post-probe fails, the engine rolls back, the pre-existing structure is
+  left as found and no ledger row is written (proven on disposable PostgreSQL). Canonical
+  v2.10.1 databases still reconcile all four backfills with zero executed statements; both hop
+  equivalences remain exact. No migration SQL changed.
 - Verified against a disposable PostgreSQL: rollback/retry/concurrency of the engine, the
   hand-applied `20260722` state reconciled without re-running SQL, and the executable
   v2.9.1 → current upgrade (`--adopt-baseline v2.9.1 --write` then `migrate --write`).

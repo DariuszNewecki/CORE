@@ -14,7 +14,12 @@ and the ``runtime_settings`` drop (ADR-052 Phase 4, gated on a complete
 * populated ``runtime_settings`` with an unmigrated key refuses — naming the
   key, recording nothing — while fully migrated/retired keys let the drop
   proceed, ``config_migration_log`` retained as the audit trail;
-* re-running is a no-op.
+* re-running is a no-op;
+* (U5b) a same-named object of the wrong shape — an index on the wrong
+  columns, an FK to the wrong relation, a NOT NULL ``display_name`` — is not
+  the postcondition: it does not reconcile, the migration's ``IF NOT EXISTS``
+  DDL cannot repair it, the post-probe fails, the engine rolls back, the
+  malformed structure is left exactly as found and no ledger row is written.
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ import pytest
 
 from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_engine import (
+    LedgerEngineError,
     MigrationOutcome,
     apply_migration,
     ensure_ledger,
@@ -310,3 +316,161 @@ async def test_empty_runtime_settings_is_dropped(fresh_database: FreshDatabase) 
     assert (
         await db.scalar("select to_regclass('core.runtime_settings') is null") is True
     )
+
+
+# ── U5b: same-named objects of the wrong shape do not reconcile ─────────────
+
+
+async def _v2_10_1_shaped(db: FreshDatabase) -> None:
+    """A v2.10.1 database: every backfill's structure is present, so on the
+    canonical shape all four reconcile (see the v2.10.1 test above)."""
+    await db.load_schema(SCHEMA_V2_10_1)
+    await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
+
+
+async def _indexdef(db: FreshDatabase, name: str) -> str:
+    return str(
+        await db.scalar(
+            "select pg_get_indexdef(i.indexrelid) from pg_index i "
+            "join pg_class c on c.oid = i.indexrelid "
+            f"where i.indrelid = 'core.audit_findings'::regclass and c.relname = '{name}'"
+        )
+    )
+
+
+async def _fkdef(db: FreshDatabase) -> str:
+    return str(
+        await db.scalar(
+            "select pg_get_constraintdef(oid) from pg_constraint "
+            "where conrelid = 'core.audit_findings'::regclass "
+            "and conname = 'audit_findings_run_id_fkey'"
+        )
+    )
+
+
+# ID: 51d6b499-0f24-4c4e-9cac-cd89bd688897
+async def test_same_named_index_with_wrong_columns_does_not_reconcile(
+    fresh_database: FreshDatabase,
+) -> None:
+    db = fresh_database
+    await _v2_10_1_shaped(db)
+    await db.execute("drop index core.idx_audit_findings_run_severity")
+    await db.execute(
+        "create index idx_audit_findings_run_severity "
+        "on core.audit_findings using btree (severity)"
+    )
+    before = await _indexdef(db, "idx_audit_findings_run_severity")
+    assert before.endswith("(severity)")
+
+    with pytest.raises(LedgerEngineError, match="verify probe still fails"):
+        await _apply(db, RUN_ID)
+
+    # Nothing repaired, nothing recorded: the wrong index is exactly as found.
+    assert await _indexdef(db, "idx_audit_findings_run_severity") == before
+    assert RUN_ID not in await db.ledger_rows()
+    assert (await evaluate_schema_gate(session_factory=db.session_factory)).state is (
+        SchemaGateState.PENDING
+    )
+
+
+# ID: 4eeeb81d-2763-48cf-b8de-8e78e013136c
+async def test_same_named_fk_to_the_wrong_relation_does_not_reconcile(
+    fresh_database: FreshDatabase,
+) -> None:
+    db = fresh_database
+    await _v2_10_1_shaped(db)
+    await db.execute(
+        "alter table core.audit_findings drop constraint audit_findings_run_id_fkey"
+    )
+    await db.execute(
+        "alter table core.audit_findings add constraint audit_findings_run_id_fkey "
+        "foreign key (run_id) references core.autonomous_proposals(id)"
+    )
+    before = await _fkdef(db)
+    assert "autonomous_proposals" in before
+
+    # Through the service: the refusal is a MigrationServiceError, the
+    # backfills before it in manifest order are still recorded (per-migration
+    # atomicity) and the ones after it are not reached.
+    with pytest.raises(MigrationServiceError, match="verify probe still fails"):
+        await migrate_db(write=True, session_factory=db.session_factory)
+
+    assert await _fkdef(db) == before
+    rows = await db.ledger_rows()
+    assert CORE_ARCHIVE in rows
+    assert RUN_ID not in rows and DISPLAY_NAME not in rows and DROP_RS not in rows
+
+
+# ID: 53d9eebd-8a0b-4600-bc1e-e7f1d310c722
+async def test_same_named_fk_with_wrong_action_semantics_does_not_reconcile(
+    fresh_database: FreshDatabase,
+) -> None:
+    """Right relation, wrong behaviour: ON DELETE CASCADE is not the canonical
+    (NO ACTION, non-deferrable, validated) constraint."""
+    db = fresh_database
+    await _v2_10_1_shaped(db)
+    await db.execute(
+        "alter table core.audit_findings drop constraint audit_findings_run_id_fkey"
+    )
+    await db.execute(
+        "alter table core.audit_findings add constraint audit_findings_run_id_fkey "
+        "foreign key (run_id) references core.audit_runs(run_id) on delete cascade"
+    )
+    before = await _fkdef(db)
+    with pytest.raises(LedgerEngineError, match="verify probe still fails"):
+        await _apply(db, RUN_ID)
+    assert await _fkdef(db) == before
+    assert RUN_ID not in await db.ledger_rows()
+
+
+# ID: 005019f9-6b32-4751-992e-542c1c63eedb
+async def test_display_name_not_null_does_not_reconcile_as_the_nullable_column(
+    fresh_database: FreshDatabase,
+) -> None:
+    db = fresh_database
+    await _v2_10_1_shaped(db)
+    await db.execute("alter table core.users alter column display_name set not null")
+
+    with pytest.raises(LedgerEngineError, match="verify probe still fails"):
+        await _apply(db, DISPLAY_NAME)
+
+    assert (
+        await db.scalar(
+            "select is_nullable from information_schema.columns where "
+            "table_schema='core' and table_name='users' and column_name='display_name'"
+        )
+        == "NO"
+    )
+    assert DISPLAY_NAME not in await db.ledger_rows()
+
+
+# ID: 24ac3e23-914b-43c8-88b1-87e30cdce080
+async def test_missing_index_converges_but_a_wrong_one_beside_it_still_refuses(
+    fresh_database: FreshDatabase,
+) -> None:
+    """Convergence is only for the authorised shape: a missing index is created
+    by the migration (authorised, see the partial-state test above), but the
+    same run also finds a same-named index of the wrong shape, which the
+    append-only DDL cannot repair — so the whole migration refuses and the
+    index it would have created is rolled back with it."""
+    db = fresh_database
+    await _v2_10_1_shaped(db)
+    await db.execute("drop index core.idx_audit_findings_file_run")  # missing
+    await db.execute("drop index core.idx_audit_findings_check_run")
+    await db.execute(
+        "create index idx_audit_findings_check_run "
+        "on core.audit_findings using btree (run_id, check_id)"  # wrong order
+    )
+    with pytest.raises(LedgerEngineError, match="verify probe still fails"):
+        await _apply(db, RUN_ID)
+    assert (
+        await db.scalar(
+            "select count(*) from pg_indexes where schemaname='core' "
+            "and indexname = 'idx_audit_findings_file_run'"
+        )
+        == 0
+    )  # the creation was rolled back with the refusal
+    assert (await _indexdef(db, "idx_audit_findings_check_run")).endswith(
+        "(run_id, check_id)"
+    )
+    assert RUN_ID not in await db.ledger_rows()

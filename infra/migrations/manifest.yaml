@@ -182,35 +182,72 @@ migrations:
 
     # -- ADR-162 U5a: historical reconstruction of changes that reached the live
     # schema between v2.9.1 and v2.10.1 without migration files. All four are
-    # reconcilable: each probe proves the complete structural postcondition, and
-    # a v2.10.1/current-shaped database records them without re-executing DDL.
+    # reconcilable: each probe proves the complete structural postcondition (the
+    # run_id and display_name probes were hardened to catalog structure in U5b),
+    # and a v2.10.1/current-shaped database records them without re-executing DDL.
     20260919b_adr052_core_archive_schema.sql:
       reconcilable: true
       verify: >-
         select exists (select 1 from pg_namespace where nspname = 'core_archive')
+    # U5b: the probe proves the canonical STRUCTURE from the catalog, not the
+    # presence of names -- column type/nullability/default; the FK's columns,
+    # referenced relation and columns, validation and action semantics; each
+    # index's ordered key columns, access method, non-uniqueness, absence of
+    # predicate/expression/INCLUDE/ordering options. A same-named object of
+    # a different shape is not the postcondition: the probe is false, the
+    # migration's IF NOT EXISTS DDL is a no-op, the post-probe fails and the
+    # engine rolls back and records nothing (fail closed).
     20260919c_adr054_audit_findings_run_id.sql:
       reconcilable: true
       verify: >-
         select exists (select 1 from information_schema.columns
                        where table_schema = 'core' and table_name = 'audit_findings'
                          and column_name = 'run_id' and data_type = 'uuid'
-                         and is_nullable = 'NO')
-           and exists (select 1 from pg_constraint
-                       where conrelid = to_regclass('core.audit_findings')
-                         and conname = 'audit_findings_run_id_fkey'
-                         and contype = 'f')
-           and (select count(*) from pg_indexes
-                 where schemaname = 'core' and tablename = 'audit_findings'
-                   and indexname in ('idx_audit_findings_run_id',
-                                     'idx_audit_findings_run_severity',
-                                     'idx_audit_findings_check_run',
-                                     'idx_audit_findings_file_run')) = 4
+                         and is_nullable = 'NO' and column_default is null)
+           and exists (select 1 from pg_constraint c
+                       where c.conrelid = to_regclass('core.audit_findings')
+                         and c.conname = 'audit_findings_run_id_fkey'
+                         and c.contype = 'f'
+                         and c.confrelid = to_regclass('core.audit_runs')
+                         and c.convalidated and not c.condeferrable
+                         and c.confupdtype = 'a' and c.confdeltype = 'a'
+                         and c.confmatchtype = 's'
+                         and (select array_agg(a.attname::text order by k.ord)
+                                from unnest(c.conkey) with ordinality as k(attnum, ord)
+                                join pg_attribute a
+                                  on a.attrelid = c.conrelid and a.attnum = k.attnum)
+                             = array['run_id']
+                         and (select array_agg(a.attname::text order by k.ord)
+                                from unnest(c.confkey) with ordinality as k(attnum, ord)
+                                join pg_attribute a
+                                  on a.attrelid = c.confrelid and a.attnum = k.attnum)
+                             = array['run_id'])
+           and (select count(*) from pg_index i
+                 join pg_class ic on ic.oid = i.indexrelid
+                 join pg_am am on am.oid = ic.relam
+                 where i.indrelid = to_regclass('core.audit_findings')
+                   and am.amname = 'btree'
+                   and i.indisvalid and not i.indisunique and not i.indisprimary
+                   and i.indpred is null and i.indexprs is null
+                   and i.indnkeyatts = i.indnatts
+                   and not exists (select 1 from unnest(i.indoption::int2[]) o where o <> 0)
+                   and (ic.relname,
+                        (select array_agg(a.attname::text order by k.ord)
+                           from unnest(i.indkey::int2[]) with ordinality as k(attnum, ord)
+                           join pg_attribute a
+                             on a.attrelid = i.indrelid and a.attnum = k.attnum))
+                       in (('idx_audit_findings_run_id', array['run_id']),
+                           ('idx_audit_findings_run_severity', array['run_id', 'severity']),
+                           ('idx_audit_findings_check_run', array['check_id', 'run_id']),
+                           ('idx_audit_findings_file_run', array['file_path', 'run_id']))
+               ) = 4
     20260919d_users_display_name.sql:
       reconcilable: true
       verify: >-
         select exists (select 1 from information_schema.columns
                        where table_schema = 'core' and table_name = 'users'
-                         and column_name = 'display_name' and data_type = 'text')
+                         and column_name = 'display_name' and data_type = 'text'
+                         and is_nullable = 'YES' and column_default is null)
     20260919e_adr052_phase4_drop_runtime_settings.sql:
       reconcilable: true
       verify: >-
