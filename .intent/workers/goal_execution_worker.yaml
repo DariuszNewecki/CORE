@@ -46,3 +46,8 @@ implementation:
   module: will.workers.goal_execution_worker
   class: GoalExecutionWorker
   requires_core_context: true
+  # Constructed per invocation by develop_from_goal (will/autonomy/
+  # autonomous_developer.py) with the goal bound at construction time; never
+  # discovered or hosted by the daemon, no heartbeat expected between runs.
+  # Issue #898.
+  launch: on_demand

@@ -44,10 +44,12 @@ from rich.table import Table
 
 # Bootstrap imports — see module docstring.
 from cli.utils import async_command
+from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import list_all_processes, run_systemctl
+from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
 
 
 logger = getLogger(__name__)
@@ -69,6 +71,73 @@ _SYSTEMD_BASE_UNITS = ("core-daemon", "core-api")
 
 # Match core-daemon-worker@<stem>.service or shortened core-daemon-worker@<stem>.
 _TEMPLATE_UNIT_RE = re.compile(r"core-daemon-worker@([^.\s]+)(?:\.service)?")
+
+
+# Discovery verdicts for one declaration (ADR-081 D5 / #898). Pure data so
+# the decision can be unit-tested without booting the daemon; the loop in
+# _run_daemon_locked only maps verdicts to log lines and control flow.
+DISCOVERY_HOST = "host"
+DISCOVERY_SKIP_INACTIVE = "skip:inactive"
+DISCOVERY_SKIP_ON_DEMAND = "skip:on_demand"
+DISCOVERY_SKIP_HEAVY = "skip:heavy"
+DISCOVERY_REFUSE_INACTIVE = "refuse:inactive"
+DISCOVERY_REFUSE_ON_DEMAND = "refuse:on_demand"
+DISCOVERY_REFUSE_NOT_HEAVY = "refuse:not_heavy"
+
+
+# ID: c6cdcaee-03fe-4a78-90da-ce2b247b46f2
+def discovery_decision(
+    declaration: dict[str, Any], *, only: str | None
+) -> tuple[str, str]:
+    """Decide whether the daemon hosts one declaration, and why not if not.
+
+    Returns ``(verdict, detail)``. Verdicts are the ``DISCOVERY_*`` constants;
+    ``detail`` is a human-readable fragment for the log line.
+
+    Default mode (``only is None``): a declaration is hosted iff it is
+    ``status: active``, ``implementation.launch`` resolves to ``daemon``,
+    and it does not declare ``requires_dedicated_process: true``.
+    ``launch: on_demand`` (#898) is a *skip*, never an error — the worker is
+    constitutionally active but constructed per invocation by its own
+    caller; the daemon must not import, instantiate or schedule it.
+
+    Dedicated mode (``--only <stem>``, ADR-081 D5): the named declaration
+    must be active, daemon-launched and heavy; each failing condition is a
+    distinct refusal so the operator gets the true reason. The on-demand
+    check runs before the heavy check because an on-demand worker is
+    caller-launched regardless of its process topology.
+
+    ``resolve_launch`` raises ``GovernanceError`` on an unknown launch value;
+    callers decide how loudly that surfaces.
+    """
+    status = declaration.get("metadata", {}).get("status", "")
+    launch = resolve_launch(declaration)
+    heavy = bool(
+        declaration.get("implementation", {}).get("requires_dedicated_process", False)
+    )
+    if only is not None:
+        if status != "active":
+            return DISCOVERY_REFUSE_INACTIVE, f"metadata.status={status!r}"
+        if launch == LAUNCH_ON_DEMAND:
+            return (
+                DISCOVERY_REFUSE_ON_DEMAND,
+                "implementation.launch: on_demand — constructed per invocation "
+                "by its own caller, never hosted by a daemon",
+            )
+        if not heavy:
+            return (
+                DISCOVERY_REFUSE_NOT_HEAVY,
+                "requires_dedicated_process=false — runs under the lightweight "
+                "daemon via `core-admin daemon start` without --only",
+            )
+        return DISCOVERY_HOST, ""
+    if status != "active":
+        return DISCOVERY_SKIP_INACTIVE, f"status={status}"
+    if launch == LAUNCH_ON_DEMAND:
+        return DISCOVERY_SKIP_ON_DEMAND, "launch: on_demand (caller-launched)"
+    if heavy:
+        return DISCOVERY_SKIP_HEAVY, "requires_dedicated_process: true"
+    return DISCOVERY_HOST, ""
 
 
 # ID: 7c0c1eef-3a86-4f0b-86f1-e84f81e2a4fa
@@ -214,14 +283,17 @@ async def start(
     """
     Start background workers (systemd entry point).
 
-    Default mode (no ``--only``): discovers active workers dynamically from
-    .intent/workers/*.yaml, excludes every worker that declares
-    ``requires_dedicated_process: true``, and runs the lightweight set in a
-    shared asyncio loop. This is the unit systemd starts as ``core-daemon``.
+    Default mode (no ``--only``): discovers daemon-launched active workers
+    dynamically from .intent/workers/*.yaml — skipping every declaration
+    with ``implementation.launch: on_demand`` (#898) and excluding every
+    worker that declares ``requires_dedicated_process: true`` — and runs the
+    lightweight set in a shared asyncio loop. This is the unit systemd starts
+    as ``core-daemon``.
 
     Dedicated mode (``--only <stem>``): loads exactly that one worker and
-    runs it alone in its own asyncio loop. The stem must be active and must
-    declare ``requires_dedicated_process: true`` — refuses otherwise. This
+    runs it alone in its own asyncio loop. The stem must be active,
+    daemon-launched (not ``launch: on_demand``) and must declare
+    ``requires_dedicated_process: true`` — refuses otherwise. This
     is the unit shape systemd starts as ``core-daemon-worker@<stem>.service``
     (template unit lands in Step 2c). Per ADR-081 D3 / D5.
 
@@ -615,7 +687,8 @@ async def _watchdog_pinger() -> None:
 # ID: ea1f2f3a-280e-4d88-a120-4b310a2ef31f
 async def _run_daemon(only: str | None = None) -> None:
     """
-    Async entry point. Discovers all active workers from .intent/workers/,
+    Async entry point. Discovers the daemon-launched active workers from
+    .intent/workers/ (``implementation.launch`` absent or ``daemon``; #898),
     instantiates each one, starts their run_loop (or one-shot loop) as
     asyncio tasks, and waits for shutdown signal.
 
@@ -769,23 +842,17 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             )
             return
         only_decl = yaml.safe_load(yaml_files[0].read_text())
-        only_status = only_decl.get("metadata", {}).get("status", "")
-        if only_status != "active":
-            logger.error(
-                "CORE daemon: --only stem '%s' is not active "
-                "(metadata.status=%r). Refusing.",
-                only,
-                only_status,
-            )
+        try:
+            verdict, detail = discovery_decision(only_decl, only=only)
+        except GovernanceError as exc:
+            logger.error("CORE daemon: --only stem '%s' refused: %s", only, exc)
             return
-        if not only_decl.get("implementation", {}).get(
-            "requires_dedicated_process", False
-        ):
+        if verdict != DISCOVERY_HOST:
             logger.error(
-                "CORE daemon: --only stem '%s' declares "
-                "requires_dedicated_process=false. Run it under the lightweight "
-                "daemon via `core-admin daemon start` without --only.",
+                "CORE daemon: --only stem '%s' refused (%s): %s.",
                 only,
+                verdict,
+                detail,
             )
             return
         logger.info(
@@ -798,6 +865,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     tasks: list[asyncio.Task[Any]] = []
     excluded_heavy: list[str] = []
+    skipped_on_demand: list[str] = []
     # ADR-081 Step 3a — stem → Worker registry for loop-hold telemetry
     # attribution. Populated alongside worker instantiation below; consumed
     # by the drain coroutine after the loop completes.
@@ -809,17 +877,23 @@ async def _run_daemon_locked(only: str | None = None) -> None:
         try:
             declaration = yaml.safe_load(yaml_file.read_text())
 
-            status = declaration.get("metadata", {}).get("status", "")
-            if status != "active":
-                logger.debug("CORE daemon: skipping '%s' — status=%s", stem, status)
+            # ADR-081 D5 / #898 — one pure decision per declaration. --only
+            # mode already passed its own decision above and re-runs it here
+            # only to reach DISCOVERY_HOST for the single stem.
+            verdict, detail = discovery_decision(declaration, only=only)
+            if verdict == DISCOVERY_SKIP_INACTIVE:
+                logger.debug("CORE daemon: skipping '%s' — %s", stem, detail)
                 continue
-
-            impl = declaration.get("implementation", {})
-
-            # ADR-081 D3 — in default mode, never host a worker that declares
-            # requires_dedicated_process: true. Its dedicated systemd unit
-            # runs it alone. --only mode passed the heavy-worker check above.
-            if only is None and impl.get("requires_dedicated_process", False):
+            if verdict == DISCOVERY_SKIP_ON_DEMAND:
+                # Not an error: the worker is constitutionally active but is
+                # constructed per invocation by its own caller (#898).
+                skipped_on_demand.append(stem)
+                logger.debug("CORE daemon: skipping '%s' — %s", stem, detail)
+                continue
+            if verdict == DISCOVERY_SKIP_HEAVY:
+                # ADR-081 D3 — in default mode, never host a worker that
+                # declares requires_dedicated_process: true. Its dedicated
+                # systemd unit runs it alone.
                 excluded_heavy.append(stem)
                 logger.info(
                     "CORE daemon: excluding heavy worker '%s' "
@@ -827,6 +901,16 @@ async def _run_daemon_locked(only: str | None = None) -> None:
                     stem,
                 )
                 continue
+            if verdict != DISCOVERY_HOST:
+                # Unreachable in practice (the --only branch returns early on
+                # any refusal) — kept so a future verdict can never fall
+                # through into instantiation.
+                logger.error(
+                    "CORE daemon: not hosting '%s' (%s): %s.", stem, verdict, detail
+                )
+                continue
+
+            impl = declaration.get("implementation", {})
             module_path = impl["module"]
             class_name = impl["class"]
             requires_ctx = impl.get("requires_core_context", False)
@@ -922,7 +1006,13 @@ async def _run_daemon_locked(only: str | None = None) -> None:
                 exc_info=True,
             )
 
-    logger.info("CORE daemon: %d worker(s) started.", len(tasks))
+    logger.info(
+        "CORE daemon: %d worker(s) started; %d on-demand declaration(s) not "
+        "hosted (launch: on_demand, #898)%s.",
+        len(tasks),
+        len(skipped_on_demand),
+        f": {', '.join(skipped_on_demand)}" if skipped_on_demand else "",
+    )
     if excluded_heavy:
         logger.info(
             "CORE daemon: excluded %d heavy worker(s) requiring dedicated "

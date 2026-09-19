@@ -383,6 +383,27 @@ def test_declared_permitted_tools_cover_both_supported_workflows() -> None:
     assert declared_tools == _WORKFLOW_ACTION_IDS
 
 
+def test_declared_launch_is_on_demand() -> None:
+    """#898: this worker is constructed per invocation by develop_from_goal;
+    the daemon must never discover or host it. Pin the declaration so a
+    future edit that drops the key (silently reverting to daemon-hosted and
+    re-introducing the boot ERROR + worker.silent misclassification) fails
+    loudly here."""
+    from shared.infrastructure.intent.intent_repository import get_intent_repository
+    from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
+
+    repo = get_intent_repository()
+    repo.initialize()
+    declaration = repo.load_worker("workers/goal_execution_worker")
+
+    assert declaration["implementation"]["launch"] == "on_demand"
+    assert resolve_launch(declaration) == LAUNCH_ON_DEMAND
+    # C1 / C2 (worker.schema.json allOf) — an on-demand worker declares
+    # neither a daemon process topology nor a continuous schedule.
+    assert not declaration["implementation"].get("requires_dedicated_process")
+    assert "schedule" not in declaration["mandate"]
+
+
 def test_declared_scope_paths_match_workflow_invariants() -> None:
     from shared.infrastructure.intent.intent_repository import get_intent_repository
 

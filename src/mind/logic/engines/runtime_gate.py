@@ -45,6 +45,7 @@ from sqlalchemy import text
 
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
 
 from .base import BaseEngine, EngineResult, EvidenceClass
 
@@ -174,9 +175,13 @@ async def _check_worker_process_classification(
 ) -> list[AuditFinding]:
     """ADR-081 D7 / ADR-082 — drift detector implementation.
 
-    For each active worker:
+    For each active, daemon-launched worker:
     1. Read its identity.uuid + implementation.requires_dedicated_process
-       from .intent/workers/<stem>.yaml.
+       from .intent/workers/<stem>.yaml. Declarations whose
+       ``implementation.launch`` resolves to ``on_demand`` (#898) are
+       skipped: loop-hold is a property of sharing the daemon loop, and an
+       on-demand worker runs in its caller's process, so there is nothing
+       to classify. No new verdict class is introduced for them.
 
     For shares_process workers (escalation check):
     2. Pull loop_hold.sample entries from the last loop_hold_escalation_hours
@@ -204,8 +209,9 @@ async def _check_worker_process_classification(
     min_samples = cfg.min_samples_for_escalation
     min_heartbeats = cfg.min_active_heartbeats_for_deescalation
 
-    # Build stem → declaration state map from .intent/workers/. Paused or
-    # absent workers are skipped: nothing to evaluate for them.
+    # Build stem → declaration state map from .intent/workers/. Paused,
+    # absent or on-demand (#898) workers are skipped: nothing to evaluate
+    # for them.
     workers_dir = context.repo_path / ".intent" / "workers"
     workers_state: dict[str, dict[str, Any]] = {}
     for yaml_file in sorted(workers_dir.glob("*.yaml")):
@@ -214,6 +220,8 @@ async def _check_worker_process_classification(
         except Exception:
             continue
         if decl.get("metadata", {}).get("status") != "active":
+            continue
+        if resolve_launch(decl) == LAUNCH_ON_DEMAND:
             continue
         uuid_str = decl.get("identity", {}).get("uuid")
         if not uuid_str:

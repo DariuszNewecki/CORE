@@ -17,6 +17,8 @@ Postgres dependency. Key coverage:
    from event-driven instrument is affirmative evidence of cleanliness).
 7. De-escalation: dedicated but still loud (max > 1s) → no finding.
 8. No db_session → returns [].
+9. launch: on_demand (#898) → skipped before any DB read; loop-hold is a
+   property of sharing the daemon loop, which an on-demand worker never does.
 """
 
 from __future__ import annotations
@@ -49,6 +51,7 @@ def _write_worker_yaml(
     uuid_str: str = _WORKER_UUID,
     requires_dedicated: bool = False,
     status: str = "active",
+    launch: str | None = None,
 ) -> None:
     decl: dict[str, Any] = {
         "$schema": "META/worker.schema.json",
@@ -72,6 +75,11 @@ def _write_worker_yaml(
             "requires_dedicated_process": requires_dedicated,
         },
     }
+    if launch is not None:
+        decl["implementation"]["launch"] = launch
+        if launch == "on_demand":
+            # Schema (#898 C2): on-demand declarations carry no schedule.
+            del decl["mandate"]["schedule"]
     (workers_dir / f"{stem}.yaml").write_text(yaml.dump(decl), encoding="utf-8")
 
 
@@ -139,6 +147,46 @@ async def test_no_workers_no_findings(tmp_path: Path) -> None:
     ctx = _ctx(tmp_path, [])
     out = await _check_worker_process_classification(ctx)
     assert out == []
+
+
+# ID: b97e0d90-223a-4d7e-9719-96c9cc74bec7
+async def test_on_demand_worker_is_excluded_before_any_db_read(tmp_path: Path) -> None:
+    """#898: an on-demand worker is skipped at declaration time — no
+    loop_hold.sample query is issued for it, and no finding can fire even if
+    the session would have returned loud samples."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(workers, "on_demand_one", launch="on_demand")
+
+    # Loud samples that WOULD trip escalation for a daemon worker.
+    ctx = _ctx(tmp_path, [_sample_rows([9.0, 9.0, 9.0, 9.0])])
+    out = await _check_worker_process_classification(ctx)
+
+    assert out == []
+    ctx.db_session.execute.assert_not_called()
+
+
+# ID: fc672237-5e68-4772-87df-940ebf6f01ae
+async def test_daemon_worker_alongside_on_demand_still_classified(
+    tmp_path: Path,
+) -> None:
+    """The exclusion is per declaration; a daemon peer is still evaluated."""
+    workers = tmp_path / ".intent" / "workers"
+    workers.mkdir(parents=True)
+    _write_worker_yaml(workers, "alpha", requires_dedicated=False)
+    _write_worker_yaml(
+        workers,
+        "on_demand_one",
+        uuid_str="22222222-3333-4444-5555-666666666666",
+        launch="on_demand",
+    )
+
+    durations = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 8.5]
+    ctx = _ctx(tmp_path, [_sample_rows(durations)])
+    out = await _check_worker_process_classification(ctx)
+
+    assert [f.context["stem"] for f in out] == ["alpha"]
+    assert ctx.db_session.execute.await_count == 1
 
 
 # ID: c3d4e5f6-a7b8-9012-cdef-123456789012

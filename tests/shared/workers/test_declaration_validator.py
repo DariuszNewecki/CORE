@@ -8,6 +8,9 @@ Covers:
   - structural violations rejected (missing fields, bad phase value)
   - fail-closed on missing/empty `worker_phase` enum in enums.json
   - $ref resolution into enums.json
+  - implementation.launch (#898): accepted values, unknown value rejected,
+    the two on_demand allOf constraints, and the frozen ADR-159 Trial 0
+    overlay copy (no launch key) still validating
 """
 
 from __future__ import annotations
@@ -125,6 +128,77 @@ def test_extra_properties_rejected() -> None:
     decl["mandate"]["rogue_field"] = "not allowed"
     with pytest.raises(GovernanceError):
         validate_worker_declaration(decl)
+
+
+# --- implementation.launch (#898) --------------------------------------------
+
+
+@pytest.mark.parametrize("launch", ["daemon", "on_demand"])
+def test_launch_accepted_values(launch: str) -> None:
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = launch
+    validate_worker_declaration(decl)
+
+
+def test_launch_unknown_value_rejected() -> None:
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = "cron"
+    with pytest.raises(GovernanceError) as excinfo:
+        validate_worker_declaration(decl)
+    assert "launch" in str(excinfo.value)
+
+
+def test_on_demand_with_requires_dedicated_process_true_rejected() -> None:
+    """Governor decision C1: an on-demand worker runs in its caller's process,
+    so a daemon process-topology claim is incompatible with it."""
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = "on_demand"
+    decl["implementation"]["requires_dedicated_process"] = True
+    with pytest.raises(GovernanceError):
+        validate_worker_declaration(decl)
+
+
+def test_on_demand_with_requires_dedicated_process_false_accepted() -> None:
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = "on_demand"
+    decl["implementation"]["requires_dedicated_process"] = False
+    validate_worker_declaration(decl)
+
+
+def test_on_demand_with_schedule_rejected() -> None:
+    """Governor decision C2: mandate.schedule is a continuous self-scheduling
+    contract, meaningless for a worker that runs only when invoked."""
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = "on_demand"
+    decl["mandate"]["schedule"] = {"max_interval": 600}
+    with pytest.raises(GovernanceError):
+        validate_worker_declaration(decl)
+
+
+def test_daemon_launch_with_schedule_and_dedicated_still_accepted() -> None:
+    """The constraints bind on_demand only."""
+    decl = _minimal_valid_declaration()
+    decl["implementation"]["launch"] = "daemon"
+    decl["implementation"]["requires_dedicated_process"] = True
+    decl["mandate"]["schedule"] = {"max_interval": 600}
+    validate_worker_declaration(decl)
+
+
+def test_frozen_adr159_trial0_overlay_declaration_still_validates() -> None:
+    """The hash-pinned Trial 0 overlay copy declares no launch key and must
+    keep validating unchanged (absent means daemon)."""
+    repo = get_intent_repository()
+    path = (
+        repo.resolve_rel("workers").parents[1]
+        / ".specs"
+        / "planning"
+        / "adr-159-trial0-apparatus"
+        / "intent_overlay"
+        / "workers"
+        / "goal_execution_worker.yaml"
+    )
+    assert path.is_file(), path
+    validate_worker_declaration(strict_yaml_processor.load_strict(path), source=path)
 
 
 def test_worker_phase_missing_from_enums_raises_governance_error(

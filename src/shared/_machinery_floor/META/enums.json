@@ -77,12 +77,20 @@
       ]
     },
     "worker_status": {
-      "description": "Operational status of a Worker declaration. active means the daemon loads and runs it. paused means the daemon skips it without retiring it. deprecated means it is retained for reference only and will not be loaded.",
+      "description": "Constitutional availability of a Worker declaration. active means the worker is constitutionally available for legitimate invocation; how it is activated is declared separately by implementation.launch (see worker_launch) and is daemon-hosted only by default. paused means it is not available: the daemon skips it without retiring it. deprecated means it is retained for reference only and will not be loaded.",
       "type": "string",
       "enum": [
         "active",
         "paused",
         "deprecated"
+      ]
+    },
+    "worker_launch": {
+      "description": "Activation mode of an active Worker declaration, declared at implementation.launch in META/worker.schema.json. daemon: the CORE daemon discovers, instantiates and hosts the worker, and continuous liveness (heartbeat within its schedule threshold or the operational fallback) is expected while the daemon runs. on_demand: a legitimate caller constructs one instance per invocation and drives it through the ordinary Worker.start() lifecycle (registration, liveness lease, Blackboard evidence); daemon discovery MUST NOT import, instantiate, schedule or report it as an error, and no heartbeat is expected between invocations. Absence of implementation.launch means daemon (backward compatibility). Issue #898.",
+      "type": "string",
+      "enum": [
+        "daemon",
+        "on_demand"
       ]
     },
     "blackboard_entry_status": {

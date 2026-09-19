@@ -63,16 +63,20 @@ def _age(ts: datetime | None) -> str:
 
 
 def _worker_colour(
-    last_heartbeat: datetime | None, is_active_declared: bool = True
+    last_heartbeat: datetime | None,
+    is_active_declared: bool = True,
+    is_on_demand: bool = False,
 ) -> str:
     """Liveness colour derived from heartbeat age. Per ADR-020,
     last_heartbeat is the canonical liveness signal.
 
     Workers whose declaration is not status=active (paused, deprecated,
     or orphan rows whose YAML was removed) are rendered dim — they are
-    not expected to heartbeat, so heartbeat age is irrelevant.
+    not expected to heartbeat, so heartbeat age is irrelevant. So are
+    ``launch: on_demand`` workers (#898): active, but heartbeating only
+    while a caller runs them.
     """
-    if not is_active_declared:
+    if is_on_demand or not is_active_declared:
         return "dim"
     if last_heartbeat is None:
         return "yellow"
@@ -87,7 +91,9 @@ def _worker_colour(
 
 
 def _liveness_label(
-    last_heartbeat: datetime | None, is_active_declared: bool = True
+    last_heartbeat: datetime | None,
+    is_active_declared: bool = True,
+    is_on_demand: bool = False,
 ) -> str:
     """Liveness label derived from heartbeat freshness. Per ADR-020,
     a worker is alive iff its last heartbeat is within the silent-worker
@@ -95,8 +101,12 @@ def _liveness_label(
 
     Workers whose declaration is not status=active are labelled
     ``inactive`` regardless of heartbeat age — heartbeat staleness is
-    expected and not a fault signal.
+    expected and not a fault signal. ``launch: on_demand`` workers (#898)
+    are labelled ``on-demand``: constitutionally active, constructed per
+    invocation by a caller, and never expected to heartbeat between runs.
     """
+    if is_on_demand:
+        return "on-demand"
     if not is_active_declared:
         return "inactive"
     if last_heartbeat is None:
@@ -125,6 +135,7 @@ async def health_cmd(
     """
     schedule_state = load_worker_schedule_state()
     active_uuids = schedule_state.active_uuids
+    on_demand_uuids = schedule_state.on_demand_uuids
 
     async with get_session() as session:
         workers = (
@@ -174,10 +185,26 @@ async def health_cmd(
             blast = []
     if plain:
         _render_plain(
-            workers, bb_summary, bb_recent, health, crawl, blast, active_uuids
+            workers,
+            bb_summary,
+            bb_recent,
+            health,
+            crawl,
+            blast,
+            active_uuids,
+            on_demand_uuids,
         )
     else:
-        _render_rich(workers, bb_summary, bb_recent, health, crawl, blast, active_uuids)
+        _render_rich(
+            workers,
+            bb_summary,
+            bb_recent,
+            health,
+            crawl,
+            blast,
+            active_uuids,
+            on_demand_uuids,
+        )
 
 
 def _render_rich(
@@ -188,6 +215,7 @@ def _render_rich(
     crawl,
     blast,
     active_uuids: frozenset[str],
+    on_demand_uuids: frozenset[str] = frozenset(),
 ) -> None:
     console.rule("[bold cyan]CORE Runtime Health[/bold cyan]")
     console.print("\n[bold]Workers[/bold]")
@@ -199,8 +227,9 @@ def _render_rich(
     t.add_column("Last Heartbeat")
     for w in workers:
         is_active = str(w.worker_uuid) in active_uuids
-        c = _worker_colour(w.last_heartbeat, is_active)
-        label = _liveness_label(w.last_heartbeat, is_active)
+        is_on_demand = str(w.worker_uuid) in on_demand_uuids
+        c = _worker_colour(w.last_heartbeat, is_active, is_on_demand)
+        label = _liveness_label(w.last_heartbeat, is_active, is_on_demand)
         t.add_row(
             w.worker_name,
             w.worker_class,
@@ -278,12 +307,14 @@ def _render_plain(
     crawl,
     blast,
     active_uuids: frozenset[str],
+    on_demand_uuids: frozenset[str] = frozenset(),
 ) -> None:
     logger.info("=== CORE Runtime Health ===\n")
     logger.info("-- Workers --")
     for w in workers:
         is_active = str(w.worker_uuid) in active_uuids
-        label = _liveness_label(w.last_heartbeat, is_active)
+        is_on_demand = str(w.worker_uuid) in on_demand_uuids
+        label = _liveness_label(w.last_heartbeat, is_active, is_on_demand)
         logger.info(
             "  %s %s %s",
             w.worker_name.ljust(30),

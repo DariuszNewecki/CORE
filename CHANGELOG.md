@@ -8,7 +8,15 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-_Nothing yet._
+- **Worker declarations gain `implementation.launch` (`daemon` | `on_demand`)** (#898). `metadata.status`
+  now means constitutional availability only; `launch` declares activation. Absent means `daemon`
+  (every existing declaration is unchanged). An `on_demand` worker is constructed per invocation by
+  its own caller: the daemon no longer tries to instantiate it (the `could not instantiate
+  'goal_execution_worker'` boot `ERROR` is gone), liveness supervision no longer flags it
+  `worker.silent` between invocations, `core-admin workers run` and `daemon start --only` refuse it
+  with the true reason, and the runtime health view labels it `on-demand`. Schema constraints:
+  `on_demand` may not declare `requires_dedicated_process: true` or `mandate.schedule`. The
+  machinery floor carries the same vocabulary.
 
 ## [2.10.2] — 2026-09-19
 

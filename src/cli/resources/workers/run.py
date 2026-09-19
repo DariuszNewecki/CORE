@@ -15,6 +15,7 @@ from cli.utils.decorators import core_command
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
+from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
 
 
 logger = logging.getLogger(__name__)
@@ -24,20 +25,26 @@ workers_app = typer.Typer(
 )
 
 
-def _load_worker_declarations() -> dict[str, dict]:
+def _load_declarations_by_launch() -> tuple[dict[str, dict], dict[str, dict]]:
     """
-    Discover all active worker declarations from .intent/workers/.
+    Discover all active worker declarations from .intent/workers/, split by
+    launch mode (#898).
 
-    Returns a dict keyed by declaration name (YAML stem), value is the
-    parsed declaration dict. Only active workers are included.
+    Returns ``(runnable, on_demand)``, both keyed by declaration name (YAML
+    stem) with the parsed declaration dict as value. ``runnable`` holds the
+    daemon-launched declarations this command may construct through the
+    generic constructor contract; ``on_demand`` holds declarations that are
+    constructed per invocation by their own caller and therefore cannot be
+    started here — kept separately so the refusal can name the reason.
 
     This is the constitutional alternative to a hardcoded Python registry —
     adding a new worker requires only a YAML declaration, not a code change.
     """
     workers_dir: Path = settings.MIND / "workers"
     if not workers_dir.exists():
-        return {}
-    declarations = {}
+        return {}, {}
+    runnable: dict[str, dict] = {}
+    on_demand: dict[str, dict] = {}
     for yaml_path in sorted(workers_dir.glob("*.yaml")):
         try:
             data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
@@ -50,10 +57,24 @@ def _load_worker_declarations() -> dict[str, dict]:
                     yaml_path.stem,
                 )
                 continue
-            declarations[yaml_path.stem] = data
+            if resolve_launch(data) == LAUNCH_ON_DEMAND:
+                on_demand[yaml_path.stem] = data
+                continue
+            runnable[yaml_path.stem] = data
         except Exception as e:
             logger.warning("Could not load worker declaration %s: %s", yaml_path, e)
-    return declarations
+    return runnable, on_demand
+
+
+def _load_worker_declarations() -> dict[str, dict]:
+    """
+    Discover the runnable (active, daemon-launched) worker declarations.
+
+    ``launch: on_demand`` declarations are excluded (#898): they have no
+    generic constructor and are never started by this command.
+    """
+    runnable, _ = _load_declarations_by_launch()
+    return runnable
 
 
 @workers_app.command("run")
@@ -68,7 +89,16 @@ async def workers_run_cmd(
     """Start a constitutional worker by its declaration name."""
     import importlib
 
-    declarations = _load_worker_declarations()
+    declarations, on_demand = _load_declarations_by_launch()
+    if worker_name in on_demand:
+        # #898: constitutionally active, but constructed per invocation by
+        # its own caller — there is no generic constructor to drive here.
+        console.print(
+            f"[red]Worker '{worker_name}' declares implementation.launch: "
+            f"on_demand — it is constructed per invocation by its own caller "
+            f"and cannot be started via `workers run`.[/red]"
+        )
+        raise typer.Exit(code=1)
     if worker_name not in declarations:
         available = ", ".join(sorted(declarations.keys())) or "(none declared)"
         console.print(f"[red]Unknown worker: {worker_name}[/red]")

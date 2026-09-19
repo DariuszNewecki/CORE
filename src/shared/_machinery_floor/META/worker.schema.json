@@ -230,6 +230,10 @@
                     "type": "boolean",
                     "description": "When true, this worker must run in its own asyncio event loop (its own OS process). The lightweight daemon refuses to host it; a dedicated systemd unit runs it alone. Authority: ADR-081. Default (absent): false. Workers whose per-cycle execution includes long synchronous CPU-bound stretches (full-codebase AST walks, graph computation) must declare true — their presence in a shared loop starves peer workers' cooperative scheduling. Network-await work (e.g. embedding via httpx.AsyncClient) is NOT in this category and must declare false even when its observed cycle gaps are large — its inflation is starvation by AST-walker peers, not loop monopolization. See ADR-081 D2 for the classification criterion."
                 },
+                "launch": {
+                    "$ref": "./enums.json#/definitions/worker_launch",
+                    "description": "How an active worker is activated. Absent means daemon (backward compatibility). daemon: the CORE daemon discovers, instantiates and hosts this worker, and continuous liveness is expected while the daemon runs (heartbeat within mandate.schedule.max_interval + glide_off, or the operational fallback threshold when no schedule is declared). on_demand: a legitimate caller constructs one instance per invocation and drives it through the ordinary Worker.start() lifecycle (registration, liveness lease, Blackboard evidence); daemon discovery MUST NOT import, instantiate, schedule or report it as an error, and no heartbeat is expected between invocations. metadata.status governs constitutional availability for both values; launch governs activation only. Issue #898."
+                },
                 "params": {
                     "type": "object",
                     "description": "Arbitrary constructor kwargs passed to the worker at instantiation time by the daemon loader. Use for worker-specific configuration that cannot be expressed through standard schema fields (e.g. dry_run: false to mark sensor findings as actionable by downstream remediators). Values are merged into the kwargs dict after standard fields (declaration_name, rule_namespace, core_context) are resolved, so they may not override those.",
@@ -288,6 +292,58 @@
                     }
                 },
                 "required": ["mandate"]
+            }
+        },
+        {
+            "description": "GOVERNOR DECISION (#898): an on_demand worker runs in its caller's process, so implementation.requires_dedicated_process: true (a daemon process-topology claim per ADR-081) is incompatible with implementation.launch: on_demand. Declaring both is a schema violation.",
+            "if": {
+                "type": "object",
+                "properties": {
+                    "implementation": {
+                        "type": "object",
+                        "properties": {
+                            "launch": {"const": "on_demand"}
+                        },
+                        "required": ["launch"]
+                    }
+                },
+                "required": ["implementation"]
+            },
+            "then": {
+                "type": "object",
+                "properties": {
+                    "implementation": {
+                        "type": "object",
+                        "properties": {
+                            "requires_dedicated_process": {"const": false}
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "GOVERNOR DECISION (#898): mandate.schedule is a self-scheduling contract enforced via continuous last_heartbeat monitoring, which has no meaning for a worker that runs only when invoked. An on_demand worker MUST NOT declare mandate.schedule; liveness readers derive no threshold for it and expect no heartbeat between invocations.",
+            "if": {
+                "type": "object",
+                "properties": {
+                    "implementation": {
+                        "type": "object",
+                        "properties": {
+                            "launch": {"const": "on_demand"}
+                        },
+                        "required": ["launch"]
+                    }
+                },
+                "required": ["implementation"]
+            },
+            "then": {
+                "type": "object",
+                "properties": {
+                    "mandate": {
+                        "type": "object",
+                        "not": {"required": ["schedule"]}
+                    }
+                }
             }
         }
     ]
