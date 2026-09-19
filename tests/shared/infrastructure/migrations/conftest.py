@@ -37,6 +37,7 @@ from sqlalchemy.ext.asyncio import (
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
+SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 
 _IMAGE = os.environ.get("CORE_TEST_POSTGRES_IMAGE", "postgres:16")
 _READY = "database system is ready to accept connections"
@@ -174,6 +175,26 @@ class FreshDatabase:
             await driver.execute(sql)
         finally:
             raw.close()
+
+    # ID: f9e2ed44-c539-4871-982e-fdf9883179bd
+    async def load_schema(self, schema_sql: Path) -> None:
+        """Load a pg_dump schema file the way CI seeds its ephemeral database:
+        prerequisite roles and extensions first, then the portable dump."""
+        async with self.session_factory() as session:
+            async with session.begin():
+                for role in ("core_db", "core"):
+                    exists = (
+                        await session.execute(
+                            text(
+                                "select 1 from pg_roles where rolname = :r"
+                            ).bindparams(r=role)
+                        )
+                    ).first()
+                    if exists is None:
+                        await session.execute(text(f"create role {role}"))
+                for ext in ("pg_trgm", "btree_gin", "btree_gist", "pgcrypto"):
+                    await session.execute(text(f"create extension if not exists {ext}"))
+        await self.execute_script(schema_sql.read_text(encoding="utf-8"))
 
     # ID: 806b7dd1-197d-4b66-9b3f-2ab107fd3601
     async def ledger_rows(self) -> dict[str, bool]:

@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .common import load_policy
+from .common import REPO_ROOT, load_policy
 
 
 _ENTRY_KEYS = {"verify", "reconcilable", "transactional"}
@@ -235,7 +235,41 @@ def parse_manifest(policy: dict[str, Any]) -> Manifest:
     )
 
 
+# ID: e48cf184-967d-4a53-aa06-12a8db8e15d3
+def verify_manifest_matches_disk(manifest: Manifest, repo_root: Path) -> None:
+    """Every entry has a file and every ``.sql`` file is an entry (ADR-162 D6, D12 §3).
+
+    Raises :class:`ManifestError` naming the offenders. There is no unmanaged
+    list: a ``.sql`` file in the migrations directory that the manifest does
+    not ledger is an unledgered schema change, and the engine refuses to run
+    with one present rather than pretend the ledger is complete.
+    """
+    directory = repo_root / manifest.directory
+    if not directory.is_dir():
+        raise ManifestError(f"migrations directory not found: {directory}")
+    on_disk = {p.name for p in directory.glob("*.sql")}
+    listed = set(manifest.order)
+    missing = sorted(listed - on_disk)
+    unledgered = sorted(on_disk - listed)
+    if missing or unledgered:
+        raise ManifestError(
+            "manifest and migrations directory disagree: "
+            f"listed but missing on disk={missing}; on disk but not ledgered={unledgered}"
+        )
+
+
 # ID: df841458-9938-46ac-9e2d-4c537b12a369
-def load_manifest() -> Manifest:
-    """Load and validate the repository manifest via :func:`load_policy`."""
-    return parse_manifest(load_policy())
+def load_manifest(*, verify_disk: bool = True) -> Manifest:
+    """Load and validate the repository manifest via :func:`load_policy`.
+
+    With ``verify_disk`` (the default) the manifest is also checked against
+    the migrations directory in both directions.
+    """
+    manifest = parse_manifest(load_policy())
+    if verify_disk:
+        if REPO_ROOT is None:
+            raise ManifestError(
+                "cannot verify the manifest against disk without a source tree"
+            )
+        verify_manifest_matches_disk(manifest, REPO_ROOT)
+    return manifest

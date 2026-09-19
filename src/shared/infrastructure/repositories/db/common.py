@@ -79,7 +79,7 @@ def load_policy() -> dict:
     if REPO_ROOT is None:
         raise RuntimeError(
             "Migration commands require the CORE source tree and cannot run "
-            "from a pip-installed wheel. Clone the repository to use db migrate."
+            "from a pip-installed wheel. Clone the repository to use database migrate."
         )
     manifest_path = REPO_ROOT / _MANIFEST_REL
     return yaml.safe_load(manifest_path.read_text(encoding="utf-8"))

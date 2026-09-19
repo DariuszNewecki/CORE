@@ -296,8 +296,8 @@ def test_legacy_draft_rows_are_reconciled_by_ledger_migration() -> None:
     """Existing databases can hold ``status='draft'`` rows (the live DB had
     two). The ledger migration converts them to ``pending`` — the state they
     were always meant to be discoverable in — before tightening the CHECK
-    constraint, and is registered in the manifest so ``core-admin db migrate
-    --apply`` runs it. Verified by inspection of the migration text."""
+    constraint, and is registered in the manifest so ``core-admin database
+    migrate --write`` runs it. Verified by inspection of the migration text."""
     path = _REPO_ROOT / "infra" / "scripts" / "migrations" / _MIGRATION
     assert path.is_file(), path
     sql = path.read_text(encoding="utf-8")

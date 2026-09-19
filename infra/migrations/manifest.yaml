@@ -1,24 +1,34 @@
 # infra/migrations/manifest.yaml
 #
-# Numbered SQL migration ledger.
-# The replay engine reads this file; MigrationService applies pending entries
-# against the live DB and records each ID in core._migrations.
+# Numbered SQL migration ledger (ADR-162).
+# The ledger engine reads this file; `core-admin database migrate --write`
+# applies pending entries against the live DB, each in ONE transaction with
+# its core._migrations row, under an advisory lock (ADR-162 D7).
 #
 # Rules:
-#   - Only append to `order`. Never reorder or remove existing entries.
-#   - New migration: add an SQL file under infra/scripts/migrations/ and
-#     append its filename here.
-#   - Python migration scripts (add_version_updated_at_to_autonomous_proposals.py,
-#     migrate_cli_registry_v2.py) are manual; they are not replayed by this
-#     ledger and are not listed here.
+#   - `order` is append-only and chronological. Never reorder or remove an
+#     entry. (The two 20260722_active_finding_* entries were inserted in date
+#     position on 2026-09-19 as a history correction -- ADR-162 D6: they were
+#     applied by hand and never ledgered.)
+#   - Every .sql file under infra/scripts/migrations/ appears here exactly
+#     once; there is no unmanaged list (ADR-162 D12 §3). Non-migration SQL
+#     lives elsewhere. Python scripts and *_ROLLOUT.md are not migrations.
+#   - Released migration bytes are immutable (ADR-162 D10).
+#   - `probes` (keyed by filename): `verify` is read-only SQL returning ONE
+#     boolean that proves the migration's complete postcondition, including
+#     any data state. Required for every entry after the v2.9.1 baseline.
+#     `reconcilable: true` permits recording WITHOUT executing when `verify`
+#     already holds (ADR-162 D12 §2) -- exceptional, never the default.
+#     `transactional: false` is reserved and refused by the engine (D7).
+#   - `baselines`: declared upgrade origins (ADR-162 D3/D4). `through` is the
+#     last entry a release shipped with; `probes` must ALL hold before
+#     `database migrate --adopt-baseline <tag> --write` records anything.
+#     Every tagged release from v2.9.1 onward is declared here.
+#   - A migration file MAY keep a leading `BEGIN;` and a trailing `COMMIT;`
+#     (the engine strips them); any other transaction control or a statement
+#     PostgreSQL cannot run inside a transaction block is refused.
 #   - The CLI group is `core-admin database ...` (there is no `db` group).
-#   - `core-admin database migrate --bootstrap` seeds core._migrations with
-#     EVERY entry below without running any SQL. It is only correct on a
-#     database that already carries every listed change. Do NOT run it after
-#     switching an existing database to a newer checkout: it records the new
-#     entries as applied without executing them. ADR-162 retires it in favour
-#     of verified baseline adoption (later unit); upgrading an existing
-#     database is unsupported until then.
+#     Upgrading an existing database is unsupported until ADR-162 U4+ lands.
 
 migrations:
   directory: infra/scripts/migrations
@@ -56,8 +66,168 @@ migrations:
     - 20260712_adr148_finalizing_and_consequence_recorded_at.sql
     - 20260713_repo_artifacts_type_check_registry_sync.sql
     - 20260717_adr148_d7_consequence_source.sql
+    - 20260722_active_finding_dedup.sql
+    - 20260722_active_finding_reconcile.sql
     - 20260727_reconcile_cognitive_role_and_resource_capabilities.sql
     - 20260727b_ccc_add_path_ref_intent_binding_cross_ns_direction.sql
     - 20260830_821_create_task_assignee_roles.sql
     - 20260914_885_retire_draft_proposal_status.sql
     - 20260919_adr162_migrations_reconciled.sql
+
+  # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
+  # Each `verify` returns one boolean. Structural probes read the catalog;
+  # data probes are written so that "no violating row exists" is true on an
+  # empty table (a fresh install has the structure and no data).
+  probes:
+    20260712_adr148_finalizing_and_consequence_recorded_at.sql:
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'autonomous_proposals'
+                         and column_name = 'consequence_recorded_at')
+           and exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.autonomous_proposals')
+                         and conname = 'autonomous_proposals_status_check'
+                         and pg_get_constraintdef(oid) like '%finalizing%')
+    20260713_repo_artifacts_type_check_registry_sync.sql:
+      verify: >-
+        select exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.repo_artifacts')
+                         and conname = 'repo_artifacts_type_check'
+                         and pg_get_constraintdef(oid) like '%''charter''%')
+    20260717_adr148_d7_consequence_source.sql:
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'proposal_consequences'
+                         and column_name = 'consequence_source' and is_nullable = 'NO')
+           and exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.proposal_consequences')
+                         and conname = 'proposal_consequences_consequence_source_check')
+    # Applied by hand on the live database (20260722_active_finding_ROLLOUT.md)
+    # before it was ledgered -- reconcilable so that database records the fact
+    # instead of re-running the files (ADR-162 D6, D12 §2).
+    20260722_active_finding_dedup.sql:
+      reconcilable: true
+      verify: >-
+        select (select count(*) from information_schema.columns
+                 where table_schema = 'core' and table_name = 'blackboard_entries'
+                   and column_name in ('occurrence_count', 'first_payload', 'last_seen_at')) = 3
+           and exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'blackboard_entries'
+                         and column_name = 'last_seen_at' and is_nullable = 'NO')
+           and not exists (select 1 from core.blackboard_entries t
+                           where (to_jsonb(t) ->> 'last_seen_at') is null)
+    20260722_active_finding_reconcile.sql:
+      reconcilable: true
+      verify: >-
+        select exists (select 1 from pg_indexes
+                       where schemaname = 'core' and tablename = 'blackboard_entries'
+                         and indexname = 'uq_active_finding_identity')
+           and not exists (select 1 from core.blackboard_entries
+                           where entry_type = 'finding'
+                             and status in ('open', 'claimed', 'awaiting_reaudit')
+                           group by subject, resolution_mechanism
+                           having count(*) > 1)
+    20260727_reconcile_cognitive_role_and_resource_capabilities.sql:
+      verify: >-
+        select not exists (select 1 from core.cognitive_roles
+                           where (role = 'ConstitutionalCoherenceAnalyst'
+                                  and required_capabilities <> '["reasoning", "analysis", "json_output", "schema_compliance"]'::jsonb)
+                              or (role = 'DocstringWriter'
+                                  and required_capabilities <> '["code_generation", "code_understanding"]'::jsonb)
+                              or (role = 'LocalReasoner'
+                                  and required_capabilities <> '["reasoning", "analysis", "document_parsing"]'::jsonb))
+           and not exists (select 1 from core.llm_resources
+                           where name = 'ollama_reasoner'
+                             and provided_capabilities <> '["reasoning", "analysis", "document_parsing"]'::jsonb)
+    20260727b_ccc_add_path_ref_intent_binding_cross_ns_direction.sql:
+      verify: >-
+        select exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.coherence_candidates')
+                         and conname = 'coherence_candidates_relation_check'
+                         and pg_get_constraintdef(oid) like '%CROSS_NS_DIRECTION%')
+    20260830_821_create_task_assignee_roles.sql:
+      verify: >-
+        select to_regclass('core.task_assignee_roles') is not null
+           and exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.tasks')
+                         and conname = 'tasks_assigned_role_registry_fkey')
+           and not exists (select 1 from pg_constraint
+                           where conrelid = to_regclass('core.tasks')
+                             and conname = 'tasks_assigned_role_fkey')
+           and not exists (select 1 from core.cognitive_roles
+                           where role in ('AutonomousDeveloper', 'Human', 'StrategicAuditor'))
+    20260914_885_retire_draft_proposal_status.sql:
+      verify: >-
+        select not exists (select 1 from core.autonomous_proposals where status = 'draft')
+           and exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.autonomous_proposals')
+                         and conname = 'autonomous_proposals_status_check'
+                         and pg_get_constraintdef(oid) not like '%draft%')
+           and exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'autonomous_proposals'
+                         and column_name = 'status' and column_default like '''pending''%')
+    # The engine brings the ledger to this structure before it records anything
+    # (it must describe its own rows first), so this entry is normally found
+    # already satisfied and reconciled.
+    20260919_adr162_migrations_reconciled.sql:
+      reconcilable: true
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = '_migrations'
+                         and column_name = 'reconciled' and is_nullable = 'NO')
+
+  # -- declared baselines (ADR-162 D3/D4) ----------------------------------
+  # `status` suggests the LATEST baseline whose probes all hold (read-only);
+  # `migrate --adopt-baseline <tag> --write` refuses unless every probe of
+  # <tag> holds and no later baseline's probes all hold.
+  baselines:
+    v2.9.1:
+      through: 20260628_adr129_add_declared_production_to_proposal_consequences.sql
+      probes:
+        - select to_regclass('core._migrations') is not null
+        - select to_regclass('core.blackboard_entries') is not null
+        - select to_regclass('core.suspended_users') is not null
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'proposal_consequences'
+                           and column_name = 'declared_production')
+        # discriminators: objects the v2.9.1..v2.10.1 span introduces are absent
+        - >-
+          select not exists (select 1 from information_schema.columns
+                             where table_schema = 'core' and table_name = 'autonomous_proposals'
+                               and column_name = 'consequence_recorded_at')
+        - select to_regclass('core.task_assignee_roles') is null
+        - >-
+          select not exists (select 1 from pg_indexes
+                             where schemaname = 'core' and indexname = 'uq_active_finding_identity')
+    v2.10.1:
+      through: 20260914_885_retire_draft_proposal_status.sql
+      probes:
+        - select to_regclass('core._migrations') is not null
+        - select to_regclass('core.blackboard_entries') is not null
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'autonomous_proposals'
+                           and column_name = 'consequence_recorded_at')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'proposal_consequences'
+                           and column_name = 'consequence_source')
+        - select to_regclass('core.task_assignee_roles') is not null
+        - >-
+          select exists (select 1 from pg_indexes
+                         where schemaname = 'core' and indexname = 'uq_active_finding_identity')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'blackboard_entries'
+                           and column_name = 'last_seen_at' and is_nullable = 'NO')
+        - >-
+          select exists (select 1 from pg_constraint
+                         where conrelid = to_regclass('core.autonomous_proposals')
+                           and conname = 'autonomous_proposals_status_check'
+                           and pg_get_constraintdef(oid) not like '%draft%')
+        - >-
+          select exists (select 1 from pg_constraint
+                         where conrelid = to_regclass('core.coherence_candidates')
+                           and conname = 'coherence_candidates_relation_check'
+                           and pg_get_constraintdef(oid) like '%CROSS_NS_DIRECTION%')
