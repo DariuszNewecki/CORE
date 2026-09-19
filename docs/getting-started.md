@@ -45,6 +45,12 @@ You will also need an LLM resource — local model server or external API, your 
 > stale schema and then fail during API and daemon work, so a successful startup is not proof
 > of a successful upgrade. Do not attempt the upgrade until the corrected release and its
 > supported procedure are available (ADR-162, G11).
+>
+> On `main` (unreleased) the migration commands have already changed — `--write` replaces
+> `--apply`, `--bootstrap` is gone, `--adopt-baseline <tag>` verifies a baseline before
+> recording it, and `database status` reports contradictions read-only. See
+> [`docs/cli-reference.md`](cli-reference.md#database--postgresql-state-management). The
+> warning above stands until the release that completes ADR-162.
 
 **One command** (recommended). Clone, then run the installer — it checks
 prerequisites, installs dependencies, starts the services, applies the schema,

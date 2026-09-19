@@ -12,14 +12,12 @@ module). A local, disposable Docker container is the same fallback
 CORE's own CI already documents for a from-scratch install -- not a novel
 mechanism invented for Unit D.
 
-Migration model: this loads ``schema.sql`` directly (a fresh install has
-a current schema and an empty ledger, per ``migrate.py``'s own module
-docstring), then calls the real, unmodified
-``shared.infrastructure.repositories.db.migration_service.
-bootstrap_migrations()`` to seed the ``core._migrations`` ledger, followed
-by ``migrate_db(apply=False)`` to confirm nothing is left pending. No
-migration SQL is re-executed against structure schema.sql already
-created -- this is exactly the documented workflow, not a shortcut.
+Migration model (ADR-162 D9): ``schema.sql`` is authoritative for a fresh
+install and carries its own ledger seed, so loading it yields a current
+schema AND a complete ``core._migrations`` ledger. This module then calls
+the real, unmodified ``migration_service.migrate_db(write=False)`` (read
+only) and fails if anything is pending -- the seed and the manifest must
+agree. No migration SQL is executed and nothing is bootstrapped.
 """
 
 from __future__ import annotations
@@ -89,7 +87,7 @@ def _run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
 # ID: e79e4b6a-c21f-4801-9cb9-c91f9c99847d
 def start_disposable_database(*, timeout_sec: float = 30.0) -> DisposableDatabase:
     """Start a fresh, uniquely named local Postgres container: schema-loaded
-    and migration-bootstrapped, ready for immediate use.
+    (ledger seeded by schema.sql itself, ADR-162 D9), ready for immediate use.
 
     Binds to an OS-assigned ephemeral port on 127.0.0.1 only (never the
     default 5432, never beyond localhost) so this can never collide with
@@ -135,7 +133,7 @@ def start_disposable_database(*, timeout_sec: float = 30.0) -> DisposableDatabas
         _load_schema(
             host="127.0.0.1", port=port, user="postgres", password=password, db=db_name
         )
-        _bootstrap_and_check_migrations(database_url)
+        _check_migrations_current(database_url)
     except Exception:
         subprocess.run(
             ["docker", "rm", "-f", container_name], capture_output=True, text=True
@@ -213,9 +211,9 @@ def _load_schema(*, host: str, port: int, user: str, password: str, db: str) -> 
     asyncio.run(_apply())
 
 
-def _bootstrap_and_check_migrations(database_url: str) -> None:
-    """Seed core._migrations and confirm nothing is pending, via the real,
-    unmodified bootstrap_migrations()/migrate_db(apply=False).
+def _check_migrations_current(database_url: str) -> None:
+    """Confirm the schema.sql ledger seed leaves nothing pending, via the
+    real, unmodified, read-only migrate_db(write=False) (ADR-162 D9).
 
     Run in a fresh subprocess with only DATABASE_URL overridden. This call
     is about CORE's OWN migration ledger (read from CORE's own
@@ -231,12 +229,12 @@ def _bootstrap_and_check_migrations(database_url: str) -> None:
         "DATABASE_URL": database_url,
     }
     script = (
-        "import asyncio\n"
-        "from shared.infrastructure.repositories.db.migration_service import (\n"
-        "    bootstrap_migrations, migrate_db,\n"
-        ")\n"
-        "asyncio.run(bootstrap_migrations())\n"
-        "asyncio.run(migrate_db(apply=False))\n"
+        "import asyncio, sys\n"
+        "from shared.infrastructure.repositories.db.migration_service import migrate_db\n"
+        "report = asyncio.run(migrate_db(write=False))\n"
+        "if report.pending_before:\n"
+        "    sys.exit('schema.sql ledger seed leaves migrations pending: '\n"
+        "             + ', '.join(report.pending_before))\n"
     )
     result = subprocess.run(
         [sys.executable, "-c", script],
@@ -248,7 +246,7 @@ def _bootstrap_and_check_migrations(database_url: str) -> None:
     )
     if result.returncode != 0:
         raise RuntimeError(
-            f"migration bootstrap/check failed (exit {result.returncode}):\n"
+            f"migration ledger check failed (exit {result.returncode}):\n"
             f"{result.stderr}"
         )
 

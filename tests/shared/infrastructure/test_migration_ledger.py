@@ -8,7 +8,10 @@ Covers:
   - migrate_db(write=False) is a pure dry run: no ledger creation, no apply
   - migrate_db(write=True) applies pending entries in manifest order and
     stops at the first failure
-  - bootstrap_migrations() records only un-applied entries without running SQL
+  - migrate_db(write=True) refuses an empty ledger on a populated schema and a
+    ledger/schema contradiction before touching anything
+  - adopt_baseline() verifies probes, refuses wrong/unknown/ambiguous
+    baselines without writing, and records exactly the baseline prefix
 
 DB-backed proofs of atomicity, retry and concurrency live in
 ``tests/shared/infrastructure/migrations/`` (integration, disposable Postgres).
@@ -27,8 +30,9 @@ from shared.infrastructure.repositories.db.ledger_engine import (
     MigrationResult,
 )
 from shared.infrastructure.repositories.db.migration_service import (
+    LedgerInspection,
     MigrationServiceError,
-    bootstrap_migrations,
+    adopt_baseline,
     migrate_db,
 )
 
@@ -98,12 +102,31 @@ def test_load_policy_returns_manifest_dict() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _inspection(
+    applied: set[str] | None = None,
+    *,
+    schema_present: bool = True,
+    probe_failures: list[str] | None = None,
+    suggestion: str | None = None,
+) -> LedgerInspection:
+    order = load_policy()["migrations"]["order"]
+    applied = set() if applied is None else applied
+    return LedgerInspection(
+        ledger_present=True,
+        schema_present=schema_present,
+        applied=applied,
+        pending=[m for m in order if m not in applied],
+        probe_failures=probe_failures or [],
+        baseline_suggestion=suggestion,
+    )
+
+
 # ID: a473cdc3-8b5d-4fbf-ae1d-13a6764e43d7
 async def test_migrate_db_dry_run_touches_nothing() -> None:
     """migrate_db(write=False) must neither create the ledger nor apply anything."""
     with (
         patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
-        patch(f"{_SVC}.get_applied", new=AsyncMock(return_value=set())),
+        patch(f"{_SVC}.inspect_ledger", new=AsyncMock(return_value=_inspection())),
         patch(f"{_SVC}.apply_migration", new=AsyncMock()) as mock_apply,
     ):
         report = await migrate_db(write=False)
@@ -128,7 +151,9 @@ async def test_migrate_db_write_applies_pending_in_manifest_order() -> None:
 
     with (
         patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
-        patch(f"{_SVC}.get_applied", new=AsyncMock(return_value=already)),
+        patch(
+            f"{_SVC}.inspect_ledger", new=AsyncMock(return_value=_inspection(already))
+        ),
         patch(f"{_SVC}.apply_migration", new=fake_apply),
     ):
         report = await migrate_db(write=True)
@@ -142,6 +167,7 @@ async def test_migrate_db_write_applies_pending_in_manifest_order() -> None:
 # ID: 8d4efa43-7d19-4858-8257-5e54e9f7399f
 async def test_migrate_db_write_stops_at_first_failure() -> None:
     order = load_policy()["migrations"]["order"]
+    already = set(order[:-3])
     seen: list[str] = []
 
     async def fake_apply(entry, sql_path, *, session_factory):  # type: ignore[no-untyped-def]
@@ -152,15 +178,52 @@ async def test_migrate_db_write_stops_at_first_failure() -> None:
 
     with (
         patch(f"{_SVC}.ensure_ledger", new=AsyncMock()),
-        patch(f"{_SVC}.get_applied", new=AsyncMock(return_value=set())),
+        patch(
+            f"{_SVC}.inspect_ledger", new=AsyncMock(return_value=_inspection(already))
+        ),
         patch(f"{_SVC}.apply_migration", new=fake_apply),
         pytest.raises(
-            MigrationServiceError, match=f"{order[1]}.*rolled back; not recorded"
+            MigrationServiceError, match=f"{order[-2]}.*rolled back; not recorded"
         ),
     ):
         await migrate_db(write=True)
 
-    assert seen == order[:2], "nothing after the failing migration may be attempted"
+    assert seen == order[-3:-1], "nothing after the failing migration may be attempted"
+
+
+# ID: 6edc712e-fdff-4d82-acb3-53f6ceed9c29
+async def test_migrate_db_write_refuses_empty_ledger_on_populated_schema() -> None:
+    with (
+        patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
+        patch(
+            f"{_SVC}.inspect_ledger",
+            new=AsyncMock(return_value=_inspection(set(), suggestion="v2.9.1")),
+        ),
+        patch(f"{_SVC}.apply_migration", new=AsyncMock()) as mock_apply,
+        pytest.raises(MigrationServiceError, match=r"adopt-baseline v2\.9\.1 --write"),
+    ):
+        await migrate_db(write=True)
+    mock_ensure.assert_not_called()
+    mock_apply.assert_not_called()
+
+
+# ID: 3a0c5e89-480b-4e6e-8fa7-8901bd313ef2
+async def test_migrate_db_write_refuses_ledger_schema_contradiction() -> None:
+    order = load_policy()["migrations"]["order"]
+    with (
+        patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
+        patch(
+            f"{_SVC}.inspect_ledger",
+            new=AsyncMock(
+                return_value=_inspection(set(order[:-1]), probe_failures=[order[0]])
+            ),
+        ),
+        patch(f"{_SVC}.apply_migration", new=AsyncMock()) as mock_apply,
+        pytest.raises(MigrationServiceError, match=f"contradiction.*{order[0]}"),
+    ):
+        await migrate_db(write=True)
+    mock_ensure.assert_not_called()
+    mock_apply.assert_not_called()
 
 
 # ID: 48c1068d-e3c8-4a07-a23d-a551000f8283
@@ -173,43 +236,17 @@ async def test_migrate_db_reports_manifest_errors_as_service_errors() -> None:
 
 
 # ---------------------------------------------------------------------------
-# bootstrap_migrations() — orchestration only (retired by U4 per ADR-162 D3)
+# adopt_baseline() — unknown tag is refused before any DB access
 # ---------------------------------------------------------------------------
 
 
-# ID: 35aadbd2-e550-48de-8dfd-27f1668b0fdd
-async def test_bootstrap_seeds_pending_entries() -> None:
-    """bootstrap_migrations() records every un-applied manifest entry."""
-    recorded: list[str] = []
-
-    async def fake_record(mig_id: str, *, reconciled: bool, session_factory) -> bool:  # type: ignore[no-untyped-def]
-        assert reconciled is False
-        recorded.append(mig_id)
-        return True
-
+# ID: c8892ba7-53c8-468d-b986-63a067d52977
+async def test_adopt_baseline_refuses_unknown_tag_without_db_access() -> None:
     with (
-        patch(f"{_SVC}.ensure_ledger", new=AsyncMock()),
-        patch(f"{_SVC}.get_applied", new=AsyncMock(return_value=set())),
-        patch(f"{_SVC}.record_ledger_row", new=fake_record),
-    ):
-        result = await bootstrap_migrations()
-
-    expected = load_policy()["migrations"]["order"]
-    assert recorded == expected
-    assert result == expected
-
-
-# ID: 2266358d-8e7f-4f11-82d0-04c5c7c37c7d
-async def test_bootstrap_skips_already_applied() -> None:
-    """bootstrap_migrations() must not re-record already-applied migrations."""
-    all_migs = set(load_policy()["migrations"]["order"])
-
-    with (
-        patch(f"{_SVC}.ensure_ledger", new=AsyncMock()),
-        patch(f"{_SVC}.get_applied", new=AsyncMock(return_value=all_migs)),
+        patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
         patch(f"{_SVC}.record_ledger_row", new=AsyncMock()) as mock_record,
+        pytest.raises(MigrationServiceError, match=r"not a declared baseline.*v2\.9\.1"),
     ):
-        result = await bootstrap_migrations()
-
+        await adopt_baseline("v0.0.0", write=True, session_factory=AsyncMock())
+    mock_ensure.assert_not_called()
     mock_record.assert_not_called()
-    assert result == []

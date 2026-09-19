@@ -195,6 +195,34 @@ poetry run core-admin database sync     # Sync the code knowledge graph (symbols
 > existing database to a newer checkout (it can mark migrations applied without executing
 > them). A clean install is not affected. Wait for the corrected release (ADR-162, G11).
 
+**Unreleased (`main` after ADR-162 U2–U4; not in any published version):** the ledger
+engine and its commands were reworked. This does not lift the warning above — the
+supported upgrade procedure ships with the release that completes ADR-162 U2–U7.
+
+```bash
+poetry run core-admin database status                          # read-only; exit 0 current, 2 pending/contradictory
+poetry run core-admin database status --format json            # adds ledger_present, probe_failures, baseline_suggestion, current
+poetry run core-admin database migrate                         # dry run: lists pending, mutates nothing
+poetry run core-admin database migrate --write                 # applies pending, one transaction per migration
+poetry run core-admin database migrate --adopt-baseline v2.9.1          # verifies the baseline's probes only
+poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # records the ledger through that baseline
+```
+
+- `--write` is the only mutation flag (`--apply` remains one release as a deprecated alias).
+  `--bootstrap` is removed: it recorded every manifest entry without verifying anything.
+- Each migration executes together with its `core._migrations` row in **one** transaction
+  under an advisory lock; a failure leaves that migration rolled back and unrecorded, earlier
+  ones recorded, and re-running is safe. Concurrent invocations apply each migration once.
+- `status` never creates anything. It reports pending migrations, **probe failures** (recorded
+  migrations whose verification probe fails — the ledger claims a change the schema lacks) and,
+  for an empty ledger on a populated schema, the declared baseline that matches.
+- `--adopt-baseline <tag>` records manifest entries up to a declared baseline only after every
+  probe of that baseline holds and no later baseline also holds; it never records beyond the
+  baseline. Naming a version is never sufficient on its own.
+- `--write` refuses an empty ledger on a populated schema (adopt a baseline first) and any
+  ledger/schema contradiction.
+- A fresh `schema.sql` load seeds the ledger completely; a fresh install never has an empty ledger.
+
 ---
 
 ### `daemon` — Background Worker Daemon

@@ -3,6 +3,15 @@
 Database status command.
 
 Shows health metrics, connection status, and diagnostics.
+
+Read-only (ADR-162 D2/D3): never creates the ledger or any other object.
+Reports pending migrations, ledger/schema contradictions (recorded entries
+whose verify probe fails) and, when the ledger is empty on a populated
+schema, the declared baseline that matches — a suggestion for
+``database migrate --adopt-baseline``, never an action.
+
+Exit codes (scriptable): 0 current; 2 pending, contradictory or unledgered;
+1 the check itself failed.
 """
 
 from __future__ import annotations
@@ -76,15 +85,21 @@ async def database_status(
         result = {
             "connected": report.is_connected,
             "version": report.db_version,
-            "applied_migrations": list(report.applied_migrations),
+            "ledger_present": report.ledger_present,
+            "schema_present": report.schema_present,
+            "applied_migrations": sorted(report.applied_migrations),
             "pending_migrations": report.pending_migrations,
+            "probe_failures": report.probe_failures,
+            "baseline_suggestion": report.baseline_suggestion,
+            "current": report.is_current,
         }
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
-        return
-
-    console.print("[bold cyan]📊 Database Status[/bold cyan]")
-    console.print()
-    _display_status_table(report, detailed)
+    else:
+        console.print("[bold cyan]📊 Database Status[/bold cyan]")
+        console.print()
+        _display_status_table(report, detailed)
+    if not report.is_current:
+        raise typer.Exit(2)
 
 
 def _display_status_table(report, detailed: bool) -> None:
@@ -103,11 +118,34 @@ def _display_status_table(report, detailed: bool) -> None:
     mig_table = Table(show_header=False)
     mig_table.add_column("Metric", style="cyan")
     mig_table.add_column("Value")
+    mig_table.add_row("Ledger", "present" if report.ledger_present else "absent")
     mig_table.add_row("Applied", str(len(report.applied_migrations)))
     mig_table.add_row("Pending", str(len(report.pending_migrations)))
+    mig_table.add_row("Probe failures", str(len(report.probe_failures)))
     console.print(mig_table)
+    if report.probe_failures:
+        console.print()
+        console.print(
+            "[red]✗ Ledger/schema contradiction — recorded but the probe fails:[/red]"
+        )
+        for mig in report.probe_failures:
+            console.print(f"  • {mig}")
+    if report.schema_present and not report.applied_migrations:
+        console.print()
+        if report.baseline_suggestion:
+            console.print(
+                "[yellow]⚠️  Empty ledger on a populated schema.[/yellow] Matches "
+                f"baseline [bold]{report.baseline_suggestion}[/bold]; adopt it with:\n"
+                f"  core-admin database migrate --adopt-baseline "
+                f"{report.baseline_suggestion} --write"
+            )
+        else:
+            console.print(
+                "[yellow]⚠️  Empty ledger on a populated schema[/yellow] and no "
+                "declared baseline matches it."
+            )
     if report.pending_migrations:
         console.print()
         console.print("[yellow]⚠️  Pending migrations:[/yellow]")
-        for mig in sorted(report.pending_migrations):
+        for mig in report.pending_migrations:
             console.print(f"  • {mig}")

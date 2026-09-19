@@ -37,6 +37,15 @@ pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
     "${LIVE_DB}" \
     | sed '/^\\restrict/d; /^\\unrestrict/d' \
     > "${SCHEMA_OUT}"
+
+# ADR-162 D9: a fresh install must start with a COMPLETE migration ledger.
+# Append the seed block rendered from infra/migrations/manifest.yaml (ids ==
+# manifest order; tests/shared/infrastructure/test_schema_ledger_seed.py
+# proves the parity). The dump is --schema-only, so this is the only data.
+REPO_TOP="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+(cd "${REPO_TOP}" && poetry run python -m shared.infrastructure.repositories.db.ledger_seed) \
+    >> "${SCHEMA_OUT}"
+
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${TEST_DB}" -q < "${SCHEMA_OUT}"
 
 # Grant core_test_db access. pg_dump --schema-only copies GRANT ... TO core but

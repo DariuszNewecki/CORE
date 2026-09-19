@@ -6382,3 +6382,52 @@ ALTER TABLE ONLY core.tasks
 --
 -- PostgreSQL database dump complete
 --
+--
+-- CORE migration ledger seed (ADR-162 D9). Generated from
+-- infra/migrations/manifest.yaml by infra/scripts/reset_test_db.sh so that a
+-- fresh install starts with a complete ledger. Do not edit by hand; regenerate
+-- with: poetry run python -m shared.infrastructure.repositories.db.ledger_seed
+--
+
+-- CORE-LEDGER-SEED-BEGIN
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260426_drop_legacy_proposals.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260427_add_approval_authority_to_autonomous_proposals.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260428_add_claimed_by_to_autonomous_proposals.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260502_drop_worker_registry_status.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260503_retire_vector_sync_worker.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260510_add_suppressed_to_blackboard_entry_status.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260512_remove_orphan_repo_embedder_registry_row.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260513_add_awaiting_reaudit_to_blackboard_entry_status.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260513_create_llm_gate_verdicts.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_disable_remote_resources.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_governor_decisions.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_phase1_llm_config_schema.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_phase2_data_migration.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_phase3_enforcement_cutover.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260516_adr_052_retire_orphan_resource_keys.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260517_create_audit_run_resources.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260517_create_fix_runs.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260518_consolidate_audit_runs.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260518_create_phase3_tables.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260518_create_phase4_tables.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260522_adr068_principal_roles.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260523_434_add_resource_name_to_agent_memory.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260602_reassign_core_schema_owner_to_core_db.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260602b_drop_lira_user_default_privileges_core.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260613_620_llm_resource_rates.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260613b_retire_llm_resources_cost_per_token.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260626_add_blackboard_subject_status_index.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260626_create_llm_exchange_log_2026_07_12_partitions.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260626_create_suspended_users.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260628_adr129_add_declared_production_to_proposal_consequences.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260712_adr148_finalizing_and_consequence_recorded_at.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260713_repo_artifacts_type_check_registry_sync.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260717_adr148_d7_consequence_source.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260722_active_finding_dedup.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260722_active_finding_reconcile.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260727_reconcile_cognitive_role_and_resource_capabilities.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260727b_ccc_add_path_ref_intent_binding_cross_ns_direction.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260830_821_create_task_assignee_roles.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260914_885_retire_draft_proposal_status.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260919_adr162_migrations_reconciled.sql', false);
+-- CORE-LEDGER-SEED-END

@@ -28,7 +28,8 @@
 #     (the engine strips them); any other transaction control or a statement
 #     PostgreSQL cannot run inside a transaction block is refused.
 #   - The CLI group is `core-admin database ...` (there is no `db` group).
-#     Upgrading an existing database is unsupported until ADR-162 U4+ lands.
+#     Upgrading an existing database is unsupported until the release that
+#     completes ADR-162 U2-U7 ships.
 
 migrations:
   directory: infra/scripts/migrations
