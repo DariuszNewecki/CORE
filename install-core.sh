@@ -11,11 +11,13 @@
 #       command (ADR-155 D1: installation never runs the demo automatically).
 #
 #   ./install-core.sh --bare \             # Bare path
-#       --db-url  "postgresql://user:pass@host:5432/dbname" \
+#       --db-url  "postgresql+asyncpg://user:pass@host:5432/dbname" \
 #       --qdrant-url "http://host:6333"
 #       Requires: python 3.12+, poetry, psql client, reachable DB + Qdrant
 #       Sets up the Python environment, loads the schema, writes start.sh /
 #       stop.sh, and prints next steps. You manage infra; CORE manages itself.
+#       A plain postgresql:// URL is accepted and normalised to the
+#       postgresql+asyncpg:// form CORE's async runtime requires (ADR-162 U1).
 #
 # Re-run is safe — steps that have already happened are detected and skipped.
 #
@@ -56,16 +58,40 @@ while [[ $# -gt 0 ]]; do
     --qdrant-url) QDRANT_URL="$2"; shift 2 ;;
     --qdrant-url=*) QDRANT_URL="${1#*=}"; shift ;;
     -h|--help)
-      sed -n '2,23p' "$0" | sed 's/^#//' | sed 's/^ //'
+      sed -n '2,25p' "$0" | sed 's/^#//' | sed 's/^ //'
       exit 0 ;;
     *) die "Unknown argument: $1. Run with --help for usage." ;;
   esac
 done
 
 if [[ "$BARE" -eq 1 ]]; then
-  [[ -n "$DB_URL" ]]     || die "--bare requires --db-url postgresql://user:pass@host:5432/dbname"
+  [[ -n "$DB_URL" ]]     || die "--bare requires --db-url postgresql+asyncpg://user:pass@host:5432/dbname"
   [[ -n "$QDRANT_URL" ]] || die "--bare requires --qdrant-url http://host:6333"
 fi
+
+# ---- database URL normalisation (ADR-162 D10, U1) --------------------------
+# One operator-supplied URL feeds two consumers with incompatible schemes:
+#   * CORE's runtime (async SQLAlchemy + asyncpg) requires postgresql+asyncpg://
+#     — a plain postgresql:// makes the engine import psycopg2 and fail;
+#   * psql (libpq) requires postgresql:// and treats postgresql+asyncpg://...
+#     as a database *name*.
+# Only the scheme prefix is rewritten; every byte after :// is untouched.
+# Both forms are accepted; each is idempotent. Any other scheme (e.g.
+# postgres://) passes through unchanged, exactly as before.
+to_async_db_url() {
+  case "$1" in
+    postgresql://*) printf '%s' "postgresql+asyncpg://${1#postgresql://}" ;;
+    *)              printf '%s' "$1" ;;
+  esac
+}
+to_libpq_db_url() {
+  case "$1" in
+    postgresql+asyncpg://*) printf '%s' "postgresql://${1#postgresql+asyncpg://}" ;;
+    *)                      printf '%s' "$1" ;;
+  esac
+}
+DB_URL_ASYNC="$(to_async_db_url "$DB_URL")"   # persisted to .env for the runtime
+DB_URL_LIBPQ="$(to_libpq_db_url "$DB_URL")"   # handed to psql only
 
 # ===========================================================================
 # SHARED STEPS (both paths)
@@ -88,6 +114,23 @@ install_deps() {
 }
 
 # ---- write .env ------------------------------------------------------------
+# set_env_var NAME VALUE FILE — replace every "NAME=..." line in FILE with
+# "NAME=VALUE", copying VALUE byte-for-byte. (A sed replacement would
+# reinterpret '&' and '\' — which query strings legitimately contain.)
+set_env_var() {
+  local name="$1" value="$2" file="$3" line
+  local tmp="${file}.tmp.$$"
+  : > "$tmp"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "${name}="* ]]; then
+      printf '%s=%s\n' "$name" "$value" >> "$tmp"
+    else
+      printf '%s\n' "$line" >> "$tmp"
+    fi
+  done < "$file"
+  mv "$tmp" "$file"
+}
+
 write_env() {
   step "Configuring environment"
   if [[ -f .env ]]; then
@@ -95,11 +138,12 @@ write_env() {
   else
     [[ -f .env.example ]] || die ".env.example not found — is this a complete CORE checkout?"
     cp .env.example .env
-    # Patch DB_URL and QDRANT_URL for the bare path
+    # Patch DATABASE_URL and QDRANT_URL for the bare path
     if [[ "$BARE" -eq 1 ]]; then
-      # Replace placeholder values with the supplied URLs
-      sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${DB_URL}|" .env
-      sed -i "s|^QDRANT_URL=.*|QDRANT_URL=${QDRANT_URL}|" .env
+      # Replace placeholder values with the supplied URLs. The runtime gets
+      # the async scheme (see "database URL normalisation" above).
+      set_env_var DATABASE_URL "$DB_URL_ASYNC" .env
+      set_env_var QDRANT_URL "$QDRANT_URL" .env
       ok "created .env from .env.example with your DB + Qdrant URLs"
     else
       ok "created .env from .env.example (defaults are demo-ready; no API key needed)"
@@ -238,8 +282,9 @@ run_bare() {
 
   # Pre-flight: verify DB and Qdrant are reachable before touching anything.
   step "Verifying connectivity"
-  psql "${DB_URL}" -c "SELECT 1" >/dev/null 2>&1 \
-    || die "Cannot connect to DB at ${DB_URL}. Verify the URL and that the server is reachable."
+  # The URL carries credentials — never echo it in an error.
+  psql "${DB_URL_LIBPQ}" -c "SELECT 1" >/dev/null 2>&1 \
+    || die "Cannot connect to the database with the supplied --db-url. Verify the URL and that the server is reachable."
   ok "Postgres reachable"
   curl -fsS "${QDRANT_URL}/collections" >/dev/null 2>&1 \
     || die "Cannot reach Qdrant at ${QDRANT_URL}. Verify the URL and that the server is running."
@@ -251,12 +296,12 @@ run_bare() {
   # ---- apply schema ----------------------------------------------------------
   step "Applying the constitutional schema"
   # Check if already applied (idempotent gate).
-  already=$(psql "${DB_URL}" -tAc \
+  already=$(psql "${DB_URL_LIBPQ}" -tAc \
     "SELECT to_regclass('core.blackboard_entries')" 2>/dev/null || echo "")
   if [[ "$already" == "core.blackboard_entries" ]]; then
     ok "schema already present — skipping"
   else
-    psql "${DB_URL}" -v ON_ERROR_STOP=1 < schema.sql \
+    psql "${DB_URL_LIBPQ}" -v ON_ERROR_STOP=1 < schema.sql \
       || die "Schema apply failed. Check that your DB role has CREATE privilege."
     ok "schema applied from schema.sql"
   fi
