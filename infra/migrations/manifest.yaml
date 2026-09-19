@@ -74,6 +74,10 @@ migrations:
     - 20260830_821_create_task_assignee_roles.sql
     - 20260914_885_retire_draft_proposal_status.sql
     - 20260919_adr162_migrations_reconciled.sql
+    - 20260919b_adr052_core_archive_schema.sql
+    - 20260919c_adr054_audit_findings_run_id.sql
+    - 20260919d_users_display_name.sql
+    - 20260919e_adr052_phase4_drop_runtime_settings.sql
 
   # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
   # Each `verify` returns one boolean. Structural probes read the catalog;
@@ -175,6 +179,42 @@ migrations:
         select exists (select 1 from information_schema.columns
                        where table_schema = 'core' and table_name = '_migrations'
                          and column_name = 'reconciled' and is_nullable = 'NO')
+
+    # -- ADR-162 U5a: historical reconstruction of changes that reached the live
+    # schema between v2.9.1 and v2.10.1 without migration files. All four are
+    # reconcilable: each probe proves the complete structural postcondition, and
+    # a v2.10.1/current-shaped database records them without re-executing DDL.
+    20260919b_adr052_core_archive_schema.sql:
+      reconcilable: true
+      verify: >-
+        select exists (select 1 from pg_namespace where nspname = 'core_archive')
+    20260919c_adr054_audit_findings_run_id.sql:
+      reconcilable: true
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'audit_findings'
+                         and column_name = 'run_id' and data_type = 'uuid'
+                         and is_nullable = 'NO')
+           and exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.audit_findings')
+                         and conname = 'audit_findings_run_id_fkey'
+                         and contype = 'f')
+           and (select count(*) from pg_indexes
+                 where schemaname = 'core' and tablename = 'audit_findings'
+                   and indexname in ('idx_audit_findings_run_id',
+                                     'idx_audit_findings_run_severity',
+                                     'idx_audit_findings_check_run',
+                                     'idx_audit_findings_file_run')) = 4
+    20260919d_users_display_name.sql:
+      reconcilable: true
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core' and table_name = 'users'
+                         and column_name = 'display_name' and data_type = 'text')
+    20260919e_adr052_phase4_drop_runtime_settings.sql:
+      reconcilable: true
+      verify: >-
+        select to_regclass('core.runtime_settings') is null
 
   # -- declared baselines (ADR-162 D3/D4) ----------------------------------
   # `status` suggests the LATEST baseline whose probes all hold (read-only);

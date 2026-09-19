@@ -59,6 +59,12 @@ assert REPO_ROOT is not None
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 RECONCILED_COLUMN = "20260919_adr162_migrations_reconciled.sql"
+BACKFILLS = [
+    "20260919b_adr052_core_archive_schema.sql",
+    "20260919c_adr054_audit_findings_run_id.sql",
+    "20260919d_users_display_name.sql",
+    "20260919e_adr052_phase4_drop_runtime_settings.sql",
+]
 
 
 # ── fresh install (D9) ───────────────────────────────────────────────────────
@@ -226,8 +232,9 @@ async def test_v2_10_1_shaped_database_refuses_v2_9_1_and_suggests_v2_10_1(
         e.id for e in manifest.entries_through(manifest.baseline("v2.10.1").through)
     ]
     report = await migrate_db(write=True, session_factory=db.session_factory)
-    assert report.pending_before == [RECONCILED_COLUMN]
+    assert report.pending_before == [RECONCILED_COLUMN, *BACKFILLS]
     assert report.applied == [RECONCILED_COLUMN]  # idempotent ADD COLUMN IF NOT EXISTS
+    assert report.reconciled == BACKFILLS  # structures already present: no DDL re-run
     assert (await status(session_factory=db.session_factory)).is_current
 
 
@@ -330,7 +337,7 @@ async def test_cli_upgrade_sequence_cold(fresh_database: FreshDatabase) -> None:
 
     code, out, _ = _core_admin(url, "migrate", "--write")
     assert code == 0 and "Migrations complete" in out, out[-800:]
-    assert "10 applied, 0 reconciled" in out
+    assert "14 applied, 0 reconciled" in out  # the whole span incl. U5a backfills
 
     code, out, _ = _core_admin(url, "status", "--format", "json")
     assert code == 0, out[-800:]

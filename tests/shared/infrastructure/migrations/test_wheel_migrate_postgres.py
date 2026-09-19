@@ -102,7 +102,7 @@ async def test_wheel_migrates_an_external_database_without_a_checkout(
     assert code == 0 and "adopted" in out, out[-1200:]
 
     code, out = core_admin("migrate", "--write")
-    assert code == 0 and "1 applied, 0 reconciled" in out, out[-1200:]
+    assert code == 0 and "1 applied, 4 reconciled" in out, out[-1200:]
 
     code, out = core_admin("status", "--format", "json")
     assert code == 0, out[-1200:]

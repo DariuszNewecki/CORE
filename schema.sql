@@ -6382,6 +6382,7 @@ ALTER TABLE ONLY core.tasks
 --
 -- PostgreSQL database dump complete
 --
+
 --
 -- CORE migration ledger seed (ADR-162 D9). Generated from
 -- infra/migrations/manifest.yaml by infra/scripts/reset_test_db.sh so that a
@@ -6430,4 +6431,8 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20260727b_ccc_add_path_re
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260830_821_create_task_assignee_roles.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260914_885_retire_draft_proposal_status.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919_adr162_migrations_reconciled.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260919b_adr052_core_archive_schema.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260919c_adr054_audit_findings_run_id.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260919d_users_display_name.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20260919e_adr052_phase4_drop_runtime_settings.sql', false);
 -- CORE-LEDGER-SEED-END

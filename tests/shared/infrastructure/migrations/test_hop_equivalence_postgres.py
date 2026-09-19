@@ -17,11 +17,11 @@ the fresh-install ledger seed removed). Any difference is printed as a
 unified diff.
 
 The immediately previous release is the hop D5 makes a release obligation
-("each hop is tested when it is current", D4); it must pass. Older
-baselines are chained hops: a failure there is real drift that was never
-tested when it was current. v2.9.1 is such a case (see the marker below) —
-recorded as a strict expected failure so the drift stays visible in CI and
-the marker must be removed the moment it is repaired.
+("each hop is tested when it is current", D4). Older baselines are chained
+hops and must be equivalent too: the v2.9.1 drift this test found on
+2026-09-19 (core_archive, audit_findings.run_id, users.display_name,
+runtime_settings) was repaired by the U5a backfill migrations, and every
+declared baseline now passes without an expected-failure marker.
 """
 
 from __future__ import annotations
@@ -54,34 +54,12 @@ assert REPO_ROOT is not None
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 
-# Known chained-hop drift: the v2.9.1..v2.10.1 span changed the live schema
-# without migration files for `core_archive` (schema), `audit_findings.run_id`
-# (+ its indexes and FK), `users.display_name` and the `runtime_settings`
-# drop. Discovered by this test on 2026-09-19 (ADR-162 U5); the repair is a
-# Governor decision (backfill migrations), not a test adjustment. Strict: the
-# xfail fails the suite once the hop becomes equivalent, forcing its removal.
-KNOWN_DRIFT: dict[str, str] = {
-    "v2.9.1": (
-        "v2.9.1 -> current drift without migration files: core_archive schema, "
-        "audit_findings.run_id (+indexes, FK), users.display_name, runtime_settings "
-        "drop — see ADR-162 Phase B closeout"
-    ),
-}
+
+def _baseline_tags() -> list[str]:
+    return [b.tag for b in load_manifest().baselines]
 
 
-def _baseline_params() -> list:
-    params = []
-    for baseline in load_manifest().baselines:
-        marks = []
-        if baseline.tag in KNOWN_DRIFT:
-            marks.append(
-                pytest.mark.xfail(reason=KNOWN_DRIFT[baseline.tag], strict=True)
-            )
-        params.append(pytest.param(baseline.tag, marks=marks, id=baseline.tag))
-    return params
-
-
-@pytest.mark.parametrize("tag", _baseline_params())
+@pytest.mark.parametrize("tag", _baseline_tags())
 # ID: 1016f13d-0d6a-4019-960f-e72e8ddc2496
 async def test_hop_from_baseline_equals_current_schema(
     tag: str,
@@ -118,4 +96,3 @@ def test_the_previous_release_has_a_schema_fixture_so_the_hop_is_always_tested()
     fixture the D5 hop would silently skip."""
     latest = load_manifest().baselines[-1]
     assert (FIXTURES / f"schema-{latest.tag}.sql").is_file(), latest.tag
-    assert latest.tag not in KNOWN_DRIFT, "the previous-release hop must be equivalent"

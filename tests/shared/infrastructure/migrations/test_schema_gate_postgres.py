@@ -76,7 +76,7 @@ async def test_pending_migrations_refuse_naming_the_first_and_the_remedy(
     await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
     verdict = await evaluate_schema_gate(session_factory=db.session_factory)
     assert verdict.state is SchemaGateState.PENDING
-    assert "1 migration(s)" in verdict.message
+    assert "5 migration(s)" in verdict.message  # ledger column + 4 U5a backfills
     assert "first: 20260919_adr162_migrations_reconciled.sql" in verdict.message
     assert verdict.remedy == "core-admin database migrate --write"
     refusal = await _refuses(db)

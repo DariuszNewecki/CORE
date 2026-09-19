@@ -65,10 +65,18 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   --write` before restarting services** (an existing ledger-bootstrapped database has the two
   `20260722` entries and the ledger column pending).
 - **Hop equivalence (D5).** CI proves `schema.sql`@previous release + manifest replay ==
-  current `schema.sql` (normalised `pg_dump`); v2.10.1 → current is equivalent. The chained
-  v2.9.1 hop is **not** (drift that reached v2.10.1 without migration files: `core_archive`,
-  `audit_findings.run_id`, `users.display_name`, `runtime_settings` drop) — recorded as a strict
-  expected failure pending backfill migrations.
+  current `schema.sql` (normalised `pg_dump`) for every declared baseline: v2.10.1 → current and
+  v2.9.1 → current are both equivalent.
+- **Historical reconstruction (U5a).** Four changes reached the live schema between v2.9.1 and
+  v2.10.1 without migration files; they are now ledgered as append-only backfills, each with a
+  probe and reconciled (no DDL re-run) on databases that already carry them:
+  `20260919b_adr052_core_archive_schema.sql` (ADR-052 archiver schema),
+  `20260919c_adr054_audit_findings_run_id.sql` (ADR-054 amendment 2026-07-07 / #345 — pre-#345
+  scratch rows are preserved under one labelled `audit_runs` row, `source =
+  'pre_adr054_scratch_backfill'`), `20260919d_users_display_name.sql`, and
+  `20260919e_adr052_phase4_drop_runtime_settings.sql` (ADR-052 Phase 4 — encodes the historical
+  gate: refuses, recording nothing, while any `runtime_settings` key is not marked migrated or
+  retired in `config_migration_log`; never `CASCADE`; the log is retained).
 - Verified against a disposable PostgreSQL: rollback/retry/concurrency of the engine, the
   hand-applied `20260722` state reconciled without re-running SQL, and the executable
   v2.9.1 → current upgrade (`--adopt-baseline v2.9.1 --write` then `migrate --write`).

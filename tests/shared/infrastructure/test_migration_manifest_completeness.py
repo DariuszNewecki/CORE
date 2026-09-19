@@ -39,6 +39,12 @@ RELEASED = json.loads((FIXTURES / "released_migrations_sha256.json").read_text("
 DEDUP = "20260722_active_finding_dedup.sql"
 RECONCILE = "20260722_active_finding_reconcile.sql"
 RECONCILED_COLUMN = "20260919_adr162_migrations_reconciled.sql"
+BACKFILLS = [
+    "20260919b_adr052_core_archive_schema.sql",
+    "20260919c_adr054_audit_findings_run_id.sql",
+    "20260919d_users_display_name.sql",
+    "20260919e_adr052_phase4_drop_runtime_settings.sql",
+]
 
 
 # ── bidirectional completeness (D6, D12 §3) ──────────────────────────────────
@@ -121,12 +127,13 @@ def test_every_entry_after_the_v2_9_1_baseline_declares_a_verify_probe() -> None
 
 # ID: c0b0ad58-f5e9-4d2c-8d9e-a2493f3c5b64
 def test_reconcilable_entries_are_exactly_the_ruled_ones() -> None:
-    """Reconciliation is exceptional (D12 §2): only the two files applied by
-    hand before they were ledgered. The ledger's own column is an ordinary
-    executed migration — the engine never creates it out of band (U4a)."""
+    """Reconciliation is exceptional (D12 §2): the two files applied by hand
+    before they were ledgered, and the four U5a backfills whose changes
+    already exist on every v2.10.1/current-shaped database. The ledger's own
+    column is an ordinary executed migration (U4a)."""
     manifest = load_manifest()
     assert sorted(e.id for e in manifest.entries if e.reconcilable) == sorted(
-        [DEDUP, RECONCILE]
+        [DEDUP, RECONCILE, *BACKFILLS]
     )
     assert manifest.entry(RECONCILED_COLUMN).reconcilable is False
     for e in manifest.entries:
