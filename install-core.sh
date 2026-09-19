@@ -215,10 +215,11 @@ refuse_not_current() {
   Nothing was changed and no service was started. The installer never
   migrates, adopts a baseline or drops a schema.
 
-  Upgrading a database created by a released version (v2.9.1, v2.10.1) is
-  not yet supported: it must wait for the Governor-authorised 2.10.2 release
-  and its published procedure (ADR-162, G11). Until then, do not start CORE
-  against this database.
+  Upgrading a database created by a released version is an operator-run
+  step, never done by the installer: follow the procedure
+  "Upgrading an existing CORE database" in docs/getting-started.md
+  (https://dariusznewecki.github.io/CORE/getting-started/#upgrading-an-existing-core-database),
+  then re-run this installer once 'core-admin database status' exits 0.
 
   Diagnose again at any time (read-only):  poetry run core-admin database status
 EOF

@@ -164,13 +164,22 @@ gates:
 
   - id: G11
     name: Upgrade and migration safety
-    status: not_met                     # was not_started; corrected per ADR-159 D7 / ADR-162 (2026-09-19)
-    gap: "Upgrade from v2.9.1 to v2.10.1 is not operationally supported (proven 2026-09-19, ADR-162): the migration ledger (core._migrations) is never seeded on installs created from schema.sql; published runtime artifacts (core-runtime wheel, core-engine image) carry no migration manifest or SQL; a stale schema starts apparently healthy and then fails during API/daemon work; 2 of the 9 span migrations are unledgered; apply and ledger-record are separate transactions, so the URS rollback criterion is actively violated."
+    status: met                         # ADR-162 U0–U8 landed; Governor-attested 2026-09-19 with the 2.10.2 release decision
+    gap: "None — every URS acceptance criterion is proven executable on disposable PostgreSQL for both released baselines (v2.9.1, v2.10.1); the route ships with 2.10.2. Governor ruling 2026-09-19: the declared updated_at changes during a v2.9.1 upgrade (touch triggers fired by the 20260722 backfill; #885 draft->pending) are acceptable — G11 requires preservation of governance history, not byte-identical storage."
     evidence:
-      - "ADR-162 (accepted 2026-09-19): executable upgrade test v2.9.1 -> v2.10.1 — installer skips existing schema, no startup path migrates, API 500 / daemon failures on the stale schema"
-      - "ADR-159 D7: G11 classified pilot-blocking for third-party installation; status to be corrected to not_met when next touched"
-    attestation: null
-    blocking_issues: [799]
+      - "ADR-162 (accepted 2026-09-19) R1–R11 + amendments; units U0–U8a on main (0791258b … 912bee9d), U8b = this release"
+      - "tests/shared/infrastructure/migrations/test_g11_release_candidate_postgres.py — v2.9.1->current and v2.10.1->current through the real CLI route (status -> --adopt-baseline <tag> --write -> migrate --write -> status) end CURRENT with 0 normalised schema-diff lines; seeded blackboard_entries / autonomous_proposals / proposal_consequences rows and their relationships preserved column-for-column (declared changes only: #885 draft->pending, 20260722 updated_at touch); a failing release migration is rolled back and unrecorded with earlier ones kept, retries exactly once after correction; 3 concurrent upgraders apply each migration once"
+      - "tests/shared/infrastructure/migrations/test_hop_equivalence_postgres.py — every declared baseline + manifest replay == fresh schema.sql (ADR-162 D5, CI job)"
+      - "tests/shared/infrastructure/migrations/test_ledger_engine_postgres.py — one transaction per migration under an advisory lock: a failed migration leaves no change and no ledger row; retry after fix; exactly-once under concurrency; verify-after-execute rollback (ADR-162 D7)"
+      - "tests/shared/infrastructure/migrations/test_reconciliation_postgres.py + test_backfill_reconstruction_postgres.py — reconciliation only on a complete, catalog-structural postcondition (D12 §2, U5b); no DROP SCHEMA CASCADE anywhere in the route"
+      - "tests/shared/infrastructure/migrations/test_wheel_migrate_postgres.py — installed wheel, no checkout, only DATABASE_URL: both baselines status -> adopt -> migrate -> CURRENT with bundled assets (D8)"
+      - "tests/shared/infrastructure/migrations/test_schema_gate_postgres.py + tests/infra/test_core_engine_entrypoint.py — API, daemon and core-engine refuse a non-current schema and name the remedy (D2)"
+      - "tests/shared/infrastructure/migrations/test_installer_schema_state_postgres.py + tests/infra/test_install_core_schema_gate.py — install-core.sh loads only a genuinely empty database (one transaction, no drop-and-retry), continues on current, refuses every other state before any service starts, never migrates (D10)"
+      - "Release 2.10.2 — the first release carrying the route; operator procedure in docs/getting-started.md#upgrading-an-existing-core-database"
+    attestation:
+      verified_by: Dariusz Newecki
+      verified_at: "2026-09-19T18:37:03Z"
+    blocking_issues: []
     urs_ref: URS-production-readiness.md#g11
 
   - id: G12

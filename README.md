@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.10.1-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.10.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
@@ -270,7 +270,7 @@ CORE does not claim a status it has not earned. The gates are defined in [URS-pr
 
 **Production readiness: NOT ATTESTED.** All gates must hold simultaneously, and each `met` gate must carry dated, human-signed evidence. There is no composite score.
 
-Progress: **1/15 met** · 12 partial · 1 not met · 1 not demonstrated.
+Progress: **2/15 met** · 12 partial · 1 not demonstrated.
 
 | Gate | Status | Primary gap |
 |------|--------|-------------|
@@ -284,7 +284,7 @@ Progress: **1/15 met** · 12 partial · 1 not met · 1 not demonstrated.
 | G8 — Integration tests for the governed mutation chain | ✅ met | None — no G8 acceptance criterion remains outstanding. |
 | G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
 | G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
-| G11 — Upgrade and migration safety | ❌ not met | Upgrade from v2.9.1 to v2.10.1 is not operationally supported (proven 2026-09-19, ADR-162): the migration ledger (core._migrations) is never seeded on installs created from schema.sql; published runtime artifacts (core-runtime wheel, core-engine image) carry no migration manifest or SQL; a stale schema starts apparently healthy and then fails during API/daemon work; 2 of the 9 span migrations are unledgered; apply and ledger-record are separate transactions, so the URS rollback criterion is actively violated. |
+| G11 — Upgrade and migration safety | ✅ met | None — every URS acceptance criterion is proven executable on disposable PostgreSQL for both released baselines (v2.9.1, v2.10.1); the route ships with 2.10.2. Governor ruling 2026-09-19: the declared updated_at changes during a v2.9.1 upgrade (touch triggers fired by the 20260722 backfill; #885 draft->pending) are acceptable — G11 requires preservation of governance history, not byte-identical storage. |
 | G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |
 | G13 — Documentation for operators | ⚠️ partial | No operator runbook; CLAUDE.md is comprehensive for Claude Code but is not an operator document |
 | G14 — Source reversibility | ⚠️ partial | Source-restoration-after-completed-mutation not proven by test; rollback-vs-forward audit distinction not verified |
@@ -315,20 +315,9 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 >
 > **Fastest way to see CORE today: run it on itself, below.**
 
-> ⚠️ **Upgrading an existing database to v2.10.1 is currently unsupported.** A *clean* v2.10.1
-> installation is not the affected scenario. Re-running `./install-core.sh` on an existing
-> installation does **not** migrate the schema — it skips schema work when tables already exist.
-> `core-admin database migrate` without a mutation flag is inspection/dry-run only. Do **not** run
-> `core-admin database migrate --bootstrap` after switching an existing database to a newer
-> checkout: it can mark migrations as applied without executing them. CORE may start against a
-> stale schema and then fail during API and daemon work, so a successful startup is not proof
-> of a successful upgrade. Do not attempt the upgrade until the corrected release and its
-> supported procedure are available (ADR-162, G11).
->
-> On `main` (unreleased) `install-core.sh` no longer skips: it loads `schema.sql` only into a
-> database with no CORE schema at all (one transaction), verifies an existing database with the
-> read-only `core-admin database status`, and **refuses to start anything** when that database is
-> not current. It never migrates. The warning above stands until the corrected release.
+> **Upgrading an existing database?** Supported since 2.10.2 and always operator-run — CORE never
+> migrates on its own, and the installer and every service start refuse a database that is not
+> current. Procedure: [Upgrading an existing CORE database](docs/getting-started.md#upgrading-an-existing-core-database).
 
 **Full local runtime** — one command. Clone, then run the installer:
 
@@ -374,7 +363,7 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.10.1 — Honest Offline Verdicts, Prompts Ship in the Wheel (GitHub Action `uses:` form corrected)
+**Current Release:** v2.10.2 — Supported Database Upgrades (ADR-162: migration ledger, baseline adoption, startup schema gate, fail-closed installer; G11 met)
 
 Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved fixes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 

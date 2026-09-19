@@ -280,8 +280,8 @@ def test_existing_non_current_database_is_refused_before_any_service(
     seen = (
         "not current" in out
         and "no service was started" in out
-        and "not yet supported" in out
-        and "2.10.2" in out
+        and "operator-run" in out
+        and "Upgrading an existing CORE database" in out
         and "core-admin database status" in out
     )
     assert seen

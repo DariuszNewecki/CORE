@@ -184,20 +184,14 @@ poetry run core-admin workers run <declaration>        # Run a single worker man
 ### `database` — PostgreSQL State Management
 
 ```bash
-poetry run core-admin database status   # Database state + migration ledger (applied / pending)
-poetry run core-admin database migrate  # DRY RUN under v2.10.1: lists pending migrations only
+poetry run core-admin database status   # Read-only: schema state + migration ledger; exit 0 current, 2 not current, 1 check failed
+poetry run core-admin database migrate  # Dry run: lists pending migrations, mutates nothing
 poetry run core-admin database sync     # Sync the code knowledge graph (symbols) to the database
 ```
 
-> ⚠️ Under v2.10.1, `database migrate` without `--apply` executes nothing, and upgrading an
-> existing database is **unsupported**: re-running `install-core.sh` does not migrate an
-> existing schema, and `database migrate --bootstrap` must **not** be run after switching an
-> existing database to a newer checkout (it can mark migrations applied without executing
-> them). A clean install is not affected. Wait for the corrected release (ADR-162, G11).
-
-**Unreleased (`main` after ADR-162 U2–U4; not in any published version):** the ledger
-engine and its commands were reworked. This does not lift the warning above — the
-supported upgrade procedure ships with the release that completes ADR-162 U2–U7.
+CORE never migrates a database on its own. Upgrading an existing database is an operator-run
+step — the procedure for each released baseline is in
+[Upgrading an existing CORE database](getting-started.md#upgrading-an-existing-core-database).
 
 ```bash
 poetry run core-admin database status                          # read-only; exit 0 current, 2 pending/contradictory
@@ -222,17 +216,17 @@ poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # record
 - `--write` refuses an empty ledger on a populated schema (adopt a baseline first) and any
   ledger/schema contradiction.
 - A fresh `schema.sql` load seeds the ledger completely; a fresh install never has an empty ledger.
-- **Installer (U8a).** `install-core.sh` runs `database status` read-only: it loads `schema.sql`
-  only into a database with no CORE schema (one transaction, no drop-and-retry), continues on a
-  current database, and refuses — before any service starts, without migrating — on any other
-  state. Diagnose with `database status`; the upgrade procedure itself ships with the release.
+- **Installer.** `install-core.sh` runs `database status` read-only: it loads `schema.sql` only
+  into a database with no CORE schema (one transaction, no drop-and-retry), continues on a current
+  database, and refuses — before any service starts, without migrating — on any other state.
 - **Startup gate.** `core-admin daemon start` and the API lifespan evaluate the same read-only
   check as `database status` before starting workers / serving and refuse (daemon and
   `core-engine` exit 78; the API's startup fails under uvicorn with exit 3 — ADR-162 Governor
   clarification 2026-09-19) when migrations are pending, the ledger is empty on a
   populated schema, a recorded migration's probe fails, no CORE schema exists, or the manifest
   is unreadable — naming the remedy. `CORE_STRICT_MODE` does not relax it; an unreachable
-  database keeps the existing connectivity behaviour.
+  database keeps the existing connectivity behaviour, so a service that starts is proof of a
+  matching schema when the database is reachable.
 - The wheel bundles the manifest, the migration SQL and `schema.sql` (`src/shared/_migrations/`, a
   byte-parity mirror): `database status|migrate` work from a `pip install core-runtime` with no
   checkout (`status --format json` reports `"assets": "bundled"`), and the `core-engine` image

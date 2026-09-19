@@ -8,22 +8,43 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-### ⚠️ Known issue — upgrading an existing database to 2.10.1 is unsupported
+_Nothing yet._
 
-- Recorded in ADR-162 (accepted 2026-09-19). A clean 2.10.1 installation is not affected. An
-  existing database cannot currently be upgraded by any documented route: re-running
-  `install-core.sh` skips schema work when tables already exist; `core-admin database migrate`
-  without a mutation flag is a dry run; `--bootstrap` must **not** be run after switching an
-  existing database to a newer checkout (it can mark migrations applied without executing
-  them); and CORE may start against a stale schema and then fail during API/daemon work, so a
-  successful startup proves nothing about the upgrade. Wait for the corrected release and its
-  supported procedure. The remediation target is `2.10.2`, pending the evidence ADR-162 requires.
-- Production-readiness gate **G11 → `not_met`** (was `not_started`), per ADR-159 D7 and ADR-162.
+## [2.10.2] — 2026-09-19
+
+**Supported database upgrades.** This release completes ADR-162 (U0–U8): the migration ledger is
+atomic and complete, every released baseline (v2.9.1, v2.10.1) has a verified, operator-run upgrade
+path to this schema, the API/daemon/`core-engine` refuse to start against a non-current schema,
+`install-core.sh` no longer skips an existing schema, and migration assets ship inside the wheel and
+the `core-engine` image. The 2.10.1 "upgrading an existing database is unsupported" warning is
+lifted; the procedure is in `docs/getting-started.md#upgrading-an-existing-core-database`. CORE
+still never migrates a database on its own — upgrading is a deliberate operator step, and a
+service that starts is proof of a matching schema when the database is reachable.
+
+- **Production-readiness gate G11 → `met`**, Governor-attested 2026-09-19 on the executable
+  evidence listed in `.specs/attestations/production-readiness.yaml`. Governor ruling: the declared
+  `updated_at` changes during a v2.9.1 upgrade (touch triggers fired by the `20260722` backfill;
+  `#885` `draft` → `pending`) are acceptable — G11 requires preservation of governance history
+  (records, identities, content, relationships), not byte-identical storage.
+- **Released migration bytes.** The five `20260919*` migrations are now released and pinned
+  immutable (`tests/fixtures/schema/released_migrations_sha256.json`, ADR-162 D10).
+- **Operator note.** Upgrading requires stopping CORE first (`core-admin daemon down`, `./stop.sh`
+  or `make daemon-stop` + `make stop`, per installation), running the documented `database migrate`
+  sequence for your baseline, and restarting only after `database status` exits 0. The live
+  environment is not migrated by the release itself.
+
+### Was — the 2.10.1 known issue, now resolved
+
+- Recorded in ADR-162 (accepted 2026-09-19). Under 2.10.1 an existing database could not be
+  upgraded by any documented route: re-running `install-core.sh` skipped schema work when tables
+  already existed; `core-admin database migrate` without a mutation flag was a dry run;
+  `--bootstrap` could mark migrations applied without executing them; and CORE could start
+  against a stale schema and then fail during API/daemon work. G11 was set to `not_met` (from
+  `not_started`), per ADR-159 D7 and ADR-162. Every item is addressed by the changes below.
 - Documentation corrections: `core-admin db …` → `core-admin database …`; the nonexistent
-  `infra/sql/db_schema_live.sql` → `schema.sql`; `database migrate` is documented as a dry run
-  without `--apply`.
+  `infra/sql/db_schema_live.sql` → `schema.sql`.
 
-### Changed — migration ledger engine (ADR-162 U2–U4; the warning above still applies)
+### Changed — migration ledger engine (ADR-162 U2–U4)
 
 - **Atomic migrations (D7).** `core-admin database migrate --write` runs each migration's
   statements and its `core._migrations` row in one transaction under a fixed advisory lock,
@@ -111,8 +132,8 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   per #885, and `updated_at` touched by the 20260722 backfill); a failing release migration is
   rolled back and unrecorded with earlier ones kept, retries exactly once after correction, and
   concurrent upgraders apply each migration once; the installed wheel migrates both baselines with
-  only `DATABASE_URL`, using its bundled assets. **Not a release**: version, tags, G11 status and
-  the public unsupported-upgrade warning are unchanged pending the Governor checkpoint.
+  only `DATABASE_URL`, using its bundled assets. Landed as U8a (`912bee9d`) ahead of the
+  Governor checkpoint that authorised this release (U8b).
 - Verified against a disposable PostgreSQL: rollback/retry/concurrency of the engine, the
   hand-applied `20260722` state reconciled without re-running SQL, and the executable
   v2.9.1 → current upgrade (`--adopt-baseline v2.9.1 --write` then `migrate --write`).
@@ -122,7 +143,7 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 ### ⚠️ Known issue (recorded 2026-09-19) — do not upgrade an existing database to this release
 
 Upgrading an existing database to 2.10.1 is unsupported; a clean installation is not affected.
-See the `[Unreleased]` known-issue entry above and ADR-162 for the full statement.
+See the 2.10.2 entry above (which resolves it) and ADR-162 for the full statement.
 
 ### 🔧 GitHub Action `uses:` form now delivers the 2.10.0 fixes
 
@@ -753,7 +774,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...HEAD
+[2.10.2]: https://github.com/DariuszNewecki/CORE/compare/v2.10.1...v2.10.2
 [2.8.0]: https://github.com/DariuszNewecki/CORE/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/DariuszNewecki/CORE/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/DariuszNewecki/CORE/compare/v2.5.0...v2.6.0

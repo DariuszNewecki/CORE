@@ -205,7 +205,7 @@ async def _assert_refused_untouched(
     refused = (
         "not current" in out
         and "no service was started" in out
-        and "not yet supported" in out
+        and "operator-run" in out
         and "core-admin database status" in out
     )
     assert refused, "refusal text missing"
