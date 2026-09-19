@@ -9,8 +9,8 @@ Hermetic guards (CI):
     reconcilable entries are the explicitly ruled ones only;
   * declared baselines cover every tagged release from v2.9.1 (D4);
   * released migration bytes are unchanged (pinned sha256 at v2.10.1);
-  * the committed v2.9.1 schema fixture is byte-identical to the tag (checked
-    when the tag is reachable; CI's shallow checkout skips it).
+  * the committed release schema fixtures (v2.9.1, v2.10.1) are byte-identical
+    to their tags (checked when reachable; CI's shallow checkout skips it).
 """
 
 from __future__ import annotations
@@ -196,13 +196,17 @@ def test_released_migration_bytes_are_unchanged(sql_file: str) -> None:
     )
 
 
+@pytest.mark.parametrize("tag", ["v2.9.1", "v2.10.1"])
 # ID: 1ac40a9d-94d0-4a65-a3bb-de5190d65c26
-def test_v2_9_1_schema_fixture_matches_the_tag_when_reachable() -> None:
-    fixture = FIXTURES / "schema-v2.9.1.sql"
+def test_schema_fixture_matches_the_tag_when_reachable(tag: str) -> None:
+    """Committed release schemas (baseline hops, D4/D5) are byte-identical to
+    their tags. CI's shallow checkout cannot reach tags; checked locally."""
+    fixture = FIXTURES / f"schema-{tag}.sql"
+    assert fixture.is_file(), fixture
     proc = subprocess.run(
-        ["git", "-C", str(REPO_ROOT), "show", "v2.9.1:schema.sql"],
+        ["git", "-C", str(REPO_ROOT), "show", f"{tag}:schema.sql"],
         capture_output=True,
     )
     if proc.returncode != 0:
-        pytest.skip("tag v2.9.1 not reachable in this checkout (shallow clone)")
+        pytest.skip(f"tag {tag} not reachable in this checkout (shallow clone)")
     assert fixture.read_bytes() == proc.stdout

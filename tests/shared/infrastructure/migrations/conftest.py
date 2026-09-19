@@ -20,7 +20,7 @@ import secrets
 import shutil
 import subprocess
 import time
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from pathlib import Path
@@ -136,6 +136,29 @@ def disposable_postgres() -> Iterator[DisposablePostgres]:
         subprocess.run(["docker", "rm", "-f", server.container], capture_output=True)
 
 
+# ID: 6b5205a8-d5dd-45d5-a940-471ba0ae1777
+def pg_dump_schema(server: DisposablePostgres, database: str) -> str:
+    """``pg_dump --schema-only --no-owner --no-acl`` of ``database``, run with
+    the server's own pg_dump inside the container (version-matched)."""
+    return subprocess.run(
+        [
+            "docker",
+            "exec",
+            server.container,
+            "pg_dump",
+            "-U",
+            "postgres",
+            "--schema-only",
+            "--no-owner",
+            "--no-acl",
+            database,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
 async def _admin_execute(server: DisposablePostgres, sql: str) -> None:
     engine = create_async_engine(server.url("postgres"), isolation_level="AUTOCOMMIT")
     try:
@@ -223,34 +246,64 @@ class FreshDatabase:
             return {r[0]: bool(r[1]) for r in rows}
 
 
+async def _create_database(server: DisposablePostgres) -> FreshDatabase:
+    name = f"t_{secrets.token_hex(6)}"
+    await _admin_execute(server, f"create database {name}")
+    engine = create_async_engine(server.url(name), pool_size=6, max_overflow=4)
+    factory = async_sessionmaker(
+        bind=engine, class_=AsyncSession, expire_on_commit=False
+    )
+    return FreshDatabase(
+        name=name, url=server.url(name), engine=engine, session_factory=factory
+    )
+
+
+async def _drop_database(server: DisposablePostgres, db: FreshDatabase) -> None:
+    await db.engine.dispose()
+    # Terminate stragglers so DROP DATABASE cannot block.
+    await _admin_execute(
+        server,
+        "select pg_terminate_backend(pid) from pg_stat_activity "
+        f"where datname = '{db.name}' and pid <> pg_backend_pid()",
+    )
+    await _admin_execute(server, f"drop database if exists {db.name}")
+
+
 @pytest.fixture
 # ID: 6f3d2fd5-1192-4594-8b57-824e1322ca0c
 async def fresh_database(
     disposable_postgres: DisposablePostgres,
 ) -> AsyncIterator[FreshDatabase]:
     """A brand-new empty database (no ``core`` schema) for one test."""
-    name = f"t_{secrets.token_hex(6)}"
-    await _admin_execute(disposable_postgres, f"create database {name}")
-    engine = create_async_engine(
-        disposable_postgres.url(name), pool_size=6, max_overflow=4
-    )
-    factory = async_sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
-    db = FreshDatabase(
-        name=name,
-        url=disposable_postgres.url(name),
-        engine=engine,
-        session_factory=factory,
-    )
+    db = await _create_database(disposable_postgres)
     try:
         yield db
     finally:
-        await engine.dispose()
-        # Terminate stragglers so DROP DATABASE cannot block.
-        await _admin_execute(
-            disposable_postgres,
-            "select pg_terminate_backend(pid) from pg_stat_activity "
-            f"where datname = '{name}' and pid <> pg_backend_pid()",
-        )
-        await _admin_execute(disposable_postgres, f"drop database if exists {name}")
+        await _drop_database(disposable_postgres, db)
+
+
+@pytest.fixture
+# ID: 243e0c11-ecab-472f-9588-dbca3d103f16
+async def database_factory(
+    disposable_postgres: DisposablePostgres,
+) -> AsyncIterator[Callable[[], Awaitable[FreshDatabase]]]:
+    """Create any number of extra fresh databases in one test; all dropped after."""
+    created: list[FreshDatabase] = []
+
+    async def _make() -> FreshDatabase:
+        db = await _create_database(disposable_postgres)
+        created.append(db)
+        return db
+
+    try:
+        yield _make
+    finally:
+        for db in created:
+            await _drop_database(disposable_postgres, db)
+
+
+@pytest.fixture
+# ID: f510a786-9660-4a2c-8194-0ab3b611c68c
+def schema_dumper(disposable_postgres: DisposablePostgres) -> Callable[[str], str]:
+    """``pg_dump --schema-only`` of a database on the disposable server."""
+    return lambda database: pg_dump_schema(disposable_postgres, database)

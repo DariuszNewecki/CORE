@@ -55,6 +55,26 @@ Once the one-time setup is complete:
 3. Commit the bump (`chore: bump version to X.Y.Z`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
 
+### Schema and upgrade-path checklist (ADR-162 D4/D5/D9)
+
+Before tagging a release that changes the database schema:
+
+- **Manifest complete.** Every new `.sql` under `infra/scripts/migrations/` is in
+  `infra/migrations/manifest.yaml` `order` with a `verify` probe under `probes:`
+  (`tests/shared/infrastructure/test_migration_manifest_completeness.py`).
+- **`schema.sql` regenerated** from the migrated database by `infra/scripts/reset_test_db.sh`,
+  which appends the ledger seed; seed ids must equal the manifest order
+  (`tests/shared/infrastructure/test_schema_ledger_seed.py`).
+- **Hop test green.** The previous release's `schema.sql` plus the entries added since must
+  reproduce the new `schema.sql` (`migrations/test_hop_equivalence_postgres.py`, integration job).
+  A red hop means a change reached `schema.sql` without a migration — write the migration,
+  never edit the comparison.
+- **Baseline declared.** After tagging, add `vX.Y.Z` to `baselines:` (`through` = the last
+  manifest entry the release ships with, with fingerprint + absence probes) and commit
+  `tests/fixtures/schema/schema-vX.Y.Z.sql` byte-identical to the tag, so the next hop is
+  testable from a shallow checkout.
+- **CHANGELOG** lists the release's schema migrations and whether writers must be quiesced.
+
 The `publish-pypi.yml` workflow fires on the tag push, verifies the tag
 version matches `pyproject.toml`, builds the wheel + sdist, and
 publishes via OIDC. The release appears at
