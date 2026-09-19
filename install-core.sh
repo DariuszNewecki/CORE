@@ -14,12 +14,18 @@
 #       --db-url  "postgresql+asyncpg://user:pass@host:5432/dbname" \
 #       --qdrant-url "http://host:6333"
 #       Requires: python 3.12+, poetry, psql client, reachable DB + Qdrant
-#       Sets up the Python environment, loads the schema, writes start.sh /
+#       Sets up the Python environment, loads the schema into a genuinely
+#       empty database (or verifies an existing one is current), writes start.sh /
 #       stop.sh, and prints next steps. You manage infra; CORE manages itself.
 #       A plain postgresql:// URL is accepted and normalised to the
 #       postgresql+asyncpg:// form CORE's async runtime requires (ADR-162 U1).
 #
-# Re-run is safe — steps that have already happened are detected and skipped.
+# Re-run is safe against a CURRENT database — steps that have already happened
+# are detected and skipped. A database whose CORE schema is not current
+# (pending migrations, an empty ledger, a ledger/schema contradiction, or a
+# partial/unrecognised schema) is REFUSED before any service starts: the
+# installer never migrates, never adopts a baseline and never drops a schema
+# (ADR-162 D2/D10, U8a). Diagnose with: core-admin database status
 #
 # Status: v2 — schema.sql at root, --no-owner (portable), Qdrant collection
 # created lazily by API lifespan (#521). Bare mode added (#522).
@@ -58,7 +64,7 @@ while [[ $# -gt 0 ]]; do
     --qdrant-url) QDRANT_URL="$2"; shift 2 ;;
     --qdrant-url=*) QDRANT_URL="${1#*=}"; shift ;;
     -h|--help)
-      sed -n '2,25p' "$0" | sed 's/^#//' | sed 's/^ //'
+      sed -n '2,31p' "$0" | sed 's/^#//' | sed 's/^ //'
       exit 0 ;;
     *) die "Unknown argument: $1. Run with --help for usage." ;;
   esac
@@ -152,6 +158,108 @@ write_env() {
   mkdir -p var/run var/logs
 }
 
+# env_file_value NAME — the value of NAME= in .env, or empty. Never printed.
+env_file_value() {
+  local name="$1" line
+  [[ -f .env ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "${name}="* ]]; then printf '%s' "${line#*=}"; return 0; fi
+  done < .env
+}
+
+# ---- schema-state gate (ADR-162 D2/D10, U8a) --------------------------------
+# One read-only decision shared by both paths. The database is in exactly one
+# of three states, and only the first one is ever written to:
+#
+#   absent   — no `core` namespace exists at all (schema.sql is what creates
+#              it). schema.sql is loaded in ONE transaction: a failed load
+#              leaves nothing behind and the installer refuses. There is no
+#              drop-and-retry. The real read-only `core-admin database status`
+#              then has to report CURRENT (exit 0) — a fresh install visibly
+#              proves its migration ledger is complete.
+#   current  — a `core` namespace exists and `core-admin database status`
+#              reports CURRENT: continue. schema.sql is not reloaded and the
+#              ledger is not touched.
+#   other    — a `core` namespace exists but status is not CURRENT (pending
+#              migrations, an empty/unledgered schema, a ledger/schema
+#              contradiction, a partial or unrecognised schema) or the check
+#              itself cannot run: the real diagnostic is shown and the
+#              installer exits non-zero BEFORE any API or daemon is started.
+#              It never runs `database migrate`, `--adopt-baseline` or any
+#              other mutation, and never guesses a repair.
+#
+# $1 — a function that runs one read-only SQL query and prints its scalar
+#      result (`psql -tAc` semantics); $2 — a function that loads schema.sql
+#      atomically. Each path supplies its own pair (docker compose exec vs.
+#      the operator's --db-url).
+CORE_NAMESPACE_PROBE="SELECT count(*) FROM pg_namespace WHERE nspname = 'core'"
+SCHEMA_APPLY_LOG="var/logs/schema-apply.log"
+
+# The real read-only status check, in the mode's own database. In bare mode
+# the supplied --db-url is exported for the check so a pre-existing, unrelated
+# .env cannot redirect it (a process-environment DATABASE_URL survives the
+# dotenv cascade, #845). Never echoes the URL.
+run_status_check() {
+  if [[ "$BARE" -eq 1 ]]; then
+    DATABASE_URL="$DB_URL_ASYNC" poetry run core-admin database status
+  else
+    poetry run core-admin database status
+  fi
+}
+
+refuse_not_current() {
+  printf '\n%s✗ The database already holds a CORE schema that is not current — refusing to continue.%s\n' "$R" "$X" >&2
+  cat >&2 <<EOF
+  The status report above is the diagnosis (pending migrations, an empty
+  ledger, a ledger/schema contradiction, or a partial/unrecognised schema).
+  Nothing was changed and no service was started. The installer never
+  migrates, adopts a baseline or drops a schema.
+
+  Upgrading a database created by a released version (v2.9.1, v2.10.1) is
+  not yet supported: it must wait for the Governor-authorised 2.10.2 release
+  and its published procedure (ADR-162, G11). Until then, do not start CORE
+  against this database.
+
+  Diagnose again at any time (read-only):  poetry run core-admin database status
+EOF
+  exit 1
+}
+
+schema_state_gate() {
+  local query_fn="$1" load_fn="$2" present rc
+  step "Checking the database schema state (read-only)"
+  present="$("$query_fn" "$CORE_NAMESPACE_PROBE" 2>/dev/null | tr -d '[:space:]')" \
+    || die "Could not inspect the database schema state. Nothing was changed; no service was started."
+  case "$present" in
+    0)
+      ok "no CORE schema present — this is a fresh database"
+      step "Applying the constitutional schema (one transaction)"
+      if "$load_fn"; then
+        ok "schema applied from schema.sql"
+      else
+        die "Schema load failed and was rolled back — the database still holds no CORE schema. Nothing was started. Details: ${SCHEMA_APPLY_LOG}"
+      fi
+      step "Verifying the migration ledger of the fresh install (read-only)"
+      rc=0; run_status_check || rc=$?
+      [[ "$rc" -eq 0 ]] \
+        || die "A fresh schema.sql load did not produce a current ledger (status exit ${rc}). This is a packaging defect — do not start CORE against this database."
+      ok "migration ledger is current — verified by 'core-admin database status'"
+      ;;
+    1)
+      ok "a CORE schema is present — verifying it is current (never reloaded, never migrated)"
+      rc=0; run_status_check || rc=$?
+      case "$rc" in
+        0) ok "database is current — continuing" ;;
+        2) refuse_not_current ;;
+        *) die "The schema status check itself failed (exit ${rc}). Nothing was changed; no service was started. Run 'poetry run core-admin database status' to see why." ;;
+      esac
+      ;;
+    *)
+      die "Unexpected schema probe result. Nothing was changed; no service was started."
+      ;;
+  esac
+}
+
 # ===========================================================================
 # DOCKER PATH
 # ===========================================================================
@@ -195,26 +303,30 @@ run_docker() {
   [[ "$db_ready" -eq 1 ]] \
     || die "Postgres did not become ready within 180s. Check 'docker compose logs postgres'."
 
-  # ---- apply schema ----------------------------------------------------------
-  step "Applying the constitutional schema"
-  if docker compose exec -T postgres psql -U postgres -d core -tAc \
-       "SELECT to_regclass('core.blackboard_entries')" 2>/dev/null \
-       | grep -q blackboard_entries; then
-    ok "schema already present — skipping"
-  else
-    schema_done=0
-    for attempt in $(seq 1 8); do
-      docker compose exec -T postgres psql -U postgres -d core \
-        -c 'DROP SCHEMA IF EXISTS core CASCADE' >/dev/null 2>&1 || true
-      if docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d core \
-           < schema.sql >/dev/null 2>&1; then
-        schema_done=1; ok "schema applied from schema.sql"; break
-      fi
-      sleep 3
-    done
-    [[ "$schema_done" -eq 1 ]] \
-      || die "Schema apply failed after retries. Check 'docker compose logs postgres'."
-  fi
+  # The log signal above can still precede the first accepted connection;
+  # confirm with a real query before deciding anything about the schema.
+  printf '  confirming a connection'
+  db_ok=0
+  for i in $(seq 1 30); do
+    if docker compose exec -T postgres psql -U postgres -d core -tAc 'SELECT 1' 2>/dev/null \
+         | grep -q '^1$'; then
+      db_ok=1; printf '\n'; ok "Postgres accepting connections"; break
+    fi
+    printf '.'; sleep 2
+  done
+  [[ "$db_ok" -eq 1 ]] \
+    || die "Postgres is not accepting connections. Check 'docker compose logs postgres'."
+
+  # ---- schema state (read-only decision; see schema_state_gate) --------------
+  docker_db_query() {
+    docker compose exec -T postgres psql -U postgres -d core -tAc "$1"
+  }
+  docker_db_load_schema() {
+    # One transaction: either the whole schema lands or nothing does.
+    docker compose exec -T postgres psql -v ON_ERROR_STOP=1 --single-transaction -q \
+      -U postgres -d core < schema.sql > "$SCHEMA_APPLY_LOG" 2>&1
+  }
+  schema_state_gate docker_db_query docker_db_load_schema
 
   # ---- verify ----------------------------------------------------------------
   step "Verifying the install (offline audit — no services required)"
@@ -293,18 +405,24 @@ run_bare() {
   install_deps
   write_env
 
-  # ---- apply schema ----------------------------------------------------------
-  step "Applying the constitutional schema"
-  # Check if already applied (idempotent gate).
-  already=$(psql "${DB_URL_LIBPQ}" -tAc \
-    "SELECT to_regclass('core.blackboard_entries')" 2>/dev/null || echo "")
-  if [[ "$already" == "core.blackboard_entries" ]]; then
-    ok "schema already present — skipping"
-  else
-    psql "${DB_URL_LIBPQ}" -v ON_ERROR_STOP=1 < schema.sql \
-      || die "Schema apply failed. Check that your DB role has CREATE privilege."
-    ok "schema applied from schema.sql"
+  # A pre-existing .env is left untouched (above) — but start.sh's runtime
+  # reads it. Say so when it names a different database than --db-url; the
+  # schema check below inspects --db-url, as asked. Values are never printed.
+  if [[ -n "$(env_file_value DATABASE_URL)" && "$(env_file_value DATABASE_URL)" != "$DB_URL_ASYNC" ]]; then
+    warn "the existing .env names a DATABASE_URL different from --db-url; the schema check uses --db-url, start.sh will use .env"
   fi
+
+  # ---- schema state (read-only decision; see schema_state_gate) --------------
+  bare_db_query() {
+    psql "${DB_URL_LIBPQ}" -tAc "$1"
+  }
+  bare_db_load_schema() {
+    # One transaction: either the whole schema lands or nothing does. Output
+    # goes to the log — psql's messages must never carry the URL to the terminal.
+    psql "${DB_URL_LIBPQ}" -v ON_ERROR_STOP=1 --single-transaction -q -f schema.sql \
+      > "$SCHEMA_APPLY_LOG" 2>&1
+  }
+  schema_state_gate bare_db_query bare_db_load_schema
 
   # ---- write start.sh / stop.sh ----------------------------------------------
   step "Writing start.sh and stop.sh"

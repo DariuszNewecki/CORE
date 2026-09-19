@@ -222,6 +222,10 @@ poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # record
 - `--write` refuses an empty ledger on a populated schema (adopt a baseline first) and any
   ledger/schema contradiction.
 - A fresh `schema.sql` load seeds the ledger completely; a fresh install never has an empty ledger.
+- **Installer (U8a).** `install-core.sh` runs `database status` read-only: it loads `schema.sql`
+  only into a database with no CORE schema (one transaction, no drop-and-retry), continues on a
+  current database, and refuses — before any service starts, without migrating — on any other
+  state. Diagnose with `database status`; the upgrade procedure itself ships with the release.
 - **Startup gate.** `core-admin daemon start` and the API lifespan evaluate the same read-only
   check as `database status` before starting workers / serving and refuse (daemon and
   `core-engine` exit 78; the API's startup fails under uvicorn with exit 3 — ADR-162 Governor

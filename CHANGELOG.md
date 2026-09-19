@@ -91,6 +91,28 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   left as found and no ledger row is written (proven on disposable PostgreSQL). Canonical
   v2.10.1 databases still reconcile all four backfills with zero executed statements; both hop
   equivalences remain exact. No migration SQL changed.
+- **Installer schema-state gate (U8a, D2/D10).** `install-core.sh` (Docker and `--bare`) no longer
+  assumes "schema already present — skipping". It makes one read-only decision: no `core`
+  namespace → `schema.sql` is loaded in a single transaction (`psql -v ON_ERROR_STOP=1
+  --single-transaction`; a failed load leaves nothing and the installer refuses — the Docker path's
+  `DROP SCHEMA IF EXISTS core CASCADE` retry loop is gone) and the real `core-admin database
+  status` must then report CURRENT; an existing `core` namespace → `database status` decides:
+  current continues, anything else (pending, empty ledger, contradiction, partial/unrecognised
+  schema, or a check that cannot run) exits non-zero **before** the API or daemon starts. The
+  installer never runs `database migrate`, `--adopt-baseline` or `--write`, never guesses a
+  repair, and in bare mode inspects the supplied `--db-url` (not a pre-existing `.env`). Proven
+  with fake-executable control-flow tests for both paths and real disposable-PostgreSQL tests for
+  every state.
+- **G11 release-candidate evidence (U8a).** Disposable-PostgreSQL proofs for all four URS G11
+  criteria with the real manifest, files and CLI route: v2.9.1 → current and v2.10.1 → current
+  each end CURRENT with 0 schema-diff lines and with seeded `blackboard_entries`,
+  `autonomous_proposals` and `proposal_consequences` rows and their relationships preserved
+  column-for-column (the only changes are the ones the migrations declare: `draft` → `pending`
+  per #885, and `updated_at` touched by the 20260722 backfill); a failing release migration is
+  rolled back and unrecorded with earlier ones kept, retries exactly once after correction, and
+  concurrent upgraders apply each migration once; the installed wheel migrates both baselines with
+  only `DATABASE_URL`, using its bundled assets. **Not a release**: version, tags, G11 status and
+  the public unsupported-upgrade warning are unchanged pending the Governor checkpoint.
 - Verified against a disposable PostgreSQL: rollback/retry/concurrency of the engine, the
   hand-applied `20260722` state reconciled without re-running SQL, and the executable
   v2.9.1 → current upgrade (`--adopt-baseline v2.9.1 --write` then `migrate --write`).

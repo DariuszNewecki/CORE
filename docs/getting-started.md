@@ -56,6 +56,17 @@ You will also need an LLM resource — local model server or external API, your 
 > (`core-admin database migrate --write`, or `--adopt-baseline <tag> --write` first); the API's
 > startup fails under uvicorn (exit 3, uvicorn's own contract) with the same message. A successful start is therefore proof of a
 > matching schema — but the warning above stands until the release that completes ADR-162.
+>
+> Also on `main` (unreleased, ADR-162 U8a): `install-core.sh` makes one read-only decision about
+> the database instead of skipping when tables exist. A database with **no CORE schema at all** gets
+> `schema.sql` in a single transaction (a failed load leaves nothing behind; there is no
+> drop-and-retry) and the installer then shows `core-admin database status` reporting the fresh
+> ledger as current. A database that **already holds a CORE schema** is checked with the same
+> read-only status command: current → the installer continues without touching the schema or the
+> ledger; anything else (pending migrations, an empty ledger, a ledger/schema contradiction, a
+> partial or unrecognised schema) → the diagnostic is shown and the installer **exits before any
+> API or daemon starts**. The installer never runs `database migrate`, never adopts a baseline and
+> never drops a schema; re-running it is safe against a current database and refused otherwise.
 
 **One command** (recommended). Clone, then run the installer — it checks
 prerequisites, installs dependencies, starts the services, applies the schema,

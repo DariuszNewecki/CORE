@@ -2,11 +2,14 @@
 """ADR-162 D8 (U7) -- ``database status`` and ``migrate --write`` work from a
 clean wheel install, with no checkout, against an ephemeral Postgres.
 
-Builds the wheel from this tree (``poetry build``), installs it into a fresh
-venv, and drives the installed ``core-admin`` from a directory that is not a
-checkout against a disposable database loaded with the released v2.10.1
-schema: the bundled manifest and SQL are what ``--adopt-baseline v2.10.1
---write`` and ``migrate --write`` read. Skipped when poetry is unavailable.
+Builds the wheel from this tree (``poetry build``) once per module, installs
+it into a fresh venv outside the checkout, and drives the installed
+``core-admin`` from a directory that is not a checkout -- with only
+``DATABASE_URL`` in the environment -- against a disposable database loaded
+with each released baseline schema (v2.9.1 and v2.10.1, U8a / G11): the
+bundled manifest, SQL and schema.sql are what ``status``, ``--adopt-baseline
+<tag> --write`` and ``migrate --write`` read (``assets == "bundled"``), and
+the result is CURRENT. Skipped when poetry is unavailable.
 """
 
 from __future__ import annotations
@@ -31,7 +34,16 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
 assert REPO_ROOT is not None
-SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
+FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
+BASELINES = ["v2.9.1", "v2.10.1"]
+
+
+@pytest.fixture(scope="module")
+# ID: 5184f78e-2e04-4a9d-a151-efb7fd836cf5
+def installed_wheel_bin(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The bin/ of a clean venv (outside the checkout) with this tree's wheel
+    installed -- built once, shared by every baseline in this module."""
+    return _build_and_install_wheel(tmp_path_factory.mktemp("wheel"))
 
 
 def _build_and_install_wheel(tmp_path: Path) -> Path:
@@ -62,13 +74,14 @@ def _build_and_install_wheel(tmp_path: Path) -> Path:
     return venv_dir / "bin"
 
 
+@pytest.mark.parametrize("tag", BASELINES)
 # ID: 99aefedf-fcff-4b58-8e9a-284d8cc49919
 async def test_wheel_migrates_an_external_database_without_a_checkout(
-    fresh_database: FreshDatabase, tmp_path: Path
+    fresh_database: FreshDatabase, tmp_path: Path, installed_wheel_bin: Path, tag: str
 ) -> None:
     db = fresh_database
-    await db.load_schema(SCHEMA_V2_10_1)
-    bin_dir = _build_and_install_wheel(tmp_path)
+    await db.load_schema(FIXTURES / f"schema-{tag}.sql")
+    bin_dir = installed_wheel_bin
     workspace = tmp_path / "not-a-checkout"
     workspace.mkdir()
     env = {
@@ -96,16 +109,25 @@ async def test_wheel_migrates_an_external_database_without_a_checkout(
     assert code == 2, out[-1200:]
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["assets"] == "bundled"
-    assert payload["baseline_suggestion"] == "v2.10.1"
+    assert payload["baseline_suggestion"] == tag
 
-    code, out = core_admin("migrate", "--adopt-baseline", "v2.10.1", "--write")
+    code, out = core_admin("migrate", "--adopt-baseline", tag, "--write")
     assert code == 0 and "adopted" in out, out[-1200:]
 
     code, out = core_admin("migrate", "--write")
-    assert code == 0 and "1 applied, 4 reconciled" in out, out[-1200:]
+    assert code == 0, out[-1200:]
+    # v2.9.1 executes the whole span; v2.10.1 executes the ledger column and
+    # reconciles the four U5a backfills its schema already carries.
+    expected = {
+        "v2.9.1": "14 applied, 0 reconciled",
+        "v2.10.1": "1 applied, 4 reconciled",
+    }
+    assert expected[tag] in out, out[-1200:]
 
     code, out = core_admin("status", "--format", "json")
     assert code == 0, out[-1200:]
     payload = json.loads(out[out.index("{") : out.rindex("}") + 1])
     assert payload["current"] is True and payload["assets"] == "bundled"
+    assert payload["pending_migrations"] == [] and payload["probe_failures"] == []
     assert "20260919_adr162_migrations_reconciled.sql" in payload["applied_migrations"]
+    assert len(await db.ledger_rows()) == len(payload["applied_migrations"])

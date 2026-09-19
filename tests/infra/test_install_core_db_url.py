@@ -46,19 +46,24 @@ QDRANT = "http://qdrant.internal:6333"
 _FAKES: dict[str, str] = {
     # The installer only asks python3 for its version.
     "python3": "#!/bin/bash\necho 3.12\n",
+    # `poetry run core-admin database status` is the installer's read-only
+    # schema check (U8a); here it reports CURRENT (exit 0) so the U1 tests
+    # exercise the "existing current database" branch exactly as before.
     "poetry": "#!/bin/bash\nexit 0\n",
     "curl": "#!/bin/bash\nexit 0\n",
     # Record every argv psql receives (one line per call) so the tests can see
-    # which URL form libpq was handed. Never printed by the tests.
+    # which URL form libpq was handed. Never printed by the tests. The `core`
+    # namespace probe answers 1 (present), so schema.sql is never loaded.
     "psql": (
         "#!/bin/bash\n"
         'printf "%s\\n" "$1" >> "$PSQL_LOG"\n'
         '[ -n "${PSQL_FAIL:-}" ] && exit 1\n'
         "cat >/dev/null\n"  # swallow a redirected schema.sql
-        'if [ "$2" = "-tAc" ]; then echo core.blackboard_entries; fi\n'
+        'if [ "$2" = "-tAc" ]; then echo 1; fi\n'
         "exit 0\n"
     ),
-    # Docker path: compose is "ready" immediately and the schema is "present".
+    # Docker path: compose is "ready" immediately, `SELECT 1` answers, and the
+    # `core` namespace probe answers 1 (present).
     "docker": (
         "#!/bin/bash\n"
         'case "$*" in\n'
@@ -66,7 +71,7 @@ _FAKES: dict[str, str] = {
         '  "compose logs postgres")\n'
         '    printf "PostgreSQL init process complete; ready for start up.\\n"\n'
         '    printf "database system is ready to accept connections\\n"; exit 0 ;;\n'
-        "  compose\\ exec*) cat >/dev/null; echo blackboard_entries; exit 0 ;;\n"
+        "  compose\\ exec*) cat >/dev/null; echo 1; exit 0 ;;\n"
         "  *) exit 1 ;;\n"
         "esac\n"
     ),
@@ -198,7 +203,7 @@ def test_psql_always_receives_the_libpq_form(tmp_path: Path, form: str) -> None:
     ws, log = _workspace(tmp_path)
     assert _bare(ws, log, URLS[form])[0] == 0
     urls = _psql_urls(log)
-    assert len(urls) == 2  # connectivity check + idempotency gate (schema "present")
+    assert len(urls) == 2  # connectivity check + `core` namespace probe (present)
     all_libpq = all(u == PLAIN_URL for u in urls)
     assert all_libpq, "psql was handed a URL that is not the plain postgresql:// form"
 
@@ -260,7 +265,7 @@ def test_bare_path_behaviour_outside_the_url_is_unchanged(tmp_path: Path) -> Non
     # The rest of the bare path still runs.
     for script in ("start.sh", "stop.sh"):
         assert (ws / script).exists() and os.access(ws / script, os.X_OK)
-    seen = "schema already present" in out
+    seen = "a CORE schema is present" in out and "database is current" in out
     assert seen
     assert (ws / "var" / "run").is_dir() and (ws / "var" / "logs").is_dir()
 

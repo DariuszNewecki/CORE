@@ -324,6 +324,11 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 > stale schema and then fail during API and daemon work, so a successful startup is not proof
 > of a successful upgrade. Do not attempt the upgrade until the corrected release and its
 > supported procedure are available (ADR-162, G11).
+>
+> On `main` (unreleased) `install-core.sh` no longer skips: it loads `schema.sql` only into a
+> database with no CORE schema at all (one transaction), verifies an existing database with the
+> read-only `core-admin database status`, and **refuses to start anything** when that database is
+> not current. It never migrates. The warning above stands until the corrected release.
 
 **Full local runtime** — one command. Clone, then run the installer:
 
