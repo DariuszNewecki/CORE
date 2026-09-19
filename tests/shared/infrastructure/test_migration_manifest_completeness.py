@@ -203,9 +203,14 @@ def test_u5a_structural_probes_read_catalog_structure_not_names() -> None:
 def test_baselines_cover_every_tagged_release_from_v2_9_1() -> None:
     manifest = load_manifest()
     tags = [b.tag for b in manifest.baselines]
-    assert tags[:2] == ["v2.9.1", "v2.10.1"]
+    assert tags == ["v2.9.1", "v2.10.1", "v2.10.2"]
     assert manifest.baseline("v2.9.1").through.startswith("20260628_")
     assert manifest.baseline("v2.10.1").through.startswith("20260914_885_")
+    # v2.10.2 completed ADR-162: its baseline runs through the LAST entry, so a
+    # v2.10.2 database (fully ledgered by its own schema.sql seed) has nothing
+    # to replay -- the fixture is the current schema.
+    assert manifest.baseline("v2.10.2").through == manifest.order[-1]
+    assert manifest.baseline("v2.10.2").through.startswith("20260919e_")
     # v2.10.1 shipped every entry before the 20260919 ledger column — including
     # the two 20260722 files, which its schema.sql already carried.
     v2_10_1 = [
@@ -238,7 +243,7 @@ def test_released_migration_bytes_are_unchanged(sql_file: str) -> None:
     )
 
 
-@pytest.mark.parametrize("tag", ["v2.9.1", "v2.10.1"])
+@pytest.mark.parametrize("tag", ["v2.9.1", "v2.10.1", "v2.10.2"])
 # ID: 1ac40a9d-94d0-4a65-a3bb-de5190d65c26
 def test_schema_fixture_matches_the_tag_when_reachable(tag: str) -> None:
     """Committed release schemas (baseline hops, D4/D5) are byte-identical to

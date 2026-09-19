@@ -308,3 +308,46 @@ migrations:
                          where conrelid = to_regclass('core.coherence_candidates')
                            and conname = 'coherence_candidates_relation_check'
                            and pg_get_constraintdef(oid) like '%CROSS_NS_DIRECTION%')
+        # discriminator: the v2.10.1..v2.10.2 span's one structural change that
+        # v2.10.1 itself never carried (the ledger marker column, U4a)
+        - >-
+          select not exists (select 1 from information_schema.columns
+                             where table_schema = 'core' and table_name = '_migrations'
+                               and column_name = 'reconciled')
+    # v2.10.2 (2026-09-19): the release that completed ADR-162. `through` is the
+    # last manifest entry: a v2.10.2 database is fully ledgered by its own
+    # schema.sql seed, so adoption records nothing and the hop replay is empty --
+    # the fixture IS the current schema. Declared per D3/D4 so the release is a
+    # named, probe-verified baseline like every other, and so an unledgered
+    # v2.10.2-shaped database is recognised rather than mistaken for v2.10.1.
+    v2.10.2:
+      through: 20260919e_adr052_phase4_drop_runtime_settings.sql
+      probes:
+        - select to_regclass('core._migrations') is not null
+        - select to_regclass('core.blackboard_entries') is not null
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = '_migrations'
+                           and column_name = 'reconciled' and is_nullable = 'NO')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'autonomous_proposals'
+                           and column_name = 'consequence_recorded_at')
+        - >-
+          select exists (select 1 from pg_constraint
+                         where conrelid = to_regclass('core.autonomous_proposals')
+                           and conname = 'autonomous_proposals_status_check'
+                           and pg_get_constraintdef(oid) not like '%draft%')
+        - >-
+          select exists (select 1 from pg_indexes
+                         where schemaname = 'core' and indexname = 'uq_active_finding_identity')
+        - select exists (select 1 from pg_namespace where nspname = 'core_archive')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'audit_findings'
+                           and column_name = 'run_id' and is_nullable = 'NO')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'users'
+                           and column_name = 'display_name')
+        - select to_regclass('core.runtime_settings') is null

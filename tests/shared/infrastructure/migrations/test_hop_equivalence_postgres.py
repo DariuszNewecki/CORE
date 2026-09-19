@@ -70,11 +70,19 @@ async def test_hop_from_baseline_equals_current_schema(
     if not fixture.is_file():
         pytest.skip(f"no committed schema fixture for baseline {tag}")
 
+    manifest = load_manifest()
     hop = await database_factory()
     await hop.load_schema(fixture)
     await adopt_baseline(tag, write=True, session_factory=hop.session_factory)
     report = await migrate_db(write=True, session_factory=hop.session_factory)
-    assert report.pending_before, f"nothing to replay after {tag}?"
+    if manifest.baseline(tag).through == manifest.order[-1]:
+        # The release that shipped the whole manifest: nothing to replay, and
+        # the fixture must simply BE the current schema (0 diff below).
+        assert report.pending_before == [], (
+            f"{tag} is the latest baseline yet has pending"
+        )
+    else:
+        assert report.pending_before, f"nothing to replay after {tag}?"
 
     current = await database_factory()
     await current.load_schema(SCHEMA_SQL)

@@ -15,10 +15,10 @@ Proven here, with the REAL manifest and the REAL migration files:
 * everything else in the span is executed — the ledger's own column entry
   included (one schema authority) — the two reconciled rows, recorded
   legacy-shaped before that column existed, get their marker in the same
-  pass, and afterwards every per-entry probe holds, the v2.10.1 baseline
-  fingerprint holds and nothing is pending;
+  pass, and afterwards every per-entry probe holds, the latest baseline's
+  fingerprint (v2.10.2) holds, the earlier ones do not, and nothing is pending;
 * baseline probes discriminate: v2.9.1 holds and v2.10.1 does not on a
-  v2.9.1 database, and the reverse after the upgrade.
+  v2.9.1 database; after the upgrade only the latest baseline holds.
 """
 
 from __future__ import annotations
@@ -155,8 +155,10 @@ async def _assert_current(db: FreshDatabase, manifest: Manifest) -> None:
     for entry in manifest.entries:
         if entry.verify:
             assert await _entry_probe(db, manifest, entry.id) is True, entry.id
-    assert await _baseline_holds(db, manifest, "v2.10.1") is True
-    assert await _baseline_holds(db, manifest, "v2.9.1") is False
+    latest = manifest.baselines[-1].tag
+    assert await _baseline_holds(db, manifest, latest) is True
+    for earlier in manifest.baselines[:-1]:
+        assert await _baseline_holds(db, manifest, earlier.tag) is False, earlier.tag
     again = await migrate_db(write=True, session_factory=db.session_factory)
     assert again.pending_before == [] and again.results == []
 

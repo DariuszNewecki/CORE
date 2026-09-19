@@ -58,6 +58,7 @@ pytestmark = [pytest.mark.integration]
 assert REPO_ROOT is not None
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
+SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
 RECONCILED_COLUMN = "20260919_adr162_migrations_reconciled.sql"
 BACKFILLS = [
     "20260919b_adr052_core_archive_schema.sql",
@@ -90,13 +91,18 @@ async def test_fresh_install_from_schema_sql_has_a_complete_ledger(
     report = await migrate_db(write=True, session_factory=db.session_factory)
     assert report.pending_before == [] and report.results == []
 
-    # Nothing can be "adopted" over a complete ledger: v2.9.1's absence
-    # probes fail on the current schema; v2.10.1's probes hold but the ledger
-    # already records the entry beyond it. Neither writes.
+    # Nothing can be "adopted" over a complete ledger: v2.9.1's and v2.10.1's
+    # absence discriminators fail on the current schema (the latter on the
+    # ledger column v2.10.2 introduced); v2.10.2 -- the current shape itself --
+    # holds but has nothing to record. None of them writes.
     with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
         await adopt_baseline("v2.9.1", write=True, session_factory=db.session_factory)
-    with pytest.raises(MigrationServiceError, match="already records entries beyond"):
+    with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
         await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
+    noop = await adopt_baseline(
+        "v2.10.2", write=True, session_factory=db.session_factory
+    )
+    assert noop.to_record == [] and noop.recorded == []
     assert list(await db.ledger_rows()) == list(manifest.order)
 
 
@@ -208,12 +214,11 @@ async def test_v2_10_1_shaped_database_refuses_v2_9_1_and_suggests_v2_10_1(
 ) -> None:
     db = fresh_database
     manifest = load_manifest()
-    # Build a v2.10.1-shaped schema by upgrading v2.9.1 through the span, then
-    # forget the ledger (an install whose ledger was never seeded).
-    await db.load_schema(SCHEMA_V2_9_1)
-    await adopt_baseline("v2.9.1", write=True, session_factory=db.session_factory)
-    await migrate_db(write=True, session_factory=db.session_factory)
-    await db.execute("delete from core._migrations")
+    # The committed v2.10.1 release schema: an install whose ledger was never
+    # seeded (v2.10.1 shipped no seed). A full replay would not do here since
+    # v2.10.2 declared a baseline: replaying to current adds the ledger
+    # column, and that shape is v2.10.2's, not v2.10.1's.
+    await db.load_schema(SCHEMA_V2_10_1)
 
     st = await status(session_factory=db.session_factory)
     assert st.baseline_suggestion == "v2.10.1"
