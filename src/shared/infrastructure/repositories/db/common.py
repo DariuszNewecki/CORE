@@ -10,11 +10,12 @@ for database operations without making strategic decisions about what
 migrations to run or how data should be structured.
 
 RESPONSIBILITIES:
-- Coordinate database migration operations
-- Load policy files from filesystem
-- Execute SQL statements via database connection
-- Track migration application state
+- Locate the repository root and load the migration manifest (policy)
 - Retrieve git commit information
+
+Ledger reads/writes and migration execution live in ``ledger_engine`` (ADR-162
+D7: one transaction per migration, advisory-locked); the typed manifest view
+lives in ``manifest``.
 
 AUTHORITY LIMITS:
 - Cannot decide which migrations should be applied (strategic)
@@ -37,14 +38,10 @@ from __future__ import annotations
 
 import pathlib
 import subprocess
-from datetime import UTC, datetime
 
-import sqlparse
 import yaml
-from sqlalchemy import text
 
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -86,66 +83,6 @@ def load_policy() -> dict:
         )
     manifest_path = REPO_ROOT / _MANIFEST_REL
     return yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-
-
-# ID: a5ec72d4-d489-434f-ad69-a36a39229d92
-async def ensure_ledger() -> None:
-    """Ensure core schema and the migrations ledger table exist."""
-    async with get_session() as session:
-        async with session.begin():
-            await session.execute(text("create schema if not exists core"))
-            await session.execute(
-                text(
-                    """
-                    create table if not exists core._migrations (
-                      id text primary key,
-                      applied_at timestamptz not null default now()
-                    )
-                    """
-                )
-            )
-
-
-# ID: ec3e6b37-b4e8-4870-80f5-10d652ac5902
-async def get_applied() -> set[str]:
-    """Return set of applied migration IDs."""
-    async with get_session() as session:
-        result = await session.execute(text("select id from core._migrations"))
-        return {r[0] for r in result}
-
-
-# ID: 27163ec0-f952-4ed7-938b-080473bee2eb
-async def apply_sql_file(path: pathlib.Path) -> None:
-    """Apply a .sql file by splitting into single statements (asyncpg-safe).
-
-    Relative paths are resolved against REPO_ROOT so callers can supply
-    repo-relative strings without depending on the process working directory.
-    """
-    if not path.is_absolute():
-        if REPO_ROOT is None:
-            raise RuntimeError(
-                "Migration commands require the CORE source tree and cannot run "
-                "from a pip-installed wheel. Clone the repository to use db migrate."
-            )
-        path = REPO_ROOT / path
-    sql_text = path.read_text(encoding="utf-8")
-    statements: list[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
-    async with get_session() as session:
-        async with session.begin():
-            for stmt in statements:
-                await session.execute(text(stmt))
-
-
-# ID: e3cbb291-e852-4ad5-bcc3-8b4046c1def0
-async def record_applied(mig_id: str) -> None:
-    """Record a migration as applied."""
-    async with get_session() as session:
-        async with session.begin():
-            await session.execute(
-                text(
-                    "insert into core._migrations (id, applied_at) values (:id, :ts)"
-                ).bindparams(id=mig_id, ts=datetime.now(tz=UTC))
-            )
 
 
 # ID: c0a84f36-7546-405b-8de4-eba8548ff56b

@@ -18,7 +18,15 @@ applied without executing them. ADR-162 retires ``--bootstrap`` in favour of
 verified baseline adoption and makes ``--write`` the mutation flag; those
 changes land in later units, not here.
 
-Workflow going forward (unchanged mechanics):
+Execution (ADR-162 D7, U2): each pending migration runs in ONE transaction
+together with its ``core._migrations`` row, under a fixed advisory lock with
+the ledger re-read inside the lock. A failure leaves that migration fully
+rolled back and unrecorded; earlier ones stay recorded; re-running is safe.
+Files may keep a leading ``BEGIN;`` / trailing ``COMMIT;`` (stripped by the
+engine); any other transaction control or non-transactional statement is
+refused before anything executes.
+
+Workflow going forward:
     # 1. Write infra/scripts/migrations/YYYYMMDD_description.sql
     # 2. Append filename to infra/migrations/manifest.yaml order list
     # 3. core-admin database migrate --apply
@@ -69,13 +77,22 @@ async def migrate_database(
     """
     try:
         if bootstrap:
-            await bootstrap_migrations()
-            console.print("[green]Bootstrap complete.[/green] Ledger seeded.")
+            recorded = await bootstrap_migrations()
+            console.print(
+                f"[green]Bootstrap complete.[/green] {len(recorded)} ledger row(s) seeded."
+            )
         else:
-            await migrate_db(apply=apply)
+            report = await migrate_db(write=apply)
             if not apply:
                 console.print(
-                    "[yellow]Dry run.[/yellow] Pass --apply to execute pending migrations."
+                    f"[yellow]Dry run.[/yellow] {len(report.pending_before)} pending. "
+                    "Pass --apply to execute pending migrations."
+                )
+            else:
+                console.print(
+                    f"[green]Migrations complete.[/green] "
+                    f"{len(report.applied)} applied, {len(report.reconciled)} reconciled, "
+                    f"{len(report.skipped)} skipped."
                 )
     except MigrationServiceError as exc:
         console.print(f"[red]Migration error:[/red] {exc}")

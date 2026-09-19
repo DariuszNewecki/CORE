@@ -516,8 +516,16 @@ CREATE TABLE core._backup_symbols (
 
 CREATE TABLE core._migrations (
     id text NOT NULL,
-    applied_at timestamp with time zone DEFAULT now() NOT NULL
+    applied_at timestamp with time zone DEFAULT now() NOT NULL,
+    reconciled boolean DEFAULT false NOT NULL
 );
+
+
+--
+-- Name: COLUMN _migrations.reconciled; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core._migrations.reconciled IS 'ADR-162 D7: true when recorded without execution because the manifest entry is reconcilable and its verify probe already held; false when executed or seeded.';
 
 
 --

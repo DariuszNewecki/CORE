@@ -67,6 +67,11 @@ class Migration(Base):
     applied_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # ADR-162 D7: true when the row was recorded because its verify probe
+    # already held (record-without-execute, D12 §2); false when executed.
+    reconciled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
 
 
 # ID: 95b1800b-7286-4608-b2e4-49d77be98d2a
