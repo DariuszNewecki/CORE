@@ -11,9 +11,14 @@
 #   - Python migration scripts (add_version_updated_at_to_autonomous_proposals.py,
 #     migrate_cli_registry_v2.py) are manual; they are not replayed by this
 #     ledger and are not listed here.
-#   - Bootstrap an existing install that has all these applied manually:
-#       core-admin db migrate --bootstrap
-#     This seeds core._migrations without re-running any SQL.
+#   - The CLI group is `core-admin database ...` (there is no `db` group).
+#   - `core-admin database migrate --bootstrap` seeds core._migrations with
+#     EVERY entry below without running any SQL. It is only correct on a
+#     database that already carries every listed change. Do NOT run it after
+#     switching an existing database to a newer checkout: it records the new
+#     entries as applied without executing them. ADR-162 retires it in favour
+#     of verified baseline adoption (later unit); upgrading an existing
+#     database is unsupported until then.
 
 migrations:
   directory: infra/scripts/migrations

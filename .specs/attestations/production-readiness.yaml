@@ -164,9 +164,11 @@ gates:
 
   - id: G11
     name: Upgrade and migration safety
-    status: not_started
-    gap: "Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap."
-    evidence: []
+    status: not_met                     # was not_started; corrected per ADR-159 D7 / ADR-162 (2026-09-19)
+    gap: "Upgrade from v2.9.1 to v2.10.1 is not operationally supported (proven 2026-09-19, ADR-162): the migration ledger (core._migrations) is never seeded on installs created from schema.sql; published runtime artifacts (core-runtime wheel, core-engine image) carry no migration manifest or SQL; a stale schema starts apparently healthy and then fails during API/daemon work; 2 of the 9 span migrations are unledgered; apply and ledger-record are separate transactions, so the URS rollback criterion is actively violated."
+    evidence:
+      - "ADR-162 (accepted 2026-09-19): executable upgrade test v2.9.1 -> v2.10.1 — installer skips existing schema, no startup path migrates, API 500 / daemon failures on the stale schema"
+      - "ADR-159 D7: G11 classified pilot-blocking for third-party installation; status to be corrected to not_met when next touched"
     attestation: null
     blocking_issues: [799]
     urs_ref: URS-production-readiness.md#g11
@@ -217,7 +219,7 @@ gates:
 
 # Derived rollup (computed by the generator, NOT hand-written):
 #   met 0/15 · mostly_met 0 · partial 13 ·
-#   not_demonstrated 1 (G4) · not_started 1 (G11)
+#   not_demonstrated 1 (G4) · not_met 1 (G11)
 #   -> overall_verdict: NOT ATTESTED. No composite score.
 
 integrity:

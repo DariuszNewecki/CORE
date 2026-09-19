@@ -184,10 +184,16 @@ poetry run core-admin workers run <declaration>        # Run a single worker man
 ### `database` — PostgreSQL State Management
 
 ```bash
-poetry run core-admin database status   # Database state
-poetry run core-admin database migrate  # Run migrations
-poetry run core-admin database sync     # Sync database schema
+poetry run core-admin database status   # Database state + migration ledger (applied / pending)
+poetry run core-admin database migrate  # DRY RUN under v2.10.1: lists pending migrations only
+poetry run core-admin database sync     # Sync the code knowledge graph (symbols) to the database
 ```
+
+> ⚠️ Under v2.10.1, `database migrate` without `--apply` executes nothing, and upgrading an
+> existing database is **unsupported**: re-running `install-core.sh` does not migrate an
+> existing schema, and `database migrate --bootstrap` must **not** be run after switching an
+> existing database to a newer checkout (it can mark migrations applied without executing
+> them). A clean install is not affected. Wait for the corrected release (ADR-162, G11).
 
 ---
 

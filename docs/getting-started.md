@@ -36,6 +36,16 @@ You will also need an LLM resource — local model server or external API, your 
 
 ## Installation
 
+> ⚠️ **Upgrading an existing database to v2.10.1 is currently unsupported.** A *clean* v2.10.1
+> installation is not the affected scenario. Re-running `./install-core.sh` on an existing
+> installation does **not** migrate the schema — it skips schema work when tables already exist.
+> `core-admin database migrate` without a mutation flag is inspection/dry-run only. Do **not** run
+> `core-admin database migrate --bootstrap` after switching an existing database to a newer
+> checkout: it can mark migrations as applied without executing them. CORE may start against a
+> stale schema and then fail during API and daemon work, so a successful startup is not proof
+> of a successful upgrade. Do not attempt the upgrade until the corrected release and its
+> supported procedure are available (ADR-162, G11).
+
 **One command** (recommended). Clone, then run the installer — it checks
 prerequisites, installs dependencies, starts the services, applies the schema,
 and finishes by **offering** the opt-in consequence-chain demo (it never runs
@@ -93,13 +103,15 @@ bundled `docker-compose.yml` provides both:
 docker compose up -d
 ```
 
-Create the schema in the fresh `core` database (CORE uses a canonical
-schema file, not a migration framework — see [the schema-as-truth model](how-it-works.md)):
+Create the schema in the fresh `core` database. `schema.sql` at the repository root is
+the canonical schema for a **fresh** install. (A migration ledger — `infra/migrations/manifest.yaml`
++ `core._migrations` — exists for existing databases, but the upgrade path is currently
+unsupported; see the warning above.)
 
 ```bash
 # Apply the canonical schema to the empty database (runs psql inside the container,
 # so you don't need a psql client on the host)
-docker compose exec -T postgres psql -U postgres -d core < infra/sql/db_schema_live.sql
+docker compose exec -T postgres psql -U postgres -d core < schema.sql
 ```
 
 Verify the connection:

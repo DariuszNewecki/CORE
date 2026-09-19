@@ -8,7 +8,27 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### ⚠️ Known issue — upgrading an existing database to 2.10.1 is unsupported
+
+- Recorded in ADR-162 (accepted 2026-09-19). A clean 2.10.1 installation is not affected. An
+  existing database cannot currently be upgraded by any documented route: re-running
+  `install-core.sh` skips schema work when tables already exist; `core-admin database migrate`
+  without a mutation flag is a dry run; `--bootstrap` must **not** be run after switching an
+  existing database to a newer checkout (it can mark migrations applied without executing
+  them); and CORE may start against a stale schema and then fail during API/daemon work, so a
+  successful startup proves nothing about the upgrade. Wait for the corrected release and its
+  supported procedure. The remediation target is `2.10.2`, pending the evidence ADR-162 requires.
+- Production-readiness gate **G11 → `not_met`** (was `not_started`), per ADR-159 D7 and ADR-162.
+- Documentation corrections: `core-admin db …` → `core-admin database …`; the nonexistent
+  `infra/sql/db_schema_live.sql` → `schema.sql`; `database migrate` is documented as a dry run
+  without `--apply`.
+
 ## [2.10.1] — 2026-09-19
+
+### ⚠️ Known issue (recorded 2026-09-19) — do not upgrade an existing database to this release
+
+Upgrading an existing database to 2.10.1 is unsupported; a clean installation is not affected.
+See the `[Unreleased]` known-issue entry above and ADR-162 for the full statement.
 
 ### 🔧 GitHub Action `uses:` form now delivers the 2.10.0 fixes
 

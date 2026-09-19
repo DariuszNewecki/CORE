@@ -270,7 +270,7 @@ CORE does not claim a status it has not earned. The gates are defined in [URS-pr
 
 **Production readiness: NOT ATTESTED.** All gates must hold simultaneously, and each `met` gate must carry dated, human-signed evidence. There is no composite score.
 
-Progress: **1/15 met** · 12 partial · 1 not demonstrated · 1 not started.
+Progress: **1/15 met** · 12 partial · 1 not met · 1 not demonstrated.
 
 | Gate | Status | Primary gap |
 |------|--------|-------------|
@@ -284,7 +284,7 @@ Progress: **1/15 met** · 12 partial · 1 not demonstrated · 1 not started.
 | G8 — Integration tests for the governed mutation chain | ✅ met | None — no G8 acceptance criterion remains outstanding. |
 | G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
 | G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
-| G11 — Upgrade and migration safety | ⬜ not started | Schema-as-dump (db_schema_live.sql); core._migrations records only (id, applied_at) — no delta path, no version sequence. Most critical structural gap. |
+| G11 — Upgrade and migration safety | ❌ not met | Upgrade from v2.9.1 to v2.10.1 is not operationally supported (proven 2026-09-19, ADR-162): the migration ledger (core._migrations) is never seeded on installs created from schema.sql; published runtime artifacts (core-runtime wheel, core-engine image) carry no migration manifest or SQL; a stale schema starts apparently healthy and then fails during API/daemon work; 2 of the 9 span migrations are unledgered; apply and ledger-record are separate transactions, so the URS rollback criterion is actively violated. |
 | G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |
 | G13 — Documentation for operators | ⚠️ partial | No operator runbook; CLAUDE.md is comprehensive for Claude Code but is not an operator document |
 | G14 — Source reversibility | ⚠️ partial | Source-restoration-after-completed-mutation not proven by test; rollback-vs-forward audit distinction not verified |
@@ -314,6 +314,16 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 > **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime`.
 >
 > **Fastest way to see CORE today: run it on itself, below.**
+
+> ⚠️ **Upgrading an existing database to v2.10.1 is currently unsupported.** A *clean* v2.10.1
+> installation is not the affected scenario. Re-running `./install-core.sh` on an existing
+> installation does **not** migrate the schema — it skips schema work when tables already exist.
+> `core-admin database migrate` without a mutation flag is inspection/dry-run only. Do **not** run
+> `core-admin database migrate --bootstrap` after switching an existing database to a newer
+> checkout: it can mark migrations as applied without executing them. CORE may start against a
+> stale schema and then fail during API and daemon work, so a successful startup is not proof
+> of a successful upgrade. Do not attempt the upgrade until the corrected release and its
+> supported procedure are available (ADR-162, G11).
 
 **Full local runtime** — one command. Clone, then run the installer:
 

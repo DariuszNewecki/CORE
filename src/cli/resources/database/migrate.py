@@ -3,18 +3,25 @@
 Database migration command.
 
 Applies pending SQL migrations recorded in infra/migrations/manifest.yaml
-against core._migrations. The schema-as-truth model (infra/sql/db_schema_live.sql)
-remains canonical for fresh installs; this ledger handles incremental changes
-on existing databases.
+against core._migrations. The canonical schema for a fresh install is the
+repository-root ``schema.sql``; this ledger handles incremental changes on
+existing databases.
 
-Workflow for existing installs (migrations applied manually before the ledger):
-    core-admin db migrate --bootstrap   # seed ledger, no SQL executed
-    core-admin db migrate               # verify 0 pending (dry run)
+Current behaviour (v2.10.x): ``core-admin database migrate`` without ``--apply``
+is a dry run that lists pending migrations and executes nothing.
 
-Workflow going forward:
+Upgrading an existing database is currently UNSUPPORTED (ADR-162): no install
+or startup path seeds the ledger, so a database created from ``schema.sql``
+reports every manifest entry as pending, ``--apply`` would replay history, and
+``--bootstrap`` run after switching to a newer checkout records migrations as
+applied without executing them. ADR-162 retires ``--bootstrap`` in favour of
+verified baseline adoption and makes ``--write`` the mutation flag; those
+changes land in later units, not here.
+
+Workflow going forward (unchanged mechanics):
     # 1. Write infra/scripts/migrations/YYYYMMDD_description.sql
     # 2. Append filename to infra/migrations/manifest.yaml order list
-    # 3. core-admin db migrate --apply
+    # 3. core-admin database migrate --apply
 """
 
 from __future__ import annotations

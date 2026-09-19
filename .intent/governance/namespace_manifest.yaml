@@ -1822,6 +1822,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-161-repository-layout.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-162-database-upgrade-remediation-ruling.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
