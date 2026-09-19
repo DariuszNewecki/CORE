@@ -19,6 +19,7 @@ from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.diagnostic_service import DiagnosticService
+from shared.infrastructure.repositories.db.schema_gate import run_startup_schema_gate
 from shared.logger import apply_log_level, getLogger
 
 
@@ -60,6 +61,15 @@ async def core_lifespan(app: FastAPI):
                     raise RuntimeError(f"Constitutional Ignition Failure: {msg}")
                 else:
                     logger.warning("⚠️ ADVISORY MODE: Continuing despite %s", msg)
+
+            # 2b. SCHEMA GATE (ADR-162 D2): read-only; refuses to serve against
+            # a schema the code does not match (pending / unledgered /
+            # contradictory), naming the remedy. CORE_STRICT_MODE does not
+            # relax it. An unreachable database was already handled above.
+            # uvicorn turns the raised refusal into "Application startup
+            # failed" (its own exit code); the daemon and the core-engine
+            # entrypoint exit 78 for the same verdict.
+            await run_startup_schema_gate("CORE API")
 
             # 3. WARM UP HEAVY SERVICES
             cognitive = await service_registry.get_cognitive_service()

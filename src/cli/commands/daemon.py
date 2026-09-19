@@ -659,6 +659,20 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     logger.info("CORE daemon starting...")
 
+    # Schema gate (ADR-162 D2): read-only; the daemon must not start workers
+    # against a schema the code does not match. Refusal exits 78 (EX_CONFIG)
+    # with the remedy named; CORE_STRICT_MODE does not relax it, and an
+    # unreachable database keeps today's behaviour (workers report it).
+    from shared.infrastructure.repositories.db.schema_gate import (
+        SchemaGateRefusal,
+        run_startup_schema_gate,
+    )
+
+    try:
+        await run_startup_schema_gate("CORE daemon")
+    except SchemaGateRefusal as exc:
+        raise typer.Exit(code=exc.exit_code) from exc
+
     # git_service, knowledge_service and file_handler are mandatory (#643) —
     # construct them up front so CoreContext is fully wired. These were already
     # wired unconditionally (no try/except) further down; moving them into the

@@ -222,6 +222,12 @@ poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # record
 - `--write` refuses an empty ledger on a populated schema (adopt a baseline first) and any
   ledger/schema contradiction.
 - A fresh `schema.sql` load seeds the ledger completely; a fresh install never has an empty ledger.
+- **Startup gate.** `core-admin daemon start` and the API lifespan evaluate the same read-only
+  check as `database status` before starting workers / serving and refuse (daemon and
+  `core-engine` exit 78; API startup fails) when migrations are pending, the ledger is empty on a
+  populated schema, a recorded migration's probe fails, no CORE schema exists, or the manifest
+  is unreadable — naming the remedy. `CORE_STRICT_MODE` does not relax it; an unreachable
+  database keeps the existing connectivity behaviour.
 - The wheel bundles the manifest, the migration SQL and `schema.sql` (`src/shared/_migrations/`, a
   byte-parity mirror): `database status|migrate` work from a `pip install core-runtime` with no
   checkout (`status --format json` reports `"assets": "bundled"`), and the `core-engine` image

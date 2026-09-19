@@ -56,6 +56,14 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   tested and verified from a clean install); `database status|migrate` work without a checkout
   and the `core-engine` entrypoint gains `status` / `migrate` wrappers. Source tree wins when the
   package is the checkout; the bundle is authoritative on a wheel.
+- **Startup gate (D2).** The API lifespan and the daemon refuse to start against a schema the
+  code does not match — pending migrations, an empty ledger on a populated schema, a
+  ledger/schema contradiction, no CORE schema, or unreadable migration assets — naming the
+  remedy; the daemon and the `core-engine` container exit 78 (`EX_CONFIG`), the API's startup
+  fails under uvicorn. Read-only, unaffected by `CORE_STRICT_MODE`; an unreachable database keeps
+  the previous connectivity behaviour. **Operators on `main`: run `core-admin database migrate
+  --write` before restarting services** (an existing ledger-bootstrapped database has the two
+  `20260722` entries and the ledger column pending).
 - **Hop equivalence (D5).** CI proves `schema.sql`@previous release + manifest replay ==
   current `schema.sql` (normalised `pg_dump`); v2.10.1 → current is equivalent. The chained
   v2.9.1 hop is **not** (drift that reached v2.10.1 without migration files: `core_archive`,

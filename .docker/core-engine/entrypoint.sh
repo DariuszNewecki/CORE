@@ -53,4 +53,7 @@ if [ ! -d "/workspace/.intent" ]; then
 fi
 
 # Run the daemon in the foreground as PID 1 (receives SIGTERM on container stop).
+# The daemon's read-only schema gate (ADR-162 D2) refuses a pending, unledgered
+# or contradictory schema with exit 78 and the remedy; `exec` passes that exit
+# code through as the container's. Inspect/repair with the wrappers above.
 exec core-admin daemon start
