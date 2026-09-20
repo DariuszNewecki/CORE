@@ -43,12 +43,13 @@ async def revive_findings_for_rejected_proposal(
     """Revive the findings deferred to a rejected proposal, routed by lineage.
 
     The revival half of ``ProposalService.reject`` (see its docstring for
-    the three destinations), factored out so the
-    ``ProposalPipelineShopManager`` stuck-deferred-terminal pass can apply
-    the same routing to findings whose proposal was rejected but whose
-    revival never ran (the rejecting actor died first). One routing, two
-    callers — the destinations are decisions (ADR-109 D4, ADR-154 D3,
-    ADR-045) and must not fork.
+    the three destinations), factored out so the live-path routing is one
+    named, testable unit. Note the ``ProposalPipelineShopManager``
+    stuck-deferred-terminal pass deliberately does NOT call this: a
+    rejection whose aftermath never ran is handled weeks later with no
+    human present and no recorded reason, so it goes to the governor inbox
+    regardless of lineage (ADR-104 D10 applied) — not back through the
+    autonomous branch here, which re-proposes.
     """
     bb_service = await service_registry.get_blackboard_service()
     lineage = proposal_lineage(constitutional_constraints)

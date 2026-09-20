@@ -629,9 +629,19 @@ class ProposalPipelineShopManager(ScheduledWorker):
         - ``failed``  → the execution-failure revival (`revive_and_report`,
           lineage-aware, ADR-104 D9 cap; posts the cap observations and the
           revival report through this Worker).
-        - ``rejected`` → the reject revival (`revive_findings_for_rejected_
-          proposal`, the same lineage split ``proposal_service.reject`` uses:
-          ADR-109 D4 / ADR-154 D3 / ADR-045).
+        - ``rejected`` → the governor inbox: ``indeterminate`` + ``human``
+          (`revive_ceremony_findings_for_rejected_proposal`; assisted-lane
+          rows through their own predicate, same destination). Deliberately
+          NOT the live reject routing ``proposal_service.reject`` uses, which
+          sends autonomous-lineage findings back to ``awaiting_reaudit`` and
+          so to a fresh proposal: this branch runs with no human present,
+          weeks after a human said no, and cannot know why (nothing records
+          the reason) — re-proposing is the only outcome that can contradict
+          a decision already on record, delegating cannot. Same judgment as
+          ADR-104 D10 one loop over: ``indeterminate`` + ``human`` where the
+          daemon cannot know what should happen. A stranded rejection goes to
+          the human; that stays true whatever the live path later learns
+          about rejection reasons, because it turns on absent authority.
         - ``completed``, real commit → resolve (`resolve_deferred_findings`).
         - ``completed``, no-op (pre SHA == post SHA) → the ADR-104 D10
           revival (`revive_deferred_findings_for_noop`) + its report.
@@ -643,6 +653,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         Fail-soft: any error leaves the findings where they are and the
         next cycle retries. Returns True when a revival/resolution ran.
         """
+        from body.services.service_registry import service_registry
         from will.autonomy.proposal_consumer_revival import (
             report_revival,
             revive_and_report,
@@ -651,9 +662,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
             resolve_deferred_findings,
             revive_deferred_findings_for_noop,
         )
-        from will.autonomy.proposal_service import (
-            revive_findings_for_rejected_proposal,
-        )
+        from will.autonomy.proposal_lineage import proposal_lineage
 
         proposal_id = row.get("proposal_id")
         status = row.get("proposal_status")
@@ -673,13 +682,31 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 )
                 return True
             if status == "rejected":
-                revival = await revive_findings_for_rejected_proposal(
-                    proposal_id,
-                    "stuck_deferred_terminal: proposal rejected, revival never ran",
-                    row.get("constitutional_constraints") or None,
+                reason = (
+                    "stuck_deferred_terminal: proposal rejected by the governor, "
+                    "aftermath never ran — delegated back to the governor"
                 )
+                bb_service = await service_registry.get_blackboard_service()
+                lineage = proposal_lineage(
+                    row.get("constitutional_constraints") or None
+                )
+                if lineage == "assisted_lane":
+                    revival = await bb_service.revive_delegated_findings_for_rejected_proposal(
+                        proposal_id=proposal_id, reason=reason
+                    )
+                else:
+                    revival = (
+                        await bb_service.revive_ceremony_findings_for_rejected_proposal(
+                            proposal_id=proposal_id, reason=reason
+                        )
+                    )
                 if revival:
-                    await report_revival(self, proposal_id, revival)
+                    await report_revival(
+                        self,
+                        proposal_id,
+                        revival,
+                        report_subject_family="proposal.stuck_deferred_terminal.delegated",
+                    )
                 return True
             if status == "completed":
                 if row.get("nothing_to_commit"):

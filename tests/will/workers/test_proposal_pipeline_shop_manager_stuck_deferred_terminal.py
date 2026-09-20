@@ -15,9 +15,12 @@ Pinned here:
 - the routing table of ``_reconcile_stuck_deferred_terminal`` — one
   destination per terminal state, each an existing predicate, none new:
   failed/missing → ``revive_and_report`` (ADR-104 D9 cap, lineage-aware);
-  rejected → ``revive_findings_for_rejected_proposal`` (the reject lineage
-  split); completed with a real commit → ``resolve_deferred_findings``;
-  completed no-op → ``revive_deferred_findings_for_noop`` (ADR-104 D10);
+  rejected → the governor inbox, ``indeterminate`` + ``human``, NEVER back
+  to the remediator (a stranded rejection runs with no human present and
+  no recorded reason — re-proposing is the only outcome that can
+  contradict a decision on record; ADR-104 D10 applied); completed with a
+  real commit → ``resolve_deferred_findings``; completed no-op →
+  ``revive_deferred_findings_for_noop`` (ADR-104 D10);
 - run() wiring: one ``proposal.stuck_deferred_terminal::<pid>`` self_resolve
   finding per proposal (deduped against existing), the reconcile call, the
   ``reconciled_proposals`` / ``stuck_deferred_terminal`` report counters, and
@@ -72,7 +75,7 @@ def _routes():
         ),
         "rejected": patch(
             "will.autonomy.proposal_service.revive_findings_for_rejected_proposal",
-            AsyncMock(return_value={"proposal_id": _PID, "revived_count": 2}),
+            AsyncMock(),
         ),
         "report": patch(
             "will.autonomy.proposal_consumer_revival.report_revival", AsyncMock()
@@ -138,20 +141,54 @@ async def test_missing_proposal_routes_like_failed() -> None:
     assert "missing" in m["failed"].await_args.args[2]
 
 
+def _bb_for_reject() -> MagicMock:
+    bb = MagicMock()
+    revival = {"proposal_id": _PID, "revived_count": 2, "revived_subjects": ["s"]}
+    bb.revive_ceremony_findings_for_rejected_proposal = AsyncMock(return_value=revival)
+    bb.revive_delegated_findings_for_rejected_proposal = AsyncMock(return_value=revival)
+    return bb
+
+
+async def _reconcile_rejected(constraints: dict) -> tuple[bool, MagicMock, dict]:
+    bb = _bb_for_reject()
+    registry = MagicMock()
+    registry.get_blackboard_service = AsyncMock(return_value=bb)
+    with patch("body.services.service_registry.service_registry", registry):
+        ok, m = await _reconcile(
+            _row(proposal_status="rejected", constitutional_constraints=constraints)
+        )
+    return ok, bb, m
+
+
 # ID: c6b0c552-ff75-4722-a31c-502cd774846a
-async def test_rejected_proposal_routes_through_the_reject_lineage_split() -> None:
-    constraints = {"proposal_origin": "ceremony"}
-    ok, m = await _reconcile(
-        _row(proposal_status="rejected", constitutional_constraints=constraints)
-    )
+async def test_rejected_autonomous_proposal_is_delegated_not_reproposed() -> None:
+    """The live reject path would send an autonomous-lineage finding back to
+    awaiting_reaudit and so to a fresh proposal. The terminate-side branch
+    must not: it goes to the governor inbox through the indeterminate+human
+    predicate, and never touches the live routing."""
+    ok, bb, m = await _reconcile_rejected({})
     assert ok is True
-    m["rejected"].assert_awaited_once()
-    args = m["rejected"].await_args.args
-    assert args[0] == _PID and "rejected" in args[1] and args[2] == constraints
-    # The revival is reported through this Worker (worker_only_inserts).
+    bb.revive_ceremony_findings_for_rejected_proposal.assert_awaited_once()
+    kwargs = bb.revive_ceremony_findings_for_rejected_proposal.await_args.kwargs
+    assert kwargs["proposal_id"] == _PID and "governor" in kwargs["reason"]
+    bb.revive_delegated_findings_for_rejected_proposal.assert_not_awaited()
+    m["rejected"].assert_not_awaited()  # the live-path routing is not used
+    m["failed"].assert_not_awaited()
     m["report"].assert_awaited_once()
     assert m["report"].await_args.args[0] is m["worker"]
-    m["failed"].assert_not_awaited()
+    assert (
+        m["report"].await_args.kwargs["report_subject_family"]
+        == "proposal.stuck_deferred_terminal.delegated"
+    )
+
+
+# ID: 5ba1c18b-f3d2-4d58-ad9d-851e1f1657be
+async def test_rejected_assisted_lane_proposal_keeps_its_own_predicate() -> None:
+    ok, bb, m = await _reconcile_rejected({"assisted_lane": {"agent": "x"}})
+    assert ok is True
+    bb.revive_delegated_findings_for_rejected_proposal.assert_awaited_once()
+    bb.revive_ceremony_findings_for_rejected_proposal.assert_not_awaited()
+    m["rejected"].assert_not_awaited()
 
 
 # ID: 5fa4dda4-de57-45ac-a2e0-074be37eab77
