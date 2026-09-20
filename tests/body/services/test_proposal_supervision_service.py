@@ -200,3 +200,58 @@ async def test_fetch_stuck_undeferred_empty_result() -> None:
         result = await svc.fetch_stuck_undeferred(sla_sec=120, limit=100)
 
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# fetch_stuck_finalizing — nothing_to_commit (ADR-104 D9 / #901)
+# ---------------------------------------------------------------------------
+
+
+# ID: c2f102b7-5f46-49dd-9a8b-d72543774bdf
+async def test_fetch_stuck_finalizing_maps_nothing_to_commit() -> None:
+    """The reaper needs to know whether the recorded commit was a no-op so it
+    revives the deferred findings instead of resolving them (#901). The
+    flag is the eighth column; both truthy and falsy rows map through."""
+    completed_at = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
+    session = _mock_session(
+        [
+            ("pid-noop", completed_at, 900, {}, ["f-1"], ["p"], True, True),
+            ("pid-real", completed_at, 900, {}, [], [], True, False),
+            ("pid-unknown", completed_at, 900, {}, None, None, False, False),
+        ]
+    )
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_finalizing(sla_sec=600, limit=10)
+
+    assert [
+        (r["proposal_id"], r["has_consequence"], r["nothing_to_commit"]) for r in result
+    ] == [
+        ("pid-noop", True, True),
+        ("pid-real", True, False),
+        ("pid-unknown", False, False),
+    ]
+    assert result[2]["finding_ids"] == [] and result[2]["policies"] == []
+
+
+# ID: 7fef651b-8416-4bcc-a306-002d63625fce
+async def test_fetch_stuck_finalizing_derives_the_flag_from_equal_shas() -> None:
+    """The SQL must compare the consequence's own pre/post SHAs and require
+    the pre SHA to be present — a reaper-reconstructed row (both NULL) is an
+    unknown outcome, never a no-op."""
+    session = _mock_session([])
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        await svc.fetch_stuck_finalizing(sla_sec=600, limit=10)
+
+    sql = str(session.execute.await_args.args[0])
+    assert "c.pre_execution_sha IS NOT NULL" in sql
+    assert "c.pre_execution_sha = c.post_execution_sha" in sql
+    assert "AS nothing_to_commit" in sql

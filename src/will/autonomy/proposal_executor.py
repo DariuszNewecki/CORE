@@ -40,6 +40,7 @@ from will.autonomy.proposal_execution_pipeline import (
     compute_production_set,
     record_consequence,
     resolve_deferred_findings,
+    revive_deferred_findings_for_noop,
     rollback_proposal,
 )
 from will.autonomy.proposal_repository import ProposalRepository
@@ -160,6 +161,11 @@ class ProposalExecutor:
             changed_files: list[str] = []
             post_execution_sha: str | None = None
             failure_reason: str | None = None
+            commit_outcome: CommitOutcome | None = None
+            # ADR-104 D9 (#901): set when a NOTHING_TO_COMMIT completion
+            # revived its deferred findings instead of resolving them; the
+            # calling Worker reports it (cap observations, revival report).
+            findings_revival: dict[str, Any] | None = None
 
             # 4. Execute actions in order
             action_results: dict[str, Any] = {}
@@ -398,20 +404,41 @@ class ProposalExecutor:
                             proposal_id=proposal.proposal_id,
                         )
 
+                        # ADR-104 D9 (#901): a NOTHING_TO_COMMIT completion
+                        # changed no bytes, so it resolved nothing — its
+                        # deferred findings are revived on the capped
+                        # remediation-attempt path rather than marked
+                        # resolved, and the consequence record carries no
+                        # findings_resolved. A real commit resolves them.
+                        nothing_to_commit = (
+                            commit_outcome == CommitOutcome.NOTHING_TO_COMMIT
+                        )
                         consequence_ok = await record_consequence(
                             proposal_id=proposal.proposal_id,
                             pre_sha=pre_execution_sha,
                             post_sha=post_execution_sha,
                             changed_files=changed_files,
-                            finding_ids=proposal.constitutional_constraints.get(
-                                "finding_ids", []
+                            finding_ids=(
+                                []
+                                if nothing_to_commit
+                                else proposal.constitutional_constraints.get(
+                                    "finding_ids", []
+                                )
                             ),
                             policies=proposal.scope.policies,
                             declared_production=compute_production_set(action_results),
                         )
-                        findings_ok = await resolve_deferred_findings(
-                            proposal.proposal_id
-                        )
+                        if nothing_to_commit:
+                            (
+                                findings_ok,
+                                findings_revival,
+                            ) = await revive_deferred_findings_for_noop(
+                                proposal.proposal_id
+                            )
+                        else:
+                            findings_ok = await resolve_deferred_findings(
+                                proposal.proposal_id
+                            )
 
                         # ADR-148 D1: COMPLETED only once the consequence chain is
                         # durable and the deferred findings are adjudicated.
@@ -480,6 +507,10 @@ class ProposalExecutor:
                 "action_results": action_results,
                 "changed_files": changed_files,
                 "post_execution_sha": post_execution_sha,
+                "commit_outcome": (
+                    commit_outcome.value if commit_outcome is not None else None
+                ),
+                "findings_revival": findings_revival,
                 "failure_reason": failure_reason,
                 "duration_sec": total_duration,
             }

@@ -206,6 +206,28 @@ async def revive_and_report(
     if not revival:
         return
 
+    await report_revival(worker, proposal_id, revival)
+
+
+# ID: 8334c813-cce9-43ba-92e2-7fb2ea758050
+async def report_revival(
+    worker: Worker,
+    proposal_id: str,
+    revival: dict[str, Any],
+    *,
+    report_subject_family: str = "proposal.failure.revival",
+) -> None:
+    """Post the blackboard record of a revival the service already applied.
+
+    Shared by the failure path (``revive_and_report``) and the no-op
+    completion path (ADR-104 D9, #901): ``ProposalExecutor`` revives the
+    findings of a ``NOTHING_TO_COMMIT`` completion itself so the proposal
+    cannot complete with findings still deferred to it, and hands the
+    revival dict back for the Worker to report — the posts must carry
+    Worker attribution (``architecture.blackboard.worker_only_inserts``).
+    *report_subject_family* names the revival report; a no-op completion is
+    not a failure, so its caller passes ``proposal.noop.revival``.
+    """
     # ADR-104 D9 (#637): findings that reached the remediation-attempt cap
     # were abandoned terminally by the service. Post one terminal Type-B
     # observation per abandoned finding so the cap event is named and folds
@@ -263,7 +285,7 @@ async def revive_and_report(
 
     try:
         await worker.post_report(
-            subject=f"proposal.failure.revival::{proposal_id}",
+            subject=f"{report_subject_family}::{proposal_id}",
             payload={
                 "proposal_id": revival["proposal_id"],
                 "failure_reason": revival["failure_reason"],

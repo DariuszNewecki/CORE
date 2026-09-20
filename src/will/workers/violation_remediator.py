@@ -16,7 +16,9 @@ Loop position:
                                      revives the deferred findings (§7a)
 
 Design constraints: no LLM, no file writes, dedup against active proposals
-on the (ref_id, file_path) key (ADR-035 D2). Proposal persistence, the
+on the (ref_id, file_path) key (ADR-035 D2), ADR-104 D9 counter inheritance
+before minting (a finding whose abandoned lineage has exhausted
+``remediation_cap_n`` is abandoned again, not re-proposed — #901). Proposal persistence, the
 deferral of its source findings, and safe auto-approval are ONE transaction
 (#886; ADR-154 D3b) — a finding can never be left ``claimed`` beside a
 committed proposal that cites it. Safe (approval_required=False) proposals
@@ -36,6 +38,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -44,6 +47,7 @@ from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.autonomy.circuit_breaker import load_circuit_breaker_config, trip
 from will.autonomy.violation_remediator_blackboard import (
+    abandon_capped_findings,
     load_open_findings,
     mark_delegated,
     release_entries,
@@ -183,11 +187,14 @@ class ViolationRemediatorWorker(Worker):
 
         active_proposal_ids = await self._get_active_proposal_id_by_action_file()
         cb_config = load_circuit_breaker_config()
+        cap_n = load_operational_config().blackboard.remediation_cap_n
 
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
         proposals_circuit_broken: list[str] = []
+        proposals_capped: list[str] = []
         entries_deferred: int = 0
+        entries_capped: int = 0
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
         entries_circuit_broken: int = 0
@@ -235,6 +242,26 @@ class ViolationRemediatorWorker(Worker):
                     released,
                 )
                 continue
+
+            # ADR-104 D9 counter inheritance (#901): the sensor re-posts an
+            # abandoned violation as a fresh row every cycle, so read the cap
+            # from the abandoned lineage (same subject) before minting. A
+            # finding at the cap is abandoned again here — terminal Type-B,
+            # no proposal; a group left empty by that mints nothing.
+            capped_ids = await self._abandon_capped_findings(findings, cap_n)
+            if capped_ids:
+                entries_capped += len(capped_ids)
+                findings = [f for f in findings if _entry_id(f) not in capped_ids]
+                entry_ids = [_entry_id(f) for f in findings]
+                if not findings:
+                    proposals_capped.append(group_label)
+                    logger.warning(
+                        "ViolationRemediatorWorker: skipping '%s' — every finding "
+                        "in the group is at the remediation cap (n=%d)",
+                        group_label,
+                        cap_n,
+                    )
+                    continue
 
             (
                 cb_count,
@@ -331,7 +358,9 @@ class ViolationRemediatorWorker(Worker):
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
                 "proposals_circuit_broken": len(proposals_circuit_broken),
+                "proposals_capped": len(proposals_capped),
                 "entries_deferred": entries_deferred,
+                "entries_capped": entries_capped,
                 "entries_resolved_dedup": entries_resolved_dedup,
                 "entries_released_after_failure": entries_released_after_failure,
                 "entries_released": entries_released,
@@ -341,6 +370,7 @@ class ViolationRemediatorWorker(Worker):
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "circuit_broken_actions": proposals_circuit_broken,
+                "capped_actions": proposals_capped,
                 "unmappable_rules": _rules_of(unmappable),
                 "delegated": len(delegate),
                 "delegated_rules": _rules_of(delegate),
@@ -351,6 +381,7 @@ class ViolationRemediatorWorker(Worker):
             "ViolationRemediatorWorker: done — %d proposals created "
             "(%d entries deferred), %d skipped (dedup, %d subsumed entries "
             "resolved), %d circuit-broken (%d entries delegated), "
+            "%d abandoned at the remediation cap (%d groups skipped), "
             "%d unmappable findings, %d entries released after failure, "
             "%d held (target not committed)",
             len(proposals_created),
@@ -359,6 +390,8 @@ class ViolationRemediatorWorker(Worker):
             entries_resolved_dedup,
             len(proposals_circuit_broken),
             entries_circuit_broken,
+            entries_capped,
+            len(proposals_capped),
             len(unmappable),
             entries_released_after_failure,
             entries_held_uncommitted,
@@ -432,6 +465,14 @@ class ViolationRemediatorWorker(Worker):
     # ID: 9c6f8976-e169-47a1-91f2-c3692c9f5139
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
         return await mark_delegated(await self._blackboard_service(), findings)
+
+    # ID: 7622f966-8f69-4f5e-a34b-9211ae9f8099
+    async def _abandon_capped_findings(
+        self, findings: list[dict[str, Any]], cap_n: int
+    ) -> list[str]:
+        return await abandon_capped_findings(
+            await self._blackboard_service(), findings, cap_n
+        )
 
     # ID: 83df33cb-6d2a-46c3-82c3-6132f14ced39
     def _is_file_committed(self, file_path: str) -> bool:

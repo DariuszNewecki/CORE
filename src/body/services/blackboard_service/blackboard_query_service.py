@@ -573,6 +573,42 @@ class BlackboardQueryService:
             row = result.fetchone()
             return int(row[0]) if row and row[0] is not None else 0
 
+    # ID: d06e8aa7-68ae-4063-9abc-800f145aacab
+    async def query_max_attempt_count_by_subject(self, subject: str) -> int:
+        """
+        Return the highest remediation_attempt_count from abandoned findings
+        carrying exactly this *subject* (one violation class on one file
+        under the ADR-091 D2 canonical ``<artifact>::<rule>::<path>`` form).
+
+        Third shape of the ADR-104 D9 counter-inheritance query, for
+        ViolationRemediatorWorker's mapped-rule path (#901): the sensor
+        re-posts an abandoned violation as a fresh row every cycle, so the
+        cap must be read from the abandoned lineage before a new proposal
+        is minted. Scoped by subject rather than file so one exhausted
+        rule on a file does not block other rules' remediation of it.
+        Returns 0 when no abandoned findings exist for this subject.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT COALESCE(
+                        MAX((payload->>'remediation_attempt_count')::int),
+                        0
+                    )
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'abandoned'
+                      AND subject = :subject
+                    """
+                ),
+                {"subject": subject},
+            )
+            row = result.fetchone()
+            return int(row[0]) if row and row[0] is not None else 0
+
     # ID: 80f3060d-f0bb-4974-913a-ee1b14d77263
     async def fetch_latest_report_payload(self, subject: str) -> dict[str, Any] | None:
         """Return the payload of the most recent report entry for *subject*, or None.

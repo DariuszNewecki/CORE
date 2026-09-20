@@ -142,6 +142,13 @@ class ProposalSupervisionService:
         consequence), and whether a consequence record already exists, so the
         reaper can complete the finalization idempotently without the executor's
         original SHA context.
+
+        ``nothing_to_commit`` (ADR-104 D9, #901) is True when the recorded
+        consequence proves the commit was a no-op (pre and post SHA both
+        captured and equal) — the reaper then revives the deferred findings
+        on the capped path instead of resolving them, as the executor would
+        have. Without a consequence record the outcome is unknown and the
+        flag is False.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -159,7 +166,10 @@ class ProposalSupervisionService:
                         p.execution_results,
                         p.constitutional_constraints->'finding_ids' AS finding_ids,
                         p.scope->'policies' AS policies,
-                        (c.proposal_id IS NOT NULL) AS has_consequence
+                        (c.proposal_id IS NOT NULL) AS has_consequence,
+                        (c.pre_execution_sha IS NOT NULL
+                         AND c.pre_execution_sha = c.post_execution_sha)
+                            AS nothing_to_commit
                     FROM core.autonomous_proposals p
                     LEFT JOIN core.proposal_consequences c
                         ON c.proposal_id = p.proposal_id
@@ -197,6 +207,7 @@ class ProposalSupervisionService:
                 "finding_ids": row[4] or [],
                 "policies": row[5] or [],
                 "has_consequence": bool(row[6]),
+                "nothing_to_commit": bool(row[7]),
             }
             for row in rows
         ]

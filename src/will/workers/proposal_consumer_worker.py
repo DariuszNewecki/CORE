@@ -45,6 +45,7 @@ from will.autonomy.proposal_consumer_effects import (
 from will.autonomy.proposal_consumer_revival import (
     mark_proposal_failed,
     release_executing_proposals,
+    report_revival,
     revive_and_report,
 )
 
@@ -110,6 +111,7 @@ class ProposalConsumerWorker(Worker):
         succeeded = 0
         failed = 0
         pending = 0
+        no_op = 0
         results: list[dict[str, Any]] = []
 
         try:
@@ -151,6 +153,29 @@ class ProposalConsumerWorker(Worker):
                             result["actions_executed"],
                             result["duration_sec"],
                         )
+                        # ADR-104 D9 (#901): a NOTHING_TO_COMMIT completion
+                        # remediated nothing — the executor revived its
+                        # deferred findings on the capped path instead of
+                        # resolving them; this Worker posts that record
+                        # (cap observations, revival report) so the no-op
+                        # is named on the board, never a silent "success".
+                        findings_revival = result.get("findings_revival")
+                        if findings_revival:
+                            no_op += 1
+                            logger.warning(
+                                "ProposalConsumerWorker: proposal '%s' completed "
+                                "with nothing to commit — %d deferred finding(s) "
+                                "revived, %d abandoned at the remediation cap",
+                                proposal_id,
+                                findings_revival.get("revived_count", 0),
+                                findings_revival.get("abandoned_count", 0),
+                            )
+                            await report_revival(
+                                self,
+                                proposal_id,
+                                findings_revival,
+                                report_subject_family="proposal.noop.revival",
+                            )
                         await apply_success_effects(self, proposal_id, result)
                     elif lifecycle_status == "finalizing":
                         # Committed but not yet durable — neither success nor
@@ -202,6 +227,7 @@ class ProposalConsumerWorker(Worker):
                             "actions_succeeded": result.get("actions_succeeded", 0),
                             "actions_failed": result.get("actions_failed", 0),
                             "duration_sec": result.get("duration_sec", 0),
+                            "commit_outcome": result.get("commit_outcome"),
                             "error": result.get("error"),
                             "flow_step_failures": flow_step_failures,
                         }
@@ -247,19 +273,23 @@ class ProposalConsumerWorker(Worker):
             payload={
                 "executed": len(results),
                 "succeeded": succeeded,
+                "no_op": no_op,
                 "failed": failed,
                 "pending": pending,
                 "results": results,
                 "message": (
-                    f"{succeeded} proposals executed, {failed} failed, "
-                    f"{pending} left finalizing (ADR-148 D4 reaper owns them)."
+                    f"{succeeded} proposals executed ({no_op} with nothing to "
+                    f"commit), {failed} failed, {pending} left finalizing "
+                    "(ADR-148 D4 reaper owns them)."
                 ),
             },
         )
 
         logger.info(
-            "ProposalConsumerWorker: %d succeeded, %d failed, %d finalizing.",
+            "ProposalConsumerWorker: %d succeeded (%d no-op), %d failed, "
+            "%d finalizing.",
             succeeded,
+            no_op,
             failed,
             pending,
         )

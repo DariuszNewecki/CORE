@@ -43,7 +43,7 @@ pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
 # manifest order; tests/shared/infrastructure/test_schema_ledger_seed.py
 # proves the parity). The dump is --schema-only, so this is the only data.
 REPO_TOP="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-(cd "${REPO_TOP}" && poetry run python -m shared.infrastructure.repositories.db.ledger_seed) \
+(cd "${REPO_TOP}" && poetry run python infra/scripts/render_ledger_seed.py) \
     >> "${SCHEMA_OUT}"
 
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${TEST_DB}" -q < "${SCHEMA_OUT}"

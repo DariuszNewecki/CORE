@@ -6387,7 +6387,7 @@ ALTER TABLE ONLY core.tasks
 -- CORE migration ledger seed (ADR-162 D9). Generated from
 -- infra/migrations/manifest.yaml by infra/scripts/reset_test_db.sh so that a
 -- fresh install starts with a complete ledger. Do not edit by hand; regenerate
--- with: poetry run python -m shared.infrastructure.repositories.db.ledger_seed
+-- with: poetry run python infra/scripts/render_ledger_seed.py
 --
 
 -- CORE-LEDGER-SEED-BEGIN

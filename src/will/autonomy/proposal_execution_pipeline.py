@@ -112,6 +112,66 @@ async def resolve_deferred_findings(proposal_id: str) -> bool:
         return False
 
 
+NOOP_COMPLETION_REASON = (
+    "proposal completed with nothing to commit (CommitOutcome.NOTHING_TO_COMMIT): "
+    "no bytes changed, so its deferred findings were not remediated"
+)
+
+
+# ID: 19ae1484-f3e5-4fac-a992-de55aaa1ad18
+async def revive_deferred_findings_for_noop(
+    proposal_id: str,
+) -> tuple[bool, dict[str, Any] | None]:
+    """Revive findings deferred to a proposal that completed without changing
+    anything — the no-op counterpart of ``resolve_deferred_findings``.
+
+    ADR-104 D9 (#901): a ``CommitOutcome.NOTHING_TO_COMMIT`` completion is a
+    legitimate proposal outcome (ADR-148 D3) but it remediated nothing, so it
+    must not mark its deferred findings ``resolved`` — that claim would be
+    false, and the sensor's re-detection would mint the next no-op proposal
+    with every rail reset. Instead the findings take the same capped path a
+    failed proposal's findings take: ``awaiting_reaudit`` with
+    ``remediation_attempt_count`` incremented, abandoned (terminal Type-B)
+    at ``remediation_cap_n``. A finding whose violation was in fact cleared
+    by someone else lands in the same place and is resolved truthfully by
+    the audit sensor's reaudit drain.
+
+    Returns ``(adjudicated, revival)``: *adjudicated* is the finalization
+    verdict the executor gates completion on (True also for zero deferred
+    findings), *revival* is the service's revival dict (or None) for the
+    calling Worker to report — the abandon-at-cap observation is posted by
+    a Worker, never here (``architecture.blackboard.worker_only_inserts``).
+    """
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+
+    try:
+        cap_n = load_operational_config().blackboard.remediation_cap_n
+        bb_service = await service_registry.get_blackboard_service()
+        revival = await bb_service.revive_findings_for_failed_proposal(
+            proposal_id=proposal_id,
+            failure_reason=NOOP_COMPLETION_REASON,
+            remediation_cap_n=cap_n,
+        )
+        if revival:
+            logger.info(
+                "ProposalExecutor: no-op completion of proposal %s — revived %d / "
+                "abandoned %d deferred finding(s) instead of resolving them",
+                proposal_id,
+                revival.get("revived_count", 0),
+                revival.get("abandoned_count", 0),
+            )
+        return True, revival
+    except Exception as revive_err:
+        logger.warning(
+            "Failed to revive deferred findings for no-op proposal %s: %s",
+            proposal_id,
+            revive_err,
+        )
+        return False, None
+
+
 # ID: 4095ae72-e22a-48bd-b8a0-41707a5b2bdf
 async def record_consequence(
     proposal_id: str,

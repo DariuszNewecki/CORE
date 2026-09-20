@@ -490,7 +490,11 @@ class ProposalPipelineShopManager(ScheduledWorker):
            silently as equivalent evidence. If a record already exists
            (findings/complete failed but consequence succeeded), it is
            left untouched.
-        2. Resolve the proposal's deferred findings.
+        2. Adjudicate the proposal's deferred findings: resolve them, or —
+           when the recorded consequence proves a no-op commit
+           (``nothing_to_commit``, ADR-104 D9 / #901) — revive them on the
+           capped remediation-attempt path exactly as the executor would
+           have, and post that record through this Worker.
         3. mark_completed (finalizing -> completed), status-guarded.
 
         Fail-soft: any step failing leaves the proposal finalizing and the
@@ -498,10 +502,12 @@ class ProposalPipelineShopManager(ScheduledWorker):
         advanced the proposal to completed.
         """
         from body.services.service_registry import service_registry
+        from will.autonomy.proposal_consumer_revival import report_revival
         from will.autonomy.proposal_execution_pipeline import (
             compute_production_set,
             record_consequence,
             resolve_deferred_findings,
+            revive_deferred_findings_for_noop,
         )
         from will.autonomy.proposal_state_manager import (
             ProposalNotFoundError,
@@ -525,7 +531,20 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 if not consequence_ok:
                     return False
 
-            if not await resolve_deferred_findings(proposal_id):
+            if row.get("nothing_to_commit"):
+                findings_ok, revival = await revive_deferred_findings_for_noop(
+                    proposal_id
+                )
+                if not findings_ok:
+                    return False
+                if revival:
+                    await report_revival(
+                        self,
+                        proposal_id,
+                        revival,
+                        report_subject_family="proposal.noop.revival",
+                    )
+            elif not await resolve_deferred_findings(proposal_id):
                 return False
 
             async with service_registry.session() as session:

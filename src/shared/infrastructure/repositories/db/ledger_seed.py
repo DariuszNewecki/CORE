@@ -13,17 +13,16 @@ a refusal state (D2), never a silent one. The generator step in
 ``tests/shared/infrastructure/test_schema_ledger_seed.py`` proves the block's
 ids equal the manifest order exactly.
 
-Run as a module to print the block for the current manifest::
+This module only renders and parses text. Printing the block for the current
+manifest is a script surface, not logic-layer work
+(``architecture.channels.logic_no_terminal_rendering``)::
 
-    poetry run python -m shared.infrastructure.repositories.db.ledger_seed
+    poetry run python infra/scripts/render_ledger_seed.py
 """
 
 from __future__ import annotations
 
-import sys
-from collections.abc import Iterable, Sequence
-
-from .manifest import load_manifest
+from collections.abc import Iterable
 
 
 SEED_BEGIN = "-- CORE-LEDGER-SEED-BEGIN"
@@ -34,7 +33,7 @@ _HEADER = """\
 -- CORE migration ledger seed (ADR-162 D9). Generated from
 -- infra/migrations/manifest.yaml by infra/scripts/reset_test_db.sh so that a
 -- fresh install starts with a complete ledger. Do not edit by hand; regenerate
--- with: poetry run python -m shared.infrastructure.repositories.db.ledger_seed
+-- with: poetry run python infra/scripts/render_ledger_seed.py
 --
 """
 
@@ -93,15 +92,3 @@ def strip_ledger_seed(schema_text: str) -> str:
     start = schema_text.index(_HEADER.strip())
     end = schema_text.index(SEED_END, start) + len(SEED_END)
     return schema_text[:start].rstrip("\n") + "\n" + schema_text[end:].lstrip("\n")
-
-
-# ID: d04abe3c-b889-4538-b83f-c5c92e850492
-def main(argv: Sequence[str] | None = None) -> int:
-    """Print the seed block for the repository manifest to stdout."""
-    del argv
-    sys.stdout.write(render_ledger_seed(load_manifest().order))
-    return 0
-
-
-if __name__ == "__main__":  # pragma: no cover — exercised via reset_test_db.sh
-    raise SystemExit(main())

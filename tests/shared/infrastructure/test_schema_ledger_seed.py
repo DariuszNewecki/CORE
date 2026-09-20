@@ -2,10 +2,10 @@
 """ADR-162 D9 — ``schema.sql`` carries an exact fresh-install ledger seed.
 
 Hermetic: the seed block's ids must equal the manifest order exactly, and the
-generator (``python -m shared.infrastructure.repositories.db.ledger_seed``,
-called by ``infra/scripts/reset_test_db.sh``) must reproduce the committed
-block byte-for-byte — so ``schema.sql`` and the manifest cannot drift apart
-without this test failing.
+generator (``infra/scripts/render_ledger_seed.py``, called by
+``infra/scripts/reset_test_db.sh``) must reproduce the committed block
+byte-for-byte — so ``schema.sql`` and the manifest cannot drift apart without
+this test failing.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from shared.infrastructure.repositories.db.manifest import load_manifest
 
 assert REPO_ROOT is not None
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
+RENDER_SCRIPT = REPO_ROOT / "infra" / "scripts" / "render_ledger_seed.py"
 
 
 # ID: d5991161-6886-42e0-8c32-7346733358d1
@@ -42,7 +43,7 @@ def test_schema_sql_seed_block_is_exactly_what_the_generator_renders() -> None:
     rendered = render_ledger_seed(load_manifest().order)
     assert schema.endswith(rendered), (
         "schema.sql's seed block differs from the generator output; regenerate with "
-        "`poetry run python -m shared.infrastructure.repositories.db.ledger_seed`"
+        "`poetry run python infra/scripts/render_ledger_seed.py`"
     )
     assert schema.count(SEED_BEGIN) == 1 and schema.count(SEED_END) == 1
 
@@ -55,9 +56,9 @@ def test_seed_block_follows_the_ledger_table_definition() -> None:
 
 
 # ID: 5537e346-7741-4f58-a136-20b752ac6593
-def test_generator_module_prints_the_block() -> None:
+def test_generator_script_prints_the_block() -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "shared.infrastructure.repositories.db.ledger_seed"],
+        [sys.executable, str(RENDER_SCRIPT)],
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
