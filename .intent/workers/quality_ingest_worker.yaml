@@ -29,7 +29,7 @@ mandate:
     against existing blackboard subjects, and post each new finding to the
     blackboard for downstream visibility. Never the full audit: that executes
     every mapped engine, llm_gate included, which is incompatible with
-    permitted_tools: [] (2026-09-20 LocalCoder spend finding).
+    permitted_tools: [].
   phase: audit
   permitted_tools: []
   scope:
