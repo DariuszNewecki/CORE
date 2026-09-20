@@ -23,6 +23,7 @@ fi
 
 # --- Load environment variables from .env ---
 set -o allexport
+# shellcheck disable=SC1090  # process substitution over .env; nothing to follow
 source <(grep -v '^\s*#' .env | grep -v '^\s*$')
 set +o allexport
 

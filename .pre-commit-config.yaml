@@ -32,6 +32,18 @@ repos:
         files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
 
+  # Shell scripts (#911): shellcheck on every tracked *.sh. Runs the system
+  # binary so the hook is offline-installable; CI runs the same check
+  # (core-ci.yml static-checks) because CI does not run pre-commit.
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+        exclude: ^(\.archive|\.venv|venv|build|dist)/
+
   # Symbol ID discipline — CLAUDE.md §Symbol IDs
   - repo: local
     hooks:

@@ -15,7 +15,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ADMIN="${CORE_ADMIN:-poetry run core-admin}"
 
-cd "$HERE"
+cd "$HERE" || exit 1
 OUT="$($ADMIN code audit --offline --format=text --severity=block 2>&1)"
 CODE=$?
 

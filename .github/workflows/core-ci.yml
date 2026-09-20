@@ -236,6 +236,11 @@ jobs:
       - name: Lint (ruff — static, no server)
         run: poetry run ruff check src tests
 
+      - name: Lint shell scripts (shellcheck, #911)
+        # ubuntu-latest ships shellcheck; every tracked *.sh, same set as the
+        # pre-commit hook. CI runs no pre-commit, so this is the second gate.
+        run: git ls-files '*.sh' | xargs --no-run-if-empty shellcheck
+
       - name: Upgrade pip in Poetry venv
         run: poetry run pip install --upgrade "pip>=26.1.2"
 

@@ -48,6 +48,7 @@ require_database_url "the core-engine daemon"
 
 if [ ! -d "/workspace/.intent" ]; then
   echo "ERROR: no .intent/ found at /workspace — mount your governed project." >&2
+  # shellcheck disable=SC2016  # literal usage hint: $PWD must not expand here
   echo '       e.g. -v "$PWD:/workspace"' >&2
   exit 78
 fi

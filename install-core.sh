@@ -33,13 +33,10 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-REPO_ROOT="$(pwd)"
 API_HOST="${CORE_API_HOST:-127.0.0.1}"
 API_PORT="${CORE_API_PORT:-8000}"
 API_PID_FILE="var/run/core-api.pid"
-DAEMON_PID_FILE="var/run/core-daemon.pid"
 API_LOG="var/logs/core-api.log"
-DAEMON_LOG="var/logs/core-daemon.log"
 
 # ---- pretty output ---------------------------------------------------------
 if [[ -t 1 ]]; then

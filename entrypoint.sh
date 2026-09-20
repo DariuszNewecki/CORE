@@ -174,4 +174,4 @@ else
 
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"
