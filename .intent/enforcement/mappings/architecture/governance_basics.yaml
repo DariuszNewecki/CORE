@@ -44,7 +44,6 @@
           - "src/body/infrastructure/storage/file_handler.py" # IS the governed surface (moved from shared by ADR-126)
           - "src/shared/path_utils.py" # Path resolution utilities
           - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
-          - "src/mind/governance/runtime_validator.py" # Validation infrastructure
           - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
           # Subprocess sanctuary -- also owns ephemeral worktree directory
           # cleanup (/tmp/core-action-sandbox-*) per ADR-071 D2.2.
@@ -65,7 +64,6 @@
           - "src/will/test_generation/sandbox.py" # Ephemeral-zone: writes under tempfile.TemporaryDirectory; FileHandler is repo-bound and refuses out-of-repo paths (separate /tmp/ hazard: #508)
           # --- ADDED 2026-06-29 (ADR-132 session-file + BYOR CLI out-of-repo ops) ---
           # Each entry mirrored in mutation_surface.yaml's excludes set.
-          - "src/shared/infrastructure/cli_session.py" # ADR-132: writes ~/.config/core/session.json (user home, outside repo root); FileHandler is repo-bound and refuses out-of-repo paths
           - "src/cli/logic/byor.py" # BYOR CLI: shutil.rmtree on external project staging dir (outside CORE repo root); cannot route through FileHandler
           - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
           # --- ADDED 2026-07-13 (#779) ---
@@ -232,7 +230,6 @@
           - "src/body/project_lifecycle/integration_service.py"            # pg_dump subprocess for schema capture; no FileHandler path for DB introspection
           - "src/body/maintenance/scripts/context_export.py"               # subprocess for context export pipeline
           - "src/body/self_healing/handlers/import_sorting_handler.py"     # isort/ruff subprocess for import-sort remediation
-          - "src/body/workers/violation_remediator/ceremony.py" # Runs ruff/linting as remediation -- subprocess sanctuary
           - "src/cli/commands/daemon.py" # 2026-06-06: systemd control surface -- subprocess intrinsic to daemon command
 
           # --- COHERENCE CHECKS (text-based forbidden_primitives matcher flags docstring references) ---
@@ -259,7 +256,6 @@
           # Self-healing and canary paths invoke pytest as subprocess; routing through
           # Body's test.execute atomic action via ActionExecutor is the long-term target
           # but requires non-trivial DI plumbing in the autonomous pipeline.
-          - "src/will/self_healing/test_generation/executor.py"
           - "src/will/self_healing/context_aware_test_generator.py"
           - "src/will/self_healing/alignment/sandbox.py"
           - "src/will/phases/canary/pytest_runner.py"

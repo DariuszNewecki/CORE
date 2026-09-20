@@ -29,7 +29,6 @@ mappings:
       applies_to: ["src/**/*.py"]
       excludes:
         # CLI Entry Points - Bootstrap async runtime
-        - "src/cli/cli_user.py"
         # CLI Helpers - Provide @async_command decorator
         - "src/cli/utils/**"
         # Maintenance Scripts - Standalone entry points

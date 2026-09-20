@@ -29,11 +29,11 @@ mappings:
         - "src/**/*.py"
       excludes:
         # The LLMClient defines and wraps these methods -- allowed
-        - "src/shared/ai/llm_client.py"
+        - "src/body/services/llm_client.py"
         # The PromptModel calls them internally -- this IS the governed surface
         - "src/shared/ai/prompt_model.py"
         # Provider implementations call make_request at the transport layer
-        - "src/shared/ai/providers/**/*.py"
+        - "src/shared/infrastructure/llm/providers/**/*.py"
 
   # RULE: ai.prompt.model_artifact_required
   # Verifies that every var/prompts/ subdirectory has a model.yaml manifest.

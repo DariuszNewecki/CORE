@@ -13,10 +13,8 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/cli/**"
-        - "src/body/cli/**"
         - "src/api/**"
         - "src/cli/utils/**"
-        - "src/will/cli_logic/**"
         - "tests/**"
 
   # Logic/runtime code must not use terminal-oriented rendering primitives.
@@ -72,10 +70,8 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/cli/**"
-        - "src/body/cli/**"
         - "src/api/**"
         - "src/cli/utils/**"
-        - "src/will/cli_logic/**"
         - "src/will/workflows/**"
         - "tests/**"
 

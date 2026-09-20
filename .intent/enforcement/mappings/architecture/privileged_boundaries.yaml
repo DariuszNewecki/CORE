@@ -109,10 +109,6 @@ mappings:
         - "src/body/**/*.py"
         - "src/mind/**/*.py"
       excludes:
-        - "src/body/cli/commands/autonomous.py" # CLI may invoke Will agents
-        - "src/body/cli/logic/interactive_test/**/*.py" # Interactive test workflow invokes Will agents
-        - "src/body/cli/resources/dev/**/*.py" # Dev CLI resources may invoke Will agents
-        - "src/mind/logic/engines/llm_gate/**/*.py" # LLM Gate uses LLM for eval
         - "src/body/**/test_*.py"
         - "src/mind/**/test_*.py"
         - "tests/**"
