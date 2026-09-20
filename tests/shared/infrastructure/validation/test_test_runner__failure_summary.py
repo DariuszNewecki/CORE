@@ -46,7 +46,10 @@ async def test_failure_summary_derived_from_stdout_not_generic_message() -> None
             result = await run_tests(target="tests/test_x.py")
 
     assert result.ok is False
-    assert result.data["summary"] == "=========================== 1 failed in 0.12s ==================="
+    assert (
+        result.data["summary"]
+        == "=========================== 1 failed in 0.12s ==================="
+    )
     assert result.data["summary"] != "Execution failed"
     assert result.data["error"] == result.data["summary"]
 
@@ -56,7 +59,9 @@ async def test_failure_falls_back_to_stderr_when_stdout_empty() -> None:
     to stderr — the fallback path isn't removed, just no longer the default."""
     with patch(
         "shared.infrastructure.validation.test_runner.asyncio.create_subprocess_exec",
-        new=AsyncMock(return_value=_mock_subprocess(b"", b"pytest: command not found", 127)),
+        new=AsyncMock(
+            return_value=_mock_subprocess(b"", b"pytest: command not found", 127)
+        ),
     ):
         with patch(
             "shared.infrastructure.validation.test_runner._persist_result_to_db",
@@ -120,3 +125,24 @@ async def test_summarize_no_keyword_match_reports_honestly(bad_line: str) -> Non
             result = await run_tests(target="tests/test_x.py")
 
     assert result.data["summary"] == "No test summary found."
+
+
+async def test_pytest_invoked_with_no_cov() -> None:
+    """The runner emits pass/fail evidence, not coverage. Without --no-cov,
+    pyproject's addopts --cov applies to every daemon-side run: .coverage is
+    rewritten in the repo root each cycle and a timed-out run leaves stray
+    .coverage.<host>.<pid>.* shards as untracked files."""
+    exec_mock = AsyncMock(return_value=_mock_subprocess(b"1 passed\n", b"", 0))
+    with patch(
+        "shared.infrastructure.validation.test_runner.asyncio.create_subprocess_exec",
+        new=exec_mock,
+    ):
+        with patch(
+            "shared.infrastructure.validation.test_runner._persist_result_to_db",
+            new=AsyncMock(),
+        ):
+            await run_tests(target="tests/test_x.py")
+
+    argv = exec_mock.await_args.args
+    assert argv[0] == "pytest"
+    assert "--no-cov" in argv

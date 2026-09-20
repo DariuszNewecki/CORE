@@ -70,11 +70,18 @@ async def run_tests(
     timeout = (settings.model_extra or {}).get("TEST_RUNNER_TIMEOUT", 300)
 
     try:
+        # --no-cov: this runner produces a pass/fail evidence signal, not a
+        # coverage measurement (that is coverage_runner's job). Without it,
+        # pyproject's addopts --cov applies to every daemon-side run, rewriting
+        # .coverage in the repo root each cycle and, when a run is cut off by
+        # the timeout below, leaving stray .coverage.<host>.<pid>.* shards as
+        # untracked files. Same precedent as will/governance/fix_runner.py.
         process = await asyncio.create_subprocess_exec(
             "pytest",
             pytest_target,
             "--tb=short",
             "-q",
+            "--no-cov",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=repo_root,
