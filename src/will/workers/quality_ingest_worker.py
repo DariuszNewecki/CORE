@@ -2,17 +2,26 @@
 """
 QualityIngestWorker — quality.* audit finding sensor (ADR-098 D5 / closes #605).
 
-Responsibility: Run the constitutional auditor, extract findings for
-quality.* rules listed in .intent/enforcement/config/audit_ingest.yaml,
-apply the D5 cap constraint (top-N by issue_count descending per rule),
-deduplicate against existing blackboard subjects, and post each new
-finding for downstream visibility and eventual remediation.
+Responsibility: Run a *filtered* constitutional audit for the quality.*
+rules listed in .intent/enforcement/config/audit_ingest.yaml, apply the D5
+cap constraint (top-N by issue_count descending per rule), deduplicate
+against existing blackboard subjects, and post each new finding for
+downstream visibility and eventual remediation.
+
+Filtered, not full: a full audit executes every mapped engine, including
+llm_gate, whose verdicts this worker discards — and without an injected DB
+session the ADR-044 verdict cache is ineligible, so every hourly cycle
+re-bought the same judged (file, rule) pairs from the paid LocalCoder
+resource. The filtered path via will.audit_violation.normalizer runs only
+the enabled quality rules (workflow_gate tool checks) inside a
+service_registry session — the "no LLM calls" declaration below is true by
+construction, not by cache behaviour.
 
 Constitutional standing:
 - Declaration:      .intent/workers/quality_ingest_worker.yaml
 - Class:            acting
 - Phase:            audit
-- Permitted tools:  none (no LLM calls, no file writes)
+- Permitted tools:  none (no LLM calls, no file writes — filtered audit, enabled rules only)
 - Approval:         false
 
 Wiring constraint (ADR-098 D5):
@@ -50,11 +59,12 @@ class QualityIngestWorker(Worker):
     """
     Sensing worker for quality.* audit rules.
 
-    Runs the full constitutional audit, extracts quality.* findings for
-    rules declared in audit_ingest.yaml, applies the D5 fanout cap, and
-    posts each new finding to the blackboard.
+    Runs a filtered constitutional audit for the quality.* rules declared
+    in audit_ingest.yaml, applies the D5 fanout cap, and posts each new
+    finding to the blackboard.
 
-    No LLM calls. No file writes. approval_required: false.
+    No LLM calls: only the enabled rules' engines execute. No file writes.
+    approval_required: false.
     """
 
     declaration_name = "quality_ingest_worker"
@@ -68,7 +78,7 @@ class QualityIngestWorker(Worker):
         """Run the quality ingest pipeline.
 
         1. Load config (enabled rules, cap).
-        2. Run full audit and filter quality findings for enabled rules.
+        2. Run a filtered audit for the enabled quality rules.
         3. Apply D5 cap per rule (top-N by issue_count descending).
         4. Dedup against existing blackboard subjects.
         5. Post each new finding; report completion summary.
@@ -164,38 +174,39 @@ class QualityIngestWorker(Worker):
 
     # ID: f743a187-715e-4f63-8176-d0347fad7e5b
     async def _run_audit(self) -> dict[str, list[dict[str, Any]]]:
-        """Run the full audit and return findings grouped by quality rule ID.
+        """Run a filtered audit for the enabled rules, grouped by rule ID.
+
+        Routes through will.audit_violation.normalizer.normalize_audit_findings
+        — the same filtered-audit-inside-a-session path the audit_sensor_*
+        family uses — so only the enabled quality rules' engines execute.
+        Never ConstitutionalAuditor.run_full_audit_async(): that runs every
+        mapped engine, llm_gate included, and this worker declares no LLM.
 
         Returns a dict of {rule_id: [finding_dict, ...]} for each enabled
         rule that produced at least one finding. Each finding dict carries:
           file_path, message, issue_count, sample_issues, tool.
         """
-        from mind.governance.auditor import ConstitutionalAuditor
+        from will.audit_violation.normalizer import normalize_audit_findings
 
         config = load_audit_ingest_config()
         enabled = set(config.enabled_rules)
 
-        auditor_context = self._core_context.auditor_context
-        auditor = ConstitutionalAuditor(auditor_context)
-        result = await auditor.run_full_audit_async()
-        raw_findings = result.get("findings", [])
+        raw_findings = await normalize_audit_findings(
+            self._core_context,
+            rule_namespace="quality",
+            rule_ids=sorted(enabled),
+        )
 
         grouped: dict[str, list[dict[str, Any]]] = {}
         for finding in raw_findings:
-            if isinstance(finding, dict):
-                check_id = finding.get("check_id", "")
-                file_path = finding.get("file_path") or ""
-                message = finding.get("message", "")
-                context = finding.get("context") or {}
-            else:
-                check_id = getattr(finding, "check_id", "")
-                file_path = getattr(finding, "file_path", None) or ""
-                message = getattr(finding, "message", "")
-                context = getattr(finding, "context", None) or {}
+            check_id = finding.get("rule_id", "")
+            file_path = finding.get("file_path") or ""
+            message = finding.get("message", "")
+            context = finding.get("context") or {}
 
             if check_id not in enabled:
                 continue
-            if not file_path:
+            if not file_path or str(file_path).startswith("__symbol_pair__"):
                 continue
 
             entry = {

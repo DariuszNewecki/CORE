@@ -21,8 +21,12 @@ identity:
 
 mandate:
   responsibility: >
-    Read the most recent audit run findings for rule ai.prompt.model_required
-    and post each unprocessed violation as a blackboard finding.
+    Run a filtered constitutional audit scoped to the single rule
+    ai.prompt.model_required (via will.audit_violation.normalizer, the same
+    filtered-audit-in-session path the audit_sensor_* family uses) and post
+    each unprocessed violation as a blackboard finding. Never the full audit:
+    that executes every mapped engine, llm_gate included, which is
+    incompatible with permitted_tools: [] (2026-09-20 LocalCoder spend finding).
   phase: audit
   permitted_tools: []
   scope:

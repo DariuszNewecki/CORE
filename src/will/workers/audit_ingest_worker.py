@@ -2,15 +2,24 @@
 """
 AuditIngestWorker - Constitutional Compliance Sensing Worker.
 
-Responsibility: Read the most recent audit run findings for rule
-ai.prompt.model_required and post each unprocessed violation as a
+Responsibility: Run a *filtered* constitutional audit scoped to the single
+rule ai.prompt.model_required and post each unprocessed violation as a
 blackboard finding.
+
+Filtered, not full: a full audit executes every mapped engine, including
+llm_gate, whose verdicts this worker discards — and without an injected DB
+session the ADR-044 verdict cache is ineligible, so every cycle re-bought
+the same judged (file, rule) pairs from the paid LocalCoder resource (~10 calls
+per run, 48 runs/day, since 2026-05). The filtered path via
+will.audit_violation.normalizer runs only the target rule (an ast_gate
+rule) inside a service_registry session — the "no LLM calls" declaration
+below is true by construction, not by cache behaviour.
 
 Constitutional standing:
 - Declaration:      .intent/workers/audit_ingest_worker.yaml
 - Class:            sensing
 - Phase:            audit
-- Permitted tools:  none (no LLM calls)
+- Permitted tools:  none (no LLM calls — filtered audit, target rule only)
 - Approval:         false
 
 LAYER: will/workers — sensing worker. Receives CoreContext via
@@ -47,11 +56,12 @@ _LINE_RE = re.compile(r"Line (\d+):")
 # ID: bfbdf0ac-487a-4b1b-a9a5-df61a94e12eb
 class AuditIngestWorker(Worker):
     """
-    Sensing worker. Runs the constitutional auditor scoped to
+    Sensing worker. Runs a filtered constitutional audit scoped to
     ai.prompt.model_required and posts each violation as a blackboard
     finding for downstream processing by PromptExtractorWorker.
 
-    No LLM calls. No file reads beyond what the auditor requires.
+    No LLM calls: the filtered audit executes only the target rule's
+    engine (ast_gate). No file reads beyond what the auditor requires.
     approval_required: false — findings are observations, not actions.
     """
 
@@ -69,7 +79,7 @@ class AuditIngestWorker(Worker):
     # ID: 101d7dc5-c889-4b28-bd47-0e4dcc1047cd
     async def run(self) -> None:
         """
-        Run the constitutional auditor, filter findings for the target rule,
+        Run a filtered constitutional audit for the target rule,
         deduplicate against existing blackboard entries, and post each new
         violation as a finding.
         """
@@ -147,45 +157,43 @@ class AuditIngestWorker(Worker):
 
     async def _run_audit(self) -> list[dict[str, Any]]:
         """
-        Run the full constitutional audit via the injected AuditorContext,
-        extract findings["findings"] list, filter to target rule, and return
-        normalized dicts with line numbers extracted from the message string.
+        Run a filtered constitutional audit for the target rule only and
+        return normalized dicts with line numbers.
+
+        Routes through will.audit_violation.normalizer.normalize_audit_findings
+        — the same filtered-audit-inside-a-session path the audit_sensor_*
+        family uses — so only ai.prompt.model_required's engine executes.
+        Never ConstitutionalAuditor.run_full_audit_async(): that runs every
+        mapped engine, llm_gate included, and this worker declares no LLM.
         """
-        from mind.governance.auditor import ConstitutionalAuditor
+        from will.audit_violation.normalizer import normalize_audit_findings
 
-        auditor_context = self._core_context.auditor_context
-        auditor = ConstitutionalAuditor(auditor_context)
-
-        # run_full_audit_async() returns a dict:
-        # {"findings": [AuditFinding, ...], "stats": ..., "verdict": ...}
-        result = await auditor.run_full_audit_async()
-        raw_findings = result["findings"]
+        raw_findings = await normalize_audit_findings(
+            self._core_context,
+            rule_namespace=_TARGET_RULE,
+            rule_ids=[_TARGET_RULE],
+        )
 
         violations = []
         for finding in raw_findings:
-            # Normalize: AuditFinding dataclass or dict
-            if isinstance(finding, dict):
-                check_id = finding.get("check_id", "")
-                file_path = finding.get("file_path")
-                message = finding.get("message", "")
-                severity = str(finding.get("severity", "error"))
-            else:
-                check_id = getattr(finding, "check_id", "")
-                file_path = getattr(finding, "file_path", None)
-                message = getattr(finding, "message", "")
-                severity = str(getattr(finding, "severity", "error"))
-
-            if check_id != _TARGET_RULE:
+            # Filtered audit only ran the target rule, but keep the check —
+            # the normalizer falls back to rule_namespace for findings that
+            # arrive without a check_id.
+            if finding.get("rule_id") != _TARGET_RULE:
                 continue
-            if not file_path:
+            file_path = finding.get("file_path")
+            if not file_path or str(file_path).startswith("__symbol_pair__"):
                 continue
+            message = finding.get("message", "")
+            severity = str(finding.get("severity", "error"))
 
-            # line_number is None on AuditFinding — extract from message
-            # Message format: "Line 163: direct call to 'make_request_async()' ..."
-            line_number: int | None = None
-            m = _LINE_RE.search(message)
-            if m:
-                line_number = int(m.group(1))
+            # line_number is usually None on AuditFinding — fall back to the
+            # message text. Message format: "Line 163: direct call to ..."
+            line_number: int | None = finding.get("line_number")
+            if line_number is None:
+                m = _LINE_RE.search(message)
+                if m:
+                    line_number = int(m.group(1))
 
             if line_number is None:
                 logger.warning(

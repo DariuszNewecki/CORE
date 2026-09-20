@@ -22,10 +22,14 @@ identity:
 
 mandate:
   responsibility: >
-    Run the constitutional auditor, extract findings for quality.* rules
-    listed in .intent/enforcement/config/audit_ingest.yaml, apply the D5
-    per-rule cap, deduplicate against existing blackboard subjects, and post
-    each new finding to the blackboard for downstream visibility.
+    Run a filtered constitutional audit for the quality.* rules listed in
+    .intent/enforcement/config/audit_ingest.yaml (via
+    will.audit_violation.normalizer, the same filtered-audit-in-session path
+    the audit_sensor_* family uses), apply the D5 per-rule cap, deduplicate
+    against existing blackboard subjects, and post each new finding to the
+    blackboard for downstream visibility. Never the full audit: that executes
+    every mapped engine, llm_gate included, which is incompatible with
+    permitted_tools: [] (2026-09-20 LocalCoder spend finding).
   phase: audit
   permitted_tools: []
   scope:

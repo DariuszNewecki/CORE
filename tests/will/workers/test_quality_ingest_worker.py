@@ -8,6 +8,8 @@ Covers:
 - _apply_cap() orders by issue_count descending and caps per rule.
 - run() deduplicates against existing blackboard subjects.
 - run() posts findings for all enabled rules (multi-rule path).
+- _run_audit() routes through the filtered normalizer path scoped to the
+  enabled rules and groups by rule id (never the full audit — llm_gate).
 """
 
 from __future__ import annotations
@@ -59,13 +61,13 @@ def _patch_config(enabled_rules: list, cap: int = 25):
     )
 
 
-def _patch_auditor(findings: list):
-    mock_auditor = MagicMock()
-    mock_auditor.run_full_audit_async = AsyncMock(
-        return_value={"findings": findings, "stats": {}, "verdict": "PASS"}
+def _patch_normalizer(findings: list):
+    """Patch the filtered-audit path the worker routes through (2026-09-20:
+    replaced the in-process full audit, which executed llm_gate)."""
+    return patch(
+        "will.audit_violation.normalizer.normalize_audit_findings",
+        AsyncMock(return_value=findings),
     )
-    mock_cls = MagicMock(return_value=mock_auditor)
-    return patch("mind.governance.auditor.ConstitutionalAuditor", mock_cls)
 
 
 async def _empty_subjects(*_args, **_kwargs) -> set:
@@ -265,3 +267,58 @@ async def test_run_respects_cap_per_rule() -> None:
 
     report_payload = worker.post_report.call_args[1]["payload"]
     assert report_payload["skipped_cap"] == 1
+
+
+# ID: ee4e5205-c991-43cf-8eb7-34c678a59f12
+@pytest.mark.asyncio
+async def test_run_audit_uses_filtered_path_scoped_to_enabled_rules() -> None:
+    worker = _make_worker()
+    raw = [
+        {
+            "rule_id": "quality.test_integrity",
+            "file_path": "tests/x.py",
+            "message": "3 issue(s)",
+            "severity": "warning",
+            "line_number": None,
+            "context": {"issue_count": 3, "sample_issues": ["a"], "tool": "pytest"},
+        },
+        {
+            "rule_id": "quality.security_audit",
+            "file_path": "__symbol_pair__Foo",
+            "message": "sentinel",
+            "severity": "warning",
+            "line_number": None,
+            "context": {},
+        },
+        {
+            "rule_id": "quality.not_enabled",
+            "file_path": "src/y.py",
+            "message": "off-list",
+            "severity": "warning",
+            "line_number": None,
+            "context": {},
+        },
+    ]
+    normalize = AsyncMock(return_value=raw)
+    with (
+        _patch_config(["quality.test_integrity", "quality.security_audit"]),
+        patch("will.audit_violation.normalizer.normalize_audit_findings", normalize),
+    ):
+        grouped = await worker._run_audit()
+
+    normalize.assert_awaited_once_with(
+        worker._core_context,
+        rule_namespace="quality",
+        rule_ids=["quality.security_audit", "quality.test_integrity"],
+    )
+    assert grouped == {
+        "quality.test_integrity": [
+            {
+                "file_path": "tests/x.py",
+                "message": "3 issue(s)",
+                "issue_count": 3,
+                "sample_issues": ["a"],
+                "tool": "pytest",
+            }
+        ]
+    }
