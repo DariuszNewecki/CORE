@@ -220,13 +220,18 @@ async def report_revival(
     """Post the blackboard record of a revival the service already applied.
 
     Shared by the failure path (``revive_and_report``) and the no-op
-    completion path (ADR-104 D9, #901): ``ProposalExecutor`` revives the
+    completion path (ADR-104 D9/D10, #901): ``ProposalExecutor`` revives the
     findings of a ``NOTHING_TO_COMMIT`` completion itself so the proposal
     cannot complete with findings still deferred to it, and hands the
     revival dict back for the Worker to report — the posts must carry
     Worker attribution (``architecture.blackboard.worker_only_inserts``).
     *report_subject_family* names the revival report; a no-op completion is
     not a failure, so its caller passes ``proposal.noop.revival``.
+
+    Two at-cap shapes, one observation subject: the D9 failure path
+    abandons (``abandoned_*`` keys, reason ``remediation_cap_reached``); the
+    D10 no-op path delegates to the governor (``delegated_*`` keys, reason
+    ``noop_cap_delegated``, finding now ``indeterminate``/``human``).
     """
     # ADR-104 D9 (#637): findings that reached the remediation-attempt cap
     # were abandoned terminally by the service. Post one terminal Type-B
@@ -247,27 +252,42 @@ async def report_revival(
 
     cap_n = load_operational_config().blackboard.remediation_cap_n
 
-    abandoned_ids = revival.get("abandoned_finding_ids", [])
-    abandoned_subjects = revival.get("abandoned_subjects", [])
-    for entry_id, finding_subject in zip(abandoned_ids, abandoned_subjects):
+    at_cap: list[tuple[str, str, str, str]] = [
+        (entry_id, subject, "remediation_cap_reached", "abandoned")
+        for entry_id, subject in zip(
+            revival.get("abandoned_finding_ids", []),
+            revival.get("abandoned_subjects", []),
+        )
+    ] + [
+        (entry_id, subject, "noop_cap_delegated", "indeterminate")
+        for entry_id, subject in zip(
+            revival.get("delegated_finding_ids", []),
+            revival.get("delegated_subjects", []),
+        )
+    ]
+    for entry_id, finding_subject, cap_reason, finding_status in at_cap:
         try:
             await worker.post_observation(
                 subject=f"blackboard.remediation_cap_reached::{finding_subject}",
                 payload={
                     "entry_id": entry_id,
                     "finding_subject": finding_subject,
+                    "finding_status": finding_status,
                     "proposal_id": revival["proposal_id"],
                     "failure_reason": revival["failure_reason"],
-                    "reason": "remediation_cap_reached",
+                    "reason": cap_reason,
                     "remediation_cap_n": cap_n,
                 },
                 status="abandoned",
             )
             logger.warning(
-                "ProposalConsumerWorker: finding %s (%s) abandoned at remediation "
+                "ProposalConsumerWorker: finding %s (%s) %s at remediation "
                 "cap (n=%d) for proposal %s",
                 entry_id,
                 finding_subject,
+                "delegated to the governor"
+                if finding_status == "indeterminate"
+                else "abandoned",
                 cap_n,
                 proposal_id,
             )
@@ -280,7 +300,7 @@ async def report_revival(
                 obs_err,
             )
 
-    if revival.get("revived_count", 0) == 0:
+    if revival.get("revived_count", 0) == 0 and not revival.get("delegated_count"):
         return
 
     try:
@@ -291,6 +311,8 @@ async def report_revival(
                 "failure_reason": revival["failure_reason"],
                 "revived_count": revival["revived_count"],
                 "revived_subjects": revival["revived_subjects"],
+                "delegated_count": revival.get("delegated_count", 0),
+                "delegated_subjects": revival.get("delegated_subjects", []),
             },
         )
         logger.info(

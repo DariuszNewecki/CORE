@@ -676,6 +676,170 @@ class BlackboardProposalService:
             "abandoned_subjects": abandoned_subjects,
         }
 
+    # ID: d6660208-ab59-4dca-9f41-e5881850037d
+    async def revive_or_delegate_findings_for_noop_proposal(
+        self,
+        proposal_id: str,
+        reason: str,
+        remediation_cap_n: int,
+    ) -> dict[str, Any] | None:
+        """
+        Revive findings deferred to a proposal that completed without
+        changing anything, delegating those at the cap to the governor
+        (ADR-104 D10, #901).
+
+        The no-op counterpart of ``revive_findings_for_failed_proposal``
+        with a different terminal. Below the cap the two are identical: the
+        finding returns to ``awaiting_reaudit`` with
+        ``remediation_attempt_count`` incremented, for the audit sensor to
+        re-adjudicate. At the cap the finding is NOT abandoned — a fixer
+        that ran clean ``remediation_cap_n`` times and changed nothing
+        cannot touch this violation, which is a mapping error only a human
+        can resolve — so it transitions to ``status='indeterminate'`` with
+        ``resolution_mechanism='human'`` co-assigned in the same SET clause
+        (``architecture.blackboard.indeterminate_requires_human_mechanism``;
+        ADR-091 D2 Amendment; precedent ADR-150 D2). This is a dedicated
+        method with the literal terminal in its own SQL, deliberately not a
+        terminal-state parameter on the D9 predicate: the D9 failure path
+        stays untouched by construction, and the two governed terminals read
+        as two decisions in the source.
+
+        ``indeterminate`` is in the sensor's active-subject dedup set, so the
+        delegated finding is not re-posted while the violation persists;
+        ADR-127's clean-pass drain is its sole automated exit. UPDATE-only;
+        the calling Worker posts the cap observation and the revival report
+        (``architecture.blackboard.worker_only_inserts``).
+
+        Returns None when nothing was deferred to *proposal_id*; otherwise a
+        dict shaped like the D9 predicate's, with ``delegated_*`` in place of
+        ``abandoned_*``.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                selected = await session.execute(
+                    text(
+                        """
+                        SELECT id::text, subject,
+                               COALESCE(
+                                   (payload->>'remediation_attempt_count')::int,
+                                   0
+                               )
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND resolution_mechanism = 'reaudit'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                rows = selected.fetchall()
+                # (count + 1) is the attempt this no-op represents.
+                to_delegate = [
+                    (r[0], r[1]) for r in rows if (r[2] + 1) >= remediation_cap_n
+                ]
+                to_revive = [
+                    (r[0], r[1]) for r in rows if (r[2] + 1) < remediation_cap_n
+                ]
+
+                if to_revive:
+                    # Identical to the D9 below-cap revival: reaudit guard
+                    # preserved in the UPDATE WHERE.
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'awaiting_reaudit',
+                                claimed_by = NULL,
+                                claimed_at = NULL,
+                                resolved_at = NULL,
+                                payload = jsonb_set(
+                                    payload,
+                                    '{remediation_attempt_count}',
+                                    to_jsonb(COALESCE(
+                                        (payload->>'remediation_attempt_count')::int,
+                                        0
+                                    ) + 1)
+                                ),
+                                updated_at = now()
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND resolution_mechanism = 'reaudit'
+                              AND status = 'deferred_to_proposal'
+                            """
+                        ),
+                        {"ids": [i for i, _ in to_revive]},
+                    )
+
+                if to_delegate:
+                    # ADR-104 D10: hand to the governor. The delegation
+                    # transition owns resolution_mechanism (ADR-091 D2
+                    # Amendment) — 'human' is co-assigned here, literally.
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'indeterminate',
+                                resolution_mechanism = 'human',
+                                claimed_by = NULL,
+                                claimed_at = NULL,
+                                resolved_at = NULL,
+                                payload = jsonb_set(
+                                    jsonb_set(
+                                        payload,
+                                        '{remediation_attempt_count}',
+                                        to_jsonb(COALESCE(
+                                            (payload->>'remediation_attempt_count')::int,
+                                            0
+                                        ) + 1)
+                                    ),
+                                    '{delegation}',
+                                    jsonb_build_object(
+                                        'reason', 'noop_cap_delegated',
+                                        'detail', cast(:reason as text),
+                                        'proposal_id', cast(:proposal_id as text),
+                                        'delegated_at', to_char(now() at time zone 'UTC',
+                                                                'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                    ),
+                                    true
+                                ),
+                                updated_at = now()
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'deferred_to_proposal'
+                            """
+                        ),
+                        {
+                            "ids": [i for i, _ in to_delegate],
+                            "reason": reason,
+                            "proposal_id": proposal_id,
+                        },
+                    )
+
+        revived_ids = [i for i, _ in to_revive]
+        delegated_ids = [i for i, _ in to_delegate]
+        logger.info(
+            "Revived %d / delegated %d finding(s) for no-op proposal %s (reason: %s)",
+            len(revived_ids),
+            len(delegated_ids),
+            proposal_id,
+            reason,
+        )
+
+        if not revived_ids and not delegated_ids:
+            return None
+
+        return {
+            "proposal_id": proposal_id,
+            "failure_reason": reason,
+            "revived_count": len(revived_ids),
+            "revived_finding_ids": revived_ids,
+            "revived_subjects": [s for _, s in to_revive],
+            "delegated_count": len(delegated_ids),
+            "delegated_finding_ids": delegated_ids,
+            "delegated_subjects": [s for _, s in to_delegate],
+        }
+
     # ID: 90c7c05a-a380-4d5a-9b1e-a911c3ed5d02
     async def resolve_deferred_entries_for_completed_proposal(
         self, proposal_id: str

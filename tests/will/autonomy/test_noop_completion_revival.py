@@ -10,8 +10,10 @@ next no-op proposal with every rail reset (809 such proposals in the week
 before the fix). Three layers are pinned here:
 
 - the pipeline helper ``revive_deferred_findings_for_noop`` calls the
-  capped revival predicate with the governed cap and returns the revival
-  for the Worker to report (it never posts itself —
+  no-op predicate (``revive_or_delegate_findings_for_noop_proposal`` —
+  ADR-104 D10: at cap the finding is delegated to the governor, not
+  abandoned) with the governed cap and returns the revival for the Worker
+  to report (it never posts itself —
   ``architecture.blackboard.worker_only_inserts``);
 - ``ProposalExecutor.execute`` routes a NOTHING_TO_COMMIT outcome to that
   helper, not to ``resolve_deferred_findings``, records no
@@ -20,7 +22,9 @@ before the fix). Three layers are pinned here:
   ``commit_outcome`` + ``findings_revival`` in its result;
 - ``report_revival`` names the report by the caller's subject family, so a
   no-op completion is reported as ``proposal.noop.revival``, not as a
-  failure.
+  failure, and posts the cap observation with ``reason=noop_cap_delegated``
+  for delegated findings (``remediation_cap_reached`` stays the D9
+  failure-path reason).
 
 Every collaborator is mocked; no DB, no blackboard.
 """
@@ -53,12 +57,12 @@ async def test_helper_revives_with_governed_cap_and_returns_revival() -> None:
         "revived_count": 1,
         "revived_finding_ids": ["f-1"],
         "revived_subjects": ["python::rule::a.py"],
-        "abandoned_count": 0,
-        "abandoned_finding_ids": [],
-        "abandoned_subjects": [],
+        "delegated_count": 0,
+        "delegated_finding_ids": [],
+        "delegated_subjects": [],
     }
     bb = MagicMock()
-    bb.revive_findings_for_failed_proposal = AsyncMock(return_value=revival)
+    bb.revive_or_delegate_findings_for_noop_proposal = AsyncMock(return_value=revival)
     config = MagicMock()
     config.blackboard.remediation_cap_n = 3
 
@@ -77,9 +81,9 @@ async def test_helper_revives_with_governed_cap_and_returns_revival() -> None:
 
     assert adjudicated is True
     assert got is revival
-    bb.revive_findings_for_failed_proposal.assert_awaited_once_with(
+    bb.revive_or_delegate_findings_for_noop_proposal.assert_awaited_once_with(
         proposal_id="pid-noop",
-        failure_reason=NOOP_COMPLETION_REASON,
+        reason=NOOP_COMPLETION_REASON,
         remediation_cap_n=3,
     )
 
@@ -89,7 +93,7 @@ async def test_helper_reports_not_adjudicated_when_the_service_raises() -> None:
     """A revival outage must leave the proposal FINALIZING (recoverable by
     the reaper), never COMPLETED with findings still deferred to it."""
     bb = MagicMock()
-    bb.revive_findings_for_failed_proposal = AsyncMock(
+    bb.revive_or_delegate_findings_for_noop_proposal = AsyncMock(
         side_effect=RuntimeError("db down")
     )
     with patch(
@@ -272,8 +276,9 @@ async def test_report_revival_uses_the_callers_subject_family() -> None:
         "failure_reason": NOOP_COMPLETION_REASON,
         "revived_count": 1,
         "revived_subjects": ["python::rule::a.py"],
-        "abandoned_finding_ids": ["f-2"],
-        "abandoned_subjects": ["python::rule::b.py"],
+        "delegated_count": 1,
+        "delegated_finding_ids": ["f-2"],
+        "delegated_subjects": ["python::rule::b.py"],
     }
     config = MagicMock()
     config.blackboard.remediation_cap_n = 3
@@ -285,35 +290,75 @@ async def test_report_revival_uses_the_callers_subject_family() -> None:
             worker, "pid-noop", revival, report_subject_family="proposal.noop.revival"
         )
 
-    # One terminal cap observation per abandoned finding (ADR-104 D9 / D4).
+    # One cap observation per delegated finding (ADR-104 D10 / D4), same
+    # subject family as the D9 abandon but a distinguishable reason.
     worker.post_observation.assert_awaited_once()
     obs = worker.post_observation.await_args.kwargs
     assert obs["subject"] == "blackboard.remediation_cap_reached::python::rule::b.py"
-    assert obs["status"] == "abandoned"
+    assert obs["payload"]["reason"] == "noop_cap_delegated"
+    assert obs["payload"]["finding_status"] == "indeterminate"
     assert obs["payload"]["remediation_cap_n"] == 3
-    # The revival report is named as a no-op, not a failure.
+    # The revival report is named as a no-op, not a failure, and carries
+    # both counters.
     worker.post_report.assert_awaited_once()
-    assert (
-        worker.post_report.await_args.kwargs["subject"]
-        == "proposal.noop.revival::pid-noop"
-    )
+    report = worker.post_report.await_args.kwargs
+    assert report["subject"] == "proposal.noop.revival::pid-noop"
+    assert report["payload"]["delegated_count"] == 1
+    assert report["payload"]["delegated_subjects"] == ["python::rule::b.py"]
 
 
-# ID: c0e48a3f-d07f-467d-86c2-19eed9015d63
-async def test_report_revival_default_family_is_unchanged_for_failures() -> None:
+# ID: 8c272420-db4c-4642-9bb5-3c953f0b20aa
+async def test_report_revival_posts_report_when_only_delegations_happened() -> None:
+    """A no-op proposal whose every finding hit the cap revives nothing;
+    the delegation still has to be named on the board."""
     worker = MagicMock()
     worker.post_report = AsyncMock()
     worker.post_observation = AsyncMock()
     await report_revival(
         worker,
-        "pid-fail",
+        "pid-noop",
         {
-            "proposal_id": "pid-fail",
-            "failure_reason": "boom",
-            "revived_count": 1,
-            "revived_subjects": ["s"],
+            "proposal_id": "pid-noop",
+            "failure_reason": NOOP_COMPLETION_REASON,
+            "revived_count": 0,
+            "revived_subjects": [],
+            "delegated_count": 1,
+            "delegated_finding_ids": ["f-3"],
+            "delegated_subjects": ["python::rule::c.py"],
         },
+        report_subject_family="proposal.noop.revival",
     )
+    worker.post_observation.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+
+
+# ID: c0e48a3f-d07f-467d-86c2-19eed9015d63
+async def test_report_revival_default_family_is_unchanged_for_failures() -> None:
+    """D9 failure path: abandoned findings keep reason remediation_cap_reached."""
+    worker = MagicMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+    config = MagicMock()
+    config.blackboard.remediation_cap_n = 3
+    with patch(
+        "shared.infrastructure.intent.operational_config.load_operational_config",
+        return_value=config,
+    ):
+        await report_revival(
+            worker,
+            "pid-fail",
+            {
+                "proposal_id": "pid-fail",
+                "failure_reason": "boom",
+                "revived_count": 1,
+                "revived_subjects": ["s"],
+                "abandoned_finding_ids": ["f-9"],
+                "abandoned_subjects": ["python::rule::z.py"],
+            },
+        )
+    obs = worker.post_observation.await_args.kwargs["payload"]
+    assert obs["reason"] == "remediation_cap_reached"
+    assert obs["finding_status"] == "abandoned"
     assert (
         worker.post_report.await_args.kwargs["subject"]
         == "proposal.failure.revival::pid-fail"

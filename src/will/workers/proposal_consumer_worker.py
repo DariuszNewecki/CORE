@@ -112,6 +112,7 @@ class ProposalConsumerWorker(Worker):
         failed = 0
         pending = 0
         no_op = 0
+        no_op_delegated = 0
         results: list[dict[str, Any]] = []
 
         try:
@@ -162,13 +163,17 @@ class ProposalConsumerWorker(Worker):
                         findings_revival = result.get("findings_revival")
                         if findings_revival:
                             no_op += 1
+                            no_op_delegated += findings_revival.get(
+                                "delegated_count", 0
+                            )
                             logger.warning(
                                 "ProposalConsumerWorker: proposal '%s' completed "
                                 "with nothing to commit — %d deferred finding(s) "
-                                "revived, %d abandoned at the remediation cap",
+                                "revived, %d delegated to the governor at the "
+                                "remediation cap (ADR-104 D10)",
                                 proposal_id,
                                 findings_revival.get("revived_count", 0),
-                                findings_revival.get("abandoned_count", 0),
+                                findings_revival.get("delegated_count", 0),
                             )
                             await report_revival(
                                 self,
@@ -228,6 +233,16 @@ class ProposalConsumerWorker(Worker):
                             "actions_failed": result.get("actions_failed", 0),
                             "duration_sec": result.get("duration_sec", 0),
                             "commit_outcome": result.get("commit_outcome"),
+                            "findings_revived": (
+                                (result.get("findings_revival") or {}).get(
+                                    "revived_count", 0
+                                )
+                            ),
+                            "findings_delegated": (
+                                (result.get("findings_revival") or {}).get(
+                                    "delegated_count", 0
+                                )
+                            ),
                             "error": result.get("error"),
                             "flow_step_failures": flow_step_failures,
                         }
@@ -274,6 +289,7 @@ class ProposalConsumerWorker(Worker):
                 "executed": len(results),
                 "succeeded": succeeded,
                 "no_op": no_op,
+                "no_op_delegated": no_op_delegated,
                 "failed": failed,
                 "pending": pending,
                 "results": results,

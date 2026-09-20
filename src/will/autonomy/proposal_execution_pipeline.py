@@ -125,22 +125,24 @@ async def revive_deferred_findings_for_noop(
     """Revive findings deferred to a proposal that completed without changing
     anything — the no-op counterpart of ``resolve_deferred_findings``.
 
-    ADR-104 D9 (#901): a ``CommitOutcome.NOTHING_TO_COMMIT`` completion is a
-    legitimate proposal outcome (ADR-148 D3) but it remediated nothing, so it
-    must not mark its deferred findings ``resolved`` — that claim would be
+    ADR-104 D9/D10 (#901): a ``CommitOutcome.NOTHING_TO_COMMIT`` completion is
+    a legitimate proposal outcome (ADR-148 D3) but it remediated nothing, so
+    it must not mark its deferred findings ``resolved`` — that claim would be
     false, and the sensor's re-detection would mint the next no-op proposal
-    with every rail reset. Instead the findings take the same capped path a
-    failed proposal's findings take: ``awaiting_reaudit`` with
-    ``remediation_attempt_count`` incremented, abandoned (terminal Type-B)
-    at ``remediation_cap_n``. A finding whose violation was in fact cleared
-    by someone else lands in the same place and is resolved truthfully by
-    the audit sensor's reaudit drain.
+    with every rail reset. Below the cap the findings take the D9 path
+    (``awaiting_reaudit``, ``remediation_attempt_count`` incremented); a
+    finding whose violation was in fact cleared by someone else is resolved
+    truthfully there by the audit sensor's reaudit drain. At
+    ``remediation_cap_n`` the finding is delegated to the governor
+    (``indeterminate`` + ``human``, D10) rather than abandoned: a fixer that
+    ran clean that many times and changed nothing cannot touch this
+    violation, and only a human can say what should.
 
     Returns ``(adjudicated, revival)``: *adjudicated* is the finalization
     verdict the executor gates completion on (True also for zero deferred
     findings), *revival* is the service's revival dict (or None) for the
-    calling Worker to report — the abandon-at-cap observation is posted by
-    a Worker, never here (``architecture.blackboard.worker_only_inserts``).
+    calling Worker to report — the cap observation is posted by a Worker,
+    never here (``architecture.blackboard.worker_only_inserts``).
     """
     from shared.infrastructure.intent.operational_config import (
         load_operational_config,
@@ -149,18 +151,18 @@ async def revive_deferred_findings_for_noop(
     try:
         cap_n = load_operational_config().blackboard.remediation_cap_n
         bb_service = await service_registry.get_blackboard_service()
-        revival = await bb_service.revive_findings_for_failed_proposal(
+        revival = await bb_service.revive_or_delegate_findings_for_noop_proposal(
             proposal_id=proposal_id,
-            failure_reason=NOOP_COMPLETION_REASON,
+            reason=NOOP_COMPLETION_REASON,
             remediation_cap_n=cap_n,
         )
         if revival:
             logger.info(
                 "ProposalExecutor: no-op completion of proposal %s — revived %d / "
-                "abandoned %d deferred finding(s) instead of resolving them",
+                "delegated %d deferred finding(s) instead of resolving them",
                 proposal_id,
                 revival.get("revived_count", 0),
-                revival.get("abandoned_count", 0),
+                revival.get("delegated_count", 0),
             )
         return True, revival
     except Exception as revive_err:

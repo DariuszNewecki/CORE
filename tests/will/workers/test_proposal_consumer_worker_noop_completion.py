@@ -86,7 +86,7 @@ async def _run(worker: ProposalConsumerWorker, result: dict[str, object]) -> dic
 # ID: 0497e3ae-cad8-49f6-83bf-832549fc00ab
 async def test_noop_completion_reports_revival_and_counts_no_op() -> None:
     worker = _make_worker_instance()
-    revival = {"proposal_id": "pid-1", "revived_count": 1, "abandoned_count": 0}
+    revival = {"proposal_id": "pid-1", "revived_count": 1, "delegated_count": 1}
     mocks = await _run(
         worker,
         _result(commit_outcome="nothing_to_commit", findings_revival=revival),
@@ -100,8 +100,11 @@ async def test_noop_completion_reports_revival_and_counts_no_op() -> None:
     payload = worker.post_report.await_args.kwargs["payload"]
     assert payload["succeeded"] == 1
     assert payload["no_op"] == 1
+    assert payload["no_op_delegated"] == 1
     assert payload["failed"] == 0
     assert payload["results"][0]["commit_outcome"] == "nothing_to_commit"
+    assert payload["results"][0]["findings_revived"] == 1
+    assert payload["results"][0]["findings_delegated"] == 1
 
 
 # ID: 6c609523-01a5-4cda-b2d4-d682b6c1dc17
@@ -115,3 +118,5 @@ async def test_real_completion_does_not_touch_the_revival_path() -> None:
     payload = worker.post_report.await_args.kwargs["payload"]
     assert payload["succeeded"] == 1
     assert payload["no_op"] == 0
+    assert payload["no_op_delegated"] == 0
+    assert payload["results"][0]["findings_delegated"] == 0
