@@ -363,3 +363,33 @@ async def test_report_revival_default_family_is_unchanged_for_failures() -> None
         worker.post_report.await_args.kwargs["subject"]
         == "proposal.failure.revival::pid-fail"
     )
+
+
+# ID: a4286ef6-4525-47a8-b815-90f7fc92e547
+async def test_report_revival_accepts_reject_path_reason_key() -> None:
+    """The reject-path predicates (delegated / ceremony) return ``reason``, the
+    failure-path ones ``failure_reason``. The first live stuck-deferred-terminal
+    cycle (2026-09-20) delegated 37 findings correctly and lost every report
+    to a KeyError on the missing key — the record must not depend on which
+    predicate produced the revival."""
+    worker = MagicMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+    await report_revival(
+        worker,
+        "pid-rej",
+        {
+            "proposal_id": "pid-rej",
+            "reason": "stuck_deferred_terminal: rejected, delegated",
+            "revived_count": 2,
+            "revived_finding_ids": ["f-1", "f-2"],
+            "revived_subjects": ["s1", "s2"],
+        },
+        report_subject_family="proposal.stuck_deferred_terminal.delegated",
+    )
+    worker.post_report.assert_awaited_once()
+    kwargs = worker.post_report.await_args.kwargs
+    assert kwargs["subject"] == "proposal.stuck_deferred_terminal.delegated::pid-rej"
+    assert kwargs["payload"]["failure_reason"] == (
+        "stuck_deferred_terminal: rejected, delegated"
+    )

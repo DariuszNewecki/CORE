@@ -265,6 +265,12 @@ async def report_revival(
             revival.get("delegated_subjects", []),
         )
     ]
+    # The failure-path predicates return "failure_reason"; the reject-path
+    # ones (delegated / ceremony) return "reason". Read either — the first
+    # live stuck_deferred_terminal cycle (2026-09-20) delegated 37 findings
+    # correctly and lost every report to a KeyError here.
+    reason_text = revival.get("failure_reason", revival.get("reason"))
+
     for entry_id, finding_subject, cap_reason, finding_status in at_cap:
         try:
             await worker.post_observation(
@@ -274,7 +280,7 @@ async def report_revival(
                     "finding_subject": finding_subject,
                     "finding_status": finding_status,
                     "proposal_id": revival["proposal_id"],
-                    "failure_reason": revival["failure_reason"],
+                    "failure_reason": reason_text,
                     "reason": cap_reason,
                     "remediation_cap_n": cap_n,
                 },
@@ -308,7 +314,7 @@ async def report_revival(
             subject=f"{report_subject_family}::{proposal_id}",
             payload={
                 "proposal_id": revival["proposal_id"],
-                "failure_reason": revival["failure_reason"],
+                "failure_reason": reason_text,
                 "revived_count": revival["revived_count"],
                 "revived_subjects": revival["revived_subjects"],
                 "delegated_count": revival.get("delegated_count", 0),
