@@ -75,6 +75,16 @@ def _workspace(tmp_path: Path, schema_sql: Path = SCHEMA_SQL) -> Path:
         "poetry": (
             "#!/bin/bash\n"
             'printf "%s\\n" "$*" >> "$CALL_LOG"\n'
+            # The verify step's offline audit has no .intent/ to read in this
+            # throwaway workspace; answer with the verdict a healthy tree gives
+            # (DEGRADED, exit 1; #907) so the installer's JSON gate is exercised
+            # for real while the database facts stay the real ones under test.
+            'if [ "$1" = "run" ] && [ "$2" = "core-admin" ] && [ "$3" = "code" ] '
+            '&& [ "$4" = "audit" ]; then printf \'%s\' '
+            '\'{"verdict":"DEGRADED","findings":[],"stats":{"skipped_blocking_rule_ids":["x.y"]}}\'; '
+            "exit 1; fi\n"
+            'if [ "$1" = "run" ] && [ "$2" = "python" ]; then shift 2; '
+            f'exec "{sys.executable}" "$@"; fi\n'
             'if [ "$1" = "run" ] && [ "$2" = "core-admin" ]; then shift 2; '
             f'exec "{exe}" "$@"; fi\n'
             "exit 0\n"

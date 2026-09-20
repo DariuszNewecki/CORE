@@ -25,6 +25,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -49,7 +50,18 @@ _FAKES: dict[str, str] = {
     # `poetry run core-admin database status` is the installer's read-only
     # schema check (U8a); here it reports CURRENT (exit 0) so the U1 tests
     # exercise the "existing current database" branch exactly as before.
-    "poetry": "#!/bin/bash\nexit 0\n",
+    # The verify step's offline audit answers with the verdict a healthy tree
+    # gives (DEGRADED, exit 1; #907) and `poetry run python -` delegates to the
+    # real interpreter so the installer's JSON gate runs for real.
+    "poetry": (
+        "#!/bin/bash\n"
+        'case "$*" in\n'
+        '  "run core-admin code audit"*)\n'
+        '    printf \'{"verdict":"DEGRADED","findings":[],"stats":{"skipped_blocking_rule_ids":["x.y"]}}\'; exit 1 ;;\n'
+        '  "run python -"*) shift 2; exec "$REAL_PYTHON" "$@" ;;\n'
+        "  *) exit 0 ;;\n"
+        "esac\n"
+    ),
     "curl": "#!/bin/bash\nexit 0\n",
     # Record every argv psql receives (one line per call) so the tests can see
     # which URL form libpq was handed. Never printed by the tests. The `core`
@@ -67,7 +79,7 @@ _FAKES: dict[str, str] = {
     "docker": (
         "#!/bin/bash\n"
         'case "$*" in\n'
-        '  "compose version"|"compose up -d") exit 0 ;;\n'
+        '  "compose version"|"compose up -d"|info) exit 0 ;;\n'
         '  "compose logs postgres")\n'
         '    printf "PostgreSQL init process complete; ready for start up.\\n"\n'
         '    printf "database system is ready to accept connections\\n"; exit 0 ;;\n'
@@ -105,6 +117,7 @@ def _run(
         "PATH": os.pathsep.join([str(ws.parent / "bin"), os.environ.get("PATH", "")]),
         "PSQL_LOG": str(psql_log),
         "PSQL_FAIL": "1" if psql_fail else "",
+        "REAL_PYTHON": sys.executable,
     }
     proc = subprocess.run(
         ["bash", str(ws / "install-core.sh"), *args],

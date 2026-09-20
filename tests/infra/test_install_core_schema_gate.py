@@ -31,6 +31,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,12 @@ QDRANT = "http://qdrant.internal:6333"
 #   FAKE_CORE_NS   0|1     -> answer to the `core` namespace probe
 #   FAKE_STATUS_RC 0|1|2   -> exit code of `core-admin database status`
 #   FAKE_LOAD_FAIL 1       -> the atomic schema.sql load fails
+#   FAKE_AUDIT     PASS|DEGRADED|FAIL|GARBAGE -> what `core-admin code audit
+#                  --offline --format=json` emits at the verify step (the real
+#                  offline audit is DEGRADED, exit 1, on a healthy tree; #907)
+#   FAKE_DOCKER_DOWN 1     -> `docker info` fails (daemon not running)
+#   REAL_PYTHON    path    -> interpreter `poetry run python` delegates to, so
+#                  the verify step's JSON gate runs for real
 _FAKES: dict[str, str] = {
     "python3": "#!/bin/bash\necho 3.12\n",
     "curl": "#!/bin/bash\nexit 0\n",
@@ -60,6 +67,14 @@ _FAKES: dict[str, str] = {
         '    printf "%s\\n" "status-url=${DATABASE_URL:-<unset>}" >> "$CALL_LOG"\n'
         '    echo "STATUS REPORT (fake) rc=${FAKE_STATUS_RC:-0}"\n'
         '    exit "${FAKE_STATUS_RC:-0}" ;;\n'
+        '  "run core-admin code audit"*)\n'
+        '    case "${FAKE_AUDIT:-DEGRADED}" in\n'
+        '      PASS) printf \'{"verdict":"PASS","findings":[],"stats":{"skipped_blocking_rule_ids":[]}}\'; exit 0 ;;\n'
+        '      DEGRADED) printf \'{"verdict":"DEGRADED","findings":[],"stats":{"skipped_blocking_rule_ids":["a.b","c.d","e.f"]}}\'; exit 1 ;;\n'
+        '      FAIL) printf \'{"verdict":"FAIL","findings":[{"severity":"block"},{"severity":"block"}],"stats":{}}\'; exit 1 ;;\n'
+        '      *) printf "not json"; exit 2 ;;\n'
+        "    esac ;;\n"
+        '  "run python -"*) shift 2; exec "$REAL_PYTHON" "$@" ;;\n'
         "  *) exit 0 ;;\n"
         "esac\n"
     ),
@@ -79,6 +94,7 @@ _FAKES: dict[str, str] = {
         'printf "docker %s\\n" "$*" >> "$CALL_LOG"\n'
         'case "$*" in\n'
         '  "compose version"|"compose up -d") exit 0 ;;\n'
+        '  info) [ -n "${FAKE_DOCKER_DOWN:-}" ] && exit 1; exit 0 ;;\n'
         '  "compose logs postgres")\n'
         '    printf "PostgreSQL init process complete; ready for start up.\\n"\n'
         '    printf "database system is ready to accept connections\\n"; exit 0 ;;\n'
@@ -112,6 +128,8 @@ def _run(
     core_ns: str = "1",
     status_rc: str = "0",
     load_fail: bool = False,
+    audit: str = "DEGRADED",
+    docker_down: bool = False,
 ) -> tuple[int, str, list[str]]:
     log = ws.parent / "calls.log"
     env = {
@@ -121,6 +139,9 @@ def _run(
         "FAKE_CORE_NS": core_ns,
         "FAKE_STATUS_RC": status_rc,
         "FAKE_LOAD_FAIL": "1" if load_fail else "",
+        "FAKE_AUDIT": audit,
+        "FAKE_DOCKER_DOWN": "1" if docker_down else "",
+        "REAL_PYTHON": sys.executable,
     }
     proc = subprocess.run(
         ["bash", str(ws / "install-core.sh"), *args],
@@ -341,6 +362,84 @@ def test_docker_status_check_does_not_override_the_env_it_wrote(tmp_path: Path) 
     assert code == 0
     handed = [c for c in calls if c.startswith("status-url=")]
     assert handed == ["status-url=<unset>"]  # the runtime's own .env applies
+
+
+# ── verify step: JSON verdict, not exit code; refusals describe state ───────
+#
+# The offline audit exits 1 on a healthy tree (DEGRADED: DB/graph-dependent
+# blocking rules are not evaluable without services; #907). The installer must
+# read the JSON verdict like CI does (core-ci.yml), accept PASS and DEGRADED,
+# and fail closed on FAIL / unreadable output -- saying what it already
+# started.
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: 66b3e1d2-a474-487d-a639-43de3d72cd46
+def test_degraded_audit_verdict_is_reported_as_clean_not_findings(
+    tmp_path: Path, path: str
+) -> None:
+    ws = _workspace(tmp_path)
+    code, out, _ = _bare(ws) if path == "bare" else _run(ws)
+    assert code == 0
+    assert "tree clean (0 blocking findings)" in out
+    assert "3 blocking rule(s) need running services" in out
+    assert "reported findings" not in out
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: d9a8bc1f-86cd-4977-ae27-06bac2955b13
+def test_pass_audit_verdict_is_ok(tmp_path: Path, path: str) -> None:
+    ws = _workspace(tmp_path)
+    code, out, _ = _bare(ws, audit="PASS") if path == "bare" else _run(ws, audit="PASS")
+    assert code == 0
+    assert "constitutional audit: PASS" in out
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: c88762bc-3909-425d-8ebe-76198307de48
+def test_fail_audit_verdict_refuses_and_describes_what_is_running(
+    tmp_path: Path, path: str
+) -> None:
+    ws = _workspace(tmp_path)
+    code, out, calls = (
+        _bare(ws, audit="FAIL") if path == "bare" else _run(ws, audit="FAIL")
+    )
+    assert code == 1
+    assert "offline audit FAIL: 2 blocking finding(s)" in out
+    assert _no_service_started(out, calls)
+    assert "please report it" in out
+    if path == "docker":
+        assert "Postgres + Qdrant are running" in out
+        assert "docker compose down" in out
+    else:
+        assert "nothing was started by this installer" in out
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: fc791c41-3997-46ef-aa01-8afcd9755872
+def test_unreadable_audit_output_fails_closed(tmp_path: Path, path: str) -> None:
+    ws = _workspace(tmp_path)
+    code, out, calls = (
+        _bare(ws, audit="GARBAGE") if path == "bare" else _run(ws, audit="GARBAGE")
+    )
+    assert code == 1
+    assert "no recognisable verdict" in out
+    assert _no_service_started(out, calls)
+
+
+# ── Docker preflight: the daemon must be reachable, not just installed ──────
+
+
+# ID: 0d27ae25-f506-4dd8-97b4-ce018be6b42b
+def test_docker_daemon_down_refuses_at_preflight_before_compose_up(
+    tmp_path: Path,
+) -> None:
+    ws = _workspace(tmp_path)
+    code, out, calls = _run(ws, docker_down=True)
+    assert code == 1
+    assert "daemon is not running" in out
+    assert not any(c.startswith("docker compose up") for c in calls)
+    assert _loads(calls) == [] and _never_mutates(calls)
 
 
 # ── the installer text itself ───────────────────────────────────────────────
