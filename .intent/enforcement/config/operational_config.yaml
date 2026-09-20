@@ -86,6 +86,10 @@ workers:
     # or failed. Short window: deferral should happen essentially
     # immediately after proposal creation in the same worker cycle.
     stuck_undeferred_sla_sec: 120
+    # Terminate-side twin of the above: findings still 'deferred_to_proposal'
+    # after their proposal ended (completed/failed/rejected/missing) beyond this
+    # window -- the terminating actor's revival/resolve never ran (G4 P2, #918).
+    stuck_deferred_terminal_sla_sec: 120
     # Repeated-failure detection: a (first action_id, source_check_id)
     # pair failing this many times within the lookback window posts
     # proposal.repeated_failure::{action_id}::{rule_id}.
