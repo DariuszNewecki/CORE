@@ -40,9 +40,29 @@ CORE is a governance runtime that constrains AI agents with machine-enforced con
 
 ---
 
+## Requirements
+
+CORE sets specific requirements rather than widening compatibility. A **fresh VM**
+(or an otherwise clean machine) is recommended for the one-command install below.
+
+| Requirement | Version / state |
+|-------------|-----------------|
+| Python      | **3.12+** — hard floor, checked by the installer |
+| Docker      | Docker Engine with **Compose v2**, daemon **running** and reachable by your user |
+| Poetry      | installed and on `PATH` |
+| PostgreSQL  | ≥ 14 — provided by Docker on the default path |
+| Qdrant      | latest — provided by Docker on the default path |
+
+Bring your own Postgres + Qdrant instead of Docker with
+`./install-core.sh --bare --db-url … --qdrant-url …` (see
+[getting started](https://dariusznewecki.github.io/CORE/getting-started/)); the
+Python and Poetry requirements are unchanged on that path.
+
+---
+
 ## 🎬 See it govern itself — one command
 
-You don't have to take this on faith. On a clean machine with Docker:
+You don't have to take this on faith. On a clean machine that meets the requirements above:
 
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
@@ -292,18 +312,6 @@ Progress: **2/15 met** · 12 partial · 1 not demonstrated.
 
 The full gate definitions and acceptance criteria are in [`URS-production-readiness.md`](.specs/requirements/URS-production-readiness.md); the evidence and blockers behind each status are in [`production-readiness.yaml`](.specs/attestations/production-readiness.yaml).
 <!-- PRODUCTION-READINESS:END -->
-
----
-
-## Requirements
-
-| Dependency  | Version      |
-|-------------|--------------|
-| Python      | 3.12+        |
-| PostgreSQL  | ≥ 14         |
-| Qdrant      | latest       |
-| Docker      | for services |
-| Poetry      | for deps     |
 
 ---
 

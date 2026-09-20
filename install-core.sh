@@ -5,7 +5,7 @@
 # Two modes:
 #
 #   ./install-core.sh                      # Docker path (default)
-#       Requires: docker, docker compose v2, poetry, python 3.12+
+#       Requires: docker (daemon running), docker compose v2, poetry, python 3.12+
 #       Brings up Postgres + Qdrant via Docker, loads the schema, and starts
 #       the CORE API. Finishes by printing the opt-in consequence-chain demo
 #       command (ADR-155 D1: installation never runs the demo automatically).
@@ -110,6 +110,79 @@ check_python() {
   { [[ "$PYMAJ" -gt 3 ]] || { [[ "$PYMAJ" -eq 3 ]] && [[ "$PYMIN" -ge 12 ]]; }; } \
     || die "Python 3.12+ required (found ${PYV}). See https://www.python.org/downloads/"
   ok "python ${PYV}"
+}
+
+# ---- verify (offline audit) --------------------------------------------------
+# The offline audit's exit code is NOT its verdict. A stateless run cannot
+# evaluate CORE's DB/graph-dependent blocking rules, so on a healthy tree it
+# is DEGRADED (exit 1) by design, never PASS (#907; docs/cold-reviewer.md).
+# Gate on the JSON verdict exactly as CI does (.github/workflows/core-ci.yml):
+# PASS and DEGRADED are healthy, FAIL / ERROR / unreadable output fail closed.
+# Parsed with the venv's own Python — no jq dependency.
+#
+# Takes the install path ("docker" | "bare") so a refusal can state exactly
+# what this installer has already started and how to stop it — never an
+# undescribed half-state. On the Docker path Postgres + Qdrant are up by the
+# time this runs (the API is not); on the bare path nothing has been started.
+verify_offline_audit() {
+  local path="$1"
+  local state
+  case "$path" in
+    docker) state="State: Postgres + Qdrant are running under Docker Compose ('docker compose ps'); the CORE API was NOT started. Stop the services with 'docker compose down' (add -v to also drop the volumes)." ;;
+    bare)   state="State: nothing was started by this installer (start.sh was written but not run; your Postgres and Qdrant are untouched)." ;;
+    *)      die "verify_offline_audit: unknown install path '$path'" ;;
+  esac
+  local report="If you are on a released tag, this should be unreachable — CI fails closed on a FAIL verdict before a release is cut — so please report it: https://github.com/DariuszNewecki/CORE/issues (include the audit output)."
+  step "Verifying the install (offline audit — no services required)"
+  mkdir -p var/tmp
+  local result="var/tmp/install-offline-audit.json"
+  local raw_exit=0
+  poetry run core-admin code audit --offline --severity block --format=json \
+    >"$result" 2>/dev/null || raw_exit=$?
+  local summary
+  summary="$(poetry run python - "$result" "$raw_exit" <<'PY'
+import json
+import sys
+
+path, raw_exit = sys.argv[1], int(sys.argv[2])
+try:
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+except Exception as exc:  # missing or malformed JSON: fail closed
+    print(f"ERROR\t0\t0\tno readable JSON result (raw exit {raw_exit}): {exc}")
+    sys.exit(0)
+verdict = str(data.get("verdict") or "ERROR").upper()
+findings = data.get("findings") or []
+block = [
+    f for f in findings if str(f.get("severity", "")).lower() in ("block", "blocking")
+]
+skipped = (data.get("stats") or {}).get("skipped_blocking_rule_ids") or []
+print(f"{verdict}\t{len(block)}\t{len(skipped)}\t{', '.join(skipped)}")
+PY
+)"
+  local verdict n_block n_skipped detail
+  IFS=$'\t' read -r verdict n_block n_skipped detail <<<"$summary"
+  case "$verdict" in
+    PASS)
+      ok "constitutional audit: PASS — tree clean, every blocking rule evaluated"
+      ;;
+    DEGRADED)
+      [[ "${n_block:-0}" -eq 0 ]] \
+        || die "offline audit: verdict DEGRADED but ${n_block} blocking finding(s) present — inspect with: poetry run core-admin code audit --offline --severity block"
+      ok "constitutional audit: tree clean (0 blocking findings)"
+      warn "verdict DEGRADED: ${n_skipped} blocking rule(s) need running services and were not evaluated offline (${detail}) — expected on install; the full audit runs once services are up"
+      ;;
+    FAIL)
+      die "offline audit FAIL: ${n_block} blocking finding(s) in this tree. Inspect with: poetry run core-admin code audit --offline --severity block
+  ${state}
+  ${report}"
+      ;;
+    *)
+      die "offline audit produced no recognisable verdict (${detail:-$summary}). Inspect with: poetry run core-admin code audit --offline
+  ${state}
+  ${report}"
+      ;;
+  esac
 }
 
 # ---- install deps ----------------------------------------------------------
@@ -272,6 +345,9 @@ run_docker() {
   docker compose version >/dev/null 2>&1 \
     || die "Docker Compose v2 is required (the 'docker compose' subcommand)."
   ok "docker compose"
+  docker info >/dev/null 2>&1 \
+    || die "Docker is installed but the daemon is not running ('docker info' failed). Start it (e.g. 'sudo systemctl start docker', or open Docker Desktop), make sure your user can reach it, and re-run."
+  ok "docker daemon"
   need poetry "Install Poetry: https://python-poetry.org/docs/#installation"
   check_python
 
@@ -330,12 +406,7 @@ run_docker() {
   schema_state_gate docker_db_query docker_db_load_schema
 
   # ---- verify ----------------------------------------------------------------
-  step "Verifying the install (offline audit — no services required)"
-  if poetry run core-admin code audit --offline --severity block >/dev/null 2>&1; then
-    ok "constitutional audit runs and the tree is clean"
-  else
-    warn "offline audit reported findings (that's fine — the demo will create and resolve one)"
-  fi
+  verify_offline_audit docker
 
   # ---- start API -------------------------------------------------------------
   step "Starting the CORE API"
@@ -481,12 +552,7 @@ STOPEOF
   ok "stop.sh written"
 
   # ---- verify ----------------------------------------------------------------
-  step "Verifying the install (offline audit)"
-  if poetry run core-admin code audit --offline --severity block >/dev/null 2>&1; then
-    ok "constitutional audit passes"
-  else
-    warn "offline audit reported findings — run 'poetry run core-admin code audit --offline' to inspect"
-  fi
+  verify_offline_audit bare
 
   # ---- done ------------------------------------------------------------------
   step "CORE is ready"
