@@ -180,3 +180,22 @@ Governance corollaries inherited from the parent ADR:
 ### D9 — acceptance criterion
 
 7. A failed-proposal finding revived M times is abandoned (terminal Type-B) instead of re-revived, posts `blackboard.remediation_cap_reached::<entry_id>`, and surfaces in the F-19 `stuck` bucket — with a test covering: below cap → revived to `awaiting_reaudit` as today; at cap → abandoned, terminal finding posted. `remediation_cap_n` resolves from `operational_config` (D6).
+
+## Addendum — D10: the no-op remediation loop terminates in the governor inbox (2026-09-20, accepted)
+
+**Status of this addendum:** Accepted (governor decision 2026-09-20, #901). A new decision about one branch's terminal state; D9 unchanged. As with D9, the governance content is the one-sentence judgment; the rest is mechanism.
+
+**Judgment.** Four loops (D3, D9, ADR-150 D2, and the no-op completion loop closed under D9 by `499a7938`), two terminals: **`abandoned` where the daemon tried and failed at something it could in principle do; `indeterminate` + `human` where the mapping itself is wrong and only a human can say what should fix it.** A `CommitOutcome.NOTHING_TO_COMMIT` completion that reaches `remediation_cap_n` is the second kind — the transient case never reaches the cap, because the reaudit drain resolves it on the first lap.
+
+**Mechanism.** At cap, a no-op-revived finding transitions to `status='indeterminate'`, `resolution_mechanism='human'` co-assigned in the same SET clause (`indeterminate_requires_human_mechanism`; ADR-091 D2 Amendment; precedent ADR-150 D2), through a dedicated service method — no terminal-state parameter on `revive_findings_for_failed_proposal`, so the D9 failure path is untouched by construction. The D9 cap observation is still posted with `reason='noop_cap_delegated'` (D4). Re-arm follows from resolving the finding alone. `499a7938`'s mapped-path counter inheritance stays for the D9 `abandoned` lineage and legacy rows.
+
+**Knob.** The no-op cap currently reuses `remediation_cap_n`. D9 gave the failure loop its own knob because a distinct phenomenon may want independent tuning; D10 declares a distinct phenomenon and, by the same reasoning, should own `noop_cap_n`. Splitting is deferred until there is tuning evidence — one knob at 3 for both is today's behaviour, not a considered choice.
+
+**Load-bearing invariant.** The delegated finding stays delegated *only because* `indeterminate` is in the sensor's active-subject dedup set (#263) and ADR-127's clean-pass drain is the sole automated exit. Removing it from that set, or adding a second drain, defeats the hand-to-human silently; the invariant test below pins it.
+
+### D10 — acceptance criteria
+
+8. A no-op-revived finding at cap is `indeterminate`/`human` (not `abandoned`), posts the cap observation with `reason='noop_cap_delegated'`, and appears in the governor inbox; below cap it is revived to `awaiting_reaudit` exactly as D9. Test covers both.
+9. D9's failure path still abandons at cap — pinned by the existing D9 test, unchanged.
+10. The delegated finding survives N sensor cycles with the violation present (no re-post, no auto-resolve) and is closed by the clean-pass drain once it is absent.
+11. The `proposal.noop.revival` report and run-report counters distinguish delegated-at-cap from revived.
