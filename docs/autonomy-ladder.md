@@ -52,22 +52,37 @@ All operations follow the same self-correcting pattern.
 
 ---
 
-### A3 — Governed Autonomy ✅ ← current
+### A3 — Governed Autonomy ⚠️ ← current
 
 CORE's daemon runs continuously, finds violations in its own codebase, proposes fixes, executes approved changes, and verifies the result — without the human writing a single line of code.
 
-- Nine audit sensors running continuously, one per rule namespace (architecture, cli, governance, layout, linkage, logic, modularity, purity, style) — the structural subset of the 209 declared rules
+- Nine audit sensors running continuously, one per rule namespace (architecture, cli, governance, layout, linkage, logic, modularity, purity, style) — the structural subset of the 260 declared rules
 - Violations posted to the Blackboard and automatically claimed for remediation
 - Proposals executed via governed atomic actions
 - Unmapped violations delegated to human judgment via the Governor Inbox
 - Governor dashboard (`core-admin runtime dashboard`) gives five-panel situational awareness
 - Human role: define intent, review proposals requiring architectural judgment, approve constitutional changes
 
-*Operational. Daemon running. Blackboard clean.*
+*Mechanism built and governed. Unattended reliability not yet measured.*
+
+Per the rule at the top of this page, A3 does not carry a checkmark. The A3 plan gates are
+closed and every step above is demonstrable on demand — `core-admin demo consequence-chain`
+exercises the full finding → proposal → approval → execution → consequence → re-audit path
+in an isolated run. What has not been measured is the loop closing *unattended* over a long
+window, which is production-readiness gate G4.
+
+The last completed attempt, a 72-hour soak of 2026-07-23 → 2026-07-26, held process
+continuity (no restarts, ~35 workers, 68,495 blackboard entries) and completed **zero**
+finding → proposal → consequence chains out of 16,445 findings — the one actionable class
+was abandoned by the remediation circuit breaker before a proposal could be created. It was
+not accepted as G4 evidence. The bar for a qualifying run is a soak that declares its
+throughput condition — at least one completed chain — before it starts.
+
+A3 becomes ✅ when that evidence exists and is signed, not before.
 
 ---
 
-### A4 — Self-Replication 🔮
+### A4 — Self-Replication ⏸️
 
 CORE writes CORE.NG from its own understanding of itself.
 

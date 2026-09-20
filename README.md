@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v2.10.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
-[![Autonomy](https://img.shields.io/badge/Autonomy-A3-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
+[![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
 *Versioning: SemVer with `2.x` denoting an API approaching stability (Beta on PyPI); see the [versioning policy](.specs/planning/CORE-Semver-Policy.md).*
 
@@ -277,9 +277,17 @@ CORE progresses through defined levels. Each adds capability while remaining con
 A0 — Self-Awareness       ✅  Knows what it is and where it lives
 A1 — Self-Healing         ✅  Fixes known structural issues automatically
 A2 — Governed Generation  ✅  Natural language → constitutionally aligned code
-A3 — Governed Autonomy    ✅  Daemon finds, proposes, and fixes violations unattended  ← current
-A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of itself
+A3 — Governed Autonomy    ⚠️  Loop is built and governed; unattended reliability unproven  ← current
+A4 — Self-Replication     ⏸️  Conceptual. Not on active roadmap.
 ```
+
+**Advancement is not declared — it is measured.** A level is complete when the system
+demonstrates it operationally, not when the capability exists. A3's mechanism is built and
+governed: the four A3 *plan* gates are closed, the loop is circuit-breaker protected, the
+consequence chain is queryable end-to-end, and every threshold lives in `.intent/`. What is
+not yet measured is unattended convergence, which is what production-readiness gate G4 asks
+for. **A3's checkmark is withheld until G4 carries signed evidence** — see the G4 row and
+the Project Status section below for the current state of that evidence.
 
 ---
 
@@ -373,11 +381,30 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 **Current Release:** v2.10.2 — Supported Database Upgrades (ADR-162: migration ledger, baseline adoption, startup schema gate, fail-closed installer; G11 met)
 
-Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved fixes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
+Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
+finds constitutional violations in its own codebase, proposes fixes, routes them through the
+governed proposal lifecycle, executes approved fixes, and verifies the result. Each of those
+steps is demonstrable on demand: `core-admin demo consequence-chain` exercises the full
+finding → proposal → approval → execution → consequence → re-audit path in an isolated run,
+and both chains in the Live Audit Trail above came out of the real database.
+
+What is *not* yet demonstrated is that the same loop closes unattended over a long window.
+That is gate G4, and the standing bar for it is a soak whose throughput condition — at least
+one completed finding → proposal → consequence chain — is declared *before* the run starts.
+
+**Last completed attempt:** the 72-hour soak of 2026-07-23 → 2026-07-26 (baseline `f7430b25`)
+ran clean at the process level — no restarts, ~35 workers, 68,495 blackboard entries — and
+produced **zero** completed chains out of 16,445 findings. The one actionable class inherited
+a remediation attempt count at the file-level cap, so the circuit breaker abandoned it before
+a proposal could be created. The breaker did its job; the governed loop did not close. That
+run is retained as evidence of continuity and was explicitly not accepted as G4 evidence.
+
+"Demonstrable on demand" and "reliable unattended" are different claims, and CORE only makes
+the first one today.
 
 All four A3 integrity gates are now closed. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
 
-These are the **A3 plan's closure gates** ([`CORE-A3-plan.md`](.specs/decisions/CORE-A3-plan.md), closed 2026-05), a different vocabulary from the fifteen production-readiness gates above — the A3 gates say the autonomous loop *exists and is governed*; the readiness gates say whether it is *proven fit to ship*, and today it is not.
+These are the **A3 plan's closure gates** ([`CORE-A3-plan.md`](.specs/decisions/CORE-A3-plan.md), closed 2026-05), a different vocabulary from the fifteen production-readiness gates above — the A3 gates say the autonomous loop *exists and is governed*; the readiness gates say whether it is *proven fit to ship*, and today it is not. A3 plan gates closed is why the ladder still reads "A3 ← current"; G4 unmet is why it reads ⚠️ rather than ✅.
 
 | A3 gate | Meaning | Status |
 |---------|---------|--------|
