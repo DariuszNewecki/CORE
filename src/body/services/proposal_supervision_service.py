@@ -363,6 +363,95 @@ class ProposalSupervisionService:
             for row in rows
         ]
 
+    # ID: bec24c69-7696-4296-bea7-0bbac22ff114
+    async def fetch_stuck_deferred_terminal(
+        self, sla_sec: int, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return findings parked in ``deferred_to_proposal`` whose proposal has
+        already ended — terminal (completed / failed / rejected) or missing —
+        grouped per proposal, with what the reaper needs to route them.
+
+        Revival is normally done by the actor that terminates the proposal,
+        in the same cycle (the consumer worker after an execution failure,
+        ``proposal_service.reject``, the executor's own resolve / no-op
+        revival). If that actor dies between its status write and the
+        revival, the findings are stranded: the sensor dedups against
+        ``deferred_to_proposal``, so the violation is never re-posted and
+        never remediated again. This is the terminate-side twin of
+        ``fetch_stuck_undeferred`` (#764 / #886 closed the create side).
+
+        ``proposal_status`` is the proposal's terminal state, or ``missing``
+        when no row exists for the deferred id (a legacy or deleted
+        proposal); ``constitutional_constraints`` carries the lineage the
+        reject route needs; ``nothing_to_commit`` is read from the
+        consequence row (pre SHA present and equal to post) so a completed
+        no-op routes to the ADR-104 D10 revival, not to resolve. Anchored on
+        the proposal's own terminal timestamp (``execution_completed_at``,
+        else ``updated_at``, else the finding's ``updated_at``) against the
+        SLA, so a proposal that terminated a moment ago — whose own actor is
+        about to revive its findings — is not double-handled.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=sla_sec)
+        terminal_statuses = [
+            ProposalStatus.COMPLETED.value,
+            ProposalStatus.FAILED.value,
+            ProposalStatus.REJECTED.value,
+        ]
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        b.payload->>'proposal_id' AS proposal_id,
+                        coalesce(ap.status, 'missing') AS proposal_status,
+                        ap.constitutional_constraints,
+                        bool_or(c.pre_execution_sha IS NOT NULL
+                                AND c.pre_execution_sha = c.post_execution_sha)
+                            AS nothing_to_commit,
+                        array_agg(b.id::text ORDER BY b.created_at) AS finding_ids,
+                        EXTRACT(EPOCH FROM (now() - min(coalesce(
+                            ap.execution_completed_at, ap.updated_at, b.updated_at
+                        ))))::int AS seconds_stuck
+                    FROM core.blackboard_entries b
+                    LEFT JOIN core.autonomous_proposals ap
+                        ON ap.proposal_id = b.payload->>'proposal_id'
+                    LEFT JOIN core.proposal_consequences c
+                        ON c.proposal_id = ap.proposal_id
+                    WHERE b.entry_type = 'finding'
+                      AND b.status = 'deferred_to_proposal'
+                      AND (ap.proposal_id IS NULL
+                           OR ap.status = ANY(:terminal_statuses))
+                      AND coalesce(ap.execution_completed_at, ap.updated_at,
+                                   b.updated_at) < :cutoff
+                    GROUP BY 1, 2, 3
+                    ORDER BY min(b.created_at) ASC
+                    LIMIT :limit
+                    """
+                ),
+                {
+                    "cutoff": cutoff,
+                    "limit": limit,
+                    "terminal_statuses": terminal_statuses,
+                },
+            )
+            rows = result.fetchall()
+
+        return [
+            {
+                "proposal_id": str(row[0]) if row[0] is not None else None,
+                "proposal_status": str(row[1]),
+                "constitutional_constraints": row[2] or {},
+                "nothing_to_commit": bool(row[3]),
+                "finding_ids": list(row[4] or []),
+                "seconds_stuck": int(row[5]),
+            }
+            for row in rows
+        ]
+
     # ID: c020638a-5208-476f-bb7f-7257051a31b3
     async def fetch_completed_without_consequence(
         self, limit: int

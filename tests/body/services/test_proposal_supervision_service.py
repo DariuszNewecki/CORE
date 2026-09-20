@@ -255,3 +255,70 @@ async def test_fetch_stuck_finalizing_derives_the_flag_from_equal_shas() -> None
     assert "c.pre_execution_sha IS NOT NULL" in sql
     assert "c.pre_execution_sha = c.post_execution_sha" in sql
     assert "AS nothing_to_commit" in sql
+
+
+# ---------------------------------------------------------------------------
+# fetch_stuck_deferred_terminal — G4 P2 (terminate-side twin of #764/#886)
+# ---------------------------------------------------------------------------
+
+
+# ID: 1ea928e1-6a86-434e-b420-1905be998067
+async def test_fetch_stuck_deferred_terminal_maps_rows_per_proposal() -> None:
+    """One row per terminal-or-missing proposal, carrying what the reaper
+    routes on: terminal state (or 'missing'), lineage constraints, the no-op
+    flag from the consequence row, the stranded finding ids, and age."""
+    session = _mock_session(
+        [
+            ("pid-failed", "failed", {"rules": ["x"]}, False, ["f-1", "f-2"], 4000),
+            ("pid-noop", "completed", {}, True, ["f-3"], 900),
+            ("pid-gone", "missing", None, None, ["f-4"], 12000),
+        ]
+    )
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_deferred_terminal(sla_sec=120, limit=200)
+
+    assert [
+        (
+            r["proposal_id"],
+            r["proposal_status"],
+            r["nothing_to_commit"],
+            r["finding_ids"],
+        )
+        for r in result
+    ] == [
+        ("pid-failed", "failed", False, ["f-1", "f-2"]),
+        ("pid-noop", "completed", True, ["f-3"]),
+        ("pid-gone", "missing", False, ["f-4"]),
+    ]
+    assert result[0]["constitutional_constraints"] == {"rules": ["x"]}
+    assert result[2]["constitutional_constraints"] == {}
+    assert result[2]["seconds_stuck"] == 12000
+
+
+# ID: e1efbdcb-dae1-47ee-b5aa-6c83c1f6557f
+async def test_fetch_stuck_deferred_terminal_predicates() -> None:
+    """The SQL must select deferred findings, admit only terminal or missing
+    proposals, anchor the SLA on the proposal's own terminal timestamp, and
+    derive the no-op flag from the consequence SHAs."""
+    session = _mock_session([])
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        await svc.fetch_stuck_deferred_terminal(sla_sec=120, limit=50)
+
+    sql = str(session.execute.await_args.args[0])
+    params = session.execute.await_args.args[1]
+    assert "b.status = 'deferred_to_proposal'" in sql
+    assert "ap.proposal_id IS NULL" in sql
+    assert "ap.status = ANY(:terminal_statuses)" in sql
+    assert sorted(params["terminal_statuses"]) == ["completed", "failed", "rejected"]
+    assert "coalesce(ap.execution_completed_at, ap.updated_at" in sql
+    assert "c.pre_execution_sha = c.post_execution_sha" in sql
+    assert "coalesce(ap.status, 'missing')" in sql
+    assert params["limit"] == 50

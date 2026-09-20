@@ -76,6 +76,7 @@ def _make_services(
     proposal_svc.fetch_stuck_executing = AsyncMock(return_value=[])
     proposal_svc.fetch_stuck_finalizing = AsyncMock(return_value=stuck_finalizing)
     proposal_svc.fetch_stuck_undeferred = AsyncMock(return_value=[])
+    proposal_svc.fetch_stuck_deferred_terminal = AsyncMock(return_value=[])
     proposal_svc.fetch_repeated_failures = AsyncMock(return_value=[])
 
     async def _fetch_open(prefix: str, limit: int) -> list[dict[str, str]]:
@@ -86,9 +87,7 @@ def _make_services(
     blackboard_svc = MagicMock()
     blackboard_svc.fetch_open_findings = AsyncMock(side_effect=_fetch_open)
     blackboard_svc.resolve_entries = AsyncMock()
-    blackboard_svc.increment_finding_counter = AsyncMock(
-        return_value=increment_returns
-    )
+    blackboard_svc.increment_finding_counter = AsyncMock(return_value=increment_returns)
     blackboard_svc.escalate_finding_to_governor = AsyncMock(return_value=True)
     return proposal_svc, blackboard_svc
 

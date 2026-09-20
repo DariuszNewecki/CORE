@@ -34,6 +34,40 @@ logger = getLogger(__name__)
 _CFG_PR = load_operational_config().proposals
 
 
+# ID: 3e7146ac-0d64-4caf-b2b9-59b0b4b41228
+async def revive_findings_for_rejected_proposal(
+    proposal_id: str,
+    reason: str,
+    constitutional_constraints: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Revive the findings deferred to a rejected proposal, routed by lineage.
+
+    The revival half of ``ProposalService.reject`` (see its docstring for
+    the three destinations), factored out so the
+    ``ProposalPipelineShopManager`` stuck-deferred-terminal pass can apply
+    the same routing to findings whose proposal was rejected but whose
+    revival never ran (the rejecting actor died first). One routing, two
+    callers — the destinations are decisions (ADR-109 D4, ADR-154 D3,
+    ADR-045) and must not fork.
+    """
+    bb_service = await service_registry.get_blackboard_service()
+    lineage = proposal_lineage(constitutional_constraints)
+    if lineage == "assisted_lane":
+        return await bb_service.revive_delegated_findings_for_rejected_proposal(
+            proposal_id=proposal_id,
+            reason=reason,
+        )
+    if lineage == "ceremony":
+        return await bb_service.revive_ceremony_findings_for_rejected_proposal(
+            proposal_id=proposal_id,
+            reason=reason,
+        )
+    return await bb_service.revive_findings_for_failed_proposal(
+        proposal_id=proposal_id,
+        failure_reason=f"rejected: {reason}",
+    )
+
+
 # ID: 66c8a04e-bbbe-4a73-9330-80f53e70b409
 class ProposalService:
     """
@@ -186,26 +220,11 @@ class ProposalService:
         """
         await self._state_manager.reject(proposal_id, reason)
         proposal = await self._repository.get(proposal_id)
-        bb_service = await service_registry.get_blackboard_service()
-
-        lineage = proposal_lineage(
-            proposal.constitutional_constraints if proposal is not None else None
+        revival = await revive_findings_for_rejected_proposal(
+            proposal_id,
+            reason,
+            proposal.constitutional_constraints if proposal is not None else None,
         )
-        if lineage == "assisted_lane":
-            revival = await bb_service.revive_delegated_findings_for_rejected_proposal(
-                proposal_id=proposal_id,
-                reason=reason,
-            )
-        elif lineage == "ceremony":
-            revival = await bb_service.revive_ceremony_findings_for_rejected_proposal(
-                proposal_id=proposal_id,
-                reason=reason,
-            )
-        else:
-            revival = await bb_service.revive_findings_for_failed_proposal(
-                proposal_id=proposal_id,
-                failure_reason=f"rejected: {reason}",
-            )
         return revival["revived_count"] if revival else 0
 
     # -------------------------

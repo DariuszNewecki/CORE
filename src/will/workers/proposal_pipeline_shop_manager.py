@@ -93,6 +93,7 @@ _SUBJECT_STUCK_APPROVED = "proposal.stuck_approved"
 _SUBJECT_STUCK_EXECUTING = "proposal.stuck_executing"
 _SUBJECT_STUCK_FINALIZING = "proposal.stuck_finalizing"
 _SUBJECT_STUCK_UNDEFERRED = "proposal.stuck_undeferred"
+_SUBJECT_STUCK_DEFERRED_TERMINAL = "proposal.stuck_deferred_terminal"
 _SUBJECT_REPEATED_FAILURE = "proposal.repeated_failure"
 
 _CFG = load_operational_config().workers.proposal_pipeline_shop
@@ -149,6 +150,10 @@ class ProposalPipelineShopManager(ScheduledWorker):
             sla_sec=_CFG.stuck_undeferred_sla_sec,
             limit=_CFG.findings_scan_limit,
         )
+        stuck_deferred_terminal = await proposal_svc.fetch_stuck_deferred_terminal(
+            sla_sec=_CFG.stuck_deferred_terminal_sla_sec,
+            limit=_CFG.findings_scan_limit,
+        )
         repeated_failures = await proposal_svc.fetch_repeated_failures(
             threshold=_CFG.repeated_failure_threshold,
             lookback_sec=_CFG.repeated_failure_lookback_sec,
@@ -163,6 +168,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         rolled_forward_proposals = 0
         redriven_proposals = 0
         escalated_proposals = 0
+        reconciled_proposals = 0
 
         for row in stuck_approved:
             subject = f"{_SUBJECT_STUCK_APPROVED}::{row['proposal_id']}"
@@ -330,6 +336,45 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 _CFG.stuck_undeferred_sla_sec,
             )
 
+        for row in stuck_deferred_terminal:
+            subject = f"{_SUBJECT_STUCK_DEFERRED_TERMINAL}::{row['proposal_id']}"
+            flagged_subjects.add(subject)
+
+            # Terminate-side twin of the undeferred redrive (#764/#886): the
+            # proposal ended but the actor that should have revived (or
+            # resolved) its findings never did. Route by the proposal's
+            # terminal state through the predicates that already exist —
+            # no new destination is decided here. Idempotent: every
+            # predicate's WHERE is status-guarded.
+            reconciled = await self._reconcile_stuck_deferred_terminal(row)
+            if reconciled:
+                reconciled_proposals += 1
+
+            if subject in existing:
+                continue
+            await self.post_finding(
+                subject=subject,
+                payload={
+                    "proposal_id": row["proposal_id"],
+                    "proposal_status": row["proposal_status"],
+                    "nothing_to_commit": row["nothing_to_commit"],
+                    "finding_ids": row["finding_ids"],
+                    "seconds_stuck": row["seconds_stuck"],
+                    "sla_seconds": _CFG.stuck_deferred_terminal_sla_sec,
+                },
+                resolution_mechanism="self_resolve",
+            )
+            flagged += 1
+            logger.warning(
+                "ProposalPipelineShopManager: %d finding(s) still deferred to "
+                "%s proposal %s for %ds (sla=%ds) — reconciling",
+                len(row["finding_ids"]),
+                row["proposal_status"],
+                row["proposal_id"],
+                row["seconds_stuck"],
+                _CFG.stuck_deferred_terminal_sla_sec,
+            )
+
         for row in repeated_failures:
             subject = (
                 f"{_SUBJECT_REPEATED_FAILURE}::{row['action_id']}::{row['rule_id']}"
@@ -378,28 +423,32 @@ class ProposalPipelineShopManager(ScheduledWorker):
                 "stuck_executing": len(stuck_executing),
                 "stuck_finalizing": len(stuck_finalizing),
                 "stuck_undeferred": len(stuck_undeferred),
+                "stuck_deferred_terminal": len(stuck_deferred_terminal),
                 "repeated_failures": len(repeated_failures),
                 "flagged": flagged,
                 "resolved": resolved,
                 "terminated_proposals": terminated_proposals,
                 "rolled_forward_proposals": rolled_forward_proposals,
                 "redriven_proposals": redriven_proposals,
+                "reconciled_proposals": reconciled_proposals,
                 "escalated_proposals": escalated_proposals,
             },
         )
         logger.info(
             "ProposalPipelineShopManager: cycle complete — "
             "stuck_approved=%d stuck_executing=%d stuck_undeferred=%d "
-            "repeated_failures=%d flagged=%d resolved=%d terminated=%d "
-            "redriven=%d",
+            "stuck_deferred_terminal=%d repeated_failures=%d flagged=%d "
+            "resolved=%d terminated=%d redriven=%d reconciled=%d",
             len(stuck_approved),
             len(stuck_executing),
             len(stuck_undeferred),
+            len(stuck_deferred_terminal),
             len(repeated_failures),
             flagged,
             resolved,
             terminated_proposals,
             redriven_proposals,
+            reconciled_proposals,
         )
 
     async def _retire_stuck_proposal(
@@ -568,6 +617,99 @@ class ProposalPipelineShopManager(ScheduledWorker):
             )
             return False
 
+    async def _reconcile_stuck_deferred_terminal(self, row: dict[str, Any]) -> bool:
+        """
+        Move findings stranded in ``deferred_to_proposal`` on a proposal that
+        has already ended to where the proposal's own terminating actor would
+        have put them (G4 P2 pre-condition; terminate-side twin of #764/#886).
+
+        Routing, by the proposal's terminal state — every destination is a
+        decision already made elsewhere; this method chooses none:
+
+        - ``failed``  → the execution-failure revival (`revive_and_report`,
+          lineage-aware, ADR-104 D9 cap; posts the cap observations and the
+          revival report through this Worker).
+        - ``rejected`` → the reject revival (`revive_findings_for_rejected_
+          proposal`, the same lineage split ``proposal_service.reject`` uses:
+          ADR-109 D4 / ADR-154 D3 / ADR-045).
+        - ``completed``, real commit → resolve (`resolve_deferred_findings`).
+        - ``completed``, no-op (pre SHA == post SHA) → the ADR-104 D10
+          revival (`revive_deferred_findings_for_noop`) + its report.
+        - ``missing`` (no proposal row for the deferred id) → as ``failed``:
+          the revival predicates key on ``payload.proposal_id`` and do not
+          need the proposal row; the dangling id is named in the finding
+          this pass posts.
+
+        Fail-soft: any error leaves the findings where they are and the
+        next cycle retries. Returns True when a revival/resolution ran.
+        """
+        from will.autonomy.proposal_consumer_revival import (
+            report_revival,
+            revive_and_report,
+        )
+        from will.autonomy.proposal_execution_pipeline import (
+            resolve_deferred_findings,
+            revive_deferred_findings_for_noop,
+        )
+        from will.autonomy.proposal_service import (
+            revive_findings_for_rejected_proposal,
+        )
+
+        proposal_id = row.get("proposal_id")
+        status = row.get("proposal_status")
+        if not proposal_id:
+            logger.warning(
+                "ProposalPipelineShopManager: %d finding(s) deferred with no "
+                "proposal_id in payload — cannot route; left for the governor",
+                len(row.get("finding_ids") or []),
+            )
+            return False
+        try:
+            if status in ("failed", "missing"):
+                await revive_and_report(
+                    self,
+                    proposal_id,
+                    f"stuck_deferred_terminal: proposal {status}, revival never ran",
+                )
+                return True
+            if status == "rejected":
+                revival = await revive_findings_for_rejected_proposal(
+                    proposal_id,
+                    "stuck_deferred_terminal: proposal rejected, revival never ran",
+                    row.get("constitutional_constraints") or None,
+                )
+                if revival:
+                    await report_revival(self, proposal_id, revival)
+                return True
+            if status == "completed":
+                if row.get("nothing_to_commit"):
+                    ok, revival = await revive_deferred_findings_for_noop(proposal_id)
+                    if ok and revival:
+                        await report_revival(
+                            self,
+                            proposal_id,
+                            revival,
+                            report_subject_family="proposal.noop.revival",
+                        )
+                    return ok
+                return await resolve_deferred_findings(proposal_id)
+            logger.warning(
+                "ProposalPipelineShopManager: proposal %s in unexpected terminal "
+                "state %r — not reconciled",
+                proposal_id,
+                status,
+            )
+            return False
+        except Exception as rec_err:
+            logger.error(
+                "ProposalPipelineShopManager: failed to reconcile findings deferred "
+                "to %s proposal %s: %s",
+                status,
+                proposal_id,
+                rec_err,
+            )
+            return False
+
     async def _redrive_undeferred_findings(self, row: dict[str, Any]) -> bool:
         """
         Re-attempt defer_entries_to_proposal for a proposal's undeferred
@@ -621,6 +763,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
             _SUBJECT_STUCK_EXECUTING,
             _SUBJECT_STUCK_FINALIZING,
             _SUBJECT_STUCK_UNDEFERRED,
+            _SUBJECT_STUCK_DEFERRED_TERMINAL,
             _SUBJECT_REPEATED_FAILURE,
         ):
             rows = await blackboard_svc.fetch_open_findings(

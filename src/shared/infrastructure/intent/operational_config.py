@@ -685,6 +685,7 @@ class WorkerProposalPipelineShopConfig:
     stuck_executing_sla_sec: int = 900
     stuck_finalizing_sla_sec: int = 300
     stuck_undeferred_sla_sec: int = 120
+    stuck_deferred_terminal_sla_sec: int = 120
     repeated_failure_threshold: int = 3
     repeated_failure_lookback_sec: int = 86400
     findings_scan_limit: int = 200
