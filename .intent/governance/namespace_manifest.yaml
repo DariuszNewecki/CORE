@@ -1842,6 +1842,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/attestations/adr-159-trial0-result-20260918.md
     governance_namespace: project::core
+  - path: .specs/attestations/soak-g4-predeclaration-2026Q4.md
+    governance_namespace: project::core
   - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
     governance_namespace: project::core
   - path: .specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md
@@ -1855,6 +1857,8 @@ classifications:
   - path: .specs/planning/CORE-Isolated-Consequence-Chain-Demo-Phase1-Map.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-D9-Trial0-Apparatus-Design.md
+    governance_namespace: project::core
+  - path: .specs/planning/governor-rail-2026Q4.md
     governance_namespace: project::core
   - path: .specs/planning/CORE-Autonomy-Trials-Blind-Author-Brief.md
     governance_namespace: project::core
