@@ -48,6 +48,7 @@ from cli.commands.refactor import refactor_app
 from cli.commands.status import status_app
 from cli.commands.tests import tests_app
 from cli.interactive import launch_interactive_menu
+from cli.logging_ui import install_rich_log_handler
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
 from cli.resources.code import app as code_app
@@ -117,6 +118,9 @@ register_all_commands(app)
 # ID: 1f5f3dc8-cbc5-426f-8049-271f45e155f5
 def main(ctx: typer.Context) -> None:
     """Bootstrap services and launch TUI if no command given."""
+    # Rich log rendering is the CLI's call, taken here when a human is on
+    # stderr; under systemd / pipes the shared logger's plain handler stays.
+    install_rich_log_handler()
     service_registry.prime(get_session)
     ctx.obj = create_core_context(service_registry)
     if ctx.invoked_subcommand is None:

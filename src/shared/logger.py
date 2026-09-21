@@ -96,6 +96,76 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 
+# ID: 861be117-f86f-416e-bf8a-fef5fb2e6a4b
+class HumanFormatter(logging.Formatter):
+    """One record, one line: ``<ISO-8601 UTC> <LEVEL> <logger>: <message>``.
+
+    The logic-layer default. It renders nothing: no colour, no wrapping, no
+    box drawing — those are a terminal's business and belong to the CLI
+    (``architecture.channels.logic_no_terminal_rendering``). Under systemd
+    this is what journald stores, so a record is one greppable line; the
+    interactive ``core-admin`` swaps in a Rich handler on top (see
+    ``cli.logging_ui``).
+    """
+
+    default_time_format = "%Y-%m-%dT%H:%M:%S"
+    default_msec_format = "%s.%03dZ"
+
+    # ID: 6ce652d8-f3f7-4607-9154-5b9de61c8992
+    def __init__(self) -> None:
+        super().__init__("%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    # ID: d6f96bdf-4e98-4885-98cf-ffb2da793041
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        stamp = datetime.fromtimestamp(record.created, tz=UTC)
+        if datefmt:
+            return stamp.strftime(datefmt)
+        return f"{stamp.strftime(self.default_time_format)}.{record.msecs:03.0f}Z"
+
+
+# journald priority per Python level (sd-daemon(3)); anything else is INFO.
+_SD_PRIORITY = {
+    "CRITICAL": 2,
+    "ERROR": 3,
+    "WARNING": 4,
+    "INFO": 6,
+    "DEBUG": 7,
+}
+
+
+# ID: 2d2d7b70-b1a8-4d61-a3ce-8d5ea222e69a
+class SdDaemonPrefixFormatter(logging.Formatter):
+    """Prefix every line of a record with its sd-daemon priority (``<3>`` …).
+
+    Applied only when stderr is not a terminal — i.e. under systemd, where
+    stderr becomes the journal. Without it every line lands at PRIORITY=6
+    regardless of level, so ``journalctl -p err`` returns nothing whatever
+    happened (measured 2026-09-21: 17,585 of 17,585 daemon entries at 6,
+    including the night of 2,302 tracebacks). Each line is prefixed, not
+    just the first, because journald assigns priority per line and a
+    traceback is many lines. Wraps the real formatter (human or JSON) so the
+    payload is unchanged.
+    """
+
+    # ID: ab90de81-1279-428b-b753-b7c80f27e7a0
+    def __init__(self, inner: logging.Formatter) -> None:
+        super().__init__()
+        self._inner = inner
+
+    # ID: f504f966-5b5f-41f6-9eab-7201f8ea797c
+    def format(self, record: logging.LogRecord) -> str:
+        prefix = f"<{_SD_PRIORITY.get(record.levelname, 6)}>"
+        text = self._inner.format(record)
+        return "\n".join(prefix + line for line in text.split("\n"))
+
+
+def _stderr_is_tty() -> bool:
+    try:
+        return bool(sys.stderr.isatty())
+    except (AttributeError, ValueError):  # closed or replaced stream
+        return False
+
+
 # ─────────────────────────────────────────────────────────────── Public API
 
 
@@ -119,28 +189,19 @@ def _configure_root_logger(
         raise ValueError(f"Invalid log level: {effective_level}")
 
     if handlers is None:
-        handlers = []
-        if _LOG_FORMAT_TYPE == "json":
-            handler = logging.StreamHandler(sys.stderr)
-            handler.setFormatter(JsonFormatter())
-            handlers.append(handler)
-        else:
-            try:
-                from rich.console import Console
-                from rich.logging import RichHandler
-
-                handlers.append(
-                    RichHandler(
-                        console=Console(stderr=True),
-                        rich_tracebacks=True,
-                        show_time=True,
-                        show_level=True,
-                        show_path=False,
-                        log_time_format="[%X]",
-                    )
-                )
-            except ImportError:
-                handlers.append(logging.StreamHandler())
+        # Plain stderr handler in both modes. Terminal rendering (Rich) is
+        # the CLI's decision, made in cli.logging_ui when a human is on
+        # stderr — never here, where every process that imports this module
+        # would inherit it (the daemon and API run under systemd and got
+        # 80-column Rich wrapping in journald for a year).
+        inner: logging.Formatter = (
+            JsonFormatter() if _LOG_FORMAT_TYPE == "json" else HumanFormatter()
+        )
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(
+            inner if _stderr_is_tty() else SdDaemonPrefixFormatter(inner)
+        )
+        handlers = [handler]
 
     logging.basicConfig(
         level=getattr(logging, effective_level),
