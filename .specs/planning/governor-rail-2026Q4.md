@@ -257,7 +257,7 @@ window — which is the one thing the rail must be allowed to prevent.*
 
 ## Signature
 
-> Signed: _(governor — name, date)_
+> **Signed by the authorship of the commit carrying this signature** — `git show -s --format='%an <%ae> %cI' <sha>`. The rail binds the governor; its signature is the governor's own act of committing it, not a name typed into the file.
 
 ## Amendment
 

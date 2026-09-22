@@ -14,12 +14,14 @@ Nothing below is measured yet; every number is a bar, not a result.
 | | |
 |---|---|
 | subject repository | CORE itself, `/opt/dev/CORE`, live `core` DB (as f7430b25) |
-| baseline commit | `<SHA>` — the daemon's running commit at T0, == `origin/main`, CI green; **≥ `efe83c77`** (T-A and C2 cite ADR-104 D10, which does not exist below it) |
-| T0 | `<ISO-8601 UTC>` — the governor's start mark, written here before the clock starts |
+| baseline commit | **the commit carrying this signature** — its own sha; recorded in the closure attestation after T1 (a commit cannot contain its own hash). Verified at T0: `git diff f9b7dd12 <sha> -- src/` is empty, so the daemon's running code is byte-identical to `e94fba69`'s `src/`; `origin/main` == that commit; CI green; **≥ `efe83c77`** (T-A and C2 cite ADR-104 D10, which does not exist below it) |
+| T0 | **the committer timestamp of the commit carrying this signature**, recoverable with `git show -s --format=%cI <sha>` — fixed at commit, so the mark cannot drift; do not amend or rebase that commit (it would move T0 and the baseline together) |
 | T1 | T0 + 72 h; measurement window is `[T0, T1)` on `created_at` / `recorded_at` |
 | measured at | T1 + 30 min grace (lets in-flight proposals reach a terminal state) |
 | measured by | Claude Code, read-only queries in §5; a second session reproduces the §5 numbers before signing, as on 2026-09-14 |
-| signed by | governor — pre-declaration: _(name, date, at T0)_ · result: `.specs/attestations/soak-<sha>-g4-<date>.md` after T1 |
+| signed by | governor — **the signature is the authorship of the commit carrying it**: the governor ran `git commit`, and the signing identity and moment are recoverable with `git show -s --format='%an <%ae> %cI' <sha>`. Same self-referential form as the baseline and T0 above, so nothing here can be typed on the governor's behalf. Result attestation: `.specs/attestations/soak-<sha>-g4-<date>.md` after T1 |
+| audit baseline (P5) | artifact `var/reports/g4-t0-audit-baseline-20260922.json` · sha256 `9a310297380443f0bfb72b04223e02ef8f408a42cb4d3e40309bb524db001f99` · mode stateless (offline) — verdict DEGRADED by design, #907 · executed/findings/blocking **239 / 70 / 0** (all 70 severity `info`) · skipped blocking rules, offline-caused, from `stats.skipped_blocking_rule_ids`: `capability.taxonomy.roles_require_canonical_capabilities`, `capability.taxonomy.resources_provide_canonical_capabilities`, `runtime.worker_max_interval_within_observed` |
+| heartbeat caveat | `runtime.worker_max_interval_within_observed` is skipped in stateless mode at **both** ends, so the T0↔T1 audit delta says nothing about heartbeat behaviour. C1/P4's live measurement and C9 are its only instruments; the audit must not be read as covering it. |
 
 ## 1. Pre-conditions — all true at T0, or the clock does not start
 
