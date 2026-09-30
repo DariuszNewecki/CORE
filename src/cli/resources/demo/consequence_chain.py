@@ -106,7 +106,9 @@ def _write_report(
 def _render_interrupt(identity: RunIdentity | None) -> None:
     """Report a SIGINT-interrupted run (exit 130) with its retained path (D11)."""
     console.print()
-    console.print("[bold yellow]Interrupted.[/bold yellow] Infrastructure cleanup attempted.")
+    console.print(
+        "[bold yellow]Interrupted.[/bold yellow] Infrastructure cleanup attempted."
+    )
     if identity is not None:
         console.print(
             f"  workspace RETAINED at {identity.state_dir}\n"
@@ -186,7 +188,9 @@ async def consequence_chain_cmd(
     if simulate_confirmation:
         confirmation_mode = "simulated"
     else:
-        if not confirm_action(_CONFIRM_PROMPT, abort_message="Demonstration cancelled."):
+        if not confirm_action(
+            _CONFIRM_PROMPT, abort_message="Demonstration cancelled."
+        ):
             raise typer.Exit(EXIT_OK)
         confirmation_mode = "human"
 
