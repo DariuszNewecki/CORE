@@ -190,6 +190,13 @@ class BlackboardConfig:
     remediation. Reuses D3's "tolerate two transient failures" calibration
     but is its own knob — a perpetually-failing generation is a distinct
     phenomenon from a crashing worker and may want independent tuning.
+
+    remediation_rearm_after_sec — ADR-104 D11 re-arm window for a capped
+    lineage. The inherited attempt count only counts failures whose
+    proposal completed within this window, so a lineage abandoned at the
+    cap gets another remediation_cap_n attempts once the window passes —
+    a fixed cause (a retired rule, a repaired action) is retried, and a
+    still-broken one costs at most remediation_cap_n attempts per window.
     """
 
     sla_default_seconds: int = 3600
@@ -203,6 +210,7 @@ class BlackboardConfig:
     sweep_batch_max: int = 500
     reclaim_cap_n: int = 3
     remediation_cap_n: int = 3
+    remediation_rearm_after_sec: int = 604800
     # #568: count-based retention for slow-callback telemetry. Time-based
     # TTL over-prunes well-behaved workers (rare emitters lose their entire
     # window) while leaving hot emitters with hundreds of rows. Keep the

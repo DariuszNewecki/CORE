@@ -574,7 +574,9 @@ class BlackboardQueryService:
             return int(row[0]) if row and row[0] is not None else 0
 
     # ID: d06e8aa7-68ae-4063-9abc-800f145aacab
-    async def query_max_attempt_count_by_subject(self, subject: str) -> int:
+    async def query_max_attempt_count_by_subject(
+        self, subject: str, rearm_after_sec: int | None = None
+    ) -> int:
         """
         Return the highest remediation_attempt_count from abandoned findings
         carrying exactly this *subject* (one violation class on one file
@@ -587,25 +589,54 @@ class BlackboardQueryService:
         is minted. Scoped by subject rather than file so one exhausted
         rule on a file does not block other rules' remediation of it.
         Returns 0 when no abandoned findings exist for this subject.
+
+        With *rearm_after_sec* (ADR-104 D11) only real failures count: rows
+        that carry the failed ``proposal_id`` and whose proposal completed
+        within the window. Rows that were merely abandoned with the count
+        stamped on them (re-posts at the cap) no longer keep the lineage
+        capped, so it re-arms once its last real failure is older than the
+        window.
         """
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT COALESCE(
-                        MAX((payload->>'remediation_attempt_count')::int),
-                        0
-                    )
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND status = 'abandoned'
-                      AND subject = :subject
-                    """
-                ),
-                {"subject": subject},
-            )
+            if rearm_after_sec is None:
+                result = await session.execute(
+                    text(
+                        """
+                        SELECT COALESCE(
+                            MAX((payload->>'remediation_attempt_count')::int),
+                            0
+                        )
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND status = 'abandoned'
+                          AND subject = :subject
+                        """
+                    ),
+                    {"subject": subject},
+                )
+            else:
+                result = await session.execute(
+                    text(
+                        """
+                        SELECT COALESCE(
+                            MAX((b.payload->>'remediation_attempt_count')::int),
+                            0
+                        )
+                        FROM core.blackboard_entries b
+                        LEFT JOIN core.autonomous_proposals ap
+                          ON ap.proposal_id = b.payload->>'proposal_id'
+                        WHERE b.entry_type = 'finding'
+                          AND b.status = 'abandoned'
+                          AND b.subject = :subject
+                          AND b.payload->>'proposal_id' IS NOT NULL
+                          AND COALESCE(ap.execution_completed_at, b.updated_at)
+                              >= now() - make_interval(secs => :rearm_after_sec)
+                        """
+                    ),
+                    {"subject": subject, "rearm_after_sec": rearm_after_sec},
+                )
             row = result.fetchone()
             return int(row[0]) if row and row[0] is not None else 0
 

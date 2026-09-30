@@ -471,7 +471,10 @@ class ViolationRemediatorWorker(Worker):
         self, findings: list[dict[str, Any]], cap_n: int
     ) -> list[str]:
         return await abandon_capped_findings(
-            await self._blackboard_service(), findings, cap_n
+            await self._blackboard_service(),
+            findings,
+            cap_n,
+            rearm_after_sec=load_operational_config().blackboard.remediation_rearm_after_sec,
         )
 
     # ID: 83df33cb-6d2a-46c3-82c3-6132f14ced39

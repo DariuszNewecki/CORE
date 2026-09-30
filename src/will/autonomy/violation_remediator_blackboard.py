@@ -207,7 +207,10 @@ async def mark_delegated(service: Any, findings: list[dict[str, Any]]) -> int:
 
 # ID: f5ef69e5-baba-4d33-a37f-87b25e5c9f34
 async def abandon_capped_findings(
-    service: Any, findings: list[dict[str, Any]], cap_n: int
+    service: Any,
+    findings: list[dict[str, Any]],
+    cap_n: int,
+    rearm_after_sec: int | None = None,
 ) -> list[str]:
     """Abandon the findings whose subject lineage has exhausted the
     remediation-attempt cap; return their entry ids.
@@ -220,6 +223,9 @@ async def abandon_capped_findings(
     under the cap are untouched. Fail-soft per finding: a service error
     reads as count 0 (the finding proceeds to a proposal), so a lookup
     hiccup degrades toward retry, never toward silent abandonment.
+
+    *rearm_after_sec* (ADR-104 D11) is passed to the lineage query so a
+    lineage whose last real failure is older than the window re-arms.
     """
     abandoned: list[str] = []
     for finding in findings:
@@ -228,7 +234,9 @@ async def abandon_capped_findings(
         if not subject:
             continue
         try:
-            inherited = await service.query_max_attempt_count_by_subject(subject)
+            inherited = await service.query_max_attempt_count_by_subject(
+                subject, rearm_after_sec=rearm_after_sec
+            )
         except Exception as e:
             logger.warning(
                 "ViolationRemediatorWorker: could not read inherited attempt "

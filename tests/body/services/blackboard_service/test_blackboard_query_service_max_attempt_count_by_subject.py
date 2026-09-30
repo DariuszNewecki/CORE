@@ -79,3 +79,32 @@ async def test_returns_zero_on_a_null_row() -> None:
             await BlackboardQueryService().query_max_attempt_count_by_subject(_SUBJECT)
             == 0
         )
+
+
+# ID: 564c9855-e239-4d46-8dcb-9dec4a449f73
+async def test_rearm_window_counts_only_recent_real_failures() -> None:
+    """ADR-104 D11: with a window, only rows carrying the failed proposal_id
+    whose proposal completed inside the window count toward the cap."""
+    session, ctx = _patched_session((0,))
+    with ctx:
+        got = await BlackboardQueryService().query_max_attempt_count_by_subject(
+            _SUBJECT, rearm_after_sec=604800
+        )
+    assert got == 0
+    sql = str(session.execute.await_args.args[0])
+    params = session.execute.await_args.args[1]
+    assert "b.status = 'abandoned'" in sql
+    assert "b.subject = :subject" in sql
+    assert "b.payload->>'proposal_id' IS NOT NULL" in sql
+    assert "make_interval(secs => :rearm_after_sec)" in sql
+    assert params == {"subject": _SUBJECT, "rearm_after_sec": 604800}
+
+
+# ID: 1a20dd2d-bccb-496a-b1d8-d1503b88b25a
+async def test_no_window_keeps_the_unbounded_lineage_read() -> None:
+    """Without a window the D9 read is unchanged: no proposal join."""
+    session, ctx = _patched_session((3,))
+    with ctx:
+        await BlackboardQueryService().query_max_attempt_count_by_subject(_SUBJECT)
+    sql = str(session.execute.await_args.args[0])
+    assert "autonomous_proposals" not in sql

@@ -46,8 +46,12 @@ class _StubBlackboard:
         self._counts = counts
         self._raise_for = raise_for
         self.abandoned: list[tuple[list[str], int]] = []
+        self.rearm_seen: list[int | None] = []
 
-    async def query_max_attempt_count_by_subject(self, subject: str) -> int:
+    async def query_max_attempt_count_by_subject(
+        self, subject: str, rearm_after_sec: int | None = None
+    ) -> int:
+        self.rearm_seen.append(rearm_after_sec)
         if subject == self._raise_for:
             raise RuntimeError("lookup outage")
         return self._counts.get(subject, 0)
@@ -86,6 +90,17 @@ async def test_lookup_outage_reads_as_zero_and_keeps_the_finding() -> None:
 
     assert await abandon_capped_findings(svc, [f], cap_n=3) == []
     assert svc.abandoned == []
+
+
+# ID: 5b15cf97-0ee6-4316-a853-7136b855044a
+async def test_rearm_window_is_passed_to_the_lineage_query() -> None:
+    """ADR-104 D11: the re-arm window reaches the lineage query."""
+    f = _finding("a.py")
+    svc = _StubBlackboard({})
+
+    await abandon_capped_findings(svc, [f], cap_n=3, rearm_after_sec=604800)
+
+    assert svc.rearm_seen == [604800]
 
 
 # ---------------------------------------------------------------------------
