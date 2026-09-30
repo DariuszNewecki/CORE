@@ -159,9 +159,7 @@ def render_summary(
             f"  consequence      : {execution['pre_execution_sha']} "
             f"-> {execution['post_execution_sha']}  files={execution['files_changed']}"
         )
-    console.print(
-        f"  resolved finding : status={payload['resolved_finding_status']}"
-    )
+    console.print(f"  resolved finding : status={payload['resolved_finding_status']}")
     reaudit = payload["reaudit"]
     if reaudit:
         console.print(
@@ -238,7 +236,9 @@ def build_markdown_report(result: PhaseResult, confirmation_mode: str) -> str:
         lines.append(f"- **Actions:** {proposal['actions']}")
         lines.append(f"- **Scope files:** {proposal['scope_files']}")
         lines.append(f"- **Risk:** {proposal['risk']}")
-        lines.append(f"- **Approval authority (policy):** `{proposal['approval_authority']}`")
+        lines.append(
+            f"- **Approval authority (policy):** `{proposal['approval_authority']}`"
+        )
         lines.append(f"- **Approver identity:** `{proposal['approver_identity']}`")
         lines.append(f"- **Linked finding IDs:** {proposal['finding_ids']}")
     else:
