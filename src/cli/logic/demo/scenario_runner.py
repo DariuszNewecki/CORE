@@ -111,13 +111,18 @@ async def _instantiate_and_run_worker(declaration_name: str, core_context: Any) 
     worker_class = getattr(module, impl["class"])
 
     kwargs: dict[str, Any] = {"declaration_name": declaration_name}
-    rule_namespace = declaration.get("mandate", {}).get("scope", {}).get(
-        "rule_namespace", ""
+    rule_namespace = (
+        declaration.get("mandate", {}).get("scope", {}).get("rule_namespace", "")
     )
     if rule_namespace:
         kwargs["rule_namespace"] = rule_namespace
 
-    protected = {"declaration_name", "rule_namespace", "core_context", "cognitive_service"}
+    protected = {
+        "declaration_name",
+        "rule_namespace",
+        "core_context",
+        "cognitive_service",
+    }
     for key, value in (impl.get("params") or {}).items():
         if key not in protected:
             kwargs[key] = value
@@ -220,7 +225,9 @@ async def _execute_and_fetch_chain(
 ) -> tuple[dict[str, Any], ChainEvidence | None]:
     """POST /execute then GET /chain over an in-process ASGI transport (D6)."""
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url=_ASGI_BASE_URL) as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url=_ASGI_BASE_URL
+    ) as client:
         exec_response = await client.post(
             f"/v1/proposals/{proposal_id}/execute", json={"write": True}
         )
