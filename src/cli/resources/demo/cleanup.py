@@ -53,7 +53,9 @@ console = Console()
 # ID: 835f484b-ea98-4e31-94d0-da6528cd283e
 async def cleanup_cmd(
     ctx: typer.Context,
-    run_id: str = typer.Argument(..., help="The run id of the retained demo workspace."),
+    run_id: str = typer.Argument(
+        ..., help="The run id of the retained demo workspace."
+    ),
     write: bool = typer.Option(
         False,
         "--write",
