@@ -101,7 +101,9 @@ def hash_directory(path: Path) -> str:
 
 
 # ID: 9f4d6631-6eb1-455b-8775-32f4e4b5234a
-def create_isolated_clone(source: GitService, head_sha: str, identity: RunIdentity) -> GitService:
+def create_isolated_clone(
+    source: GitService, head_sha: str, identity: RunIdentity
+) -> GitService:
     """Create the disposable clone for this run at ``identity.clone_dir`` (ADR-155 D2)."""
     return source.create_disposable_clone(head_sha, identity.clone_dir)
 
@@ -162,7 +164,9 @@ async def _with_deadline(
     try:
         return await asyncio.wait_for(coro, timeout=seconds)
     except TimeoutError as exc:
-        raise SubstrateTimeoutError(f"{phase} exceeded its {seconds}s deadline") from exc
+        raise SubstrateTimeoutError(
+            f"{phase} exceeded its {seconds}s deadline"
+        ) from exc
 
 
 # ID: 5102d54b-e869-4489-bace-07d13f2426b3
@@ -231,5 +235,7 @@ def cleanup_run(identity: RunIdentity, demo_state_dir: Path) -> None:
     removal to ``GitService.marker_checked_remove`` so the same
     escape/marker/parent/root guards protect every caller.
     """
-    GitService.marker_checked_remove(identity.state_dir, identity.run_id, demo_state_dir)
+    GitService.marker_checked_remove(
+        identity.state_dir, identity.run_id, demo_state_dir
+    )
     logger.info("Demo: cleaned up run %s", identity.run_id)
