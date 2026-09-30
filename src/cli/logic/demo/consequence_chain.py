@@ -58,7 +58,9 @@ _COMPLETED_STATUS = "completed"
 _RESOLVED_STATUS = "resolved"
 
 
-async def _container_host_port(project_name: str, service: str, container_port: int) -> str:
+async def _container_host_port(
+    project_name: str, service: str, container_port: int
+) -> str:
     """Return the loopback host port Docker published for a compose service."""
     container = f"{project_name}-{service}-1"
     result = await run_command_async(["docker", "port", container, str(container_port)])
@@ -104,7 +106,9 @@ def _evaluate_assertions(
     assertions: list[AssertionResult] = []
 
     def _add(name: str, passed: bool, detail: str = "") -> None:
-        assertions.append(AssertionResult(name=name, passed=bool(passed), detail=detail))
+        assertions.append(
+            AssertionResult(name=name, passed=bool(passed), detail=detail)
+        )
 
     _add("D10.1_infra_healthy", infra_healthy)
     _add(
