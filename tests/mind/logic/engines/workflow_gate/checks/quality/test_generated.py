@@ -137,3 +137,31 @@ def test_QualityGateCheck_verify():
 
     assert result == []
     mock_process.communicate.assert_awaited_once()
+
+
+
+
+
+async def _run(check: QualityGateCheck):
+    return await check.verify(file_path=None, params={})
+
+
+# ID: 3061a000-bcd9-4d20-907b-071262334579
+def test_QualityGateCheck_verify() -> None:
+    path_resolver = MagicMock()
+    path_resolver.repo_root = Path("/tmp/repo")
+    check = QualityGateCheck(
+        path_resolver=path_resolver, check_type="ruff", cmd=["ruff", "check"]
+    )
+
+    mock_process = MagicMock()
+    mock_process.returncode = 0
+    mock_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.quality.asyncio.create_subprocess_exec",
+        new=AsyncMock(return_value=mock_process),
+    ):
+        result = asyncio.run(_run(check))
+
+    assert list(result) == []
