@@ -25,3 +25,23 @@ async def test_LinterComplianceCheck_verify():
         violations = await LinterComplianceCheck.verify(check, Path("src/foo.py"), {})
 
     assert violations == []
+
+
+import asyncio
+
+
+# ID: 20664ff6-1b47-42a1-b6d2-cc63cd403ef0
+def test_LinterComplianceCheck_verify():
+    check_instance = LinterComplianceCheck()
+
+    fake_process = MagicMock()
+    fake_process.returncode = 0
+    fake_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.linter.asyncio.create_subprocess_exec",
+        new=AsyncMock(return_value=fake_process),
+    ):
+        violations = asyncio.run(check_instance.verify(Path("src/foo.py"), {}))
+
+    assert violations == []
