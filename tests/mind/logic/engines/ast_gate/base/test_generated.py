@@ -88,8 +88,6 @@ def test_ASTHelpers_iter_module_level_stmts_non_module() -> None:
     assert result == []
 
 
-
-
 # ID: dcde8f95-7853-467b-8a75-57a5ac2aed1d
 def test_ASTHelpers_matches_call():
     # Happy path: exact match
@@ -108,3 +106,24 @@ def test_ASTHelpers_matches_call():
     assert (
         ASTHelpers.matches_call("os.system", ["subprocess.call", "os.system"]) is True
     )
+
+
+
+
+
+# ID: fc3cf569-b2a6-4aac-ab52-1e467dabe9a6
+def test_ASTHelpers_walk_module_stmt_without_nested_scopes():
+    source = """
+x = 1
+# ID: e829e076-a33b-450e-abfa-0031d43bbd45
+def foo():
+    y = 2
+    return y
+z = 3
+"""
+    module = ast.parse(source)
+    stmt = module.body[0]
+    result = list(ASTHelpers.walk_module_stmt_without_nested_scopes(stmt))
+    assert stmt in result
+    for node in result:
+        assert isinstance(node, ast.AST)
