@@ -43,3 +43,22 @@ def test_CoverageMinimumCheck() -> None:
 
     # Assert
     assert result == []
+
+
+
+
+
+# ID: 41e3712f-9742-4d52-b297-0fcbdb0f785d
+async def test_CoverageMinimumCheck_verify() -> None:
+    path_resolver = MagicMock()
+    check = CoverageMinimumCheck(path_resolver)
+
+    check._load_coverage_threshold = MagicMock(return_value=80)
+
+    result = await check.verify(
+        Path("src/example.py"),
+        {"current_coverage": 95.0},
+    )
+
+    assert result == []
+    check._load_coverage_threshold.assert_called_once()
