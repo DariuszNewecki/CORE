@@ -72,3 +72,22 @@ def test_ImportResolutionCheck_verify() -> None:
     called_spec, called_target = check._run_tool.await_args.args
     assert called_spec == {"tool": "ruff", "args": ["check"]}
     assert called_target == "src"
+
+
+
+
+
+# ID: ebfb984e-dc39-47dc-9d1a-1e09f560ced4
+def test_ImportResolutionCheck_verify():
+    check = ImportResolutionCheck.__new__(ImportResolutionCheck)
+    check.check_type = "import_resolution"
+
+    spec = {"tool": "ruff", "args": ["check"]}
+    params = {"tools": [spec]}
+
+    check._run_tool = AsyncMock(return_value=["violation one", "violation two"])
+
+    result = asyncio.run(check.verify(Path("src/foo.py"), params))
+
+    assert list(result) == ["violation one", "violation two"]
+    check._run_tool.assert_awaited_once_with(spec, "src/foo.py")
