@@ -22,3 +22,28 @@ def test_ASTHelpers_is_type_checking_condition() -> None:
     # Negative: non-typing attribute with TYPE_CHECKING attr
     wrong_attr = ast.parse("if foo.TYPE_CHECKING: pass").body[0].test
     assert ASTHelpers.is_type_checking_condition(wrong_attr) is False
+
+
+
+
+# ID: 40ef5669-5310-4c6f-a4b4-6dfb8c16bc39
+def test_domain_matches():
+    # Exact match
+    assert ASTHelpers.domain_matches("billing", ["billing"]) is True
+
+    # Prefix match via subdomain
+    assert ASTHelpers.domain_matches("billing.core", ["billing"]) is True
+    assert ASTHelpers.domain_matches("billing.core.deep", ["billing"]) is True
+
+    # Matches one of several allowed domains
+    assert ASTHelpers.domain_matches("orders", ["billing", "orders"]) is True
+
+    # Non-matching domain
+    assert ASTHelpers.domain_matches("inventory", ["billing", "orders"]) is False
+
+    # Partial prefix that is not a proper subdomain boundary
+    assert ASTHelpers.domain_matches("billingx", ["billing"]) is False
+
+    # Empty inputs
+    assert ASTHelpers.domain_matches("", ["billing"]) is False
+    assert ASTHelpers.domain_matches("billing", []) is False
