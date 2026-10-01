@@ -26,3 +26,15 @@ async def test_CanaryDeploymentCheck() -> None:
     violations = await check.verify(Path("/tmp/whatever.md"), {"canary_passed": False})
     assert len(violations) == 1
     assert "Canary audit required" in violations[0]
+
+
+import asyncio
+
+
+# ID: 1a806d20-7d11-42f9-b3e5-0622c490159b
+def test_CanaryDeploymentCheck_verify():
+    check = CanaryDeploymentCheck.__new__(CanaryDeploymentCheck)
+    result = asyncio.run(
+        CanaryDeploymentCheck.verify(check, None, {"canary_passed": True})
+    )
+    assert result == []
