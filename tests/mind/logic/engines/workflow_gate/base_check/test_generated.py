@@ -22,3 +22,39 @@ def test_WorkflowCheck__verify():
         asyncio.get_event_loop().run_until_complete(
             WorkflowCheck.verify(check, None, {})
         )
+
+
+from collections.abc import Sequence
+from typing import Any
+
+
+# ID: 5412ebd9-b0e1-467c-ac58-abaa6a02fd06
+def test_WorkflowCheck() -> None:
+    # A minimal concrete subclass implementing the abstract `verify` method.
+    class _ConcreteCheck(WorkflowCheck):
+        check_type = "example"
+
+        # ID: ec433e03-66a4-4d99-b995-fc3d24b62213
+        async def verify(self, file_path, params) -> Sequence[str | Any]:
+            return []
+
+    check = _ConcreteCheck()
+
+    # Concrete subclass is instantiable and carries the declared check_type.
+    assert isinstance(check, WorkflowCheck)
+    assert check.check_type == "example"
+
+    # The abstract base cannot be instantiated directly.
+    with pytest.raises(TypeError):
+        WorkflowCheck()  # type: ignore[abstract]
+
+    # `verify` is an abstractmethod on the base class.
+    assert "verify" in WorkflowCheck.__abstractmethods__
+
+    # Happy path: calling verify returns an empty sequence (no violations).
+    import asyncio
+
+    result = asyncio.get_event_loop().run_until_complete(
+        check.verify(file_path=None, params={})
+    )
+    assert list(result) == []
