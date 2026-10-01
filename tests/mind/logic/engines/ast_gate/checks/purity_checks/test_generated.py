@@ -76,3 +76,25 @@ def test_PurityChecks_check_no_direct_writes():
     assert "write_text" in violations[0]
     assert "Direct write detected" in violations[0]
     assert "Use FileHandler" in violations[0]
+
+
+from pathlib import Path
+
+
+# ID: 97fc26a2-ec3d-4815-8e2f-7c1357e305ca
+def test_PurityChecks_check_action_pattern() -> None:
+    source = (
+        "from somewhere import register_action, atomic_action\n"
+        "\n"
+        "@register_action\n"
+        "@atomic_action\n"
+        "def do_thing(write: bool = False) -> None:\n"
+        "    return None\n"
+    )
+    tree = ast.parse(source)
+    file_path = Path("src/body/atomic/thing.py")
+
+    violations = PurityChecks.check_action_pattern(tree, file_path)
+
+    assert violations == []
+    assert isinstance(violations, list)
