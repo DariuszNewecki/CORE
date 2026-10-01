@@ -59,9 +59,6 @@ def test_ModularityChecker_check_single_responsibility() -> None:
     mock_result.assert_called_once_with(file_path, params)
 
 
-
-
-
 # ID: 2aaae31b-0f2b-409b-8578-0c4d43af6321
 def test_ModularityChecker_check_needs_refactor(tmp_path: Path) -> None:
     file_path = tmp_path / "sample.py"
@@ -90,3 +87,40 @@ def test_ModularityChecker_check_needs_refactor(tmp_path: Path) -> None:
         "network",
         "database",
     ]
+
+
+
+
+
+# ID: bc70adf3-3d8b-4854-b791-c9445327a9e2
+def test_ModularityChecker_check_class_too_large(tmp_path: Path) -> None:
+    max_lines = 40
+    body_lines = ["    x = 1"] * (max_lines + 5)
+    source = "class BigClass:\n" + "\n".join(body_lines) + "\n"
+
+    file_path = tmp_path / "module.py"
+    file_path.write_text(source, encoding="utf-8")
+
+    checker = ModularityChecker()
+
+    with (
+        patch(
+            "mind.logic.engines.ast_gate.checks.modularity_checks._has_core_role_declaration",
+            return_value=False,
+        ),
+        patch.object(
+            checker,
+            "_find_dominant_class",
+            return_value=("BigClass", max_lines + 5, 0.9),
+        ),
+    ):
+        results = checker.check_class_too_large(file_path, {"max_lines": max_lines})
+
+    assert isinstance(results, list)
+    assert len(results) == 1
+    finding = results[0]
+    assert finding["rule_id"] == "modularity.class_too_large"
+    assert finding["file"] == str(file_path)
+    assert finding["details"]["max_lines"] == max_lines
+    assert finding["details"]["dominant_class_name"] == "BigClass"
+    assert finding["details"]["dominant_class_lines"] > max_lines
