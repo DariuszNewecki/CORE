@@ -24,3 +24,26 @@ async def test_AuditHistoryCheck_verify():
 
     assert result == []
     mock_session.execute.assert_awaited_once()
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7b3e4616-74ac-4046-8e7e-819a8b5138bc
+async def test_AuditHistoryCheck() -> None:
+    check = AuditHistoryCheck()
+
+    mock_result = MagicMock()
+    mock_result.scalar_one.return_value = 0
+
+    mock_session = MagicMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    context = MagicMock()
+    context.db_session = mock_session
+
+    result = await check.verify(None, {"_context": context})
+
+    assert result == []
+    mock_session.execute.assert_awaited_once()
