@@ -76,8 +76,6 @@ def test_EngineRegistry_engine_source_files():
     registry._discover_engines.assert_called_once_with()
 
 
-
-
 # ID: 2f0299fb-ab1a-41fe-a4b1-98d8ecb854ec
 def test_EngineRegistry_initialize():
     from mind.logic.engines.registry import EngineRegistry
@@ -104,3 +102,49 @@ def test_EngineRegistry_initialize():
     assert EngineRegistry._discovered is False
     mock_discover.assert_called_once()
     mock_aliases.assert_called_once()
+
+
+
+
+# ID: 5fdffcc8-f629-45c3-ad4e-b33a1a309f30
+def test_EngineRegistry():
+    from mind.logic.engines.registry import EngineRegistry
+
+    mock_resolver = MagicMock()
+    mock_engine_cls = MagicMock()
+    mock_engine_instance = MagicMock()
+    mock_engine_cls.return_value = mock_engine_instance
+
+    saved_classes = dict(EngineRegistry._engine_classes)
+    saved_instances = dict(EngineRegistry._instances)
+    saved_resolver = EngineRegistry._path_resolver
+    saved_llm = EngineRegistry._llm_client
+    saved_emb = EngineRegistry._embedding_client
+    saved_discovered = EngineRegistry._discovered
+    try:
+        EngineRegistry._engine_classes = {"dummy_engine": mock_engine_cls}
+        EngineRegistry._instances = {}
+        EngineRegistry._path_resolver = mock_resolver
+        EngineRegistry._llm_client = None
+        EngineRegistry._embedding_client = None
+        EngineRegistry._discovered = True
+
+        with patch("mind.logic.engines.registry.inspect.signature") as mock_sig:
+            mock_sig.return_value = MagicMock(parameters={})
+            result = EngineRegistry.get("dummy_engine")
+
+        assert result is mock_engine_instance
+        mock_engine_cls.assert_called_once_with()
+        # Second call should return cached instance, not re-instantiate.
+        with patch("mind.logic.engines.registry.inspect.signature") as mock_sig:
+            mock_sig.return_value = MagicMock(parameters={})
+            result2 = EngineRegistry.get("dummy_engine")
+        assert result2 is mock_engine_instance
+        mock_engine_cls.assert_called_once()
+    finally:
+        EngineRegistry._engine_classes = saved_classes
+        EngineRegistry._instances = saved_instances
+        EngineRegistry._path_resolver = saved_resolver
+        EngineRegistry._llm_client = saved_llm
+        EngineRegistry._embedding_client = saved_emb
+        EngineRegistry._discovered = saved_discovered
