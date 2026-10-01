@@ -25,3 +25,28 @@ async def test_WorkflowGateEngine_verify() -> None:
 
     assert result is expected_result
     engine._verify_async.assert_awaited_once_with(file_path, params)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 433a36b2-2d7c-4eef-a66e-579303c98a5b
+async def test_WorkflowGateEngine_verify_context() -> None:
+    engine = WorkflowGateEngine.__new__(WorkflowGateEngine)
+    engine._checks = {}
+
+    mock_check = MagicMock()
+    mock_check.verify = AsyncMock(return_value=["src/foo.py"])
+    engine._checks["my_check"] = mock_check
+
+    context = MagicMock()
+    params = {"check_type": "my_check"}
+
+    findings = await engine.verify_context(context, params)
+
+    mock_check.verify.assert_awaited_once_with(None, params)
+    assert len(findings) == 1
+    assert findings[0].check_id == "workflow.my_check"
+    assert findings[0].file_path == "src/foo.py"
