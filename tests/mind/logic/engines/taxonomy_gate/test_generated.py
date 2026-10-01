@@ -52,9 +52,6 @@ async def test_taxonomy_gate_engine_verify() -> None:
     assert "taxonomy_alignment" in result.message
 
 
-
-
-
 # ID: 940b9066-6920-4bec-b78d-c1830ef94820
 def test_TaxonomyGateEngine_is_context_level_for() -> None:
     path_resolver = MagicMock()
@@ -70,3 +67,54 @@ def test_TaxonomyGateEngine_is_context_level_for() -> None:
     assert engine.is_context_level_for("exemption_debt_declared") is True
     assert engine.is_context_level_for("some_other_check") is False
     assert engine.is_context_level_for(None) is False
+
+
+from unittest.mock import patch
+
+
+# ID: 1613f898-1ef9-45cb-ac7f-95384cd6266c
+def test_TaxonomyGateEngine():
+    from pathlib import Path
+
+    # Instantiate with a mocked PathResolver (constructor contract: path_resolver)
+    path_resolver = MagicMock()
+    engine = TaxonomyGateEngine(path_resolver)
+
+    assert engine.engine_id == "taxonomy_gate"
+
+    # is_context_level_for is a classmethod checking known check_types
+    assert (
+        TaxonomyGateEngine.is_context_level_for(
+            "operational_capabilities_decorator_backing"
+        )
+        is True
+    )
+    assert (
+        TaxonomyGateEngine.is_context_level_for("sensor_supported_by_declaration")
+        is True
+    )
+    assert TaxonomyGateEngine.is_context_level_for("not_a_real_check") is False
+    assert TaxonomyGateEngine.is_context_level_for(None) is False
+
+    # verify_context dispatches to _build_decorator_backing_findings for the
+    # decorator-backing check. Patch the per-check builder at its defining
+    # module path to isolate dispatch from filesystem/AST I/O.
+    context = MagicMock()
+    context.repo_path = Path("/tmp/repo")
+
+    expected_findings = [MagicMock(name="finding")]
+    with patch(
+        "mind.logic.engines.taxonomy_gate.TaxonomyGateEngine._build_decorator_backing_findings",
+        return_value=expected_findings,
+    ) as mock_build:
+        import asyncio
+
+        result = asyncio.run(
+            engine.verify_context(
+                context,
+                {"check_type": "operational_capabilities_decorator_backing"},
+            )
+        )
+
+    assert result == expected_findings
+    mock_build.assert_called_once_with(context.repo_path)
