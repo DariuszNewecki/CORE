@@ -30,3 +30,25 @@ async def test_RuffFormatCheck_verify() -> None:
     assert "ruff" in called_args
     assert "format" in called_args
     assert "--check" in called_args
+
+
+import asyncio
+
+
+# ID: c12be37f-4a4a-4b53-8af2-38f05593feee
+def test_RuffFormatCheck():
+    check = RuffFormatCheck()
+
+    mock_process = MagicMock()
+    mock_process.returncode = 0
+    mock_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    mock_create = AsyncMock(return_value=mock_process)
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.ruff_format.asyncio.create_subprocess_exec",
+        mock_create,
+    ):
+        result = asyncio.run(check.verify(None, {}))
+
+    assert result == []
