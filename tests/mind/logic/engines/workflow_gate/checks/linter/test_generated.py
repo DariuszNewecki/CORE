@@ -75,9 +75,6 @@ async def test_LinterComplianceCheck_verify() -> None:
     assert mock_exec.await_count == 2
 
 
-
-
-
 # ID: c291e5ed-35b3-410b-80e3-36f17d22520e
 async def test_LinterComplianceCheck_verify():
     check = LinterComplianceCheck.__new__(LinterComplianceCheck)
@@ -100,4 +97,32 @@ async def test_LinterComplianceCheck_verify():
         result = await LinterComplianceCheck.verify(check, Path("src/example.py"), {})
 
     assert result == []
+    assert mock_exec.await_count == 2
+
+
+
+
+
+# ID: 52b0ab60-ce54-491a-993a-47e38e72ab74
+async def test_LinterComplianceCheck_verify():
+    check = LinterComplianceCheck()
+    check.check_type = "linter"
+
+    mock_process = MagicMock()
+    mock_process.returncode = 0
+    mock_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with (
+        patch(
+            "mind.logic.engines.workflow_gate.checks.linter.asyncio.create_subprocess_exec",
+            new=AsyncMock(return_value=mock_process),
+        ) as mock_exec,
+        patch(
+            "mind.logic.engines.workflow_gate.checks.linter.asyncio.wait_for",
+            new=AsyncMock(return_value=(b"", b"")),
+        ),
+    ):
+        violations = await check.verify(Path("src/foo.py"), {})
+
+    assert violations == []
     assert mock_exec.await_count == 2
