@@ -58,3 +58,26 @@ def test_WorkflowCheck() -> None:
         check.verify(file_path=None, params={})
     )
     assert list(result) == []
+
+
+from mind.logic.engines.workflow_gate.base_check import StructuredViolation
+
+
+# ID: e6202b31-454b-4c68-b2e3-df73c707b97c
+def test_StructuredViolation():
+    violation = StructuredViolation(
+        file_path="src/example.py",
+        message="Type error detected",
+    )
+    assert violation.file_path == "src/example.py"
+    assert violation.message == "Type error detected"
+    assert violation.context == {}
+
+    custom = StructuredViolation(
+        file_path="src/other.py",
+        message="Vulnerable dependency",
+        context={"line": 42, "severity": "high"},
+    )
+    assert custom.file_path == "src/other.py"
+    assert custom.message == "Vulnerable dependency"
+    assert custom.context == {"line": 42, "severity": "high"}
