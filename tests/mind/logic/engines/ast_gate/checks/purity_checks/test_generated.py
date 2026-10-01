@@ -19,9 +19,6 @@ def test_PurityChecks_check_future_annotations() -> None:
         mock_check.assert_called_once()
 
 
-
-
-
 # ID: aab90f68-493b-4956-8629-feeaba4330d1
 def test_PurityChecks_check_tempfile_default_dir():
     tree = ast.parse("import tempfile\ntempfile.gettempdir()\n")
@@ -49,3 +46,33 @@ def test_PurityChecks_check_tempfile_default_dir():
     assert isinstance(result, list)
     assert len(result) == 1
     assert "tempfile.gettempdir" in result[0]
+
+
+from types import SimpleNamespace
+
+
+# ID: 92ba5847-4c2e-43bf-9d5c-94bd3a1226d8
+def test_PurityChecks_check_no_direct_writes():
+    taxonomy = SimpleNamespace(
+        all_entries=[
+            SimpleNamespace(
+                op_class="write",
+                name="write_text",
+                match="leaf",
+                namespace="watched",
+                predicate=None,
+            ),
+        ]
+    )
+
+    tree = ast.parse(
+        "def f():\n    path.write_text('hi')\n    return path.read_text()\n"
+    )
+
+    violations = PurityChecks.check_no_direct_writes(tree, taxonomy)
+
+    assert isinstance(violations, list)
+    assert len(violations) == 1
+    assert "write_text" in violations[0]
+    assert "Direct write detected" in violations[0]
+    assert "Use FileHandler" in violations[0]
