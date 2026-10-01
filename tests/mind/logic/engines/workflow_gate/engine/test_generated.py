@@ -254,9 +254,6 @@ async def test_WorkflowGateEngine_verify():
     engine._verify_async.assert_awaited_once_with(file_path, params)
 
 
-
-
-
 # ID: 57a74a17-beab-464e-b5c9-b9ee28da3f32
 async def test_WorkflowGateEngine_verify_context() -> None:
     path_resolver = MagicMock()
@@ -276,3 +273,23 @@ async def test_WorkflowGateEngine_verify_context() -> None:
     assert findings[0].check_id == "workflow.my_check"
     assert findings[0].message == "some violation"
     assert findings[1].file_path == "src/foo.py"
+
+
+
+
+
+# ID: 10adbbcc-087f-485d-b050-42e0a71725d2
+def test_WorkflowGateEngine_verify() -> None:
+    path_resolver = MagicMock()
+    engine = WorkflowGateEngine(path_resolver)
+
+    expected = MagicMock(name="EngineResult")
+    engine._verify_async = AsyncMock(return_value=expected)
+
+    file_path = Path("src/example.py")
+    params = {"foo": "bar"}
+
+    result = asyncio.run(engine.verify(file_path, params))
+
+    assert result is expected
+    engine._verify_async.assert_awaited_once_with(file_path, params)
