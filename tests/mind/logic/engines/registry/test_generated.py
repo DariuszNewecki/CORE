@@ -56,8 +56,6 @@ def test_EngineRegistry_graph_dependent_engine_files() -> None:
     assert result == frozenset({"src/mind/logic/engines/graph_engine.py"})
 
 
-
-
 # ID: 702a9441-74a1-4307-827b-6d76758fe3e7
 def test_EngineRegistry_engine_source_files():
     from mind.logic.engines.registry import EngineRegistry
@@ -76,3 +74,33 @@ def test_EngineRegistry_engine_source_files():
 
     assert result == frozenset({"src/mind/logic/engines/fake_engine.py"})
     registry._discover_engines.assert_called_once_with()
+
+
+
+
+# ID: 2f0299fb-ab1a-41fe-a4b1-98d8ecb854ec
+def test_EngineRegistry_initialize():
+    from mind.logic.engines.registry import EngineRegistry
+
+    path_resolver = MagicMock(name="path_resolver")
+    llm_client = MagicMock(name="llm_client")
+    embedding_client = MagicMock(name="embedding_client")
+
+    with (
+        patch.object(EngineRegistry, "_discover_engines") as mock_discover,
+        patch.object(
+            EngineRegistry, "_load_passive_aliases_from_taxonomy"
+        ) as mock_aliases,
+    ):
+        EngineRegistry.initialize(
+            path_resolver=path_resolver,
+            llm_client=llm_client,
+            embedding_client=embedding_client,
+        )
+
+    assert EngineRegistry._path_resolver is path_resolver
+    assert EngineRegistry._llm_client is llm_client
+    assert EngineRegistry._embedding_client is embedding_client
+    assert EngineRegistry._discovered is False
+    mock_discover.assert_called_once()
+    mock_aliases.assert_called_once()
