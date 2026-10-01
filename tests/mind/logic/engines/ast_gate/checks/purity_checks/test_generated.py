@@ -98,3 +98,42 @@ def test_PurityChecks_check_action_pattern() -> None:
 
     assert violations == []
     assert isinstance(violations, list)
+
+
+
+
+
+# ID: 7faed252-7470-4d0b-b3f7-66811bd6147c
+def test_PurityChecks_check_forbidden_imports_and_calls():
+    source = (
+        "import rich.console\n"
+        "from rich.table import Table\n"
+        "Console()\n"
+        "console.print('hi')\n"
+        "Table()\n"
+        "import os\n"
+        "os.getcwd()\n"
+    )
+    tree = ast.parse(source)
+
+    forbidden_imports = ["rich.console", "rich.table"]
+    forbidden_calls = ["Console", "console.print", "Table"]
+
+    violations = PurityChecks.check_forbidden_imports_and_calls(
+        tree,
+        forbidden_imports,
+        forbidden_calls,
+    )
+
+    assert isinstance(violations, list)
+    assert len(violations) == 5
+
+    joined = "\n".join(violations)
+    assert "Forbidden import 'rich.console'" in joined
+    assert "Forbidden import-from 'rich.table'" in joined
+    assert "Forbidden call 'Console()'" in joined
+    assert "Forbidden call 'console.print()'" in joined
+    assert "Forbidden call 'Table()'" in joined
+
+    assert "os" not in joined
+    assert "getcwd" not in joined
