@@ -64,3 +64,21 @@ async def test_CanaryDeploymentCheck_verify():
     assert result_fail == [
         "Canary audit required: Operation must pass in staging/isolation first."
     ]
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 06f066a4-9960-4dc4-9775-65bf900782b0
+async def test_CanaryDeploymentCheck_verify():
+    check = CanaryDeploymentCheck()
+
+    result_fail = await check.verify(None, {"canary_passed": False})
+    assert result_fail == [
+        "Canary audit required: Operation must pass in staging/isolation first."
+    ]
+
+    result_pass = await check.verify(None, {"canary_passed": True})
+    assert result_pass == []
