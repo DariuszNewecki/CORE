@@ -190,12 +190,19 @@ def test_ASTHelpers_full_attr_name():
     assert ASTHelpers.full_attr_name(const_node) is None
 
 
-
-
-
 # ID: 206ec107-9553-40da-acc7-182dd2355cc4
 def test_ASTHelpers_lineno():
     node = ast.parse("x = 1").body[0]
     result = ASTHelpers.lineno(node)
     assert result == node.lineno
     assert isinstance(result, int)
+
+
+
+
+# ID: 5c7e6f13-d65d-476d-9e8d-f45e9efde8db
+def test_ASTHelpers_domain_matches():
+    assert (
+        ASTHelpers.domain_matches("api.example.com", ["api.example.com", "other.com"])
+        is True
+    )
