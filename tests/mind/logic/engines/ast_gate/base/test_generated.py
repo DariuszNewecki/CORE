@@ -163,9 +163,6 @@ def test_ASTHelpers_build_import_alias_map() -> None:
     assert result["ex"] == "sys.exit"
 
 
-
-
-
 # ID: ee6697a7-2b84-4cc6-9cb2-4be8d499959a
 def test_ASTHelpers_full_attr_name():
     # ast.Name -> simple identifier
@@ -191,3 +188,14 @@ def test_ASTHelpers_full_attr_name():
     # non-name/non-attribute node -> None
     const_node = ast.Constant(value=42)
     assert ASTHelpers.full_attr_name(const_node) is None
+
+
+
+
+
+# ID: 206ec107-9553-40da-acc7-182dd2355cc4
+def test_ASTHelpers_lineno():
+    node = ast.parse("x = 1").body[0]
+    result = ASTHelpers.lineno(node)
+    assert result == node.lineno
+    assert isinstance(result, int)
