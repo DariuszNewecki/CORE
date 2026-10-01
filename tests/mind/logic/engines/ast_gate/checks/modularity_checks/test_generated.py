@@ -57,3 +57,36 @@ def test_ModularityChecker_check_single_responsibility() -> None:
 
     assert result == expected
     mock_result.assert_called_once_with(file_path, params)
+
+
+
+
+
+# ID: 2aaae31b-0f2b-409b-8578-0c4d43af6321
+def test_ModularityChecker_check_needs_refactor(tmp_path: Path) -> None:
+    file_path = tmp_path / "sample.py"
+    file_path.write_text("import os\nimport sys\n", encoding="utf-8")
+
+    checker = ModularityChecker()
+
+    checker._extract_imports = MagicMock(return_value=["os", "sys"])
+    checker._identify_concerns = MagicMock(
+        return_value=["filesystem", "system", "network", "database"]
+    )
+
+    params = {"max_concerns": 3}
+    result = checker.check_needs_refactor(file_path, params)
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    finding = result[0]
+    assert finding["rule_id"] == "modularity.needs_refactor"
+    assert finding["file"] == str(file_path)
+    assert finding["details"]["concern_count"] == 4
+    assert finding["details"]["max_concerns"] == 3
+    assert finding["details"]["concerns"] == [
+        "filesystem",
+        "system",
+        "network",
+        "database",
+    ]
