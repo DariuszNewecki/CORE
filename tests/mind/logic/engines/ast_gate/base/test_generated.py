@@ -198,11 +198,97 @@ def test_ASTHelpers_lineno():
     assert isinstance(result, int)
 
 
-
-
 # ID: 5c7e6f13-d65d-476d-9e8d-f45e9efde8db
 def test_ASTHelpers_domain_matches():
     assert (
         ASTHelpers.domain_matches("api.example.com", ["api.example.com", "other.com"])
         is True
     )
+
+
+
+
+
+# ID: bedd93e4-2ede-4c2d-9350-c03463a46869
+def test_ASTHelpers() -> None:
+    # lineno
+    node = ast.parse("x = 1").body[0]
+    assert ASTHelpers.lineno(node) == 1
+
+    # full_attr_name for Name and Attribute chains
+    name_node = ast.parse("foo", mode="eval").body
+    assert ASTHelpers.full_attr_name(name_node) == "foo"
+
+    attr_node = ast.parse("asyncio.run", mode="eval").body
+    assert ASTHelpers.full_attr_name(attr_node) == "asyncio.run"
+
+    deep_attr = ast.parse("loop.create_task", mode="eval").body
+    assert ASTHelpers.full_attr_name(deep_attr) == "loop.create_task"
+
+    # build_import_alias_map
+    source = (
+        "from os import replace\n"
+        "from os import replace as r\n"
+        "import os\n"
+        "import os.path as op\n"
+    )
+    tree = ast.parse(source)
+    alias_map = ASTHelpers.build_import_alias_map(tree)
+    assert alias_map["replace"] == "os.replace"
+    assert alias_map["r"] == "os.replace"
+    assert alias_map["os"] == "os"
+    assert alias_map["op"] == "os.path"
+
+    # resolve_qualified_name
+    r_node = ast.parse("r", mode="eval").body
+    assert (
+        ASTHelpers.resolve_qualified_name(r_node, {"r": "os.replace"}) == "os.replace"
+    )
+
+    path_exists = ast.parse("path.exists", mode="eval").body
+    assert (
+        ASTHelpers.resolve_qualified_name(path_exists, {"path": "os.path"})
+        == "os.path.exists"
+    )
+
+    # matches_call
+    assert ASTHelpers.matches_call("asyncio.run", ["asyncio.run"]) is True
+    assert ASTHelpers.matches_call("foo.asyncio.run", ["asyncio.run"]) is True
+    assert ASTHelpers.matches_call("subprocess.run", ["asyncio.run"]) is False
+
+    # iter_module_level_stmts
+    module_tree = ast.parse("x = 1\ny = 2")
+    stmts = list(ASTHelpers.iter_module_level_stmts(module_tree))
+    assert len(stmts) == 2
+
+    # walk_module_stmt_without_nested_scopes
+    fn_tree = ast.parse("def f():\n    pass\nvalue = 1")
+    walked_names = []
+    for module_stmt in ASTHelpers.iter_module_level_stmts(fn_tree):
+        for walked_node in ASTHelpers.walk_module_stmt_without_nested_scopes(
+            module_stmt
+        ):
+            if isinstance(walked_node, ast.Name):
+                walked_names.append(walked_node.id)
+    assert "value" in walked_names
+
+    # extract_domain_from_path
+    assert (
+        ASTHelpers.extract_domain_from_path("src/mind/governance/auditor.py")
+        == "mind.governance"
+    )
+
+    # domain_matches
+    assert ASTHelpers.domain_matches("mind.governance", ["mind"]) is True
+    assert ASTHelpers.domain_matches("mind.governance", ["mind.governance"]) is True
+    assert ASTHelpers.domain_matches("other", ["mind"]) is False
+
+    # is_type_checking_condition
+    tc_module = ast.parse("if TYPE_CHECKING:\n    pass")
+    assert ASTHelpers.is_type_checking_condition(tc_module.body[0].test) is True
+
+    tc_typing = ast.parse("if typing.TYPE_CHECKING:\n    pass")
+    assert ASTHelpers.is_type_checking_condition(tc_typing.body[0].test) is True
+
+    tc_other = ast.parse("if True:\n    pass")
+    assert ASTHelpers.is_type_checking_condition(tc_other.body[0].test) is False
