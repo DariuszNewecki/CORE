@@ -89,9 +89,6 @@ def test_ModularityChecker_check_needs_refactor(tmp_path: Path) -> None:
     ]
 
 
-
-
-
 # ID: bc70adf3-3d8b-4854-b791-c9445327a9e2
 def test_ModularityChecker_check_class_too_large(tmp_path: Path) -> None:
     max_lines = 40
@@ -124,3 +121,46 @@ def test_ModularityChecker_check_class_too_large(tmp_path: Path) -> None:
     assert finding["details"]["max_lines"] == max_lines
     assert finding["details"]["dominant_class_name"] == "BigClass"
     assert finding["details"]["dominant_class_lines"] > max_lines
+
+
+
+
+
+# ID: 85f5edee-87df-499b-9ef1-c0f7a5bc4aa6
+def test_ModularityChecker_check_needs_split():
+    checker = ModularityChecker()
+    checker._detect_responsibilities = MagicMock(return_value=["responsibility_a"])
+    checker._find_dominant_class = MagicMock(return_value=("DominantClass", 100, 0.25))
+
+    lines = []
+    for idx in range(500):
+        lines.append(f"line_{idx} = {idx}")
+    content = "\n".join(lines)
+
+    mock_path = MagicMock(spec=Path)
+    mock_path.read_text.return_value = content
+    mock_path.__str__.return_value = "/tmp/big_file.py"
+
+    with (
+        patch(
+            "mind.logic.engines.ast_gate.checks.modularity_checks._has_core_role_declaration",
+            return_value=False,
+        ),
+        patch(
+            "mind.logic.engines.ast_gate.checks.modularity_checks.ast.parse"
+        ) as mock_parse,
+    ):
+        mock_parse.return_value = MagicMock()
+
+        result = checker.check_needs_split(mock_path, {"max_lines": 400})
+
+    assert len(result) == 1
+    finding = result[0]
+    assert finding["rule_id"] == "modularity.needs_split"
+    assert finding["file"] == "/tmp/big_file.py"
+    assert finding["details"]["lines_of_code"] == 500
+    assert finding["details"]["max_lines"] == 400
+    assert finding["details"]["responsibility_count"] == 1
+    assert finding["details"]["dominant_class_name"] == "DominantClass"
+    assert finding["details"]["dominant_class_lines"] == 100
+    assert finding["details"]["dominant_class_ratio"] == 0.25
