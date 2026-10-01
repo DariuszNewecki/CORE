@@ -136,9 +136,6 @@ def test_PurityChecks_check_forbidden_imports_and_calls():
     assert "getcwd" not in joined
 
 
-
-
-
 # ID: 35a63760-e10d-4ef3-89e4-b54b77cd67c8
 def test_check_decorator_args() -> None:
     source = (
@@ -155,3 +152,16 @@ def test_check_decorator_args() -> None:
     )
 
     assert violations == []
+
+
+
+
+
+# ID: 507b6cd6-06bb-4531-92af-34614d983532
+def test_PurityChecks_check_no_print_statements():
+    source = "print('hello world')\n"
+    tree = ast.parse(source)
+
+    result = PurityChecks.check_no_print_statements(tree)
+
+    assert result == ["Line 1: Replace print() with logger."]
