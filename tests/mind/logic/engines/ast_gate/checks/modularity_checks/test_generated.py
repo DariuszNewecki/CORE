@@ -20,9 +20,6 @@ def test_ModularityChecker_check_import_coupling() -> None:
     checker.check_refactor_score.assert_called_once_with(file_path, params)
 
 
-
-
-
 # ID: 28d734c6-4659-4651-9738-188a700ab637
 def test_ModularityChecker_check_semantic_cohesion() -> None:
     checker = ModularityChecker()
@@ -36,3 +33,27 @@ def test_ModularityChecker_check_semantic_cohesion() -> None:
 
     assert result == expected
     checker.check_refactor_score.assert_called_once_with(file_path, params)
+
+
+from unittest.mock import patch
+
+
+# ID: 9c16cd94-b903-4b15-84dc-1f57f5342dc4
+def test_ModularityChecker_check_single_responsibility() -> None:
+    checker = ModularityChecker.__new__(ModularityChecker)
+    file_path = Path("src/example.py")
+    params: dict = {"threshold": 5}
+    expected = [{"check": "refactor_score", "score": 0.1}]
+
+    mock_result = MagicMock(return_value=expected)
+    with patch.object(
+        ModularityChecker,
+        "check_refactor_score",
+        mock_result,
+    ):
+        result = ModularityChecker.check_single_responsibility(
+            checker, file_path, params
+        )
+
+    assert result == expected
+    mock_result.assert_called_once_with(file_path, params)
