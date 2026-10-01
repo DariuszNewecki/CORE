@@ -24,3 +24,25 @@ def test_GlobGateEngine():
     assert result.ok is True
     assert result.engine_id == "glob_gate"
     assert result.violations == []
+
+
+from unittest.mock import MagicMock
+
+
+# ID: 4b07a324-e9a0-4d05-b6f0-1eaccde3b555
+async def test_GlobGateEngine_verify():
+    # Instantiate the engine under test
+    engine = GlobGateEngine()
+
+    # Ensure deterministic engine id and matching behavior
+    engine.engine_id = "glob_gate"
+    engine._match = MagicMock(return_value=False)
+
+    result = await engine.verify(
+        Path("/project/src/module.py"),
+        {"patterns": ["forbidden/**"]},
+    )
+
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "glob_gate"
