@@ -19,3 +19,32 @@ def test_NamingChecks_check_test_file_naming() -> None:
 
     # test_generation path is exempted
     assert checks.check_test_file_naming("tests/test_generation/my_test.py") == []
+
+
+import ast
+from unittest.mock import patch
+
+from mind.logic.engines.ast_gate.checks.naming_checks import (
+    ASTHelpers,
+)
+
+
+# ID: 00b28107-9dd3-4868-ac57-db6c6d0459aa
+def test_NamingChecks_check_cli_async_helpers_private() -> None:
+    source = (
+        "async def _private_helper():\n"
+        "    pass\n"
+        "async def __dunder_helper__():\n"
+        "    pass\n"
+        "async def public_helper():\n"
+        "    pass\n"
+    )
+    tree = ast.parse(source)
+
+    with patch.object(ASTHelpers, "lineno", return_value=5) as mock_lineno:
+        result = NamingChecks.check_cli_async_helpers_private(tree)
+
+    assert result == [
+        "Line 5: Async helper 'public_helper' must be private (start with _)"
+    ]
+    mock_lineno.assert_called_once()
