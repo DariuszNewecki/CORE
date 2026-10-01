@@ -36,3 +36,27 @@ def test_NoDuplicatesCheck_verify() -> None:
     assert finding.context["command_name"] == "build"
     assert finding.context["registration_count"] == 2
     assert finding.context["entrypoints"] == ["cli.a", "cli.b"]
+
+
+
+
+# ID: c6e56a2f-de93-4f09-907e-f07dda1083b4
+def test_NoDuplicatesCheck():
+    check = NoDuplicatesCheck()
+
+    commands = [
+        {"name": "build", "file_path": "a.py", "entrypoint": "cli:a"},
+        {"name": "build", "file_path": "b.py", "entrypoint": "cli:b"},
+        {"name": "test", "file_path": "c.py", "entrypoint": "cli:c"},
+    ]
+
+    findings = check.verify(commands, {})
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.check_id == "cli_gate.no_duplicates"
+    assert finding.context["command_name"] == "build"
+    assert finding.context["registration_count"] == 2
+    assert finding.context["entrypoints"] == ["cli:a", "cli:b"]
+    assert finding.context["file_paths"] == ["a.py", "b.py"]
+    assert finding.file_path == "a.py"
