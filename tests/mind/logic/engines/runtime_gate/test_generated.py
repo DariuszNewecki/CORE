@@ -94,3 +94,24 @@ def test_max_interval_lookback_hours():
     result = max_interval_lookback_hours(declared)
     assert result == expected
     assert result > 24.0
+
+
+
+
+
+# ID: d5b16773-6eb4-47c8-9d6f-f5141851603b
+async def test_RuntimeGateEngine_verify() -> None:
+    engine = RuntimeGateEngine.__new__(RuntimeGateEngine)
+    engine.engine_id = "runtime_gate"
+
+    file_path = Path("/tmp/example.py")
+    params: dict[str, Any] = {"check_type": "some_rule"}
+
+    result = await RuntimeGateEngine.verify(engine, file_path, params)
+
+    assert result.ok is False
+    assert "runtime_gate.some_rule is context-level only." in result.message
+    assert len(result.violations) == 1
+    assert "some_rule" in result.violations[0]
+    assert "per-file dispatch" in result.violations[0]
+    assert result.engine_id == "runtime_gate"
