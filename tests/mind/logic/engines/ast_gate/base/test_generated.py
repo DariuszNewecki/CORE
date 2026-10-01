@@ -63,3 +63,29 @@ def test_ASTHelpers_extract_domain_from_path():
         == "mind.governance"
     )
     assert ASTHelpers.extract_domain_from_path("top_level.py") == ""
+
+
+
+
+
+# ID: 38d999a6-ef72-4da7-b705-80b1ec8ef1a7
+def test_ASTHelpers_iter_module_level_stmts() -> None:
+    source = "import os\nx = 1\ndef foo():\n    pass\n"
+    tree = ast.parse(source)
+
+    result = list(ASTHelpers.iter_module_level_stmts(tree))
+
+    assert result == tree.body
+    assert len(result) == 3
+    assert isinstance(result[0], ast.Import)
+    assert isinstance(result[1], ast.Assign)
+    assert isinstance(result[2], ast.FunctionDef)
+
+
+# ID: 28400feb-05d0-4cf1-a019-cc461ec73bd6
+def test_ASTHelpers_iter_module_level_stmts_non_module() -> None:
+    expr = ast.parse("1 + 1", mode="eval")
+
+    result = list(ASTHelpers.iter_module_level_stmts(expr))
+
+    assert result == []
