@@ -24,8 +24,6 @@ def test_ASTHelpers_is_type_checking_condition() -> None:
     assert ASTHelpers.is_type_checking_condition(wrong_attr) is False
 
 
-
-
 # ID: 40ef5669-5310-4c6f-a4b4-6dfb8c16bc39
 def test_domain_matches():
     # Exact match
@@ -47,3 +45,21 @@ def test_domain_matches():
     # Empty inputs
     assert ASTHelpers.domain_matches("", ["billing"]) is False
     assert ASTHelpers.domain_matches("billing", []) is False
+
+
+from pathlib import Path
+
+
+# ID: 464a57b7-ddf7-4cdf-9264-96564cf82b55
+def test_ASTHelpers_extract_domain_from_path():
+    assert (
+        ASTHelpers.extract_domain_from_path("src/mind/governance/auditor.py")
+        == "mind.governance"
+    )
+    assert (
+        ASTHelpers.extract_domain_from_path(
+            Path("project/src/mind/governance/auditor.py")
+        )
+        == "mind.governance"
+    )
+    assert ASTHelpers.extract_domain_from_path("top_level.py") == ""
