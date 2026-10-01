@@ -34,3 +34,31 @@ def test_QualityGateCheck() -> None:
     assert violation.context["tool"] == "mypy"
     assert violation.context["issue_count"] == 1
     mock_exec.assert_awaited_once()
+
+
+from pathlib import Path
+
+from mind.logic.engines.workflow_gate.checks.quality import QualityGateCheck
+
+
+# ID: b8c12e00-5afc-43f3-a5c6-1b8369b386ec
+def test_QualityGateCheck_verify():
+    path_resolver = MagicMock()
+    path_resolver.repo_root = Path("/repo")
+
+    check = QualityGateCheck(path_resolver, "lint", ["ruff", "check"])
+
+    fake_process = MagicMock()
+    fake_process.returncode = 0
+    fake_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.quality.asyncio.create_subprocess_exec",
+        new=AsyncMock(return_value=fake_process),
+    ):
+        import asyncio
+
+        result = asyncio.run(check.verify(None, {}))
+
+    assert result == []
+    fake_process.communicate.assert_awaited_once()
