@@ -24,6 +24,15 @@
 # called from ProposalStateManager.approve() before the UPDATE statement.
 # See autonomy.proposals.safe_auto_approval_envelope
 # (.intent/rules/will/autonomy.json) for the governed rule declaration.
+#
+# ADR-163 D1/D2 (governor acceptance of the flow allow-list part only,
+# 2026-10-02): `authorized_flows` is a second, separate list. A flow proposal
+# is validated by its own conditions (exactly one action, required steps
+# declared required: true in the flow file, source under read prefixes,
+# governed test path under write prefixes, scope == {source, test}).
+# Supersedes #853 ruling 6 for the flows listed here only. Removing an entry,
+# or authorization_mode: deny_all, turns it off. D4/D5 (perturbation verdict)
+# are NOT accepted and not implemented.
 # ---------------------------------------------------------------------------
 safe_auto_approval_envelope:
   authorized_actions:
@@ -32,6 +41,11 @@ safe_auto_approval_envelope:
     - fix.logging
     - fix.headers
     - fix.format
+  authorized_flows:
+    - flow_id: flow.build_test_for_symbol
+      write_path_prefixes: [tests/]
+      read_path_prefixes: [src/, tests/]
+      required_steps: [test.sandbox_validate]
   authorized_path_prefixes:
     - src/
     - tests/

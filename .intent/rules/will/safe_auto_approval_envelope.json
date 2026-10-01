@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.will.safe_auto_approval_envelope",
         "title": "Safe Auto-Approval Envelope",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -12,7 +12,7 @@
     "rules": [
         {
             "id": "autonomy.proposals.safe_auto_approval_envelope",
-            "statement": "A proposal MUST NOT transition to status='approved' under approval_authority='risk_classification.safe_auto_approval' unless every one of its actions references an action_id in the independently governed safe_auto_approval_envelope (.intent/enforcement/config/safe_auto_approval_envelope.yaml; moved out of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1), targets a repository-relative Python file under src/ or tests/ (direct or nested children, no absolute path, no traversal segment), and the set of those target paths exactly matches the proposal's declared ProposalScope.files. No ProposalAction naming flow_id satisfies this rule -- no flow is authorized for safe auto-approval, including test-generation flows. This rule does not constrain approval_authority='principal.governor': a human governor's approval may cross this envelope; the envelope binds only the autonomous approval path.",
+            "statement": "A proposal MUST NOT transition to status='approved' under approval_authority='risk_classification.safe_auto_approval' unless every one of its actions references an action_id in the independently governed safe_auto_approval_envelope (.intent/enforcement/config/safe_auto_approval_envelope.yaml; moved out of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1), targets a repository-relative Python file under src/ or tests/ (direct or nested children, no absolute path, no traversal segment), and the set of those target paths exactly matches the proposal's declared ProposalScope.files. A proposal whose action names a flow_id satisfies this rule only if the flow is listed in the envelope's authorized_flows and every ADR-163 D2 condition holds: exactly one action, and it is that flow; every step the envelope entry lists as required_steps is declared required: true in the flow's own .intent/flows/ declaration; source_file, symbol_name and symbol_kind are non-empty; source_file is a repository-relative Python path under the entry's read_path_prefixes; its governed test path (source_to_test_path) is under the entry's write_path_prefixes; and the declared ProposalScope.files equals exactly {source_file, test path}. Any other flow is not authorized for safe auto-approval. This rule does not constrain approval_authority='principal.governor': a human governor's approval may cross this envelope; the envelope binds only the autonomous approval path.",
             "authority": "policy",
             "phase": "runtime",
             "enforcement": "blocking",

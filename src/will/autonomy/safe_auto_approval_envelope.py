@@ -15,15 +15,18 @@ Governed by .intent/enforcement/config/safe_auto_approval_envelope.yaml
 moved out of action_risk.yaml by ADR-159 Note 2026-09-15, #894 Condition 1).
 
 Fail-closed by construction: an envelope-load failure, an unlisted action,
-a flow reference, a missing/malformed/absolute/traversal/out-of-envelope
+an unlisted flow, a missing/malformed/absolute/traversal/out-of-envelope
 path, and an action/scope inconsistency all deny -- never silently
-authorize. Denial does NOT delete or roll back the proposal; callers keep
+authorize. Flows listed in ``authorized_flows`` (ADR-163 D1, initially only
+flow.build_test_for_symbol) are validated by their own conditions (D2).
+Denial does NOT delete or roll back the proposal; callers keep
 it in PENDING — visible in the approval queue — for principal.governor
 review (governor ruling 6), which is not bound by this envelope (governor
 ruling 7).
 
 LAYER: will/autonomy — no filesystem access, no DB access. Pure validation
-over already-loaded action/scope data.
+over already-loaded action/scope data; governed .intent/ reads (envelope,
+flow declaration, test-path mapping) go through shared/infrastructure/intent.
 """
 
 from __future__ import annotations
@@ -34,8 +37,10 @@ from shared.exceptions import CoreError
 from shared.infrastructure.intent.action_risk import (
     ENVELOPE_MODE_ALLOW_LISTED,
     ENVELOPE_MODE_DENY_ALL,
+    load_flow_step_requirements,
     load_safe_auto_approval_envelope,
 )
+from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
 
 
@@ -80,11 +85,12 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
     """Validate a proposal's actions/scope against the safe auto-approval envelope.
 
     Raises SafeAutoApprovalDeniedError on the first violation found:
-    envelope unavailable, an unlisted action, a flow reference, a missing
-    target, a malformed/absolute/traversal/out-of-envelope path, or an
-    action/scope inconsistency (the set of files actions actually target
-    must equal the proposal's declared scope.files exactly). Returns None
-    (no exception) only when every check passes.
+    envelope unavailable, an unlisted action, a flow failing ADR-163 D2
+    (see _validate_flow_proposal), a missing target, a
+    malformed/absolute/traversal/out-of-envelope path, or an action/scope
+    inconsistency (the set of files actions actually target must equal the
+    proposal's declared scope.files exactly). Returns None (no exception)
+    only when every check passes.
     """
     envelope = load_safe_auto_approval_envelope()
     if envelope.get("_error"):
@@ -114,15 +120,18 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
             "proposal declares no actions", authorization_mode=mode
         )
 
+    if any(action.get("flow_id") is not None for action in actions):
+        _validate_flow_proposal(
+            actions, scope, envelope.get("authorized_flows") or {}, extensions, mode
+        )
+        return
+
     action_target_files: set[str] = set()
     for action in actions:
         action_id = action.get("action_id")
-        flow_id = action.get("flow_id")
-        if flow_id is not None or action_id is None:
+        if action_id is None:
             raise SafeAutoApprovalDeniedError(
-                f"flow {flow_id!r} is not authorized for safe auto-approval "
-                "— no flow is initially authorized, including test-"
-                "generation flows",
+                "action declares neither an action_id nor a flow_id",
                 authorization_mode=mode,
             )
         if action_id not in authorized_actions:
@@ -147,6 +156,82 @@ def validate_envelope(actions: list[dict[str, Any]], scope: dict[str, Any]) -> N
         raise SafeAutoApprovalDeniedError(
             "action targets and declared scope.files are inconsistent "
             f"(action targets: {sorted(action_target_files)}, "
+            f"scope.files: {sorted(scope_files)})",
+            authorization_mode=mode,
+        )
+
+
+def _validate_flow_proposal(
+    actions: list[dict[str, Any]],
+    scope: dict[str, Any],
+    authorized_flows: dict[str, dict[str, tuple[str, ...]]],
+    extensions: tuple[str, ...],
+    mode: str,
+) -> None:
+    """ADR-163 D2: a flow proposal is auto-approvable iff all four hold.
+
+    Each denial names the failing condition (Governor ruling D).
+    """
+    # D2.1 — exactly one action, and it is an authorized flow.
+    if len(actions) != 1:
+        raise SafeAutoApprovalDeniedError(
+            f"ADR-163 D2.1: a flow proposal must contain exactly one action, "
+            f"got {len(actions)}",
+            authorization_mode=mode,
+        )
+    action = actions[0]
+    flow_id = action.get("flow_id")
+    if action.get("action_id") is not None or flow_id not in authorized_flows:
+        raise SafeAutoApprovalDeniedError(
+            f"ADR-163 D2.1: flow {flow_id!r} is not authorized for safe "
+            f"auto-approval (authorized flows: {sorted(authorized_flows)})",
+            authorization_mode=mode,
+        )
+    grant = authorized_flows[flow_id]
+
+    # D2.2 — every required step is declared required: true in the flow file.
+    steps = load_flow_step_requirements(flow_id)
+    if steps.get("_error"):
+        raise SafeAutoApprovalDeniedError(
+            f"ADR-163 D2.2: declaration of {flow_id!r} could not be loaded "
+            f"({steps.get('reason', 'unknown')})",
+            authorization_mode=mode,
+        )
+    for step in grant["required_steps"]:
+        if steps.get(step) is not True:
+            raise SafeAutoApprovalDeniedError(
+                f"ADR-163 D2.2: flow {flow_id!r} does not declare step "
+                f"{step!r} as required: true",
+                authorization_mode=mode,
+            )
+
+    # D2.4 — symbol identity is present.
+    parameters = action.get("parameters") or {}
+    for key in ("source_file", "symbol_name", "symbol_kind"):
+        value = parameters.get(key)
+        if not isinstance(value, str) or not value:
+            raise SafeAutoApprovalDeniedError(
+                f"ADR-163 D2.4: flow {flow_id!r} parameter {key!r} is missing or empty",
+                authorization_mode=mode,
+            )
+
+    # D2.3 — source under read prefixes, governed test path under write
+    # prefixes, and {source, test} equals the declared scope exactly.
+    source_file: str = parameters["source_file"]
+    _validate_target_path(source_file, grant["read_path_prefixes"], extensions)
+    try:
+        test_file = source_to_test_path(source_file)
+    except Exception as exc:
+        raise SafeAutoApprovalDeniedError(
+            f"ADR-163 D2.3: no governed test path for {source_file!r} ({exc})",
+            authorization_mode=mode,
+        ) from exc
+    _validate_target_path(test_file, grant["write_path_prefixes"], extensions)
+    scope_files = set(scope.get("files") or [])
+    if scope_files != {source_file, test_file}:
+        raise SafeAutoApprovalDeniedError(
+            "ADR-163 D2.3: flow targets and declared scope.files are inconsistent "
+            f"(expected: {sorted({source_file, test_file})}, "
             f"scope.files: {sorted(scope_files)})",
             authorization_mode=mode,
         )

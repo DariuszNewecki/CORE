@@ -5,12 +5,10 @@ when safe auto-approval is denied, not treat the denial as a persistence
 failure.
 
 flow.build_test_for_symbol is a FLOW (ProposalAction.flow_id, not
-action_id) -- no flow is authorized for safe auto-approval, including
-test-generation flows (governor ruling 4). Its underlying step
-(build.test_for_symbol) is impact_level: safe, so proposal.approval_required
-computes False and the worker attempts safe auto-approval; the envelope
-must deny it because it is a flow, not because of anything else about the
-proposal's shape.
+action_id). Since ADR-163 D1 it is in authorized_flows, but only under the
+D2 conditions: here the declared test_file is NOT the governed
+source_to_test_path of the source, so D2.3 (scope consistency) denies it and
+the proposal must stay PENDING rather than be lost as a persistence failure.
 """
 
 from __future__ import annotations
@@ -60,7 +58,7 @@ async def test_symbol_proposal_preserves_draft_when_flow_denied_by_envelope(
     )
 
     assert proposal_id is not None, (
-        "envelope denial (no flow is authorized) must not be treated as a "
+        "envelope denial (D2.3 scope mismatch) must not be treated as a "
         "persistence failure -- the proposal row must still be committed"
     )
 

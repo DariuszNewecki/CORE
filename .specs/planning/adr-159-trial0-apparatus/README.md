@@ -60,8 +60,8 @@ Provenance: seed resource digest `f72c60cabf6237b07f6e` verified 2026-09-15 on `
 | `intent_overlay/workers/goal_execution_worker.yaml` | `ab8d279420eab934f246462f566ba9ed0344b383c8cff734fa09551e7db4db47` | 1687 |
 | `intent_overlay/rules/architecture/execution_write_containment.json` | `6af0c30cd02e7932b3088882c3df32e4d4a50c8992289d1364003186923c8036` | 1863 |
 | `intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml` | `c26f112cab6dcc10171aaa9c24a19c03067571d80f00da3d40417ba30c680685` | 1565 |
-| `intent_overlay/rules/will/safe_auto_approval_envelope.json` | `f396563a9ffb88341a5269df7f812aa929239960ce02ef40ac454ef593529127` | 3283 |
-| `intent_overlay/enforcement/mappings/will/safe_auto_approval_envelope.yaml` | `f0d99ab81b33457233303ef44654f81f02f628070aa2abfe2da1c0a1bc04dd37` | 2483 |
+| `intent_overlay/rules/will/safe_auto_approval_envelope.json` | `c361c5054c5260d61436b1179f595cf9c13b3598b719e5c5928f98d9124b98d7` | 3841 |
+| `intent_overlay/enforcement/mappings/will/safe_auto_approval_envelope.yaml` | `e2d2ed551423f7ad9533e61c73df159d673facd00daa088eb9fed14ceb1becef` | 2571 |
 | `seed/assignments.yaml` | `247ba8c05be49dd9e6357f40480ae00dd92d598f9f5c2572e60efbb3c985367d` | 553 |
 | `seed/llm_resources/ollama_qwen_coder_3b_trial.yaml` | `7d1d94725bbff59c6b3e5a2a1d5115a5fae0f63613252328f3641d7fa959d3e7` | 809 |
 | `seed/system_config.yaml` | `31ed092d8b356ab600a80cb7842c984dc99fb7846bf094e75a3a8fafbf357436` | 181 |

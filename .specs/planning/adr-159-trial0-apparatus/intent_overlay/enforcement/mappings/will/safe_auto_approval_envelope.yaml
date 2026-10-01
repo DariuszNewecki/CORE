@@ -12,7 +12,8 @@ mappings:
     # LAW: A proposal MUST NOT auto-approve under risk_classification.safe_
     # auto_approval unless every action is in the governed envelope, targets
     # an in-envelope src/ or tests/ Python path, and action targets exactly
-    # match the declared ProposalScope.files. No flow is authorized.
+    # match the declared ProposalScope.files. Only flows in authorized_flows,
+    # under ADR-163 D2's conditions, are authorized.
     # ENFORCEMENT: Deterministic check in ProposalStateManager.approve(),
     # called before the UPDATE statement on every safe-auto-approval attempt.
     autonomy.proposals.safe_auto_approval_envelope:
@@ -26,8 +27,8 @@ mappings:
           the UPDATE whenever approval_authority is
           'risk_classification.safe_auto_approval' (not for
           'principal.governor', per governor ruling 7). validate_envelope()
-          raises SafeAutoApprovalDeniedError on any unlisted action, flow
-          reference, missing/malformed/absolute/traversal/out-of-envelope
+          raises SafeAutoApprovalDeniedError on any unlisted action, unlisted
+          flow or flow failing ADR-163 D2, missing/malformed/absolute/traversal/out-of-envelope
           path, or action/scope inconsistency; the caller's UPDATE never
           runs, so the proposal row is left untouched (still PENDING).
           The envelope itself (authorized_actions, authorized_path_prefixes,

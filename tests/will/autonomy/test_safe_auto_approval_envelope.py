@@ -16,6 +16,8 @@ autonomy.proposals.safe_auto_approval_envelope
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from will.autonomy.safe_auto_approval_envelope import (
@@ -98,32 +100,136 @@ def test_moderate_action_outside_envelope_denies() -> None:
         )
 
 
-# --- Governor ruling 4: no flow, including test-generation flows -----------
+# --- ADR-163 D1/D2: the flow allow-list (supersedes ruling 4 for listed flows) --
 
 
-def test_flow_denies() -> None:
+_FLOW = "flow.build_test_for_symbol"
+_SOURCE = "src/mind/logic/scout_inducer.py"
+
+
+def _flow_action(flow_id: str = _FLOW, **param_overrides) -> dict:
+    params = {
+        "source_file": _SOURCE,
+        "symbol_name": "induce",
+        "symbol_kind": "function",
+        "signature": "def induce() -> None: ...",
+        "write": True,
+    }
+    params.update(param_overrides)
+    return {"action_id": None, "flow_id": flow_id, "parameters": params, "order": 0}
+
+
+def _governed_test_path(source_file: str = _SOURCE) -> str:
+    from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
+
+    return source_to_test_path(source_file)
+
+
+def test_symbol_test_flow_with_governed_scope_approves() -> None:
+    """Real envelope, real flow declaration, real test-path mapping."""
+    validate_envelope([_flow_action()], _scope(_SOURCE, _governed_test_path()))
+
+
+def test_unlisted_flow_denies() -> None:
     with pytest.raises(
-        SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"
+        SafeAutoApprovalDeniedError, match=r"D2.1: flow 'flow.build_tests'"
     ):
         validate_envelope(
-            [_action(None, None, flow_id="flow.build_test_for_symbol")],
-            _scope(),
+            [_flow_action("flow.build_tests")], _scope(_SOURCE, _governed_test_path())
         )
 
 
-def test_test_generation_flow_denies_even_with_valid_looking_scope() -> None:
-    """A flow with a scope that otherwise looks plausible still denies --
-    flows are categorically excluded, not evaluated on path shape."""
-    action = {
-        "action_id": None,
-        "flow_id": "flow.build_test_for_symbol",
-        "parameters": {"source_file": "src/foo.py", "test_file": "tests/test_foo.py"},
-        "order": 0,
-    }
+def test_flow_plus_another_action_denies() -> None:
     with pytest.raises(
-        SafeAutoApprovalDeniedError, match="not authorized for safe auto-approval"
+        SafeAutoApprovalDeniedError, match=r"D2.1: .*exactly one action"
     ):
-        validate_envelope([action], _scope("src/foo.py", "tests/test_foo.py"))
+        validate_envelope(
+            [_flow_action(), _action("fix.format", _SOURCE)],
+            _scope(_SOURCE, _governed_test_path()),
+        )
+
+
+def test_flow_action_also_naming_action_id_denies() -> None:
+    action = _flow_action()
+    action["action_id"] = "build.test_for_symbol"
+    with pytest.raises(SafeAutoApprovalDeniedError, match=r"D2.1"):
+        validate_envelope([action], _scope(_SOURCE, _governed_test_path()))
+
+
+def test_flow_missing_required_step_denies() -> None:
+    with patch(
+        "will.autonomy.safe_auto_approval_envelope.load_flow_step_requirements",
+        return_value={"test.sandbox_validate": False},
+    ):
+        with pytest.raises(
+            SafeAutoApprovalDeniedError, match=r"D2.2: .*'test.sandbox_validate'"
+        ):
+            validate_envelope([_flow_action()], _scope(_SOURCE, _governed_test_path()))
+
+
+def test_flow_declaration_load_failure_denies() -> None:
+    with patch(
+        "will.autonomy.safe_auto_approval_envelope.load_flow_step_requirements",
+        return_value={"_error": True, "reason": "boom"},
+    ):
+        with pytest.raises(SafeAutoApprovalDeniedError, match=r"D2.2: .*boom"):
+            validate_envelope([_flow_action()], _scope(_SOURCE, _governed_test_path()))
+
+
+@pytest.mark.parametrize("key", ["source_file", "symbol_name", "symbol_kind"])
+def test_flow_missing_symbol_identity_denies(key: str) -> None:
+    with pytest.raises(SafeAutoApprovalDeniedError, match=rf"D2.4: .*'{key}'"):
+        validate_envelope(
+            [_flow_action(**{key: ""})], _scope(_SOURCE, _governed_test_path())
+        )
+
+
+def test_flow_scope_not_matching_governed_test_path_denies() -> None:
+    """A self-declared test path is not trusted: scope must be {source, governed test}."""
+    with pytest.raises(SafeAutoApprovalDeniedError, match=r"D2.3: .*inconsistent"):
+        validate_envelope([_flow_action()], _scope(_SOURCE, "tests/test_foo.py"))
+
+
+@pytest.mark.parametrize("source", ["infra/deploy.py", "/abs/src/x.py", "src/../x.py"])
+def test_flow_source_outside_read_envelope_denies(source: str) -> None:
+    with pytest.raises(SafeAutoApprovalDeniedError):
+        validate_envelope(
+            [_flow_action(source_file=source)],
+            _scope(source, "tests/x/test_generated.py"),
+        )
+
+
+def test_flow_test_path_outside_write_envelope_denies() -> None:
+    with patch(
+        "will.autonomy.safe_auto_approval_envelope.source_to_test_path",
+        return_value="src/mind/logic/test_scout_inducer.py",
+    ):
+        with pytest.raises(SafeAutoApprovalDeniedError, match="outside the authorized"):
+            validate_envelope(
+                [_flow_action()],
+                _scope(_SOURCE, "src/mind/logic/test_scout_inducer.py"),
+            )
+
+
+def test_flow_denies_when_envelope_lists_no_flows() -> None:
+    """Removing the entry is the narrower off-switch (ADR-163 D6)."""
+    no_flows = {
+        "authorization_mode": "allow_listed",
+        "authorized_actions": frozenset(_AUTHORIZED_ACTIONS),
+        "authorized_path_prefixes": ("src/", "tests/"),
+        "authorized_extensions": (".py",),
+    }
+    with patch(
+        "will.autonomy.safe_auto_approval_envelope.load_safe_auto_approval_envelope",
+        return_value=no_flows,
+    ):
+        with pytest.raises(SafeAutoApprovalDeniedError, match=r"D2.1"):
+            validate_envelope([_flow_action()], _scope(_SOURCE, _governed_test_path()))
+
+
+def test_action_without_action_id_or_flow_id_denies() -> None:
+    with pytest.raises(SafeAutoApprovalDeniedError, match="neither an action_id"):
+        validate_envelope([_action(None, "src/foo.py")], _scope("src/foo.py"))
 
 
 # --- Governor ruling 3/5: non-Python files, .intent/, infra/ ---------------
@@ -268,8 +374,6 @@ def test_envelope_load_failure_denies(monkeypatch: pytest.MonkeyPatch) -> None:
 # --- Governor rulings D and F (2026-09-15, ADR-159 Trial 0): deny_all and the
 # rule identifier on every denial ------------------------------------------------
 
-
-from unittest.mock import patch
 
 from will.autonomy.safe_auto_approval_envelope import ENVELOPE_RULE_ID
 

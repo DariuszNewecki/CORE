@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from shared.infrastructure.intent.action_risk import (
     SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH,
     load_safe_auto_approval_envelope,
@@ -244,3 +246,101 @@ def test_validate_envelope_file_accepts_deny_all(tmp_path) -> None:
     ).write_text(yaml.safe_dump(_deny_all_document()))
     result = validate_envelope_file(tmp_path)
     assert "_error" not in result and result["authorization_mode"] == "deny_all"
+
+
+# --- authorized_flows (ADR-163 D1, flow allow-list) -----------------------------
+
+
+def _flow_entry(**overrides) -> dict:
+    entry = {
+        "flow_id": "flow.build_test_for_symbol",
+        "write_path_prefixes": ["tests/"],
+        "read_path_prefixes": ["src/", "tests/"],
+        "required_steps": ["test.sandbox_validate"],
+    }
+    entry.update(overrides)
+    return entry
+
+
+def _with_flows(flows) -> dict:
+    doc = {
+        "safe_auto_approval_envelope": dict(
+            _VALID_ENVELOPE["safe_auto_approval_envelope"]
+        )
+    }
+    doc["safe_auto_approval_envelope"]["authorized_flows"] = flows
+    return doc
+
+
+def test_authorized_flows_absent_means_no_flow() -> None:
+    result = _load_with_document(_VALID_ENVELOPE)
+    assert result["authorized_flows"] == {}
+
+
+def test_authorized_flows_parse_to_flow_id_map() -> None:
+    result = _load_with_document(_with_flows([_flow_entry()]))
+    assert "_error" not in result
+    assert result["authorized_flows"] == {
+        "flow.build_test_for_symbol": {
+            "write_path_prefixes": ("tests/",),
+            "read_path_prefixes": ("src/", "tests/"),
+            "required_steps": ("test.sandbox_validate",),
+        }
+    }
+
+
+@pytest.mark.parametrize(
+    "flows",
+    [
+        "flow.build_test_for_symbol",
+        ["flow.build_test_for_symbol"],
+        [_flow_entry(flow_id="")],
+        [_flow_entry(write_path_prefixes=[])],
+        [_flow_entry(read_path_prefixes="src/")],
+        [_flow_entry(required_steps=[""])],
+        [_flow_entry(extra="x")],
+        [_flow_entry(), _flow_entry()],
+    ],
+)
+def test_malformed_authorized_flows_fail_closed(flows) -> None:
+    result = _load_with_document(_with_flows(flows))
+    assert result.get("_error") is True
+    assert "authorized_flows" in result["reason"] or "flow" in result["reason"]
+
+
+def test_deny_all_with_a_listed_flow_is_malformed() -> None:
+    doc = _deny_all_document()
+    doc["safe_auto_approval_envelope"]["authorized_flows"] = [_flow_entry()]
+    result = _load_with_document(doc)
+    assert result.get("_error") is True
+    assert (
+        "'authorized_flows' must be empty under authorization_mode: deny_all"
+        in result["reason"]
+    )
+
+
+def test_live_envelope_authorizes_only_the_symbol_test_flow() -> None:
+    """The governed .intent/ file itself (ADR-163 D1): exactly one flow."""
+    result = load_safe_auto_approval_envelope()
+    assert "_error" not in result
+    assert set(result["authorized_flows"]) == {"flow.build_test_for_symbol"}
+    grant = result["authorized_flows"]["flow.build_test_for_symbol"]
+    assert grant["write_path_prefixes"] == ("tests/",)
+    assert "test.sandbox_validate" in grant["required_steps"]
+
+
+def test_flow_step_requirements_read_from_the_flow_declaration() -> None:
+    from shared.infrastructure.intent.action_risk import load_flow_step_requirements
+
+    steps = load_flow_step_requirements("flow.build_test_for_symbol")
+    assert "_error" not in steps
+    assert steps["test.sandbox_validate"] is True
+    assert steps["fix.format"] is False
+
+
+def test_flow_step_requirements_undeclared_flow_fails_closed() -> None:
+    from shared.infrastructure.intent.action_risk import load_flow_step_requirements
+
+    steps = load_flow_step_requirements("flow.does_not_exist")
+    assert steps.get("_error") is True
+    assert "not declared" in steps["reason"]

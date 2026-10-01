@@ -262,6 +262,79 @@ def _validate_envelope(envelope: dict[str, Any]) -> None:
                     f"safe_auto_approval_envelope: {key!r} entries must be "
                     f"non-empty strings, got {item!r}"
                 )
+    _validate_authorized_flows(envelope.get("authorized_flows", []), mode)
+
+
+# ADR-163 D1: per-flow envelope entry. write/read prefixes must be non-empty;
+# required_steps may be empty (the flow then carries no step requirement).
+_AUTHORIZED_FLOW_PREFIX_KEYS: tuple[str, ...] = (
+    "write_path_prefixes",
+    "read_path_prefixes",
+)
+_AUTHORIZED_FLOW_KEYS: frozenset[str] = frozenset(
+    {"flow_id", "required_steps", *_AUTHORIZED_FLOW_PREFIX_KEYS}
+)
+
+
+def _validate_authorized_flows(flows: Any, mode: str) -> None:
+    """Raise ValueError on a malformed ``authorized_flows`` list (ADR-163 D1).
+
+    Optional key: absent means no flow is authorized. Under ``deny_all`` it
+    must be empty, like every other list (ADR-163 D6: one off-switch).
+    """
+    if not isinstance(flows, list):
+        raise ValueError(
+            f"safe_auto_approval_envelope: 'authorized_flows' must be a list, got {flows!r}"
+        )
+    if mode == ENVELOPE_MODE_DENY_ALL:
+        if flows:
+            raise ValueError(
+                "safe_auto_approval_envelope: 'authorized_flows' must be empty under "
+                f"authorization_mode: {ENVELOPE_MODE_DENY_ALL}, got {flows!r}"
+            )
+        return
+    seen: set[str] = set()
+    for entry in flows:
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"safe_auto_approval_envelope: 'authorized_flows' entries must be "
+                f"mappings, got {entry!r}"
+            )
+        unknown = set(entry) - _AUTHORIZED_FLOW_KEYS
+        if unknown:
+            raise ValueError(
+                f"safe_auto_approval_envelope: 'authorized_flows' entry has unknown "
+                f"keys {sorted(unknown)}"
+            )
+        flow_id = entry.get("flow_id")
+        if not isinstance(flow_id, str) or not flow_id:
+            raise ValueError(
+                f"safe_auto_approval_envelope: 'authorized_flows' entry needs a "
+                f"non-empty 'flow_id', got {flow_id!r}"
+            )
+        if flow_id in seen:
+            raise ValueError(
+                f"safe_auto_approval_envelope: flow {flow_id!r} is listed twice"
+            )
+        seen.add(flow_id)
+        for key in (*_AUTHORIZED_FLOW_PREFIX_KEYS, "required_steps"):
+            value = entry.get(key)
+            if not isinstance(value, list):
+                raise ValueError(
+                    f"safe_auto_approval_envelope: flow {flow_id!r} {key!r} must "
+                    f"be a list, got {value!r}"
+                )
+            if key in _AUTHORIZED_FLOW_PREFIX_KEYS and not value:
+                raise ValueError(
+                    f"safe_auto_approval_envelope: flow {flow_id!r} {key!r} must "
+                    "be a non-empty list"
+                )
+            for item in value:
+                if not isinstance(item, str) or not item:
+                    raise ValueError(
+                        f"safe_auto_approval_envelope: flow {flow_id!r} {key!r} "
+                        f"entries must be non-empty strings, got {item!r}"
+                    )
 
 
 def _parsed_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
@@ -271,6 +344,14 @@ def _parsed_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
         "authorized_actions": frozenset(envelope["authorized_actions"]),
         "authorized_path_prefixes": tuple(envelope["authorized_path_prefixes"]),
         "authorized_extensions": tuple(envelope["authorized_extensions"]),
+        "authorized_flows": {
+            entry["flow_id"]: {
+                "write_path_prefixes": tuple(entry["write_path_prefixes"]),
+                "read_path_prefixes": tuple(entry["read_path_prefixes"]),
+                "required_steps": tuple(entry["required_steps"]),
+            }
+            for entry in envelope.get("authorized_flows", [])
+        },
     }
 
 
@@ -393,3 +474,41 @@ def validate_envelope_file(intent_root: Path) -> dict[str, Any]:
         return _parsed_envelope(envelope)
     except Exception as exc:
         return {"_error": True, "reason": f"{type(exc).__name__}: {exc}"}
+
+
+# ID: 5c74b9fd-ff18-425f-8fce-28340dd24020
+def load_flow_step_requirements(flow_id: str) -> dict[str, Any]:
+    """Return ``{step ref_id: required (bool)}`` from the flow's declaration.
+
+    ADR-163 D2.2: the envelope checks a flow's required steps against the
+    flow file itself, not an assumption. Read through IntentRepository's
+    flow iterator (architecture.namespace.no_direct_protected_access).
+
+    Fail-closed like the envelope loader: an undeclared flow or a load
+    failure returns ``{"_error": True, "reason": ...}``, never an empty map.
+    """
+    try:
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        for _path, data in get_intent_repository().iter_flow_documents():
+            flow = data.get("flow") if isinstance(data, dict) else None
+            if not isinstance(flow, dict) or flow.get("flow_id") != flow_id:
+                continue
+            steps = flow.get("steps")
+            if not isinstance(steps, list):
+                return {"_error": True, "reason": f"{flow_id} declares no steps list"}
+            return {
+                str(step.get("ref_id")): step.get("required") is True
+                for step in steps
+                if isinstance(step, dict) and step.get("ref_id")
+            }
+        return {
+            "_error": True,
+            "reason": f"{flow_id} is not declared in .intent/flows/",
+        }
+    except Exception as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        logger.error("load_flow_step_requirements(%s): %s", flow_id, reason)
+        return {"_error": True, "reason": reason}
