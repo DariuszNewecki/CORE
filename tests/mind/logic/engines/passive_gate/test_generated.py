@@ -37,3 +37,22 @@ def test_passive_gate_engine_verify():
     assert result.violations == []
     assert result.engine_id == engine_id
     assert isinstance(result.message, str)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 1d57e3c4-1dc0-444c-b185-59aabd67b10b
+async def test_PassiveGateEngine():
+    engine = PassiveGateEngine()
+
+    result = await engine.verify(Path("/tmp/some_file.py"), {"any": "param"})
+
+    assert result.ok is True
+    assert result.engine_id == "passive_gate"
+    assert result.violations == []
+
+    context_result = await engine.verify_context(MagicMock(), {"any": "param"})
+    assert context_result == []
