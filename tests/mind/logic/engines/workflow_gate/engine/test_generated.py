@@ -82,3 +82,25 @@ async def test_WorkflowGateEngine() -> None:
         assert result.engine_id == "workflow_gate"
         assert result.violations == []
         mock_check.verify.assert_awaited_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: aac8976a-c73b-44cf-baa2-73727967f3ff
+async def test_WorkflowGateEngine_verify() -> None:
+    path_resolver = MagicMock()
+    engine = WorkflowGateEngine(path_resolver)
+
+    expected_result = MagicMock()
+    engine._verify_async = AsyncMock(return_value=expected_result)
+
+    file_path = Path("src/example.py")
+    params = {"key": "value"}
+
+    result = await engine.verify(file_path, params)
+
+    assert result is expected_result
+    engine._verify_async.assert_awaited_once_with(file_path, params)
