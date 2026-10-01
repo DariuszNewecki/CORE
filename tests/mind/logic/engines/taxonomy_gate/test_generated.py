@@ -50,3 +50,23 @@ async def test_taxonomy_gate_engine_verify() -> None:
     assert "context-level" in result.message
     assert "verify_context" in result.message
     assert "taxonomy_alignment" in result.message
+
+
+
+
+
+# ID: 940b9066-6920-4bec-b78d-c1830ef94820
+def test_TaxonomyGateEngine_is_context_level_for() -> None:
+    path_resolver = MagicMock()
+    engine = TaxonomyGateEngine(path_resolver=path_resolver)
+
+    assert (
+        engine.is_context_level_for("operational_capabilities_decorator_backing")
+        is True
+    )
+    assert engine.is_context_level_for("sensor_supported_by_declaration") is True
+    assert engine.is_context_level_for("self_resolve_resolver_owned") is True
+    assert engine.is_context_level_for("action_supported_by_declaration") is True
+    assert engine.is_context_level_for("exemption_debt_declared") is True
+    assert engine.is_context_level_for("some_other_check") is False
+    assert engine.is_context_level_for(None) is False
