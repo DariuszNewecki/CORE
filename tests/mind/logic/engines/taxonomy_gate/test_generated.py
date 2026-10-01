@@ -25,3 +25,28 @@ async def test_TaxonomyGateEngine_verify_context() -> None:
 
     engine._build_decorator_backing_findings.assert_called_once_with("/repo/root")
     assert result == expected_findings
+
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 0bb4ffc7-6a20-4322-9780-3506f8e5d4ea
+async def test_taxonomy_gate_engine_verify() -> None:
+    path_resolver = MagicMock()
+    engine = TaxonomyGateEngine(path_resolver=path_resolver)
+
+    params: dict[str, Any] = {"check_type": "taxonomy_alignment"}
+
+    result = await engine.verify(
+        Path("src/mind/logic/engines/taxonomy_gate.py"), params
+    )
+
+    assert result.ok is False
+    assert result.violations == []
+    assert "context-level" in result.message
+    assert "verify_context" in result.message
+    assert "taxonomy_alignment" in result.message
