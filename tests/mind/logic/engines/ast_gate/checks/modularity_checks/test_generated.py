@@ -163,9 +163,6 @@ def test_ModularityChecker_check_needs_split():
     assert finding["details"]["dominant_class_ratio"] == 0.25
 
 
-
-
-
 # ID: 82400973-b6dc-4b84-b2dd-8a15c3f0cc52
 def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
     source = "import os\nimport sys\n\ndef foo():\n    return 1\n"
@@ -189,3 +186,36 @@ def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
         assert finding["rule_id"] == "modularity.refactor_score_threshold"
         assert finding["file"] == str(file_path)
         assert finding["severity"] in ("error", "warning")
+
+
+
+
+
+# ID: fbe73d1b-a881-421e-ad78-845fa25d14a6
+def test_ModularityChecker(tmp_path: Path) -> None:
+    source = "def foo():\n    return 1\n"
+    file_path = tmp_path / "sample.py"
+    file_path.write_text(source, encoding="utf-8")
+
+    checker = ModularityChecker()
+
+    result = checker.check_refactor_score(file_path, {"max_score": 60.0})
+
+    assert isinstance(result, list)
+    assert result == []
+
+    split_result = checker.check_needs_split(file_path, {"max_lines": 400})
+    assert isinstance(split_result, list)
+    assert split_result == []
+
+    class_result = checker.check_class_too_large(file_path, {"max_lines": 400})
+    assert isinstance(class_result, list)
+    assert class_result == []
+
+    refactor_result = checker.check_needs_refactor(file_path, {"max_concerns": 3})
+    assert isinstance(refactor_result, list)
+    assert refactor_result == []
+
+    assert checker.check_single_responsibility(file_path, {"max_score": 60.0}) == []
+    assert checker.check_semantic_cohesion(file_path, {"max_score": 60.0}) == []
+    assert checker.check_import_coupling(file_path, {"max_score": 60.0}) == []
