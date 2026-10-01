@@ -108,9 +108,6 @@ def test_ASTHelpers_matches_call():
     )
 
 
-
-
-
 # ID: fc3cf569-b2a6-4aac-ab52-1e467dabe9a6
 def test_ASTHelpers_walk_module_stmt_without_nested_scopes():
     source = """
@@ -127,3 +124,20 @@ z = 3
     assert stmt in result
     for node in result:
         assert isinstance(node, ast.AST)
+
+
+from unittest.mock import patch
+
+
+# ID: c805dc30-434a-42b4-99d0-8e31e995d79d
+def test_ASTHelpers_resolve_qualified_name() -> None:
+    node = ast.parse("path.exists", mode="eval").body
+    alias_map = {"path": "os.path"}
+
+    with patch.object(
+        ASTHelpers, "full_attr_name", return_value="path.exists"
+    ) as mock_full_attr_name:
+        result = ASTHelpers.resolve_qualified_name(node, alias_map)
+
+    mock_full_attr_name.assert_called_once_with(node)
+    assert result == "os.path.exists"
