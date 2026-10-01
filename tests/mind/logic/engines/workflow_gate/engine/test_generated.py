@@ -171,7 +171,6 @@ def test_WorkflowGateEngine_verify() -> None:
     engine._verify_async.assert_awaited_once_with(file_path, params)
 
 
-
 from mind.logic.engines.workflow_gate.engine import StructuredViolation
 
 
@@ -211,3 +210,25 @@ async def test_WorkflowGateEngine_verify_context():
 
     assert findings[2].check_id == "workflow.my_check"
     assert findings[2].file_path == "System"
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2db0dad7-bb03-4c18-b153-100cd0713a05
+async def test_WorkflowGateEngine_verify():
+    path_resolver = MagicMock()
+    engine = WorkflowGateEngine(path_resolver)
+
+    file_path = Path("src/example.py")
+    params = {"foo": "bar"}
+
+    sentinel = MagicMock()
+    engine._verify_async = AsyncMock(return_value=sentinel)
+
+    result = await engine.verify(file_path, params)
+
+    assert result is sentinel
+    engine._verify_async.assert_awaited_once_with(file_path, params)
