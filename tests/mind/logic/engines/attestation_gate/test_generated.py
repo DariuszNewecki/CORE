@@ -23,3 +23,18 @@ async def test_AttestationGateEngine_verify_context() -> None:
     assert finding.context["finding_type"] == "REQUIRES_ATTESTATION"
     assert finding.context["attestation_prompt"] == "Confirm the deployment is approved"
     assert finding.context["reference"] == "ADR-113"
+
+
+from pathlib import Path
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a1d70697-b21c-432a-b970-ac662b26d23e
+async def test_attestation_gate_engine_verify():
+    engine = AttestationGateEngine()
+    result = await engine.verify(Path("/tmp/nonexistent_file.py"), {})
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == engine.engine_id
