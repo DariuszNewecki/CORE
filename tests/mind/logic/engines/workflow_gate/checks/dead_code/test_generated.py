@@ -37,3 +37,32 @@ async def test_DeadCodeCheck_verify() -> None:
         repo_root=Path("/repo"),
         confidence=90,
     )
+
+
+
+
+
+# ID: 74ec3b30-02ce-4513-94b3-22f5c4659028
+async def test_DeadCodeCheck() -> None:
+    path_resolver = MagicMock()
+    path_resolver.repo_root = Path("/tmp/repo")
+
+    check = DeadCodeCheck(path_resolver)
+
+    mock_result = MagicMock()
+    mock_result.stdout = "dead.py:1: unused function 'foo'"
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+        new=AsyncMock(return_value=mock_result),
+    ) as mock_run_vulture:
+        violations = await check.verify(Path("/tmp/repo/src/a.py"), {"confidence": 80})
+
+    mock_run_vulture.assert_awaited_once_with(
+        target=str(Path("/tmp/repo/src/a.py")),
+        repo_root=path_resolver.repo_root,
+        confidence=80,
+    )
+    assert violations == [
+        "Dead code detected: dead.py:1: unused function 'foo'",
+    ]
