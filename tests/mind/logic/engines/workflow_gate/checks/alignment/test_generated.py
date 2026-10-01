@@ -41,3 +41,44 @@ async def test_AlignmentVerificationCheck() -> None:
     assert violations == []
     audit_mock.assert_awaited_once()
     session.execute.assert_awaited_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 38185345-6f8f-4bd5-b983-8ea6c04ce556
+async def test_AlignmentVerificationCheck_verify():
+    resolver = MagicMock()
+    resolver.repo_root = Path("/repo")
+
+    check = AlignmentVerificationCheck(resolver)
+
+    file_path = Path("/repo/some/file.py")
+
+    db_session = MagicMock()
+    exec_result = MagicMock()
+    exec_result.fetchone.return_value = (True,)
+    db_session.execute = AsyncMock(return_value=exec_result)
+
+    context = MagicMock()
+    context.db_session = db_session
+
+    params = {"_context": context}
+
+    with (
+        patch(
+            "mind.governance.filtered_audit.run_filtered_audit",
+            new=AsyncMock(return_value=([], None, None)),
+        ),
+        patch(
+            "mind.governance.audit_context.AuditorContext",
+            MagicMock(),
+        ),
+    ):
+        violations = await check.verify(file_path, params)
+
+    assert isinstance(violations, list)
+    assert violations == []
+    db_session.execute.assert_awaited_once()
