@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+from unittest.mock import patch
+
+from cli.resources.demo.rendering import build_markdown_report
+
+
+# ID: 9ef7028e-8bc4-470a-844d-d5bd4bae4a34
+def test_build_markdown_report() -> None:
+    payload = {
+        "verdict": "PASS",
+        "run_id": "run-123",
+        "assessed_commit": "abc1234",
+        "operator_confirmation": "confirmed",
+        "finding": {
+            "finding_id": "f-1",
+            "rule": "R-1",
+            "path": "src/foo.py",
+            "original_status": "open",
+        },
+        "proposal": {
+            "proposal_id": "p-1",
+            "actions": ["edit"],
+            "scope_files": ["src/foo.py"],
+            "risk": "low",
+            "approval_authority": "operator",
+            "approver_identity": "alice",
+            "finding_ids": ["f-1"],
+        },
+        "execution": {
+            "claimer": "bob",
+            "terminal_status": "completed",
+            "pre_execution_sha": "aaa",
+            "post_execution_sha": "bbb",
+            "files_changed": 1,
+            "findings_resolved": 1,
+        },
+        "reaudit": {"clean": True, "match_count": 0},
+        "cleanup": {"workspace_removed": True, "retained_path": "/tmp/ws"},
+        "assertions": [
+            {"name": "A1", "passed": True, "detail": "ok | fine"},
+            {"name": "A2", "passed": False, "detail": "bad"},
+        ],
+        "error": None,
+    }
+
+    with patch(
+        "cli.resources.demo.rendering._report_payload", return_value=payload
+    ) as mock_payload:
+        result = build_markdown_report(object(), "confirmed")
+
+    mock_payload.assert_called_once()
+    assert isinstance(result, str)
+    assert "# CORE — Isolated Consequence-Chain Demo Report" in result
+    assert "**Verdict:** PASS" in result
+    assert "run-123" in result
+    assert "abc1234" in result
+    assert "## Finding" in result
+    assert "f-1" in result
+    assert "## Proposal" in result
+    assert "## Execution & consequence" in result
+    assert "## Re-audit" in result
+    assert "## Cleanup" in result
+    assert "Workspace removed." in result
+    assert "| A1 | ✅ | ok \\| fine |" in result
+    assert "| A2 | ❌ | bad |" in result
