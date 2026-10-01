@@ -64,7 +64,6 @@ def test_QualityGateCheck_verify():
     fake_process.communicate.assert_awaited_once()
 
 
-
 import pytest
 
 
@@ -87,4 +86,33 @@ async def test_QualityGateCheck_verify():
         result = await check.verify(None, {})
 
     assert list(result) == []
+    mock_process.communicate.assert_awaited_once()
+
+
+
+
+
+# ID: bf2a81e2-c09b-4c2d-8920-9fb0c2f3cc2b
+async def test_QualityGateCheck_verify() -> None:
+    path_resolver = MagicMock()
+    path_resolver.repo_root = "/repo"
+
+    check = QualityGateCheck(
+        path_resolver=path_resolver,
+        check_type="pytest_check",
+        cmd=["pytest", "--check"],
+    )
+
+    mock_process = MagicMock()
+    mock_process.returncode = 0
+    mock_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.quality.asyncio.create_subprocess_exec",
+        new=AsyncMock(return_value=mock_process),
+    ) as mock_exec:
+        result = await check.verify(None, {})
+
+    assert result == []
+    mock_exec.assert_awaited_once()
     mock_process.communicate.assert_awaited_once()
