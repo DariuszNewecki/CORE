@@ -152,9 +152,6 @@ def test_WorkflowGateEngine_verify_context():
     mock_check.verify.assert_awaited_once_with(None, params)
 
 
-
-
-
 # ID: 123d9d48-3680-45e8-87f3-2bc5861af731
 def test_WorkflowGateEngine_verify() -> None:
     import asyncio
@@ -172,3 +169,45 @@ def test_WorkflowGateEngine_verify() -> None:
 
     assert result is expected_result
     engine._verify_async.assert_awaited_once_with(file_path, params)
+
+
+
+from mind.logic.engines.workflow_gate.engine import StructuredViolation
+
+
+# ID: 837ba6f6-588e-4d8f-8659-ab66378c73d9
+async def test_WorkflowGateEngine_verify_context():
+    path_resolver = MagicMock()
+    engine = WorkflowGateEngine.__new__(WorkflowGateEngine)
+
+    check_logic = MagicMock()
+    check_logic.verify = AsyncMock(
+        return_value=[
+            StructuredViolation(
+                message="bad import",
+                file_path="src/x.py",
+                context={},
+            ),
+            "some_module.py",
+            "plain message",
+        ]
+    )
+    engine._checks = {"my_check": check_logic}
+
+    context = MagicMock()
+    params = {"check_type": "my_check"}
+
+    findings = await engine.verify_context(context, params)
+
+    check_logic.verify.assert_awaited_once_with(None, params)
+    assert len(findings) == 3
+
+    assert findings[0].check_id == "workflow.my_check"
+    assert findings[0].message == "bad import"
+    assert findings[0].file_path == "src/x.py"
+
+    assert findings[1].check_id == "workflow.my_check"
+    assert findings[1].file_path == "some_module.py"
+
+    assert findings[2].check_id == "workflow.my_check"
+    assert findings[2].file_path == "System"
