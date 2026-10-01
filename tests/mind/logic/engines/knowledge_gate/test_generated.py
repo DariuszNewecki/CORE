@@ -76,3 +76,18 @@ async def test_KnowledgeGateEngine() -> None:
     )
     assert findings == []
     db_session.execute.assert_awaited_once()
+
+
+
+
+# ID: 522643cc-1278-4c47-a1d7-0e6bdb6792ce
+def test_KnowledgeGateEngine_verify():
+    engine = KnowledgeGateEngine.__new__(KnowledgeGateEngine)
+    engine.engine_id = "knowledge_gate"
+
+    result = KnowledgeGateEngine.verify(engine, "some/file.py", {})
+
+    assert result.ok is False
+    assert result.engine_id == "knowledge_gate"
+    assert "requires AuditorContext" in result.message
+    assert len(result.violations) >= 1
