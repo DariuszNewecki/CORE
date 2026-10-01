@@ -105,7 +105,6 @@ async def test_WorkflowGateEngine_verify() -> None:
     engine._verify_async.assert_awaited_once_with(file_path, params)
 
 
-
 import pytest
 
 
@@ -125,3 +124,29 @@ async def test_WorkflowGateEngine_verify() -> None:
 
     engine._verify_async.assert_awaited_once_with(file_path, params)
     assert result is expected_result
+
+
+import asyncio
+
+
+# ID: 50c589be-7cde-488c-af3e-6ea0fa95deb3
+def test_WorkflowGateEngine_verify_context():
+    mock_check = MagicMock()
+    mock_check.verify = AsyncMock(return_value=["System violation"])
+
+    mock_path_resolver = MagicMock()
+
+    engine = WorkflowGateEngine(mock_path_resolver)
+    engine._checks["test_check"] = mock_check
+
+    context = MagicMock()
+    params = {"check_type": "test_check"}
+
+    findings = asyncio.run(engine.verify_context(context, params))
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert findings[0].check_id == "workflow.test_check"
+    assert findings[0].message == "System violation"
+    assert findings[0].file_path == "System"
+    mock_check.verify.assert_awaited_once_with(None, params)
