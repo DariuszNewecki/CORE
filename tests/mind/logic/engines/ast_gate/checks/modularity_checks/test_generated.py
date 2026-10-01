@@ -18,3 +18,21 @@ def test_ModularityChecker_check_import_coupling() -> None:
 
     assert result == [{"ok": True}]
     checker.check_refactor_score.assert_called_once_with(file_path, params)
+
+
+
+
+
+# ID: 28d734c6-4659-4651-9738-188a700ab637
+def test_ModularityChecker_check_semantic_cohesion() -> None:
+    checker = ModularityChecker()
+    file_path = Path("src/sample_module.py")
+    params = {"threshold": 0.8}
+
+    expected = [{"check": "semantic_cohesion", "score": 0.9}]
+    checker.check_refactor_score = MagicMock(return_value=expected)
+
+    result = checker.check_semantic_cohesion(file_path, params)
+
+    assert result == expected
+    checker.check_refactor_score.assert_called_once_with(file_path, params)
