@@ -62,7 +62,6 @@ async def test_RuntimeGateEngine():
         assert "unsupported" in findings[0].message
 
 
-
 from mind.logic.engines.runtime_gate import heartbeat_retention_hours
 
 
@@ -79,3 +78,19 @@ def test_heartbeat_retention_hours():
         result = heartbeat_retention_hours()
 
     assert result == 7 * 24.0
+
+
+from mind.logic.engines.runtime_gate import max_interval_lookback_hours
+
+
+# ID: 291d1713-a7db-44ca-9488-f641abb5d1e1
+def test_max_interval_lookback_hours():
+    # Floor case: required window below 24h, so the minimum lookback applies.
+    assert max_interval_lookback_hours(60) == 24.0
+
+    # Large declared interval: required window (11 * declared) exceeds the floor.
+    declared = 86400  # 24 hours in seconds
+    expected = (11 * declared) / 3600.0
+    result = max_interval_lookback_hours(declared)
+    assert result == expected
+    assert result > 24.0
