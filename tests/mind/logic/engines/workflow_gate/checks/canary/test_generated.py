@@ -103,3 +103,14 @@ async def test_CanaryDeploymentCheck_verify():
     check = CanaryDeploymentCheck()
     result = await check.verify(None, {"canary_passed": True})
     assert result == []
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 740e86b2-4a1b-4118-9cb4-a9fdd29279ac
+async def test_CanaryDeploymentCheck_verify() -> None:
+    check = CanaryDeploymentCheck()
+    result = await check.verify(None, {"canary_passed": True})
+    assert result == []
