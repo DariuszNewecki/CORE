@@ -64,3 +64,25 @@ def test_build_markdown_report() -> None:
     assert "Workspace removed." in result
     assert "| A1 | ✅ | ok \\| fine |" in result
     assert "| A2 | ❌ | bad |" in result
+
+
+import json
+from unittest.mock import MagicMock
+
+from cli.resources.demo.rendering import build_json_report
+
+
+# ID: 4f5e8191-08af-4607-94a1-058f3006637f
+def test_build_json_report():
+    result = MagicMock()
+    payload = {"phase": "demo", "status": "ok", "evidence": ["a", "b"]}
+
+    with patch(
+        "cli.resources.demo.rendering._report_payload",
+        return_value=payload,
+    ) as mock_payload:
+        output = build_json_report(result, "strict")
+
+    mock_payload.assert_called_once_with(result, "strict")
+    assert output == json.dumps(payload, indent=2)
+    assert json.loads(output) == payload
