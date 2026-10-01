@@ -37,3 +37,21 @@ def test_ApiAuthChecks():
         assert ApiAuthChecks.check_router_exposure_enforcement(tree) == []
         assert ApiAuthChecks.check_route_module_must_declare_exposure(tree) == []
         assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
+
+
+
+from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
+
+
+# ID: 048df3c7-bd85-4496-b8ce-6bc24bfc7231
+def test_check_route_module_must_declare_exposure() -> None:
+    source = "ROUTER_EXPOSURE = 'governor-only'\n"
+    tree = ast.parse(source)
+
+    with patch(
+        "mind.logic.engines.ast_gate.checks.api_auth_checks._find_router_exposure",
+        return_value=ast.Constant(value="governor-only"),
+    ):
+        result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
+
+    assert result == []
