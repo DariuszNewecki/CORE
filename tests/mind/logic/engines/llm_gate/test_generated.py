@@ -34,3 +34,47 @@ def test_LLMGateEngine_verify(tmp_path: Path) -> None:
     assert result.violations == []
     assert result.engine_id == "llm_gate"
     engine._audit_prompt_model.invoke.assert_awaited_once()
+
+
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 4846ec4d-af37-4b26-953c-7a7a81fa97fa
+async def test_LLMGateEngine(tmp_path: Path):
+    target_file = tmp_path / "sample.py"
+    target_file.write_text("print('hello')\n", encoding="utf-8")
+
+    path_resolver = MagicMock()
+    path_resolver.repo_root = tmp_path
+
+    llm_client = MagicMock()
+
+    with (
+        patch("mind.logic.engines.llm_gate.PromptModel.load") as mock_prompt_load,
+        patch.object(LLMGateEngine, "__init__", lambda self, *a, **k: None),
+    ):
+        engine = LLMGateEngine.__new__(LLMGateEngine)
+
+    engine.engine_id = "llm_gate"
+    engine._paths = path_resolver
+    engine.llm = llm_client
+
+    audit_prompt_model = MagicMock()
+    audit_prompt_model.invoke = AsyncMock(return_value='{"violation": false}')
+    engine._audit_prompt_model = audit_prompt_model
+    engine._prompt_model = MagicMock()
+
+    params = {
+        "instruction": "Do not use print statements.",
+        "rationale": "Logging should be used instead.",
+    }
+
+    result = await engine.verify(target_file, params)
+
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "llm_gate"
+    audit_prompt_model.invoke.assert_awaited_once()
