@@ -143,9 +143,6 @@ def test_ASTHelpers_resolve_qualified_name() -> None:
     assert result == "os.path.exists"
 
 
-
-
-
 # ID: 93246e15-71a4-4347-8a89-2b95b775e604
 def test_ASTHelpers_build_import_alias_map() -> None:
     source = (
@@ -164,3 +161,33 @@ def test_ASTHelpers_build_import_alias_map() -> None:
     assert result["os"] == "os"
     assert result["op"] == "os.path"
     assert result["ex"] == "sys.exit"
+
+
+
+
+
+# ID: ee6697a7-2b84-4cc6-9cb2-4be8d499959a
+def test_ASTHelpers_full_attr_name():
+    # ast.Name -> simple identifier
+    name_node = ast.Name(id="create_async_engine", ctx=ast.Load())
+    assert ASTHelpers.full_attr_name(name_node) == "create_async_engine"
+
+    # ast.Attribute -> dotted chain (asyncio.run)
+    attr_node = ast.Attribute(
+        value=ast.Name(id="asyncio", ctx=ast.Load()),
+        attr="run",
+        ctx=ast.Load(),
+    )
+    assert ASTHelpers.full_attr_name(attr_node) == "asyncio.run"
+
+    # nested attribute (loop.create_task)
+    nested_node = ast.Attribute(
+        value=ast.Name(id="loop", ctx=ast.Load()),
+        attr="create_task",
+        ctx=ast.Load(),
+    )
+    assert ASTHelpers.full_attr_name(nested_node) == "loop.create_task"
+
+    # non-name/non-attribute node -> None
+    const_node = ast.Constant(value=42)
+    assert ASTHelpers.full_attr_name(const_node) is None
