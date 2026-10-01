@@ -141,3 +141,26 @@ def test_ASTHelpers_resolve_qualified_name() -> None:
 
     mock_full_attr_name.assert_called_once_with(node)
     assert result == "os.path.exists"
+
+
+
+
+
+# ID: 93246e15-71a4-4347-8a89-2b95b775e604
+def test_ASTHelpers_build_import_alias_map() -> None:
+    source = (
+        "from os import replace\n"
+        "from os import replace as r\n"
+        "import os\n"
+        "import os.path as op\n"
+        "def f():\n"
+        "    from sys import exit as ex\n"
+    )
+    tree = ast.parse(source)
+    result = ASTHelpers.build_import_alias_map(tree)
+
+    assert result["replace"] == "os.replace"
+    assert result["r"] == "os.replace"
+    assert result["os"] == "os"
+    assert result["op"] == "os.path"
+    assert result["ex"] == "sys.exit"
