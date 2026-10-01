@@ -48,3 +48,31 @@ def test_NamingChecks_check_cli_async_helpers_private() -> None:
         "Line 5: Async helper 'public_helper' must be private (start with _)"
     ]
     mock_lineno.assert_called_once()
+
+
+
+
+
+# ID: 587f08a1-2b89-4fad-abfb-4ba6a2656c83
+def test_NamingChecks_check_type_annotations() -> None:
+    source = (
+        "def public_missing():\n"
+        "    return 1\n"
+        "\n"
+        "def public_annotated() -> int:\n"
+        "    return 2\n"
+        "\n"
+        "def _private_missing():\n"
+        "    return 3\n"
+    )
+    tree = ast.parse(source)
+
+    findings = NamingChecks.check_type_annotations(tree)
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert "public_missing" in finding
+    assert "missing a return type annotation" in finding
+    assert "public_annotated" not in finding
+    assert "_private_missing" not in finding
