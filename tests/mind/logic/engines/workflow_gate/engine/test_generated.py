@@ -212,7 +212,6 @@ async def test_WorkflowGateEngine_verify_context():
     assert findings[2].file_path == "System"
 
 
-
 import pytest
 
 
@@ -231,4 +230,26 @@ async def test_WorkflowGateEngine_verify():
     result = await engine.verify(file_path, params)
 
     assert result is sentinel
+    engine._verify_async.assert_awaited_once_with(file_path, params)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: b14c6769-212c-4da8-8f39-f263d3d5a572
+async def test_WorkflowGateEngine_verify():
+    path_resolver = MagicMock()
+    engine = WorkflowGateEngine(path_resolver)
+
+    expected_result = MagicMock()
+    engine._verify_async = AsyncMock(return_value=expected_result)
+
+    file_path = Path("src/example.py")
+    params = {"key": "value"}
+
+    result = await engine.verify(file_path, params)
+
+    assert result is expected_result
     engine._verify_async.assert_awaited_once_with(file_path, params)
