@@ -60,3 +60,22 @@ async def test_RuntimeGateEngine():
         mock_check.assert_not_awaited()
         assert len(findings) == 1
         assert "unsupported" in findings[0].message
+
+
+
+from mind.logic.engines.runtime_gate import heartbeat_retention_hours
+
+
+# ID: 0810fc55-f44e-4007-b0c3-145c88cf4f75
+def test_heartbeat_retention_hours():
+    config = MagicMock()
+    config.blackboard.telemetry_subject_prefixes = ["worker."]
+    config.blackboard.telemetry_ttl_days = 7
+
+    with patch(
+        "shared.infrastructure.intent.operational_config.load_operational_config",
+        return_value=config,
+    ):
+        result = heartbeat_retention_hours()
+
+    assert result == 7 * 24.0
