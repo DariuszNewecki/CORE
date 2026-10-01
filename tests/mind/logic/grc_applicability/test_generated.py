@@ -84,3 +84,40 @@ async def test_grc_applicability_gate_assess() -> None:
         assert result.detected_domains == ["finance", "security"]
         assert result.evidence_class == "sampled"
         assert result.rationale == "The corpus governs financial controls."
+
+
+
+
+
+# ID: d2ba636f-948f-4427-b663-1a07cf8e137b
+async def test_GRCApplicabilityGate() -> None:
+    from mind.logic.grc_applicability import Applicability
+
+    mock_prompt_model = MagicMock()
+    mock_prompt_model.invoke = AsyncMock(
+        return_value=(
+            '{"applicability": "in_scope", '
+            '"detected_domains": "privacy, data protection", '
+            '"reasoning": "The corpus governs personal data handling."}'
+        )
+    )
+
+    llm_client = MagicMock()
+
+    with patch(
+        "mind.logic.grc_applicability.PromptModel.load",
+        return_value=mock_prompt_model,
+    ):
+        gate = GRCApplicabilityGate(llm_client)
+
+    assessment = await gate.assess(
+        framework_id="gdpr",
+        framework_descriptor="EU General Data Protection Regulation",
+        corpus_excerpt="We process personal data of EU residents.",
+    )
+
+    assert assessment.framework_id == "gdpr"
+    assert assessment.applicability == Applicability.IN_SCOPE
+    assert assessment.detected_domains == ["privacy", "data protection"]
+    assert assessment.rationale == "The corpus governs personal data handling."
+    mock_prompt_model.invoke.assert_awaited_once()
