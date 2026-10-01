@@ -27,7 +27,6 @@ async def test_WorkflowGateEngine_verify() -> None:
     engine._verify_async.assert_awaited_once_with(file_path, params)
 
 
-
 import pytest
 
 
@@ -50,3 +49,36 @@ async def test_WorkflowGateEngine_verify_context() -> None:
     assert len(findings) == 1
     assert findings[0].check_id == "workflow.my_check"
     assert findings[0].file_path == "src/foo.py"
+
+
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 40806231-7628-46eb-9179-185e232a82fb
+async def test_WorkflowGateEngine() -> None:
+    path_resolver = MagicMock()
+
+    with patch(
+        "mind.logic.engines.workflow_gate.engine.TestVerificationCheck"
+    ) as mock_check_cls:
+        mock_check = MagicMock()
+        mock_check.check_type = "test_verification"
+        mock_check.verify = AsyncMock(return_value=[])
+        mock_check_cls.return_value = mock_check
+
+        engine = WorkflowGateEngine(path_resolver)
+
+        assert engine.engine_id == "workflow_gate"
+        assert "test_verification" in engine._checks
+
+        result = await engine.verify(
+            Path("some_file.py"), {"check_type": "test_verification"}
+        )
+
+        assert result.ok is True
+        assert result.engine_id == "workflow_gate"
+        assert result.violations == []
+        mock_check.verify.assert_awaited_once()
