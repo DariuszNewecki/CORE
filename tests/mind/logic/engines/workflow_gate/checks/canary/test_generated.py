@@ -114,3 +114,21 @@ async def test_CanaryDeploymentCheck_verify() -> None:
     check = CanaryDeploymentCheck()
     result = await check.verify(None, {"canary_passed": True})
     assert result == []
+
+
+
+
+
+# ID: 9158f894-3ae4-42db-b8da-790c60b5c65e
+def test_CanaryDeploymentCheck_verify() -> None:
+    check = CanaryDeploymentCheck()
+    result = asyncio.get_event_loop().run_until_complete(
+        check.verify(None, {"canary_passed": True})
+    )
+    assert result == []
+
+    result_fail = asyncio.get_event_loop().run_until_complete(
+        check.verify(None, {"canary_passed": False})
+    )
+    assert len(result_fail) == 1
+    assert "Canary audit required" in result_fail[0]
