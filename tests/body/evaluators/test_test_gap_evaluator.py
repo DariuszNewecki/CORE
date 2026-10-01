@@ -291,3 +291,29 @@ async def test_evaluate_class_method_covered_by_test_class(repo_root, evaluator)
     covered_names = {g["name"] for g in result.data["already_covered"]}
     assert "MyService.execute" in covered_names
     assert "MyService.execute" not in gap_names
+
+
+@pytest.mark.asyncio
+async def test_evaluate_flat_class_underscore_method_name_counts_as_covered(
+    repo_root, evaluator
+):
+    """The generator lands methods as test_<Class>_<method> (the prompt's
+    test_{symbol_name} with '.' not being an identifier). That must count,
+    or the remediator re-mints the symbol after every landing."""
+    src = repo_root / "src" / "mypkg" / "service.py"
+    src.write_text("class Svc:\n    def run(self): pass\n    def stop(self): pass\n")
+    test_dir = repo_root / "tests" / "mypkg" / "service"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "test_generated.py").write_text(
+        "def test_Svc(): assert True\ndef test_Svc_run(): assert True\n"
+    )
+
+    with patch(
+        "body.evaluators.test_gap_evaluator.source_to_test_path",
+        return_value="tests/mypkg/service/test_generated.py",
+    ):
+        result = await evaluator.execute(source_file="src/mypkg/service.py")
+
+    assert result.ok
+    assert {g["name"] for g in result.data["gaps"]} == {"Svc.stop"}
+    assert result.data["covered_count"] == 2

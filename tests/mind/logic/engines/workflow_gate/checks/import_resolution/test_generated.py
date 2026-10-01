@@ -1,39 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock
-
-import pytest
+from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 from mind.logic.engines.workflow_gate.checks.import_resolution import (
     ImportResolutionCheck,
 )
-
-
-@pytest.mark.asyncio
-# ID: 6208dc95-6022-43d6-af50-8f7729bae9df
-async def test_ImportResolutionCheck_verify() -> None:
-    check = ImportResolutionCheck.__new__(ImportResolutionCheck)
-    check.check_type = "import_resolution"
-
-    check._run_tool = AsyncMock(return_value=["some violation"])
-
-    params: dict[str, Any] = {
-        "tools": [
-            {"tool": "some_tool", "args": ["--flag"]},
-        ]
-    }
-
-    result = await ImportResolutionCheck.verify(check, None, params)
-
-    check._run_tool.assert_awaited_once_with(
-        {"tool": "some_tool", "args": ["--flag"]}, "src"
-    )
-    assert list(result) == ["some violation"]
-
-
-from pathlib import Path
-from unittest.mock import patch
 
 
 # ID: 7b64a660-3b13-4f9a-a6a2-90befdd9ecac
@@ -56,25 +28,6 @@ async def test_ImportResolutionCheck() -> None:
 
 
 import asyncio
-
-
-# ID: a14cc808-155e-4a15-92a9-2483f42a2eaf
-def test_ImportResolutionCheck_verify() -> None:
-    check = ImportResolutionCheck.__new__(ImportResolutionCheck)
-    check.check_type = "import_resolution"
-    check._run_tool = AsyncMock(return_value=["some violation"])
-
-    params = {"tools": [{"tool": "ruff", "args": ["check"]}]}
-    result = asyncio.run(check.verify(None, params))
-
-    assert list(result) == ["some violation"]
-    check._run_tool.assert_awaited_once()
-    called_spec, called_target = check._run_tool.await_args.args
-    assert called_spec == {"tool": "ruff", "args": ["check"]}
-    assert called_target == "src"
-
-
-
 
 
 # ID: ebfb984e-dc39-47dc-9d1a-1e09f560ced4

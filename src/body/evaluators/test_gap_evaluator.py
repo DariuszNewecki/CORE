@@ -160,7 +160,11 @@ class TestGapEvaluator(BaseEvaluator):
         gaps: list[SymbolGap] = []
         covered: list[SymbolGap] = []
         for sym in symbols:
-            if sym.name in tested_names:
+            # The generator prompt asks for test_{symbol_name}; for a method
+            # "Class.method" that is not an identifier, so it lands as
+            # test_Class_method. Count that form, or the remediator re-mints
+            # the same symbol after every landing (2026-10-02 loop).
+            if sym.name in tested_names or sym.name.replace(".", "_") in tested_names:
                 sym.tested = True
                 covered.append(sym)
             else:

@@ -47,9 +47,6 @@ def test_GRCApplicabilityGate_assess() -> None:
     assert result.rationale == "Framework applies to corpus"
 
 
-
-
-
 # ID: 23523298-8199-4f50-8b44-15115b00d16a
 async def test_grc_applicability_gate_assess() -> None:
     mock_llm = MagicMock()
