@@ -20,3 +20,26 @@ def test_StandardVerbsCheck_verify():
     assert finding.file_path == "f2.py"
     assert finding.context["command_name"] == "repo.delete"
     assert finding.context["action"] == "delete"
+
+
+
+
+
+# ID: b08dd75b-5931-4ead-b1f9-a7b06d5063c0
+def test_StandardVerbsCheck():
+    check = StandardVerbsCheck()
+    commands = [
+        {"name": "resource.list", "file_path": "a.py"},
+        {"name": "resource.delete", "file_path": "b.py"},
+    ]
+    params = {"allowed_verbs": ["list"]}
+
+    findings = check.verify(commands, params)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.check_id == "cli_gate.standard_verbs"
+    assert "resource.delete" in finding.message
+    assert "delete" in finding.message
+    assert finding.file_path == "b.py"
+    assert finding.context == {"command_name": "resource.delete", "action": "delete"}
