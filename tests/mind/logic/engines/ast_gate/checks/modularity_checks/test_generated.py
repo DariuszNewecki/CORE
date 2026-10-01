@@ -123,9 +123,6 @@ def test_ModularityChecker_check_class_too_large(tmp_path: Path) -> None:
     assert finding["details"]["dominant_class_lines"] > max_lines
 
 
-
-
-
 # ID: 85f5edee-87df-499b-9ef1-c0f7a5bc4aa6
 def test_ModularityChecker_check_needs_split():
     checker = ModularityChecker()
@@ -164,3 +161,31 @@ def test_ModularityChecker_check_needs_split():
     assert finding["details"]["dominant_class_name"] == "DominantClass"
     assert finding["details"]["dominant_class_lines"] == 100
     assert finding["details"]["dominant_class_ratio"] == 0.25
+
+
+
+
+
+# ID: 82400973-b6dc-4b84-b2dd-8a15c3f0cc52
+def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
+    source = "import os\nimport sys\n\ndef foo():\n    return 1\n"
+    file_path = tmp_path / "sample.py"
+    file_path.write_text(source, encoding="utf-8")
+
+    checker = ModularityChecker()
+
+    checker._detect_responsibilities = MagicMock(
+        return_value=["resp1", "resp2", "resp3"]
+    )
+    checker._extract_functions = MagicMock(return_value=["foo"])
+    checker._calculate_cohesion = MagicMock(return_value=0.2)
+    checker._extract_imports = MagicMock(return_value=["os", "sys", "json", "re"])
+    checker._identify_concerns = MagicMock(return_value=["a", "b", "c", "d"])
+
+    findings = checker.check_refactor_score(file_path, {"max_score": 60.0})
+
+    assert isinstance(findings, list)
+    for finding in findings:
+        assert finding["rule_id"] == "modularity.refactor_score_threshold"
+        assert finding["file"] == str(file_path)
+        assert finding["severity"] in ("error", "warning")
