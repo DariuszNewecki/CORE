@@ -62,3 +62,29 @@ def test_QualityGateCheck_verify():
 
     assert result == []
     fake_process.communicate.assert_awaited_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 62ae83d8-3e12-461e-a8d9-aad42b66adb1
+async def test_QualityGateCheck_verify():
+    path_resolver = MagicMock()
+    path_resolver.repo_root = Path("/tmp/repo")
+
+    check = QualityGateCheck(path_resolver, "lint", ["echo", "ok"])
+
+    mock_process = MagicMock()
+    mock_process.returncode = 0
+    mock_process.communicate = AsyncMock(return_value=(b"", b""))
+
+    with patch(
+        "asyncio.create_subprocess_exec",
+        new=AsyncMock(return_value=mock_process),
+    ):
+        result = await check.verify(None, {})
+
+    assert list(result) == []
+    mock_process.communicate.assert_awaited_once()
