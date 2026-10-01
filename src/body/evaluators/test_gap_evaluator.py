@@ -157,14 +157,16 @@ class TestGapEvaluator(BaseEvaluator):
                     test_file,
                 )
 
+        # The generator prompt asks for test_{symbol_name}; for a method
+        # "Class.method" that is not an identifier, so the LLM lands it as
+        # test_Class_method or test_class_method. Compare a normalized form
+        # (lowercase, no '_' or '.'), or the remediator re-mints the same
+        # symbol after every landing (2026-10-02 loop).
+        tested_keys = {_name_key(name) for name in tested_names}
         gaps: list[SymbolGap] = []
         covered: list[SymbolGap] = []
         for sym in symbols:
-            # The generator prompt asks for test_{symbol_name}; for a method
-            # "Class.method" that is not an identifier, so it lands as
-            # test_Class_method. Count that form, or the remediator re-mints
-            # the same symbol after every landing (2026-10-02 loop).
-            if sym.name in tested_names or sym.name.replace(".", "_") in tested_names:
+            if _name_key(sym.name) in tested_keys:
                 sym.tested = True
                 covered.append(sym)
             else:
@@ -260,6 +262,11 @@ def _extract_tested_names(test_path: Path) -> set[str]:
                     if child.name.startswith("test_"):
                         tested.add(f"{class_name}.{child.name[5:]}")
     return tested
+
+
+def _name_key(name: str) -> str:
+    """Case- and separator-insensitive key: 'Svc.run' == 'Svc_run' == 'svc_run'."""
+    return name.lower().replace("_", "").replace(".", "")
 
 
 def _format_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:

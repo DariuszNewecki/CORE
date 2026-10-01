@@ -317,3 +317,24 @@ async def test_evaluate_flat_class_underscore_method_name_counts_as_covered(
     assert result.ok
     assert {g["name"] for g in result.data["gaps"]} == {"Svc.stop"}
     assert result.data["covered_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_evaluate_snake_case_method_name_counts_as_covered(repo_root, evaluator):
+    """The LLM also writes test_svc_class_run for SvcClass.run; that counts too."""
+    src = repo_root / "src" / "mypkg" / "service.py"
+    src.write_text("class SvcClass:\n    def run(self): pass\n")
+    test_dir = repo_root / "tests" / "mypkg" / "service"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "test_generated.py").write_text(
+        "def test_svc_class(): assert True\ndef test_svc_class_run(): assert True\n"
+    )
+
+    with patch(
+        "body.evaluators.test_gap_evaluator.source_to_test_path",
+        return_value="tests/mypkg/service/test_generated.py",
+    ):
+        result = await evaluator.execute(source_file="src/mypkg/service.py")
+
+    assert result.ok
+    assert result.data["gap_count"] == 0
