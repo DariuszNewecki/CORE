@@ -65,9 +65,6 @@ def test_ASTHelpers_extract_domain_from_path():
     assert ASTHelpers.extract_domain_from_path("top_level.py") == ""
 
 
-
-
-
 # ID: 38d999a6-ef72-4da7-b705-80b1ec8ef1a7
 def test_ASTHelpers_iter_module_level_stmts() -> None:
     source = "import os\nx = 1\ndef foo():\n    pass\n"
@@ -89,3 +86,25 @@ def test_ASTHelpers_iter_module_level_stmts_non_module() -> None:
     result = list(ASTHelpers.iter_module_level_stmts(expr))
 
     assert result == []
+
+
+
+
+# ID: dcde8f95-7853-467b-8a75-57a5ac2aed1d
+def test_ASTHelpers_matches_call():
+    # Happy path: exact match
+    assert ASTHelpers.matches_call("asyncio.run", ["asyncio.run"]) is True
+
+    # Happy path: suffix match with dot boundary
+    assert ASTHelpers.matches_call("foo.asyncio.run", ["asyncio.run"]) is True
+
+    # No false positive on bare leaf name
+    assert ASTHelpers.matches_call("subprocess.run", ["asyncio.run"]) is False
+
+    # No match against empty disallowed list
+    assert ASTHelpers.matches_call("asyncio.run", []) is False
+
+    # Multiple patterns, one matching
+    assert (
+        ASTHelpers.matches_call("os.system", ["subprocess.call", "os.system"]) is True
+    )
