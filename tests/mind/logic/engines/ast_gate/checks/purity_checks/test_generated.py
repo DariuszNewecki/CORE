@@ -100,9 +100,6 @@ def test_PurityChecks_check_action_pattern() -> None:
     assert isinstance(violations, list)
 
 
-
-
-
 # ID: 7faed252-7470-4d0b-b3f7-66811bd6147c
 def test_PurityChecks_check_forbidden_imports_and_calls():
     source = (
@@ -137,3 +134,24 @@ def test_PurityChecks_check_forbidden_imports_and_calls():
 
     assert "os" not in joined
     assert "getcwd" not in joined
+
+
+
+
+
+# ID: 35a63760-e10d-4ef3-89e4-b54b77cd67c8
+def test_check_decorator_args() -> None:
+    source = (
+        "import something\n"
+        "\n"
+        "@my_decorator(required_one=True, required_two=1)\n"
+        "def my_function():\n"
+        "    return 1\n"
+    )
+    tree = ast.parse(source)
+
+    violations = PurityChecks.check_decorator_args(
+        tree, "my_decorator", ["required_one", "required_two"]
+    )
+
+    assert violations == []
