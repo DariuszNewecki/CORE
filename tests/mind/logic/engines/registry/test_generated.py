@@ -23,8 +23,6 @@ def test_engine_registry_get() -> None:
     engine_cls.assert_called_once_with()
 
 
-
-
 # ID: 262eb3c8-7c24-4c03-bc7c-8813de22a178
 def test_EngineRegistry_graph_dependent_engine_files() -> None:
     from mind.logic.engines.registry import EngineRegistry
@@ -56,3 +54,25 @@ def test_EngineRegistry_graph_dependent_engine_files() -> None:
         result = EngineRegistry.graph_dependent_engine_files()
 
     assert result == frozenset({"src/mind/logic/engines/graph_engine.py"})
+
+
+
+
+# ID: 702a9441-74a1-4307-827b-6d76758fe3e7
+def test_EngineRegistry_engine_source_files():
+    from mind.logic.engines.registry import EngineRegistry
+
+    # ID: db4b12cf-dd3e-4870-b305-8fcc14ec70ce
+    class FakeEngine:
+        pass
+
+    FakeEngine.__module__ = "mind.logic.engines.fake_engine"
+
+    registry = EngineRegistry
+    registry._discover_engines = MagicMock()
+    registry._engine_classes = {"fake": FakeEngine}
+
+    result = registry.engine_source_files()
+
+    assert result == frozenset({"src/mind/logic/engines/fake_engine.py"})
+    registry._discover_engines.assert_called_once_with()
