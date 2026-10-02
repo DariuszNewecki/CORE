@@ -30,3 +30,27 @@ def test_verify_metadata_only_diff():
     assert result == []
     assert mock_norm.call_count == 2
     mock_detect.assert_called_once_with(original, modified)
+
+
+from mind.logic.engines.ast_gate.checks.metadata_checks import normalize_ast
+
+
+# ID: ff19d4bf-6c6d-43c3-985a-ea68ff6707f7
+def test_normalize_ast():
+    code = '''"""Module docstring."""
+
+
+# ID: d98c6d64-9d9a-468c-8c4d-5d7c9b8d1312
+def foo():
+    """Function docstring."""
+    return 1
+'''
+    result = normalize_ast(code)
+    assert isinstance(result, str)
+    assert result  # non-empty canonical AST string
+    # Docstrings and line/col attributes should be stripped, so two
+    # semantically-equivalent snippets normalize identically.
+    code_without_docstrings = """def foo():
+    return 1
+"""
+    assert normalize_ast(code_without_docstrings) == result
