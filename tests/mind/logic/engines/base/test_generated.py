@@ -60,3 +60,30 @@ def test_BaseEngine() -> None:
     # Happy path: abstract verify method is implemented and awaitable.
     result = asyncio.run(engine.verify(Path("/tmp/example.py"), {}))
     assert result == "ok"
+
+
+from mind.logic.engines.base import extract_line_number
+
+
+# ID: ab32f381-1451-431d-bd7e-8a86a41e558d
+def test_extract_line_number():
+    # Canonical structured key takes precedence.
+    assert extract_line_number("any message", {"line_number": 42}) == 42
+
+    # Short alias used by legacy sensors.
+    assert extract_line_number("any message", {"line": 7}) == 7
+
+    # String digits are coerced.
+    assert extract_line_number("any message", {"line_number": "99"}) == 99
+
+    # Regex fallback extracts embedded "Line N".
+    assert extract_line_number("Violation at Line 15 in foo.py") == 15
+
+    # Case-insensitive lowercase variant.
+    assert extract_line_number("found at line 23") == 23
+
+    # No line info available.
+    assert extract_line_number("no line here", None) is None
+
+    # Zero / negative values fall through to None.
+    assert extract_line_number("nothing", {"line_number": 0}) is None
