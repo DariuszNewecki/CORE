@@ -52,3 +52,32 @@ def test_floor_hash() -> None:
     assert result == expected.hexdigest()
     assert isinstance(result, str)
     assert len(result) == 64
+
+
+
+
+# ID: a159d1e0-e838-4fd5-9bbe-cd9a24b95f20
+def test_floor_manifest(tmp_path: Path):
+    from shared.infrastructure.intent.machinery_floor_integrity import floor_manifest
+
+    floor_file = tmp_path / "floors" / "level_1.yaml"
+    floor_file.parent.mkdir(parents=True, exist_ok=True)
+    floor_file.write_text("content: hello\n", encoding="utf-8")
+
+    with (
+        patch(
+            "shared.infrastructure.intent.machinery_floor_integrity._floor_root",
+            return_value=tmp_path / "floors",
+        ),
+        patch(
+            "shared.infrastructure.intent.machinery_floor_integrity._iter_floor_files",
+            return_value=[floor_file],
+        ),
+        patch(
+            "shared.infrastructure.intent.machinery_floor_integrity._sha256_file",
+            return_value="abc123",
+        ),
+    ):
+        result = floor_manifest()
+
+    assert result == {"level_1.yaml": "abc123"}
