@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.10.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.11.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
@@ -337,7 +337,7 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 
 > **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
 >
-> **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime`.
+> **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime` (2.11.0 or later). **Starting a new project needs no services at all:** `core-admin project new myproject --write` creates it with the machinery floor, then adopt a pack and audit — [step by step](https://dariusznewecki.github.io/CORE/getting-started/#start-a-new-governed-project-no-services).
 >
 > **Fastest way to see CORE today: run it on itself, below.**
 
@@ -389,7 +389,7 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.10.2 — Supported Database Upgrades (ADR-162: migration ledger, baseline adoption, startup schema gate, fail-closed installer; G11 met)
+**Current Release:** v2.11.0 — a new governed project with no services: `project new`, packs shipped in the wheel, `adopt-pack` and `project new` fixed for pip installs, zero-rule audits fail closed
 
 Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
 finds constitutional violations in its own codebase, proposes fixes, routes them through the

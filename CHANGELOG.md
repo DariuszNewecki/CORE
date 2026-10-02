@@ -8,6 +8,55 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.11.0] — 2026-10-02
+
+**A new governed project with no services at all; adopt-pack works from a pip install.** With
+`pip install core-runtime` alone — no database, no vector store, no LLM — `core-admin project new`
+creates a repository carrying CORE's machinery floor, `project adopt-pack` adds a ready-made rule
+pack, and `code audit --offline` enforces it. In 2.10.x that path was broken at every step for a
+pip user. Minor release (new command); no database migrations — a 2.10.2 database needs no upgrade.
+
+### Added
+
+- **`core-admin project new <name> --write`** (#892). Creates `<name>/` with the machinery floor in
+  `.intent/` and a minimal Python skeleton — no rules. File-only: needs no database, Qdrant or LLM.
+- **The open governance packs ship in the wheel** (`core/starter-python`, `core/python-hygiene`,
+  `core/architectural-boundaries`), as package data mirroring `packs/`. A source checkout still reads
+  its own `packs/`; a pip install reads the bundled copy.
+
+### Fixed
+
+- **`project adopt-pack` from a pip install.** Every pack was "not found" (the 2.10.x wheels shipped
+  none), and `--write` was always refused with "overlaps CORE's own repo root" when run inside the
+  user's own repository, because the guard located CORE by walking up from the current directory.
+  The guard now protects only a real CORE source checkout.
+- **`project new` from a pip install** crashed with `QDRANT_URL is not configured`: the command
+  wrapper warmed Qdrant for a command that only writes files. It also located CORE by the same
+  directory walk as above.
+- **`--help` on any subcommand** no longer bootstraps the whole runtime context first; the
+  ~40 "Action … registered successfully" lines every call printed are now debug-level (#914).
+- **A confirmation prompt with no terminal** (CI, `ssh host cmd`, agent shells) no longer crashes with
+  `EOFError`; it prints one line naming the non-interactive option (`--yes`, or
+  `--simulate-confirmation` for the demo) and exits 2 (#912).
+- **Logging under systemd.** The daemon and API logged through Rich, so journald stored wrapped
+  80-column text and every line at priority 6 (`journalctl -p err` returned nothing). The shared
+  logger is now a plain stream handler with real priorities; Rich rendering stays in the CLI.
+- **`install-core.sh` verify step** now reads the offline audit's JSON verdict instead of its exit
+  code: a healthy install reports DEGRADED honestly (blocking rules that need services) rather than
+  "offline audit reported findings"; it also checks the Docker daemon and states requirements up
+  front.
+
+### Changed
+
+- **An audit with zero declared rules fails closed** — verdict ERROR, exit code 2 — instead of a
+  vacuous PASS. A repository with only the machinery floor (fresh from `project new` or
+  `project onboard`) has nothing to enforce, and "nothing checked" is not a pass. Adopt a pack or
+  ratify rules first.
+- **Autonomous test generation can be self-approved** inside the safe-auto-approval envelope
+  (ADR-163 D1/D2): a `flow.build_test_for_symbol` proposal that writes only the governed test file
+  for one symbol and passes the sandbox validation step no longer waits for a human.
+- **Remediation that keeps producing no change** now ends in the governor inbox (`indeterminate`,
+  needs a human) instead of `abandoned` (ADR-104 D10, #901).
 - **Worker declarations gain `implementation.launch` (`daemon` | `on_demand`)** (#898). `metadata.status`
   now means constitutional availability only; `launch` declares activation. Absent means `daemon`
   (every existing declaration is unchanged). An `on_demand` worker is constructed per invocation by
