@@ -25,7 +25,7 @@ in any system governed by the same principles.
 The reason CORE exists: use AI to write code in a controlled way.
 Law outranks intelligence. Defensibility outranks productivity.
 
-→ [core_northstar.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/core_northstar.md)
+→ [CORE - What It Does.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md)
 
 ---
 
@@ -134,7 +134,8 @@ Remove it and the Octopus cannot coordinate.
 ### Crate
 
 A staged, sandboxed package of changes. The unit of governed mutation.
-Every file change must pass through a Crate before reaching production.
+Changes on the autonomous path are staged in a sandbox before they reach the repository;
+a direct governor CLI write is not (by design — see the sandbox note in the [Proof Index](proof-index.md)).
 
 → [CORE-Crate.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Crate.md)
 
@@ -142,8 +143,9 @@ Every file change must pass through a Crate before reaching production.
 
 ### Gate
 
-A validation point that must pass before execution continues. Gates block —
-they do not advise. There is no override.
+A validation point that must pass before execution continues. A Gate blocks —
+it does not advise. Rules are different: each carries an enforcement level, and only
+`blocking` rules stop a change; `reporting` and `advisory` rules surface findings and continue.
 
 → [CORE-Gate.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Gate.md)
 
@@ -226,4 +228,4 @@ These are the concrete realizations of the foundational concepts in CORE.
 
 | Term | One sentence | Source |
 |------|-------------|--------|
-| Logic evaporation | LLM-produced code that
+| Logic evaporation | LLM-produced code that is syntactically valid but silently deletes existing behavior. | [CORE-ConservationGate.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-ConservationGate.md) |

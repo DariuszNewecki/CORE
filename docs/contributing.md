@@ -36,7 +36,7 @@ You do not need to be a programmer. Clear thinkers who can reason about governan
 - **Documentation** — keeping docs accurate and current as the architecture evolves. Start with `.specs/` — papers, requirements, and ADRs are a natural contribution surface.
 - **Governance reasoning** — stress-testing constitutional decisions and finding gaps
 - **Regulated industry context** — particularly GxP, Annex 11, and validated-state environments
-- **A3 operational hardening** — CORE is currently at A3 (Governed Autonomy). The daemon runs continuously. Contributions that improve the autonomous loop, convergence signal, or governor experience are directly useful.
+- **A3 operational hardening** — CORE is working at A3 (Governed Autonomy): the loop is built and governed, but unattended reliability is not yet proven (production-readiness gate G4). The daemon runs continuously. Contributions that improve the autonomous loop, convergence signal, or governor experience are directly useful.
 - **Ideation** — the path from A3 to A4 (self-replication) is genuinely open. Architectural thinking welcome.
 
 ---

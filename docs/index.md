@@ -15,13 +15,13 @@ CORE surrounds AI with a deterministic governance system. It does not make AI pe
 CORE is a governance runtime. When an AI agent proposes a change, CORE:
 
 1. Validates it against constitutional rules before execution
-2. Blocks violations — hard halt, no partial states
-3. Logs every decision with a full audit trail
-4. Remediates automatically where rules permit
+2. Blocks what a *blocking* rule forbids — the change halts before it is applied; reporting and advisory rules surface findings and let it continue
+3. Records decisions and the finding → proposal → approval → execution chain (recording is best-effort: a database failure does not stop execution — see the [Proof Index](proof-index.md))
+4. Remediates automatically where rules permit; anything outside the narrow safe-auto-approval envelope waits for a human
 
-The result: AI-assisted development that is auditable, deterministic, and safe to run autonomously.
+The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE's own [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml) is NOT ATTESTED, and unattended reliability (gate G4) is not demonstrated.
 
-At full autonomy (A3), the governor's job is two things: check the dashboard, and write constitutional intent. Everything else — finding violations, proposing fixes, executing changes, verifying results — is CORE's job.
+The goal at A3 (Governed Autonomy) is that the governor's job shrinks to two things: check the dashboard, and write constitutional intent. That is the design target, not today's measured state — see the [Autonomy Ladder](autonomy-ladder.md).
 
 ---
 
@@ -46,8 +46,10 @@ Then:
 
 - [How It Works](how-it-works.md) — the constitutional model and enforcement loop
 - [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
-- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3) and roadmap
+- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3, unproven unattended) and roadmap
 - [Getting Started](getting-started.md) — install and run your first audit
+- [Audit in CI (no install)](cold-reviewer.md) — the GitHub Action
 - [BYOR Quickstart](byor-quickstart.md) — govern your own repo from a naked machine, step by step
 - [CLI Reference](cli-reference.md) — commands and workflows
+- [Proof Index](proof-index.md) — each claim CORE makes, with its evidence and limits
 - [Contributing](contributing.md) — how to engage with the project

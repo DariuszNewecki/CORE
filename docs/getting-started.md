@@ -154,7 +154,7 @@ installation already has:
 
 | Installation | Stop | Start again (only after `status` exits 0) |
 |---|---|---|
-| systemd units (`core-admin daemon up` installs) | `core-admin daemon down` | `core-admin daemon up` |
+| systemd units (unit files in `infra/systemd/`; `core-admin daemon up` starts them, it does not install them) | `core-admin daemon down` | `core-admin daemon up` |
 | bare (`install-core.sh --bare`) | `./stop.sh` | `./start.sh` |
 | installer Docker path (API started by the installer, daemon by `make daemon-start`) | `make daemon-stop` and `make stop` | `./install-core.sh` (re-verifies status, starts the API) and `make daemon-start` |
 
@@ -273,13 +273,13 @@ A clean audit (zero blocking violations) is the precondition for autonomous oper
 
 ## Sync the Vector Layer
 
-CORE uses Qdrant for semantic search across constitutional documents and architectural papers. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Sync the vector collections:
+CORE uses Qdrant for semantic search across constitutional documents and architectural papers. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Populate the vector collections (on a fresh install they are empty; this asks for confirmation — add `--yes` to skip the prompt):
 
 ```bash
-poetry run core-admin vectors sync --write
+poetry run core-admin vectors rebuild --write
 ```
 
-This indexes `.intent/` governance documents and `.specs/` architectural papers into searchable vector collections. Context builds draw evidence from these collections.
+This embeds the code and tests and indexes `.intent/` governance documents and `.specs/` architectural papers into searchable vector collections. Context builds draw evidence from these collections.
 
 ---
 
@@ -354,7 +354,7 @@ Observe it working:
 
 ```bash
 poetry run core-admin runtime dashboard                              # five-panel situational awareness
-poetry run core-admin workers blackboard --filter "audit.violation"  # live findings
+poetry run core-admin workers show --filter "audit.violation"       # live findings
 ```
 
 ### Let CORE write code (needs an LLM)

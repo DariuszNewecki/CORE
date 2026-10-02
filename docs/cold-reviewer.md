@@ -21,7 +21,7 @@ core project onboard <path-to-your-repo> --write
 core project scout <path-to-your-repo> --write
 ```
 
-`project scout` requires an LLM resource. Without one it presents a curated menu of four
+`project scout` proposes fitted rules when an LLM resource is configured. Without one it presents a curated menu of four
 universal rules for you to accept, reject, or adjust — ratification is always required.
 Dry-run (no `--write`) previews what would be written in either command. Once both steps are
 done, add the workflow below and open a pull request.
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DariuszNewecki/CORE@main
+      - uses: DariuszNewecki/CORE@v2.10.2
         with:
           severity: block
 ```
@@ -86,7 +86,7 @@ The action emits one output:
 
 ## Ref stability
 
-The example above pins to `@main` because the audit-engine version bundled in tagged releases lags the latest published `core-runtime` on PyPI; `@main` tracks the most recent pin. Once a release tag lands carrying the current pin, prefer pinning to that tag (e.g. `@v2.7.0`) instead of `@main` for reproducible CI.
+Pin the Action to a release tag (`@v2.10.2` above) for reproducible CI. Each tag's `Dockerfile` installs the `core-runtime` release of the same version, so the tag fixes the audit engine too. `@main` follows unreleased changes and can change behaviour between runs. Tags before `v2.10.1` bundled an older engine (2.7.0) than their name suggests — do not pin to them.
 
 ---
 

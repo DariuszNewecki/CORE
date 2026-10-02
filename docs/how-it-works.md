@@ -77,7 +77,7 @@ flowchart TD
     CONST[".intent/constitution/<br/>founding rules<br/><i>what CORE will not do</i>"]
     RULES[".intent/rules/<br/>executable rule definitions"]
     MAP[".intent/enforcement/mappings/<br/>rule → engine + file scope"]
-    ENG["Engines<br/>ast_gate · regex_gate · glob_gate · cli_gate<br/>artifact_gate · workflow_gate · knowledge_gate · action_gate<br/>passive_gate · taxonomy_gate · contracts_gate · llm_gate · runtime_gate"]
+    ENG["Engines<br/>ast_gate · regex_gate · glob_gate · cli_gate<br/>artifact_gate · workflow_gate · knowledge_gate · action_gate<br/>passive_gate · taxonomy_gate · contracts_gate · attestation_gate<br/>llm_gate · grc_judge · runtime_gate"]
     CODE["src/"]
     BB["blackboard_entries<br/>audit.violation::&lt;rule&gt;"]
 
@@ -100,7 +100,7 @@ flowchart TD
     class CODE,BB observed
 ```
 
-Every rule with an enforcement mapping names exactly one engine (the 5 test-quality rules pending mappings are the documented exception); every engine reads files only — never the other way around. Violations land on the blackboard as `audit.violation::<rule>` and cite back at the rule that produced them, which is how the [Proof Index](proof-index.md) audit-state query observes them.
+Every rule with an enforcement mapping names exactly one engine; the rules without a mapping are advisory or exempt and are human-reviewed. Engines only read — most read repository files, `runtime_gate` reads runtime telemetry from the blackboard — and never write. Violations land on the blackboard as `audit.violation::<rule>` and cite back at the rule that produced them, which is how the [Proof Index](proof-index.md) audit-state query observes them.
 
 **Mind never executes. Mind never mutates. Mind defines law.**
 
@@ -115,7 +115,7 @@ The `.intent/` directory is the authoritative source for operational governance.
 Will reads constitutional constraints, orchestrates autonomous reasoning, and records every decision with a traceable audit trail. Every operation follows a structured phase pipeline:
 
 ```
-INTERPRET → PLAN → GENERATE → VALIDATE → STYLE CHECK → EXECUTE
+INTERPRET → PLAN → LOAD CONTEXT → GENERATE → VALIDATE (changes · canary · sandbox · style) → COMMIT
 ```
 
 **Will never bypasses Body. Will never rewrites Mind.**
@@ -126,7 +126,7 @@ INTERPRET → PLAN → GENERATE → VALIDATE → STYLE CHECK → EXECUTE
 
 **Location:** `src/body/`
 
-Body contains deterministic, atomic components: analyzers, evaluators, file operations, git services, test runners, CLI commands.
+Body contains deterministic, atomic components: analyzers, evaluators, file operations, git services, test runners. (The CLI lives in `src/cli/`, the API in `src/api/`, and cross-cutting infrastructure in `src/shared/`.)
 
 **Body performs mutations. Body does not judge. Body does not govern.**
 
@@ -134,35 +134,39 @@ Body contains deterministic, atomic components: analyzers, evaluators, file oper
 
 ## How an Action Executes
 
-Every mutation in CORE flows through one path. Workers do not call each other; they post to the blackboard. `ProposalConsumerWorker` claims approved proposals and dispatches them through `ActionExecutor`, which is the only caller permitted to invoke an `@atomic_action`. The decorator refuses any other caller — a direct call raises `GovernanceBypassError`.
+Every autonomous mutation in CORE flows through one path. Workers do not call each other; they communicate through the blackboard. A finding becomes a proposal, the proposal is approved (automatically only inside the safe-auto-approval envelope, otherwise by a human), and `ProposalConsumerWorker` executes approved proposals through `ActionExecutor` — the only caller permitted to invoke an `@atomic_action`. The decorator refuses any other caller: a direct call raises `GovernanceBypassError`. (A governor running a command directly from the CLI is a separate, human-operated path; see the [Proof Index](proof-index.md).)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant W as Worker / Will
+    participant AVS as AuditViolationSensor
     participant BB as blackboard_entries
+    participant VR as ViolationRemediator
+    participant P as core.autonomous_proposals
+    participant G as Approval (envelope or human)
     participant PC as ProposalConsumerWorker
     participant AE as ActionExecutor
     participant AA as "@atomic_action"
     participant AR as core.action_results
-    participant AVS as AuditViolationSensor
 
-    W->>BB: post proposal
-    BB->>PC: claim (status=open)
+    AVS->>BB: post finding audit.violation::<rule>
+    VR->>BB: claim finding
+    VR->>P: create proposal (remediation map)
+    G->>P: approve
+    PC->>P: load approved proposals
     PC->>AE: execute(action_id, params)
     AE->>AE: set governance token
-    AE->>AA: invoke decorated function
+    AE->>AA: invoke decorated function (in a sandbox worktree)
     AA-->>AE: ActionResult(ok, data, impact)
-    AE->>AR: INSERT row (audit trail)
-    AE-->>PC: ActionResult
-    PC->>BB: post report (status=resolved)
-    AVS->>BB: post audit.violation::<rule> if scan finds one
+    AE->>AR: INSERT row (best-effort audit record)
+    PC->>P: commit, then finalizing → completed once the consequence is recorded
+    AVS->>BB: next scan: finding gone → resolved by re-audit
 ```
 
 Two things this diagram makes structural:
 
-- **No bypass.** The governance token is set inside `ActionExecutor.execute` and read by the `@atomic_action` decorator. A direct call (step 5 without step 3) finds no token and refuses. This is the mechanism behind row 2 of the [Proof Index](proof-index.md).
-- **No untracked mutation.** Every successful step 5 produces a step 7 — a row in `core.action_results` with `agent_id = 'ActionExecutor'`. The audit trail is the record of what ran, not a summary of what was attempted. This is row 4 of the [Proof Index](proof-index.md).
+- **No bypass.** The governance token is set inside `ActionExecutor.execute` and read by the `@atomic_action` decorator. A direct call (step 8 without step 7) finds no token and refuses. This is the mechanism behind row 2 of the [Proof Index](proof-index.md).
+- **No untracked mutation.** Every successful step 8 produces a step 10 — a row in `core.action_results` with `agent_id = 'ActionExecutor'` (best-effort: if that write fails it is logged as `AUDIT_GAP`, never silently dropped). The audit trail is the record of what ran, not a summary of what was attempted. This is row 4 of the [Proof Index](proof-index.md).
 
 ---
 
@@ -179,13 +183,13 @@ CORE's governance model is built on four primitives only:
 
 Rules carry one of three enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
-A Blocking rule that fails halts execution immediately. No partial states. No exceptions.
+A Blocking rule that fails stops the change before it is applied. Reporting and advisory rules surface findings and let execution continue — which surfaces block depends on the mode (see *Current proof status* in the README).
 
 ---
 
 ## Enforcement Engines
 
-CORE evaluates rules through fourteen engines:
+CORE evaluates rules through fifteen engines:
 
 | Engine | Method |
 |--------|--------|
@@ -202,7 +206,10 @@ CORE evaluates rules through fourteen engines:
 | `contracts_gate` | Cross-cutting data-contract coherence (context-level; ADR-102) |
 | `attestation_gate` | Human-attestation surface for requirements no automated engine can honestly decide (context-level; ADR-113) |
 | `llm_gate` | LLM-assisted semantic checks |
-| `runtime_gate` | Runtime write authorization (`IntentGuard` per `CORE-Gate.md`) |
+| `grc_judge` | Semantic compliance assessment of documents against a requirements catalog (GRC gap analysis) |
+| `runtime_gate` | Runtime telemetry checks — reads blackboard data, not source files |
+
+Runtime write authorization is a separate mechanism, not an audit engine: `IntentGuard` refuses forbidden writes (for example any write under `.intent/`) at the moment they are attempted.
 
 Deterministic when possible. LLM only when necessary.
 
@@ -212,7 +219,7 @@ Deterministic when possible. LLM only when necessary.
 
 Within CORE:
 
-- No file outside an autonomy lane can be modified
+- Nothing is self-approved outside the safe-auto-approval envelope (five `fix.*` actions and test generation, `.py` files under `src/` and `tests/` only) — every other change waits for a human
 - No structural rule can be bypassed silently
 - No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
 - Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — surfaced as `AUDIT_GAP`, not silent; see the [Proof Index](proof-index.md))
@@ -229,7 +236,7 @@ If a *blocking* rule fails, execution halts with no partial state. Reporting and
 | `.specs/` human intent | ✅ Yes |
 | `.intent/` constitution | ✅ Yes |
 | Rules engine | ✅ Yes |
-| Audit system | ✅ Yes |
+| Audit system | ✅ Yes — recording is best-effort; a failed write is logged as `AUDIT_GAP`, not silent ([Proof Index](proof-index.md) claim 4) |
 | Execution system | ✅ Yes |
 | AI outputs | ❌ Never |
 | Generated code | ❌ Never |
