@@ -26,24 +26,17 @@ from contextlib import contextmanager
 from importlib.resources.abc import Traversable
 from pathlib import Path
 
+from shared.infrastructure.bundled_prompts import is_package_marker
+
 
 _PACKS_PACKAGE = "shared._packs"
 _REPO_PACKS_DIRNAME = "packs"
-
-# Package-only files that are not pack payload (parity and listings skip them).
-_PACKAGE_MARKERS = frozenset({"__init__.py"})
 
 
 # ID: 774dc8cd-d643-4898-aea6-9a01edf342e3
 def bundled_packs_root() -> Traversable:
     """The bundled pack registry as a ``Traversable`` directory."""
     return importlib.resources.files(_PACKS_PACKAGE)
-
-
-# ID: ee5b8494-9b14-43ec-a53f-b27cb49de6b0
-def is_package_marker(relative_path: str) -> bool:
-    """True for files that exist only to make the mirror importable."""
-    return Path(relative_path).name in _PACKAGE_MARKERS
 
 
 @contextmanager
