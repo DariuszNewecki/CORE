@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.infrastructure.intent.test_coverage_paths import sibling_test_paths
 from shared.infrastructure.validation.test_runner import run_tests
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -137,6 +138,64 @@ async def action_test_sandbox_validate(
     return result
 
 
+async def _check_candidate_against_siblings(
+    solo_result: ActionResult,
+    *,
+    scratch_rel_path: str,
+    source_file: str,
+    repo_root: Path,
+) -> ActionResult:
+    """Run a solo-passing candidate ahead of the existing tests for its module.
+
+    A candidate that passes alone can still leak class-level or module-level
+    state (assigning a MagicMock onto a class instead of patching it) and break
+    the tests that run after it in the same process — invisible to a solo run,
+    red in the full suite. Running the candidate first, then its siblings,
+    surfaces that before commit. If the siblings fail on their own as well, the
+    failure predates the candidate and is not held against it.
+    """
+    siblings = sibling_test_paths(repo_root, source_file)
+    if not siblings:
+        return solo_result
+
+    combined = await run_tests(
+        target=scratch_rel_path,
+        extra_targets=siblings,
+        action_id="test.candidate_validate",
+        repo_root=repo_root,
+    )
+    if combined.ok:
+        return combined
+
+    baseline = await run_tests(
+        target=siblings[0],
+        extra_targets=siblings[1:],
+        action_id="test.candidate_validate",
+        repo_root=repo_root,
+    )
+    if not baseline.ok:
+        logger.warning(
+            "test.candidate_validate: sibling tests of %s already fail without "
+            "the candidate; sibling check not held against it",
+            source_file,
+        )
+        solo_result.data["sibling_baseline_failing"] = siblings
+        return solo_result
+
+    combined.data["error"] = (
+        "Candidate passes alone but breaks existing tests for the same module "
+        "when run before them: it leaks shared state (class or module "
+        "attributes assigned without restoring). Use patch.object / "
+        "monkeypatch instead of plain assignment. Affected: "
+        + ", ".join(siblings)
+        + ". "
+        + str(combined.data.get("summary", ""))
+    )
+    combined.data["summary"] = combined.data["error"]
+    combined.data["sibling_tests"] = siblings
+    return combined
+
+
 @register_action(
     action_id="test.candidate_validate",
     description="Validate a not-yet-accepted candidate test snippet against pytest in ephemeral scratch",
@@ -216,6 +275,13 @@ async def action_test_candidate_validate(
             action_id="test.candidate_validate",
             repo_root=repo_root,
         )
+        if result.ok:
+            result = await _check_candidate_against_siblings(
+                result,
+                scratch_rel_path=scratch_rel_path,
+                source_file=source_file,
+                repo_root=repo_root or Path(file_handler.repo_path),
+            )
     finally:
         try:
             core_context.file_handler.remove_tree(scratch_dir)

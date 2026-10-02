@@ -139,6 +139,60 @@ def source_to_test_path(
     )
 
 
+# ID: a80ec516-f221-4e54-a933-39652441d98a
+def sibling_test_paths(
+    repo_root: Path,
+    source_file: str,
+    config: dict[str, Any] | None = None,
+) -> list[str]:
+    """Existing test files that exercise the same source module as its
+    governed test path, excluding that governed file itself.
+
+    Derived from `source_to_test_path` ("tests/foo/bar/test_generated.py"):
+      - tests/foo/test_bar.py and tests/foo/test_bar__<Symbol>.py — the
+        hand-written convention one directory up;
+      - any other test_* file inside tests/foo/bar/.
+
+    Used to run a generated candidate ahead of the tests most likely to share
+    its module-level and class-level state. Returns repo-relative paths,
+    sorted; an empty list when nothing exists or the mapping is refused.
+    """
+    try:
+        target = PurePosixPath(source_to_test_path(source_file, config))
+    except ValueError:
+        return []
+
+    extension = target.suffix
+    module_dir = target.parent
+    hand_written_prefix = f"test_{module_dir.name}"
+    found: list[str] = []
+
+    package_path = repo_root / module_dir.parent
+    if package_path.is_dir():
+        for entry in package_path.iterdir():
+            name = entry.name
+            if not entry.is_file() or not name.endswith(extension):
+                continue
+            if name == f"{hand_written_prefix}{extension}" or name.startswith(
+                f"{hand_written_prefix}__"
+            ):
+                found.append(str(module_dir.parent / name))
+
+    module_path = repo_root / module_dir
+    if module_path.is_dir():
+        for entry in module_path.iterdir():
+            name = entry.name
+            if (
+                entry.is_file()
+                and name.startswith("test_")
+                and name.endswith(extension)
+                and name != target.name
+            ):
+                found.append(str(module_dir / name))
+
+    return sorted(found)
+
+
 # ID: 6160b527-a734-4501-9804-18c299228a5b
 def resolve_contained_source_path(repo_root: Path, source_file: str) -> Path:
     """Resolve `source_file` against `repo_root`, rejecting any traversal

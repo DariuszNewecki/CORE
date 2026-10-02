@@ -179,3 +179,69 @@ async def test_refuses_without_core_context() -> None:
     )
     assert result.ok is False
     assert "core_context" in result.data["error"]
+
+
+# --- sibling check: a candidate must not break the existing tests for its module
+
+
+def _result(ok: bool, summary: str = "") -> ActionResult:
+    return ActionResult(
+        action_id="test.candidate_validate", ok=ok, data={"summary": summary}
+    )
+
+
+async def _run_with_siblings(repo: Path, run_results: list[ActionResult]):
+    mocked = AsyncMock(side_effect=run_results)
+    with (
+        patch("body.atomic.test_actions.run_tests", new=mocked),
+        patch(
+            "body.atomic.test_actions.sibling_test_paths",
+            return_value=["tests/x_test_x.py"],
+        ),
+    ):
+        result = await _action(
+            source_file="src/x.py",
+            target_path="tests/x/test_generated.py",
+            candidate_content="def test_new():\n    assert True\n",
+            core_context=_make_context(repo),
+        )
+    return result, mocked
+
+
+async def test_candidate_leaking_state_into_siblings_is_rejected(repo: Path) -> None:
+    """Solo pass, combined fail, siblings alone pass -> the candidate broke them."""
+    result, mocked = await _run_with_siblings(
+        repo, [_result(True), _result(False, "1 failed, 3 passed"), _result(True)]
+    )
+
+    assert not result.ok
+    assert "leaks shared state" in result.data["error"]
+    assert result.data["sibling_tests"] == ["tests/x_test_x.py"]
+    assert result.data["violations"][0]["rule"] == "test.candidate.must_execute"
+    combined_call = mocked.call_args_list[1].kwargs
+    assert "candidate_validate" in combined_call["target"]
+    assert combined_call["extra_targets"] == ["tests/x_test_x.py"]
+
+
+async def test_candidate_not_blamed_when_siblings_already_fail(repo: Path) -> None:
+    result, mocked = await _run_with_siblings(
+        repo, [_result(True), _result(False), _result(False)]
+    )
+
+    assert result.ok
+    assert result.data["sibling_baseline_failing"] == ["tests/x_test_x.py"]
+    assert mocked.await_count == 3
+
+
+async def test_candidate_passing_with_siblings_is_accepted(repo: Path) -> None:
+    result, mocked = await _run_with_siblings(repo, [_result(True), _result(True)])
+
+    assert result.ok
+    assert mocked.await_count == 2
+
+
+async def test_rejected_solo_candidate_skips_sibling_run(repo: Path) -> None:
+    result, mocked = await _run_with_siblings(repo, [_result(False, "1 failed")])
+
+    assert not result.ok
+    assert mocked.await_count == 1

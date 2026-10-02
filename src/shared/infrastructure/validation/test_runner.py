@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -37,6 +38,7 @@ async def run_tests(
     action_id: str = "test.execute",
     repo_root: Path | None = None,
     file_handler: FileHandler | None = None,
+    extra_targets: Sequence[str] = (),
 ) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
@@ -57,6 +59,11 @@ async def run_tests(
             target resolution), not against the main tree. Defaults to
             ``settings.REPO_PATH`` so the full-suite ``test.execute`` path is
             unchanged.
+        extra_targets: Further repo-relative paths run in the same pytest
+            process after ``target``, in the given order. Used by
+            test.candidate_validate to run a candidate ahead of the existing
+            tests for the same module, so class-level state it leaks breaks
+            them here instead of in the full suite. Ignored without ``target``.
     """
     start_time = time.perf_counter()
 
@@ -65,7 +72,11 @@ async def run_tests(
 
     repo_root = repo_root or settings.REPO_PATH
     tests_path = repo_root / "tests"
-    pytest_target = str(repo_root / target) if target else str(tests_path)
+    pytest_targets = (
+        [str(repo_root / t) for t in (target, *extra_targets)]
+        if target
+        else [str(tests_path)]
+    )
 
     timeout = (settings.model_extra or {}).get("TEST_RUNNER_TIMEOUT", 300)
 
@@ -78,7 +89,7 @@ async def run_tests(
         # untracked files. Same precedent as will/governance/fix_runner.py.
         process = await asyncio.create_subprocess_exec(
             "pytest",
-            pytest_target,
+            *pytest_targets,
             "--tb=short",
             "-q",
             "--no-cov",
