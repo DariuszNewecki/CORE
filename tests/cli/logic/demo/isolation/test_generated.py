@@ -170,7 +170,6 @@ def test_hash_file(tmp_path: Path) -> None:
     assert len(result) == 64
 
 
-
 from cli.logic.demo.isolation import compose_down
 
 
@@ -208,3 +207,29 @@ def test_compose_down():
     _called_coro, called_timeout = mock_deadline.await_args.args[:2]
     assert called_timeout == 60.0
     assert mock_deadline.await_args.kwargs.get("phase") == "compose down"
+
+
+
+from cli.logic.demo.isolation import generate_run_identity
+
+
+# ID: 5f70f626-b27f-4fda-bd74-b8ab0cf72df2
+def test_generate_run_identity(tmp_path: Path) -> None:
+    identity = generate_run_identity(tmp_path)
+
+    # The identity is opaque hex derived from a UUID.
+    assert isinstance(identity.run_id, str)
+    assert len(identity.run_id) == 32
+    int(identity.run_id, 16)  # raises if not valid hex
+
+    expected_state_dir = tmp_path / "runs" / identity.run_id
+    assert identity.state_dir == expected_state_dir
+    assert expected_state_dir.is_dir()
+
+    assert identity.marker_path.parent == expected_state_dir
+    assert identity.marker_path.is_file()
+    assert identity.marker_path.read_text(encoding="utf-8") == identity.run_id
+
+    assert identity.clone_dir == expected_state_dir / "clone"
+    # The clone directory is only declared, not yet created.
+    assert not identity.clone_dir.exists()
