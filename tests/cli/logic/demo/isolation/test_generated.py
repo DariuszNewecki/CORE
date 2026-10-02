@@ -21,3 +21,19 @@ def test_cleanup_run():
     mock_remove.assert_called_once_with(
         identity.state_dir, identity.run_id, demo_state_dir
     )
+
+
+import json
+
+from cli.logic.demo.isolation import read_state_json
+
+
+# ID: c3dd3d82-a891-4fa4-9382-1d8611f646bb
+def test_read_state_json(tmp_path: Path) -> None:
+    state_file = tmp_path / "state.json"
+    expected = {"status": "ok", "value": 42}
+    state_file.write_text(json.dumps(expected), encoding="utf-8")
+
+    result = read_state_json(state_file)
+
+    assert result == expected
