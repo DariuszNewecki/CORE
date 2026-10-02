@@ -93,3 +93,20 @@ def test_compose_up():
     await_args = mock_deadline.await_args
     assert await_args.args[1] == 120.0
     assert await_args.kwargs.get("phase") == "compose up"
+
+
+
+from cli.logic.demo.isolation import prove_clone_isolation
+
+
+# ID: 307d5660-dd99-4e09-a214-d5a4588a267c
+def test_prove_clone_isolation() -> None:
+    clone = MagicMock()
+    clone.clone_has_no_remote.return_value = True
+    clone.get_current_commit.return_value = "abc123"
+
+    result = prove_clone_isolation(clone, "abc123")
+
+    assert result is None
+    clone.clone_has_no_remote.assert_called_once_with()
+    clone.get_current_commit.assert_called_once_with()
