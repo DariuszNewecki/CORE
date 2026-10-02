@@ -7,14 +7,35 @@ You don't need the full runtime to start. Pick the path that matches your goal:
 | Goal | Path | What you need |
 |------|------|---------------|
 | **Govern your own repo** | `core project onboard <path> --write` (machinery floor), then `core project scout <path> --write` (fitted rules), then add the [GitHub Action](cold-reviewer.md) — walkthrough: [byor-quickstart.md](byor-quickstart.md) | `pip install core-cli` **and a running CORE API** (Postgres + Qdrant behind it) |
-| **Add a rule pack to a repo that already has a `.intent/`** | `pip install core-runtime`, then `core-admin project adopt-pack core/starter-python --write` *inside that repo* | Python 3.12+ and a repo with a `.intent/` machinery floor |
+| **Start a new governed project, no services** | `pip install core-runtime`, then `core-admin project new myproject --write`, `cd myproject`, `core-admin project adopt-pack core/starter-python --write`, `core-admin code audit --offline` — see [below](#start-a-new-governed-project-no-services) | Python 3.12+ and core-runtime **2.11.0 or later** |
+| **Add a rule pack to a repo that already has a `.intent/`** | `pip install core-runtime`, then `core-admin project adopt-pack core/starter-python --write` *inside that repo* | Python 3.12+, core-runtime **2.11.0 or later** (the 2.10.x wheels ship no packs), and a repo with a `.intent/` machinery floor |
 | **Govern my repo in CI** | [GitHub Action](cold-reviewer.md) — runs the constitutional audit on every PR, no local install | A GitHub repo **with a `.intent/` constitution** |
 | **Run an audit locally, no services** | `pip install core-runtime`, then `core-admin code audit --offline` *inside a repo that has a `.intent/`* | Python 3.12+ **and a repo with a `.intent/`** |
 | **Run the full thesis** (encounter → audit → remediate → verify, the autonomous daemon) | The full local runtime below — run it on **CORE itself** | Postgres + Qdrant + an LLM resource |
 
-> **Govern your own repo (BYOR) — honest shape of the path today.** Delivering a constitution *into* an existing repo is not a zero-infrastructure step. `project onboard` (machinery floor: schemas, taxonomies, enforcement config) and `project scout` (fitted rules — proposed via LLM, or a curated four-rule menu without one; you ratify each before delivery) are consumer commands in `core-cli`, which is a pure HTTP client (ADR-146 D2): it needs a reachable CORE API, and the API needs Postgres + Qdrant. There is currently no offline `onboard`. What *is* service-free, from a plain `pip install core-runtime`: `core-admin project adopt-pack` (add a ready-made rule pack to a repo that already carries a `.intent/`) and `core-admin code audit --offline` (enforce the rules, immediately).
+> **Govern your own repo (BYOR) — honest shape of the path today.** Delivering a constitution *into* an existing repo is not a zero-infrastructure step. `project onboard` (machinery floor: schemas, taxonomies, enforcement config) and `project scout` (fitted rules — proposed via LLM, or a curated four-rule menu without one; you ratify each before delivery) are consumer commands in `core-cli`, which is a pure HTTP client (ADR-146 D2): it needs a reachable CORE API, and the API needs Postgres + Qdrant. There is currently no offline `onboard` for an *existing* repo. What *is* service-free, from a plain `pip install core-runtime` (2.11.0 or later): `core-admin project new` (a *new* repo with the machinery floor and no rules), `core-admin project adopt-pack` (add a ready-made rule pack to a repo that carries a `.intent/`) and `core-admin code audit --offline` (enforce the rules, immediately).
 >
 > **Step-by-step walkthrough** (fresh machine → API → onboard → violation → fix → PASS): [byor-quickstart.md](byor-quickstart.md)
+
+### Start a new governed project, no services
+
+Needs only Python 3.12+ and `core-runtime` 2.11.0 or later — no database, no vector store, no LLM.
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install "core-runtime>=2.11.0"
+
+core-admin project new myproject --write      # machinery floor + empty Python skeleton, no rules
+cd myproject
+git init
+core-admin project adopt-pack core/starter-python --write   # four starter rules (one blocking)
+core-admin code audit --offline               # enforce them
+```
+
+`project new` creates a new directory and refuses an existing non-empty one; it delivers no rules,
+so an audit before `adopt-pack` fails closed (nothing to check is not a pass). The available packs
+are `core/starter-python`, `core/python-hygiene` and `core/architectural-boundaries`. `project new
+--write` asks for confirmation; answer `y`, or pipe it (`echo y | core-admin …`) in a script.
 
 The rest of this page covers the **full local runtime**.
 
@@ -144,7 +165,7 @@ CORE never migrates a database on its own. `install-core.sh` and every service s
 daemon start`, the API, the `core-engine` container) check the schema state **read-only** and refuse
 to run against a database that is not current. Migration is a deliberate, operator-run step.
 
-**Fresh 2.10.2 installation** — `./install-core.sh` (or `./install-core.sh --bare --db-url … --qdrant-url …`)
+**Fresh installation** — `./install-core.sh` (or `./install-core.sh --bare --db-url … --qdrant-url …`)
 loads `schema.sql` into a database that has no CORE schema, in one transaction, and then shows
 `core-admin database status` reporting the ledger current. Nothing else is needed. A failed load
 leaves nothing behind (there is no drop-and-retry); the installer refuses and names `var/logs/schema-apply.log`.
