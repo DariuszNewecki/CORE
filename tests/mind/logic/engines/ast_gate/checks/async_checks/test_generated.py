@@ -79,9 +79,6 @@ def test_AsyncChecks() -> None:
     assert AsyncChecks.check_no_task_return_from_sync_cli(sync_fn) == []
 
 
-
-
-
 # ID: 3394f48b-5c49-4fc4-86a6-4b2e4ad65fec
 def test_AsyncChecks_check_no_import_time_async_singletons():
     source = "client = create_async_client()\n"
@@ -96,3 +93,24 @@ def test_AsyncChecks_check_no_import_time_async_singletons():
     assert "Import-time async singleton creation" in findings[0]
 
     assert AsyncChecks.check_no_import_time_async_singletons(tree, []) == []
+
+
+
+
+
+# ID: 5eb75626-1f42-49e4-85e4-a3b5973d95df
+def test_AsyncCheckscheck_no_task_return_from_sync_cli():
+    source = (
+        "def sync_fn():\n"
+        "    import asyncio\n"
+        "    return asyncio.create_task(do_work())\n"
+    )
+    tree = ast.parse(source)
+
+    result = AsyncChecks.check_no_task_return_from_sync_cli(tree)
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert "create_task" not in result[0]
+    assert "sync_fn" in result[0]
+    assert "returns Task" in result[0]
