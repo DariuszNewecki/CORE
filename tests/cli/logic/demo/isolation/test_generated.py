@@ -111,7 +111,6 @@ def test_prove_clone_isolation() -> None:
     clone.get_current_commit.assert_called_once_with()
 
 
-
 from cli.logic.demo.isolation import create_isolated_clone
 
 
@@ -128,3 +127,26 @@ def test_create_isolated_clone() -> None:
 
     source.create_disposable_clone.assert_called_once_with("abc123", "/tmp/clone-dir")
     assert result is expected_clone
+
+
+import hashlib
+
+from cli.logic.demo.isolation import hash_directory
+
+
+# ID: 8253ffa0-89bd-4bd5-80f9-bbecb1653ab3
+def test_hash_directory(tmp_path):
+    (tmp_path / "a.txt").write_text("alpha")
+    (tmp_path / "b.txt").write_text("beta")
+
+    result = hash_directory(tmp_path)
+
+    assert isinstance(result, str)
+    assert len(result) == len(hashlib.sha256().hexdigest())
+
+    # Deterministic: same content yields same digest.
+    assert hash_directory(tmp_path) == result
+
+    # Changing content changes the digest.
+    (tmp_path / "b.txt").write_text("gamma")
+    assert hash_directory(tmp_path) != result
