@@ -63,3 +63,42 @@ async def test_artifact_gate_engine_verify(tmp_path: Path) -> None:
     assert call_args[0][0] == manifest
     assert call_args[0][1] == {"role": "planner"}
     assert result is expected
+
+
+
+
+# ID: 9b615a1b-da7c-4897-a013-d66ebc8a1275
+def test_ArtifactGateEngine_is_context_level_for():
+    # None -> False (per ADR-076 D1/D2/D3)
+    assert ArtifactGateEngine.is_context_level_for(None) is False
+
+    # Vocabulary check types -> True
+    for check_type in (
+        "vocabulary_projection_consistency",
+        "vocabulary_canonical_format",
+        "vocabulary_authoritative_paths",
+        "register_casing_validation",
+    ):
+        assert ArtifactGateEngine.is_context_level_for(check_type) is True
+
+    # Governance check types -> True
+    for check_type in (
+        "all_rules_mapped",
+        "active_routing_claimed_by_action",
+        "namespace_has_drainer",
+        "namespace_manifest_completeness",
+        "fs_operations_completeness",
+    ):
+        assert ArtifactGateEngine.is_context_level_for(check_type) is True
+
+    # PromptModel / per-file check types -> False
+    for check_type in (
+        "required_fields",
+        "no_provider_leak",
+        "role_abstraction",
+        "governed_prompt_has_anchor",
+    ):
+        assert ArtifactGateEngine.is_context_level_for(check_type) is False
+
+    # Unknown check type -> False
+    assert ArtifactGateEngine.is_context_level_for("unknown_check_type") is False
