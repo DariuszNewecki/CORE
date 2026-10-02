@@ -47,3 +47,31 @@ def test_write_evidence_json(tmp_path: Path) -> None:
     assert content.startswith(
         json.dumps(payload, indent=2, sort_keys=True, default=str)
     )
+
+
+
+from shared.infrastructure.intent.target_intent_assembly import (
+    materialize_execution_copy,
+)
+
+
+# ID: d787f8a0-3fcb-4a94-a6b6-b2869bf14410
+def test_materialize_execution_copy(tmp_path: Path) -> None:
+    subject_root = tmp_path / "subject"
+    subject_root.mkdir()
+    (subject_root / "hello.txt").write_text("hi", encoding="utf-8")
+
+    run_root = tmp_path / "run"
+
+    result = materialize_execution_copy(subject_root, run_root)
+
+    assert result.target_root == run_root / "target"
+    assert result.intent_root == run_root / "target" / ".intent"
+    assert result.evidence_root == run_root / "evidence"
+    assert (run_root / "target" / "hello.txt").read_text(encoding="utf-8") == "hi"
+
+    manifest_path = run_root / "evidence" / "collision_manifest.json"
+    assert manifest_path.is_file()
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert data["subject_root"]
+    assert "displaced" in data
