@@ -2,10 +2,15 @@
 
 Calls the undecorated coroutine (``adopt_pack_command.__wrapped__``) so the
 ``@core_command`` loop/teardown machinery stays out of the way. The pack is
-resolved from CORE's real ``packs/`` registry — the same registry the wheel
-ships — and delivered to a ``tmp_path`` target through the ADR-111 D3 lane;
-``resolve_default_repo_path`` is patched so the target is not refused as
+resolved from CORE's real ``packs/`` registry (repository first) or, for a
+law root whose repository has no ``packs/``, from the registry bundled in the
+wheel — and delivered to a ``tmp_path`` target through the ADR-111 D3 lane;
+``core_source_root`` is patched so the target is not refused as
 "inside CORE".
+
+Regression (2026-10-02): a pip-installed adopter's law root is their own
+repository, which has no ``packs/``; the 2.10.2 wheel shipped no packs either,
+so every pack was "not found". The bundled-registry test below pins the fix.
 
 Regression: ``--write`` crashed from the day the command was written
 (2026-07-14, ``f6513de4``) — first on a dead ``shared.infrastructure.
@@ -40,7 +45,7 @@ def _bare_repo(tmp_path: Path) -> Path:
 async def _run(target: Path, *, write: bool, override: list[str] | None = None):
     # Pretend CORE lives elsewhere so the tmp target is a legitimate external repo.
     with patch(
-        "cli.resources.project.adopt_pack.resolve_default_repo_path",
+        "cli.logic.byor.core_source_root",
         return_value=target.parent / "core-install",
     ):
         await adopt_pack_command.__wrapped__(
@@ -124,7 +129,7 @@ async def test_write_refuses_target_inside_core_root(tmp_path: Path) -> None:
     target.mkdir(parents=True)
 
     with patch(
-        "cli.resources.project.adopt_pack.resolve_default_repo_path",
+        "cli.logic.byor.core_source_root",
         return_value=core,
     ):
         with pytest.raises(typer.Exit):
@@ -141,3 +146,30 @@ async def test_unknown_pack_exits(tmp_path: Path) -> None:
         await adopt_pack_command.__wrapped__(
             pack_id="core/does-not-exist", target_dir=target, write=False, override=[]
         )
+
+
+@pytest.mark.asyncio
+async def test_pack_resolves_from_bundle_when_law_root_repo_has_no_packs(
+    tmp_path: Path,
+) -> None:
+    """The pip-install case: law root = the adopter's repo, which has no packs/."""
+    from types import SimpleNamespace
+
+    adopter = _bare_repo(tmp_path)
+    (adopter / ".intent").mkdir()
+    assert not (adopter / "packs").exists()
+
+    with (
+        patch(
+            "cli.resources.project.adopt_pack.settings",
+            SimpleNamespace(MIND=adopter / ".intent"),
+        ),
+        # An installed wheel: there is no CORE source checkout to protect.
+        patch("cli.logic.byor.core_source_root", return_value=None),
+    ):
+        await adopt_pack_command.__wrapped__(
+            pack_id=PACK_ID, target_dir=adopter, write=True, override=[]
+        )
+
+    rules = adopter / ".intent" / "rules" / "packs" / f"{SLUG}.json"
+    assert rules.is_file()

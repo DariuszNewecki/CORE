@@ -82,8 +82,24 @@ _UNSAFE_TARGET_ROOTS = frozenset(
 )
 
 
+# ID: 1463e14d-c6e9-4c36-8e30-f8342022bb63
+def core_source_root() -> Path | None:
+    """CORE's own repository root when running from a source checkout, else None.
+
+    The overlap guard protects CORE's own repository from BYOR writes. That
+    repository is the source tree the running code was loaded from — not the
+    repository found by walking up from the current directory, which for a
+    ``pip install core-runtime`` user is *their* repository. An installed
+    wheel has no CORE repository to protect, so this returns None there.
+    """
+    from shared.config import REPO_ROOT
+
+    root = REPO_ROOT.resolve()
+    return root if (root / ".intent").is_dir() else None
+
+
 # ID: cdf75615-3371-4b61-9e19-4ad12fbe0de7
-def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
+def _reject_unsafe_target(target_root: Path, core_root: Path | None) -> None:
     """Refuse a BYOR target that would corrupt the running install or a system dir.
 
     BYOR intentionally writes ``.intent/`` into an operator-specified external
@@ -94,8 +110,12 @@ def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
     defense-in-depth backstop only: refuse the two shapes of self-inflicted
     damage that have no legitimate BYOR use — targeting CORE's own repo tree,
     or a fixed set of universally-dangerous system directories.
+
+    ``core_root`` is None when there is no CORE repository to protect (an
+    installed wheel, see :func:`core_source_root`); only the system-directory
+    backstop applies then.
     """
-    overlaps_core = (
+    overlaps_core = core_root is not None and (
         target_root == core_root
         or core_root in target_root.parents
         or target_root in core_root.parents
@@ -117,7 +137,7 @@ def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
 # ID: e21c1b19-792b-46fb-b558-2102cc49e3b2
 def deliver_external_intent_files(
     target_root: Path,
-    core_root: Path,
+    core_root: Path | None,
     files: dict[str, str],
 ) -> int:
     """Write text files into an external target's ``.intent/`` (ADR-111 D3 lane).
@@ -137,7 +157,9 @@ def deliver_external_intent_files(
     Returns the number of files written. No git-add: the operator commits.
     """
     target_root = target_root.resolve()
-    _reject_unsafe_target(target_root, core_root.resolve())
+    _reject_unsafe_target(
+        target_root, core_root.resolve() if core_root is not None else None
+    )
     for rel in files:
         if not rel.startswith(".intent/") or ".." in Path(rel).parts:
             raise ValueError(

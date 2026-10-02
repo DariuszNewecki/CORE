@@ -25,7 +25,8 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.utils import core_command
-from shared.config import resolve_default_repo_path, settings
+from shared.config import settings
+from shared.infrastructure.bundled_packs import pack_registry_dir
 from shared.infrastructure.intent.pack_loader import PackLoader
 
 
@@ -75,20 +76,19 @@ async def adopt_pack_command(
     """Apply a governance pack to a target repository.
 
     Packs are self-contained bundles of rules and enforcement mappings that
-    remove the need to author governance YAML manually. Each pack is resolved
-    from the installed core-runtime's top-level packs/ registry (a sibling of
-    .intent/, not part of CORE's own law — ADR-149).
+    remove the need to author governance YAML manually. Packs are resolved from
+    the repository's packs/ registry when it has one (a CORE source checkout),
+    otherwise from the registry bundled with the installed core-runtime.
 
     Run without --write to preview what would be written. Run with --write
     to apply. After adoption, run 'core-admin code audit --offline' to see
     findings against the pack's rules.
     """
-    builtin_packs_dir = settings.MIND.parent / "packs"
-    loader = PackLoader(builtin_packs_dir)
-
-    pack = loader.load_pack(pack_id)
+    with pack_registry_dir(settings.MIND.parent) as packs_dir:
+        loader = PackLoader(packs_dir)
+        pack = loader.load_pack(pack_id)
+        available = loader.list_pack_ids() if pack is None else []
     if pack is None:
-        available = loader.list_pack_ids()
         console.print(f"[bold red]Pack not found:[/bold red] {pack_id!r}")
         if available:
             console.print(f"Available packs: {', '.join(available)}")
@@ -167,9 +167,9 @@ async def adopt_pack_command(
     # cli.logic.byor: FileHandler is repo-bound and hard-blocks any literal
     # .intent/ path at the governed-artifact tier, so the pack files are
     # assembled here and written by the one module sanctioned for that write.
-    from cli.logic.byor import deliver_external_intent_files
+    from cli.logic.byor import core_source_root, deliver_external_intent_files
 
-    core_root = resolve_default_repo_path()
+    core_root = core_source_root()
 
     # 1. Rule document
     rule_doc = {

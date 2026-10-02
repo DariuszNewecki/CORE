@@ -82,3 +82,14 @@ def test_refuses_non_intent_or_traversal_paths(tmp_path: Path, bad_rel: str) -> 
     with pytest.raises(ValueError):
         deliver_external_intent_files(target, core_root, {bad_rel: "x\n"})
     assert list(target.rglob("*")) == []
+
+
+def test_writes_when_there_is_no_core_root(tmp_path: Path) -> None:
+    """Installed-wheel case: core_root=None, an ordinary target is written."""
+    target = tmp_path / "target"
+    target.mkdir()
+    n = deliver_external_intent_files(
+        target, None, {".intent/rules/packs/x.json": "{}\n"}
+    )
+    assert n == 1
+    assert (target / ".intent" / "rules" / "packs" / "x.json").read_text() == "{}\n"
