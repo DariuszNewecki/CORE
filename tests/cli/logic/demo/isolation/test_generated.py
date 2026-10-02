@@ -95,7 +95,6 @@ def test_compose_up():
     assert await_args.kwargs.get("phase") == "compose up"
 
 
-
 from cli.logic.demo.isolation import prove_clone_isolation
 
 
@@ -110,3 +109,22 @@ def test_prove_clone_isolation() -> None:
     assert result is None
     clone.clone_has_no_remote.assert_called_once_with()
     clone.get_current_commit.assert_called_once_with()
+
+
+
+from cli.logic.demo.isolation import create_isolated_clone
+
+
+# ID: a3995498-d88f-4de2-bded-f08a4109ffc7
+def test_create_isolated_clone() -> None:
+    source = MagicMock()
+    expected_clone = MagicMock()
+    source.create_disposable_clone.return_value = expected_clone
+
+    identity = MagicMock()
+    identity.clone_dir = "/tmp/clone-dir"
+
+    result = create_isolated_clone(source, "abc123", identity)
+
+    source.create_disposable_clone.assert_called_once_with("abc123", "/tmp/clone-dir")
+    assert result is expected_clone
