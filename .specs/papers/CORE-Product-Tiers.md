@@ -95,7 +95,7 @@ Two to fifteen engineers sharing a single CORE instance with a shared Postgres. 
 
 **Deployment:** Self-hosted Docker stack. Cloud-hosted option for non-regulated customers.
 
-**Revenue model:** Per-seat subscription, approximately €50–150 per seat per month.
+**Revenue model:** Commercial terms are maintained outside the open repository.
 
 ---
 
@@ -115,7 +115,7 @@ Pharmaceutical companies, medical device manufacturers, financial services insti
 
 **Deployment:** On-prem Docker stack with customer-managed infrastructure.
 
-**Revenue model:** Annual enterprise license, €50,000–€200,000 per year. Not per-seat. Compliance budgets do not think in seats; they think in systems and risk surface.
+**Revenue model:** Commercial terms are maintained outside the open repository.
 
 ---
 
@@ -129,7 +129,7 @@ The long-term platform play. A third-party product — an IDE plugin, an AI codi
 - Atomic action registry stabilised as a public contract
 - Constitution schema versioned and documented for external authors
 
-**Revenue model:** Platform license plus per-governed-execution fee or royalty arrangement.
+**Revenue model:** Commercial terms are maintained outside the open repository.
 
 **Strategic role:** This is the distribution multiplier. CORE reaches customers who will never install it directly. The constraint is that the API surface must be stable enough to make the integration reliable — this tier follows, rather than precedes, Team and Enterprise maturity.
 
