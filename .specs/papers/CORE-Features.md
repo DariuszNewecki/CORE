@@ -523,9 +523,12 @@ other artifact types requires context builder support under F-41.
 **F-29 — CLI governance surface**
 Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
-A full command-line interface (`core-admin`) covering 14 command groups:
-`code`, `admin`, `database`, `vectors`, `dev`, `symbols`, `context`,
-`proposals`, `constitution`, `workers`, `project`, `secrets`, `runtime`.
+Two command-line interfaces (ADR-146). `core-admin` (package `core-runtime`) is
+the operator CLI and runs in-process: audit, constitution, database, daemon,
+workers, runtime, dev, context and related groups. `core` (package `core-cli`)
+is the consumer CLI and talks to the runtime API over HTTP: proposals,
+secrets, lane, project onboarding and scouting, and consumer subsets of
+code, symbols and vectors. `--help` on either shows the current command tree.
 The CLI is the primary governor interface for Solo and the administrative
 interface for all tiers. Proposal review, audit invocation, and worker
 management are artifact-agnostic CLI operations.
@@ -824,7 +827,8 @@ The open CORE codebase, published as semantic-versioned Python packages
 first-party and third-party — can depend on the open codebase as a library
 on equal terms.
 
-Today the open distribution is git-clone-only. ADR-084 D4 requires that
+Shipped: `core-runtime` is published to PyPI on every release tag, with the
+`core-engine` and `core-audit-gate` container images published to GHCR. ADR-084 D4 requires that
 runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36) depend on
 the published library and not vendor or copy. Without F-48, that
 requirement cannot be satisfied by any party; with F-48, the dependency
