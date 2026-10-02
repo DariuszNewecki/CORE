@@ -39,7 +39,6 @@ def test_read_state_json(tmp_path: Path) -> None:
     assert result == expected
 
 
-
 from cli.logic.demo.isolation import write_state_json
 
 
@@ -52,3 +51,45 @@ def test_write_state_json(tmp_path: Path) -> None:
 
     assert target.exists()
     assert json.loads(target.read_text(encoding="utf-8")) == payload
+
+
+import asyncio
+from unittest.mock import AsyncMock
+
+from cli.logic.demo.isolation import compose_up
+
+
+# ID: c19f153b-34bd-43d4-93aa-9c45bfe7bb82
+def test_compose_up():
+    project_name = "demo-proj"
+    compose_file = Path("/tmp/proj/compose.yaml")
+    env = {"FOO": "bar"}
+    expected_result = MagicMock(name="SubprocessResult")
+
+    fake_args = ["docker", "compose", "up", "-d", "--wait"]
+    fake_coro = AsyncMock(return_value=expected_result)()
+
+    with (
+        patch(
+            "cli.logic.demo.isolation.compose_up_command",
+            return_value=fake_args,
+        ) as mock_cmd,
+        patch(
+            "cli.logic.demo.isolation.run_compose_command",
+            return_value=fake_coro,
+        ) as mock_run,
+        patch(
+            "cli.logic.demo.isolation._with_deadline",
+            new=AsyncMock(return_value=expected_result),
+        ) as mock_deadline,
+    ):
+        result = asyncio.run(compose_up(project_name, compose_file, env))
+
+    assert result is expected_result
+
+    mock_cmd.assert_called_once_with(project_name, compose_file)
+    mock_run.assert_called_once_with(fake_args, cwd=compose_file.parent, env=env)
+    mock_deadline.assert_awaited_once()
+    await_args = mock_deadline.await_args
+    assert await_args.args[1] == 120.0
+    assert await_args.kwargs.get("phase") == "compose up"
