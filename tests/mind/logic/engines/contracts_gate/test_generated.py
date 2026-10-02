@@ -23,3 +23,23 @@ async def test_ContractsGateEngine_verify_context():
 
     mock_check.assert_called_once_with(context)
     assert result == expected_findings
+
+
+from pathlib import Path
+
+
+# ID: 074594b1-2fca-48a8-ba85-98352e304344
+async def test_contracts_gate_engine_verify() -> None:
+    engine = ContractsGateEngine()
+    engine.engine_id = "contracts_gate"
+
+    file_path = Path("/tmp/some_file.py")
+    params = {"check_type": "some_check"}
+
+    result = await engine.verify(file_path, params)
+
+    assert result.ok is False
+    assert "contracts_gate.some_check is context-level only." in result.message
+    assert result.engine_id == "contracts_gate"
+    assert len(result.violations) == 1
+    assert "some_check" in result.violations[0]
