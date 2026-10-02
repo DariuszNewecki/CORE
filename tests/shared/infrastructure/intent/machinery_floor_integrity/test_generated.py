@@ -22,3 +22,33 @@ def test_find_collisions(tmp_path: Path) -> None:
 
     assert result == ["a.py", "b.py"]
     mock_verify.assert_called_once_with(intent_root)
+
+
+import hashlib
+
+
+# ID: f6b361c9-203a-4cec-823e-1a017ea26d81
+def test_floor_hash() -> None:
+    from shared.infrastructure.intent.machinery_floor_integrity import floor_hash
+
+    manifest = {
+        "b/path.py": "bbbb",
+        "a/path.py": "aaaa",
+    }
+
+    with patch(
+        "shared.infrastructure.intent.machinery_floor_integrity.floor_manifest",
+        return_value=manifest,
+    ):
+        result = floor_hash()
+
+    expected = hashlib.sha256()
+    for rel, digest in sorted(manifest.items()):
+        expected.update(rel.encode("utf-8"))
+        expected.update(b"\0")
+        expected.update(digest.encode("ascii"))
+        expected.update(b"\n")
+
+    assert result == expected.hexdigest()
+    assert isinstance(result, str)
+    assert len(result) == 64
