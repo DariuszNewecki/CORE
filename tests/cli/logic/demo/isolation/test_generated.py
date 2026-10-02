@@ -209,7 +209,6 @@ def test_compose_down():
     assert mock_deadline.await_args.kwargs.get("phase") == "compose down"
 
 
-
 from cli.logic.demo.isolation import generate_run_identity
 
 
@@ -233,3 +232,22 @@ def test_generate_run_identity(tmp_path: Path) -> None:
     assert identity.clone_dir == expected_state_dir / "clone"
     # The clone directory is only declared, not yet created.
     assert not identity.clone_dir.exists()
+
+
+from cli.logic.demo.isolation import SubstrateTimeoutError
+
+
+# ID: 3e7ad9a4-9b24-4f40-b8de-8cce81985ba4
+def test_SubstrateTimeoutError():
+    message = "compose up exceeded deadline"
+    err = SubstrateTimeoutError(message)
+
+    assert isinstance(err, SubstrateTimeoutError)
+    assert isinstance(err, Exception)
+    assert str(err) == message
+
+    # CoreError subclasses are expected to be raisable and catchable.
+    try:
+        raise SubstrateTimeoutError(message)
+    except SubstrateTimeoutError as caught:
+        assert caught is not err or str(caught) == message
