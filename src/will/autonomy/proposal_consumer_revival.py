@@ -384,7 +384,7 @@ async def release_executing_proposals(
 
     Returns the count of proposals released (0 on normal exit).
     """
-    from sqlalchemy import select
+    from sqlalchemy import Select, select
 
     from body.services.service_registry import service_registry
     from shared.infrastructure.database.models.autonomous_proposals import (
@@ -395,7 +395,7 @@ async def release_executing_proposals(
     released = 0
     try:
         async with service_registry.session() as session:
-            stmt = (
+            stmt: Select[Any] = (
                 select(AutonomousProposal.proposal_id)
                 .where(AutonomousProposal.status == ProposalStatus.EXECUTING.value)
                 .where(AutonomousProposal.claimed_by == worker_uuid)

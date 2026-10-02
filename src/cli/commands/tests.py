@@ -18,6 +18,9 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import Any
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -69,7 +72,7 @@ async def tests_status(
 
     async with get_session() as session:
         # ── 1. Worker liveness ──────────────────────────────────────────────
-        worker_rows = (
+        worker_rows: Sequence[Any] = (
             await session.execute(
                 text(
                     """
@@ -87,7 +90,7 @@ async def tests_status(
         ).fetchall()
 
         # ── 2. Proposal pipeline counts ─────────────────────────────────────
-        pipeline_rows = (
+        pipeline_rows: Sequence[Any] = (
             await session.execute(
                 text(
                     """
@@ -124,7 +127,7 @@ async def tests_status(
         ).fetchall()
 
         # ── 4. Open coverage gaps ────────────────────────────────────────────
-        gap_rows = (
+        gap_rows: Sequence[Any] = (
             await session.execute(
                 text(
                     """

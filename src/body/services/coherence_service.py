@@ -171,7 +171,7 @@ class CoherenceService(SessionAttachedService):
                 ),
                 {"run_id": run_id},
             )
-            new_count = decrement.scalar_one()
+            new_count: int = decrement.scalar_one()
             if new_count == 0:
                 await session.execute(
                     text(

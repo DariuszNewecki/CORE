@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import Select, select, update
 
 from body.atomic.registry import ActionCategory, register_action
 from body.services.service_registry import service_registry
@@ -90,7 +90,7 @@ async def action_claim_proposal(
             )
 
             if not write:
-                check_stmt = select(AutonomousProposal.proposal_id).where(
+                check_stmt: Select[Any] = select(AutonomousProposal.proposal_id).where(
                     AutonomousProposal.proposal_id == proposal_id,
                     AutonomousProposal.status == ProposalStatus.APPROVED.value,
                 )

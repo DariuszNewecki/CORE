@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 import typer
 from rich.console import Console
@@ -90,7 +91,7 @@ async def _persist_findings_to_db(
                         "finished_at": datetime.now(UTC),
                     },
                 )
-                run_id = run_result.scalar_one()
+                run_id: UUID = run_result.scalar_one()
                 rows_with_run = [{**r, "run_id": run_id} for r in finding_rows]
                 await session.execute(
                     text(

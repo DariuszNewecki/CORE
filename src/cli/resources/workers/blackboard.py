@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -69,7 +71,7 @@ async def workers_blackboard_cmd(
     params["limit"] = limit
     async with get_session() as session:
         result = await session.execute(query, params)
-        rows = result.fetchall()
+        rows: Sequence[Any] = result.fetchall()
     if not rows:
         console.print("[yellow]No blackboard entries found.[/yellow]")
         raise typer.Exit()
@@ -177,7 +179,7 @@ async def workers_blackboard_purge_cmd(
     # Single session spans preview and delete — prevents TOCTOU between them.
     async with get_session() as session:
         result = await session.execute(preview_query, params)
-        rows = result.fetchall()
+        rows: Sequence[Any] = result.fetchall()
 
         if not rows:
             console.print(

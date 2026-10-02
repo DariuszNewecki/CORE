@@ -6,6 +6,8 @@ Provides functionality for the log_audit module.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 import typer
 from sqlalchemy import text
 
@@ -45,7 +47,7 @@ async def log_audit(
                 stmt,
                 dict(source=source, sha=sha, score=score, verdict=verdict),
             )
-            new_run_id = result.scalar_one()
+            new_run_id: UUID = result.scalar_one()
 
     typer.echo(
         f"📝 Logged audit run_id={new_run_id} "

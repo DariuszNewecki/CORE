@@ -59,7 +59,9 @@ async def status(*, session_factory: SessionFactory = get_session) -> StatusRepo
     #    at a disposable instance)
     try:
         async with session_factory() as session:
-            db_version = (await session.execute(text("select version()"))).scalar_one()
+            db_version: str = (
+                await session.execute(text("select version()"))
+            ).scalar_one()
     except Exception:
         return StatusReport(
             is_connected=False,

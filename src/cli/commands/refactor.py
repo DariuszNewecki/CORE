@@ -170,16 +170,16 @@ async def check_file_score(
     try:
         payload = await client.refactor_score(file=file_path)
     except Exception as exc:
-        RefactorDisplay.console.print(f"[red]Error: {exc}[/red]")
+        refactor_console.print(f"[red]Error: {exc}[/red]")
         raise typer.Exit(1) from exc
 
     if not payload.get("found"):
-        RefactorDisplay.console.print(f"[red]File not found: {file_path}[/red]")
+        refactor_console.print(f"[red]File not found: {file_path}[/red]")
         raise typer.Exit(1)
 
     details = payload.get("details")
     if not details:
-        RefactorDisplay.console.print(
+        refactor_console.print(
             f"[green]✅ {file_path} is below threshold ({target_value})[/green]"
         )
         return
@@ -217,7 +217,7 @@ async def check_file_score(
     refactor_console.print(table)
 
     if score > target_value:
-        RefactorDisplay.console.print(
+        refactor_console.print(
             f"\n[red]❌ Exceeds threshold by {score - target_value:.1f} points[/red]"
         )
     else:

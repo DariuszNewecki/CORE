@@ -140,7 +140,7 @@ async def get_applied(session_factory: SessionFactory = get_session) -> set[str]
 async def run_probe(session: AsyncSession, sql: str) -> bool:
     """Evaluate a manifest probe: one row, one boolean, read-only."""
     result = await session.execute(text(sql))
-    value = result.scalar_one()
+    value: object = result.scalar_one()
     if not isinstance(value, bool):
         raise LedgerEngineError(
             f"probe must return a single boolean, got {value!r}: {sql[:120]}"

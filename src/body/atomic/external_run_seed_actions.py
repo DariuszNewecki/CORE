@@ -140,7 +140,7 @@ async def action_seed_external_run_resources(
             # PRIMARY isolation proof: we are connected to exactly the database
             # the apparatus provisioned for this run -- not to whatever
             # DATABASE_URL happens to name.
-            current = (
+            current: str = (
                 await session.execute(text("SELECT current_database()"))
             ).scalar_one()
             if current != expected_database:

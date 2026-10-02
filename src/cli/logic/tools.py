@@ -6,8 +6,7 @@ This is the new, governed home for logic from standalone scripts.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 
@@ -15,6 +14,7 @@ from body.maintenance.maintenance_service import rewire_imports
 
 # Import the moved script module
 from body.maintenance.scripts import context_export
+from cli.utils import core_command
 from shared.cli.command_meta import (
     CommandBehavior,
     CommandExposure,
@@ -22,6 +22,10 @@ from shared.cli.command_meta import (
     command_meta,
 )
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
@@ -92,45 +96,19 @@ def rewire_imports_cli(
     summary="Exports a complete operational snapshot including Mind, Body, State, and Vector data.",
     dangerous=True,
 )
+@core_command(dangerous=True, requires_context=True)
 # ID: a09e7c1d-791a-4132-bd51-146e468b8d89
-def export_context_cmd(
-    output_dir: Path = typer.Option(
-        Path("./scripts/exports"),
-        "--output-dir",
-        help="Directory to write export bundle into",
-    ),
-    db_url: str = typer.Option(None, "--db-url", help="Database URL override"),
-    qdrant_url: str = typer.Option(None, "--qdrant-url", help="Qdrant URL override"),
-    qdrant_collection: str = typer.Option(
-        None, "--qdrant-collection", help="Qdrant collection override"
-    ),
-):
+async def export_context_cmd(ctx: typer.Context) -> None:
     """
-    Export a complete operational snapshot (Mind/Body/State/Vectors).
-    Wraps body.maintenance.scripts.context_export.
+    Export an operational snapshot into the governed exports directory.
+
+    Runs body.maintenance.scripts.context_export.ContextExporter against the
+    CLI's CoreContext. The former --output-dir / --db-url / --qdrant-url /
+    --qdrant-collection options were removed: they were forwarded via a
+    patched sys.argv that the exporter never parsed, and the exporter's
+    coroutine was never awaited, so the command had never run.
     """
-    # Prepare arguments to look like sys.argv for the existing script logic
-    # This avoids rewriting the complex argparse logic inside the script for now.
-    args = ["context_export", "--output-dir", str(output_dir)]
-
-    if db_url:
-        args.extend(["--db-url", db_url])
-    if qdrant_url:
-        args.extend(["--qdrant-url", qdrant_url])
-    if qdrant_collection:
-        args.extend(["--qdrant-collection", qdrant_collection])
-
-    # Patch sys.argv temporarily to invoke the script's main
-    original_argv = sys.argv
-    try:
-        sys.argv = args
-        context_export.main()
-    except SystemExit as e:
-        # The script calls sys.exit(), we catch it to prevent CLI crash
-        if e.code != 0:
-            raise typer.Exit(e.code if isinstance(e.code, int) else 1)
-    except Exception as e:
-        logger.error("Export failed: %s", e)
-        raise typer.Exit(1)
-    finally:
-        sys.argv = original_argv
+    core_context: CoreContext = ctx.obj
+    exporter = context_export.ContextExporter(context=core_context)
+    export_dir = await exporter.run()
+    logger.info("Context export written to %s", export_dir)
