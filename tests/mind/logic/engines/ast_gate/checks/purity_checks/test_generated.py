@@ -164,9 +164,6 @@ def test_PurityChecks_check_no_print_statements():
     assert result == ["Line 1: Replace print() with logger."]
 
 
-
-
-
 # ID: 6f2ddc5c-4764-4f01-9ac2-2cefb4b550d5
 def test_PurityChecks_check_forbidden_assignments() -> None:
     source = (
@@ -186,3 +183,17 @@ def test_PurityChecks_check_forbidden_assignments() -> None:
     assert any("'LLM_MODELS'" in violation for violation in violations)
     assert any("'AGENT_ROLES'" in violation for violation in violations)
     assert not any("SAFE_CONSTANT" in violation for violation in violations)
+
+
+
+
+# ID: 0f63ab4f-44a0-483d-abb5-e4d01a6353ed
+def test_PurityChecks_check_decorator_args():
+    source = "@requires_permission(role='admin')\ndef foo():\n    pass\n"
+    tree = ast.parse(source)
+
+    violations = PurityChecks.check_decorator_args(
+        tree, "requires_permission", ["role"]
+    )
+
+    assert violations == []
