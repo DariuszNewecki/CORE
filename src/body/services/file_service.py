@@ -34,7 +34,8 @@ class FileService:
     """Body-layer thin wrapper over `FileHandler.write` (ADR-097 D4).
 
     The surface is intentionally minimal: one write entry, one JSON
-    convenience, directory ensure, and the staged pending-write path.
+    convenience, directory ensure, tree removal, and the staged pending-write
+    path.
     Target-class dispatch, source-shape transforms, and IntentGuard
     routing all live in FileHandler — this layer adds no policy.
     """
@@ -62,6 +63,15 @@ class FileService:
     # ID: d05b941e-2c2a-4f0c-849d-80206f4ec140
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
         return self._file_handler.ensure_dir(rel_dir)
+
+    # ID: 6b38f4b1-b4b9-4aea-91fe-d8e479070c18
+    def remove_tree(self, rel_dir: str) -> FileOpResult:
+        """Remove a directory tree through FileHandler (target-class guarded).
+
+        FileHandler's removal is best-effort, so callers that report
+        success should check the directory is actually gone.
+        """
+        return self._file_handler.remove_tree(rel_dir)
 
     # ID: c746644c-35d6-4b59-9caa-1c921e8a6b07
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:

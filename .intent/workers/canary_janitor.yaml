@@ -19,8 +19,9 @@ metadata:
     a work/canary/sandbox_* directory is exclusively a transient snapshot with
     no retention value once stale, so this worker deletes directly rather than
     only reporting (ADR-147 D5). Deterministic, no LLM, bounded by
-    MAX_REAP_PER_RUN. Deletes via direct shutil.rmtree rather than FileHandler
-    (ADR-147 D4 -- work/ has no target_class_boundaries.yaml entry).
+    MAX_REAP_PER_RUN. Deletes through Body's FileService (the FileHandler
+    chokepoint); work/ classifies as ephemeral-scratch (#772, ADR-147 note
+    2026-10-02).
 
 identity:
   uuid: "011b7f42-404e-424c-adf4-8ed5d854b108"

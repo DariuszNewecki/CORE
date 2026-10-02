@@ -94,6 +94,15 @@ target-class taxonomy, not a blocker for this one.
 > `shutil.rmtree` remains as-is (unaffected by this closure — see D4 above for why it bypasses
 > FileHandler regardless of tier).
 
+> **Note (2026-10-02, governor ruling):** the 2026-07-13 note's "regardless of tier" is not
+> supported by D4, whose only reason for bypassing FileHandler was the missing `work/` entry
+> that #772 then added. With that reason gone, `canary_janitor` deletes through Body's
+> `FileService.remove_tree` (the FileHandler chokepoint; `work/` classifies as
+> `ephemeral-scratch`), and its exclusions from `governance.mutation_surface.filehandler_required`
+> and `governance.logic_mutation.governed` are removed. The rest of D4 stands: deletion is
+> still direct from the worker, not a governed `@atomic_action`, and D5 is unchanged. Success
+> is now the sandbox's absence after removal, since FileHandler's tree removal is best-effort.
+
 **D5 — No report-only ramp; deletes from day one (a deliberate departure from ADR-117
 D5).** ADR-117 shipped `var_tmp_janitor` report-only first because `var/tmp/` can hold
 arbitrary scratch content from many uncoordinated creators, so the age/boundary predicate

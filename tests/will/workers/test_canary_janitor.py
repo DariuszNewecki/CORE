@@ -3,8 +3,8 @@
 These exercise the real derivation (`find_stale_sandboxes`), not a bypass: each
 test seeds a temp tree and ages entries with ``os.utime``, then asserts the
 age/prefix/boundary predicate selects exactly the stale `sandbox_*` entries.
-`_reap` (actual deletion) is exercised separately and directly, since it is a
-thin, already-battle-tested `shutil.rmtree` wrapper.
+`_reap` (actual deletion) is exercised separately and directly, through a
+real FileService bound to a temporary repository root.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import os
 import time
 from pathlib import Path
 
+from body.services.file_service import FileService
 from will.workers.canary_janitor import (
     RETENTION_SECONDS,
     StaleSandbox,
@@ -70,21 +71,37 @@ def test_absent_root_is_empty_not_error(tmp_path: Path) -> None:
     assert find_stale_sandboxes(tmp_path / "does_not_exist", now_ts=time.time()) == []
 
 
-def test_reap_removes_directory(tmp_path: Path) -> None:
-    sandbox = tmp_path / "sandbox_fix_33333333"
-    sandbox.mkdir()
+def _canary_sandbox(repo: Path, name: str) -> Path:
+    sandbox = repo / "work" / "canary" / name
+    sandbox.mkdir(parents=True)
     (sandbox / "f.txt").write_text("x", encoding="utf-8")
+    return sandbox
+
+
+def test_reap_removes_directory_through_file_service(tmp_path: Path) -> None:
+    sandbox = _canary_sandbox(tmp_path, "sandbox_fix_33333333")
     candidate = StaleSandbox(path=sandbox, age_seconds=9999.0, size_bytes=1)
 
-    assert _reap(candidate) is True
+    assert _reap(candidate, FileService(tmp_path)) is True
     assert not sandbox.exists()
 
 
 def test_reap_missing_directory_is_reported_not_raised(tmp_path: Path) -> None:
-    missing = tmp_path / "sandbox_fix_44444444"
+    missing = tmp_path / "work" / "canary" / "sandbox_fix_44444444"
     candidate = StaleSandbox(path=missing, age_seconds=9999.0, size_bytes=0)
 
-    assert _reap(candidate) is False
+    assert _reap(candidate, FileService(tmp_path)) is False
+
+
+def test_reap_refuses_a_path_outside_the_service_repository(tmp_path: Path) -> None:
+    """The FileHandler chokepoint bounds deletion to its repository."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    outside = _canary_sandbox(tmp_path / "elsewhere", "sandbox_fix_55555555")
+    candidate = StaleSandbox(path=outside, age_seconds=9999.0, size_bytes=1)
+
+    assert _reap(candidate, FileService(repo)) is False
+    assert outside.exists()
 
 
 def test_retention_rails_sourced_from_operational_config() -> None:

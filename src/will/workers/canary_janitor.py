@@ -20,19 +20,19 @@ transient repo snapshot produced by this codebase for the duration of a
 single canary trial; once stale it has no retention value, so this worker
 deletes directly rather than only reporting (ADR-147 D5). Selection is a
 pure function (unit-testable without the daemon); only `run()` performs the
-deletion. Deletion is direct `shutil.rmtree`, not routed through
-`FileHandler` — ADR-147 D4 explains why (`work/` has no
-`target_class_boundaries.yaml` entry and would misclassify as the strictest
-`repo-source` tier).
+deletion. Deletion goes through Body's `FileService.remove_tree`, i.e. the
+FileHandler chokepoint: `work/` classifies as `ephemeral-scratch` since #772,
+which removed the only reason ADR-147 D4 gave for a direct `shutil.rmtree`
+(see the ADR-147 note of 2026-10-02).
 """
 
 from __future__ import annotations
 
-import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from body.services.file_service import FileService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -112,14 +112,27 @@ def _entry_size(entry: Path) -> int:
         return 0
 
 
-def _reap(candidate: StaleSandbox) -> bool:
-    """Best-effort delete of a stale sandbox. Returns True on success."""
+def _reap(candidate: StaleSandbox, file_service: FileService) -> bool:
+    """Delete a stale sandbox through FileService. Returns True only if it is gone.
+
+    FileHandler's tree removal is best-effort, so success is the directory's
+    absence afterwards, not the call's return. A missing directory, a path
+    outside the service's repository, or a guard refusal is reported, not
+    raised.
+    """
+    if not candidate.path.is_dir():
+        logger.warning("canary_janitor: %s is gone or not a directory", candidate.path)
+        return False
     try:
-        shutil.rmtree(candidate.path)
-        return True
-    except OSError as exc:
+        rel = candidate.path.resolve().relative_to(file_service.repo_path)
+        file_service.remove_tree(rel.as_posix())
+    except (OSError, ValueError, RuntimeError) as exc:
         logger.warning("canary_janitor: failed to remove %s: %s", candidate.path, exc)
         return False
+    if candidate.path.exists():
+        logger.warning("canary_janitor: %s still present after removal", candidate.path)
+        return False
+    return True
 
 
 # ID: 92fe4027-a61e-4263-af7b-3579e166d818
@@ -140,6 +153,7 @@ class CanaryJanitorWorker(Worker):
         super().__init__()
         repo_root: Path = BootstrapRegistry.get_repo_path()
         self._canary_root: Path = repo_root.joinpath(*_CANARY_RELPATH)
+        self._file_service = FileService(repo_root)
 
     # ID: ef2e83d9-409d-4cd3-9efc-91eaebea3490
     async def run(self) -> None:
@@ -150,7 +164,9 @@ class CanaryJanitorWorker(Worker):
         to_reap = candidates[:MAX_REAP_PER_RUN]
         skipped_over_cap = len(candidates) - len(to_reap)
 
-        reaped: list[StaleSandbox] = [c for c in to_reap if _reap(c)]
+        reaped: list[StaleSandbox] = [
+            c for c in to_reap if _reap(c, self._file_service)
+        ]
         reclaimed_bytes = sum(c.size_bytes for c in reaped)
 
         await self.post_report(
