@@ -150,3 +150,22 @@ def test_hash_directory(tmp_path):
     # Changing content changes the digest.
     (tmp_path / "b.txt").write_text("gamma")
     assert hash_directory(tmp_path) != result
+
+
+
+from cli.logic.demo.isolation import hash_file
+
+
+# ID: 5fa3f927-3904-4e14-ad81-661cab27cd40
+def test_hash_file(tmp_path: Path) -> None:
+    """Test hash_file returns the sha256 hex digest of a file's contents."""
+    content = b"hello world"
+    test_file = tmp_path / "test.txt"
+    test_file.write_bytes(content)
+
+    result = hash_file(test_file)
+
+    expected = hashlib.sha256(content).hexdigest()
+    assert result == expected
+    assert isinstance(result, str)
+    assert len(result) == 64
