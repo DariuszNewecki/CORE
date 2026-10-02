@@ -31,3 +31,32 @@ def test_BaseEngine_is_context_level_for():
 
     assert DefaultEngine.is_context_level_for("cli_gate") is False
     assert DefaultEngine.is_context_level_for(None) is False
+
+
+import asyncio
+from pathlib import Path
+from typing import Any
+
+
+# ID: 05259c4f-e808-4234-b65b-f161cf2d6ee9
+def test_BaseEngine() -> None:
+    class _ConcreteEngine(BaseEngine):
+        _context_check_types = frozenset({"cli", "contracts"})
+
+        # ID: e8a0a2e7-0374-409b-ac2f-4539ae337ec5
+        async def verify(self, file_path: Path, params: dict[str, Any]) -> str:
+            return "ok"
+
+    engine = _ConcreteEngine()
+
+    # Default class-level metadata inherited from the ABC.
+    assert BaseEngine._always_context_level is False
+    assert isinstance(_ConcreteEngine._context_check_types, frozenset)
+
+    # is_context_level_for is dispatched on the class without instantiation.
+    assert _ConcreteEngine.is_context_level_for("cli") is True
+    assert _ConcreteEngine.is_context_level_for("contracts") is True
+
+    # Happy path: abstract verify method is implemented and awaitable.
+    result = asyncio.run(engine.verify(Path("/tmp/example.py"), {}))
+    assert result == "ok"
