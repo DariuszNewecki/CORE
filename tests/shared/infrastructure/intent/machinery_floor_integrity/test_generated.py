@@ -108,3 +108,36 @@ def test_FloorIntegrityReport():
     assert "missing: META/roles.json" in desc
     assert "all byte-identical to the shipped floor" not in desc
     assert "floor files: 3" in desc
+
+
+
+from shared.infrastructure.intent.machinery_floor_integrity import verify_floor
+
+
+# ID: e01bcdc5-f5e4-4a2c-a25d-a34b11c33c56
+def test_verify_floor(tmp_path: Path) -> None:
+    intent_root = tmp_path / ".intent"
+    intent_root.mkdir()
+
+    # A floor file that exists and is byte-identical -> ok
+    ok_file = intent_root / "a.txt"
+    ok_file.write_bytes(b"hello")
+    # A floor file that exists with different bytes -> modified
+    modified_file = intent_root / "b.txt"
+    modified_file.write_bytes(b"changed")
+
+    manifest = {
+        "a.txt": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",  # sha256("hello")
+        "b.txt": "0" * 64,  # deliberately different from actual content
+        "c.txt": "1" * 64,  # not present -> missing
+    }
+
+    with patch(
+        "shared.infrastructure.intent.machinery_floor_integrity.floor_manifest",
+        return_value=manifest,
+    ):
+        report = verify_floor(intent_root)
+
+    assert report.ok == ("a.txt",)
+    assert report.modified == ("b.txt",)
+    assert report.missing == ("c.txt",)
