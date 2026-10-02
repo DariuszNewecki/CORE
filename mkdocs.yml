@@ -11,9 +11,6 @@ theme:
             - navigation.top # back-to-top button
             - toc.integrate # put headings inside the page, not in a sidebar
 
-extra_css:
-      - css/no-sidebars.css # our custom override
-
 plugins:
       - search:
               lang: en
@@ -25,6 +22,7 @@ nav:
       - Vocabulary: vocabulary.md
       - Autonomy Ladder: autonomy-ladder.md
       - Getting Started: getting-started.md
+      - BYOR Quickstart: byor-quickstart.md
       - Audit in CI (no install): cold-reviewer.md
       - CLI Reference: cli-reference.md
       - Proof Index: proof-index.md
