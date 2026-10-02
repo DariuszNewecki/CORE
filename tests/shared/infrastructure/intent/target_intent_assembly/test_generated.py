@@ -49,7 +49,6 @@ def test_write_evidence_json(tmp_path: Path) -> None:
     )
 
 
-
 from shared.infrastructure.intent.target_intent_assembly import (
     materialize_execution_copy,
 )
@@ -75,3 +74,44 @@ def test_materialize_execution_copy(tmp_path: Path) -> None:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["subject_root"]
     assert "displaced" in data
+
+
+
+from shared.infrastructure.intent.target_intent_assembly import subject_fingerprint
+
+
+# ID: 756a3b19-fab2-429c-bc28-d9525176a4ca
+def test_subject_fingerprint(tmp_path: Path) -> None:
+    subject_root = tmp_path / "subject"
+    subject_root.mkdir()
+
+    (subject_root / "a.txt").write_bytes(b"hello")
+    (subject_root / "b.txt").write_bytes(b"world")
+
+    sub = subject_root / "nested"
+    sub.mkdir()
+    (sub / "c.txt").write_bytes(b"deep")
+
+    # .git dir itself must be skipped at the root.
+    git_dir = subject_root / ".git"
+    git_dir.mkdir()
+    (git_dir / "config").write_bytes(b"should-be-ignored")
+
+    result = subject_fingerprint(subject_root)
+
+    # Deterministic: same tree yields same digest.
+    assert result == subject_fingerprint(subject_root)
+
+    # A 64-char lowercase hex sha256 digest.
+    assert isinstance(result, str)
+    assert len(result) == 64
+    int(result, 16)
+
+    # The root .git contents must NOT influence the fingerprint: adding a new
+    # file inside .git leaves the digest unchanged.
+    (git_dir / "HEAD").write_bytes(b"ref: refs/heads/main")
+    assert subject_fingerprint(subject_root) == result
+
+    # A chmod (mode change) must change the fingerprint.
+    (subject_root / "a.txt").chmod(0o755)
+    assert subject_fingerprint(subject_root) != result
