@@ -54,3 +54,33 @@ def test_validate_requirement() -> None:
         )
         is None
     )
+
+
+from unittest.mock import patch
+
+
+# ID: 2cfb5ffe-0c5f-47e1-af2c-21585227c2ac
+def test_GenericASTChecks_is_selected():
+    empty_selector_node = ast.parse("x = 1").body[0]
+    assert GenericASTChecks.is_selected(empty_selector_node, {}) is True
+
+    decorated = ast.parse("@my.decorator\ndef f():\n    pass\n").body[0]
+    with patch(
+        "mind.logic.engines.ast_gate.checks.generic_checks.ASTHelpers.full_attr_name",
+        return_value="my.decorator",
+    ):
+        assert (
+            GenericASTChecks.is_selected(decorated, {"has_decorator": "my.decorator"})
+            is True
+        )
+
+    func = ast.parse("def foobar():\n    pass\n").body[0]
+    assert GenericASTChecks.is_selected(func, {"name_regex": "^foo"}) is True
+    assert GenericASTChecks.is_selected(func, {"name_regex": "^bar"}) is False
+
+    cls = ast.parse("class Child(Base):\n    pass\n").body[0]
+    with patch(
+        "mind.logic.engines.ast_gate.checks.generic_checks.ASTHelpers.full_attr_name",
+        return_value="Base",
+    ):
+        assert GenericASTChecks.is_selected(cls, {"inherits_from": "Base"}) is True
