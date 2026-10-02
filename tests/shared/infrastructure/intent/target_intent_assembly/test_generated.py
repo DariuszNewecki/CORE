@@ -157,3 +157,14 @@ def test_DisplacedFloorFile() -> None:
     assert displaced.path == "src/app/main.py"
     assert displaced.original_sha256 == "a" * 64
     assert displaced.installed_floor_sha256 == "b" * 64
+
+
+from shared.infrastructure.intent.target_intent_assembly import SubjectCopyError
+
+
+# ID: 8b9cd9f7-9539-4df9-9020-e3d8bf1310b3
+def test_SubjectCopyError() -> None:
+    error = SubjectCopyError("cannot copy subject faithfully")
+    assert isinstance(error, SubjectCopyError)
+    assert isinstance(error, Exception)
+    assert "cannot copy subject faithfully" in str(error)
