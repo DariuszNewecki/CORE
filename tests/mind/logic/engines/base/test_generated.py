@@ -112,3 +112,21 @@ def test_normalize_violation() -> None:
 
     # Dict missing message: message coerced to empty string, details preserved
     assert normalize_violation({"details": {"k": 1}}) == ("", {"k": 1})
+
+
+from mind.logic.engines.base import EngineResult
+
+
+# ID: cad2aefb-5220-49cd-ac24-3386fd215f82
+def test_EngineResult():
+    result = EngineResult(
+        ok=True,
+        message="All constitutional checks passed",
+        violations=[],
+        engine_id="test_engine",
+    )
+    assert result.ok is True
+    assert result.message == "All constitutional checks passed"
+    assert result.violations == []
+    assert result.engine_id == "test_engine"
+    assert result.extra == {}
