@@ -260,9 +260,6 @@ def test_PurityChecks_check_docstrings_present() -> None:
     assert "_PrivateClass" not in joined
 
 
-
-
-
 # ID: a5d79bdb-f73b-477d-b065-75d49d94e926
 def test_PurityChecks():
     # Happy path: a well-formed, publicly documented, properly anchored module
@@ -319,3 +316,26 @@ def test_PurityChecks():
     assert "# ID:" in PurityChecks._ID_ANCHOR_PREFIXES
     assert "atomic_action" in PurityChecks._ACTION_DECORATORS
     assert "command" in PurityChecks._COMMAND_DECORATORS
+
+
+
+
+
+# ID: 04ba572a-01ac-4aaf-ae68-cf7d33cd2202
+def test_PurityChecks_check_forbidden_decorators():
+    source = (
+        "@deprecated\n"
+        "def old_func():\n"
+        "    pass\n"
+        "\n"
+        "@staticmethod\n"
+        "def ok_func():\n"
+        "    pass\n"
+    )
+    tree = ast.parse(source)
+
+    violations = PurityChecks.check_forbidden_decorators(tree, ["deprecated"])
+
+    assert len(violations) == 1
+    assert "deprecated" in violations[0]
+    assert "old_func" in violations[0]
