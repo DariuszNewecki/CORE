@@ -56,7 +56,6 @@ def test_check_route_module_must_declare_exposure() -> None:
     assert result == []
 
 
-
 import mind.logic.engines.ast_gate.checks.api_auth_checks as api_auth_checks
 
 
@@ -92,3 +91,14 @@ def test_ApiAuthChecks_check_sensitive_route_must_be_gated() -> None:
     assert len(findings) == 1
     assert "ungated_route" in findings[0]
     assert "require_governor" in findings[0]
+
+
+
+
+
+# ID: 2410bc69-68a1-4d33-aa66-858a05b47d4b
+def test_ApiAuthChecks_check_router_exposure_enforcement() -> None:
+    source = "from fastapi import APIRouter\nrouter = APIRouter()\nROUTER_EXPOSURE = 'user-facing'\n"
+    tree = ast.parse(source)
+    result = ApiAuthChecks.check_router_exposure_enforcement(tree)
+    assert result == []
