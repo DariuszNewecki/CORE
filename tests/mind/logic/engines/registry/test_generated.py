@@ -66,14 +66,16 @@ def test_EngineRegistry_engine_source_files():
 
     FakeEngine.__module__ = "mind.logic.engines.fake_engine"
 
-    registry = EngineRegistry
-    registry._discover_engines = MagicMock()
-    registry._engine_classes = {"fake": FakeEngine}
-
-    result = registry.engine_source_files()
+    # patch.object restores the class state afterwards; plain assignment
+    # leaked a MagicMock _discover_engines into every later registry test.
+    with (
+        patch.object(EngineRegistry, "_discover_engines", MagicMock()) as discover,
+        patch.object(EngineRegistry, "_engine_classes", {"fake": FakeEngine}),
+    ):
+        result = EngineRegistry.engine_source_files()
 
     assert result == frozenset({"src/mind/logic/engines/fake_engine.py"})
-    registry._discover_engines.assert_called_once_with()
+    discover.assert_called_once_with()
 
 
 # ID: 2f0299fb-ab1a-41fe-a4b1-98d8ecb854ec
@@ -84,11 +86,19 @@ def test_EngineRegistry_initialize():
     llm_client = MagicMock(name="llm_client")
     embedding_client = MagicMock(name="embedding_client")
 
+    # initialize() rebinds and clears class-level state; patch every touched
+    # attribute so the real registry is restored for later tests.
     with (
         patch.object(EngineRegistry, "_discover_engines") as mock_discover,
         patch.object(
             EngineRegistry, "_load_passive_aliases_from_taxonomy"
         ) as mock_aliases,
+        patch.object(EngineRegistry, "_path_resolver", None),
+        patch.object(EngineRegistry, "_llm_client", None),
+        patch.object(EngineRegistry, "_embedding_client", None),
+        patch.object(EngineRegistry, "_instances", {}),
+        patch.object(EngineRegistry, "_engine_classes", {}),
+        patch.object(EngineRegistry, "_discovered", True),
     ):
         EngineRegistry.initialize(
             path_resolver=path_resolver,
@@ -96,14 +106,12 @@ def test_EngineRegistry_initialize():
             embedding_client=embedding_client,
         )
 
-    assert EngineRegistry._path_resolver is path_resolver
-    assert EngineRegistry._llm_client is llm_client
-    assert EngineRegistry._embedding_client is embedding_client
-    assert EngineRegistry._discovered is False
-    mock_discover.assert_called_once()
-    mock_aliases.assert_called_once()
-
-
+        assert EngineRegistry._path_resolver is path_resolver
+        assert EngineRegistry._llm_client is llm_client
+        assert EngineRegistry._embedding_client is embedding_client
+        assert EngineRegistry._discovered is False
+        mock_discover.assert_called_once()
+        mock_aliases.assert_called_once()
 
 
 # ID: 5fdffcc8-f629-45c3-ad4e-b33a1a309f30
