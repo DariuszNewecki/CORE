@@ -54,8 +54,6 @@ def test_floor_hash() -> None:
     assert len(result) == 64
 
 
-
-
 # ID: a159d1e0-e838-4fd5-9bbe-cd9a24b95f20
 def test_floor_manifest(tmp_path: Path):
     from shared.infrastructure.intent.machinery_floor_integrity import floor_manifest
@@ -81,3 +79,32 @@ def test_floor_manifest(tmp_path: Path):
         result = floor_manifest()
 
     assert result == {"level_1.yaml": "abc123"}
+
+
+from shared.infrastructure.intent.machinery_floor_integrity import FloorIntegrityReport
+
+
+# ID: feeb569d-175a-4584-9c5c-a3d869894961
+def test_FloorIntegrityReport():
+    report = FloorIntegrityReport(
+        ok=("META/enums.json", "META/policy.json"),
+        modified=(),
+        missing=(),
+    )
+    assert report.clean is True
+    assert "modified" not in report.describe()
+    assert "missing" not in report.describe()
+    assert "all byte-identical to the shipped floor" in report.describe()
+    assert "floor files: 2" in report.describe()
+
+    dirty = FloorIntegrityReport(
+        ok=("META/enums.json",),
+        modified=("META/policy.json",),
+        missing=("META/roles.json",),
+    )
+    assert dirty.clean is False
+    desc = dirty.describe()
+    assert "modified: META/policy.json" in desc
+    assert "missing: META/roles.json" in desc
+    assert "all byte-identical to the shipped floor" not in desc
+    assert "floor files: 3" in desc
