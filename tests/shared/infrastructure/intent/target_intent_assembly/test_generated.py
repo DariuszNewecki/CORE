@@ -116,8 +116,6 @@ def test_subject_fingerprint(tmp_path: Path) -> None:
     assert subject_fingerprint(subject_root) != result
 
 
-
-
 # ID: 727992d8-f41d-4ca2-bb5c-ed0e6da8940a
 def test_ExecutionCopy():
     from shared.infrastructure.intent.target_intent_assembly import ExecutionCopy
@@ -143,3 +141,19 @@ def test_ExecutionCopy():
     assert copy.collision_manifest_path == Path("/manifest.json")
     assert copy.prompts == ()
     assert copy.prompt_collision_manifest_path is None
+
+
+from shared.infrastructure.intent.target_intent_assembly import DisplacedFloorFile
+
+
+# ID: db5fc969-b840-4480-abbb-735967131a59
+def test_DisplacedFloorFile() -> None:
+    displaced = DisplacedFloorFile(
+        path="src/app/main.py",
+        original_sha256="a" * 64,
+        installed_floor_sha256="b" * 64,
+    )
+
+    assert displaced.path == "src/app/main.py"
+    assert displaced.original_sha256 == "a" * 64
+    assert displaced.installed_floor_sha256 == "b" * 64
