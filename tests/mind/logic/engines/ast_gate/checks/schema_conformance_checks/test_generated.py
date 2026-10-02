@@ -43,8 +43,6 @@ def test_SchemaConformanceChecks_extract_class_annotated_fields() -> None:
     assert result == {"name": 3, "count": 4}
 
 
-
-
 # ID: 9429209a-c816-46d6-ae5a-148d43ea4572
 def test_SchemaConformanceChecks(tmp_path: Path) -> None:
     from mind.logic.engines.ast_gate.checks.schema_conformance_checks import (
@@ -109,3 +107,25 @@ def test_SchemaConformanceChecks(tmp_path: Path) -> None:
     bad_path = tmp_path / "bad.json"
     bad_path.write_text("{not json", encoding="utf-8")
     assert SchemaConformanceChecks.extract_governed_classes(bad_path) == []
+
+
+
+
+
+# ID: c1a6c1ab-c57b-4367-a950-ab9fa256c32f
+def test_SchemaConformanceChecks_check_schema_contract_fields(tmp_path: Path) -> None:
+    contract = {
+        "governed_classes": ["Foo"],
+        "properties": {"a": {}, "b": {}},
+        "required": ["a", "b"],
+    }
+    contract_path = tmp_path / "contract.json"
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+
+    source = "class Foo:\n    a: int\n    b: str\n"
+    tree = ast.parse(source)
+
+    findings = SchemaConformanceChecks.check_schema_contract_fields(
+        tree, contract_path, "foo.py"
+    )
+    assert findings == []
