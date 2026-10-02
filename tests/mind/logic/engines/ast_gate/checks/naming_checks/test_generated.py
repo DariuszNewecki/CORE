@@ -126,9 +126,6 @@ def test_NamingChecks() -> None:
     assert "public_fn" in anno_findings[0]
 
 
-
-
-
 # ID: e4f06c7c-00bd-4c80-9bce-d05530baec88
 def test_NamingChecks_check_max_file_lines():
     source = "line1 = 1\nline2 = 2\nline3 = 3\n"
@@ -140,3 +137,16 @@ def test_NamingChecks_check_max_file_lines():
     findings_over = NamingChecks.check_max_file_lines(tree, "sample.py", limit=1)
     assert len(findings_over) == 1
     assert "exceeds limit of 1" in findings_over[0]
+
+
+
+
+
+# ID: e10c43cd-97c4-4624-8854-f81ae89399e9
+def test_NamingChecks_check_max_function_length() -> None:
+    source = "def short_func():\n    return 1\n"
+    tree = ast.parse(source)
+
+    findings = NamingChecks.check_max_function_length(tree, limit=50)
+
+    assert findings == []
