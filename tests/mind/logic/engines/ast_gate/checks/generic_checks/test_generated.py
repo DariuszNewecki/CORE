@@ -86,8 +86,6 @@ def test_GenericASTChecks_is_selected():
         assert GenericASTChecks.is_selected(cls, {"inherits_from": "Base"}) is True
 
 
-
-
 # ID: 84929fc4-8011-49a4-a28f-53b63399c185
 def test_GenericASTChecks():
     # is_selected: empty selector -> True
@@ -156,3 +154,27 @@ def test_GenericASTChecks():
         )
         is None
     )
+
+
+
+
+# ID: fd9dfe1d-b181-4e19-beaa-bb727b3733de
+def test_GenericASTChecks_validate_requirement():
+    from mind.logic.engines.ast_gate.checks.generic_checks import GenericASTChecks
+
+    # Happy path: a function that satisfies the "returns_type" requirement.
+    source = "def foo() -> ActionResult:\n    return None\n"
+    tree = ast.parse(source)
+    func_node = tree.body[0]
+    assert isinstance(func_node, ast.FunctionDef)
+
+    requirement = {"check_type": "returns_type", "expected": "ActionResult"}
+
+    with patch(
+        "mind.logic.engines.ast_gate.checks.generic_checks.ASTHelpers.full_attr_name",
+        return_value="ActionResult",
+    ) as mock_attr:
+        result = GenericASTChecks.validate_requirement(func_node, requirement)
+
+    assert result is None
+    mock_attr.assert_called_with(func_node.returns)
