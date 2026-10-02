@@ -154,9 +154,6 @@ def test_check_decorator_args() -> None:
     assert violations == []
 
 
-
-
-
 # ID: 507b6cd6-06bb-4531-92af-34614d983532
 def test_PurityChecks_check_no_print_statements():
     source = "print('hello world')\n"
@@ -165,3 +162,27 @@ def test_PurityChecks_check_no_print_statements():
     result = PurityChecks.check_no_print_statements(tree)
 
     assert result == ["Line 1: Replace print() with logger."]
+
+
+
+
+
+# ID: 6f2ddc5c-4764-4f01-9ac2-2cefb4b550d5
+def test_PurityChecks_check_forbidden_assignments() -> None:
+    source = (
+        "LLM_MODELS = ['gpt-4']\n"
+        "AGENT_ROLES: list[str] = ['planner']\n"
+        "SAFE_CONSTANT = 'ok'\n"
+    )
+    tree = ast.parse(source)
+
+    violations = PurityChecks.check_forbidden_assignments(
+        tree, ["LLM_MODELS", "AGENT_ROLES"]
+    )
+
+    assert len(violations) == 2
+    for violation in violations:
+        assert "Forbidden assignment to" in violation
+    assert any("'LLM_MODELS'" in violation for violation in violations)
+    assert any("'AGENT_ROLES'" in violation for violation in violations)
+    assert not any("SAFE_CONSTANT" in violation for violation in violations)
