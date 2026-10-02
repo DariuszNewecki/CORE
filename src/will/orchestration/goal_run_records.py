@@ -27,19 +27,16 @@ from pydantic import BaseModel
 
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseWorkflowResult
+from shared.protocols.blackboard_poster import ReportPoster
 
 
 logger = getLogger(__name__)
 
 
 # ID: 872590f0-b998-45aa-8b8a-e37cce217dea
-class RunRecordPoster(Protocol):
-    """The subset of Worker a run record needs: the sanctioned post methods."""
-
-    # ID: 0f309331-d536-434b-b6ce-4c1bb250f930
-    async def post_report(self, subject: str, payload: dict[str, Any]) -> Any:
-        """Post a terminal report under the given subject."""
-        ...
+class RunRecordPoster(ReportPoster, Protocol):
+    """The subset of Worker a run record needs: the sanctioned post methods
+    (``post_report`` from ``ReportPoster``, plus ``post_unavailable``)."""
 
     # ID: 66da49c1-abb4-4a04-a6ce-6250c72ee364
     async def post_unavailable(

@@ -50,6 +50,8 @@ from urllib.parse import urlsplit
 
 from rich.console import Console
 
+from cli.route_match import route_matcher
+
 
 # Fixed, generous width rather than the default terminal-width detection:
 # this command's output is a verification report an operator or script may
@@ -78,13 +80,10 @@ EXIT_BINDING_REFUSED = 2
 EXIT_INTERNAL_FAILURE = 64
 
 
-# ID: 5d6f43d5-ea0a-47c2-86e7-1b1ed3c65f80
-def matches_route(argv: list[str]) -> bool:
-    """Return True if *argv* (``sys.argv[1:]``) invokes the external-verify
-    route. Pure prefix match on the first two tokens -- no argument
-    parsing, no imports, safe to call before anything else in the process
-    has been touched."""
-    return len(argv) >= 2 and tuple(argv[:2]) == ROUTE
+# True if argv (sys.argv[1:]) invokes the external-verify route. Pure prefix
+# match on the first two tokens -- no argument parsing, no imports, safe to
+# call before anything else in the process has been touched.
+matches_route = route_matcher(ROUTE)
 
 
 def _sanitize_database_identity(database_url: str) -> str:

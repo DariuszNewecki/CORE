@@ -87,6 +87,8 @@ from typing import Any
 
 from rich.console import Console
 
+from cli.route_match import route_matcher
+
 
 ROUTE: tuple[str, str] = ("runtime", "external-run")
 
@@ -137,11 +139,9 @@ def parse_allowed_hosts(values: list[str] | tuple[str, ...] | None) -> tuple[str
     return tuple(seen)
 
 
-# ID: c4d63597-1118-4232-afd5-84a60850ff3c
-def matches_route(argv: list[str]) -> bool:
-    """True iff *argv* (``sys.argv[1:]``) invokes ``runtime external-run``.
-    Pure prefix match on the first two tokens -- no parsing, no imports."""
-    return len(argv) >= 2 and tuple(argv[:2]) == ROUTE
+# True iff argv (sys.argv[1:]) invokes ``runtime external-run``. Pure prefix
+# match on the first two tokens -- no parsing, no imports.
+matches_route = route_matcher(ROUTE)
 
 
 @dataclass(frozen=True)

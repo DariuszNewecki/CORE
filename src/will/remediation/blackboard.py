@@ -33,6 +33,7 @@ import uuid
 from typing import Any, Protocol
 
 from shared.logger import getLogger
+from shared.protocols.blackboard_poster import ObservationPoster
 
 
 logger = getLogger(__name__)
@@ -40,30 +41,11 @@ logger = getLogger(__name__)
 _FAILED_SUBJECT = "audit.remediation.failed"
 
 
-class _Poster(Protocol):
-    """The narrow slice of Worker this module actually wraps."""
-
-    # ID: e4eb2c77-4b36-41e5-886e-e0c4f6ff8b17
-    async def post_report(self, subject: str, payload: dict[str, Any]) -> Any: ...
-
-    # ID: 70c597d7-456f-4e62-873a-584cd4895054
-    async def post_observation(
-        self, subject: str, payload: dict[str, Any], *, status: str
-    ) -> Any: ...
-
-
 # ID: 5d396ae9-1353-42e0-a3ba-c584f128eac4
-class RemediationBlackboard(Protocol):
+class RemediationBlackboard(ObservationPoster, Protocol):
     """Capability RemediationCeremony depends on for every blackboard
-    interaction. See module docstring for the two concrete shapes."""
-
-    # ID: e86f3b10-4776-4a3f-a343-2c3ff89eae52
-    async def post_report(self, subject: str, payload: dict[str, Any]) -> Any: ...
-
-    # ID: de3f2d97-0d57-42e6-bfc3-af5edc96945e
-    async def post_observation(
-        self, subject: str, payload: dict[str, Any], *, status: str
-    ) -> Any: ...
+    interaction. See module docstring for the two concrete shapes.
+    ``post_report`` / ``post_observation`` come from ``ObservationPoster``."""
 
     # ID: 20e7cacb-7d83-4e50-8dcb-b99d6a3fd1e6
     async def mark_findings(
@@ -105,7 +87,7 @@ class WorkerRemediationBlackboard:
     lands under the wrapped worker's own identity — no UUID substitution.
     """
 
-    def __init__(self, worker: _Poster, core_context: Any) -> None:
+    def __init__(self, worker: ObservationPoster, core_context: Any) -> None:
         self._worker = worker
         self._ctx = core_context
 
@@ -114,7 +96,7 @@ class WorkerRemediationBlackboard:
     def worker_uuid(self) -> uuid.UUID | None:
         """The wrapped Worker's genuine identity (Worker.worker_uuid).
 
-        getattr-defensive: _Poster only requires post_report/
+        getattr-defensive: ObservationPoster only requires post_report/
         post_observation, so a caller satisfying that narrower protocol
         without a real worker_uuid attribute degrades to None rather than
         raising — callers must already treat None as "no proposal here".
