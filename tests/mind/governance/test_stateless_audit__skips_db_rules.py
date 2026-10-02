@@ -15,12 +15,24 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.stateless_audit import (
     _STATELESS_SKIP_ENGINES,
     _STATELESS_SKIP_RULE_IDS,
     run_stateless_audit,
 )
+
+
+@pytest.fixture(autouse=True)
+def _rules_are_declared(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests inject mapped rules; a real constitution with mapped rules
+    also declares them. Without this, the zero-declared-rules fail-closed
+    branch (ADR-108 D4 clarification 2026-10-02) short-circuits first."""
+    monkeypatch.setattr(
+        "mind.governance.stateless_audit._count_declared_rules", lambda _p: 1
+    )
 
 
 def _rule(rule_id: str, engine: str) -> ExecutableRule:

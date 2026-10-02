@@ -56,8 +56,13 @@ async def test_declared_but_zero_mapped_fails_closed(tmp_path: Path) -> None:
     mock_runner.assert_not_called()
 
 
-async def test_empty_constitution_does_not_fail_closed(tmp_path: Path) -> None:
-    """No rules declared at all is legitimately nothing to enforce -> not ERROR."""
+async def test_empty_constitution_fails_closed(tmp_path: Path) -> None:
+    """No rules declared at all is not a pass: no project law -> ERROR (2026-10-02).
+
+    Inverts the former test_empty_constitution_does_not_fail_closed. A floor-only
+    .intent/ (project onboard / project new) used to PASS vacuously with 0 rules,
+    contradicting ADR-111 A2 and no_governance_bypass.
+    """
     intent_repo = MagicMock()
     with (
         patch(
@@ -75,9 +80,10 @@ async def test_empty_constitution_does_not_fail_closed(tmp_path: Path) -> None:
     ):
         result = await run_stateless_audit(intent_repo, tmp_path)
 
-    assert result["verdict"] != "ERROR"
-    assert result["passed"] is True
-    mock_runner.assert_called_once()
+    assert result["verdict"] == "ERROR"
+    assert result["passed"] is False
+    assert "no project law declared" in result["error"]
+    mock_runner.assert_not_called()
 
 
 async def test_mapped_rules_do_not_fail_closed(tmp_path: Path) -> None:

@@ -235,14 +235,24 @@ async def run_stateless_audit(
     # (CORE's Class-A unmapped rules) and the all-skipped-in-stateless case
     # (rules mapped but every engine is knowledge/llm) are both honest and stay
     # non-blocking — they are surfaced as coverage, not failure.
+    # Total collapse includes ZERO declared rules (ADR-111 A2, ADR-119 Amendment
+    # 2026-10-02, ADR-108 D4 clarification 2026-10-02): a machinery floor with no
+    # project law is not an auditable project, and a PASS there would be vacuous.
     declared_rule_count = _count_declared_rules(context.policies)
-    if declared_rule_count > 0 and not all_rules:
-        logger.error(
-            "stateless_audit: governance collapse — %d rule(s) declared but 0 "
-            "mapped to an enforceable engine; refusing to PASS "
-            "(no_governance_bypass)",
-            declared_rule_count,
-        )
+    if declared_rule_count == 0 or not all_rules:
+        if declared_rule_count == 0:
+            collapse_reason = (
+                "no project law declared: the constitution declares 0 rules; "
+                "refusing to PASS -- author or ratify rules, or explicitly adopt "
+                "a governance pack"
+            )
+        else:
+            collapse_reason = (
+                f"governance collapse: {declared_rule_count} rule(s) declared but "
+                "none map to an enforceable engine (enforcement mappings "
+                "unreachable or empty); the audit can enforce nothing"
+            )
+        logger.error("stateless_audit: %s (no_governance_bypass)", collapse_reason)
         return {
             "verdict": "ERROR",
             "passed": False,
@@ -257,11 +267,7 @@ async def run_stateless_audit(
             "findings": [],
             "executed_rule_ids": [],
             "skipped_rules": skipped_rules,
-            "error": (
-                f"governance collapse: {declared_rule_count} rule(s) declared but "
-                "none map to an enforceable engine (enforcement mappings "
-                "unreachable or empty); the audit can enforce nothing"
-            ),
+            "error": collapse_reason,
             "duration_sec": 0.0,
             "run_id": None,
             "finished_at": datetime.now(UTC).isoformat(),
@@ -393,9 +399,9 @@ def _skipped_entry(
 def _count_declared_rules(policies: dict[str, Any]) -> int:
     """Count canonical rules declared across all loaded policies.
 
-    Distinguishes "the constitution is empty" (legitimately nothing to
-    enforce — PASS) from "rules are declared but none mapped to an engine"
-    (governance collapse — fail closed). See ADR-108 D4.
+    Zero declared rules ("no project law") and "rules declared but none mapped
+    to an engine" are both total governance collapse — fail closed. See
+    ADR-108 D4 and its 2026-10-02 clarification.
     """
     total = 0
     for policy_data in policies.values():

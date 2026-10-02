@@ -195,3 +195,31 @@ artifact is **machinery floor only** — the ~27 CORE-substrate files (META, tax
 enforcement/config). The rules layer is never bundled: it is per-repo-inducted or
 per-repo-authored, with no canonical wheel-bundleable default. Issue #674 and its
 implementation must be scoped to machinery floor only.
+
+---
+
+## Clarification — 2026-10-02 (D4 boundary: zero declared rules is total collapse)
+
+**Status:** Governor-ruled 2026-10-02. Appended; D4's text above is not edited.
+
+D4.2 defined total collapse as "declared rules > 0, mapped = 0" and implementation treated a
+constitution declaring **zero** rules as "legitimately nothing to enforce — PASS". That
+contradicted ADR-111 Amendment A2, which states that a machinery-only `.intent/` (no rules)
+returns governance-collapse `ERROR`, "the correct signal". Verification for #892 showed the
+offline audit of a floor-only project returning PASS with 0 rules executed: a vacuous
+false-green that `project onboard` targets had received since A2.
+
+**Clarification.** Total governance collapse includes both:
+1. zero declared rules — no project law exists; and
+2. declared rules > 0 but zero mapped to an enforceable engine.
+
+In both cases the stateless audit returns the distinct `ERROR` verdict (CLI exit 2), never PASS.
+Grounding: ADR-111 A2; `governance.no_governance_bypass` ("if a precondition cannot be
+evaluated, block"); ADR-119 Amendment 2026-10-02 (a bootstrap project "does not constitute an
+auditable project"). The partial-coverage boundaries in D4.2 (declared-only subsets;
+all-skipped-in-stateless) are unchanged and remain non-blocking.
+
+**Consequence for adopters.** A repository with a floor-only `.intent/` that previously passed
+the CI gate / GitHub Action now fails until rules are authored or ratified, or a governance
+pack is explicitly adopted. Regression-pinned in
+`tests/mind/governance/test_stateless_audit__fails_closed.py::test_empty_constitution_fails_closed`.
