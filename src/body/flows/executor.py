@@ -380,11 +380,14 @@ class FlowExecutor:
                 step.ref_id,
                 exc.reason,
             )
+            data: dict[str, Any] = {"error": exc.reason, "step_ref": exc.step_ref}
+            if exc.details:
+                data["details"] = exc.details
             return StepResult(
                 ref_id=step.ref_id,
                 required=step.required,
                 ok=False,
-                data={"error": exc.reason, "step_ref": exc.step_ref},
+                data=data,
                 duration_sec=time.time() - step_start,
                 kind="cognitive",
             )

@@ -211,6 +211,7 @@ class TestGenCognitiveDelegate:
             raise CognitiveStepError(
                 step_ref="generate.test_snippet",
                 reason=exc.reason,
+                details=exc.violations,
             ) from exc
 
         logger.info(

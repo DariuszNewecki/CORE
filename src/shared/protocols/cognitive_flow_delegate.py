@@ -25,11 +25,18 @@ class CognitiveStepError(Exception):
 
     Carries the step_ref that failed. FlowExecutor catches this and converts it
     into a failed StepResult — never propagates to the caller.
+
+    ``details`` carries the evidence behind ``reason`` (e.g. the acceptance
+    violations of the last generation attempt) so it reaches the recorded
+    step result instead of being dropped at the delegate boundary.
     """
 
-    def __init__(self, step_ref: str, reason: str) -> None:
+    def __init__(
+        self, step_ref: str, reason: str, details: list[str] | None = None
+    ) -> None:
         self.step_ref = step_ref
         self.reason = reason
+        self.details: list[str] = list(details or [])
         super().__init__(f"Cognitive step {step_ref!r} failed: {reason}")
 
 

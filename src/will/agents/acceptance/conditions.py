@@ -31,6 +31,20 @@ from shared.utils.test_gen_utils import strip_leading_future_imports
 
 logger = getLogger(__name__)
 
+# Upper bound on the pytest output carried into a rejection. The tail is kept:
+# pytest writes the failure report and short-summary info last.
+_PYTEST_DETAIL_MAX_CHARS = 4000
+
+
+def _pytest_failure_detail(data: object) -> str:
+    """Return the tail of pytest's captured output from a candidate_validate result."""
+    if not isinstance(data, dict):
+        return ""
+    output = (data.get("stdout") or "").strip() or (data.get("stderr") or "").strip()
+    if len(output) > _PYTEST_DETAIL_MAX_CHARS:
+        output = "...\n" + output[-_PYTEST_DETAIL_MAX_CHARS:]
+    return output
+
 
 @dataclass
 # ID: 3761195a-9a0a-43ce-8c43-aecd21bb3163
@@ -191,10 +205,14 @@ class PytestAcceptanceCondition:
             if isinstance(result.data, dict)
             else "pytest validation failed"
         )
+        # The summary alone ("1 error in 1.47s") gives the repair prompt nothing
+        # to act on; carry pytest's own failure report with it.
+        detail = _pytest_failure_detail(result.data)
+        summary = f"{error}\n\n{detail}" if detail and detail != error else error
         return AcceptanceResult(
             accepted=False,
-            violation_summary=error,
-            violations=[error],
+            violation_summary=summary,
+            violations=[summary],
         )
 
 

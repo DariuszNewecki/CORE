@@ -15,7 +15,9 @@ from will.agents.acceptance.conditions import (
 )
 
 
-def _make_violation(rule_name: str = "code.tests.no_placeholder_test_body") -> MagicMock:
+def _make_violation(
+    rule_name: str = "code.tests.no_placeholder_test_body",
+) -> MagicMock:
     v = MagicMock()
     v.rule_name = rule_name
     v.message = "No assertion"
@@ -60,15 +62,15 @@ async def test_intent_guard_condition_rejects_invalid_code(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pytest_condition_never_writes_target_path_only_delegates_candidate() -> None:
+async def test_pytest_condition_never_writes_target_path_only_delegates_candidate() -> (
+    None
+):
     """#815: PytestAcceptanceCondition must never write target_path itself — it
     passes the fully-assembled candidate to test.candidate_validate and lets that
     action own scratch materialization entirely."""
     executor = AsyncMock()
     executor.execute = AsyncMock(
-        return_value=ActionResult(
-            action_id="test.candidate_validate", ok=True, data={}
-        )
+        return_value=ActionResult(action_id="test.candidate_validate", ok=True, data={})
     )
 
     cond = PytestAcceptanceCondition(
@@ -145,6 +147,64 @@ async def test_pytest_condition_rejects_on_sandbox_failure() -> None:
 
 
 @pytest.mark.asyncio
+async def test_pytest_condition_carries_pytest_output_into_violation() -> None:
+    """The one-line summary alone is useless to the repair prompt; the
+    captured pytest report must travel with the rejection."""
+    stdout = (
+        "E   ModuleNotFoundError: No module named 'mind.logic.nope'\n"
+        "=========== 1 error in 1.47s ==========="
+    )
+    executor = AsyncMock()
+    executor.execute = AsyncMock(
+        return_value=ActionResult(
+            action_id="test.candidate_validate",
+            ok=False,
+            data={
+                "error": "=========== 1 error in 1.47s ===========",
+                "stdout": stdout,
+            },
+        )
+    )
+    cond = PytestAcceptanceCondition(
+        executor=executor,
+        source_file="src/x.py",
+        target_path="tests/x/test_generated.py",
+        base_content="",
+    )
+
+    result = await cond.evaluate("def test_new():\n    assert True\n")
+
+    assert not result.accepted
+    assert "ModuleNotFoundError" in result.violation_summary
+    assert result.violations == [result.violation_summary]
+
+
+@pytest.mark.asyncio
+async def test_pytest_condition_truncates_pytest_output_keeping_tail() -> None:
+    stdout = "HEAD-MARKER\n" + ("x" * 10_000) + "\nTAIL-MARKER"
+    executor = AsyncMock()
+    executor.execute = AsyncMock(
+        return_value=ActionResult(
+            action_id="test.candidate_validate",
+            ok=False,
+            data={"error": "1 failed", "stdout": stdout},
+        )
+    )
+    cond = PytestAcceptanceCondition(
+        executor=executor,
+        source_file="src/x.py",
+        target_path="tests/x/test_generated.py",
+        base_content="",
+    )
+
+    result = await cond.evaluate("def test_new():\n    assert True\n")
+
+    assert "TAIL-MARKER" in result.violation_summary
+    assert "HEAD-MARKER" not in result.violation_summary
+    assert len(result.violation_summary) < 4_200
+
+
+@pytest.mark.asyncio
 async def test_pytest_condition_rejects_when_executor_not_wired() -> None:
     cond = PytestAcceptanceCondition(
         executor=object(),
@@ -181,9 +241,13 @@ async def test_composite_accepts_only_when_all_conditions_pass() -> None:
     from will.agents.acceptance.conditions import AcceptanceResult
 
     first = MagicMock()
-    first.evaluate = AsyncMock(return_value=AcceptanceResult(accepted=True, violation_summary=""))
+    first.evaluate = AsyncMock(
+        return_value=AcceptanceResult(accepted=True, violation_summary="")
+    )
     second = MagicMock()
-    second.evaluate = AsyncMock(return_value=AcceptanceResult(accepted=True, violation_summary=""))
+    second.evaluate = AsyncMock(
+        return_value=AcceptanceResult(accepted=True, violation_summary="")
+    )
 
     composite = CompositeAcceptanceCondition([first, second])
     result = await composite.evaluate("code")
