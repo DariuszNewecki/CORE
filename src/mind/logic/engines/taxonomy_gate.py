@@ -31,7 +31,6 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 import ast
-import json
 from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
@@ -40,7 +39,11 @@ from typing import TYPE_CHECKING, Any
 from jsonschema import Draft202012Validator
 
 from mind.governance.specs_doc_validator import parse_frontmatter
-from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.intent_repository import (
+    IntentRepository,
+    get_intent_repository,
+)
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
@@ -83,6 +86,9 @@ _TESTS_REL_DIR = "tests"
 _RESOLVER_DOCSTRING_BLOCK = "ADR-091 D2 Revision B resolution classification:"
 _MAPPINGS_REL_DIR = ".intent/enforcement/mappings"
 _ENFORCEMENT_MAPPING_SCHEMA_REL_PATH = ".intent/META/enforcement_mapping.schema.json"
+# The same two locations relative to the intent root, for gateway reads.
+_MAPPINGS_INTENT_REL = "enforcement/mappings"
+_ENFORCEMENT_MAPPING_SCHEMA_INTENT_REL = "META/enforcement_mapping.schema.json"
 _DECISIONS_REL_DIR = ".specs/decisions"
 _EXEMPTION_DEADLINE_GRACE_DAYS = 30
 
@@ -518,8 +524,12 @@ class TaxonomyGateEngine(BaseEngine):
         favor of ``CORE_ROLE`` per ADR-095 D3) — day-one behavior is a clean
         pass.
         """
-        schema_path = repo_root / _ENFORCEMENT_MAPPING_SCHEMA_REL_PATH
-        item_schema = _load_governed_exclusions_item_schema(schema_path)
+        intent_repo = _intent_gateway(repo_root)
+        item_schema = (
+            _load_governed_exclusions_item_schema(intent_repo)
+            if intent_repo is not None
+            else None
+        )
         if item_schema is None:
             return [
                 AuditFinding(
@@ -535,12 +545,13 @@ class TaxonomyGateEngine(BaseEngine):
             ]
 
         validator = Draft202012Validator(item_schema)
-        mappings_dir = repo_root / _MAPPINGS_REL_DIR
         today = date.today()
         findings: list[AuditFinding] = []
 
+        if intent_repo is None:  # unreachable: item_schema would be None
+            return []
         for yaml_path, rule_id, entry, index in _iter_governed_exclusions_entries(
-            mappings_dir
+            intent_repo
         ):
             try:
                 rel_path = yaml_path.relative_to(repo_root)
@@ -1016,21 +1027,39 @@ def _prefix_appears_in_tests(prefix: str, tests_root: Path) -> bool:
     return False
 
 
-def _load_governed_exclusions_item_schema(schema_path: Path) -> dict[str, Any] | None:
+def _intent_gateway(repo_root: Path) -> IntentRepository | None:
+    """The .intent/ gateway bound to the audited repository's law root.
+
+    Non-strict: this check reads two corners of the tree (one META schema and
+    the enforcement mappings), not the whole bootstrap contract. Returns None
+    if the gateway cannot be bound (the callers then report a load failure).
+    """
+    try:
+        return IntentRepository(root=repo_root / ".intent", strict=False)
+    except Exception as exc:
+        logger.debug("taxonomy_gate: cannot bind IntentRepository: %s", exc)
+        return None
+
+
+def _load_governed_exclusions_item_schema(
+    intent_repo: IntentRepository,
+) -> dict[str, Any] | None:
     """Load enforcement_mapping.schema.json and return the
     governed_exclusions.items sub-schema — ADR-152 D4 validates each
     governed_exclusions entry against this sub-schema specifically, not
     the whole mapping-entry schema (a rule's engine/params/scope are not
     part of a governed_exclusions item's shape).
 
-    Returns None on any load/parse/shape failure — the caller surfaces
-    that as a blocking finding rather than silently skipping validation.
+    Read through the IntentRepository gateway
+    (architecture.namespace.no_direct_protected_access). Returns None on any
+    load/parse/shape failure — the caller surfaces that as a blocking finding
+    rather than silently skipping validation.
     """
-    if not schema_path.is_file():
-        return None
     try:
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        schema = intent_repo.load_document(
+            intent_repo.resolve_rel(_ENFORCEMENT_MAPPING_SCHEMA_INTENT_REL)
+        )
+    except GovernanceError:
         return None
     try:
         return schema["properties"]["governed_exclusions"]["items"]
@@ -1039,22 +1068,18 @@ def _load_governed_exclusions_item_schema(schema_path: Path) -> dict[str, Any] |
 
 
 def _iter_governed_exclusions_entries(
-    mappings_dir: Path,
+    intent_repo: IntentRepository,
 ) -> Iterator[tuple[Path, str, dict[str, Any], int]]:
-    """Walk every .intent/enforcement/mappings/**/*.yaml file; yield
-    (yaml_path, rule_id, entry, index) for every governed_exclusions item
-    found under every rule's mapping entry.
+    """Walk every .intent/enforcement/mappings/**/*.yaml file through the
+    IntentRepository gateway; yield (yaml_path, rule_id, entry, index) for
+    every governed_exclusions item found under every rule's mapping entry.
 
-    Fail-soft per file — a single unparseable mapping file must not crash
-    the audit cycle (mirrors _collect_sensor_artifact_pairs's contract).
+    Fail-soft per file — the gateway logs and skips an unparseable mapping
+    file, so one bad file cannot crash the audit cycle (mirrors
+    _collect_sensor_artifact_pairs's contract).
     """
-    if not mappings_dir.is_dir():
-        return
-    for yaml_path in sorted(mappings_dir.rglob("*.yaml")):
-        try:
-            data = strict_yaml_processor.load_strict(yaml_path)
-        except Exception as exc:
-            logger.debug("taxonomy_gate: cannot load %s: %s", yaml_path, exc)
+    for yaml_path, data in intent_repo.iter_documents(under=_MAPPINGS_INTENT_REL):
+        if yaml_path.suffix not in (".yaml", ".yml"):
             continue
         if not isinstance(data, dict):
             continue

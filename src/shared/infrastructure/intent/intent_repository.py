@@ -161,7 +161,14 @@ class IntentRepository(RootedRepository):
             raise GovernanceError(f"Intent artifact not found: {path}")
 
         if path.suffix in (".yaml", ".yml"):
-            return strict_yaml_processor.load_strict(path)
+            try:
+                return strict_yaml_processor.load_strict(path)
+            except GovernanceError:
+                raise
+            except Exception as e:
+                # Same contract as the JSON branch: a parse failure is a
+                # GovernanceError, so iter_documents' "log and skip" holds.
+                raise GovernanceError(f"Failed to parse YAML: {path}: {e}") from e
 
         if path.suffix == ".json":
             try:
@@ -178,6 +185,7 @@ class IntentRepository(RootedRepository):
         self,
         *,
         skip_components: Iterable[str] = (),
+        under: str | Path | None = None,
     ) -> Iterator[tuple[Path, dict[str, Any]]]:
         """Yield (absolute_path, parsed_dict) for every .yaml/.yml/.json under .intent/.
 
@@ -187,11 +195,16 @@ class IntentRepository(RootedRepository):
         (renamed #490; formerly architecture.intent.non_gateway_no_direct_resolution).
 
         skip_components filters by path component name (e.g. {"META"} to
-        exclude .intent/META/**). Parse failures are logged and skipped so
-        a single bad file does not abort the walk.
+        exclude .intent/META/**). ``under`` limits the walk to one subtree,
+        relative to the intent root (e.g. ``"enforcement/mappings"``); an
+        absent subtree yields nothing. Parse failures are logged and skipped
+        so a single bad file does not abort the walk.
         """
         skip = frozenset(skip_components)
-        for path in self._iter_policy_files(self._root):
+        base = self.resolve_rel(under) if under is not None else self._root
+        if not base.is_dir():
+            return
+        for path in sorted(self._iter_policy_files(base)):
             if skip and any(part in skip for part in path.parts):
                 continue
             try:
