@@ -351,7 +351,9 @@ class TestRemediatorWorker(Worker):
                 "open_findings": len(open_findings),
                 "source_files": len(by_source),
                 "proposals_created": len(proposals_created),
-                "proposals_skipped_dedup": len(source_files_skipped),
+                # Files with no remaining gaps (fully covered). Formerly
+                # mislabelled "proposals_skipped_dedup": nothing here is a dedup.
+                "source_files_complete": len(source_files_skipped),
                 "proposals_skipped_cap": proposals_skipped_cap,
                 "symbols_skipped_dedup": symbols_skipped_dedup,
                 "entries_deferred": entries_deferred,

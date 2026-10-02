@@ -326,3 +326,7 @@ async def test_report_includes_proposals_skipped_cap() -> None:
     report_payload = worker.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload["proposals_skipped_cap"] == 1
     assert report_payload["proposals_created"] == 0
+    # Fully covered files are reported under their real name (was mislabelled
+    # "proposals_skipped_dedup", which suggested a dedup that never happened).
+    assert "source_files_complete" in report_payload
+    assert "proposals_skipped_dedup" not in report_payload
