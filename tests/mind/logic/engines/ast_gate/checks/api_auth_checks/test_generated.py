@@ -128,9 +128,6 @@ def test_check_route_module_must_declare_exposure() -> None:
     assert "ROUTER_EXPOSURE" in result[0]
 
 
-
-
-
 # ID: 646356cc-1978-4ce1-a33b-2267d6b884a3
 def test_check_route_module_must_declare_exposure() -> None:
     source = "ROUTER_EXPOSURE = 'user-facing'\n"
@@ -144,3 +141,32 @@ def test_check_route_module_must_declare_exposure() -> None:
 
     assert result == []
     mock_find.assert_called_once_with(tree)
+
+
+
+
+
+# ID: 8926317a-838c-4b55-8233-0826de08bc5b
+def test_ApiAuthChecks_check_route_module_must_declare_exposure() -> None:
+    check_fn = getattr(api_auth_checks, "ApiAuthChecks", None)
+    # The symbol is exposed as a module-level function; fall back to module attr lookup.
+    func = getattr(api_auth_checks, "check_route_module_must_declare_exposure", None)
+    if func is None:
+        if check_fn is not None:
+            func = getattr(check_fn, "check_route_module_must_declare_exposure")
+        else:
+            raise AssertionError(
+                "check_route_module_must_declare_exposure not found in module"
+            )
+
+    tree = ast.parse("ROUTER_EXPOSURE = 'user-facing'\n")
+
+    with patch.object(
+        api_auth_checks,
+        "_find_router_exposure",
+        return_value=ast.Constant(value="user-facing"),
+    ) as mock_find:
+        result = func(tree)
+
+    mock_find.assert_called_once_with(tree)
+    assert result == []
