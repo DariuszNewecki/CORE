@@ -19,6 +19,7 @@ def route_matcher(route: tuple[str, str]) -> Callable[[list[str]], bool]:
     starts with exactly the two tokens of ``route``. Pure prefix match — no
     argument parsing."""
 
+    # ID: 7beb68a6-d1c7-4a88-8b90-c3e34f49617c
     def matches_route(argv: list[str]) -> bool:
         return len(argv) >= 2 and tuple(argv[:2]) == route
 
