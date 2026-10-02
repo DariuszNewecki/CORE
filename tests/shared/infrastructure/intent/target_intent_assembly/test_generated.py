@@ -240,7 +240,6 @@ def test_overlay_hash(tmp_path):
     assert overlay_hash(None) == hashlib.sha256().hexdigest()
 
 
-
 from shared.infrastructure.intent.target_intent_assembly import AssembledIntent
 
 
@@ -262,3 +261,17 @@ def test_AssembledIntent() -> None:
     assert assembled.floor_hash == floor_hash
     assert assembled.overlay_hash == overlay_hash
     assert assembled.overlay_files == overlay_files
+
+
+import pytest
+
+from shared.infrastructure.intent.target_intent_assembly import OverlayCollisionError
+
+
+# ID: 4d4ecb82-ca2a-4694-b530-7a48cb8e3222
+def test_OverlayCollisionError():
+    with pytest.raises(OverlayCollisionError) as exc_info:
+        raise OverlayCollisionError("overlay collides with floor-owned path")
+
+    assert isinstance(exc_info.value, OverlayCollisionError)
+    assert "overlay collides with floor-owned path" in str(exc_info.value)
