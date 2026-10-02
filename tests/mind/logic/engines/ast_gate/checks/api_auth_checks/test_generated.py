@@ -113,9 +113,6 @@ def test_check_route_module_must_declare_exposure() -> None:
     assert result == []
 
 
-
-
-
 # ID: 22a9316f-cad8-4ea2-b9f2-c2ec8a8eb8ad
 def test_check_route_module_must_declare_exposure() -> None:
     tree = ast.parse("x = 1\n")
@@ -129,3 +126,21 @@ def test_check_route_module_must_declare_exposure() -> None:
     assert isinstance(result, list)
     assert len(result) == 1
     assert "ROUTER_EXPOSURE" in result[0]
+
+
+
+
+
+# ID: 646356cc-1978-4ce1-a33b-2267d6b884a3
+def test_check_route_module_must_declare_exposure() -> None:
+    source = "ROUTER_EXPOSURE = 'user-facing'\n"
+    tree = ast.parse(source)
+
+    with patch(
+        "mind.logic.engines.ast_gate.checks.api_auth_checks._find_router_exposure",
+        return_value=ast.Constant(value="user-facing"),
+    ) as mock_find:
+        result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
+
+    assert result == []
+    mock_find.assert_called_once_with(tree)
