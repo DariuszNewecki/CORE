@@ -181,7 +181,7 @@ def deliver_external_intent_files(
 
 
 # ID: 3f7a1c82-e4d9-4b6e-9c21-d58f02a7b3e1
-def _resolve_machinery_floor(core_root: Path) -> Path:
+def _resolve_machinery_floor(core_root: Path | None) -> Path:
     """
     Locate the machinery floor directory (ADR-108 D3).
 

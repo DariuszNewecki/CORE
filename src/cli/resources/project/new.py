@@ -4,32 +4,36 @@
 
 Operator command (ADR-146 D3). Creates ``<parent>/<name>`` holding CORE's machinery
 floor and a neutral Python skeleton — no project-specific law. ``--path`` chooses the
-parent directory (default: the current directory); CORE itself is located through the
-CLI's CoreContext, never by walking up from the current directory.
+parent directory (default: the current directory). CORE's own repository is the
+source checkout the CLI runs from (``core_source_root``), never the repository found
+by walking up from the current directory; an installed wheel has none to protect.
+File-only: needs no database, Qdrant or LLM, so it works from a plain pip install.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
 
+from cli.logic.byor import core_source_root
 from cli.logic.project_scaffold import plan_new_project, write_new_project
 from cli.utils import core_command
 
 from . import app
 
 
-if TYPE_CHECKING:
-    from shared.context import CoreContext
-
 console = Console()
 
 
 @app.command("new")
-@core_command(dangerous=True, requires_context=True, confirmation=True)
+@core_command(
+    dangerous=True,
+    requires_context=False,
+    confirmation=True,
+    requires_brain_services=False,
+)
 # ID: 32d44823-26a9-4059-8b64-969a46953225
 async def new_project_command(
     ctx: typer.Context,
@@ -50,8 +54,7 @@ async def new_project_command(
     The result is not auditable until rules are authored or ratified, or a
     governance pack is explicitly adopted.
     """
-    core_context: CoreContext = ctx.obj
-    core_root = core_context.git_service.repo_path.resolve()
+    core_root = core_source_root()
     parent = (path if path is not None else Path.cwd()).expanduser().resolve()
 
     plan = plan_new_project(name, parent, core_root)

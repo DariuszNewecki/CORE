@@ -70,7 +70,7 @@ class NewProjectPlan:
 
 
 # ID: b52ae06a-d356-49af-997b-b91a0d82deaf
-def plan_new_project(name: str, parent: Path, core_root: Path) -> NewProjectPlan:
+def plan_new_project(name: str, parent: Path, core_root: Path | None) -> NewProjectPlan:
     """Plan a new project at ``parent / name``. Pure: reads the bundled floor, writes nothing.
 
     Raises ``typer.Exit(1)`` for a name that is not a valid project/package name or
@@ -113,7 +113,7 @@ def plan_new_project(name: str, parent: Path, core_root: Path) -> NewProjectPlan
 
 
 # ID: f94ed88f-7e5d-4afc-8e8b-35340efaf035
-def write_new_project(plan: NewProjectPlan, core_root: Path, write: bool) -> int:
+def write_new_project(plan: NewProjectPlan, core_root: Path | None, write: bool) -> int:
     """Check the target and, with ``write=True``, deliver the plan. Returns the file count.
 
     Refuses (``typer.Exit(1)``), in dry-run as well as write mode, when the target
@@ -121,7 +121,9 @@ def write_new_project(plan: NewProjectPlan, core_root: Path, write: bool) -> int
     exists as a file, or when it exists as a non-empty directory. Never overwrites.
     """
     target = plan.target_root
-    _reject_unsafe_target(target, core_root.resolve())
+    _reject_unsafe_target(
+        target, core_root.resolve() if core_root is not None else None
+    )
     if target.exists():
         if not target.is_dir():
             logger.error(

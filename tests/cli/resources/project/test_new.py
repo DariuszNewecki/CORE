@@ -42,3 +42,26 @@ async def test_defaults_to_current_directory_and_never_uses_core_location(
     assert (work / "demo" / ".intent").is_dir()
     assert (work / "demo" / "src" / "demo" / "__init__.py").is_file()
     assert not (tmp_path / "demo").exists()  # not a sibling of CORE
+
+
+def test_runs_without_brain_services_or_core_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression (2026-10-02): from a plain pip install `project new` crashed with
+    "QDRANT_URL is not configured" — the wrapper warmed Qdrant for a file-only
+    command — and located CORE by walking up from cwd. Run the real decorated
+    command outside an event loop with a registry whose Qdrant warm-up raises
+    and no CORE checkout to protect: it must still create the project."""
+    ctx = MagicMock(spec=typer.Context)
+    ctx.obj = MagicMock()
+    ctx.obj.qdrant_service = None
+    ctx.obj.registry.get_qdrant_service.side_effect = ValueError(
+        "QDRANT_URL is not configured and no client provided."
+    )
+    monkeypatch.setattr("cli.resources.project.new.core_source_root", lambda: None)
+    monkeypatch.chdir(tmp_path)
+
+    new_project_command(ctx, "demo", None, True)
+
+    assert (tmp_path / "demo" / ".intent").is_dir()
+    ctx.obj.registry.get_qdrant_service.assert_not_called()
