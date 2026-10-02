@@ -37,3 +37,18 @@ def test_read_state_json(tmp_path: Path) -> None:
     result = read_state_json(state_file)
 
     assert result == expected
+
+
+
+from cli.logic.demo.isolation import write_state_json
+
+
+# ID: 6d38d0d4-765f-471c-ae20-60f6c88a44e4
+def test_write_state_json(tmp_path: Path) -> None:
+    target = tmp_path / "nested" / "state" / "result.json"
+    payload = {"status": "ok", "value": 42}
+
+    write_state_json(target, payload)
+
+    assert target.exists()
+    assert json.loads(target.read_text(encoding="utf-8")) == payload
