@@ -44,6 +44,14 @@ class CommandMetadata:
 COMMAND_REGISTRY: dict[str, CommandMetadata] = {}
 
 
+def _build_core_context() -> Any:
+    """Build the CLI CoreContext on demand (same steps as admin_cli.main)."""
+    from body.infrastructure.bootstrap import create_core_context
+    from body.services.service_registry import service_registry
+
+    return create_core_context(service_registry)
+
+
 # ID: fb0ffe71-cd19-4f82-b36e-11bb9b424821
 def core_command(
     *,
@@ -103,6 +111,11 @@ def core_command(
                     "[bold red]System Error: CLI command must accept 'ctx: typer.Context'[/bold red]"
                 )
                 raise typer.Exit(1)
+            if requires_context and isinstance(ctx, typer.Context) and ctx.obj is None:
+                # admin_cli.main skips the context build when "--help" is on
+                # the command line; if that "--help" was really an option
+                # value, the command still runs, so build the context here.
+                ctx.obj = _build_core_context()
             write = bool(cast(dict[str, Any], kwargs).get("write", False))
             check = bool(cast(dict[str, Any], kwargs).get("check", False))
             if dangerous and has_write_param and (not write) and (not check):

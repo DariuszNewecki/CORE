@@ -114,6 +114,16 @@ def register_all_commands(app_instance: typer.Typer) -> None:
 register_all_commands(app)
 
 
+def _help_requested(argv: list[str]) -> bool:
+    """True if ``--help`` appears before any ``--`` end-of-options marker."""
+    for token in argv:
+        if token == "--":
+            return False
+        if token == "--help":
+            return True
+    return False
+
+
 @app.callback(invoke_without_command=True)
 # ID: 1f5f3dc8-cbc5-426f-8049-271f45e155f5
 def main(ctx: typer.Context) -> None:
@@ -122,7 +132,14 @@ def main(ctx: typer.Context) -> None:
     # stderr; under systemd / pipes the shared logger's plain handler stays.
     install_rich_log_handler()
     service_registry.prime(get_session)
-    ctx.obj = create_core_context(service_registry)
+    # Click runs this callback before a subcommand parses its own arguments,
+    # so `core-admin <group> <cmd> --help` used to build the whole CoreContext
+    # (git, intent repository, rule extraction, IntentGuard) just to print help.
+    # Help exits before any command runs. If "--help" was really an option
+    # *value*, core_command builds the context on demand, so skipping here can
+    # never leave a running command without one.
+    if not _help_requested(sys.argv[1:]):
+        ctx.obj = create_core_context(service_registry)
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
