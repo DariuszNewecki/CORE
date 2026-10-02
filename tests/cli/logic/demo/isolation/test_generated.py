@@ -152,7 +152,6 @@ def test_hash_directory(tmp_path):
     assert hash_directory(tmp_path) != result
 
 
-
 from cli.logic.demo.isolation import hash_file
 
 
@@ -169,3 +168,43 @@ def test_hash_file(tmp_path: Path) -> None:
     assert result == expected
     assert isinstance(result, str)
     assert len(result) == 64
+
+
+
+from cli.logic.demo.isolation import compose_down
+
+
+# ID: 8b60b656-d56c-4821-b0d8-29a624aec8d3
+def test_compose_down():
+    result = MagicMock(name="SubprocessResult")
+    project_name = "demo-proj"
+    compose_file = Path("/tmp/demo/docker-compose.yml")
+    env = {"FOO": "bar"}
+
+    with (
+        patch(
+            "cli.logic.demo.isolation.compose_down_command",
+            return_value=["docker", "compose", "down"],
+        ) as mock_cmd,
+        patch(
+            "cli.logic.demo.isolation.run_compose_command",
+            new=AsyncMock(return_value=MagicMock(name="coro_result")),
+        ) as mock_run,
+        patch(
+            "cli.logic.demo.isolation._with_deadline",
+            new=AsyncMock(return_value=result),
+        ) as mock_deadline,
+    ):
+        out = asyncio.run(compose_down(project_name, compose_file, env))
+
+    assert out is result
+    mock_cmd.assert_called_once_with(project_name, compose_file)
+    mock_run.assert_called_once_with(
+        ["docker", "compose", "down"],
+        cwd=compose_file.parent,
+        env=env,
+    )
+    mock_deadline.assert_awaited_once()
+    _called_coro, called_timeout = mock_deadline.await_args.args[:2]
+    assert called_timeout == 60.0
+    assert mock_deadline.await_args.kwargs.get("phase") == "compose down"
