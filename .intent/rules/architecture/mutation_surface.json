@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.mutation_surface",
         "title": "Governed Mutation Surface Rules",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -12,11 +12,11 @@
     "rules": [
         {
             "id": "governance.mutation_surface.filehandler_required",
-            "statement": "All filesystem writes MUST route through FileHandler. Direct calls to write_text(), write_bytes(), or open() in write/append mode are prohibited in production code.",
+            "statement": "All filesystem writes MUST route through FileHandler, except the declared operations of the governed external-target writer (ADR-166). No code path writes CORE's own .intent/ (ADR-130 D1): changes to it are staged and applied by the governor. The external-target writer writes outside the bound repository and into an adopter repository's .intent/, only for its declared bootstrap, delivery, evidence and key-storage operations, and refuses CORE's own source checkout. Direct calls to write_text(), write_bytes(), open() or Path.open() in a write, append or create mode, and other filesystem-mutation primitives, are prohibited in production code outside these two surfaces.",
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit",
-            "rationale": "Direct filesystem writes bypass constitutional governance, audit trails, impact classification, and IntentGuard enforcement. FileHandler is the sole governed mutation surface."
+            "rationale": "Direct filesystem writes bypass constitutional governance, audit trails, impact classification, and IntentGuard enforcement. FileHandler is the governed mutation surface for the bound repository and refuses writes outside it by design (repository containment). The external-target writer is the only governed surface outside it: it serves only declared operations, preserves containment, mandatory ratification (ADR-119 D5), never-overwrite (ADR-111 D3, ADR-123 D2) and the execution-copy restrictions, and records every write and refusal in the action log. Neither surface writes CORE's own .intent/ (ADR-130 D1)."
         }
     ]
 }
