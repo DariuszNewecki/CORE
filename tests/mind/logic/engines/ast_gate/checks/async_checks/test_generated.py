@@ -40,9 +40,6 @@ def test_AsyncChecks_check_no_module_level_async_engine() -> None:
     assert "create_async_engine()" in findings[0]
 
 
-
-
-
 # ID: ce87c8e4-d463-4b00-b524-dca160d79213
 def test_AsyncChecks() -> None:
     # Happy path for the safe/defensive patterns across the static methods.
@@ -80,3 +77,22 @@ def test_AsyncChecks() -> None:
     # Sync function that does not return a Task/Future -> no findings
     sync_fn = ast.parse("def f():\n    return 42\n")
     assert AsyncChecks.check_no_task_return_from_sync_cli(sync_fn) == []
+
+
+
+
+
+# ID: 3394f48b-5c49-4fc4-86a6-4b2e4ad65fec
+def test_AsyncChecks_check_no_import_time_async_singletons():
+    source = "client = create_async_client()\n"
+    tree = ast.parse(source)
+
+    findings = AsyncChecks.check_no_import_time_async_singletons(
+        tree, ["create_async_client"]
+    )
+
+    assert len(findings) == 1
+    assert "create_async_client()" in findings[0]
+    assert "Import-time async singleton creation" in findings[0]
+
+    assert AsyncChecks.check_no_import_time_async_singletons(tree, []) == []
