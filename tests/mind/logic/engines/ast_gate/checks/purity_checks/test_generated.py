@@ -318,9 +318,6 @@ def test_PurityChecks():
     assert "command" in PurityChecks._COMMAND_DECORATORS
 
 
-
-
-
 # ID: 04ba572a-01ac-4aaf-ae68-cf7d33cd2202
 def test_PurityChecks_check_forbidden_decorators():
     source = (
@@ -339,3 +336,18 @@ def test_PurityChecks_check_forbidden_decorators():
     assert len(violations) == 1
     assert "deprecated" in violations[0]
     assert "old_func" in violations[0]
+
+
+
+
+
+# ID: b0494f3a-9642-473c-a0df-416709e4b909
+def test_PurityChecks_check_required_decorator():
+    source = "def do_work(session):\n    session.write('x')\n"
+    tree = ast.parse(source)
+
+    result = PurityChecks.check_required_decorator(tree, "atomic_action")
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert "do_work" in result[0]
