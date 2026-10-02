@@ -19,3 +19,20 @@ def test_LLMGateStubEngine_verify():
     assert result.message == "LLM check skipped (stub mode - no API call)"
     assert result.violations == []
     assert result.engine_id == engine.engine_id
+
+
+
+
+
+# ID: 34b78713-c945-4791-92a3-115e3a75617e
+def test_LLMGateStubEngine():
+    engine = LLMGateStubEngine()
+
+    result = asyncio.run(
+        engine.verify(Path("/tmp/example.py"), {"instruction": "check something"})
+    )
+
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "llm_gate_stub"
+    assert "stub mode" in result.message
