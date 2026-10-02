@@ -2,7 +2,7 @@
 kind: adr
 id: ADR-085
 title: ADR-085 — Open operational completeness as engineering's sole goal
-status: accepted
+status: retired
 ---
 
 <!-- path: .specs/decisions/ADR-085-open-operational-completeness-as-engineering-sole-goal.md -->
@@ -11,7 +11,7 @@ status: accepted
 
 **Date:** 2026-06-02
 **Governing paper:** `.specs/papers/CORE-Governance-Topology.md`
-**Status:** Accepted
+**Status:** Retired 2026-10-02 — the constraint never governed in practice; see §Retirement (2026-10-02) at the end. Accepted 2026-06-02.
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (session 2026-06-02 — drafted under Path A execute-verb authorization, "yes, that 5+3 list matches — let's lock it in" + answered scoping questions selecting "all three artifacts" and "exit criteria as proposed")
 **Grounding papers:** `papers/CORE-Features.md` §1 (the open/commercial line as constitutional commitment); ADR-084 §D7 §1 (the *completeness* honesty commitment — "the open base ships every primitive required to reproduce the full thesis"); `papers/CORE-Product-Tiers.md` §2 (the adoption funnel that depends on a complete open base for entry).
@@ -219,3 +219,37 @@ If verification reveals that F-19 reports unreliably, the criterion may need ref
 - `planning/CORE-Operational-Completeness.md` — the per-item operational surface this ADR codifies the discipline for.
 - Memory `feedback_hardening_over_coverage` — the existing project preference that maps onto this ADR: hardening live constitutional violations and operational completeness wins over authoring more contract surface or speculative commercial work.
 - Memory `feedback_governance_debt_share_inversion` — the long-run metric this ADR's constraint helps preserve: the ratio of "open base completeness" to "commercial reliance" is the signal of whether open-core stays honest.
+
+---
+
+## Retirement (2026-10-02)
+
+**What D1 promised did not happen.** D1 routed engineering capacity only to the 5+3 list until the
+D5 exit was declared, and §Verification called any commercial engineering without a D3 amendment or a
+D5 declaration "out-of-policy". Commercial engineering went ahead anyway: the `core-platform` repository
+was created on 2026-07-05 to carry the Console web app and the UAC stack moved out of CORE, and the
+PROJ-26.001 pilot work followed. Neither a D3 amendment nor a D5 declaration was ever written. Nothing
+mechanical enforced D1, so the constraint stopped governing at the latest on 2026-07-05, while this
+file kept saying it did.
+
+**Why the milestone record is not trustworthy either.** Each item was closed once, against the release
+of its day, and nothing re-checks it. State of the 5+3 list as of 2026-10-02 (runtime 2.10.2):
+
+| Item | Closed | Holds today? |
+|---|---|---|
+| F-10 CI gate (#384) | 2026-06 | Unverified on 2.10.x — the external proof repo `core-audit-demo` last ran 2026-06-14 and no longer mirrors the starter rules |
+| F-27 local LLM (#401) | 2026-06 | No contrary evidence |
+| F-40 public API contract (#414) | 2026-06 | Weakened — the OpenAPI spec now lives in the private `core-platform`; the first real commercial consumer composes CORE in-process rather than through F-40 |
+| F-41/42/43 extension interfaces (#415–417) | 2026-06 | Probably holds (GRC document corpus as the non-code instantiation) |
+| F-48 open library distribution (#527) | 2026-06 | Holds as written (pip install, semver tags, CI publish on tag); `adopt-pack` is broken from the 2.10.2 wheel (packs not packaged) |
+| Docs polish (#561) | 2026-06-29 | Partly — a cold-room newcomer install passed on 2026-09-20 after inventing four prerequisite steps (fixed in #913); `docs/getting-started.md` still names commands that no longer exist |
+| Demo reliability (#562) | 2026-06-14 | Not re-verified since 2.10.x |
+| Signal quality (#563) | open | Parked 2026-07-07 as "metric punishes active development; system healthy (88–108 open)". Live dashboard 2026-10-02: 185 open, 513 created vs 426 resolved in 24h, 134 findings abandoned, 53 of 94 proposals failed today. The "system healthy" premise is not supported by current numbers; this is an open health question, not a metric artifact |
+
+The milestone was never reached, and would not be reached today.
+
+**What remains.** Nothing in D1, D5, D6 or D7 is in force. The 5+3 list above stays as a record of what
+"open base complete" was taken to mean in June 2026, not as a gate. Unaffected: ADR-084 D7 (the
+completeness commitment itself stays constitutional). Claims that CORE is ready for use are governed by
+`.specs/requirements/URS-production-readiness.md` and its attestation file, whose evidence is
+re-checked, not by this ADR.
