@@ -31,7 +31,6 @@ def test_ASTGateEngine_verify(tmp_path: Path) -> None:
     assert result.violations == []
 
 
-
 import pytest
 
 
@@ -54,3 +53,26 @@ async def test_ASTGateEngine_verify_context():
 
     mock_check.assert_called_once_with(context, params)
     assert result == expected_findings
+
+
+
+
+
+# ID: 7c11b0f9-a4c1-4477-b0bb-60fce336e3bc
+def test_ASTGateEngine(tmp_path: Path) -> None:
+    path_resolver = MagicMock()
+    source_file = tmp_path / "sample.py"
+    source_file.write_text("import os\n", encoding="utf-8")
+
+    engine = ASTGateEngine(path_resolver)
+    assert engine.engine_id == "ast_gate"
+
+    # metadata_only_diff is a special case returning ok=True without dispatch.
+    import asyncio
+
+    result = asyncio.run(
+        engine.verify(source_file, {"check_type": "metadata_only_diff"})
+    )
+    assert result.ok is True
+    assert result.engine_id == "ast_gate"
+    assert result.violations == []
