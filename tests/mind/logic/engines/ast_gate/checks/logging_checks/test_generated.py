@@ -18,3 +18,17 @@ def test_check_logger_not_presentation() -> None:
 
     assert isinstance(result, list)
     assert result == []
+
+
+
+
+
+# ID: cdd2abf7-3985-46ff-916c-a8f99e6f1dbe
+def test_LoggingChecks_check_no_print_statements() -> None:
+    source = "def f():\n    print('hello')\n"
+    tree = ast.parse(source)
+    findings = LoggingChecks.check_no_print_statements(tree)
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert "print()" in findings[0]
+    assert "Line 2" in findings[0]
