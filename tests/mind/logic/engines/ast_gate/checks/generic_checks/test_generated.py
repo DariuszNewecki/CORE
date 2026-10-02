@@ -84,3 +84,75 @@ def test_GenericASTChecks_is_selected():
         return_value="Base",
     ):
         assert GenericASTChecks.is_selected(cls, {"inherits_from": "Base"}) is True
+
+
+
+
+# ID: 84929fc4-8011-49a4-a28f-53b63399c185
+def test_GenericASTChecks():
+    # is_selected: empty selector -> True
+    node = ast.parse("x = 1").body[0]
+    assert GenericASTChecks.is_selected(node, {}) is True
+
+    # is_selected: name_regex match
+    func = ast.parse("def my_thing():\n    pass\n").body[0]
+    assert GenericASTChecks.is_selected(func, {"name_regex": r"^my_"}) is True
+    assert GenericASTChecks.is_selected(func, {"name_regex": r"^other_"}) is False
+
+    # is_selected: inherits_from
+    cls = ast.parse("class Foo(Base):\n    pass\n").body[0]
+    assert GenericASTChecks.is_selected(cls, {"inherits_from": "Base"}) is True
+    assert GenericASTChecks.is_selected(cls, {"inherits_from": "Other"}) is False
+
+    # is_selected: has_decorator
+    dec_func = ast.parse("@my_decorator\ndef f():\n    pass\n").body[0]
+    assert (
+        GenericASTChecks.is_selected(dec_func, {"has_decorator": "my_decorator"})
+        is True
+    )
+    assert (
+        GenericASTChecks.is_selected(dec_func, {"has_decorator": "not_here"}) is False
+    )
+
+    # validate_requirement: returns_type mismatch
+    plain = ast.parse("def f():\n    return 1\n").body[0]
+    err = GenericASTChecks.validate_requirement(
+        plain, {"check_type": "returns_type", "expected": "ActionResult"}
+    )
+    assert err is not None
+    assert "ActionResult" in err
+
+    # validate_requirement: forbidden_calls detection
+    printer = ast.parse("def f():\n    print(1)\n").body[0]
+    err = GenericASTChecks.validate_requirement(
+        printer, {"check_type": "forbidden_calls", "calls": ["print"]}
+    )
+    assert err is not None and "print" in err
+
+    # validate_requirement: forbidden_imports detection
+    importer = ast.parse("import rich\n").body[0]
+    err = GenericASTChecks.validate_requirement(
+        importer, {"check_type": "forbidden_imports", "imports": ["rich"]}
+    )
+    assert err is not None and "rich" in err
+
+    # validate_requirement: decorator_args missing kwarg
+    dec = ast.parse("@atomic_action\ndef f():\n    pass\n").body[0]
+    err = GenericASTChecks.validate_requirement(
+        dec,
+        {
+            "check_type": "decorator_args",
+            "decorator": "atomic_action",
+            "required_kwargs": ["action_id"],
+        },
+    )
+    assert err is not None and "action_id" in err
+
+    # happy path: valid returns type -> None
+    good = ast.parse("def f() -> ActionResult:\n    return ActionResult()\n").body[0]
+    assert (
+        GenericASTChecks.validate_requirement(
+            good, {"check_type": "returns_type", "expected": "ActionResult"}
+        )
+        is None
+    )
