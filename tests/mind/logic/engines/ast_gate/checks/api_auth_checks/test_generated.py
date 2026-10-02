@@ -39,7 +39,6 @@ def test_ApiAuthChecks():
         assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
 
 
-
 from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
 
 
@@ -55,3 +54,41 @@ def test_check_route_module_must_declare_exposure() -> None:
         result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
 
     assert result == []
+
+
+
+import mind.logic.engines.ast_gate.checks.api_auth_checks as api_auth_checks
+
+
+# ID: f5c5231a-999c-41bc-9d87-fab129fae109
+def test_ApiAuthChecks_check_sensitive_route_must_be_gated() -> None:
+    check_sensitive_route_must_be_gated = getattr(
+        api_auth_checks, "check_sensitive_route_must_be_gated", None
+    )
+    if check_sensitive_route_must_be_gated is None:
+        import pytest
+
+        pytest.skip("check_sensitive_route_must_be_gated not available")
+
+    source = (
+        "from fastapi import APIRouter, Depends\n"
+        "from x import require_governor\n"
+        "ROUTER_EXPOSURE = 'user-facing'\n"
+        "router = APIRouter()\n"
+        "\n"
+        "@router.post('/ungated')\n"
+        "async def ungated_route():\n"
+        "    return {}\n"
+        "\n"
+        "@router.post('/gated', dependencies=[require_governor])\n"
+        "async def gated_route():\n"
+        "    return {}\n"
+    )
+    tree = ast.parse(source)
+
+    findings = check_sensitive_route_must_be_gated(tree)
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert "ungated_route" in findings[0]
+    assert "require_governor" in findings[0]
