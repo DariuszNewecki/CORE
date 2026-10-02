@@ -32,3 +32,29 @@ async def test_RegexGateEngine_verify() -> None:
     assert result.ok is True
     assert result.violations == []
     assert result.engine_id == "regex_gate"
+
+
+import asyncio
+
+
+# ID: def93730-5b34-472b-9ffd-2976d70e786c
+def test_RegexGateEngine():
+    async def _run():
+        engine = RegexGateEngine()
+        target = MagicMock()
+        target.name = "good_name.py"
+        target.read_text = MagicMock(return_value="import os\n# header\nprint('ok')\n")
+
+        params = {
+            "naming_pattern": r"^good_name\.py$",
+            "required_patterns": [r"import os"],
+            "forbidden_patterns": [r"SECRET_KEY"],
+        }
+
+        result = await engine.verify(target, params)
+
+        assert result.ok is True
+        assert result.violations == []
+        assert result.engine_id == "regex_gate"
+
+    asyncio.run(_run())
