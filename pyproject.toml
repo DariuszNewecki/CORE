@@ -129,7 +129,7 @@ aiosqlite = "^0.22.1"
 
 # Code Quality
 pre-commit = "^4.6.2"
-mypy = "^1.11"
+mypy = "^2.3"
 types-PyYAML = "^6.0"
 types-jsonschema = "^4.0"
 ruff = "^0.16.7"
