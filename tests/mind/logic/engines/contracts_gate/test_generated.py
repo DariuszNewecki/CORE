@@ -43,3 +43,21 @@ async def test_contracts_gate_engine_verify() -> None:
     assert result.engine_id == "contracts_gate"
     assert len(result.violations) == 1
     assert "some_check" in result.violations[0]
+
+
+import asyncio
+
+
+# ID: f8f61296-6370-41de-88e4-b34c1ac388c7
+def test_ContractsGateEngine():
+    engine = ContractsGateEngine()
+
+    params = {"check_type": "layer_scope_coherence"}
+
+    result = asyncio.run(engine.verify(Path("/tmp/some_file.py"), params))
+
+    assert result.ok is False
+    assert "layer_scope_coherence" in result.message
+    assert result.engine_id == engine.engine_id
+    assert len(result.violations) == 1
+    assert "layer_scope_coherence" in result.violations[0]
