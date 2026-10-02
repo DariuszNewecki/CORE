@@ -48,3 +48,18 @@ def test_ProtectedNamespaceAccessCheck_check_protected_namespace_access() -> Non
 
     assert result == []
     assert gateway_result == []
+
+
+
+
+
+# ID: 3460788d-f56c-4b93-999c-c683c3337951
+def test_ProtectedNamespaceAccessCheck():
+    import ast
+
+    # Files inside the sanctioned gateway segment are ignored entirely.
+    gateway_result = ProtectedNamespaceAccessCheck.check_protected_namespace_access(
+        ast.parse("x = yaml.safe_load(path)"),
+        Path("src/shared/infrastructure/intent/foo.py"),
+    )
+    assert gateway_result == []
