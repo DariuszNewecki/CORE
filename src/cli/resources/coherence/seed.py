@@ -208,10 +208,11 @@ async def export_command(
     file_handler = FileHandler(str(repo_root))
     file_handler.ensure_dir(str(output.parent.relative_to(repo_root)))
     written = 0
-    # SANCTUARY: see .intent/enforcement/sanctuaries.yaml (id: coherence_seed_streaming_export).
-    # Variable-receiver pathlib open; detection-inert in no_direct_writes sensor.
-    # Registered under ADR-137 D2.
-    with output.open("w", encoding="utf-8") as fh:
+    # Streamed through FileHandler's governed channel (ADR-166 D4): the
+    # collection is paginated and need not fit in memory.
+    with file_handler.open_text_for_write(
+        str(output.resolve().relative_to(repo_root.resolve()))
+    ) as fh:
         for record in records:
             fh.write(
                 json.dumps(

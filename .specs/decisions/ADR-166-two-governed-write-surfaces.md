@@ -322,3 +322,16 @@ are unchanged.
 CORE's own `.intent/` (never written by code, ADR-130 D1) from an adopter's `.intent/` (written
 only by the writer's declared delivery operations, which refuse CORE's source checkout), per
 the governor's option-A ruling of 2026-10-02.
+
+---
+
+> **Note (2026-10-02, unit 1 landed):** with the corrected detector (D5a) the re-inventory found
+> two sites, not three. `body/maintenance/scripts/context_export.py:137` was **wrongly** listed
+> as a detector-blind write: it is `tarfile.open(fileobj=buffer, mode="w:gz")` into an in-memory
+> buffer that is then persisted through `FileHandler.write_runtime_bytes` — already governed. The
+> detector treats `tarfile.open(fileobj=…)` as not a filesystem write. `cli/resources/coherence/seed.py`
+> was migrated in the same change (the D4 streaming write, `FileHandler.open_text_for_write`,
+> moved forward from unit 3 so the newly visible blocking finding did not land unresolved), and its
+> sanctuary entry was removed. The dead `will/test_generation/sandbox.py` exclusion was removed
+> from both write rules. `action_logger`'s append is now detectable; its mapping exclusion still
+> covers it until unit 3.

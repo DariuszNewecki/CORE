@@ -518,7 +518,7 @@ class PurityChecks:
                 )
 
             for predicate, display in candidates:
-                if predicate == "write_mode" and not _is_write_mode(n):
+                if predicate == "write_mode" and not _is_write_mode(n, qualified):
                     continue
                 violations.append(
                     f"Direct write detected: '{display}' "
@@ -637,11 +637,43 @@ class PurityChecks:
         return ["Module is missing `from __future__ import annotations` (PEP 563)"]
 
 
-def _is_write_mode(node: ast.Call) -> bool:
-    """Internal helper to detect 'w' or 'a' in file open() calls."""
-    # Check positional arguments and keyword 'mode' argument
-    for arg in node.args + [k.value for k in node.keywords if k.arg == "mode"]:
-        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-            if any(m in arg.value for m in "wa"):
-                return True
-    return False
+# Calls whose mode is the SECOND positional argument: builtin ``open(file, mode)``
+# and ``tarfile.open(name, mode)``. Every other ``.open`` attribute call is read as
+# ``Path.open(mode)``, mode FIRST. The ``mode=`` keyword wins in all cases (ADR-166 D5a).
+_MODE_SECOND_POSITIONAL = frozenset({"open", "tarfile.open"})
+_MODE_CHARS = frozenset("rwxabt+")
+_WRITE_MODE_CHARS = frozenset("wxa+")
+
+
+def _mode_argument(node: ast.Call, qualified: str | None) -> ast.expr | None:
+    for kw in node.keywords:
+        if kw.arg == "mode":
+            return kw.value
+    index = 1 if qualified in _MODE_SECOND_POSITIONAL else 0
+    return node.args[index] if len(node.args) > index else None
+
+
+def _is_write_mode(node: ast.Call, qualified: str | None = None) -> bool:
+    """True iff the call's mode argument opens for writing (ADR-166 D5a).
+
+    Reads only the mode argument for the call's shape (see
+    ``_MODE_SECOND_POSITIONAL``) — never the file-name argument — and accepts
+    it only if it is a well-formed mode: one of ``r w x a`` plus optional
+    ``b t +``, with an optional tarfile compression suffix (``w:gz``, ``r|bz2``).
+    Writing modes are those containing ``w``, ``x``, ``a`` or ``+``. A missing
+    or non-literal mode is a read (Python's default is ``"r"``).
+    """
+    if qualified == "tarfile.open" and any(k.arg == "fileobj" for k in node.keywords):
+        # Archive written into a caller-supplied file object (e.g. an
+        # in-memory buffer later persisted through FileHandler): not a
+        # filesystem write by this call.
+        return False
+    arg = _mode_argument(node, qualified)
+    if not (isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+        return False
+    core = arg.value.split(":", 1)[0].split("|", 1)[0]
+    if not core or len(core) > 4 or not set(core) <= _MODE_CHARS:
+        return False
+    if sum(core.count(c) for c in "rwxa") != 1:
+        return False
+    return bool(set(core) & _WRITE_MODE_CHARS)

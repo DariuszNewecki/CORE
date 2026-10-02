@@ -35,16 +35,3 @@ sanctuaries:
       extracting a lower-level append surface from Body infrastructure.
     closure_adr: ADR-137
     deadline: open
-
-  - id: coherence_seed_streaming_export
-    site: src/cli/resources/coherence/seed.py
-    rule_id: governance.mutation_surface.filehandler_required
-    detection_inert_pattern: "variable-receiver pathlib open -- bare attr 'open' not caught by qualified-name matcher"
-    rationale: >
-      Streaming JSONL export of paginated Qdrant results to a CLI-specified output
-      path. FileHandler.write_runtime_text requires materializing the full collection
-      in memory before writing; that is impractical for arbitrarily large Qdrant
-      collections. The directory creation above the write is routed through
-      FileHandler (governed); only the streaming write itself is the sanctuary site.
-    closure_adr: ADR-137
-    deadline: open

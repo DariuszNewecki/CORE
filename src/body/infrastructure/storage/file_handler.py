@@ -13,10 +13,11 @@ import ast
 import json
 import shutil
 import uuid
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from body.governance.intent_guard import get_intent_guard
 from mind.governance.violation_report import ConstitutionalViolationError
@@ -194,6 +195,45 @@ class FileHandler:
         else:
             self._atomic_write_bytes(abs_path, content)
         return FileOpResult("success", "Wrote file", rel_path)
+
+    @contextmanager
+    # ID: d1be4e71-a2f8-465c-8aea-a5a3849a6d7d
+    def open_text_for_write(
+        self, rel_path: str, *, impact: str | None = None
+    ) -> Iterator[TextIO]:
+        """Stream text into a file through the governed channel (ADR-166 D4).
+
+        For writers that cannot materialise the whole content first (e.g. a
+        paginated export). The path is guarded exactly like ``write`` — target
+        class resolved, IntentGuard consulted, repository containment
+        enforced — before anything is opened. Output goes to a sibling
+        ``.tmp`` file that replaces the target only when the block exits
+        cleanly; on any exception the temp file is removed and the target is
+        untouched. ``.py`` targets are refused: source-shape checks (syntax,
+        ``# ID:`` anchors) need the whole file, so use ``write``.
+        """
+        rel_path = rel_path.strip().removeprefix("./")
+        if rel_path.endswith(".py"):
+            raise ValueError(
+                f"Streaming write refused for {rel_path}: .py needs the whole "
+                "file for source-shape checks; use write()."
+            )
+        target_class = resolve_target_class(rel_path)
+        self._guard_paths(
+            [rel_path],
+            impact=impact,
+            target_classes={rel_path: target_class},
+        )
+        abs_path = self._resolve_repo_path(rel_path)
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = abs_path.with_suffix(abs_path.suffix + ".tmp")
+        try:
+            with tmp.open("w", encoding="utf-8") as handle:
+                yield handle
+            tmp.replace(abs_path)
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
 
     # ID: dea4534e-f63a-4b02-81fc-67cb12bf8fb8
     def write_runtime_text(

@@ -99,7 +99,9 @@ operations:
     lstat:             { op_class: read,     match: leaf }
     match:             { op_class: neutral,  match: leaf }
     mkdir:             { op_class: write,    match: leaf }
-    open:              { op_class: write,    match: qualified, predicate: write_mode }
+    # leaf (ADR-166 D5a): a qualified pathlib entry is never consulted by the
+    # no_direct_writes check, so Path.open("a") went undetected.
+    open:              { op_class: write,    match: leaf,      predicate: write_mode }
     owner:             { op_class: read,     match: leaf }
     read_bytes:        { op_class: read,     match: leaf }
     read_text:         { op_class: read,     match: leaf }
@@ -172,3 +174,7 @@ operations:
     "shutil.copy2":    { op_class: write, match: qualified }
     "shutil.move":     { op_class: write, match: qualified }
     "shutil.rmtree":   { op_class: write, match: qualified }
+
+    # tarfile archive creation (ADR-166 D5a): mode is the second argument, as for
+    # builtin open; write_mode reads it there.
+    "tarfile.open":    { op_class: write, match: qualified, predicate: write_mode }
