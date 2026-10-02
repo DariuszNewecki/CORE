@@ -65,8 +65,6 @@ async def test_artifact_gate_engine_verify(tmp_path: Path) -> None:
     assert result is expected
 
 
-
-
 # ID: 9b615a1b-da7c-4897-a013-d66ebc8a1275
 def test_ArtifactGateEngine_is_context_level_for():
     # None -> False (per ADR-076 D1/D2/D3)
@@ -102,3 +100,37 @@ def test_ArtifactGateEngine_is_context_level_for():
 
     # Unknown check type -> False
     assert ArtifactGateEngine.is_context_level_for("unknown_check_type") is False
+
+
+
+
+
+# ID: 97385fd3-710a-4150-af9a-bf42889ef33a
+def test_ArtifactGateEngine(tmp_path: Path) -> None:
+    manifest = tmp_path / "model.yaml"
+    manifest.write_text(
+        "id: my_prompt\n"
+        "version: '1.0'\n"
+        "role: analyst\n"
+        "success_criteria:\n"
+        "  - does the thing\n"
+        "input:\n"
+        "  required:\n"
+        "    - question\n"
+        "output:\n"
+        "  format: markdown\n",
+        encoding="utf-8",
+    )
+
+    engine = ArtifactGateEngine()
+    with patch(
+        "mind.logic.engines.artifact_gate.load_cognitive_roles",
+        return_value={"analyst"},
+    ):
+        result = __import__("asyncio").run(
+            engine.verify(manifest, {"check_type": "required_fields"})
+        )
+
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "artifact_gate"
