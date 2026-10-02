@@ -238,3 +238,27 @@ def test_overlay_hash(tmp_path):
     import hashlib
 
     assert overlay_hash(None) == hashlib.sha256().hexdigest()
+
+
+
+from shared.infrastructure.intent.target_intent_assembly import AssembledIntent
+
+
+# ID: db22f221-e0cf-40e1-9502-28f977d2b9c1
+def test_AssembledIntent() -> None:
+    intent_root = Path("/tmp/intent")
+    floor_hash = "abc123"
+    overlay_hash = "def456"
+    overlay_files = ("a.py", "b.py")
+
+    assembled = AssembledIntent(
+        intent_root=intent_root,
+        floor_hash=floor_hash,
+        overlay_hash=overlay_hash,
+        overlay_files=overlay_files,
+    )
+
+    assert assembled.intent_root == intent_root
+    assert assembled.floor_hash == floor_hash
+    assert assembled.overlay_hash == overlay_hash
+    assert assembled.overlay_files == overlay_files
