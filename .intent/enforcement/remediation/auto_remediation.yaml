@@ -52,8 +52,9 @@
 #   fix.placeholders
 #
 # FLOW IDs MUST match exactly what is registered in body/flows/registry.
-# Registered flows (as of 2026-05-05):
-#   flow.build_tests, flow.fix_code, flow.dev_sync, flow.sync_state
+# Registered flows (as of 2026-10-02):
+#   flow.audit_remediate_validate, flow.build_test_for_symbol, flow.dev_sync,
+#   flow.fix_code, flow.fix_modularity, flow.sync_state
 
 mappings:
   # ===========================================================================
@@ -166,31 +167,6 @@ mappings:
       Hardcoded cognitive role string replaced with a governed constant from
       the cognitive_roles registry. LLM-assisted rewrite via CoderAgent.
       Human approval required before execution. See #133.
-    status: ACTIVE
-
-  # ===========================================================================
-  # TIER 2b: ACTIVE -- flow-based (confidence >= 0.85)
-  # Dispatched via FlowExecutor. Proposals require human approval before
-  # execution (compute_risk() classifies flows as "moderate" universally).
-  # ===========================================================================
-
-  test.missing:
-    flow: flow.build_tests
-    confidence: 0.85
-    description: >
-      Source file has no corresponding test file. Dispatches flow.build_tests
-      which runs: build.tests (CoderAgent generates test), then fix.imports,
-      fix.headers, fix.format as optional auto-heal steps. Human approval
-      required before execution.
-    status: ACTIVE
-
-  test.failure:
-    flow: flow.build_tests
-    confidence: 0.85
-    description: >
-      Existing test file has failures. Dispatches flow.build_tests to regenerate
-      the test file, then apply fix.imports, fix.headers, fix.format as optional
-      auto-heal steps. Human approval required before execution.
     status: ACTIVE
 
   # ===========================================================================
