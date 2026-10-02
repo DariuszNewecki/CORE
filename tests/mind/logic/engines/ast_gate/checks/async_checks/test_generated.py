@@ -28,9 +28,6 @@ def test_check_no_task_return_from_sync_cli() -> None:
     assert findings == ["Line 3: Sync function 'sync_handler' returns Task"]
 
 
-
-
-
 # ID: ce5ccd08-b418-42b6-af6b-43a3ac7892ab
 def test_AsyncChecks_check_no_module_level_async_engine() -> None:
     source = "engine = create_async_engine('sqlite+aiosqlite://')\n"
@@ -41,3 +38,45 @@ def test_AsyncChecks_check_no_module_level_async_engine() -> None:
     assert isinstance(findings, list)
     assert len(findings) == 1
     assert "create_async_engine()" in findings[0]
+
+
+
+
+
+# ID: ce87c8e4-d463-4b00-b524-dca160d79213
+def test_AsyncChecks() -> None:
+    # Happy path for the safe/defensive patterns across the static methods.
+
+    # check_restricted_event_loop_creation: no forbidden calls -> empty findings
+    tree = ast.parse("asyncio.run(main())")
+    assert AsyncChecks.check_restricted_event_loop_creation(tree, []) == []
+
+    # Defensive get_running_loop + is_running guard makes asyncio.run() safe
+    guarded_source = (
+        "import asyncio\n"
+        "def main():\n"
+        "    try:\n"
+        "        loop = asyncio.get_running_loop()\n"
+        "    except RuntimeError:\n"
+        "        loop = None\n"
+        "    if loop and loop.is_running():\n"
+        "        pass\n"
+        "    else:\n"
+        "        asyncio.run(other())\n"
+    )
+    guarded_tree = ast.parse(guarded_source)
+    assert (
+        AsyncChecks.check_restricted_event_loop_creation(guarded_tree, ["asyncio.run"])
+        == []
+    )
+
+    # No module-level async engine -> no findings
+    safe_module = ast.parse("engine = None\n")
+    assert AsyncChecks.check_no_module_level_async_engine(safe_module) == []
+
+    # No import-time async singletons when disallowed list is empty
+    assert AsyncChecks.check_no_import_time_async_singletons(safe_module, []) == []
+
+    # Sync function that does not return a Task/Future -> no findings
+    sync_fn = ast.parse("def f():\n    return 42\n")
+    assert AsyncChecks.check_no_task_return_from_sync_cli(sync_fn) == []
