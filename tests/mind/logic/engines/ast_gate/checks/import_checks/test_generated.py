@@ -15,3 +15,29 @@ def test_ImportChecks() -> None:
 
     order_findings = ImportChecks.check_import_order(tree, {})
     assert isinstance(order_findings, list)
+
+
+
+
+
+# ID: 30750ac2-503e-4370-8038-00ba2f4f790e
+def test_ImportChecks_check_import_order() -> None:
+    obj = ImportChecks()
+
+    source = (
+        "from __future__ import annotations\n"
+        "import os\n"
+        "import sys\n"
+        "import requests\n"
+        "from mind.logic import foo\n"
+    )
+    tree = ast.parse(source)
+    params = {
+        "stdlib_modules": ["os", "sys"],
+        "internal_roots": ["mind"],
+    }
+
+    findings = obj.check_import_order(tree, params, source)
+
+    assert isinstance(findings, list)
+    assert findings == []
