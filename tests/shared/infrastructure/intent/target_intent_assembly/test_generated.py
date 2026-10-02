@@ -216,3 +216,25 @@ def test_assemble_target_intent(tmp_path: Path) -> None:
     assert "overlay_file.txt" in result.overlay_files
     assert (intent_root / "floor_file.txt").exists()
     assert (intent_root / "overlay_file.txt").exists()
+
+
+from shared.infrastructure.intent.target_intent_assembly import overlay_hash
+
+
+# ID: c2682600-cf17-4644-9f1b-bbc0e3130232
+def test_overlay_hash(tmp_path):
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    (overlay / "a.txt").write_text("hello", encoding="utf-8")
+    (overlay / "b.txt").write_text("world", encoding="utf-8")
+
+    result = overlay_hash(overlay)
+
+    assert isinstance(result, str)
+    assert len(result) == 64
+    # Deterministic
+    assert overlay_hash(overlay) == result
+    # None hashes to the empty list digest
+    import hashlib
+
+    assert overlay_hash(None) == hashlib.sha256().hexdigest()
