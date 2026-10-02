@@ -197,9 +197,6 @@ def test_PurityChecks_check_decorator_args():
     assert violations == []
 
 
-
-
-
 # ID: de09b575-6c7f-4021-8311-486d427c47d0
 def test_PurityChecks_check_forbidden_primitives():
     source = "eval('1+1')\n"
@@ -220,3 +217,20 @@ def test_PurityChecks_check_forbidden_primitives():
     assert isinstance(violations, list)
     assert len(violations) == 1
     assert "eval" in violations[0]
+
+
+
+
+# ID: f2c90d4d-2024-403e-b678-ad8b9bbd9fb4
+def test_PurityChecks_check_stable_id_anchor():
+    source = (
+        "# ID: FOO-1\n"
+        "def public_func():\n"
+        "    return 1\n"
+        "\n"
+        "\n"
+        "def _private_func():\n"
+        "    return 2\n"
+    )
+    violations = PurityChecks.check_stable_id_anchor(source)
+    assert violations == []
