@@ -137,10 +137,15 @@ Machine-specific infrastructure — never "fix" paths or settings here. Your con
 mount the repo at a path other than the server's `/opt/dev/CORE`; that is a container
 artifact, not a bug.
 
+"Never" here means **not autonomous**, not "hand it back". When a task needs a step on this
+list, name the step and why, ask once ("completing this needs X, which touches Y — may I?"),
+and do it on a yes. Do not tell the governor to do it themselves.
+
 - `.env`, `.venv/`, `*.pth` — environment/venv/path config for this machine
 - `var/` — runtime data; read-only unless explicitly asked
-- Anything outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md` —
-  unless an operator grant is in force (see Two roles, below)
+- Anything outside `src/`, `tests/`, `.intent/`, `.specs/`, `docs/`, `var/prompts/`,
+  `CLAUDE.md` — unless an operator grant is in force (see Two roles, below). `docs/` is in
+  scope so consequence documentation ships in the same change-set as the code it describes.
 - `/tmp/` — **prohibited.** All temp writes use `var/tmp/` (repo-relative). Never
   `tempfile.gettempdir()` or any `tempfile` default outside the repo; pass
   `dir=repo_root / "var" / "tmp"` explicitly.
