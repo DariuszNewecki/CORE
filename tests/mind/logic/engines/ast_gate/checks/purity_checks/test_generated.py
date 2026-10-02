@@ -185,8 +185,6 @@ def test_PurityChecks_check_forbidden_assignments() -> None:
     assert not any("SAFE_CONSTANT" in violation for violation in violations)
 
 
-
-
 # ID: 0f63ab4f-44a0-483d-abb5-e4d01a6353ed
 def test_PurityChecks_check_decorator_args():
     source = "@requires_permission(role='admin')\ndef foo():\n    pass\n"
@@ -197,3 +195,28 @@ def test_PurityChecks_check_decorator_args():
     )
 
     assert violations == []
+
+
+
+
+
+# ID: de09b575-6c7f-4021-8311-486d427c47d0
+def test_PurityChecks_check_forbidden_primitives():
+    source = "eval('1+1')\n"
+    tree = ast.parse(source)
+
+    with patch.object(
+        PurityChecks,
+        "check_forbidden_primitives",
+        wraps=PurityChecks.check_forbidden_primitives,
+    ):
+        violations = PurityChecks.check_forbidden_primitives(
+            tree,
+            forbidden=["eval"],
+            file_path=None,
+            allowed_domains=None,
+        )
+
+    assert isinstance(violations, list)
+    assert len(violations) == 1
+    assert "eval" in violations[0]
