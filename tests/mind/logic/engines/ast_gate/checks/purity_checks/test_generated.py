@@ -234,9 +234,6 @@ def test_PurityChecks_check_stable_id_anchor():
     assert violations == []
 
 
-
-
-
 # ID: 8d0c621d-6c06-43c3-8c0f-d8614a546970
 def test_PurityChecks_check_docstrings_present() -> None:
     code = (
@@ -261,3 +258,64 @@ def test_PurityChecks_check_docstrings_present() -> None:
     assert "PublicClass" in joined
     assert "public_with_doc" not in joined
     assert "_PrivateClass" not in joined
+
+
+
+
+
+# ID: a5d79bdb-f73b-477d-b065-75d49d94e926
+def test_PurityChecks():
+    # Happy path: a well-formed, publicly documented, properly anchored module
+    source = (
+        "from __future__ import annotations\n"
+        "\n"
+        "# ID: 11111111-2222-3333-4444-555555555555\n"
+        "def public_func():\n"
+        '    """Docstring for public function."""\n'
+        "    return 1\n"
+    )
+    tree = ast.parse(source)
+
+    # Stable ID anchor present on public symbol -> no violations.
+    assert PurityChecks.check_stable_id_anchor(source) == []
+
+    # No orphan anchors in this clean source.
+    with patch(
+        "mind.logic.engines.ast_gate.checks.purity_checks.find_orphan_id_lines",
+        return_value=[],
+    ):
+        assert PurityChecks.check_orphan_id_anchors(source) == []
+
+    # Docstrings present on public defs.
+    assert PurityChecks.check_docstrings_present(tree) == []
+
+    # No forbidden decorators.
+    assert PurityChecks.check_forbidden_decorators(tree, ["deprecated"]) == []
+
+    # No forbidden primitives.
+    assert PurityChecks.check_forbidden_primitives(tree, ["eval", "exec"]) == []
+
+    # No forbidden module-level assignments.
+    assert PurityChecks.check_forbidden_assignments(tree, ["LLM_MODELS"]) == []
+
+    # No print statements.
+    assert PurityChecks.check_no_print_statements(tree) == []
+
+    # No forbidden imports/calls.
+    assert (
+        PurityChecks.check_forbidden_imports_and_calls(
+            tree, ["rich.console"], ["Console()"]
+        )
+        == []
+    )
+
+    # tempfile checks: no tempfile calls -> clean.
+    assert PurityChecks.check_tempfile_default_dir(tree) == []
+
+    # __future__ import annotations present -> clean.
+    assert PurityChecks.check_future_annotations(tree) == []
+
+    # Class-level constants are wired as expected.
+    assert "# ID:" in PurityChecks._ID_ANCHOR_PREFIXES
+    assert "atomic_action" in PurityChecks._ACTION_DECORATORS
+    assert "command" in PurityChecks._COMMAND_DECORATORS
