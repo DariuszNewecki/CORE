@@ -86,3 +86,52 @@ def test_build_json_report():
     mock_payload.assert_called_once_with(result, "strict")
     assert output == json.dumps(payload, indent=2)
     assert json.loads(output) == payload
+
+
+
+from cli.resources.demo.rendering import render_summary
+
+
+# ID: 35ba4ebb-96b5-413b-9bfc-6d5784b63395
+def test_render_summary() -> None:
+    console = MagicMock()
+    result = MagicMock()
+    result.ok = True
+    result.assertions = []
+
+    payload = {
+        "run_id": "run-123",
+        "assessed_commit": "abc123",
+        "finding": {
+            "finding_id": "f-1",
+            "rule": "rule-x",
+            "path": "src/foo.py",
+            "original_status": "open",
+        },
+        "proposal": {
+            "proposal_id": "p-1",
+            "actions": ["a1"],
+            "risk": "low",
+            "approval_authority": "policy-eng",
+            "approver_identity": "svc-account",
+        },
+        "execution": {
+            "claimer": "claimer-1",
+            "terminal_status": "succeeded",
+            "pre_execution_sha": "aaa",
+            "post_execution_sha": "bbb",
+            "files_changed": 2,
+        },
+        "resolved_finding_status": "closed",
+        "reaudit": {"clean": True, "match_count": 0},
+        "operator_confirmation": "confirmed",
+        "cleanup": {"workspace_removed": True, "retained_path": None},
+    }
+
+    with patch(
+        "cli.resources.demo.rendering._report_payload",
+        return_value=payload,
+    ):
+        render_summary(console, result, "operator")
+
+    assert console.print.called
