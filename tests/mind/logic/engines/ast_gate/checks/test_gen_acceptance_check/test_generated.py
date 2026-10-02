@@ -16,3 +16,17 @@ def test_TestGenAcceptanceCheck_check() -> None:
     result = TestGenAcceptanceCheck.check(tree, file_path)
 
     assert isinstance(result, list)
+
+
+
+
+
+# ID: a395d591-c13e-4a78-8323-cc58fd6c9daa
+def test_TestGenAcceptanceCheck() -> None:
+    source = "CompositeAcceptanceCondition([\n    PytestAcceptanceCondition(),\n])\n"
+    tree = ast.parse(source)
+    file_path = Path("wiring.py")
+
+    violations = TestGenAcceptanceCheck.check(tree, file_path)
+
+    assert violations == []
