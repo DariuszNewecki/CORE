@@ -20,17 +20,17 @@ AI coding tools generate code fast. Too fast to stay sane.
 Without enforcement, AI-assisted codebases accumulate invisible debt — layer violations, broken architectural contracts, files that grow unbounded. And agents, left unconstrained, will eventually do something like this:
 
 ```
-Agent: "I'll delete the production database to fix this bug"
+Agent: "This rule keeps failing my change — I'll loosen the rule"
 System: Executes.
 You:    😱
 ```
 
-CORE makes that *class* of violation impossible — structurally blocked before execution, not detected after the fact. (Which surfaces hard-block versus advisory-report is mapped under *Current proof status* below.)
+CORE blocks what its constitution forbids — structurally, before execution, not detected after the fact. Only what the constitution actually declares is blocked, and which surfaces hard-block versus advisory-report is mapped under *Current proof status* below.
 
 ```
-Agent: "I'll delete the production database to fix this bug"
-Constitution: BLOCKED — Violates data.ssot.database_primacy
-System: Execution halted. Violation logged.
+Agent: "This rule keeps failing my change — I'll loosen the rule"
+Constitution: BLOCKED — governance.constitution.read_only (.intent/ is never writable at runtime)
+System: Write refused before it happens. Violation logged.
 You:    😌
 ```
 
@@ -111,7 +111,7 @@ Governance is executable.
 
 ## 📋 Live Audit Trail
 
-Every enforced action records its lineage. Two consequence chains, pulled live from the CORE database — same schema, two different authorities:
+Every enforced action records its lineage. Two consequence chains, taken from the CORE database (snapshot of May 2026) — same schema, two different authorities:
 
 **Autonomous path** — risk-classified as safe, system self-approved
 
@@ -212,7 +212,7 @@ flowchart TD
 
 Within CORE:
 
-- No file outside an autonomy lane can be modified
+- Nothing is self-approved outside the safe-auto-approval envelope (five `fix.*` actions and test generation, `.py` files under `src/` and `tests/` only) — every other change waits for a human
 - No structural rule can be bypassed silently
 - No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
 - Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — see *Current proof status*)
@@ -412,14 +412,14 @@ run is retained as evidence of continuity and was explicitly not accepted as G4 
 "Demonstrable on demand" and "reliable unattended" are different claims, and CORE only makes
 the first one today.
 
-All four A3 integrity gates are now closed. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
+All four A3 integrity gates were closed in May 2026. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
 
 These are the **A3 plan's closure gates** ([`CORE-A3-plan.md`](.specs/decisions/CORE-A3-plan.md), closed 2026-05), a different vocabulary from the fifteen production-readiness gates above — the A3 gates say the autonomous loop *exists and is governed*; the readiness gates say whether it is *proven fit to ship*, and today it is not. A3 plan gates closed is why the ladder still reads "A3 ← current"; G4 unmet is why it reads ⚠️ rather than ✅.
 
 | A3 gate | Meaning | Status |
 |---------|---------|--------|
 | A3-G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
-| A3-G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ |
+| A3-G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ at closure (2026-05) — **not holding on 2026-10-02**: 513 findings created vs 426 resolved in 24h, 185 open, 134 abandoned |
 | A3-G3 — Consequence chain | Causality queryable end-to-end | ✅ |
 | A3-G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ |
 

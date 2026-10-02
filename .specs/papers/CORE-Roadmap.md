@@ -10,13 +10,21 @@ doctrine_tier: informational
 
 **Document type:** Strategic paper — sequencing surface
 **Location:** `.specs/papers/CORE-Roadmap.md`
-**Status:** Authoritative (replaces prior shape 2026-06-03)
+**Status:** Stale since 2026-07 — the milestone it sequences around is retired (see §1 correction); kept as record pending a rewrite
 **Audience:** Internal — governance, engineering sequencing, commercial planning, investor conversation
 **Authority floor:** This document owns sequencing + the single product milestone. Substance (feature definitions, tier definitions, decisions) lives in the canonical surfaces this doc references. When this doc disagrees with the registry, the registry wins.
 
 ---
 
 ## 1. Purpose
+
+> **Correction (2026-10-02).** The milestone below no longer governs anything. ADR-085, which made it
+> the gate for commercial engineering, is **retired**: commercial engineering began 2026-07-05
+> (`core-platform`) without the milestone being reached or the gate being relaxed. The milestone was
+> never reached and would not be reached today — several June closures are not re-verified on 2.10.x
+> and signal quality (#563) is failing. See the retirement section of ADR-085 for the item-by-item
+> state. §1–§2 are kept as the record of what was planned; "commercial ships after the milestone"
+> (§1, §3) did not happen. Readiness claims are governed by `.specs/requirements/URS-production-readiness.md`.
 
 CORE has one named, achievable, definable milestone:
 
