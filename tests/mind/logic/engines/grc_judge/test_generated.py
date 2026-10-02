@@ -38,3 +38,49 @@ def test_GRCJudgeEngine_verify(tmp_path: Path) -> None:
     assert result.engine_id == "grc_judge"
     assert result.extra["coverage"] == "satisfied"
     prompt_model.invoke.assert_awaited_once()
+
+
+from unittest.mock import patch
+
+
+# ID: b0adc47d-2f7e-4d23-adaf-4dd0d7216f2a
+def test_GRCJudgeEngine(tmp_path: Path) -> None:
+    prompt_model = MagicMock()
+    prompt_model.invoke = AsyncMock(
+        return_value='{"violation": false, "coverage": "satisfied", "reasoning": "ok"}'
+    )
+
+    path_resolver = MagicMock()
+    llm_client = MagicMock()
+
+    with patch(
+        "mind.logic.engines.grc_judge.PromptModel.load",
+        return_value=prompt_model,
+    ):
+        engine = GRCJudgeEngine(path_resolver, llm_client)
+
+    doc = tmp_path / "doc.txt"
+    doc.write_text("Some compliance document content.", encoding="utf-8")
+
+    result = asyncio.run(
+        engine.verify(
+            doc,
+            {
+                "instruction": "Does the document establish access control?",
+                "rationale": "Control AC-1",
+            },
+        )
+    )
+
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "grc_judge"
+    assert result.extra.get("coverage") == "satisfied"
+
+    prompt_model.invoke.assert_awaited_once()
+    call_kwargs = prompt_model.invoke.await_args.kwargs
+    assert call_kwargs["context"]["instruction"] == (
+        "Does the document establish access control?"
+    )
+    assert call_kwargs["context"]["content"] == "Some compliance document content."
+    assert call_kwargs["client"] is llm_client
