@@ -87,3 +87,28 @@ def test_extract_line_number():
 
     # Zero / negative values fall through to None.
     assert extract_line_number("nothing", {"line_number": 0}) is None
+
+
+from mind.logic.engines.base import normalize_violation
+
+
+# ID: 35835f7e-c04d-444d-8172-7d94b0ec1d54
+def test_normalize_violation() -> None:
+    # String-shaped violation: returns (message, {})
+    assert normalize_violation("bare message") == ("bare message", {})
+
+    # Dict-shaped violation with message + details
+    v = {"message": "struct message", "details": {"file": "x.py", "line": 3}}
+    assert normalize_violation(v) == ("struct message", {"file": "x.py", "line": 3})
+
+    # Dict-shaped violation without details: defaults to empty dict
+    assert normalize_violation({"message": "no details"}) == ("no details", {})
+
+    # Dict with explicit None details: coerced to empty dict
+    assert normalize_violation({"message": "none details", "details": None}) == (
+        "none details",
+        {},
+    )
+
+    # Dict missing message: message coerced to empty string, details preserved
+    assert normalize_violation({"details": {"k": 1}}) == ("", {"k": 1})
