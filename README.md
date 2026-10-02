@@ -53,6 +53,12 @@ CORE sets specific requirements rather than widening compatibility. A **fresh VM
 | PostgreSQL  | ≥ 14 — provided by Docker on the default path |
 | Qdrant      | latest — provided by Docker on the default path |
 
+On a fresh machine none of these exist except Python. Step-by-step commands for Ubuntu
+24.04, each with the check the installer runs, are in
+[prerequisites on a fresh Ubuntu 24.04](https://dariusznewecki.github.io/CORE/getting-started/#prerequisites-on-a-fresh-ubuntu-2404).
+**No LLM is needed** to install, audit, or run the demo; an LLM is needed only for
+autonomous code and test generation.
+
 Bring your own Postgres + Qdrant instead of Docker with
 `./install-core.sh --bare --db-url … --qdrant-url …` (see
 [getting started](https://dariusznewecki.github.io/CORE/getting-started/)); the

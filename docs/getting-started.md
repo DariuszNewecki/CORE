@@ -22,15 +22,53 @@ The rest of this page covers the **full local runtime**.
 
 ## Requirements
 
-| Dependency | Version |
-|------------|---------|
-| Python | ≥ 3.12 |
-| PostgreSQL | ≥ 14 |
-| Qdrant | latest |
-| Docker | for services |
-| Poetry | for deps |
+| Requirement | Version / state |
+|-------------|-----------------|
+| Python      | **3.12+** — hard floor, checked by the installer |
+| Docker      | Docker Engine with **Compose v2**, daemon **running** and reachable by your user |
+| Poetry      | installed and on `PATH` |
+| PostgreSQL  | ≥ 14 — provided by Docker on the default path |
+| Qdrant      | latest — provided by Docker on the default path |
 
-You will also need an LLM resource — local model server or external API, your choice. Configure it via `.env` (see `.env.example` for the shape).
+**No LLM is needed** to install CORE, run the offline audit, or run the consequence-chain
+demo. An LLM (local model server or external API, your choice) is needed only for
+autonomous code and test generation. Configure it in `.env` when you want that (see
+`.env.example` for the shape).
+
+### Prerequisites on a fresh Ubuntu 24.04
+
+A fresh VM has none of the above except Python. One command per prerequisite, each
+followed by the same check `install-core.sh` performs:
+
+```bash
+# Python 3.12+ (Ubuntu 24.04 ships 3.12)
+python3 --version
+
+# git, to clone CORE
+sudo apt-get update && sudo apt-get install -y git
+
+# Docker Engine + Compose v2, daemon running
+sudo apt-get install -y docker.io docker-compose-v2
+sudo systemctl enable --now docker
+docker compose version
+
+# Let your user reach the Docker daemon, then start a NEW login session
+# (log out and back in; `newgrp docker` works for the current shell only)
+sudo usermod -aG docker "$USER"
+docker info
+
+# Poetry, on PATH
+sudo apt-get install -y pipx
+pipx install poetry
+pipx ensurepath   # edits your shell rc files: open a new terminal afterwards
+poetry --version
+```
+
+`pipx ensurepath` only takes effect in new shells. In a non-login or scripted shell, add
+`export PATH="$HOME/.local/bin:$PATH"` before running the installer. These are the commands
+a blank observer used on a fresh Ubuntu 24.04 VM in the 2026-09-20 newcomer test (#913).
+Other distributions: follow [Docker Engine](https://docs.docker.com/engine/install/) and
+[Poetry](https://python-poetry.org/docs/#installation), then run the same checks.
 
 ---
 
