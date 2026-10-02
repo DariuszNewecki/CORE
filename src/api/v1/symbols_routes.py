@@ -13,8 +13,8 @@ CONSTITUTIONAL:
 - Session acquired through api.dependencies only.
 - No direct DB imports; KnowledgeService accepts the injected session.
 - No settings imports.
-- body.introspection.drift_service accessed as a composition-root import
-  (read-only, no side effects); architecture.api.no_body_bypass is [r].
+- The drift query (body.introspection.drift_service) is injected from
+  api.dependencies (DriftAnalysisDep); no Body import here.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session
+from api.dependencies import DriftAnalysisDep, get_api_session
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
@@ -63,7 +63,7 @@ async def list_unassigned_symbols(
 
 @router.get("/drift", summary="Symbol drift summary from governed pipeline data")
 # ID: 8bde40c7-3f6a-40bb-b8fe-57fe53a3d894
-async def symbols_drift() -> dict:
+async def symbols_drift(drift: DriftAnalysisDep) -> dict:
     """Return symbol drift counters sourced from the governed pipeline.
 
     Reports anchor_violations (open purity.stable_id_anchor findings),
@@ -72,6 +72,4 @@ async def symbols_drift() -> dict:
 
     Does not re-scan source — consumes governed pipeline output per ADR-143 D3.
     """
-    from body.introspection.drift_service import run_drift_analysis_async
-
-    return await run_drift_analysis_async()
+    return await drift()

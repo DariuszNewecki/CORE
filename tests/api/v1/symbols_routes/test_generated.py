@@ -12,11 +12,7 @@ async def test_symbols_drift():
         "pending_symbols": 7,
         "last_sync_at": "2025-01-01T00:00:00Z",
     }
-    with patch(
-        "body.introspection.drift_service.run_drift_analysis_async",
-        new=AsyncMock(return_value=mock_result),
-    ):
-        result = await symbols_drift()
+    result = await symbols_drift(AsyncMock(return_value=mock_result))
 
     assert result == mock_result
 

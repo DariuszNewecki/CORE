@@ -9,7 +9,7 @@ test_onboard_routes.py.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from api.v1.project_routes import generate_docs
 
@@ -30,19 +30,17 @@ def _mock_session() -> MagicMock:
 
 
 async def test_generate_docs_patches_inner_call():
-    """Validate route logic by patching the lazy body import."""
+    """Validate route logic with an injected generator (CapabilityDocsDep)."""
     from api.v1.project_routes import DocsRequest
 
     body = DocsRequest()
     request = _make_request()
     session = _mock_session()
 
-    with patch(
-        "body.introspection.generate_capability_docs.main",
-        new=AsyncMock(return_value=None),
-    ) as mock_main:
-        # Call the route: it imports main lazily and calls it
-        result = await generate_docs(body=body, request=request, session=session)
+    mock_main = AsyncMock(return_value=None)
+    result = await generate_docs(
+        body=body, request=request, generate_docs_fn=mock_main, session=session
+    )
 
     assert result == {"output": "docs/10_CAPABILITY_REFERENCE.md", "generated": True}
     mock_main.assert_awaited_once()

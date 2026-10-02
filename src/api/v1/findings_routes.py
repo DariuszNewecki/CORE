@@ -5,8 +5,8 @@ Findings API endpoints — blackboard entry query surface.
 
 CONSTITUTIONAL:
 - Session access goes through api.dependencies.get_api_session only.
-- ConsequenceLogService is the sole Body import; this is the composition-root
-  pattern (api.no_body_bypass [r] reporting, not blocking).
+- ConsequenceLogService is injected from api.dependencies (ConsequenceLogDep);
+  no Body import here (architecture.api.no_body_bypass).
 """
 
 from __future__ import annotations
@@ -15,12 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import (
+    ConsequenceLogDep,
     get_api_session,
-    get_consequence_log_service,
     require_governor,
 )
 from api.v1.schemas import GovernanceChainResponse
-from body.services.consequence_log_service import ConsequenceLogService
 
 
 ROUTER_EXPOSURE = "user-facing"
@@ -42,8 +41,8 @@ router = APIRouter(prefix="/findings")
 # ID: 3f71f3a8-efad-4fbe-bb0b-4572693b1a91
 async def get_finding_chain(
     entry_id: str,
+    svc: ConsequenceLogDep,
     session: AsyncSession = Depends(get_api_session),
-    svc: ConsequenceLogService = Depends(get_consequence_log_service),
 ) -> dict:
     """Return the governance chain for the proposal a finding was deferred to."""
     proposal_id = await svc.get_finding_proposal_link(entry_id, session)

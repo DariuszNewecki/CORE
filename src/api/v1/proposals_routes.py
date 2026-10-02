@@ -31,12 +31,11 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import (
+    ConsequenceLogDep,
     get_api_session,
-    get_consequence_log_service,
     require_governor,
 )
 from api.v1.schemas import GovernanceChainResponse, ProposalResponse
-from body.services.consequence_log_service import ConsequenceLogService
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
@@ -212,8 +211,8 @@ async def list_proposals(
 # ID: d139934f-6d86-4e67-a9b0-41daba44dfa5
 async def get_proposal_chain(
     proposal_id: str,
+    svc: ConsequenceLogDep,
     session: AsyncSession = Depends(get_api_session),
-    svc: ConsequenceLogService = Depends(get_consequence_log_service),
 ) -> dict:
     """Return the full governance chain for a proposal."""
     chain = await svc.get_chain_for_proposal(proposal_id, session)

@@ -7,8 +7,8 @@ Exposes:
 
 CONSTITUTIONAL:
 - CoreContext provided via request.app.state.core_context.
-- body.analyzers.scout_analyzer and mind.logic.scout_inducer accessed as
-  composition-root imports; architecture.api.no_body_bypass is [r].
+- ScoutAnalyzer (Body) is injected from api.dependencies (ScoutAnalyzerDep);
+  mind.logic.scout_inducer is imported in the handler.
 - No settings imports.
 """
 
@@ -19,7 +19,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from api.dependencies import require_governor
+from api.dependencies import ScoutAnalyzerDep, require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -54,7 +54,9 @@ class ScoutRequest(BaseModel):
     dependencies=[require_governor],
 )
 # ID: 8bfc1844-6f15-42d2-aae7-d98090598702
-async def scout_project(body: ScoutRequest, request: Request) -> dict:
+async def scout_project(
+    body: ScoutRequest, request: Request, analyzer: ScoutAnalyzerDep
+) -> dict:
     """Detect, suggest, and catalog-match candidate governance rules for a target repo.
 
     Phase B of ADR-119 (rule induction). Returns ScoutObservations and a list of
@@ -74,7 +76,6 @@ async def scout_project(body: ScoutRequest, request: Request) -> dict:
 
     Requires Phase A (project onboard) to have delivered .intent/ to the target.
     """
-    from body.analyzers.scout_analyzer import ScoutAnalyzer
     from cli.logic.scout import (
         _load_enforcement_catalog,
         _load_fallback_candidates,
@@ -106,7 +107,6 @@ async def scout_project(body: ScoutRequest, request: Request) -> dict:
     core_root = core_context.git_service.repo_path.resolve()
 
     # ── 1. Detect ─────────────────────────────────────────────────────────────
-    analyzer = ScoutAnalyzer()
     analysis = await analyzer.execute(repo_path=target_path)
     if not analysis.ok:
         raise HTTPException(

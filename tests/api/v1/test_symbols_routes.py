@@ -17,9 +17,7 @@ from api.v1.symbols_routes import list_unassigned_symbols, symbols_drift
 async def test_list_unassigned_empty_graph():
     svc = MagicMock()
     svc.get_graph = AsyncMock(return_value={"symbols": {}})
-    with patch(
-        "api.v1.symbols_routes.KnowledgeService", return_value=svc
-    ):
+    with patch("api.v1.symbols_routes.KnowledgeService", return_value=svc):
         result = await list_unassigned_symbols(session=MagicMock())
     assert result == {"unassigned": [], "count": 0}
 
@@ -89,7 +87,11 @@ async def test_list_unassigned_skips_none_name():
     svc.get_graph = AsyncMock(
         return_value={
             "symbols": {
-                "k1": {"name": None, "file_path": "src/foo.py", "capability": "unassigned"},
+                "k1": {
+                    "name": None,
+                    "file_path": "src/foo.py",
+                    "capability": "unassigned",
+                },
             }
         }
     )
@@ -110,19 +112,11 @@ async def test_symbols_drift_returns_pipeline_data():
         "pending_symbols": 1,
         "last_sync_at": "2026-07-11T10:00:00",
     }
-    with patch(
-        "body.introspection.drift_service.run_drift_analysis_async",
-        new=AsyncMock(return_value=expected),
-    ):
-        result = await symbols_drift()
+    result = await symbols_drift(AsyncMock(return_value=expected))
     assert result["anchor_violations"] == 3
 
 
 async def test_symbols_drift_returns_unavailable_on_error():
     expected = {"available": False, "error": "DB connection failed"}
-    with patch(
-        "body.introspection.drift_service.run_drift_analysis_async",
-        new=AsyncMock(return_value=expected),
-    ):
-        result = await symbols_drift()
+    result = await symbols_drift(AsyncMock(return_value=expected))
     assert result["available"] is False

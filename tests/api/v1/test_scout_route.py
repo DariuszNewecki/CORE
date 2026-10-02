@@ -55,9 +55,10 @@ _SAMPLE_CANDIDATES = [
 async def test_scout_no_intent_dir_raises_400(tmp_path: Path) -> None:
     body = ScoutRequest(path=str(tmp_path))
     request = _make_request()
+    analyzer = MagicMock(execute=AsyncMock(return_value=_mock_analysis()))
 
     with pytest.raises(HTTPException) as exc_info:
-        await scout_project(body=body, request=request)
+        await scout_project(body=body, request=request, analyzer=analyzer)
     assert exc_info.value.status_code == 400
     assert ".intent/" in exc_info.value.detail
 
@@ -74,9 +75,10 @@ async def test_scout_existing_inducted_no_reset_raises_409(tmp_path: Path) -> No
 
     body = ScoutRequest(path=str(tmp_path), reset=False)
     request = _make_request()
+    analyzer = MagicMock(execute=AsyncMock(return_value=_mock_analysis()))
 
     with pytest.raises(HTTPException) as exc_info:
-        await scout_project(body=body, request=request)
+        await scout_project(body=body, request=request, analyzer=analyzer)
     assert exc_info.value.status_code == 409
 
 
@@ -90,12 +92,9 @@ async def test_scout_happy_path_fallback(tmp_path: Path) -> None:
 
     body = ScoutRequest(path=str(tmp_path))
     request = _make_request()
+    analyzer = MagicMock(execute=AsyncMock(return_value=_mock_analysis()))
 
     with (
-        patch(
-            "body.analyzers.scout_analyzer.ScoutAnalyzer",
-            return_value=MagicMock(execute=AsyncMock(return_value=_mock_analysis())),
-        ),
         patch(
             "cli.logic.scout._load_fallback_candidates",
             return_value=_SAMPLE_CANDIDATES,
@@ -109,7 +108,7 @@ async def test_scout_happy_path_fallback(tmp_path: Path) -> None:
             side_effect=lambda c, _cat: c,
         ),
     ):
-        result = await scout_project(body=body, request=request)
+        result = await scout_project(body=body, request=request, analyzer=analyzer)
 
     assert result["candidate_count"] == 1
     assert result["candidates"][0]["rule_id"] == "scout.no_bare_except"
@@ -126,17 +125,15 @@ async def test_scout_analyzer_failure_raises_500(tmp_path: Path) -> None:
 
     body = ScoutRequest(path=str(tmp_path))
     request = _make_request()
+    analyzer = MagicMock(execute=AsyncMock(return_value=_mock_analysis()))
 
     bad_analysis = MagicMock()
     bad_analysis.ok = False
     bad_analysis.data = {"error": "parse failed"}
 
-    with patch(
-        "body.analyzers.scout_analyzer.ScoutAnalyzer",
-        return_value=MagicMock(execute=AsyncMock(return_value=bad_analysis)),
-    ):
-        with pytest.raises(HTTPException) as exc_info:
-            await scout_project(body=body, request=request)
+    analyzer = MagicMock(execute=AsyncMock(return_value=bad_analysis))
+    with pytest.raises(HTTPException) as exc_info:
+        await scout_project(body=body, request=request, analyzer=analyzer)
     assert exc_info.value.status_code == 500
 
 
@@ -152,18 +149,15 @@ async def test_scout_reset_skips_409(tmp_path: Path) -> None:
 
     body = ScoutRequest(path=str(tmp_path), reset=True)
     request = _make_request()
+    analyzer = MagicMock(execute=AsyncMock(return_value=_mock_analysis()))
 
     with (
-        patch(
-            "body.analyzers.scout_analyzer.ScoutAnalyzer",
-            return_value=MagicMock(execute=AsyncMock(return_value=_mock_analysis())),
-        ),
         patch(
             "cli.logic.scout._load_fallback_candidates", return_value=_SAMPLE_CANDIDATES
         ),
         patch("cli.logic.scout._load_enforcement_catalog", return_value=[]),
         patch("cli.logic.scout._match_enforcement", side_effect=lambda c, _cat: c),
     ):
-        result = await scout_project(body=body, request=request)
+        result = await scout_project(body=body, request=request, analyzer=analyzer)
 
     assert result["candidate_count"] == 1

@@ -12,8 +12,8 @@ onboard_routes.py; Scout (POST /project/scout) in scout_routes.py.
 CONSTITUTIONAL:
 - Session acquired through api.dependencies only.
 - CoreContext provided via request.app.state.core_context.
-- body.introspection access is the composition-root pattern;
-  architecture.api.no_body_bypass is [r].
+- The capability-docs generator (body.introspection) is injected from
+  api.dependencies (CapabilityDocsDep); no Body import here.
 - No settings imports.
 """
 
@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, require_governor
+from api.dependencies import CapabilityDocsDep, get_api_session, require_governor
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -56,6 +56,7 @@ class DocsRequest(BaseModel):
 async def generate_docs(
     body: DocsRequest,
     request: Request,
+    generate_docs_fn: CapabilityDocsDep,
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """Generate the canonical Capability Reference from the knowledge graph.
@@ -65,12 +66,10 @@ async def generate_docs(
     is accepted for forward compatibility; the current implementation writes
     to the fixed path docs/10_CAPABILITY_REFERENCE.md.
     """
-    from body.introspection.generate_capability_docs import main as _gen_docs
-
     core_context: CoreContext = request.app.state.core_context
     repo_root = core_context.git_service.repo_path
     try:
-        await _gen_docs(session=session, repo_root=repo_root)
+        await generate_docs_fn(session=session, repo_root=repo_root)
     except Exception as exc:
         logger.error("generate_docs failed: %s", exc)
         raise HTTPException(

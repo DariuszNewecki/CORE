@@ -19,31 +19,30 @@ async def test_generate_docs():
     # Create mock session
     mock_session = AsyncMock()
 
-    # Mock the _gen_docs function at its defining module and logger
-    with patch(
-        "body.introspection.generate_capability_docs.main", new=AsyncMock()
-    ) as mock_gen_docs:
-        with patch("api.v1.project_routes.logger") as mock_logger:
-            # Call the function with a minimal DocsRequest using keyword args
-            result = await generate_docs(
-                body=MagicMock(output="custom_path.md"),
-                request=mock_request,
-                session=mock_session,
-            )
+    # Inject the generator (CapabilityDocsDep) and mock the logger
+    mock_gen_docs = AsyncMock()
+    with patch("api.v1.project_routes.logger") as mock_logger:
+        # Call the function with a minimal DocsRequest using keyword args
+        result = await generate_docs(
+            body=MagicMock(output="custom_path.md"),
+            request=mock_request,
+            generate_docs_fn=mock_gen_docs,
+            session=mock_session,
+        )
 
-            # Assert _gen_docs was called with the right args
-            mock_gen_docs.assert_awaited_once_with(
-                session=mock_session, repo_root="/fake/repo"
-            )
+        # Assert _gen_docs was called with the right args
+        mock_gen_docs.assert_awaited_once_with(
+            session=mock_session, repo_root="/fake/repo"
+        )
 
-            # Assert result structure
-            assert result == {
-                "output": "docs/10_CAPABILITY_REFERENCE.md",
-                "generated": True,
-            }
+        # Assert result structure
+        assert result == {
+            "output": "docs/10_CAPABILITY_REFERENCE.md",
+            "generated": True,
+        }
 
-            # Assert logger.error was NOT called (happy path)
-            mock_logger.error.assert_not_called()
+        # Assert logger.error was NOT called (happy path)
+        mock_logger.error.assert_not_called()
 
 
 import pytest
