@@ -168,3 +168,51 @@ def test_SubjectCopyError() -> None:
     assert isinstance(error, SubjectCopyError)
     assert isinstance(error, Exception)
     assert "cannot copy subject faithfully" in str(error)
+
+
+from unittest.mock import MagicMock, patch
+
+from shared.infrastructure.intent.target_intent_assembly import assemble_target_intent
+
+
+# ID: 13f8d4e4-d18f-4261-ae80-89c6d47d3e26
+def test_assemble_target_intent(tmp_path: Path) -> None:
+    intent_root = tmp_path / "intent"
+    floor_root = tmp_path / "floor"
+    floor_root.mkdir()
+    (floor_root / "floor_file.txt").write_text("floor")
+
+    overlay_dir = tmp_path / "overlay"
+    overlay_dir.mkdir()
+    (overlay_dir / "overlay_file.txt").write_text("overlay")
+
+    mock_manifest = MagicMock(return_value={})
+    mock_floor_hash = MagicMock(return_value="floorhash")
+    mock_overlay_hash = MagicMock(return_value="overlayhash")
+
+    with (
+        patch(
+            "shared.infrastructure.intent.target_intent_assembly.floor_manifest",
+            mock_manifest,
+        ),
+        patch(
+            "shared.infrastructure.intent.target_intent_assembly.floor_hash",
+            mock_floor_hash,
+        ),
+        patch(
+            "shared.infrastructure.intent.target_intent_assembly.overlay_hash",
+            mock_overlay_hash,
+        ),
+        patch(
+            "shared.infrastructure.intent.target_intent_assembly.importlib.resources.files",
+            MagicMock(return_value=floor_root),
+        ),
+    ):
+        result = assemble_target_intent(intent_root, overlay_dir)
+
+    assert result.intent_root == intent_root
+    assert result.floor_hash == "floorhash"
+    assert result.overlay_hash == "overlayhash"
+    assert "overlay_file.txt" in result.overlay_files
+    assert (intent_root / "floor_file.txt").exists()
+    assert (intent_root / "overlay_file.txt").exists()
