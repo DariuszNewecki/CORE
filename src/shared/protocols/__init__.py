@@ -12,7 +12,7 @@ from .knowledge import SessionProviderProtocol
 from .llm import LLMClientProtocol
 
 
-all = [
+__all__ = [
     "CognitiveProtocol",
     "ActionExecutorProtocol",
     "SessionProviderProtocol",
