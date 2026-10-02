@@ -76,7 +76,6 @@ def test_materialize_execution_copy(tmp_path: Path) -> None:
     assert "displaced" in data
 
 
-
 from shared.infrastructure.intent.target_intent_assembly import subject_fingerprint
 
 
@@ -115,3 +114,32 @@ def test_subject_fingerprint(tmp_path: Path) -> None:
     # A chmod (mode change) must change the fingerprint.
     (subject_root / "a.txt").chmod(0o755)
     assert subject_fingerprint(subject_root) != result
+
+
+
+
+# ID: 727992d8-f41d-4ca2-bb5c-ed0e6da8940a
+def test_ExecutionCopy():
+    from shared.infrastructure.intent.target_intent_assembly import ExecutionCopy
+
+    copy = ExecutionCopy(
+        target_root=Path("/target"),
+        intent_root=Path("/intent"),
+        evidence_root=Path("/evidence"),
+        floor_hash="floorhash",
+        overlay_hash="overlayhash",
+        overlay_files=("a.txt", "b.txt"),
+        displaced=(),
+        collision_manifest_path=Path("/manifest.json"),
+    )
+
+    assert copy.target_root == Path("/target")
+    assert copy.intent_root == Path("/intent")
+    assert copy.evidence_root == Path("/evidence")
+    assert copy.floor_hash == "floorhash"
+    assert copy.overlay_hash == "overlayhash"
+    assert copy.overlay_files == ("a.txt", "b.txt")
+    assert copy.displaced == ()
+    assert copy.collision_manifest_path == Path("/manifest.json")
+    assert copy.prompts == ()
+    assert copy.prompt_collision_manifest_path is None
