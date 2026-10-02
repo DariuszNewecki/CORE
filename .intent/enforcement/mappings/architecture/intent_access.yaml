@@ -20,7 +20,7 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/shared/infrastructure/intent/**"
-        - "src/body/project_lifecycle/scaffolding_service.py"
+        - "src/cli/logic/project_scaffold.py"             # project new (ADR-119 Amendment 2026-10-02): builds <new-target>/.intent/ paths for an external project, not CORE's governance namespace -- same exemption as byor.py
         - "src/body/services/intent_schema_validator.py"
         - "src/mind/governance/meta_validator.py"
         - "src/cli/commands/daemon.py"

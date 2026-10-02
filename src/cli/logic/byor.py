@@ -102,13 +102,15 @@ def _reject_unsafe_target(target_root: Path, core_root: Path) -> None:
     )
     if overlaps_core:
         logger.error(
-            "Refusing BYOR target %s — overlaps CORE's own repo root %s",
+            "Refusing external target %s — overlaps CORE's own repo root %s",
             target_root,
             core_root,
         )
         raise typer.Exit(code=1)
     if target_root in _UNSAFE_TARGET_ROOTS:
-        logger.error("Refusing BYOR target %s — system-critical directory", target_root)
+        logger.error(
+            "Refusing external target %s — system-critical directory", target_root
+        )
         raise typer.Exit(code=1)
 
 
@@ -177,6 +179,26 @@ def _resolve_machinery_floor(core_root: Path) -> Path:
     )
 
 
+def _machinery_floor_files(starter_dir: Path) -> list[Path]:
+    """The machinery-floor files delivered into a target's ``.intent/``.
+
+    Single selection shared by ``initialize_repository`` (project onboard) and
+    ``cli.logic.project_scaffold`` (project new, ADR-119 Amendment 2026-10-02), so
+    both deliver the same floor. ADR-119 D2: floor only — ``rules/`` and
+    ``enforcement/mappings/`` are excluded by the prefix set.
+    """
+    return sorted(
+        p
+        for p in starter_dir.rglob("*")
+        if p.is_file()
+        and not any(part.startswith("__") for part in p.parts)
+        and any(
+            p.relative_to(starter_dir).as_posix().startswith(prefix)
+            for prefix in _MACHINERY_FLOOR_PREFIXES
+        )
+    )
+
+
 # ID: 8b2ee927-9c35-4125-b291-22669733e531
 async def initialize_repository(
     context: CoreContext,
@@ -233,16 +255,7 @@ async def initialize_repository(
             raise typer.Exit(code=1)
 
     # ADR-119 D2: machinery floor only — exclude rules/ and enforcement/mappings/.
-    source_files = sorted(
-        p
-        for p in starter_dir.rglob("*")
-        if p.is_file()
-        and not any(part.startswith("__") for part in p.parts)
-        and any(
-            p.relative_to(starter_dir).as_posix().startswith(prefix)
-            for prefix in _MACHINERY_FLOOR_PREFIXES
-        )
-    )
+    source_files = _machinery_floor_files(starter_dir)
 
     dest_label = f"stage:{dest_root}" if stage_dir is not None else str(target_root)
     mode = "WRITE" if write else "DRY RUN"

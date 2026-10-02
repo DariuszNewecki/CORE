@@ -292,8 +292,15 @@ poetry run core-admin secrets delete <key> # Delete a secret
 
 ```bash
 poetry run core-admin project adopt-pack <pack-id> -t <repo> --write  # Add a rule pack (e.g. core/starter-python) to a repo that has a .intent/
-poetry run core-admin project new <name> --write                      # Scaffold a new governed application (operator; not functional from a clean install — see #892)
+poetry run core-admin project new <name> [--path <dir>] --write       # Create <dir>/<name> (default: ./<name>) with CORE's machinery floor + a minimal Python skeleton
 ```
+
+`project new` is an operator command and the bootstrap stage of Generate (ADR-119,
+amended 2026-10-02). It creates the repository substrate and the machinery that can host
+project law, and **no project-specific law**. Until rules are authored or ratified, or a
+governance pack is explicitly adopted, `code audit` on the new project fails closed. That is
+intended: CORE does not choose a project's law. It never overwrites: a non-empty target, or a
+target inside CORE's own repository, is refused. Without `--write` it previews the files.
 
 `project onboard`, `project scout`, `project promote` and `project docs` are consumer
 commands: they live in `core-cli` (`core project …`) and talk to a running CORE API
