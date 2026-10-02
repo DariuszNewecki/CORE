@@ -40,3 +40,41 @@ def test_IndeterminateHumanChecks():
     )
 
     assert compliant_violations == []
+
+
+from unittest.mock import patch
+
+
+# ID: e293dbbd-081f-44a3-9da5-e4b75a5adb1c
+def test_IndeterminateHumanChecks_check_indeterminate_requires_human_mechanism() -> (
+    None
+):
+    sql = (
+        "UPDATE core.blackboard_entries "
+        "SET status = 'indeterminate', resolution_mechanism = 'reaudit' "
+        "WHERE id = :id"
+    )
+    source = f"import sqlalchemy\ntext({sql!r})\n"
+    tree = ast.parse(source)
+
+    check = IndeterminateHumanChecks()
+    with (
+        patch.object(
+            IndeterminateHumanChecks,
+            "_resolve_call_name",
+            return_value="text",
+            create=True,
+        ),
+        patch.object(
+            IndeterminateHumanChecks,
+            "_extract_first_string_literal",
+            return_value=sql,
+            create=True,
+        ),
+    ):
+        violations = check.check_indeterminate_requires_human_mechanism(tree)
+
+    assert isinstance(violations, list)
+    assert len(violations) == 1
+    assert "indeterminate" in violations[0]
+    assert "resolution_mechanism" in violations[0]
