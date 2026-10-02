@@ -219,8 +219,6 @@ def test_PurityChecks_check_forbidden_primitives():
     assert "eval" in violations[0]
 
 
-
-
 # ID: f2c90d4d-2024-403e-b678-ad8b9bbd9fb4
 def test_PurityChecks_check_stable_id_anchor():
     source = (
@@ -234,3 +232,32 @@ def test_PurityChecks_check_stable_id_anchor():
     )
     violations = PurityChecks.check_stable_id_anchor(source)
     assert violations == []
+
+
+
+
+
+# ID: 8d0c621d-6c06-43c3-8c0f-d8614a546970
+def test_PurityChecks_check_docstrings_present() -> None:
+    code = (
+        "def public_no_doc():\n"
+        "    return 1\n"
+        "\n"
+        "def public_with_doc():\n"
+        "    '''Docstring.'''\n"
+        "    return 2\n"
+        "\n"
+        "class PublicClass:\n"
+        "    pass\n"
+        "\n"
+        "class _PrivateClass:\n"
+        "    pass\n"
+    )
+    tree = ast.parse(code)
+    result = PurityChecks.check_docstrings_present(tree)
+    assert isinstance(result, list)
+    joined = "\n".join(result)
+    assert "public_no_doc" in joined
+    assert "PublicClass" in joined
+    assert "public_with_doc" not in joined
+    assert "_PrivateClass" not in joined
