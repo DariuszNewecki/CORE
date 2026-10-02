@@ -13,9 +13,9 @@ from .llm import LLMClientProtocol
 
 
 __all__ = [
-    "CognitiveProtocol",
     "ActionExecutorProtocol",
-    "SessionProviderProtocol",
+    "CognitiveProtocol",
     "LLMClientProtocol",
+    "SessionProviderProtocol",
     "TaskStructureProtocol",
 ]
