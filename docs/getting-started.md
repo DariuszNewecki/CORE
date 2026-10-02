@@ -55,6 +55,14 @@ cd CORE
 If that succeeds you can skip to [Key Commands](#key-commands) — CORE is running.
 The rest of this section is the same path, done by hand.
 
+**What a healthy fresh install looks like.** The installer's offline audit ends with
+`verdict DEGRADED`, not PASS: a few blocking rules need the running knowledge graph
+or database and cannot be evaluated offline. The installer says so and continues;
+that is expected. Without an LLM configured you will also see one line saying no LLM
+is configured and that LLM-checked rules use a stub. That is the documented no-key
+path, not a fault: an LLM is needed only for autonomous code generation. To see
+CORE's internal start-up detail on any command, set `LOG_LEVEL=DEBUG`.
+
 ### See CORE govern itself (opt-in)
 
 When you want the guided proof, run the isolated demonstration explicitly. It
@@ -65,6 +73,10 @@ and daemon are never touched:
 ```bash
 poetry run core-admin demo consequence-chain
 ```
+
+It asks for one confirmation before it creates anything. In a non-interactive shell
+(CI, `ssh host cmd`, an agent-driven terminal) add `--simulate-confirmation`; the
+report records the confirmation as simulated.
 
 In one run it seeds a real `linkage.assign_ids` violation, lets the real sensor,
 remediator, proposal route, and executor find → propose → auto-approve (as

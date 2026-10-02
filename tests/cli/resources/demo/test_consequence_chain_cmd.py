@@ -46,7 +46,9 @@ _CMD_DEFAULTS = {
 
 
 async def _call_cmd(ctx, **overrides):
-    return await cc.consequence_chain_cmd.__wrapped__(ctx, **{**_CMD_DEFAULTS, **overrides})
+    return await cc.consequence_chain_cmd.__wrapped__(
+        ctx, **{**_CMD_DEFAULTS, **overrides}
+    )
 
 
 async def _invoke(monkeypatch, tmp_path, *, result=None, side_effect=None, **kwargs):
@@ -131,7 +133,9 @@ async def test_declined_confirmation_exits_zero_without_running(monkeypatch, tmp
 
 
 # ID: 47701f0e-7f54-401e-928c-c281172dc0f4
-async def test_simulate_confirmation_skips_prompt(monkeypatch, tmp_path, passing_result):
+async def test_simulate_confirmation_skips_prompt(
+    monkeypatch, tmp_path, passing_result
+):
     calls = {"prompted": False}
 
     def _boom(*a, **k):
@@ -164,3 +168,21 @@ async def test_options_forwarded(monkeypatch, tmp_path, passing_result):
     assert kwargs["keep_workspace"] is True
     assert kwargs["timeout_seconds"] == 42.0
     assert callable(kwargs["on_identity"])
+
+
+# ── #912: a closed stdin names --simulate-confirmation instead of a traceback ──
+
+
+async def test_confirmation_prompt_offers_simulate_hint(monkeypatch, tmp_path):
+    seen: dict = {}
+
+    def _capture(*args, **kwargs):
+        seen.update(kwargs)
+        return False
+
+    monkeypatch.setattr(cc, "confirm_action", _capture)
+    exit_value, stub = await _invoke(monkeypatch, tmp_path)
+
+    assert "--simulate-confirmation" in seen["non_interactive_hint"]
+    assert exit_value.exit_code == 0  # declined -> clean no-op
+    stub.assert_not_called()

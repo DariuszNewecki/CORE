@@ -82,3 +82,39 @@ def test_confirm_action_prompt_message_passed_correctly(monkeypatch):
     result = confirm_action(test_message)
     assert captured_prompt[0] == test_message
     assert result
+
+
+# --- #912: closed stdin is "nobody to ask", not "no" ---------------------------
+
+
+def test_closed_stdin_exits_2_with_hint(monkeypatch, capsys):
+    """EOFError from the prompt becomes a one-line message + exit 2, not a traceback."""
+    import pytest
+    import typer
+    from rich.prompt import Confirm
+
+    def _eof(prompt):
+        raise EOFError
+
+    monkeypatch.setattr(Confirm, "ask", _eof)
+    with pytest.raises(typer.Exit) as exc_info:
+        confirm_action("Proceed?", non_interactive_hint="Re-run with --flag.")
+    out = capsys.readouterr().out
+    assert exc_info.value.exit_code == 2
+    assert "no interactive input" in out
+    assert "Re-run with --flag." in out
+
+
+def test_closed_stdin_without_hint_still_exits_2(monkeypatch, capsys):
+    import pytest
+    import typer
+    from rich.prompt import Confirm
+
+    def _eof(prompt):
+        raise EOFError
+
+    monkeypatch.setattr(Confirm, "ask", _eof)
+    with pytest.raises(typer.Exit) as exc_info:
+        confirm_action("Proceed?")
+    assert exc_info.value.exit_code == 2
+    assert "no interactive input" in capsys.readouterr().out

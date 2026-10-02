@@ -77,6 +77,10 @@ ready — no LLM key required, but it does need Docker:
 poetry run core-admin demo consequence-chain
 ```
 
+It asks for one confirmation before it creates anything. In a non-interactive shell
+(CI, `ssh host cmd`, an agent-driven terminal) add `--simulate-confirmation`; the
+report records the confirmation as simulated.
+
 The demo runs entirely inside a **disposable clone** and **disposable, loopback-only
 Postgres + Qdrant** — it never touches your checkout, its git index, your database,
 or a running daemon. In one isolated run it:

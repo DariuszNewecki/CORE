@@ -23,6 +23,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Final
 
+from shared.exceptions import NoLLMConfiguredError
 from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.logger import getLogger
 
@@ -324,6 +325,13 @@ class ServiceRegistry:
                 cog_svc = await self.get_cognitive_service()
                 llm_client = await cog_svc.aget_client_for_role(
                     _COGNITIVE_ROLES["LOCAL_CODER"]
+                )
+            except NoLLMConfiguredError:
+                # #915: the documented no-LLM install, not a fault. One INFO
+                # line instead of an ERROR + WARNING on a healthy install.
+                logger.info(
+                    "get_auditor_context: no LLM configured — llm_gate rules "
+                    "run on the stub engine"
                 )
             except Exception as exc:
                 logger.warning(

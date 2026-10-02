@@ -340,7 +340,10 @@ def register_action(
         )
         action_registry.register(definition)
 
-        logger.info(
+        # DEBUG, not INFO (#914): this fires once per action at import time, so
+        # every core-admin invocation (--help included) printed ~40 of these
+        # before doing anything. LOG_LEVEL=DEBUG still shows them.
+        logger.debug(
             "Action '%s' registered successfully with constitutional compliance",
             action_id,
         )

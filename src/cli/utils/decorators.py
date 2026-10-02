@@ -84,6 +84,8 @@ def core_command(
         # actually has a `write` parameter to toggle. Computed once per
         # decoration so the hot path doesn't re-introspect. See #504.
         has_write_param = "write" in inspect.signature(func).parameters
+        # #912: name --yes in the closed-stdin hint only if the command has it.
+        has_yes_param = "yes" in inspect.signature(func).parameters
 
         @functools.wraps(func)
         # ID: 77ebffad-b3e8-4cc7-8835-f49770a2a653
@@ -113,6 +115,12 @@ def core_command(
                     if not confirm_action(
                         "[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n   Continue?",
                         abort_message="Cancelled.",
+                        non_interactive_hint=(
+                            "Re-run with --yes to confirm non-interactively."
+                            if has_yes_param
+                            else "Run it from an interactive terminal, or pipe the "
+                            "answer (e.g. `echo y | core-admin ...`)."
+                        ),
                     ):
                         raise typer.Exit(0)
             try:

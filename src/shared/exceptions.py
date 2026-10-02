@@ -136,3 +136,24 @@ class RepositoryBoundaryViolationError(CoreError, ValueError):
             "bound_root": self.bound_root,
             "message": self.message,
         }
+
+
+# ID: 086a57e8-73e1-4399-b501-bff686eaf915
+class NoLLMConfiguredError(CoreException, RuntimeError):
+    """The Mind holds no LLM configuration at all: no cognitive roles and no resources.
+
+    This is the documented state of a fresh install that runs without an LLM
+    (the no-key demo path), not a fault. Raised instead of the generic
+    "No resource found for role" so callers can say so in one honest line
+    rather than logging an ERROR on a healthy install (#915). A ``RuntimeError``
+    subclass, so existing ``except RuntimeError`` / ``except Exception``
+    handlers are unaffected. A role missing from a Mind that *does* have
+    roles or resources is a real misconfiguration and is not this error.
+    """
+
+    def __init__(self, role_name: str):
+        self.role_name = role_name
+        super().__init__(
+            f"No LLM configured (no cognitive roles or resources in the Mind); "
+            f"role '{role_name}' has no resource"
+        )

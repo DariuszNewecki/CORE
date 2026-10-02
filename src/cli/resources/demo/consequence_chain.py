@@ -189,7 +189,12 @@ async def consequence_chain_cmd(
         confirmation_mode = "simulated"
     else:
         if not confirm_action(
-            _CONFIRM_PROMPT, abort_message="Demonstration cancelled."
+            _CONFIRM_PROMPT,
+            abort_message="Demonstration cancelled.",
+            non_interactive_hint=(
+                "Re-run with --simulate-confirmation to proceed without a prompt "
+                "(the report records the confirmation as simulated)."
+            ),
         ):
             raise typer.Exit(EXIT_OK)
         confirmation_mode = "human"

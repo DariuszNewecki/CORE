@@ -17,12 +17,14 @@ Part of Mind-Body-Will architecture:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
 from functools import partial
 from pathlib import Path
 from typing import cast
 
 from body.services.mind_state_service import MindStateService
+from shared.exceptions import NoLLMConfiguredError
 from shared.infrastructure.database.models import (
     CognitiveRole,
     LlmResource,
@@ -88,7 +90,11 @@ class CognitiveOrchestrator:
         # only; per-role override removed (operating_mode is Resource-layer).
         system_config = await self._mind_state_service.get_system_config()
         if system_config is None:
-            logger.warning(
+            # #915: on an unconfigured Mind (fresh no-LLM install) the default
+            # is the documented behaviour, so INFO; with LLMs configured a
+            # missing system_config row is worth a WARNING.
+            logger.log(
+                logging.WARNING if (self._resources or self._roles) else logging.INFO,
                 "CognitiveOrchestrator: system_config row missing — "
                 "defaulting operating_mode to '%s'",
                 self._system_operating_mode,
@@ -127,6 +133,12 @@ class CognitiveOrchestrator:
         """
         if not self._loaded:
             await self.initialize()
+
+        # #915: an unconfigured Mind (fresh no-LLM install) is a state, not an
+        # error. Say so with a typed signal before the selector would log
+        # "Role ... not found in Mind" at ERROR on a healthy install.
+        if not self._roles and not self._resources:
+            raise NoLLMConfiguredError(role_name)
 
         ordered = ResourceSelector.select_resources_for_role(
             role_name,
