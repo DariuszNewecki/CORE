@@ -1824,6 +1824,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-162-database-upgrade-remediation-ruling.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-166-two-governed-write-surfaces.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
