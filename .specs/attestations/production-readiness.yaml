@@ -226,10 +226,11 @@ gates:
     blocking_issues: [796]              # inferred — CI/release hygiene is #796 scope
     urs_ref: URS-production-readiness.md#g15
 
-# Derived rollup (computed by the generator, NOT hand-written):
-#   met 0/15 · mostly_met 0 · partial 13 ·
-#   not_demonstrated 1 (G4) · not_met 1 (G11)
-#   -> overall_verdict: NOT ATTESTED. No composite score.
+# Rollup: not recorded here. scripts/production_readiness.py derives it from
+# the gates above and renders it into the README's "Production Readiness"
+# section ("Progress: ..."); CI fails if that section drifts. A hand-copied
+# rollup in this file went stale (it read "met 0/15" after G8 and G11 were
+# attested), so the file carries none. No composite score.
 
 integrity:
   # Validator + CI drift-check (mirrors the existing README rule-count drift guard):
