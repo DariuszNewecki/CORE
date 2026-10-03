@@ -58,3 +58,22 @@ def test_check_forbidden_imports():
     assert isinstance(findings, list)
     assert len(findings) == 1
     assert "forbidden.module" in findings[0]
+
+
+
+
+
+# ID: c7460a85-de52-4194-a24f-e7cf724b7e47
+def test_ImportChecks_check_forbidden_imports() -> None:
+    source = "import os\nfrom collections import OrderedDict\nimport subprocess\n"
+    tree = ast.parse(source)
+
+    forbidden = ["os", "collections.OrderedDict"]
+
+    findings = ImportChecks.check_forbidden_imports(tree, forbidden)
+
+    assert len(findings) == 2
+    joined = "\n".join(findings)
+    assert "Forbidden import 'os'" in joined
+    assert "Forbidden import-from 'collections.OrderedDict'" in joined
+    assert "subprocess" not in joined
