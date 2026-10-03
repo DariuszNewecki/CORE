@@ -229,7 +229,7 @@ it only records who is working it (ADR-109 §2).
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FINDING_ID` | required |  |
+| `FINDING_ID` | required | Delegated finding id (from `lane list`/`lane next`). |
 | `--agent`, `-a` | `claude-code` | Identity of the working agent. |
 
 ### `core lane list` {#lane-list}
@@ -273,7 +273,7 @@ worked". A diff that fails validation never reaches the approval queue.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FINDING_ID` | required |  |
+| `FINDING_ID` | required | Delegated finding id (from `lane list`). |
 | `--patch`, `-p` | required | Path to the unified diff the agent produced for this finding. |
 
 ---
@@ -314,7 +314,7 @@ files, then run `project onboard promote <path>` to deliver to the target.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PATH` | required |  |
+| `PATH` | required | Path to existing repository. |
 | `--write` | off | Write .intent/ directory to the target path. |
 | `--stage` | off | Write to work/staged/&lt;name>/ for inspection before promoting (ADR-123). Requires --write; ignored in dry-run mode. |
 
@@ -331,7 +331,7 @@ Reads from work/staged/&lt;name>/.intent/ (within CORE's repo) and writes to
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PATH` | required |  |
+| `PATH` | required | Target repository path (same path used with --stage). |
 
 ### `core project scout` {#project-scout}
 
@@ -349,7 +349,7 @@ run `project onboard <target> --write` before this command.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PATH` | required |  |
+| `PATH` | required | Path to the target repository. |
 | `--write` | off | Write inducted rules to .intent/ after ratification. |
 | `--reset` | off | Clear existing scout_inducted.json and re-run induction. |
 
@@ -385,7 +385,7 @@ Validates the plan and performs an initial risk assessment.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `GOAL` | required |  |
+| `GOAL` | required | Strategic goal of the proposal. |
 | `--action`, `-a` |  | Format: action_id:param=value |
 | `--file`, `-f` |  | Specific files affected. |
 | `--write` | off | Persist the proposal. Dry-run by default. |
@@ -463,7 +463,7 @@ Permanently delete a secret from the CORE installation.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `KEY` | required |  |
+| `KEY` | required | Secret key to delete |
 | `--yes`, `-y` | off | Skip confirmation prompt |
 
 ### `core secrets get` {#secrets-get}
@@ -476,7 +476,7 @@ Check whether a secret exists (optionally reveal value with --show).
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `KEY` | required |  |
+| `KEY` | required | Secret key to retrieve |
 | `--show`, `-s` | off | Display the secret value |
 
 ### `core secrets list` {#secrets-list}
@@ -497,7 +497,7 @@ Rotate the value of an existing secret (updates last_rotated_at).
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `KEY` | required |  |
+| `KEY` | required | Secret key to rotate |
 | `--value`, `-v` | required | New secret value |
 
 ### `core secrets set` {#secrets-set}
@@ -510,7 +510,7 @@ Store an encrypted secret in the CORE installation.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `KEY` | required |  |
+| `KEY` | required | Secret key (e.g., 'anthropic.api_key') |
 | `--value`, `-v` | required | Secret value (will be encrypted at rest) |
 | `--description`, `-d` |  | Optional description |
 | `--force`, `-f` | off | Overwrite without 409 error if key exists |
@@ -596,7 +596,7 @@ Examples:
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `QUERY` | required |  |
+| `QUERY` | required | Natural language query |
 | `--collection`, `-c` | `policies` | Collection to query: 'policies', 'patterns', 'specs', or 'code' |
 | `--limit`, `-n` | `5` | Max results to return |
 

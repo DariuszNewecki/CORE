@@ -76,7 +76,7 @@ Shows exactly what the AI thought vs what the System physically did.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `SESSION_ID` | required |  |
+| `SESSION_ID` | required | The UUID of the session to investigate. |
 
 ### `core-admin admin health` {#admin-health}
 
@@ -224,7 +224,7 @@ Performs a semantic search for capabilities via /v1/search/capabilities.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `QUERY` | required |  |
+| `QUERY` | required | The semantic query to search for. |
 | `--limit`, `-n` | `5` | Max results to return. |
 
 ---
@@ -270,7 +270,7 @@ It will only apply changes if the Evaluator proves the code is more readable.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FILE_PATH` | required |  |
+| `FILE_PATH` | required | Path to the Python file to refactor. |
 | `--write` | off | Actually apply the refactoring to the file. |
 
 ### `core-admin code complexity` {#code-complexity}
@@ -285,7 +285,7 @@ Targets high cyclomatic complexity and 'God Methods' to improve modularity.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FILE_PATH` | required |  |
+| `FILE_PATH` | required | Path to the file to refactor for complexity. |
 | `--write` | off | Actually apply the refactoring to the file. |
 
 ### `core-admin code refactor-settings` {#code-refactor-settings}
@@ -358,7 +358,7 @@ Display the Constitutional Coherence Report for a run.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `RUN_ID` |  |  |
+| `RUN_ID` |  | Run id to report on. Omit to use the most recent run. |
 
 ### `core-admin coherence seed bootstrap` {#coherence-seed-bootstrap}
 
@@ -387,7 +387,7 @@ embedding endpoint — disaster-recovery path per ADR-073 D4.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `OUTPUT` | required |  |
+| `OUTPUT` | required | Destination JSONL path. One line per claim: {payload, vector}. |
 
 ### `core-admin coherence seed import` {#coherence-seed-import}
 
@@ -401,7 +401,7 @@ Does not consult the embedding endpoint — vectors come from the fixture.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `SOURCE` | required |  |
+| `SOURCE` | required | JSONL fixture produced by `coherence seed export`. |
 
 ### `core-admin coherence supersede` {#coherence-supersede}
 
@@ -413,7 +413,7 @@ Retire one CCC run by supersession from another.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `OLD_RUN_ID` | required |  |
+| `OLD_RUN_ID` | required | Run id to retire (must be currently open). |
 | `--by` | required | Canonical run id that supersedes the old run. |
 | `--note` | required | Mandatory rationale recorded on every dismissed candidate's triage_note. The supersession is auditable through ordinary triage history. |
 | `--yes`, `-y` | off | Skip the interactive confirmation prompt. |
@@ -428,8 +428,8 @@ Record a triage decision on one candidate.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `CANDIDATE_ID` | required |  |
-| `DECISION` | required |  |
+| `CANDIDATE_ID` | required | Candidate id to triage. |
+| `DECISION` | required | Triage decision: one of confirmed, dismissed, deferred. |
 | `--note` |  | Governor rationale. Required when DECISION is 'dismissed'. |
 
 ---
@@ -448,7 +448,7 @@ Fuzzy search across CLI commands via /v1/search/commands.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `TERM` | required |  |
+| `TERM` | required | Term to search in command names/descriptions. |
 | `--limit`, `-l` | `25` | Max results. |
 
 ---
@@ -484,7 +484,7 @@ Example: core-admin constitution query "what are the rules for database access?"
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `TEXT` | required |  |
+| `TEXT` | required | Natural language question about the constitution. |
 
 ### `core-admin constitution status` {#constitution-status}
 
@@ -524,7 +524,7 @@ Exit 0 on pass. Exit 1 on any broken link or missing predecessor.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `ADR_PATH` | required |  |
+| `ADR_PATH` | required | Path to the ADR .md file to check (e.g. .specs/decisions/ADR-141-my-decision.md). |
 
 ---
 
@@ -566,7 +566,7 @@ use: core-admin context build --file ... --symbol ...
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `QUERY` | required |  |
+| `QUERY` | required | Natural language query |
 | `--output`, `-o` |  | Write to file |
 | `--max-tokens` | `30000` | Token budget |
 | `--max-items` | `30` | Max items |
@@ -592,7 +592,7 @@ For semantic/vector search, use 'core-admin context build' instead.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PATTERN` | required |  |
+| `PATTERN` | required | Code pattern to search (e.g., 'isinstance') |
 | `--path` |  | Limit search to specific path |
 | `--limit` | `20` | Maximum results to return |
 
@@ -843,7 +843,7 @@ same-guarded ``marker_checked_remove`` performs the deletion.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `RUN_ID` | required |  |
+| `RUN_ID` | required | The run id of the retained demo workspace. |
 | `--write` | off | Actually remove the workspace. Without it, preview the target only. |
 
 ### `core-admin demo consequence-chain` {#demo-consequence-chain}
@@ -901,7 +901,7 @@ Move an autonomous cluster to 'approved' so it runs on the next execute.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `CLUSTER_TASK_ID` | required |  |
+| `CLUSTER_TASK_ID` | required | Cluster Task id to accept. |
 | `--write` | off | Apply the acceptance (default dry-run). |
 
 ### `core-admin dev campaign execute` {#dev-campaign-execute}
@@ -914,7 +914,7 @@ Run only the clusters the governor has accepted (status='approved').
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PARENT_TASK_ID` | required |  |
+| `PARENT_TASK_ID` | required | Campaign parent Task id. |
 | `--write` | off | Execute approved clusters (default dry-run). |
 
 ### `core-admin dev campaign list` {#dev-campaign-list}
@@ -927,7 +927,7 @@ Show every cluster of a campaign with its id, status, and confidence.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PARENT_TASK_ID` | required |  |
+| `PARENT_TASK_ID` | required | Campaign parent Task id (printed by strategic-audit --write). |
 
 ### `core-admin dev campaign reject` {#dev-campaign-reject}
 
@@ -939,7 +939,7 @@ Move a cluster to 'rejected'; it will not execute. Reason stored in context.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `CLUSTER_TASK_ID` | required |  |
+| `CLUSTER_TASK_ID` | required | Cluster Task id to reject. |
 | `--reason` | `` | Why the cluster is rejected. |
 | `--write` | off | Apply the rejection (default dry-run). |
 
@@ -960,7 +960,7 @@ judgment. Per #673 / ADR-110 D4.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `CAMPAIGN_ID` | `` |  |
+| `CAMPAIGN_ID` | `` | Campaign parent Task id (omit for rolling stats across all campaigns). |
 
 ### `core-admin dev refactor` {#dev-refactor}
 
@@ -981,7 +981,7 @@ Examples:
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `GOAL` | required |  |
+| `GOAL` | required | High-level refactoring goal or file path. |
 | `--write` | off | Apply changes. Default is dry-run. |
 | `--workflow` | `refactor_modularity` | Workflow type: auto, refactor_modularity, coverage_remediation. |
 
@@ -1039,7 +1039,7 @@ Allows you to review, edit, and approve test code step-by-step.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `TARGET` | required |  |
+| `TARGET` | required | Path to the file you want to test. |
 
 ### `core-admin dev test-stability` {#dev-test-stability}
 
@@ -1055,7 +1055,7 @@ Runs a stability trial on an action:
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `ACTION_ID` | required |  |
+| `ACTION_ID` | required | The ID of the action to test (e.g. fix.format). |
 
 ---
 
@@ -1102,7 +1102,7 @@ individual documents is not a gap — only corpus-level non-coverage is (D4).
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `CORPUS` | required |  |
+| `CORPUS` | required | Folder of documents to analyse (the customer's documentation stack). |
 | `--catalog`, `-c` | `nist_800_171` | Requirements catalog to check against (a framework under grc-catalogs/). |
 | `--assume-applicable`, `-y` | off | Skip the applicability confirm step — score even if the framework reads as out of domain for this corpus. |
 
@@ -1124,7 +1124,7 @@ Writes a provenance record (licence.yaml) on completion.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FRAMEWORK_ID` | required |  |
+| `FRAMEWORK_ID` | required | Framework identifier from inventory.yaml (e.g. nist_800_171, gdpr). |
 | `--text-dir` |  | Directory of section text files to ingest. Defaults to grc-catalogs/internal/&lt;framework_id>/text/. |
 | `--write` | off | Perform the ingestion (default: dry-run shows what would be ingested). |
 
@@ -1148,7 +1148,7 @@ var/drafts/META/vocabulary.json (ADR-130 D2). The governor applies it.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `TARGET` | required |  |
+| `TARGET` | required | Projection target. Currently supported: 'vocabulary'. |
 | `--write` | off | Write the regenerated projection to var/drafts/META/vocabulary.json for governor review. Apply with: cp var/drafts/META/vocabulary.json .intent/META/vocabulary.json |
 | `--check` | off | Verify the projection is fresh (CI gate per ADR-023 D6). Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --write. |
 
@@ -1169,7 +1169,7 @@ Generate tests interactively with step-by-step prompts.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `TARGET` | required |  |
+| `TARGET` | required | Module path to generate tests for (e.g., src/shared/models/knowledge.py) |
 | `--write` | off | Actually execute the final creation of the test file. |
 
 ### `core-admin interactive-test info` {#interactive-test-info}
@@ -1196,7 +1196,7 @@ Validate and, with --apply, persist an llm_resources definition.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `DEFINITION_FILE` | required |  |
+| `DEFINITION_FILE` | required | Path to a JSON file describing the llm_resources row. |
 | `--apply` | off | Persist the definition to core.llm_resources (otherwise behaves like validate). |
 
 ### `core-admin llm-resources validate` {#llm-resources-validate}
@@ -1209,7 +1209,7 @@ Validate an llm_resources definition without persisting it.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `DEFINITION_FILE` | required |  |
+| `DEFINITION_FILE` | required | Path to a JSON file describing the llm_resources row. |
 
 ---
 
@@ -1240,7 +1240,7 @@ findings against the pack's rules.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `PACK_ID` | required |  |
+| `PACK_ID` | required | Pack ID to adopt, e.g. core/starter-python |
 | `--target-dir`, `-t` | `.` | Root of the target repo. Defaults to CWD. |
 | `--write` | off | Apply changes. Without --write, previews what would be written. |
 | `--override` |  | Downgrade a rule's enforcement. Format: 'rule_id:enforcement', e.g. 'starter.no_bare_except:reporting'. |
@@ -1259,7 +1259,7 @@ governance pack is explicitly adopted.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `NAME` | required |  |
+| `NAME` | required | The name of the new project. |
 | `--path` |  | Parent directory for the new project (default: current directory). |
 | `--write` | off | Actually create the directories and files. |
 
@@ -1279,7 +1279,7 @@ Analyze a single file for refactoring opportunities.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FILE_PATH` | required |  |
+| `FILE_PATH` | required | File to analyze |
 
 ### `core-admin refactor score` {#refactor-score}
 
@@ -1291,7 +1291,7 @@ Check the modularity score for a single file with detailed breakdown.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `FILE_PATH` | required |  |
+| `FILE_PATH` | required | File path to analyze |
 
 ### `core-admin refactor stats` {#refactor-stats}
 
@@ -1366,7 +1366,7 @@ Consolidated drift entry point.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `SCOPE` | `all` |  |
+| `SCOPE` | `all` | Drift scope: guard\|symbol\|vector\|all |
 
 ---
 
@@ -1515,7 +1515,7 @@ Export everything the Blackboard recorded for one run (read-only).
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `RUN_ID` | required |  |
+| `RUN_ID` | required | The run_id GoalExecutionWorker stamped (goal_run.&lt;run_id>.*). |
 | `--partial` | off | Export a run with no outcome entry, stamped completeness=partial. |
 | `--stdout` | off | Write the export bytes to stdout instead of the canonical file. |
 
@@ -1571,7 +1571,7 @@ Examples:
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `RULE` |  |  |
+| `RULE` |  | Audit rule ID to remediate (e.g. 'purity.no_ast_duplication'). |
 | `--sense-only` | off | Only run the sensor — post findings to blackboard, skip LLM. |
 | `--file` |  | Audit a single file across all rules, then remediate. Mutually exclusive with rule and --sense-only. Path must be relative to repo root. |
 
@@ -1590,7 +1590,7 @@ Governor Inbox.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `ENTRY_ID` | required |  |
+| `ENTRY_ID` | required | Blackboard entry UUID. |
 | `--reason`, `-r` | required | Why this finding is being closed. |
 | `--by` | `cli_admin` | Operator identity. |
 | `--authority` | `principal.governor` | Authority under which the resolution is recorded (URS NFR.5). |
@@ -1605,7 +1605,7 @@ Start a constitutional worker by its declaration name.
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `WORKER_NAME` | required |  |
+| `WORKER_NAME` | required | Worker declaration name (e.g. doc_worker). |
 
 ### `core-admin workers show` {#workers-show}
 
