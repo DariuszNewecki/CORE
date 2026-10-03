@@ -1,80 +1,54 @@
 # CLI Reference
 
-```
-core-admin [command group] [subcommand] [options]
-```
+CORE has two command-line tools (ADR-146). Every command, option and default is listed in
+the generated reference for each one; this page explains which tool does what, the
+conventions they share, and the commands whose operational behaviour needs more than help
+text.
 
-Run `poetry run core-admin <group> --help` for the full subcommand list of any group.
+| Binary | Package | Audience | Reference |
+|---|---|---|---|
+| `core-admin` | `pip install core-runtime` | Operators of a CORE installation, and anyone auditing or starting a governed repository locally | [`core-admin` reference](reference/core-admin.md) |
+| `core` | `pip install core-cli` | Consumers of a running CORE: proposals, secrets, BYOR onboarding, assisted remediation. Most commands talk to a running CORE API | [`core` reference](reference/core.md) |
 
----
-
-### `code` — Codebase Quality & Verification
-
-```bash
-poetry run core-admin code audit          # Constitutional audit (all rules, all engines)
-poetry run core-admin code lint           # Black + Ruff check (read-only)
-poetry run core-admin code test           # Run pytest suite
-poetry run core-admin code format         # Format code
-poetry run core-admin code complexity     # Complexity analysis
-poetry run core-admin code clarity        # Clarity refactoring
-poetry run core-admin code docstrings     # Docstring compliance
-poetry run core-admin code actions        # List registered Atomic Actions
-poetry run core-admin code check-imports  # Import boundary checks
-```
+Both reference pages are generated from the live command trees by
+`core-admin docs generate --write`, so they list exactly what the installed CLIs accept.
+Every command also answers `--help`. In a development checkout, prefix commands with
+`poetry run`.
 
 ---
 
-### `constitution` — Governance & Policy
+## Command conventions
 
-```bash
-poetry run core-admin constitution audit     # Audit constitution rules
-poetry run core-admin constitution status    # Enforcement coverage (enforced vs declared)
-poetry run core-admin constitution validate  # Validate .intent/ schemas and policies
-poetry run core-admin constitution query     # Semantic search over constitutional rules
-```
+**`--write`**: required for any command that modifies files or data. Without it, commands
+run in dry-run mode.
 
----
+**Dry-run by default**: CORE never makes changes unless explicitly instructed.
 
-### `proposals` — Autonomous Proposal Workflow
+**Interactive confirmation**: `dev sync --write` and destructive operations require
+interactive confirmation and cannot be piped. When stdin is closed, they exit with code 2
+and say how to proceed.
 
-The human-in-the-loop gate for autonomous system modification.
-
-```bash
-poetry run core-admin proposals create        # Create a new proposal
-poetry run core-admin proposals list          # List proposals and risk assessments
-poetry run core-admin proposals show <id>     # Detailed breakdown of a proposal
-poetry run core-admin proposals approve <id>  # Authorize for execution
-poetry run core-admin proposals reject <id>   # Reject proposal
-poetry run core-admin proposals execute <id>  # Execute approved proposal
-```
+**Deprecated names**: a renamed command can keep its old name as a hidden, deprecated
+alias. Hidden aliases are not listed in the generated reference.
 
 ---
 
-### `dev` — Developer Workflows
+## Command notes
 
-```bash
-poetry run core-admin dev sync                         # Dry-run: preview fixes + graph/vector sync
-poetry run core-admin dev sync --write                 # Fix metadata (IDs/headers/format), then sync graph + vectors (interactive confirm)
-poetry run core-admin dev chat                         # AI chat for development assistance
-poetry run core-admin dev refactor <goal>              # Autonomous refactoring toward a goal
-poetry run core-admin dev refactor <goal> --write      # Apply refactoring
-poetry run core-admin dev strategic-audit              # Dry-run: full self-awareness cycle
-poetry run core-admin dev strategic-audit --write      # Persist campaign to DB
-poetry run core-admin dev test <file>                  # Test generation for a file
-```
+### `project new` and `project adopt-pack`
 
----
+`project new` is the bootstrap stage of Generate (ADR-119, amended 2026-10-02). It creates
+the repository substrate and the machinery that can host project law, and **no
+project-specific law**. Until rules are authored or ratified, or a governance pack is
+explicitly adopted with `project adopt-pack`, `code audit` on the new project fails closed.
+That is intended: CORE does not choose a project's law. It never overwrites: a non-empty
+target, or a target inside CORE's own repository, is refused. Without `--write` it previews
+the files.
 
-### `demo` — Isolated, Opt-In Demonstrations
+`project onboard`, `project scout`, `project promote` and `project docs` belong to `core`
+and talk to a running CORE API (ADR-146 D2). See [byor-quickstart.md](byor-quickstart.md).
 
-```bash
-poetry run core-admin demo consequence-chain           # Genuine governance chain, in a disposable clone
-poetry run core-admin demo consequence-chain --output report.md   # + write Markdown report & JSON companion
-poetry run core-admin demo consequence-chain --keep-workspace     # Keep the disposable clone after success
-poetry run core-admin demo consequence-chain --simulate-confirmation  # Unattended (CI/cold-room); labelled "simulated"
-poetry run core-admin demo consequence-chain --timeout-seconds 300    # Bound the infra + scenario waits
-poetry run core-admin demo cleanup <run_id>            # Remove a retained demo workspace (marker-checked)
-```
+### `demo consequence-chain`
 
 **Prerequisites:** Docker (Compose v2). No LLM key required.
 
@@ -82,8 +56,8 @@ poetry run core-admin demo cleanup <run_id>            # Remove a retained demo 
 **disposable clone** and runs it through the **real** sensor → remediator → proposal route →
 executor → consequence service → re-audit. It never touches the invoking checkout, its git
 index, your database, Qdrant, API, or daemon; it stands up its own loopback-only, dynamically
-ported Postgres + Qdrant, and tears everything down when done. Every displayed fact — finding,
-proposal, approval authority, execution, pre/post SHA, changed files, resolved finding — belongs
+ported Postgres + Qdrant, and tears everything down when done. Every displayed fact (finding,
+proposal, approval authority, execution, pre/post SHA, changed files, resolved finding) belongs
 to the **same** proposal; nothing is selected by "latest". The `fix.ids` proposal is
 auto-approved as **policy-safe** (`risk_classification.safe_auto_approval`); the interactive
 prompt is your consent to continue the demonstration, **not** a proposal-approval event.
@@ -113,93 +87,23 @@ matching run-id marker file.
 > `scripts/demo.sh` is a thin compatibility wrapper that delegates to `demo consequence-chain`; it
 > contains no scenario logic of its own.
 
----
+### `database status` and `database migrate`
 
-### `vectors` — Vector Store Operations (Qdrant)
-
-CORE maintains three vector collections: `core_policies` (`.intent/` governance),
-`core-patterns` (architecture patterns), and `core_specs` (`.specs/` human intent documents).
-
-```bash
-poetry run core-admin vectors sync --write             # Sync all three collections
-poetry run core-admin vectors sync-code                # Sync symbol embeddings (dry-run)
-poetry run core-admin vectors sync-code --write        # Apply code sync
-poetry run core-admin vectors query "<query>"          # Semantic search (default: policies)
-poetry run core-admin vectors query "<query>" --collection policies  # Search core_policies
-poetry run core-admin vectors query "<query>" --collection patterns  # Search core-patterns
-poetry run core-admin vectors query "<query>" --collection specs     # Search core_specs
-poetry run core-admin vectors status                   # Vector store health and collection stats
-poetry run core-admin vectors rebuild                  # Dry-run: rebuild vector collections
-poetry run core-admin vectors rebuild --collection symbols --write  # Rebuild symbols
-poetry run core-admin vectors cleanup                  # Clean orphaned vectors
-```
-
----
-
-### `symbols` — Knowledge Graph & Symbol Registry
-
-```bash
-poetry run core-admin symbols status   # Symbol registry status
-poetry run core-admin symbols audit    # Audit symbol assignments
-poetry run core-admin symbols sync     # Sync symbol registry
-```
-
----
-
-### `runtime` — Runtime State & Health
-
-```bash
-poetry run core-admin runtime dashboard        # Five-panel governor dashboard (recommended)
-poetry run core-admin runtime dashboard --plain  # Plain text output (pipe/watch friendly)
-poetry run core-admin runtime health           # Plumbing view: workers, blackboard, crawls
-```
-
-The governor dashboard answers five questions with color signals:
-1. **Convergence Direction** — is the codebase healing or accumulating debt?
-2. **Governor Inbox** — are there items requiring human judgment?
-3. **Loop Running** — are all workers alive and cycling?
-4. **Pipeline Moving** — are proposals flowing through to execution?
-5. **Autonomous Reach** — can the daemon self-heal without intervention?
-
-```bash
-watch -n 30 poetry run core-admin runtime dashboard  # Live monitoring
-```
-
----
-
-### `workers` — Constitutional Worker Management
-
-```bash
-poetry run core-admin workers blackboard               # Inspect the Blackboard
-poetry run core-admin workers blackboard --status open # Open findings only
-poetry run core-admin workers blackboard --filter "audit.violation"  # Filter by subject
-poetry run core-admin workers purge --status <status> --rule <prefix> --before <hours> --write  # Purge entries
-poetry run core-admin workers remediate <rule>         # Run remediation pipeline for a rule
-poetry run core-admin workers remediate --file <path>  # Remediate all violations in a file
-poetry run core-admin workers run <declaration>        # Run a single worker manually
-```
-
----
-
-### `database` — PostgreSQL State Management
-
-```bash
-poetry run core-admin database status   # Read-only: schema state + migration ledger; exit 0 current, 2 not current, 1 check failed
-poetry run core-admin database migrate  # Dry run: lists pending migrations, mutates nothing
-poetry run core-admin database sync     # Sync the code knowledge graph (symbols) to the database
-```
+`database status` is read-only: exit 0 when the schema is current, 2 when migrations are
+pending or the ledger contradicts the schema, 1 when the check itself failed.
+`database migrate` without `--write` lists pending migrations and mutates nothing.
 
 CORE never migrates a database on its own. Upgrading an existing database is an operator-run
 step — the procedure for each released baseline is in
 [Upgrading an existing CORE database](getting-started.md#upgrading-an-existing-core-database).
 
 ```bash
-poetry run core-admin database status                          # read-only; exit 0 current, 2 pending/contradictory
-poetry run core-admin database status --format json            # adds ledger_present, probe_failures, baseline_suggestion, current
-poetry run core-admin database migrate                         # dry run: lists pending, mutates nothing
-poetry run core-admin database migrate --write                 # applies pending, one transaction per migration
-poetry run core-admin database migrate --adopt-baseline v2.9.1          # verifies the baseline's probes only
-poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # records the ledger through that baseline
+core-admin database status                          # read-only; exit 0 current, 2 pending/contradictory
+core-admin database status --format json            # adds ledger_present, probe_failures, baseline_suggestion, current
+core-admin database migrate                         # dry run: lists pending, mutates nothing
+core-admin database migrate --write                 # applies pending, one transaction per migration
+core-admin database migrate --adopt-baseline v2.9.1          # verifies the baseline's probes only
+core-admin database migrate --adopt-baseline v2.9.1 --write  # records the ledger through that baseline
 ```
 
 - `--write` is the only mutation flag (`--apply` remains one release as a deprecated alias).
@@ -232,123 +136,30 @@ poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # record
   checkout (`status --format json` reports `"assets": "bundled"`), and the `core-engine` image
   exposes them as `entrypoint.sh status …` / `entrypoint.sh migrate …` (only `DATABASE_URL` needed).
 
----
+### `runtime dashboard`
 
-### `daemon` — Background Worker Daemon
+The governor dashboard answers five questions with color signals:
 
-```bash
-systemctl --user start core-daemon      # Start via systemd
-systemctl --user stop core-daemon       # Stop
-systemctl --user restart core-daemon    # Restart
-journalctl --user -u core-daemon -f     # Follow logs
-poetry run core-admin daemon start      # Start via CLI
-```
-
----
-
-### `context` — Context Packages for LLM
-
-Every Claude Code prompt that modifies `src/` should be preceded by a context build.
+1. **Convergence Direction** — is the codebase healing or accumulating debt?
+2. **Governor Inbox** — are there items requiring human judgment?
+3. **Loop Running** — are all workers alive and cycling?
+4. **Pipeline Moving** — are proposals flowing through to execution?
+5. **Autonomous Reach** — can the daemon self-heal without intervention?
 
 ```bash
-poetry run core-admin context build --file <path> --task code_modification --goal "<goal>" --no-cache
-poetry run core-admin context search "<query>"   # Search context evidence
-pottery run core-admin context explain           # Explain context packet
+watch -n 30 core-admin runtime dashboard --plain  # Live monitoring
 ```
 
----
+### `daemon`
 
-### `admin` — System Forensics & Governance
-
-```bash
-poetry run core-admin admin coverage    # Governance rule coverage
-poetry run core-admin admin status      # System health summary
-poetry run core-admin admin traces      # Decision traces
-poetry run core-admin admin health      # Admin health check
-```
+Use `core-admin daemon up | down | restart | status` to control the CORE services; they
+drive the systemd user units. `daemon start` is the systemd entry point, not a command to run
+by hand.
 
 ---
 
-### `status` — Single-Glance System State
+## Governance note
 
-```bash
-poetry run core-admin status drift  # System state drift
-```
-
----
-
-### `secrets` — Encrypted Secrets Management
-
-```bash
-poetry run core-admin secrets list      # List secret keys
-poetry run core-admin secrets get <key> # Get a secret
-poetry run core-admin secrets set <key> # Set a secret
-poetry run core-admin secrets delete <key> # Delete a secret
-```
-
----
-
-### `project` — Project Lifecycle
-
-```bash
-poetry run core-admin project adopt-pack <pack-id> -t <repo> --write  # Add a rule pack (e.g. core/starter-python) to a repo that has a .intent/
-poetry run core-admin project new <name> [--path <dir>] --write       # Create <dir>/<name> (default: ./<name>) with CORE's machinery floor + a minimal Python skeleton
-```
-
-`project new` is an operator command and the bootstrap stage of Generate (ADR-119,
-amended 2026-10-02). It creates the repository substrate and the machinery that can host
-project law, and **no project-specific law**. Until rules are authored or ratified, or a
-governance pack is explicitly adopted, `code audit` on the new project fails closed. That is
-intended: CORE does not choose a project's law. It never overwrites: a non-empty target, or a
-target inside CORE's own repository, is refused. Without `--write` it previews the files.
-
-`project onboard`, `project scout`, `project promote` and `project docs` are consumer
-commands: they live in `core-cli` (`core project …`) and talk to a running CORE API
-(ADR-146 D2). See [byor-quickstart.md](byor-quickstart.md).
-
----
-
-### `refactor` — Refactoring Analysis
-
-```bash
-poetry run core-admin refactor analyze <file>  # Refactoring suggestions
-poetry run core-admin refactor score           # Refactoring score
-poetry run core-admin refactor stats           # Refactoring statistics
-poetry run core-admin refactor suggest         # Refactoring suggestions
-```
-
----
-
-### `interactive-test` — Interactive Test Generation
-
-```bash
-poetry run core-admin interactive-test generate  # Step-by-step test generation with approval
-poetry run core-admin interactive-test info      # Test generation info
-```
-
----
-
-### `tools` — Governed Maintenance Tools
-
-```bash
-poetry run core-admin tools export-context   # Export context
-poetry run core-admin tools rewire-imports   # Rewire import paths
-```
-
----
-
-## Command Conventions
-
-**`--write`** — required for any command that modifies files or data. Without it, commands run in dry-run mode.
-
-**Dry-run by default** — CORE never makes changes unless explicitly instructed.
-
-**Interactive confirmation** — `dev sync --write` and destructive operations require interactive confirmation and cannot be piped.
-
-**`--dangerous`** — some commands carry a danger flag and require explicit acknowledgment. This is by design.
-
----
-
-## Governance Note
-
-All CLI operations that modify files are subject to constitutional governance. A command that would produce a blocking violation halts before applying changes. The CLI is not an escape hatch from the constitution.
+All CLI operations that modify files are subject to constitutional governance. A command that
+would produce a blocking violation halts before applying changes. The CLI is not an escape
+hatch from the constitution.

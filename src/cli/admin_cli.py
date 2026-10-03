@@ -59,6 +59,7 @@ from cli.resources.context import app as context_app
 from cli.resources.database import app as database_app
 from cli.resources.demo import app as demo_app
 from cli.resources.dev import app as dev_app
+from cli.resources.docs import app as docs_app
 from cli.resources.grc import app as grc_app
 from cli.resources.intent import app as intent_app
 from cli.resources.llm_resources import app as llm_resources_app
@@ -99,6 +100,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(grc_app, name="grc")
     app_instance.add_typer(dev_app, name="dev")
     app_instance.add_typer(demo_app, name="demo")
+    app_instance.add_typer(docs_app, name="docs")
     app_instance.add_typer(intent_app, name="intent")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(llm_resources_app, name="llm-resources")
