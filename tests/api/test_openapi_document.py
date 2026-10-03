@@ -74,6 +74,17 @@ def test_quality_imports_takes_no_body(spec: dict) -> None:
     assert "requestBody" not in spec["paths"]["/v1/quality/imports"]["post"]
 
 
+def test_served_under_v1() -> None:
+    """ADR-087 D1/D9: the live contract is served at /v1/openapi.json."""
+    from fastapi.testclient import TestClient
+
+    from api.main import create_app
+
+    client = TestClient(create_app())
+    assert client.get("/v1/openapi.json").status_code == 200
+    assert client.get("/openapi.json").status_code == 404
+
+
 def test_committed_copy_is_current(rendered: str) -> None:
     """``core-admin docs generate --write`` refreshes the committed copy."""
     committed = (REPO_ROOT / OPENAPI_DOCUMENT).read_text(encoding="utf-8")

@@ -126,6 +126,9 @@ def create_app(lifespan=None) -> FastAPI:
         title="CORE OEM API",
         version=_resolve_runtime_version(),
         description=_OEM_API_DESCRIPTION,
+        # ADR-087 D1/D9: the contract is versioned with the wire surface, so
+        # it is served under /v1/ (FastAPI's default is /openapi.json).
+        openapi_url="/v1/openapi.json",
         lifespan=effective_lifespan,
         # ADR-087 D2 + D7: fastapi 0.132 introduced default-strict Content-Type
         # checking on JSON requests. That is a request-shape tightening per D2
