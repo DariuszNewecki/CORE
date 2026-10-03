@@ -118,10 +118,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      # ADR-167 D2: the released core-cli, so the offline audit's
-      # cli.reference_current compares docs/reference/core.md too.
-      - name: Install released core-cli
-        run: poetry run pip install --no-deps core-cli
+      # ADR-167 D2: the core-cli release CORE declares (Makefile
+      # CORE_CLI_DOCS_VERSION), so the offline audit's cli.reference_current
+      # compares docs/reference/core.md against a fixed version, never latest.
+      - name: Install the declared core-cli release
+        run: poetry run pip install --no-deps "core-cli==$(make -s core-cli-docs-version)"
 
       - name: Vocabulary freshness check
         run: poetry run core-admin intent sync vocabulary --check

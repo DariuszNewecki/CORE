@@ -99,3 +99,25 @@ That change lands in the same change-set as D2 and D3.
   decided, an operator runs it.
 - The `core` page is only as current as the installed core-cli; `make install` and CI
   install it so the D2 check runs.
+
+---
+
+## Amendment 2026-10-03 — declared core-cli version; both rules blocking (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03)
+
+**D2, corrected.** Where D2 says "the released core-cli (from PyPI)", read: **the core-cli
+release CORE declares**. CORE declares the core-cli version its documentation corresponds
+to in one place (the Makefile's `CORE_CLI_DOCS_VERSION`); `make install` and CI install
+exactly that version. A blocking rule must not depend on whatever PyPI calls latest: an
+unrelated core-cli release would turn CORE red without a byte of CORE changing, and an old
+CORE commit would not reproduce. Moving the declared version is a deliberate change that
+ships with the regenerated `docs/reference/core.md`.
+
+**Promotion.** Both backlogs measured zero against the released core-cli 2.0.0, so per the
+enforcement posture above: `cli.docs_no_phantom_commands` is `blocking`, and, with the
+version declared, `cli.reference_current` is `blocking`.
+
+**Scope, restated.** D3 senses which commands exist and are current, in the
+command-shaped mentions it defines. It does not judge whether prose about a real command
+is true, and this ADR does not extend it to.

@@ -19,6 +19,10 @@ ENV_FILE    ?= .env
 # Internal helpers
 PY          := $(POETRY) run python
 CORE_ADMIN  := $(POETRY) run core-admin
+# ADR-167 D2: the core-cli release CORE's docs correspond to. The single
+# declaration: `make install` and CI install exactly this version. Move it
+# deliberately, with a regenerated docs/reference/core.md.
+CORE_CLI_DOCS_VERSION := 2.0.0
 OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 
 # Daemon PID file — lives in var/ (runtime, gitignored)
@@ -27,7 +31,7 @@ DAEMON_LOG  := var/log/core-daemon.log
 
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
-  help install lock run stop \
+  help install core-cli-docs-version lock run stop \
   daemon daemon-start daemon-stop daemon-status daemon-restart daemon-logs \
   audit check-constitution check-ui validate \
   lint format test coverage dev-sync \
@@ -47,12 +51,15 @@ help: ## Show this help message
 	@echo "Tip: run 'core-admin --help' to see the resource-based CLI hierarchy."
 
 # ---- Setup -------------------------------------------------------------------
-install: ## Install dependencies (poetry install + released core-cli)
+install: ## Install dependencies (poetry install + the declared core-cli release)
 	@echo "📦 Installing dependencies..."
 	$(POETRY) install
-	@# ADR-167 D2: the released core-cli, so cli.reference_current can compare
-	@# docs/reference/core.md. --no-deps keeps the editable core-runtime.
-	$(POETRY) run pip install --no-deps core-cli
+	@# ADR-167 D2: the declared core-cli release, so cli.reference_current can
+	@# compare docs/reference/core.md. --no-deps keeps the editable core-runtime.
+	$(POETRY) run pip install --no-deps "core-cli==$(CORE_CLI_DOCS_VERSION)"
+
+core-cli-docs-version: ## Print the core-cli release the docs correspond to
+	@echo $(CORE_CLI_DOCS_VERSION)
 
 lock: ## Resolve and lock dependencies
 	@echo "🔒 Resolving and locking dependencies..."
