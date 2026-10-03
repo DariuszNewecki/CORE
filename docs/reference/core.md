@@ -2,19 +2,18 @@
 
 # `core` command reference
 
-The consumer CLI, shipped in `core-cli` (this page: version 1.0.2, the released package). Most commands talk to a running CORE API. See the [CLI overview](../cli-reference.md) for which binary does what.
+The consumer CLI, shipped in `core-cli` (this page: version 2.0.0, the released package). Most commands talk to a running CORE API. See the [CLI overview](../cli-reference.md) for which binary does what.
 
-42 commands.
+31 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
-| [`code`](#code) | 14 | Codebase quality, style, and verification operations. |
+| [`code`](#code) | 13 | Codebase quality, style, and verification operations. |
 | [`lane`](#lane) | 4 | Assisted Remediation Lane: work delegated findings under human-gated approval. |
-| [`project`](#project) | 4 | Operations for project lifecycle: onboarding and documentation. |
-| [`proposals`](#proposals) | 6 | Operations for the A3 Autonomous Proposal system (propose, approve, execute). |
-| [`secrets`](#secrets) | 5 | Manage encrypted secrets in the database. |
-| [`symbols`](#symbols) | 4 | Operations for the symbol registry and Knowledge Graph identification. |
-| [`vectors`](#vectors) | 5 | Vector store operations (Qdrant). |
+| [`project`](#project) | 3 | Bring a repository under governance: scout, onboard, promote (BYOR). |
+| [`proposals`](#proposals) | 7 | Operations for the A3 Autonomous Proposal system (propose, approve, execute). |
+| [`symbols`](#symbols) | 3 | Operations for the symbol registry and Knowledge Graph identification. |
+| [`vectors`](#vectors) | 1 | Semantic search over the governed repository's vector index. |
 
 ---
 
@@ -91,26 +90,6 @@ Checks for:
 Enforces:
 - code.imports.must_resolve
 - code.imports.no_stale_namespace
-
-### `core code check-ui` {#code-check-ui}
-
-```
-core code check-ui [OPTIONS]
-```
-
-Check and repair Body-layer UI contract violations.
-
-Validates that logic in features/ and services/ does not use:
-- print() or input()
-- rich.console or formatting
-- os.environ (must use shared.config.settings)
-
-If --write is used, CORE invokes an AI specialist to refactor the
-violating modules into a headless state.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--write` | off | Use LLM to autonomously fix UI contract violations. |
 
 ### `core code docstrings` {#code-docstrings}
 
@@ -280,21 +259,7 @@ worked". A diff that fails validation never reaches the approval queue.
 
 ## `core project` {#project}
 
-Operations for project lifecycle: onboarding and documentation.
-
-### `core project docs` {#project-docs}
-
-```
-core project docs [OPTIONS]
-```
-
-Generate the canonical Capability Reference documentation.
-
-Extracts all public symbols and their intent from the database.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--output`, `-o` | `docs/10_CAPABILITY_REFERENCE.md` | Target path for the reference doc. |
+Bring a repository under governance: scout, onboard, promote (BYOR).
 
 ### `core project onboard` {#project-onboard}
 
@@ -405,6 +370,19 @@ Runs the atomic action sequence defined in the proposal.
 | `PROPOSAL_ID` | required |  |
 | `--write` | off | Apply changes to the system. |
 
+### `core proposals integrate` {#proposals-integrate}
+
+```
+core proposals integrate [OPTIONS]
+```
+
+Integrate staged changes into the governed repository and commit them.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `-m`, `--message` | required | The git commit message for this integration. |
+| `--write` | off | Commit and integrate staged changes (default: dry-run). |
+
 ### `core proposals list` {#proposals-list}
 
 ```
@@ -446,74 +424,6 @@ Show detailed breakdown and risk assessment of a proposal.
 | Argument / option | Default | Description |
 |---|---|---|
 | `PROPOSAL_ID` | required |  |
-
----
-
-## `core secrets` {#secrets}
-
-Manage encrypted secrets in the database.
-
-### `core secrets delete` {#secrets-delete}
-
-```
-core secrets delete KEY [OPTIONS]
-```
-
-Permanently delete a secret from the CORE installation.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `KEY` | required | Secret key to delete |
-| `--yes`, `-y` | off | Skip confirmation prompt |
-
-### `core secrets get` {#secrets-get}
-
-```
-core secrets get KEY [OPTIONS]
-```
-
-Check whether a secret exists (optionally reveal value with --show).
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `KEY` | required | Secret key to retrieve |
-| `--show`, `-s` | off | Display the secret value |
-
-### `core secrets list` {#secrets-list}
-
-```
-core secrets list
-```
-
-List all secret keys in the CORE installation (values not shown).
-
-### `core secrets rotate` {#secrets-rotate}
-
-```
-core secrets rotate KEY [OPTIONS]
-```
-
-Rotate the value of an existing secret (updates last_rotated_at).
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `KEY` | required | Secret key to rotate |
-| `--value`, `-v` | required | New secret value |
-
-### `core secrets set` {#secrets-set}
-
-```
-core secrets set KEY [OPTIONS]
-```
-
-Store an encrypted secret in the CORE installation.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `KEY` | required | Secret key (e.g., 'anthropic.api_key') |
-| `--value`, `-v` | required | Secret value (will be encrypted at rest) |
-| `--description`, `-d` |  | Optional description |
-| `--force`, `-f` | off | Overwrite without 409 error if key exists |
 
 ---
 
@@ -559,26 +469,11 @@ Pass --write to apply changes (default is dry-run).
 |---|---|---|
 | `--write` | off | Regenerate conflicting UUIDs. |
 
-### `core symbols sync` {#symbols-sync}
-
-```
-core symbols sync [OPTIONS]
-```
-
-Synchronize filesystem symbols with the PostgreSQL Knowledge Graph.
-
-Scans 'src/' and updates the 'core.symbols' table.
-Pass --write to apply changes (default is dry-run).
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--write` | off | Apply synchronization to the database. |
-
 ---
 
 ## `core vectors` {#vectors}
 
-Vector store operations (Qdrant).
+Semantic search over the governed repository's vector index.
 
 ### `core vectors query` {#vectors-query}
 
@@ -591,61 +486,11 @@ Semantic search in vector collections.
 Search constitutional documents using natural language queries.
 
 Examples:
-    core-admin vectors query "file access rules"
-    core-admin vectors query "atomic actions" --collection patterns --limit 3
+    core vectors query "file access rules"
+    core vectors query "atomic actions" --collection patterns --limit 3
 
 | Argument / option | Default | Description |
 |---|---|---|
 | `QUERY` | required | Natural language query |
 | `--collection`, `-c` | `policies` | Collection to query: 'policies', 'patterns', 'specs', or 'code' |
 | `--limit`, `-n` | `5` | Max results to return |
-
-### `core vectors rebuild` {#vectors-rebuild}
-
-```
-core vectors rebuild [OPTIONS]
-```
-
-Delete a Qdrant collection and reset chunk_count so it repopulates.
-
-Dry-run by default — shows how many artifacts would be re-embedded.
-Pass --write to delete the collection and reset chunk_count.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--collection`, `-c` | required | Qdrant collection to rebuild (e.g. core-code, core-specs). |
-| `--write` | off | Apply the rebuild (default: dry-run). |
-
-### `core vectors status` {#vectors-status}
-
-```
-core vectors status
-```
-
-Show vector store health and collection statistics.
-
-### `core vectors sync` {#vectors-sync}
-
-```
-core vectors sync [OPTIONS]
-```
-
-Synchronize constitutional documents to vector collections.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--write` | off | Apply changes to Qdrant. |
-| `--target`, `-t` | `all` | Target: policies, patterns, or all |
-
-### `core vectors sync-code` {#vectors-sync-code}
-
-```
-core vectors sync-code [OPTIONS]
-```
-
-Synchronize codebase symbol embeddings with the vector database.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--write` | off | Commit vectors to Qdrant. |
-| `--force` | off | Force re-vectorization of all symbols. |
