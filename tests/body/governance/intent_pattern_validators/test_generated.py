@@ -23,3 +23,23 @@ def test_PatternValidators_validate() -> None:
 
     mock_validator.assert_called_once_with("some code", "path/to/target")
     assert result is sentinel_violations
+
+
+import ast
+
+
+# ID: 9d0f4ed8-765e-427e-96e3-2dcb11b98de0
+def test_PatternValidators_check_no_unresolved_free_names():
+    cls = PatternValidators
+    code = "import os\n\n\ndef f():\n    return os.getcwd()\n"
+    tree = ast.parse(code)
+
+    with patch.object(
+        cls,
+        "_load_test_quality_rule_statements",
+        return_value={},
+    ):
+        result = cls.check_no_unresolved_free_names(tree, "test_module.py", code=code)
+
+    assert isinstance(result, list)
+    assert result == []
