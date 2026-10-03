@@ -45,9 +45,6 @@ def test_PatternValidators_check_no_unresolved_free_names():
     assert result == []
 
 
-
-
-
 # ID: 467216ca-f582-4a6b-8a5c-bfaf98d28660
 def test_PatternValidators_check_no_global_module_mutation() -> None:
     source = "import yaml\nyaml.safe_load = MagicMock()\n"
@@ -70,3 +67,29 @@ def test_PatternValidators_check_no_global_module_mutation() -> None:
     assert violation.severity == "error"
     assert "yaml.safe_load" in violation.message
     assert "monkeypatch.setattr" in violation.suggested_fix
+
+
+
+
+
+# ID: d8d0ba96-45b7-423a-b42a-27becae09793
+def test_PatternValidators_check_no_placeholder_test_body() -> None:
+    source = "def test_something():\n    value = 1 + 1\n"
+    tree = ast.parse(source)
+
+    with patch.object(
+        PatternValidators,
+        "_load_test_quality_rule_statements",
+        return_value={},
+    ):
+        violations = PatternValidators.check_no_placeholder_test_body(
+            tree, "tests/test_sample.py"
+        )
+
+    assert isinstance(violations, list)
+    assert len(violations) == 1
+    violation = violations[0]
+    assert violation.rule_name == "code.tests.no_placeholder_test_body"
+    assert violation.path == "tests/test_sample.py"
+    assert "test_something" in violation.message
+    assert violation.severity == "error"
