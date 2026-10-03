@@ -125,9 +125,6 @@ def test_check_logger_not_presentation():
     assert "Rich markup detected in log string" in findings[0]
 
 
-
-
-
 # ID: 40489b16-ea82-4d9f-9e25-42ea4f314e36
 def test_check_logger_not_presentation() -> None:
     check = LoggingChecks.check_logger_not_presentation
@@ -140,3 +137,25 @@ def test_check_logger_not_presentation() -> None:
     rich_tree = ast.parse(rich_source)
     findings = check(rich_tree)
     assert findings
+
+
+from unittest.mock import patch
+
+
+# ID: cf6d1db8-6342-48d2-b0a8-b90d76362a87
+def test_check_logger_not_presentation() -> None:
+    source = (
+        "logger.info(table)\n"
+        "logger.error('plain text label [DRY RUN]')\n"
+        "logger.warning('[bold]important[/bold]')\n"
+    )
+    tree = ast.parse(source)
+
+    with patch(
+        "mind.logic.engines.ast_gate.checks.logging_checks.ASTHelpers.full_attr_name",
+        return_value="logger.info",
+    ):
+        findings = LoggingChecks.check_logger_not_presentation(tree)
+
+    assert isinstance(findings, list)
+    assert len(findings) >= 1
