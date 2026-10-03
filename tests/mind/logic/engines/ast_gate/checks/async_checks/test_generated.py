@@ -95,9 +95,6 @@ def test_AsyncChecks_check_no_import_time_async_singletons():
     assert AsyncChecks.check_no_import_time_async_singletons(tree, []) == []
 
 
-
-
-
 # ID: 5eb75626-1f42-49e4-85e4-a3b5973d95df
 def test_AsyncCheckscheck_no_task_return_from_sync_cli():
     source = (
@@ -114,3 +111,19 @@ def test_AsyncCheckscheck_no_task_return_from_sync_cli():
     assert "create_task" not in result[0]
     assert "sync_fn" in result[0]
     assert "returns Task" in result[0]
+
+
+
+
+
+# ID: 480932d3-b9d4-4509-9736-eda8dfe849c4
+def test_check_restricted_event_loop_creation() -> None:
+    tree = ast.parse("loop.run_until_complete(coro())")
+
+    findings = AsyncChecks.check_restricted_event_loop_creation(
+        tree, ["asyncio.new_event_loop"]
+    )
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert "run_until_complete" in findings[0]
