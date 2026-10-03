@@ -159,3 +159,23 @@ def test_check_logger_not_presentation() -> None:
 
     assert isinstance(findings, list)
     assert len(findings) >= 1
+
+
+
+
+
+# ID: 5699285e-3865-4423-812d-dcb2db743eef
+def test_check_logger_not_presentation() -> None:
+    rich_tree = ast.parse("logger.info(Table())")
+    markup_tree = ast.parse('logger.info("[bold]text[/bold]")')
+    plain_tree = ast.parse('logger.info("[DRY RUN] starting")')
+
+    rich_findings = LoggingChecks.check_logger_not_presentation(rich_tree)
+    markup_findings = LoggingChecks.check_logger_not_presentation(markup_tree)
+    plain_findings = LoggingChecks.check_logger_not_presentation(plain_tree)
+
+    assert isinstance(rich_findings, list)
+    assert isinstance(markup_findings, list)
+    assert isinstance(plain_findings, list)
+    assert plain_findings == []
+    assert len(rich_findings) >= 1 or len(markup_findings) >= 1
