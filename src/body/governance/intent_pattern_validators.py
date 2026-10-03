@@ -13,6 +13,7 @@ from __future__ import annotations
 import ast
 import builtins
 import importlib.util
+import symtable
 
 from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger
@@ -87,70 +88,105 @@ def _has_observable_assertion(
     return False
 
 
-def _collect_local_bindings(
-    func: ast.FunctionDef | ast.AsyncFunctionDef,
-) -> set[str]:
-    """Names bound inside ``func``: parameters, locally-assigned names,
-    inline imports, nested function/class names, with/for/except targets.
+def _scope_table_name(node: ast.AST) -> str | None:
+    """The symtable child-table name ``node`` opens, or None if it opens no scope."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return node.name
+    if isinstance(node, ast.Lambda):
+        return "lambda"
+    if isinstance(node, ast.GeneratorExp):
+        return "genexpr"
+    if isinstance(node, ast.ListComp):
+        return "listcomp"
+    if isinstance(node, ast.SetComp):
+        return "setcomp"
+    if isinstance(node, ast.DictComp):
+        return "dictcomp"
+    return None
 
-    Used by check_no_unresolved_free_names so legitimate locals don't get
-    flagged as NameError candidates.
+
+def _module_level_names(top: symtable.SymbolTable) -> set[str]:
+    """Names bound at module level: module-scope assignments, imports, defs and
+    classes, plus names a nested scope declares ``global`` and assigns."""
+    defined = {
+        s.get_name()
+        for s in top.get_symbols()
+        if s.is_assigned() or s.is_imported() or s.is_namespace()
+    }
+    pending = list(top.get_children())
+    while pending:
+        table = pending.pop()
+        pending.extend(table.get_children())
+        defined.update(
+            s.get_name()
+            for s in table.get_symbols()
+            if s.is_declared_global() and s.is_assigned()
+        )
+    return defined
+
+
+def _unresolved_global_loads(
+    tree: ast.Module, top: symtable.SymbolTable, defined: set[str]
+) -> list[ast.Name]:
+    """First Load of each name, per scope, that the compiler resolves as global
+    and that ``defined`` does not bind.
+
+    Walks ``tree`` alongside the compiler's symbol tables, so every scoping rule
+    (comprehension targets, lambda and nested-def parameters, walrus, match
+    captures, class bodies, global/nonlocal) is the compiler's, not ours.
+    Comprehensions inlined by the compiler (PEP 709) open no table and stay in
+    the enclosing scope. A name absent from the current table (a decorator, a
+    default or a comprehension's first iterable, which the compiler evaluates
+    in the enclosing scope) is looked up outward.
     """
-    bound: set[str] = set()
-    # Parameters
-    args = func.args
-    for collection in (
-        args.args,
-        args.posonlyargs,
-        args.kwonlyargs,
-    ):
-        for a in collection:
-            bound.add(a.arg)
-    if args.vararg:
-        bound.add(args.vararg.arg)
-    if args.kwarg:
-        bound.add(args.kwarg.arg)
+    unresolved: list[ast.Name] = []
+    reported: set[tuple[int, str]] = set()
+    pending_children: dict[int, dict[str, list[symtable.SymbolTable]]] = {}
 
-    for node in ast.walk(func):
-        if isinstance(node, ast.Assign):
-            for tgt in node.targets:
-                _add_target_names(tgt, bound)
-        elif isinstance(node, ast.AnnAssign):
-            _add_target_names(node.target, bound)
-        elif isinstance(node, ast.AugAssign):
-            _add_target_names(node.target, bound)
-        elif isinstance(node, ast.For):
-            _add_target_names(node.target, bound)
-        elif isinstance(node, ast.With):
-            for item in node.items:
-                if item.optional_vars is not None:
-                    _add_target_names(item.optional_vars, bound)
-        elif isinstance(node, ast.ExceptHandler):
-            if node.name:
-                bound.add(node.name)
-        elif (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-            and node is not func
-        ):
-            bound.add(node.name)
-        elif isinstance(node, ast.Import):
-            for alias in node.names:
-                bound.add(alias.asname or alias.name.split(".", 1)[0])
-        elif isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                bound.add(alias.asname or alias.name)
-    return bound
+    def child_table(
+        parent: symtable.SymbolTable, name: str, lineno: int
+    ) -> symtable.SymbolTable | None:
+        # Children are matched by name, preferring the same line; the line can
+        # differ by a little for multi-line expressions.
+        index = pending_children.get(parent.get_id())
+        if index is None:
+            index = {}
+            for child in parent.get_children():
+                index.setdefault(child.get_name(), []).append(child)
+            pending_children[parent.get_id()] = index
+        candidates = index.get(name)
+        if not candidates:
+            return None
+        for i, child in enumerate(candidates):
+            if child.get_lineno() == lineno:
+                return candidates.pop(i)
+        return candidates.pop(0)
 
+    def visit(node: ast.AST, scopes: list[symtable.SymbolTable]) -> None:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            for table in reversed(scopes):
+                if node.id not in table.get_identifiers():
+                    continue
+                key = (table.get_id(), node.id)
+                if (
+                    table.lookup(node.id).is_global()
+                    and node.id not in defined
+                    and key not in reported
+                ):
+                    reported.add(key)
+                    unresolved.append(node)
+                break
+        name = _scope_table_name(node)
+        lineno = getattr(node, "lineno", None)
+        if name is not None and lineno is not None:
+            opened = child_table(scopes[-1], name, lineno)
+            if opened is not None:
+                scopes = [*scopes, opened]
+        for child in ast.iter_child_nodes(node):
+            visit(child, scopes)
 
-def _add_target_names(node: ast.AST, bound: set[str]) -> None:
-    """Walk an assignment target node and add bare-Name targets to ``bound``."""
-    if isinstance(node, ast.Name):
-        bound.add(node.id)
-    elif isinstance(node, (ast.Tuple, ast.List)):
-        for elt in node.elts:
-            _add_target_names(elt, bound)
-    elif isinstance(node, ast.Starred):
-        _add_target_names(node.value, bound)
+    visit(tree, [top])
+    return unresolved
 
 
 # ID: 5d89fc56-2fb5-45da-98f0-f813e8e79343
@@ -220,7 +256,9 @@ class PatternValidators:
         )
         tier2_violations.extend(cls.check_no_placeholder_test_body(tree, target_path))
         tier2_violations.extend(cls.check_no_global_module_mutation(tree, target_path))
-        tier2_violations.extend(cls.check_no_unresolved_free_names(tree, target_path))
+        tier2_violations.extend(
+            cls.check_no_unresolved_free_names(tree, target_path, code)
+        )
 
         statements = cls._load_generated_import_rule_statements()
 
@@ -586,7 +624,7 @@ class PatternValidators:
     @classmethod
     # ID: 543f17dc-86a5-46a8-9ebd-4ad24dad9044
     def check_no_unresolved_free_names(
-        cls, tree: ast.Module, target_path: str
+        cls, tree: ast.Module, target_path: str, code: str | None = None
     ) -> list[ViolationReport]:
         """Flag references to free names (Name nodes used as values) that
         are neither imported nor defined in the file and aren't builtins.
@@ -595,64 +633,53 @@ class PatternValidators:
         ``MagicMock`` used without ``from unittest.mock import MagicMock``):
         the test will NameError at collection but the LLM didn't notice
         because its training prior treated the name as ambient.
+
+        Name resolution is delegated to the compiler (stdlib ``symtable``): a
+        Load is flagged only if the compiler resolves the name as global, it
+        is not bound at module level, and it is not a builtin. ``code`` is the
+        source ``tree`` was parsed from; without it the tree is unparsed and
+        reported line numbers refer to that normalised form.
         """
         statements = cls._load_test_quality_rule_statements()
 
-        defined: set[str] = set(_PYTHON_BUILTINS)
-        # Imports + top-level definitions
-        for node in tree.body:
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    defined.add(alias.asname or alias.name.split(".", 1)[0])
-            elif isinstance(node, ast.ImportFrom):
-                for alias in node.names:
-                    defined.add(alias.asname or alias.name)
-            elif isinstance(
-                node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
-            ):
-                defined.add(node.name)
-            elif isinstance(node, ast.Assign):
-                for tgt in node.targets:
-                    if isinstance(tgt, ast.Name):
-                        defined.add(tgt.id)
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                defined.add(node.target.id)
+        if code is None:
+            code = ast.unparse(tree)
+            tree = ast.parse(code)
+        try:
+            top = symtable.symtable(code, target_path, "exec")
+        except SyntaxError as exc:
+            # Parses but does not compile (e.g. module-level ``nonlocal``):
+            # the pytest acceptance gate rejects it; name analysis has no
+            # compiler view to offer.
+            logger.info(
+                "check_no_unresolved_free_names: %s does not compile (%s); skipped",
+                target_path,
+                exc,
+            )
+            return []
 
-        # Pre-pass: collect locally-bound names per function so a free Name
-        # that's actually a parameter or local doesn't trigger a false
-        # positive.
+        defined = _module_level_names(top) | _PYTHON_BUILTINS
         violations: list[ViolationReport] = []
-        for func in ast.walk(tree):
-            if not isinstance(func, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            local_bound = _collect_local_bindings(func)
-            for sub in ast.walk(func):
-                if not isinstance(sub, ast.Name) or not isinstance(sub.ctx, ast.Load):
-                    continue
-                name = sub.id
-                if name in defined or name in local_bound:
-                    continue
-                violations.append(
-                    ViolationReport(
-                        rule_name=_TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
-                        path=target_path,
-                        message=statements.get(
-                            _TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
-                            "Free name referenced without being imported or defined — "
-                            "test will NameError at collection.",
-                        )
-                        + f" Name: {name!r} at line {sub.lineno}.",
-                        severity="error",
-                        suggested_fix=(
-                            f"Add the missing import for {name!r}, "
-                            f"or define / parameterise it in the enclosing scope."
-                        ),
-                        source_policy="rules.code.tests",
+        for sub in _unresolved_global_loads(tree, top, defined):
+            name = sub.id
+            violations.append(
+                ViolationReport(
+                    rule_name=_TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
+                    path=target_path,
+                    message=statements.get(
+                        _TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
+                        "Free name referenced without being imported or defined — "
+                        "test will NameError at collection.",
                     )
+                    + f" Name: {name!r} at line {sub.lineno}.",
+                    severity="error",
+                    suggested_fix=(
+                        f"Add the missing import for {name!r}, "
+                        f"or define / parameterise it in the enclosing scope."
+                    ),
+                    source_policy="rules.code.tests",
                 )
-                # Don't keep flagging the same name in the same function
-                # — one report per (func, name) is enough.
-                local_bound.add(name)
+            )
         return violations
 
     @classmethod

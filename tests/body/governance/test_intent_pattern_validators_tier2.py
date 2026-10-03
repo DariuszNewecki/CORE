@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import ast
 
+import pytest
+
 from body.governance.intent_pattern_validators import PatternValidators
 
 
@@ -244,6 +246,122 @@ def test_x(mock_qdrant, mock_path_resolver):
 """
     tree = ast.parse(code)
     assert PatternValidators.check_no_unresolved_free_names(tree, "test.py") == []
+
+
+# Valid Python the hand-rolled binding collector used to reject: every name
+# below is bound by the compiler's own scoping rules (2026-10-03 — the
+# knowledge_source_check.py generations were rejected for 'rule_id'/'self').
+_BOUND_BY_SCOPING = {
+    "generator_target": """
+def test_x():
+    ids = ["a"]
+    assert all(rule_id for rule_id in ids)
+""",
+    "list_comprehension_target": """
+def test_x():
+    assert [item * 2 for item in range(3)]
+""",
+    "set_comprehension_target": """
+def test_x():
+    assert {entry for entry in range(3)}
+""",
+    "dict_comprehension_targets": """
+def test_x():
+    assert {k: v for k, v in [("a", 1)]}
+""",
+    "lambda_param": """
+def test_x():
+    f = lambda rule_id: rule_id
+    assert f(1)
+""",
+    "nested_def_params": """
+def test_x():
+    def verify_async(self, rule_id):
+        return [self, rule_id]
+    assert verify_async(1, 2)
+""",
+    "walrus": """
+def test_x():
+    if (n := 3) > 2:
+        assert n
+""",
+    "match_capture": """
+def test_x():
+    match [1, 2, 3]:
+        case [first, *rest]:
+            assert first and rest
+""",
+    "class_body_names": """
+class TestK:
+    base = 1
+    derived = base + 1
+
+    def test_m(self):
+        assert self.derived
+""",
+    "global_declared_in_function": """
+def _set():
+    global counter
+    counter = 1
+
+def test_x():
+    _set()
+    assert counter == 1
+""",
+    "nonlocal": """
+def test_x():
+    hits = 0
+    def bump():
+        nonlocal hits
+        hits += 1
+    bump()
+    assert hits == 1
+""",
+}
+
+
+@pytest.mark.parametrize("case", sorted(_BOUND_BY_SCOPING))
+def test_unresolved_free_names_accepts_names_bound_by_scoping(case: str) -> None:
+    code = _BOUND_BY_SCOPING[case]
+    tree = ast.parse(code)
+    assert PatternValidators.check_no_unresolved_free_names(tree, "test.py") == []
+
+
+def test_unresolved_free_names_flags_name_only_used_in_comprehension() -> None:
+    code = """
+def test_x():
+    assert [undefined_y for _ in range(3)]
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert "'undefined_y' at line 3" in v[0].message
+
+
+def test_unresolved_free_names_reports_line_of_the_unbound_use() -> None:
+    """A name bound in one scope but free in another is flagged at the free use."""
+    code = """
+def test_a():
+    finding = 1
+    assert finding
+
+def test_b():
+    assert finding
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert "'finding' at line 7" in v[0].message
+
+
+def test_validate_test_file_pattern_accepts_comprehension_target() -> None:
+    """The public entry point carries the scoping fix, not just the helper."""
+    code = """
+def test_x():
+    assert all(rule_id for rule_id in ["a"])
+"""
+    v = PatternValidators.validate_test_file_pattern(code, "test.py")
+    assert [r for r in v if r.rule_name == "code.tests.no_unresolved_free_names"] == []
 
 
 # ---------------------------------------------------------------------------
