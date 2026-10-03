@@ -24,7 +24,10 @@ nav:
       - Getting Started: getting-started.md
       - BYOR Quickstart: byor-quickstart.md
       - Audit in CI (no install): cold-reviewer.md
-      - CLI Reference: cli-reference.md
+      - CLI Reference:
+              - Overview: cli-reference.md
+              - core-admin: reference/core-admin.md
+              - core: reference/core.md
       - Proof Index: proof-index.md
       - Contributing: contributing.md
 
