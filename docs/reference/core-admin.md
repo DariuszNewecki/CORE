@@ -1230,6 +1230,10 @@ remove the need to author governance YAML manually. Packs are resolved from
 the repository's packs/ registry when it has one (a CORE source checkout),
 otherwise from the registry bundled with the installed core-runtime.
 
+The target must already carry CORE's machinery floor (.intent/META and the
+rest, delivered by `project new` or `project onboard`); without it the
+command refuses.
+
 Run without --write to preview what would be written. Run with --write
 to apply. After adoption, run 'core-admin code audit --offline' to see
 findings against the pack's rules.

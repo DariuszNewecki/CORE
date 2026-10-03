@@ -80,6 +80,10 @@ async def adopt_pack_command(
     the repository's packs/ registry when it has one (a CORE source checkout),
     otherwise from the registry bundled with the installed core-runtime.
 
+    The target must already carry CORE's machinery floor (.intent/META and the
+    rest, delivered by `project new` or `project onboard`); without it the
+    command refuses.
+
     Run without --write to preview what would be written. Run with --write
     to apply. After adoption, run 'core-admin code audit --offline' to see
     findings against the pack's rules.
@@ -121,6 +125,19 @@ async def adopt_pack_command(
     slug = _pack_slug(pack_id)
     rules_file = rules_out / f"{slug}.json"
     mappings_file = mappings_out / f"{slug}.yaml"
+
+    # A pack is law, not machinery. Without the machinery floor (.intent/META
+    # and the rest) the audit cannot load the target at all (#939), so the
+    # pack would be rules nothing enforces: refuse instead of delivering them.
+    if not (intent_dir / "META").is_dir():
+        console.print(
+            f"[bold red]{target_dir} has no machinery floor[/bold red] "
+            "(.intent/META is missing), so CORE could not audit it.\n"
+            "Deliver the floor first: [cyan]core-admin project new <name> --write"
+            "[/cyan] for a new repository, or [cyan]core project onboard <path> "
+            "--write[/cyan] (core-cli, needs a running CORE API) for an existing one."
+        )
+        raise typer.Exit(1)
 
     # Build effective rules (apply overrides to enforcement level)
     effective_rules = []
@@ -224,10 +241,10 @@ def _upsert_pack_in_tree(
 ) -> str | None:
     """Return intent_tree.yaml text with the pack upserted in ``packs:``, or None.
 
-    None means the target has no ``META/intent_tree.yaml`` (a bare repo that
-    adopted a pack without the machinery floor). The pack still works — the
-    offline audit discovers ``rules/packs/`` directly — so this is a warning,
-    not a refusal.
+    None means the target has a ``META/`` directory but no ``intent_tree.yaml``
+    in it. The offline audit discovers ``rules/packs/`` directly, so this is a
+    warning, not a refusal (a target with no ``META/`` at all is refused
+    before this point).
     """
     if not tree_yaml.exists():
         console.print(

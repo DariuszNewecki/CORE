@@ -42,6 +42,15 @@ def _bare_repo(tmp_path: Path) -> Path:
     return target
 
 
+def _floored_repo(tmp_path: Path) -> Path:
+    """A repo carrying the machinery floor's META/ (all adopt-pack checks for)."""
+    target = _bare_repo(tmp_path)
+    tree = target / ".intent" / "META" / "intent_tree.yaml"
+    tree.parent.mkdir(parents=True)
+    tree.write_text("packs: []\n")
+    return target
+
+
 async def _run(target: Path, *, write: bool, override: list[str] | None = None):
     # Pretend CORE lives elsewhere so the tmp target is a legitimate external repo.
     with patch(
@@ -55,14 +64,31 @@ async def _run(target: Path, *, write: bool, override: list[str] | None = None):
 
 @pytest.mark.asyncio
 async def test_preview_writes_nothing(tmp_path: Path) -> None:
-    target = _bare_repo(tmp_path)
+    target = _floored_repo(tmp_path)
     await _run(target, write=False)
+    assert not (target / ".intent" / "rules").exists()
+    assert (target / ".intent" / "META" / "intent_tree.yaml").read_text() == (
+        "packs: []\n"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("write", [False, True])
+async def test_refuses_repo_without_machinery_floor(
+    tmp_path: Path, write: bool
+) -> None:
+    """Regression (#939): rules delivered into a floor-less repo are rules the
+    audit cannot load; the command used to write them and say "Pack applied"."""
+    target = _bare_repo(tmp_path)
+    with pytest.raises(typer.Exit) as exc:
+        await _run(target, write=write)
+    assert exc.value.exit_code == 1
     assert not (target / ".intent").exists()
 
 
 @pytest.mark.asyncio
-async def test_write_delivers_rules_and_mappings_to_bare_repo(tmp_path: Path) -> None:
-    target = _bare_repo(tmp_path)
+async def test_write_delivers_rules_and_mappings(tmp_path: Path) -> None:
+    target = _floored_repo(tmp_path)
     await _run(target, write=True)
 
     rules = target / ".intent" / "rules" / "packs" / f"{SLUG}.json"
@@ -80,8 +106,10 @@ async def test_write_delivers_rules_and_mappings_to_bare_repo(tmp_path: Path) ->
     mapped = yaml.safe_load(mappings.read_text())["mappings"]
     assert set(mapped) == rule_ids, "every pack rule must carry an enforcement mapping"
 
-    # A bare repo has no META/intent_tree.yaml — the pack is delivered without it.
-    assert not (target / ".intent" / "META").exists()
+    tree = yaml.safe_load(
+        (target / ".intent" / "META" / "intent_tree.yaml").read_text()
+    )
+    assert [p["id"] for p in tree["packs"]] == [PACK_ID]
 
 
 @pytest.mark.asyncio
@@ -126,7 +154,7 @@ async def test_write_is_idempotent(tmp_path: Path) -> None:
 async def test_write_refuses_target_inside_core_root(tmp_path: Path) -> None:
     core = tmp_path / "core-install"
     target = core / "var" / "tmp" / "probe"
-    target.mkdir(parents=True)
+    (target / ".intent" / "META").mkdir(parents=True)
 
     with patch(
         "cli.logic.byor.core_source_root",
@@ -136,7 +164,7 @@ async def test_write_refuses_target_inside_core_root(tmp_path: Path) -> None:
             await adopt_pack_command.__wrapped__(
                 pack_id=PACK_ID, target_dir=target, write=True, override=[]
             )
-    assert not (target / ".intent").exists()
+    assert not (target / ".intent" / "rules").exists()
 
 
 @pytest.mark.asyncio
@@ -155,8 +183,7 @@ async def test_pack_resolves_from_bundle_when_law_root_repo_has_no_packs(
     """The pip-install case: law root = the adopter's repo, which has no packs/."""
     from types import SimpleNamespace
 
-    adopter = _bare_repo(tmp_path)
-    (adopter / ".intent").mkdir()
+    adopter = _floored_repo(tmp_path)
     assert not (adopter / "packs").exists()
 
     with (
