@@ -43,3 +43,30 @@ def test_PatternValidators_check_no_unresolved_free_names():
 
     assert isinstance(result, list)
     assert result == []
+
+
+
+
+
+# ID: 467216ca-f582-4a6b-8a5c-bfaf98d28660
+def test_PatternValidators_check_no_global_module_mutation() -> None:
+    source = "import yaml\nyaml.safe_load = MagicMock()\n"
+    tree = ast.parse(source)
+
+    instance = PatternValidators.__new__(PatternValidators)
+    instance._load_test_quality_rule_statements = MagicMock(
+        return_value={
+            "code.tests.no_global_module_mutation": "no global mutation",
+        }
+    )
+
+    result = instance.check_no_global_module_mutation(tree, "tests/test_sample.py")
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    violation = result[0]
+    assert violation.rule_name == "code.tests.no_global_module_mutation"
+    assert violation.path == "tests/test_sample.py"
+    assert violation.severity == "error"
+    assert "yaml.safe_load" in violation.message
+    assert "monkeypatch.setattr" in violation.suggested_fix
