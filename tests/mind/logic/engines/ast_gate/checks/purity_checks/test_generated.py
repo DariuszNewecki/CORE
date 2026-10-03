@@ -338,9 +338,6 @@ def test_PurityChecks_check_forbidden_decorators():
     assert "old_func" in violations[0]
 
 
-
-
-
 # ID: b0494f3a-9642-473c-a0df-416709e4b909
 def test_PurityChecks_check_required_decorator():
     source = "def do_work(session):\n    session.write('x')\n"
@@ -351,3 +348,25 @@ def test_PurityChecks_check_required_decorator():
     assert isinstance(result, list)
     assert len(result) == 1
     assert "do_work" in result[0]
+
+
+
+
+# ID: 406f24fc-c869-4e2e-b4f1-0cd377664491
+def test_PurityChecks_check_orphan_id_anchors() -> None:
+    from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks
+
+    source = "def foo():\n    pass\n"
+    fake_orphans = [(1, "# ID: abc123")]
+
+    with patch(
+        "mind.logic.engines.ast_gate.checks.purity_checks.find_orphan_id_lines",
+        return_value=fake_orphans,
+    ) as mock_find:
+        result = PurityChecks.check_orphan_id_anchors(source)
+
+    mock_find.assert_called_once_with(source)
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert "Orphaned ID anchor" in result[0]
+    assert "line 1" in result[0]
