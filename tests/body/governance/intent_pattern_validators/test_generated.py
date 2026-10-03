@@ -155,9 +155,6 @@ def test_PatternValidators_check_no_magicmock_on_await() -> None:
     assert "run" in violation.message
 
 
-
-
-
 # ID: 0bfc5271-0c96-4ff9-9fe1-c37171519009
 def test_PatternValidators_validate_test_file_pattern() -> None:
     cls = MagicMock()
@@ -178,3 +175,35 @@ def test_PatternValidators_validate_test_file_pattern() -> None:
     assert result == []
     cls._module_resolves.assert_any_call("os")
     cls._module_resolves.assert_any_call("sys")
+
+
+
+
+
+# ID: 3af3c4fa-5786-40ca-b9f8-0cece89953f9
+def test_PatternValidators():
+    # Happy path: a clean test-file pattern with only valid absolute imports.
+    code = "import os\n\n\ndef test_thing():\n    assert os.path.sep\n"
+
+    with (
+        patch.object(
+            PatternValidators,
+            "_load_generated_import_rule_statements",
+            return_value={},
+        ) as mock_rule_statements,
+        patch.object(
+            PatternValidators,
+            "_load_test_quality_rule_statements",
+            return_value={},
+        ) as mock_tier2_statements,
+    ):
+        violations = PatternValidators.validate(
+            code=code,
+            pattern_id="test_file",
+            component_type="test",
+            target_path="tests/test_generated.py",
+        )
+
+    assert violations == []
+    mock_rule_statements.assert_called()
+    mock_tier2_statements.assert_called()
