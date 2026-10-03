@@ -438,14 +438,27 @@ class ViolationExecutorWorker(Worker):
             from shared.infrastructure.intent.audit_namespaces import (
                 audit_violation_like_patterns,
             )
+            from will.audit_violation.filter import is_autonomously_remediable_target
 
             svc = await service_registry.get_blackboard_service()
-            return await svc.claim_unmapped_violation_findings(
+            claimed = await svc.claim_unmapped_violation_findings(
                 mapped_rule_ids=mapped_rule_ids,
                 patterns=audit_violation_like_patterns(),
                 limit=_CFG.claim_limit,
                 claimed_by=self._worker_uuid,
             )
+            # The ceremony rewrites Python source only; a finding on any other
+            # target goes to the governor instead of failing the ceremony.
+            non_remediable = [
+                f
+                for f in claimed
+                if not is_autonomously_remediable_target(
+                    str((f.get("payload") or {}).get("file_path") or ".py")
+                )
+            ]
+            if non_remediable:
+                await svc.mark_indeterminate([str(f["id"]) for f in non_remediable])
+            return [f for f in claimed if f not in non_remediable]
         except Exception as exc:
             logger.error(
                 "ViolationExecutorWorker: claim_unmapped_violation_findings failed — %s",

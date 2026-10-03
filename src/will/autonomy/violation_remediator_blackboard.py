@@ -105,14 +105,34 @@ async def load_open_findings(
     if not claimed:
         return []
 
+    from will.audit_violation.filter import is_autonomously_remediable_target
+
     mappable: list[dict[str, Any]] = []
     unmappable_ids: list[str] = []
+    non_remediable_ids: list[str] = []
     for finding in claimed:
         rule = finding["payload"].get("check_id") or finding["payload"].get("rule", "")
-        if remediation_map.get(rule):
+        file_path = str(finding["payload"].get("file_path") or "")
+        if file_path and not is_autonomously_remediable_target(file_path):
+            # The sensor normally escalates these at posting time; this
+            # catches one claimed in between. Delegate, never release: a
+            # released finding would reach the LLM ceremony, which cannot act
+            # on the target either.
+            non_remediable_ids.append(_entry_id(finding))
+        elif remediation_map.get(rule):
             mappable.append(finding)
         else:
             unmappable_ids.append(_entry_id(finding))
+
+    if non_remediable_ids:
+        try:
+            await service.mark_indeterminate(non_remediable_ids)
+        except Exception as e:
+            logger.error(
+                "ViolationRemediatorWorker: failed to delegate non-remediable "
+                "findings at claim time: %s",
+                e,
+            )
 
     if unmappable_ids:
         try:

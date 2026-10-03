@@ -56,7 +56,10 @@ from typing import Any
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.workers.base import Worker
-from will.audit_violation.filter import filter_actionable_violations
+from will.audit_violation.filter import (
+    filter_actionable_violations,
+    non_remediable_violations,
+)
 from will.audit_violation.normalizer import normalize_audit_findings
 
 
@@ -225,8 +228,12 @@ class AuditViolationSensor(Worker):
             self._core_context, self._rule_namespace, rule_ids
         )
         violations = filter_actionable_violations(raw_violations)
+        # Valid findings no autonomous remediator can act on (a non-Python
+        # target today): delegated to the governor, never dropped. Only
+        # findings with no real target or a malformed rule ID are discarded.
+        delegated = non_remediable_violations(raw_violations)
 
-        filtered_out = len(raw_violations) - len(violations)
+        filtered_out = len(raw_violations) - len(violations) - len(delegated)
         if filtered_out:
             logger.info(
                 "AuditViolationSensor[%s]: filtered %d unactionable violations "
@@ -245,9 +252,12 @@ class AuditViolationSensor(Worker):
         # ADR-091 D2 canonical subject format applies: subjects emitted by
         # this sensor are `<artifact_type>::<rule_id>::<file_path>` and the
         # reaudit drain scopes by `<artifact_type>::<rule_namespace>`.
+        # Delegated violations still hold, so they count as current: otherwise
+        # the indeterminate drain below would resolve each delegated finding
+        # the cycle after it was escalated, and the sensor would re-post it.
         current_subjects = {
             f"{artifact_type_id}::{v.get('rule_id', self._rule_namespace)}::{v['file_path']}"
-            for v in violations
+            for v in violations + delegated
         }
         bb_svc = await self._core_context.registry.get_blackboard_service()
         reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
@@ -308,14 +318,20 @@ class AuditViolationSensor(Worker):
                 },
             )
 
+        delegated_posted = await self._delegate_non_remediable(
+            delegated, artifact_type_id
+        )
+
         if not violations:
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",
                 payload={
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": len(rule_ids),
-                    "violations_found": 0,
+                    "violations_found": len(raw_violations),
                     "filtered_unactionable": filtered_out,
+                    "delegated_found": len(delegated),
+                    "delegated_posted": delegated_posted,
                     "dry_run": self._dry_run,
                     "message": (
                         f"No actionable violations in namespace '{self._rule_namespace}'."
@@ -409,12 +425,15 @@ class AuditViolationSensor(Worker):
                 "rule_ids_resolved": len(rule_ids),
                 "violations_found": len(raw_violations),
                 "filtered_unactionable": filtered_out,
+                "delegated_found": len(delegated),
+                "delegated_posted": delegated_posted,
                 "posted": posted,
                 "skipped_duplicates": skipped,
                 "dry_run": self._dry_run,
                 "message": (
                     f"Run complete. {posted} findings posted, "
                     f"{skipped} duplicates skipped, "
+                    f"{delegated_posted} delegated to the governor, "
                     f"{filtered_out} unactionable filtered."
                 ),
             },
@@ -431,6 +450,59 @@ class AuditViolationSensor(Worker):
     # -------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------
+
+    async def _delegate_non_remediable(
+        self, delegated: list[dict[str, Any]], artifact_type_id: str
+    ) -> int:
+        """Post each new non-remediable violation and escalate it to the governor.
+
+        The finding lands in the governor inbox (ADR-150 D2:
+        ``indeterminate`` + ``human``) carrying why: no autonomous remediator
+        acts on its target. Subjects already on the board (any status but
+        resolved / abandoned) are skipped, so a standing violation is
+        delegated once, not every cycle. Returns the count escalated.
+        """
+        if not delegated:
+            return 0
+        existing = await self._fetch_existing_subjects()
+        bb_svc = await self._core_context.registry.get_blackboard_service()
+        escalated = 0
+        for v in delegated:
+            rule_id = v.get("rule_id", self._rule_namespace)
+            subject = f"{artifact_type_id}::{rule_id}::{v['file_path']}"
+            if subject in existing:
+                continue
+            suffix = Path(v["file_path"]).suffix or "extension-less"
+            entry_id = await self.post_artifact_finding(
+                artifact_type=artifact_type_id,
+                sub_namespace=rule_id,
+                identity_key_value=v["file_path"],
+                payload={
+                    "rule_namespace": self._rule_namespace,
+                    "rule": rule_id,
+                    "file_path": v["file_path"],
+                    "line_number": v.get("line_number"),
+                    "message": v["message"],
+                    "severity": v["severity"],
+                    "dry_run": self._dry_run,
+                    "status": "unprocessed",
+                },
+            )
+            if await bb_svc.escalate_finding_to_governor(
+                str(entry_id),
+                {
+                    "delegation": {
+                        "reason": "no_autonomous_remediator",
+                        "detail": (
+                            f"No autonomous remediator acts on {suffix} files; "
+                            "this finding needs a governor decision."
+                        ),
+                        "delegated_by": "audit_violation_sensor",
+                    }
+                },
+            ):
+                escalated += 1
+        return escalated
 
     def _resolve_rule_ids(self) -> list[str]:
         """
