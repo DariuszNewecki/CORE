@@ -61,7 +61,9 @@ def test_leaves_future_import_after_real_code_untouched():
 def test_appended_result_parses_cleanly():
     # The actual #792 scenario: an existing file (with its own top future import)
     # plus a stripped snippet must parse without SyntaxError.
-    existing = "from __future__ import annotations\n\n\ndef test_a():\n    assert True\n"
+    existing = (
+        "from __future__ import annotations\n\n\ndef test_a():\n    assert True\n"
+    )
     snippet = "from __future__ import annotations\n\n\ndef test_b():\n    assert True\n"
     appended = (
         existing.rstrip() + "\n\n\n" + strip_leading_future_imports(snippet) + "\n"

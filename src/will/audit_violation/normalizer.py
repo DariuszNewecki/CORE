@@ -1,4 +1,4 @@
-# src/will/workers/audit_violation_normalizer.py
+# src/will/audit_violation/normalizer.py
 """
 Audit-output normalization for AuditViolationSensor.
 

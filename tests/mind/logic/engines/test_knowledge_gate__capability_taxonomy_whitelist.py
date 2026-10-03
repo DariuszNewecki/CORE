@@ -290,11 +290,15 @@ async def test_non_whitelisted_column_is_enforcement_failure():
 def test_all_four_mappings_declare_a_now_dispatchable_check_type():
     """All four capability.taxonomy.* rules name capability_taxonomy_whitelist
     — confirm the engine now declares it, closing the #820 dispatch gap."""
-    assert "capability_taxonomy_whitelist" in KnowledgeGateEngine.supported_check_types()
+    assert (
+        "capability_taxonomy_whitelist" in KnowledgeGateEngine.supported_check_types()
+    )
 
 
 def test_extract_canonical_capabilities_reads_families_root():
-    caps = KnowledgeGateEngine._extract_canonical_capabilities(_TAXONOMY_DOC, "families")
+    caps = KnowledgeGateEngine._extract_canonical_capabilities(
+        _TAXONOMY_DOC, "families"
+    )
     assert caps == _CANONICAL
 
 

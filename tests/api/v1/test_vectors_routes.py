@@ -67,9 +67,7 @@ async def test_vector_query_returns_results():
     body = VectorQueryRequest(query="test query", collection="policies", limit=3)
     mock_results = [{"score": 0.9, "payload": {"doc_id": "doc1", "content": "hello"}}]
 
-    with patch(
-        "api.v1.vectors_routes.VectorIndexService"
-    ) as MockVIS:
+    with patch("api.v1.vectors_routes.VectorIndexService") as MockVIS:
         inst = MagicMock()
         inst.query = AsyncMock(return_value=mock_results)
         MockVIS.return_value = inst

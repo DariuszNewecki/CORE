@@ -113,9 +113,6 @@ def test_AsyncCheckscheck_no_task_return_from_sync_cli():
     assert "returns Task" in result[0]
 
 
-
-
-
 # ID: 480932d3-b9d4-4509-9736-eda8dfe849c4
 def test_check_restricted_event_loop_creation() -> None:
     tree = ast.parse("loop.run_until_complete(coro())")

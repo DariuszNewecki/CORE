@@ -62,7 +62,7 @@ _ORPHAN_PROBE_CONTENT = (
     '    return "unrelated"\n'
 )
 
-_CHILD_SCRIPT = '''\
+_CHILD_SCRIPT = """\
 import asyncio
 import json
 import sys
@@ -94,10 +94,15 @@ async def main() -> None:
 
 
 asyncio.run(main())
-'''
+"""
 
 
-def _run(args: list[str], cwd: Path | None = None, env: dict | None = None, check: bool = True):
+def _run(
+    args: list[str],
+    cwd: Path | None = None,
+    env: dict | None = None,
+    check: bool = True,
+):
     return subprocess.run(
         args, cwd=cwd, env=env, capture_output=True, text=True, check=check
     )
@@ -137,7 +142,17 @@ def disposable_infra(docker_compose_available: bool):
         env["PATH"] = path
 
     _run(
-        ["docker", "compose", "-p", project, "-f", str(COMPOSE_FILE), "up", "-d", "--wait"],
+        [
+            "docker",
+            "compose",
+            "-p",
+            project,
+            "-f",
+            str(COMPOSE_FILE),
+            "up",
+            "-d",
+            "--wait",
+        ],
         env=env,
     )
     try:
@@ -146,8 +161,17 @@ def disposable_infra(docker_compose_available: bool):
         yield {"pg_port": pg_port, "qdrant_port": qdrant_port}
     finally:
         _run(
-            ["docker", "compose", "-p", project, "-f", str(COMPOSE_FILE), "down",
-             "--volumes", "--remove-orphans"],
+            [
+                "docker",
+                "compose",
+                "-p",
+                project,
+                "-f",
+                str(COMPOSE_FILE),
+                "down",
+                "--volumes",
+                "--remove-orphans",
+            ],
             env=env,
             check=False,
         )
@@ -164,8 +188,17 @@ def _prepare_clone(clone_dir: Path, disposable_infra: dict) -> Path:
     _run(["git", "add", probe_rel, orphan_rel], cwd=clone_dir)
     _run(
         [
-            "git", "-c", "user.email=test-823@test.local", "-c", "user.name=Test 823",
-            "-c", "commit.gpgsign=false", "commit", "-q", "-m", "probe: #823 regression",
+            "git",
+            "-c",
+            "user.email=test-823@test.local",
+            "-c",
+            "user.name=Test 823",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-q",
+            "-m",
+            "probe: #823 regression",
         ],
         cwd=clone_dir,
     )
@@ -211,7 +244,9 @@ def test_fixids_write_succeeds_end_to_end(
     # real fix.ids write path wrote back to disk.
     # 1 for the #823 probe + 1 for the orphan probe's unrelated symbol. The
     # shadowed symbol must not be counted: it is skipped, not re-tagged.
-    assert payload["total"] == 2, f"expected exactly 2 symbols discovered, got {payload}"
+    assert payload["total"] == 2, (
+        f"expected exactly 2 symbols discovered, got {payload}"
+    )
     anchor_pattern = re.compile(
         r"^# ID: [0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
         r"[0-9a-fA-F]{12}\ndef probe_fn_823_missing_id",
@@ -226,9 +261,9 @@ def test_fixids_write_succeeds_end_to_end(
     # untouched (anchor, blank line, def -- exactly as committed), the symbol
     # it shadows was NOT given a fresh anchor, and the unrelated symbol was.
     orphan_written = payload["orphan_content"]
-    assert (
-        f"{_ORPHAN_ANCHOR_LINE}\n\ndef probe_fn_orphan_shadowed" in orphan_written
-    ), f"fix.ids altered the orphan anchor bytes:\n{orphan_written}"
+    assert f"{_ORPHAN_ANCHOR_LINE}\n\ndef probe_fn_orphan_shadowed" in orphan_written, (
+        f"fix.ids altered the orphan anchor bytes:\n{orphan_written}"
+    )
     assert orphan_written.count(_ORPHAN_ANCHOR_LINE) == 1
     assert not re.search(
         r"^# ID: [0-9a-fA-F-]{36}\ndef probe_fn_orphan_shadowed",
@@ -241,7 +276,11 @@ def test_fixids_write_succeeds_end_to_end(
         re.MULTILINE,
     ), f"fix.ids did not tag the unrelated symbol:\n{orphan_written}"
     assert payload["orphans"] == [
-        ["src/body/analyzers/_test_orphan_anchor_probe.py", 6, "probe_fn_orphan_shadowed"]
+        [
+            "src/body/analyzers/_test_orphan_anchor_probe.py",
+            6,
+            "probe_fn_orphan_shadowed",
+        ]
     ], payload["orphans"]
 
 
@@ -269,15 +308,15 @@ def test_unauthorized_intent_write_still_blocked(
         "CORE_STRICT_MODE=False\n"
     )
     script = (
-        'import sys\n'
+        "import sys\n"
         'sys.path.insert(0, "src")\n'
-        'from body.infrastructure.storage.file_handler import FileHandler\n'
-        'from mind.governance.violation_report import ConstitutionalViolationError\n'
+        "from body.infrastructure.storage.file_handler import FileHandler\n"
+        "from mind.governance.violation_report import ConstitutionalViolationError\n"
         'handler = FileHandler(".")\n'
-        'try:\n'
+        "try:\n"
         '    handler.write_runtime_text(".intent/should_not_write.json", "{}")\n'
         '    print("WROTE")\n'
-        'except ConstitutionalViolationError:\n'
+        "except ConstitutionalViolationError:\n"
         '    print("BLOCKED")\n'
     )
     (clone_dir / "_run_intent_probe.py").write_text(script)

@@ -39,9 +39,6 @@ async def test_DeadCodeCheck_verify() -> None:
     )
 
 
-
-
-
 # ID: 74ec3b30-02ce-4513-94b3-22f5c4659028
 async def test_DeadCodeCheck() -> None:
     path_resolver = MagicMock()

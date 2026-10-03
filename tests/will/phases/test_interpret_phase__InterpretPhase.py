@@ -34,7 +34,9 @@ def _wctx(goal: str, workflow_type: str | None = None) -> MagicMock:
 async def test_explicit_workflow_type_passes_through() -> None:
     """Explicit workflow_type skips inference and maps to the stated type."""
     phase = InterpretPhase(_ctx())
-    result = await phase.execute(_wctx("do stuff", workflow_type="coverage_remediation"))
+    result = await phase.execute(
+        _wctx("do stuff", workflow_type="coverage_remediation")
+    )
     assert result.ok is True
     assert result.data["workflow_type"] == "coverage_remediation"
     assert result.data["_metadata"]["interpretation_method"] == "explicit"
@@ -44,7 +46,9 @@ async def test_explicit_workflow_type_passes_through() -> None:
 async def test_unknown_explicit_workflow_type_returns_error() -> None:
     """An unknown explicit workflow_type is rejected with ok=False."""
     phase = InterpretPhase(_ctx())
-    result = await phase.execute(_wctx("do stuff", workflow_type="full_feature_development"))
+    result = await phase.execute(
+        _wctx("do stuff", workflow_type="full_feature_development")
+    )
     assert result.ok is False
     assert "full_feature_development" in (result.error or "")
 

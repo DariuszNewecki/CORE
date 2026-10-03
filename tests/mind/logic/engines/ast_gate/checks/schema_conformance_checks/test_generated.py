@@ -109,9 +109,6 @@ def test_SchemaConformanceChecks(tmp_path: Path) -> None:
     assert SchemaConformanceChecks.extract_governed_classes(bad_path) == []
 
 
-
-
-
 # ID: c1a6c1ab-c57b-4367-a950-ab9fa256c32f
 def test_SchemaConformanceChecks_check_schema_contract_fields(tmp_path: Path) -> None:
     contract = {

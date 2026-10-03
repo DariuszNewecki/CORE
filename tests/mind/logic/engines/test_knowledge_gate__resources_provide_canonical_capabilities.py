@@ -31,9 +31,7 @@ _TAXONOMY_DOC = {
 }
 
 
-def _make_context(
-    *, repo_path: Path, db_rows: list[tuple[Any, Any]]
-) -> MagicMock:
+def _make_context(*, repo_path: Path, db_rows: list[tuple[Any, Any]]) -> MagicMock:
     ctx = MagicMock()
     ctx.repo_path = repo_path
     intent_repo = MagicMock()

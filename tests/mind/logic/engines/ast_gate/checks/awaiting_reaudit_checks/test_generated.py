@@ -21,9 +21,6 @@ def test_AwaitingReauditChecks_check_reaudit_requires_mechanism() -> None:
     assert "resolution_mechanism = 'reaudit'" in violations[0]
 
 
-
-
-
 # ID: 35761f65-eb94-41c9-88fc-cb9c23550627
 def test_AwaitingReauditChecks() -> None:
     source = (

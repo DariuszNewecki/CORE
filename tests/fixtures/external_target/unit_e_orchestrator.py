@@ -225,7 +225,9 @@ def run_unit_e(*, keep_target: bool = True) -> RollbackScenarioResult:
     # Unit C materializer, same as Unit D).
     materialized: MaterializedTarget = materialize_external_target(workdir / "target")
     target_root = materialized.root
-    checks["pristine_worktree_clean"] = _git(["status", "--porcelain"], target_root) == ""
+    checks["pristine_worktree_clean"] = (
+        _git(["status", "--porcelain"], target_root) == ""
+    )
 
     result = RollbackScenarioResult(
         target=str(target_root),
@@ -246,7 +248,9 @@ def run_unit_e(*, keep_target: bool = True) -> RollbackScenarioResult:
     result.formatter_check_post_violation = fmt_post_violation
     checks["violation_native_tests_pass"] = native_post_violation
     checks["violation_formatter_check_fails"] = not fmt_post_violation
-    checks["violation_worktree_clean"] = _git(["status", "--porcelain"], target_root) == ""
+    checks["violation_worktree_clean"] = (
+        _git(["status", "--porcelain"], target_root) == ""
+    )
 
     # Step 3 -- external-verify precheck, before any contamination.
     verify_ok, verify_output = run_external_verify_precheck(target_root)
@@ -397,7 +401,9 @@ def run_unit_e(*, keep_target: bool = True) -> RollbackScenarioResult:
 
     # -- Post-run target-repo state.
     post_run_head = _git(["rev-parse", "HEAD"], target_root)
-    checks["target_head_unchanged_at_violation_commit"] = post_run_head == violation_commit
+    checks["target_head_unchanged_at_violation_commit"] = (
+        post_run_head == violation_commit
+    )
 
     native_post_rollback = run_native_tests(target_root, extra_env)
     fmt_post_rollback = run_formatter_check(target_root, extra_env)

@@ -139,10 +139,12 @@ async def test_archive_log_partitions_dry_run_no_candidates() -> None:
     """Dry-run with all partitions newer than cutoff returns empty candidates."""
     ctx = MagicMock()
     # All partitions are in 2026 — cutoff with retention=24 is 2024-07, so none qualify
-    session_cm = _make_session_with_partitions([
-        "llm_exchange_log_2026_05",
-        "llm_exchange_log_2026_06",
-    ])
+    session_cm = _make_session_with_partitions(
+        [
+            "llm_exchange_log_2026_05",
+            "llm_exchange_log_2026_06",
+        ]
+    )
     with (
         patch("body.atomic.log_actions.get_session", return_value=session_cm),
         patch("body.atomic.log_actions.date") as mock_date,
@@ -164,11 +166,13 @@ async def test_archive_log_partitions_dry_run_no_candidates() -> None:
 async def test_archive_log_partitions_dry_run_with_candidates() -> None:
     """Dry-run identifies partitions older than cutoff as candidates."""
     ctx = MagicMock()
-    session_cm = _make_session_with_partitions([
-        "llm_exchange_log_2024_01",
-        "llm_exchange_log_2024_06",
-        "llm_exchange_log_2026_07",
-    ])
+    session_cm = _make_session_with_partitions(
+        [
+            "llm_exchange_log_2024_01",
+            "llm_exchange_log_2024_06",
+            "llm_exchange_log_2026_07",
+        ]
+    )
     with (
         patch("body.atomic.log_actions.get_session", return_value=session_cm),
         patch("body.atomic.log_actions.date") as mock_date,

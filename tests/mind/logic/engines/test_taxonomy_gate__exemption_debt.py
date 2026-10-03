@@ -111,7 +111,7 @@ async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
         tmp_path,
         "architecture/example.yaml",
         "mappings:\n  architecture.example.rule:\n    engine: ast_gate\n"
-        "    params: {}\n    scope: {applies_to: [\"src/**\"]}\n",
+        '    params: {}\n    scope: {applies_to: ["src/**"]}\n',
     )
 
     findings = await _engine(tmp_path).verify_context(
@@ -129,7 +129,7 @@ async def test_malformed_entry_missing_required_field(tmp_path: Path) -> None:
         "  architecture.example.rule:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/x.py\n"
         "        rationale: missing closure_type entirely\n",
@@ -154,7 +154,7 @@ async def test_condition_closed_entry_is_always_acknowledged_debt(
         "  code.modularity.class_too_large:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/facade.py\n"
         "        closure_type: condition\n"
@@ -186,14 +186,14 @@ async def test_deadline_closed_future_deadline_is_acknowledged_debt(
         "  architecture.example.rule:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/y.py\n"
         "        closure_type: deadline\n"
         "        rationale: temporary bypass pending refactor\n"
-        "        deadline: \"2999-01-01\"\n"
+        '        deadline: "2999-01-01"\n'
         "        closure_adr: ADR-900\n"
-        "        tracking_issue: \"#1\"\n",
+        '        tracking_issue: "#1"\n',
     )
 
     findings = await _engine(tmp_path).verify_context(
@@ -216,14 +216,14 @@ async def test_deadline_closed_past_deadline_unaccepted_adr_is_warning(
         "  architecture.example.rule:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/y.py\n"
         "        closure_type: deadline\n"
         "        rationale: temporary bypass pending refactor\n"
-        f"        deadline: \"{ten_days_ago}\"\n"
+        f'        deadline: "{ten_days_ago}"\n'
         "        closure_adr: ADR-901\n"
-        "        tracking_issue: \"#1\"\n",
+        '        tracking_issue: "#1"\n',
     )
 
     findings = await _engine(tmp_path).verify_context(
@@ -247,14 +247,14 @@ async def test_deadline_closed_lapsed_far_past_deadline_unaccepted_adr(
         "  architecture.example.rule:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/y.py\n"
         "        closure_type: deadline\n"
         "        rationale: temporary bypass pending refactor\n"
-        f"        deadline: \"{forty_days_ago}\"\n"
+        f'        deadline: "{forty_days_ago}"\n'
         "        closure_adr: ADR-902\n"
-        "        tracking_issue: \"#1\"\n",
+        '        tracking_issue: "#1"\n',
     )
 
     findings = await _engine(tmp_path).verify_context(
@@ -279,14 +279,14 @@ async def test_deadline_closed_past_deadline_accepted_adr_is_not_escalated(
         "  architecture.example.rule:\n"
         "    engine: ast_gate\n"
         "    params: {}\n"
-        "    scope: {applies_to: [\"src/**\"]}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
         "    governed_exclusions:\n"
         "      - file: src/y.py\n"
         "        closure_type: deadline\n"
         "        rationale: temporary bypass pending refactor\n"
-        f"        deadline: \"{forty_days_ago}\"\n"
+        f'        deadline: "{forty_days_ago}"\n'
         "        closure_adr: ADR-903\n"
-        "        tracking_issue: \"#1\"\n",
+        '        tracking_issue: "#1"\n',
     )
 
     findings = await _engine(tmp_path).verify_context(

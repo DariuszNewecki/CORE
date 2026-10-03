@@ -25,6 +25,8 @@ def test_intent_repository_declares_facade_role() -> None:
 
 
 def test_intent_access_rules_present() -> None:
-    ids = {r["id"] for r in json.loads(_INTENT_ACCESS.read_text(encoding="utf-8"))["rules"]}
+    ids = {
+        r["id"] for r in json.loads(_INTENT_ACCESS.read_text(encoding="utf-8"))["rules"]
+    }
     assert "architecture.namespace.no_direct_protected_access" in ids
     assert "architecture.intent.gateway_is_shared_infrastructure" in ids

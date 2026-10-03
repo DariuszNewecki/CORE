@@ -24,7 +24,9 @@ from will.self_healing.symbol_coverage_remediation import (
 )
 
 
-def _gap_result(gaps: list[dict], test_file: str = "tests/x/test_thing.py") -> ComponentResult:
+def _gap_result(
+    gaps: list[dict], test_file: str = "tests/x/test_thing.py"
+) -> ComponentResult:
     return ComponentResult(
         component_id="test_gap_evaluator",
         ok=True,
@@ -55,7 +57,9 @@ def _make_context(tmp_path: Path) -> MagicMock:
     return context
 
 
-def _flow_result(ok: bool, symbol_name: str, test_file: str = "tests/x/test_thing.py") -> FlowResult:
+def _flow_result(
+    ok: bool, symbol_name: str, test_file: str = "tests/x/test_thing.py"
+) -> FlowResult:
     if ok:
         steps = [
             StepResult(
@@ -92,12 +96,16 @@ async def test_write_false_rejected_without_any_io(tmp_path: Path) -> None:
 
 async def test_missing_source_file_rejected(tmp_path: Path) -> None:
     context = _make_context(tmp_path)
-    result = await remediate_file_by_symbol(context, "src/x/does_not_exist.py", write=True)
+    result = await remediate_file_by_symbol(
+        context, "src/x/does_not_exist.py", write=True
+    )
     assert result["status"] == "failed"
     assert "does not exist" in result["error"]
 
 
-async def test_traversal_source_file_rejected_before_touching_disk(tmp_path: Path) -> None:
+async def test_traversal_source_file_rejected_before_touching_disk(
+    tmp_path: Path,
+) -> None:
     """#817: a source_file that resolves outside repo_root must be rejected
     by containment, not just fail later for some unrelated reason."""
     context = _make_context(tmp_path)
@@ -146,7 +154,9 @@ async def test_gap_evaluator_failure_returns_failed_status(tmp_path: Path) -> No
     assert "Syntax error" in result["error"]
 
 
-async def test_single_symbol_success_propagates_declared_production(tmp_path: Path) -> None:
+async def test_single_symbol_success_propagates_declared_production(
+    tmp_path: Path,
+) -> None:
     context = _make_context(tmp_path)
     gap = {"name": "do_work", "kind": "function", "signature": "def do_work()"}
     evaluator_instance = AsyncMock()
@@ -183,7 +193,9 @@ async def test_single_symbol_success_propagates_declared_production(tmp_path: Pa
     scoped_git.cleanup.assert_called_once()
 
 
-async def test_partial_failure_within_file_continues_remaining_symbols(tmp_path: Path) -> None:
+async def test_partial_failure_within_file_continues_remaining_symbols(
+    tmp_path: Path,
+) -> None:
     context = _make_context(tmp_path)
     gaps = [
         {"name": "do_work", "kind": "function", "signature": "def do_work()"},
@@ -417,7 +429,9 @@ def _flow_executor_factory(script: dict, test_file: str):
     def factory(scoped_context, cognitive_delegate=None):
         executor = AsyncMock()
 
-        async def fake_execute(*, flow_id, write, source_file, symbol_name, symbol_kind, signature):
+        async def fake_execute(
+            *, flow_id, write, source_file, symbol_name, symbol_kind, signature
+        ):
             ok, snippet = script[symbol_name]
             test_path = scoped_context.git_service.repo_path / test_file
             test_path.parent.mkdir(parents=True, exist_ok=True)
@@ -432,7 +446,10 @@ def _flow_executor_factory(script: dict, test_file: str):
                             ref_id="build.test_for_symbol",
                             required=True,
                             ok=True,
-                            data={"test_file": test_file, "files_produced": [test_file]},
+                            data={
+                                "test_file": test_file,
+                                "files_produced": [test_file],
+                            },
                         )
                     ],
                 )
@@ -492,7 +509,10 @@ async def test_failed_symbol_write_never_propagates_via_another_symbols_success(
     with (
         patch(f"{_MODULE}.TestGapEvaluator", return_value=evaluator_instance),
         patch(f"{_MODULE}.TestGenCognitiveDelegate", return_value=MagicMock()),
-        patch(f"{_MODULE}.FlowExecutor", side_effect=_flow_executor_factory(script, test_file)),
+        patch(
+            f"{_MODULE}.FlowExecutor",
+            side_effect=_flow_executor_factory(script, test_file),
+        ),
     ):
         result = await remediate_file_by_symbol(context, "src/thing.py", write=True)
 
@@ -520,7 +540,9 @@ def _flow_executor_factory_with_ancestor_inits(script: dict, test_file: str):
     def factory(scoped_context, cognitive_delegate=None):
         executor = AsyncMock()
 
-        async def fake_execute(*, flow_id, write, source_file, symbol_name, symbol_kind, signature):
+        async def fake_execute(
+            *, flow_id, write, source_file, symbol_name, symbol_kind, signature
+        ):
             ok, snippet = script[symbol_name]
             worktree_root = scoped_context.git_service.repo_path
             test_path = worktree_root / test_file

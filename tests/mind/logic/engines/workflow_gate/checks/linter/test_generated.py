@@ -31,9 +31,6 @@ async def test_LinterComplianceCheck_verify():
     assert mock_exec.await_count == 2
 
 
-
-
-
 # ID: 2453298a-21c0-430f-90ce-505768a720ab
 async def test_LinterComplianceCheck():
     check = LinterComplianceCheck()

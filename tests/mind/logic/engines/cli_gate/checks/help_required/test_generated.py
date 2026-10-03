@@ -25,8 +25,6 @@ def test_help_required_check_verify() -> None:
     assert finding.context == {"command_name": "cmd_without_summary"}
 
 
-
-
 # ID: b2a94a0f-d1aa-402a-bdfa-5fe1e26619a5
 def test_HelpRequiredCheck():
     check = HelpRequiredCheck()

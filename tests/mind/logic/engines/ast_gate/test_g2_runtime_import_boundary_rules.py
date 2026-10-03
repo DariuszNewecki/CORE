@@ -72,7 +72,8 @@ async def test_embedding_access_fires_on_embedding_service_import(
     tmp_path: Path,
 ) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.embedding_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.embedding_access",
     )
     result = await _verify(
         tmp_path,
@@ -86,7 +87,8 @@ async def test_embedding_access_fires_on_embedding_service_import(
 
 async def test_embedding_access_passes_via_cognitive_adapter(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.embedding_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.embedding_access",
     )
     result = await _verify(
         tmp_path,
@@ -158,7 +160,8 @@ async def test_database_session_access_passes_for_di_only_reference(
 
 async def test_settings_access_fires_on_settings_import(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.settings_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.settings_access",
     )
     result = await _verify(
         tmp_path,
@@ -170,9 +173,12 @@ async def test_settings_access_fires_on_settings_import(tmp_path: Path) -> None:
     assert any("Settings" in v for v in result.violations)
 
 
-async def test_settings_access_fires_on_settings_instance_import(tmp_path: Path) -> None:
+async def test_settings_access_fires_on_settings_instance_import(
+    tmp_path: Path,
+) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.settings_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.settings_access",
     )
     result = await _verify(
         tmp_path,
@@ -186,7 +192,8 @@ async def test_settings_access_fires_on_settings_instance_import(tmp_path: Path)
 
 async def test_settings_access_passes_without_direct_import(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.settings_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.settings_access",
     )
     result = await _verify(
         tmp_path,
@@ -244,7 +251,8 @@ async def test_file_handler_access_passes_without_direct_instantiation(
 
 async def test_llm_client_access_fires_on_will_agents_import(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.llm_client_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.llm_client_access",
     )
     result = await _verify(
         tmp_path,
@@ -258,7 +266,8 @@ async def test_llm_client_access_fires_on_will_agents_import(tmp_path: Path) -> 
 
 async def test_llm_client_access_fires_on_llm_client_import(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.llm_client_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.llm_client_access",
     )
     result = await _verify(
         tmp_path,
@@ -272,7 +281,8 @@ async def test_llm_client_access_fires_on_llm_client_import(tmp_path: Path) -> N
 
 async def test_llm_client_access_passes_without_ai_invocation(tmp_path: Path) -> None:
     params = _load_rule_params(
-        "architecture/privileged_boundaries.yaml", "architecture.boundary.llm_client_access"
+        "architecture/privileged_boundaries.yaml",
+        "architecture.boundary.llm_client_access",
     )
     result = await _verify(
         tmp_path,
@@ -356,7 +366,9 @@ async def test_no_layer_imports_fires_on_will_import(tmp_path: Path) -> None:
     assert any("will" in v for v in result.violations)
 
 
-async def test_no_layer_imports_passes_for_shared_only_reference(tmp_path: Path) -> None:
+async def test_no_layer_imports_passes_for_shared_only_reference(
+    tmp_path: Path,
+) -> None:
     """shared/ is admitted to import shared/ and third-party/stdlib -- not
     mind/body/will."""
     params = _load_rule_params(
@@ -381,7 +393,8 @@ async def test_no_direct_worker_import_fires_on_sibling_worker_import(
     tmp_path: Path,
 ) -> None:
     params = _load_rule_params(
-        "architecture/layer_separation.yaml", "architecture.workers.no_direct_worker_import"
+        "architecture/layer_separation.yaml",
+        "architecture.workers.no_direct_worker_import",
     )
     result = await _verify(
         tmp_path,
@@ -397,7 +410,8 @@ async def test_no_direct_worker_import_passes_via_blackboard_only(
     tmp_path: Path,
 ) -> None:
     params = _load_rule_params(
-        "architecture/layer_separation.yaml", "architecture.workers.no_direct_worker_import"
+        "architecture/layer_separation.yaml",
+        "architecture.workers.no_direct_worker_import",
     )
     result = await _verify(
         tmp_path,
@@ -417,7 +431,8 @@ async def test_no_direct_worker_import_type_checking_exempt_is_live(
     not trip the check, confirmed against the real declared value (not
     just the check's own default)."""
     params = _load_rule_params(
-        "architecture/layer_separation.yaml", "architecture.workers.no_direct_worker_import"
+        "architecture/layer_separation.yaml",
+        "architecture.workers.no_direct_worker_import",
     )
     assert params.get("type_checking_exempt") is True
     result = await _verify(

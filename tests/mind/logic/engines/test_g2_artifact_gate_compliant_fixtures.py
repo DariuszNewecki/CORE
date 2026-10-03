@@ -148,7 +148,9 @@ async def test_namespace_has_drainer_passes_when_namespace_registered(
 
     fake_repo = MagicMock()
     fake_repo.resolve_rel = MagicMock(return_value=Path("dummy"))
-    fake_repo.load_document = MagicMock(return_value={"namespaces": [{"prefix": "audit"}]})
+    fake_repo.load_document = MagicMock(
+        return_value={"namespaces": [{"prefix": "audit"}]}
+    )
 
     from mind.logic.engines import artifact_gate as agate
 

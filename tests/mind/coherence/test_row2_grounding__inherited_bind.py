@@ -68,7 +68,10 @@ def test_extract_ids_simple() -> None:
 def test_extract_ids_multiple_on_one_line() -> None:
     content = "**Supersedes:** ADR-021 D3, ADR-021 D5\n"
     ids = _extract_supersedes_adr_ids(content)
-    assert ids == ["ADR-21", "ADR-21"]  # duplicates are fine; broken-chain set handles it
+    assert ids == [
+        "ADR-21",
+        "ADR-21",
+    ]  # duplicates are fine; broken-chain set handles it
 
 
 def test_extract_ids_none_returns_empty() -> None:

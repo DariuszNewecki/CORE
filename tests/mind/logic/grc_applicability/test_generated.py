@@ -86,9 +86,6 @@ async def test_grc_applicability_gate_assess() -> None:
         assert result.rationale == "The corpus governs financial controls."
 
 
-
-
-
 # ID: d2ba636f-948f-4427-b663-1a07cf8e137b
 async def test_GRCApplicabilityGate() -> None:
     from mind.logic.grc_applicability import Applicability

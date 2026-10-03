@@ -245,7 +245,9 @@ async def test_adopt_baseline_refuses_unknown_tag_without_db_access() -> None:
     with (
         patch(f"{_SVC}.ensure_ledger", new=AsyncMock()) as mock_ensure,
         patch(f"{_SVC}.record_ledger_row", new=AsyncMock()) as mock_record,
-        pytest.raises(MigrationServiceError, match=r"not a declared baseline.*v2\.9\.1"),
+        pytest.raises(
+            MigrationServiceError, match=r"not a declared baseline.*v2\.9\.1"
+        ),
     ):
         await adopt_baseline("v0.0.0", write=True, session_factory=AsyncMock())
     mock_ensure.assert_not_called()

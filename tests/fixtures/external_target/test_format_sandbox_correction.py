@@ -74,9 +74,7 @@ def _introduce_unused_import_violation(target_root: Path) -> None:
             "template may have drifted"
         )
     path.write_text(
-        content.replace(
-            _FUTURE_IMPORT_LINE, _FUTURE_IMPORT_LINE + _UNUSED_IMPORT_LINE
-        ),
+        content.replace(_FUTURE_IMPORT_LINE, _FUTURE_IMPORT_LINE + _UNUSED_IMPORT_LINE),
         "utf-8",
     )
 
@@ -206,9 +204,7 @@ class TestSandboxPropagation:
                     f"canary path changed unexpectedly: {rel}"
                 )
         changed = {
-            rel
-            for rel, digest in post_hashes.items()
-            if pre_hashes.get(rel) != digest
+            rel for rel, digest in post_hashes.items() if pre_hashes.get(rel) != digest
         }
         assert changed == {_TARGET_FILE}, f"unexpected path changes: {changed}"
 

@@ -18,9 +18,6 @@ def test_TestGenAcceptanceCheck_check() -> None:
     assert isinstance(result, list)
 
 
-
-
-
 # ID: a395d591-c13e-4a78-8323-cc58fd6c9daa
 def test_TestGenAcceptanceCheck() -> None:
     source = "CompositeAcceptanceCondition([\n    PytestAcceptanceCondition(),\n])\n"

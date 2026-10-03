@@ -176,9 +176,9 @@ async def test_reaudit_guard_fires_when_mechanism_predicate_absent(
         "async def revive(session, entry_id):\n"
         "    return await session.execute(\n"
         "        text(\n"
-        "            \"UPDATE core.blackboard_entries \"\n"
+        '            "UPDATE core.blackboard_entries "\n'
         "            \"SET status = 'awaiting_reaudit' \"\n"
-        "            \"WHERE id = :entry_id\"\n"
+        '            "WHERE id = :entry_id"\n'
         "        ),\n"
         "        {'entry_id': entry_id},\n"
         "    )\n",
@@ -207,7 +207,7 @@ async def test_reaudit_guard_passes_with_where_clause_mechanism_predicate(
         "async def revive(session, proposal_id):\n"
         "    return await session.execute(\n"
         "        text(\n"
-        "            \"UPDATE core.blackboard_entries \"\n"
+        '            "UPDATE core.blackboard_entries "\n'
         "            \"SET status = 'awaiting_reaudit', updated_at = now() \"\n"
         "            \"WHERE entry_type = 'finding' \"\n"
         "            \"AND resolution_mechanism = 'reaudit' \"\n"
@@ -238,7 +238,7 @@ async def test_reaudit_guard_ignores_unrelated_status_transitions(
         "async def close(session, entry_id):\n"
         "    return await session.execute(\n"
         "        text(\"UPDATE core.blackboard_entries SET status = 'resolved' \"\n"
-        "             \"WHERE id = :entry_id\"),\n"
+        '             "WHERE id = :entry_id"),\n'
         "        {'entry_id': entry_id},\n"
         "    )\n",
         params,
@@ -266,9 +266,9 @@ async def test_indeterminate_guard_fires_when_human_mechanism_missing(
         "async def defer(session, entry_id):\n"
         "    return await session.execute(\n"
         "        text(\n"
-        "            \"UPDATE core.blackboard_entries \"\n"
+        '            "UPDATE core.blackboard_entries "\n'
         "            \"SET status = 'indeterminate', updated_at = now() \"\n"
-        "            \"WHERE id = :entry_id\"\n"
+        '            "WHERE id = :entry_id"\n'
         "        ),\n"
         "        {'entry_id': entry_id},\n"
         "    )\n",
@@ -295,10 +295,10 @@ async def test_indeterminate_guard_passes_with_set_clause_human_coassignment(
         "async def defer(session, entry_id):\n"
         "    return await session.execute(\n"
         "        text(\n"
-        "            \"UPDATE core.blackboard_entries \"\n"
+        '            "UPDATE core.blackboard_entries "\n'
         "            \"SET status = 'indeterminate', \"\n"
         "            \"resolution_mechanism = 'human', updated_at = now() \"\n"
-        "            \"WHERE id = :entry_id\"\n"
+        '            "WHERE id = :entry_id"\n'
         "        ),\n"
         "        {'entry_id': entry_id},\n"
         "    )\n",
@@ -325,7 +325,7 @@ async def test_indeterminate_guard_ignores_where_clause_only_filter(
         "async def resolve(session, entry_id):\n"
         "    return await session.execute(\n"
         "        text(\n"
-        "            \"UPDATE core.blackboard_entries \"\n"
+        '            "UPDATE core.blackboard_entries "\n'
         "            \"SET status = 'resolved', updated_at = now() \"\n"
         "            \"WHERE id = :entry_id AND status = 'indeterminate'\"\n"
         "        ),\n"

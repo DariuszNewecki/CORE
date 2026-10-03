@@ -29,9 +29,6 @@ def test_AsyncExecutionCheck_verify() -> None:
     assert findings == []
 
 
-
-
-
 # ID: 165b432c-4f2f-40f5-971e-6a32998066e2
 def test_AsyncExecutionCheck():
     check = AsyncExecutionCheck()

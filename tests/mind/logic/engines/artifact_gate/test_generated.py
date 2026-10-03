@@ -102,9 +102,6 @@ def test_ArtifactGateEngine_is_context_level_for():
     assert ArtifactGateEngine.is_context_level_for("unknown_check_type") is False
 
 
-
-
-
 # ID: 97385fd3-710a-4150-af9a-bf42889ef33a
 def test_ArtifactGateEngine(tmp_path: Path) -> None:
     manifest = tmp_path / "model.yaml"

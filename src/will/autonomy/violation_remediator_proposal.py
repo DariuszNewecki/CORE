@@ -1,4 +1,4 @@
-# src/will/workers/violation_remediator_proposal.py
+# src/will/autonomy/violation_remediator_proposal.py
 """
 Proposal creation, active-proposal dedup index, and circuit-breaker
 gate for ViolationRemediatorWorker.

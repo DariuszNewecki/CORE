@@ -156,8 +156,6 @@ def test_GenericASTChecks():
     )
 
 
-
-
 # ID: fd9dfe1d-b181-4e19-beaa-bb727b3733de
 def test_GenericASTChecks_validate_requirement():
     from mind.logic.engines.ast_gate.checks.generic_checks import GenericASTChecks

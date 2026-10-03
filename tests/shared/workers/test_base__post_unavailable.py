@@ -66,7 +66,5 @@ def test_post_unavailable_increments_cycle_post_count() -> None:
     worker._blackboard.post_observation = AsyncMock(return_value="entry-id")
 
     before = worker._cycle_post_count
-    asyncio.run(
-        worker.post_unavailable(subject="s.instrument_unavailable", reason="x")
-    )
+    asyncio.run(worker.post_unavailable(subject="s.instrument_unavailable", reason="x"))
     assert worker._cycle_post_count == before + 1

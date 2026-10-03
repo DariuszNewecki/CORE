@@ -29,10 +29,6 @@ def test_CliCheck_verify() -> None:
         CliCheck.verify(concrete, [], {})
 
 
-
-
-
-
 # ID: b64d0bbc-c20c-45a6-b0af-9062ea10a3e2
 def test_CliCheck():
     class _ConcreteCheck(CliCheck):

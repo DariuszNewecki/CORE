@@ -197,7 +197,9 @@ def test_register_casing_fires_on_reverted_audit_severity_enum(tmp_path: Path) -
 
 
 def test_register_casing_clean_for_ratified_audit_severity_enum(tmp_path: Path) -> None:
-    repo = _scaffold_intent(tmp_path, {})  # default seeded enums.json is already lowercase
+    repo = _scaffold_intent(
+        tmp_path, {}
+    )  # default seeded enums.json is already lowercase
     result = _check_register_casing(repo, "register_casing_validation")
 
     assert result.ok

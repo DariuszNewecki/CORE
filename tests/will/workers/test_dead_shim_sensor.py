@@ -71,7 +71,10 @@ async def test_day_one_live_catch_posts_finding():
     await _run(sensor, registry)
 
     call = sensor.post_finding.await_args
-    assert call.kwargs["subject"] == f"{_SUBJECT_PREFIX}::{_SYNC_MANIFEST_ROW['symbol_path']}"
+    assert (
+        call.kwargs["subject"]
+        == f"{_SUBJECT_PREFIX}::{_SYNC_MANIFEST_ROW['symbol_path']}"
+    )
     assert call.kwargs["payload"]["rule"] == "modernization.dead_shim"
     assert "verify-then-delete" in call.kwargs["payload"]["remediation_contract"]
     assert call.kwargs["resolution_mechanism"] == "self_resolve"

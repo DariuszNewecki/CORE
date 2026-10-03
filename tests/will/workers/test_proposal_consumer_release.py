@@ -7,6 +7,7 @@ scenarios (SIGTERM → CancelledError) where the per-proposal except branch
 is bypassed. Covers: normal exit (0 stuck), one stuck proposal, and DB
 query failure.
 """
+
 from __future__ import annotations
 
 import uuid

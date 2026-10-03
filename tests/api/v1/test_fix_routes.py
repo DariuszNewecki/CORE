@@ -48,6 +48,7 @@ def _mock_session_returning(run_id):
 
 # ── RunFixRequest validation ──────────────────────────────────────────────────
 
+
 def test_run_fix_request_rejects_absolute_path():
     """Paths starting with '/' are rejected at model construction time."""
     with pytest.raises(ValidationError):
@@ -67,6 +68,7 @@ def test_run_fix_request_accepts_relative_path():
 
 
 # ── run_fix ───────────────────────────────────────────────────────────────────
+
 
 async def test_run_fix_unknown_id_raises_422():
     """Unknown fix_id returns 422 with the id name in the detail."""
@@ -142,6 +144,7 @@ async def test_run_fix_propagates_write_flag_to_insert():
 
 # ── run_fix_all ───────────────────────────────────────────────────────────────
 
+
 async def test_run_fix_all_unknown_flow_raises_422():
     """When flow.fix_code is absent from the flow registry, 422 is raised."""
     with patch("api.v1.fix_routes.list_registered_flow_ids", return_value=[]):
@@ -182,6 +185,7 @@ async def test_run_fix_all_dispatches_flow_and_returns_202():
 
 # ── run_fix_modularity ────────────────────────────────────────────────────────
 
+
 async def test_run_fix_modularity_returns_202():
     """Modularity endpoint inserts a row (no flow_id validation) and returns 202."""
     run_id = uuid4()
@@ -206,6 +210,7 @@ async def test_run_fix_modularity_returns_202():
 
 
 # ── run_fix_ir ────────────────────────────────────────────────────────────────
+
 
 async def test_run_fix_ir_returns_written_path():
     """POST /fix/ir delegates to bootstrap_ir and returns {path}."""
@@ -238,6 +243,7 @@ async def test_run_fix_ir_bootstrap_error_becomes_422():
 
 # ── list_fix_commands ─────────────────────────────────────────────────────────
 
+
 async def test_list_fix_commands_returns_count_and_filtered_commands():
     """GET /fix/commands delegates to list_action_definitions(category='fix')."""
     commands = [{"action_id": "fix.format", "category": "fix"}]
@@ -259,6 +265,7 @@ async def test_list_fix_commands_empty_registry():
 
 # ── list_actions ──────────────────────────────────────────────────────────────
 
+
 async def test_list_actions_returns_all_unfiltered():
     """GET /actions returns every registered action with no category filter."""
     all_actions = [
@@ -275,6 +282,7 @@ async def test_list_actions_returns_all_unfiltered():
 
 
 # ── get_fix_run ───────────────────────────────────────────────────────────────
+
 
 async def test_get_fix_run_returns_row_with_iso_timestamps():
     """GET /fix/runs/{id} returns the persisted row; datetimes are ISO strings."""

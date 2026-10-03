@@ -93,9 +93,7 @@ async def test_resource_first_passes_for_depth_two_command() -> None:
 
 async def test_no_layer_exposure_fires_via_engine_dispatch() -> None:
     params = _load_rule_params("cli/interface_design.yaml", "cli.no_layer_exposure")
-    findings = await _run(
-        params, [{"name": "mind.internal.peek", "file_path": "x.py"}]
-    )
+    findings = await _run(params, [{"name": "mind.internal.peek", "file_path": "x.py"}])
     assert len(findings) == 1
     assert findings[0].check_id == "cli_gate.no_layer_exposure"
     assert findings[0].context["resource"] == "mind"
@@ -103,9 +101,7 @@ async def test_no_layer_exposure_fires_via_engine_dispatch() -> None:
 
 async def test_no_layer_exposure_passes_for_permitted_resource() -> None:
     params = _load_rule_params("cli/interface_design.yaml", "cli.no_layer_exposure")
-    findings = await _run(
-        params, [{"name": "audit.rules.check", "file_path": "x.py"}]
-    )
+    findings = await _run(params, [{"name": "audit.rules.check", "file_path": "x.py"}])
     assert findings == []
 
 

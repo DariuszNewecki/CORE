@@ -127,7 +127,9 @@ async def test_run_canary_validation_snapshot_preserves_symlinks(
     await service._run_canary_validation(crate)
 
     copied_link = repo_root / "work" / "canary" / "sandbox_sym_test" / "linked_dir"
-    assert copied_link.is_symlink(), "sandbox copy of a symlinked dir must remain a symlink"
+    assert copied_link.is_symlink(), (
+        "sandbox copy of a symlinked dir must remain a symlink"
+    )
     assert copied_link.resolve() == real_target.resolve()
 
 

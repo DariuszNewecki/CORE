@@ -96,9 +96,6 @@ def test_max_interval_lookback_hours():
     assert result > 24.0
 
 
-
-
-
 # ID: d5b16773-6eb4-47c8-9d6f-f5141851603b
 async def test_RuntimeGateEngine_verify() -> None:
     engine = RuntimeGateEngine.__new__(RuntimeGateEngine)

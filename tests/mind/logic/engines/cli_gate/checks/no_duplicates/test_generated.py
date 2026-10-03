@@ -38,8 +38,6 @@ def test_NoDuplicatesCheck_verify() -> None:
     assert finding.context["entrypoints"] == ["cli.a", "cli.b"]
 
 
-
-
 # ID: c6e56a2f-de93-4f09-907e-f07dda1083b4
 def test_NoDuplicatesCheck():
     check = NoDuplicatesCheck()

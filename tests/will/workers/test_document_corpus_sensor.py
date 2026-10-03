@@ -236,9 +236,7 @@ def test_discover_active_catalogs_explicit_names_bypasses_published_filter(
     tmp_path: Path,
 ) -> None:
     """Explicit catalog_names is the project's own opt-in — not publish-gated."""
-    sensor = _make_sensor(
-        corpus_root=str(tmp_path), catalog_names=["draft_catalog"]
-    )
+    sensor = _make_sensor(corpus_root=str(tmp_path), catalog_names=["draft_catalog"])
 
     with (
         patch(

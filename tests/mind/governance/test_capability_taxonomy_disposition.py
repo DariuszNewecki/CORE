@@ -92,8 +92,7 @@ def test_precise_rules_still_dispatch_through_capability_taxonomy_whitelist() ->
     for rule_id in PRECISE:
         assert mappings[rule_id]["engine"] == "knowledge_gate"
         assert (
-            mappings[rule_id]["params"]["check_type"]
-            == "capability_taxonomy_whitelist"
+            mappings[rule_id]["params"]["check_type"] == "capability_taxonomy_whitelist"
         )
 
 

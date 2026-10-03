@@ -59,9 +59,7 @@ async def test_redrive_returns_true_when_findings_deferred() -> None:
     mock_registry = MagicMock()
     mock_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         result = await worker._redrive_undeferred_findings(_row())  # type: ignore[attr-defined]
 
     assert result is True
@@ -80,9 +78,7 @@ async def test_redrive_returns_false_when_nothing_deferred() -> None:
     mock_registry = MagicMock()
     mock_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         result = await worker._redrive_undeferred_findings(_row())  # type: ignore[attr-defined]
 
     assert result is False
@@ -96,9 +92,7 @@ async def test_redrive_short_circuits_with_no_finding_ids() -> None:
     mock_registry = MagicMock()
     mock_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         result = await worker._redrive_undeferred_findings(  # type: ignore[attr-defined]
             _row(finding_ids=[])
         )
@@ -119,9 +113,7 @@ async def test_redrive_fail_soft_on_db_error() -> None:
     mock_registry = MagicMock()
     mock_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         result = await worker._redrive_undeferred_findings(_row())  # type: ignore[attr-defined]
 
     assert result is False

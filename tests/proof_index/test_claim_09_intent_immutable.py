@@ -17,7 +17,9 @@ import yaml
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_MAPPING = _REPO_ROOT / ".intent/enforcement/mappings/architecture/governance_basics.yaml"
+_MAPPING = (
+    _REPO_ROOT / ".intent/enforcement/mappings/architecture/governance_basics.yaml"
+)
 _RULES = _REPO_ROOT / ".intent/rules/architecture/governance_basics.json"
 
 

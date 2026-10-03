@@ -28,6 +28,7 @@ def _make_cluster(
 
 # ── _review_state ─────────────────────────────────────────────────────────────
 
+
 # ID: 3416f62b-0db1-490a-8282-b52837d96f73
 def test_review_state_escalation() -> None:
     assert _review_state(_make_cluster(assigned_role="Human")) == "escalation"
@@ -40,15 +41,22 @@ def test_review_state_rejected() -> None:
 
 # ID: da0af175-6345-47b4-8031-d299f378e75d
 def test_review_state_approved() -> None:
-    assert _review_state(_make_cluster(status="pending", requires_approval=False)) == "approved"
+    assert (
+        _review_state(_make_cluster(status="pending", requires_approval=False))
+        == "approved"
+    )
 
 
 # ID: 32008f70-d430-4d30-84c3-8493f495ea39
 def test_review_state_awaiting_review() -> None:
-    assert _review_state(_make_cluster(status="pending", requires_approval=True)) == "awaiting review"
+    assert (
+        _review_state(_make_cluster(status="pending", requires_approval=True))
+        == "awaiting review"
+    )
 
 
 # ── _tally ────────────────────────────────────────────────────────────────────
+
 
 # ID: 0695788a-2aed-4917-a13c-b5e1a4e4408a
 def test_tally_empty_cluster_list() -> None:
@@ -59,11 +67,11 @@ def test_tally_empty_cluster_list() -> None:
 # ID: 71d590ea-3373-43cc-95d0-88024c605f22
 def test_tally_mixed_cluster_states() -> None:
     clusters = [
-        _make_cluster(status="pending", requires_approval=False),   # approved
-        _make_cluster(status="pending", requires_approval=False),   # approved
-        _make_cluster(status="blocked"),                            # rejected
-        _make_cluster(status="pending", requires_approval=True),    # pending
-        _make_cluster(assigned_role="Human"),                       # escalation
+        _make_cluster(status="pending", requires_approval=False),  # approved
+        _make_cluster(status="pending", requires_approval=False),  # approved
+        _make_cluster(status="blocked"),  # rejected
+        _make_cluster(status="pending", requires_approval=True),  # pending
+        _make_cluster(assigned_role="Human"),  # escalation
     ]
     result = _tally(clusters)
     assert result["approved"] == 2
@@ -91,6 +99,7 @@ def test_tally_all_rejected() -> None:
 
 
 # ── _pct ──────────────────────────────────────────────────────────────────────
+
 
 def test_pct_zero_total_returns_dash() -> None:
     assert _pct(0, 0) == "—"

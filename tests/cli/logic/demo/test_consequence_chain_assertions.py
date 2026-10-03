@@ -119,7 +119,9 @@ def test_negative_claim_expected_rule_does_not_fire() -> None:
     kwargs = _golden_kwargs()
     result = kwargs["result"]
     result.finding = dataclasses.replace(
-        result.finding, rule_id="some.other.rule", subject="python::some.other.rule::" + _SEED_REL_PATH
+        result.finding,
+        rule_id="some.other.rule",
+        subject="python::some.other.rule::" + _SEED_REL_PATH,
     )
     assertions = _assertion_map(kwargs)
     assert assertions["D10.3_exactly_expected_finding"] is False
@@ -154,7 +156,9 @@ def test_negative_claim_finding_and_proposal_not_linked_both_directions() -> Non
 def test_negative_claim_proposal_action_differs() -> None:
     kwargs = _golden_kwargs()
     result = kwargs["result"]
-    result.proposal = dataclasses.replace(result.proposal, action_ids=["fix.docstrings"])
+    result.proposal = dataclasses.replace(
+        result.proposal, action_ids=["fix.docstrings"]
+    )
     assertions = _assertion_map(kwargs)
     assert assertions["D10.4_exactly_one_linked_proposal"] is False
 
@@ -266,7 +270,9 @@ def test_negative_claim_consequence_belongs_to_different_proposal() -> None:
     result = kwargs["result"]
     result.chain = dataclasses.replace(
         result.chain,
-        proposal=dataclasses.replace(result.chain.proposal, proposal_id="a-different-proposal-id"),
+        proposal=dataclasses.replace(
+            result.chain.proposal, proposal_id="a-different-proposal-id"
+        ),
     )
     assertions = _assertion_map(kwargs)
     assert assertions["D10.8_consequence_belongs_to_exact_proposal"] is False

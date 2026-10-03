@@ -19,7 +19,9 @@ def _ctx(action_executor) -> SimpleNamespace:
     return SimpleNamespace(obj=SimpleNamespace(action_executor=action_executor))
 
 
-def _code_result(*, status: str, pending_remaining: int = 0, reset_count: int = 0) -> ActionResult:
+def _code_result(
+    *, status: str, pending_remaining: int = 0, reset_count: int = 0
+) -> ActionResult:
     return ActionResult(
         action_id="sync.vectors_code",
         ok=True,

@@ -45,9 +45,6 @@ def test_CoverageMinimumCheck() -> None:
     assert result == []
 
 
-
-
-
 # ID: 41e3712f-9742-4d52-b297-0fcbdb0f785d
 async def test_CoverageMinimumCheck_verify() -> None:
     path_resolver = MagicMock()

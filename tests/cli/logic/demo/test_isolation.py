@@ -67,7 +67,9 @@ def test_hash_file_is_deterministic_and_content_sensitive(tmp_path: Path) -> Non
     assert hash_file(f) != h1
 
 
-def test_u13_hash_directory_is_deterministic_and_detects_mutation(tmp_path: Path) -> None:
+def test_u13_hash_directory_is_deterministic_and_detects_mutation(
+    tmp_path: Path,
+) -> None:
     d = tmp_path / "dir"
     (d / "sub").mkdir(parents=True)
     (d / "a.txt").write_text("a\n")
@@ -122,7 +124,9 @@ def test_prove_clone_isolation_raises_if_remote_present(
     head = source_repo.get_current_commit()
     identity = generate_run_identity(tmp_path / "state")
     clone = create_isolated_clone(source_repo, head, identity)
-    _run(["git", "remote", "add", "origin", str(source_repo.repo_path)], clone.repo_path)
+    _run(
+        ["git", "remote", "add", "origin", str(source_repo.repo_path)], clone.repo_path
+    )
 
     with pytest.raises(ValueError, match="still has a remote"):
         prove_clone_isolation(clone, head)
@@ -181,7 +185,9 @@ async def test_e03_compose_up_env_is_passed_through_verbatim(
 ) -> None:
     captured: dict[str, object] = {}
 
-    async def fake_create_subprocess_exec(*args: object, **kwargs: object) -> _FakeProcess:
+    async def fake_create_subprocess_exec(
+        *args: object, **kwargs: object
+    ) -> _FakeProcess:
         captured["args"] = args
         captured["env"] = kwargs.get("env")
         return _FakeProcess()
@@ -252,7 +258,9 @@ def test_e06_failure_after_clone_leaves_invoking_repo_unchanged_and_clone_remova
 async def test_u15_compose_up_raises_substrate_timeout_on_a_slow_wait(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    async def _slow_compose_command(*_args: object, **_kwargs: object) -> SubprocessResult:
+    async def _slow_compose_command(
+        *_args: object, **_kwargs: object
+    ) -> SubprocessResult:
         await asyncio.sleep(5)
         return SubprocessResult(stdout="", stderr="", returncode=0)
 
@@ -279,7 +287,9 @@ async def test_u15_compose_down_raises_substrate_timeout_on_a_slow_wait(
     phase-identified and visible (not swallowed by the ``finally: await
     compose_down(...)`` teardown callers rely on)."""
 
-    async def _slow_compose_command(*_args: object, **_kwargs: object) -> SubprocessResult:
+    async def _slow_compose_command(
+        *_args: object, **_kwargs: object
+    ) -> SubprocessResult:
         await asyncio.sleep(5)
         return SubprocessResult(stdout="", stderr="", returncode=0)
 
@@ -305,7 +315,9 @@ async def test_u15_compose_down_raises_substrate_timeout_on_a_slow_wait(
 async def test_e12_partial_cancellation_during_compose_up_leaves_cleanup_intact(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    async def _hanging_compose_command(*_args: object, **_kwargs: object) -> SubprocessResult:
+    async def _hanging_compose_command(
+        *_args: object, **_kwargs: object
+    ) -> SubprocessResult:
         await asyncio.sleep(30)
         return SubprocessResult(stdout="", stderr="", returncode=0)
 

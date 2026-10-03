@@ -323,7 +323,9 @@ async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_c
         proposal_id = await ProposalRepository(session).create(proposal)
         await session.commit()
 
-    with patch.object(PromptModel, "invoke", new=AsyncMock(return_value=_ACCEPTED_FENCE)):
+    with patch.object(
+        PromptModel, "invoke", new=AsyncMock(return_value=_ACCEPTED_FENCE)
+    ):
         await worker.run()
 
     written = (repo / _TEST_FILE).read_text(encoding="utf-8")
@@ -371,7 +373,9 @@ async def test_build_test_for_symbol_no_output_fails_closed_with_no_write(
         proposal_id = await ProposalRepository(session).create(proposal)
         await session.commit()
 
-    with patch.object(PromptModel, "invoke", new=AsyncMock(return_value=_NO_FENCE_RESPONSE)):
+    with patch.object(
+        PromptModel, "invoke", new=AsyncMock(return_value=_NO_FENCE_RESPONSE)
+    ):
         await worker.run()
 
     assert not (repo / _TEST_FILE).exists(), (
@@ -431,7 +435,9 @@ async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit
         return await real_run_tests(*args, **kwargs)
 
     with (
-        patch.object(PromptModel, "invoke", new=AsyncMock(return_value=_ACCEPTED_FENCE)),
+        patch.object(
+            PromptModel, "invoke", new=AsyncMock(return_value=_ACCEPTED_FENCE)
+        ),
         patch.object(
             test_actions_module, "run_tests", new=_forced_sandbox_validate_failure
         ),

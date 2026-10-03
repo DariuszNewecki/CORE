@@ -26,7 +26,9 @@ def _publisher(artifact_types: list[str], namespace: str) -> BlackboardPublisher
     pub = BlackboardPublisher.__new__(BlackboardPublisher)
     pub._worker_name = "proof-index-test"
     pub._declaration = {
-        "mandate": {"scope": {"artifact_type": artifact_types, "rule_namespace": namespace}}
+        "mandate": {
+            "scope": {"artifact_type": artifact_types, "rule_namespace": namespace}
+        }
     }
     return pub
 
@@ -85,7 +87,9 @@ async def test_post_observation_refuses_duplicate_indeterminate() -> None:
         return_value=_FakeSessionCM(session),
     ):
         with pytest.raises(ValueError, match="duplicate indeterminate"):
-            await pub.post_observation("python::quality::x", {"k": "v"}, status="indeterminate")
+            await pub.post_observation(
+                "python::quality::x", {"k": "v"}, status="indeterminate"
+            )
 
     pub._post_entry.assert_not_called()
     assert calls and calls[-1]["subject"] == "python::quality::x"

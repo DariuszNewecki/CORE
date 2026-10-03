@@ -25,6 +25,7 @@ def _mock_request():
 
 # ── integrity_baseline ────────────────────────────────────────────────────────
 
+
 async def test_integrity_baseline_returns_runner_result():
     """POST /integrity/baseline delegates to create_baseline and returns its dict."""
     expected = {"path": "var/integrity/default.json", "file_count": 142}
@@ -67,6 +68,7 @@ async def test_integrity_baseline_uses_default_label():
 
 
 # ── integrity_verify ──────────────────────────────────────────────────────────
+
 
 async def test_integrity_verify_returns_ok_true_on_clean():
     """POST /integrity/verify returns the runner result when the baseline matches."""

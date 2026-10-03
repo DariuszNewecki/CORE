@@ -23,9 +23,6 @@ def test_RuntimeImportBoundaryCheck_check() -> None:
     assert result.engine_id == "ast_gate:runtime_import_boundary"
 
 
-
-
-
 # ID: 0fc72dac-4c62-4958-9d71-86cbcd08f3db
 def test_RuntimeImportBoundaryCheck():
     source = "from body.services import thing\nimport body.core\n"

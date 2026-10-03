@@ -55,9 +55,6 @@ async def test_ASTGateEngine_verify_context():
     assert result == expected_findings
 
 
-
-
-
 # ID: 7c11b0f9-a4c1-4477-b0bb-60fce336e3bc
 def test_ASTGateEngine(tmp_path: Path) -> None:
     path_resolver = MagicMock()

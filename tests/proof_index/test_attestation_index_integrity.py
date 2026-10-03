@@ -55,7 +55,9 @@ def test_referenced_tests_exist() -> None:
         if c["evidence_mode"] in ("ci-test", "split"):
             assert tests, f"claim {c['claim']}: {c['evidence_mode']} must declare tests"
         for t in tests:
-            assert (_REPO_ROOT / t).exists(), f"claim {c['claim']}: missing referenced test {t}"
+            assert (_REPO_ROOT / t).exists(), (
+                f"claim {c['claim']}: missing referenced test {t}"
+            )
 
 
 def test_attestation_schema_complete() -> None:
@@ -63,7 +65,9 @@ def test_attestation_schema_complete() -> None:
         att = _attestation(c)
         if att is not None:
             missing = _ATTESTATION_FIELDS - set(att)
-            assert not missing, f"claim {c['claim']}: attestation missing fields {missing}"
+            assert not missing, (
+                f"claim {c['claim']}: attestation missing fields {missing}"
+            )
 
 
 def test_no_missing_or_stale_attestations() -> None:

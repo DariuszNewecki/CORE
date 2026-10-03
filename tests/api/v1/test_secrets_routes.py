@@ -71,7 +71,9 @@ async def test_set_secret_creates_new():
 
     from api.v1.secrets_routes import SecretSetRequest
 
-    body = SecretSetRequest(key="new_key", value="s3cr3t", description=None, force=False)
+    body = SecretSetRequest(
+        key="new_key", value="s3cr3t", description=None, force=False
+    )
     result = await set_secret(body=body, session=_mock_session(), svc=svc)
     assert result == {"key": "new_key", "action": "created"}
     svc.set_secret.assert_awaited_once()

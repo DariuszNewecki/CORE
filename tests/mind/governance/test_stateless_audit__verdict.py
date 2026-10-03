@@ -39,7 +39,9 @@ from mind.governance.stateless_audit import run_stateless_audit
 
 
 def _rule(rule_id: str, engine: str = "regex_gate") -> ExecutableRule:
-    return ExecutableRule(rule_id=rule_id, engine=engine, params={}, enforcement="blocking")
+    return ExecutableRule(
+        rule_id=rule_id, engine=engine, params={}, enforcement="blocking"
+    )
 
 
 def _unavailable_finding(rule_id: str) -> dict:
@@ -106,7 +108,9 @@ async def _run(findings: list[dict], tmp_path: Path):
 async def test_blocking_unavailable_finding_yields_degraded(tmp_path: Path) -> None:
     """Governor ruling 3: a blocking ENFORCEMENT_UNAVAILABLE finding makes
     this path's verdict DEGRADED -- never PASS, never FAIL."""
-    result = await _run([_unavailable_finding("runtime.worker_max_interval_within_observed")], tmp_path)
+    result = await _run(
+        [_unavailable_finding("runtime.worker_max_interval_within_observed")], tmp_path
+    )
     assert result["verdict"] == "DEGRADED"
     assert result["passed"] is False
 

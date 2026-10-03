@@ -50,9 +50,7 @@ async def test_audit_finalization_integrity_flags_new_violation() -> None:
         return_value=proposal_svc
     )
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         flagged, suppressed = await worker._audit_finalization_integrity(
             blackboard_service
         )
@@ -61,10 +59,7 @@ async def test_audit_finalization_integrity_flags_new_violation() -> None:
     assert suppressed == 0
     worker.post_observation.assert_awaited_once()
     call = worker.post_observation.await_args
-    assert (
-        call.kwargs["subject"]
-        == "governance.proposal_finalization_integrity::pid-1"
-    )
+    assert call.kwargs["subject"] == "governance.proposal_finalization_integrity::pid-1"
     assert call.kwargs["status"] == "indeterminate"
     assert call.kwargs["payload"]["proposal_id"] == "pid-1"
     assert call.kwargs["payload"]["grounding_adr"] == "ADR-148"
@@ -89,9 +84,7 @@ async def test_audit_finalization_integrity_suppresses_already_open() -> None:
         return_value=proposal_svc
     )
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         flagged, suppressed = await worker._audit_finalization_integrity(
             blackboard_service
         )
@@ -118,9 +111,7 @@ async def test_audit_finalization_integrity_no_violations() -> None:
         return_value=proposal_svc
     )
 
-    with patch(
-        "body.services.service_registry.service_registry", mock_registry
-    ):
+    with patch("body.services.service_registry.service_registry", mock_registry):
         flagged, suppressed = await worker._audit_finalization_integrity(
             blackboard_service
         )

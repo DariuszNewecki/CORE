@@ -51,9 +51,6 @@ def test_CapabilityChecks_check_capability_assignment():
     assert "unassigned" in findings[0]
 
 
-
-
-
 # ID: de53488a-a561-4c42-9768-b35040c3a20c
 def test_CapabilityChecks():
     repo_root = Path("/repo")

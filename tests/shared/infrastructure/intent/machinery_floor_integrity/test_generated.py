@@ -156,8 +156,6 @@ def test_FloorIntegrityReport_describe() -> None:
     assert "missing: d.py" in result
 
 
-
-
 # ID: f965489e-6e69-44f7-8da8-1ea45ef53d4f
 def test_FloorIntegrityReport_clean() -> None:
     report = FloorIntegrityReport(modified=[], missing=[])

@@ -230,9 +230,7 @@ async def test_indeterminate_dedup_permits_repost_after_governor_resolve(
         assert count == 2, f"Expected 2 rows for {subject!r}, got {count}"
     finally:
         await db_session.execute(
-            sa_text(
-                "DELETE FROM core.blackboard_entries WHERE subject = :subject"
-            ),
+            sa_text("DELETE FROM core.blackboard_entries WHERE subject = :subject"),
             {"subject": subject},
         )
         await db_session.execute(

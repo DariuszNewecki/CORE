@@ -63,7 +63,9 @@ def test_retention_threshold_is_honored(tmp_path: Path) -> None:
     _age(entry, RETENTION_SECONDS + 60)
 
     # Just inside a wider window -> kept; past the default window -> selected.
-    assert find_stale_sandboxes(tmp_path, now_ts=time.time(), retention_seconds=7200) == []
+    assert (
+        find_stale_sandboxes(tmp_path, now_ts=time.time(), retention_seconds=7200) == []
+    )
     assert len(find_stale_sandboxes(tmp_path, now_ts=time.time())) == 1
 
 

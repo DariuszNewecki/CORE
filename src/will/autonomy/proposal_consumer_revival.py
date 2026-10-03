@@ -1,4 +1,4 @@
-# src/will/workers/proposal_consumer_revival.py
+# src/will/autonomy/proposal_consumer_revival.py
 """
 §7a revival contract for ProposalConsumerWorker.
 

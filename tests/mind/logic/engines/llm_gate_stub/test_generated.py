@@ -21,9 +21,6 @@ def test_LLMGateStubEngine_verify():
     assert result.engine_id == engine.engine_id
 
 
-
-
-
 # ID: 34b78713-c945-4791-92a3-115e3a75617e
 def test_LLMGateStubEngine():
     engine = LLMGateStubEngine()

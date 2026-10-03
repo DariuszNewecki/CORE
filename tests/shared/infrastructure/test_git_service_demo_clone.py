@@ -140,7 +140,9 @@ def test_u06_refuses_marker_mismatch(demo_state_root: Path) -> None:
     run_id = "run-mismatch"
     run_dir = demo_state_root / "runs" / run_id
     run_dir.mkdir(parents=True)
-    (run_dir / DEMO_RUN_MARKER_FILENAME).write_text("some-other-run-id", encoding="utf-8")
+    (run_dir / DEMO_RUN_MARKER_FILENAME).write_text(
+        "some-other-run-id", encoding="utf-8"
+    )
 
     with pytest.raises(ValueError, match="does not match run_id"):
         GitService.marker_checked_remove(run_dir, run_id, demo_state_root)

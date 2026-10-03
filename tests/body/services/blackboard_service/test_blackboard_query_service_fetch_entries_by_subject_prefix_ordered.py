@@ -89,7 +89,14 @@ async def test_maps_rows_preserving_creation_order() -> None:
 
 async def test_handles_string_payload_and_null_created_at() -> None:
     rows = [
-        ("entry-9", "finding", "goal_run.rid-9.outcome", "abandoned", '{"k": "v"}', None),
+        (
+            "entry-9",
+            "finding",
+            "goal_run.rid-9.outcome",
+            "abandoned",
+            '{"k": "v"}',
+            None,
+        ),
     ]
 
     with _patched_session(rows):

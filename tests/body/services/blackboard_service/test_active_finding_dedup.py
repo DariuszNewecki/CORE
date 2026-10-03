@@ -157,7 +157,10 @@ async def test_concurrent_posts_collapse_to_one_row(worker_id):
     subject = f"test.dedup.concurrent::{uuid.uuid4()}"
     pub = _publisher(worker_id)
     ids = await asyncio.gather(
-        *[pub.post_finding(subject, {"n": i}, resolution_mechanism="reaudit") for i in range(5)]
+        *[
+            pub.post_finding(subject, {"n": i}, resolution_mechanism="reaudit")
+            for i in range(5)
+        ]
     )
     assert len(set(ids)) == 1  # atomic: all collapse to one row, no race dup
     async with get_session() as session:
@@ -235,7 +238,9 @@ async def test_last_seen_at_tracks_observation_not_mutation(worker_id):
 
     async with get_session() as session:
         r = await session.execute(
-            text("SELECT last_seen_at, updated_at FROM core.blackboard_entries WHERE id=:i"),
+            text(
+                "SELECT last_seen_at, updated_at FROM core.blackboard_entries WHERE id=:i"
+            ),
             {"i": fid},
         )
         ls0, up0 = r.one()
@@ -249,7 +254,9 @@ async def test_last_seen_at_tracks_observation_not_mutation(worker_id):
             )
     async with get_session() as session:
         r = await session.execute(
-            text("SELECT last_seen_at, updated_at FROM core.blackboard_entries WHERE id=:i"),
+            text(
+                "SELECT last_seen_at, updated_at FROM core.blackboard_entries WHERE id=:i"
+            ),
             {"i": fid},
         )
         ls1, up1 = r.one()
@@ -262,7 +269,8 @@ async def test_last_seen_at_tracks_observation_not_mutation(worker_id):
     assert again == fid
     async with get_session() as session:
         r = await session.execute(
-            text("SELECT last_seen_at FROM core.blackboard_entries WHERE id=:i"), {"i": fid}
+            text("SELECT last_seen_at FROM core.blackboard_entries WHERE id=:i"),
+            {"i": fid},
         )
         ls2 = r.scalar_one()
     assert ls2 > ls1
@@ -272,13 +280,25 @@ async def test_resolver_closes_when_target_recovered(worker_id):
     async with get_session() as session:
         async with session.begin():
             target = await _insert_finding(
-                session, worker_id, f"test.tgt::{uuid.uuid4()}", "open", "human", age_sec=10
+                session,
+                worker_id,
+                f"test.tgt::{uuid.uuid4()}",
+                "open",
+                "human",
+                age_sec=10,
             )
             alert = await _insert_finding(
-                session, worker_id, f"blackboard.entry_stale::{target}", "open",
-                "self_resolve", age_sec=10000, payload={"entry_id": str(target)},
+                session,
+                worker_id,
+                f"blackboard.entry_stale::{target}",
+                "open",
+                "self_resolve",
+                age_sec=10000,
+                payload={"entry_id": str(target)},
             )
-    await BlackboardService().resolve_stale_alerts_for_terminal_targets(stale_after_seconds=3600)
+    await BlackboardService().resolve_stale_alerts_for_terminal_targets(
+        stale_after_seconds=3600
+    )
     async with get_session() as session:
         assert await _status(session, alert) == "resolved"
 
@@ -287,13 +307,25 @@ async def test_resolver_keeps_when_target_still_stale(worker_id):
     async with get_session() as session:
         async with session.begin():
             target = await _insert_finding(
-                session, worker_id, f"test.tgt::{uuid.uuid4()}", "open", "human", age_sec=100000
+                session,
+                worker_id,
+                f"test.tgt::{uuid.uuid4()}",
+                "open",
+                "human",
+                age_sec=100000,
             )
             alert = await _insert_finding(
-                session, worker_id, f"blackboard.entry_stale::{target}", "open",
-                "self_resolve", age_sec=10000, payload={"entry_id": str(target)},
+                session,
+                worker_id,
+                f"blackboard.entry_stale::{target}",
+                "open",
+                "self_resolve",
+                age_sec=10000,
+                payload={"entry_id": str(target)},
             )
-    await BlackboardService().resolve_stale_alerts_for_terminal_targets(stale_after_seconds=3600)
+    await BlackboardService().resolve_stale_alerts_for_terminal_targets(
+        stale_after_seconds=3600
+    )
     async with get_session() as session:
         assert await _status(session, alert) == "open"
 
@@ -302,13 +334,25 @@ async def test_resolver_closes_when_target_terminal(worker_id):
     async with get_session() as session:
         async with session.begin():
             target = await _insert_finding(
-                session, worker_id, f"test.tgt::{uuid.uuid4()}", "resolved", "human", age_sec=100000
+                session,
+                worker_id,
+                f"test.tgt::{uuid.uuid4()}",
+                "resolved",
+                "human",
+                age_sec=100000,
             )
             alert = await _insert_finding(
-                session, worker_id, f"blackboard.entry_stale::{target}", "open",
-                "self_resolve", age_sec=10000, payload={"entry_id": str(target)},
+                session,
+                worker_id,
+                f"blackboard.entry_stale::{target}",
+                "open",
+                "self_resolve",
+                age_sec=10000,
+                payload={"entry_id": str(target)},
             )
-    await BlackboardService().resolve_stale_alerts_for_terminal_targets(stale_after_seconds=3600)
+    await BlackboardService().resolve_stale_alerts_for_terminal_targets(
+        stale_after_seconds=3600
+    )
     async with get_session() as session:
         assert await _status(session, alert) == "resolved"
 
@@ -318,9 +362,16 @@ async def test_resolver_closes_when_target_missing(worker_id):
     async with get_session() as session:
         async with session.begin():
             alert = await _insert_finding(
-                session, worker_id, f"blackboard.entry_stale::{missing}", "open",
-                "self_resolve", age_sec=10000, payload={"entry_id": str(missing)},
+                session,
+                worker_id,
+                f"blackboard.entry_stale::{missing}",
+                "open",
+                "self_resolve",
+                age_sec=10000,
+                payload={"entry_id": str(missing)},
             )
-    await BlackboardService().resolve_stale_alerts_for_terminal_targets(stale_after_seconds=3600)
+    await BlackboardService().resolve_stale_alerts_for_terminal_targets(
+        stale_after_seconds=3600
+    )
     async with get_session() as session:
         assert await _status(session, alert) == "resolved"

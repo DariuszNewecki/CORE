@@ -1,4 +1,4 @@
-# src/will/workers/violation_remediator_blackboard.py
+# src/will/autonomy/violation_remediator_blackboard.py
 """
 Blackboard operations for ViolationRemediatorWorker.
 

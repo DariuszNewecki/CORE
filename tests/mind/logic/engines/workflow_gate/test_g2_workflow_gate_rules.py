@@ -314,9 +314,7 @@ async def test_type_safety_surfaces_unavailable_when_mypy_absent_via_real_engine
     real production dispatch path, with the rule's live mapping params,
     now returns one ENFORCEMENT_UNAVAILABLE finding rather than an empty
     (compliant) list when its required tool is unavailable."""
-    params = _load_rule_params(
-        "architecture/quality_gates.yaml", "quality.type_safety"
-    )
+    params = _load_rule_params("architecture/quality_gates.yaml", "quality.type_safety")
     with patch(
         "asyncio.create_subprocess_exec",
         side_effect=FileNotFoundError(2, "No such file or directory", "mypy"),

@@ -189,6 +189,4 @@ class TestRollbackScenarioResultShape:
         assert required.issubset(d.keys())
 
     def test_default_verdict_is_fail(self) -> None:
-        assert (
-            RollbackScenarioResult(target="x", pristine_commit="a").verdict == "FAIL"
-        )
+        assert RollbackScenarioResult(target="x", pristine_commit="a").verdict == "FAIL"

@@ -88,7 +88,6 @@ def test_build_json_report():
     assert json.loads(output) == payload
 
 
-
 from cli.resources.demo.rendering import render_summary
 
 

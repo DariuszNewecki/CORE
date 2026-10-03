@@ -44,7 +44,9 @@ def test_source_to_test_path_rejects_traversal_segments() -> None:
         source_to_test_path("src/../../../etc/passwd", _CONFIG)
 
 
-def test_source_to_test_path_rejects_traversal_even_when_final_segment_is_legit() -> None:
+def test_source_to_test_path_rejects_traversal_even_when_final_segment_is_legit() -> (
+    None
+):
     """A traversal string can still textually start with 'src/' — the
     prefix check alone is not sufficient, the '..' check must run too."""
     assert "src/../../../etc/passwd".startswith("src/")

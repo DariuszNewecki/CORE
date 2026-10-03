@@ -60,7 +60,9 @@ class _FakeContextLevelEngine(BaseEngine):
     def verify(self, file_path: Any, params: dict[str, Any]) -> Any:
         raise NotImplementedError("context-level engine; verify() is unused")
 
-    async def verify_context(self, context: Any, params: dict[str, Any]) -> list[AuditFinding]:
+    async def verify_context(
+        self, context: Any, params: dict[str, Any]
+    ) -> list[AuditFinding]:
         return list(self._findings)
 
 
@@ -177,7 +179,8 @@ async def test_real_engine_non_canonical_value_is_proven_violation(
     _patch_engine(monkeypatch, engine)
 
     results = await execute_rule(
-        _make_capability_rule(), _make_kg_context(db_session=session, repo_path=tmp_path)
+        _make_capability_rule(),
+        _make_kg_context(db_session=session, repo_path=tmp_path),
     )
 
     assert len(results) == 1

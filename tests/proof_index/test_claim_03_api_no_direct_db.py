@@ -17,7 +17,9 @@ import yaml
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_MAPPING = _REPO_ROOT / ".intent/enforcement/mappings/architecture/layer_separation.yaml"
+_MAPPING = (
+    _REPO_ROOT / ".intent/enforcement/mappings/architecture/layer_separation.yaml"
+)
 
 
 def test_api_no_direct_db_rule_is_mapped_and_scoped() -> None:

@@ -154,7 +154,10 @@ def test_zero_non_advisory_rules_unmapped_repo_wide() -> None:
     unmapped_non_advisory = []
     for rule_id in repo.known_rule_ids():
         ref = repo.get_rule(rule_id)
-        if rule_requires_enforcement_mapping(ref.content) and rule_id not in all_mappings:
+        if (
+            rule_requires_enforcement_mapping(ref.content)
+            and rule_id not in all_mappings
+        ):
             unmapped_non_advisory.append(rule_id)
 
     assert unmapped_non_advisory == []

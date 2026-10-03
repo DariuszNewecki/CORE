@@ -22,9 +22,6 @@ def test_StandardVerbsCheck_verify():
     assert finding.context["action"] == "delete"
 
 
-
-
-
 # ID: b08dd75b-5931-4ead-b1f9-a7b06d5063c0
 def test_StandardVerbsCheck():
     check = StandardVerbsCheck()

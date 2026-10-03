@@ -350,8 +350,6 @@ def test_PurityChecks_check_required_decorator():
     assert "do_work" in result[0]
 
 
-
-
 # ID: 406f24fc-c869-4e2e-b4f1-0cd377664491
 def test_PurityChecks_check_orphan_id_anchors() -> None:
     from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks

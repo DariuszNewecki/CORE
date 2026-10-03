@@ -1,5 +1,6 @@
 # tests/will/phases/test_code_generation_phase_module_extraction.py
 """Tests for CodeGenerationPhase._extract_module_sources (fix for #753)."""
+
 from __future__ import annotations
 
 from pathlib import Path

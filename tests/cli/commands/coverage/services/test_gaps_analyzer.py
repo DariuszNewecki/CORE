@@ -48,9 +48,7 @@ async def test_find_gaps_below_50_uses_governed_low_bucket_pct() -> None:
 
 async def test_find_gaps_empty_coverage_map_returns_zeroed_stats() -> None:
     analyzer = GapsAnalyzer(repo_root=Path("/repo"))
-    with patch.object(
-        analyzer, "get_coverage_map", new=AsyncMock(return_value={})
-    ):
+    with patch.object(analyzer, "get_coverage_map", new=AsyncMock(return_value={})):
         result = await analyzer.find_gaps()
 
     assert result == {

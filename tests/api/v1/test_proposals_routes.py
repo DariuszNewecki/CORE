@@ -54,6 +54,7 @@ def _stub_proposal(proposal_id: str | None = None) -> MagicMock:
 
 # ── create_proposal ───────────────────────────────────────────────────────────
 
+
 async def test_create_proposal_dry_run_does_not_persist():
     """write=False builds and risk-scores the proposal without calling service.create."""
     session = _mock_session()
@@ -114,6 +115,7 @@ async def test_create_proposal_actions_are_mapped():
 
 
 # ── list_proposals ────────────────────────────────────────────────────────────
+
 
 async def test_list_proposals_default_returns_pending_approval():
     """No status filter delegates to list_pending_approval_paginated."""
@@ -185,6 +187,7 @@ async def test_list_proposals_pagination_cursor_forwarded():
 
 # ── get_proposal ──────────────────────────────────────────────────────────────
 
+
 async def test_get_proposal_returns_proposal_dict():
     """Found proposal returns its to_dict() shape."""
     pid = str(uuid4())
@@ -216,6 +219,7 @@ async def test_get_proposal_not_found_raises_404():
 
 
 # ── approve_proposal ──────────────────────────────────────────────────────────
+
 
 async def test_approve_proposal_returns_approved_status():
     """Happy path returns ok=True, APPROVED status, and approval metadata."""
@@ -286,9 +290,7 @@ async def test_approve_proposal_invalid_authority_raises_400():
     session = _mock_session()
     with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
         mock_svc = AsyncMock()
-        mock_svc.approve = AsyncMock(
-            side_effect=ValueError("unknown authority: bogus")
-        )
+        mock_svc.approve = AsyncMock(side_effect=ValueError("unknown authority: bogus"))
         mock_svc_cls.return_value = mock_svc
 
         with pytest.raises(HTTPException) as exc:
@@ -304,6 +306,7 @@ async def test_approve_proposal_invalid_authority_raises_400():
 
 
 # ── reject_proposal ───────────────────────────────────────────────────────────
+
 
 async def test_reject_proposal_returns_revived_count():
     """Rejection returns ok=True, REJECTED status, and the revived_count from service."""
@@ -366,6 +369,7 @@ async def test_reject_proposal_not_found_raises_404():
 
 
 # ── execute_proposal ──────────────────────────────────────────────────────────
+
 
 async def test_execute_proposal_delegates_to_executor_dry_run():
     """execute_proposal delegates to ProposalExecutor.execute with write=False."""

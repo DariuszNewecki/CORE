@@ -21,7 +21,9 @@ _LAYER_RULES = _REPO_ROOT / ".intent/rules/architecture/layer_separation.json"
 
 
 def test_oss_require_governor_is_trusted_localhost_passthrough() -> None:
-    assert "require_governor = Depends(_oss_passthrough)" in _DEPS.read_text(encoding="utf-8")
+    assert "require_governor = Depends(_oss_passthrough)" in _DEPS.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_require_governor_hook_wired_on_proposal_mutations() -> None:
@@ -29,6 +31,8 @@ def test_require_governor_hook_wired_on_proposal_mutations() -> None:
 
 
 def test_governor_route_placement_rules_present() -> None:
-    ids = {r["id"] for r in json.loads(_LAYER_RULES.read_text(encoding="utf-8"))["rules"]}
+    ids = {
+        r["id"] for r in json.loads(_LAYER_RULES.read_text(encoding="utf-8"))["rules"]
+    }
     assert "architecture.api.router_exposure_must_match_dependencies" in ids
     assert "architecture.api.sensitive_route_must_be_gated" in ids

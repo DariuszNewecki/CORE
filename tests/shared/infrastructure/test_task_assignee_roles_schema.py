@@ -115,10 +115,7 @@ async def test_cognitive_roles_no_longer_contains_actor_roles(
     db_session: AsyncSession,
 ) -> None:
     result = await db_session.execute(
-        text(
-            "SELECT role FROM core.cognitive_roles "
-            "WHERE role = ANY(:actors)"
-        ),
+        text("SELECT role FROM core.cognitive_roles WHERE role = ANY(:actors)"),
         {"actors": list(_ACTOR_ROLES)},
     )
     assert result.fetchall() == []
@@ -145,9 +142,7 @@ async def test_tasks_assigned_role_fk_targets_task_assignee_roles(
             "AND conname = 'tasks_assigned_role_fkey'"
         )
     )
-    assert old_fk.first() is None, (
-        "the old tasks -> cognitive_roles FK must be gone"
-    )
+    assert old_fk.first() is None, "the old tasks -> cognitive_roles FK must be gone"
 
 
 async def test_v_agent_workload_surfaces_full_assignable_role_universe(

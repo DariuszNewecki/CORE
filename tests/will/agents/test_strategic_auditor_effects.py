@@ -185,7 +185,9 @@ async def test_affected_files_hallucinated_paths_stripped(
         return path.name == "module.py"
 
     with patch.object(Path, "exists", _exists_only_real):
-        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+        await execute_approved_clusters(
+            ctx, MagicMock(name="session"), uuid.UUID(int=99)
+        )
 
     _, kwargs = mock_dfg.await_args
     assert "src/body/services/unknown.py" not in kwargs["goal"]
@@ -214,7 +216,9 @@ async def test_no_real_files_goal_unchanged(
     ctx.git_service.repo_path = "/repo"
 
     with patch.object(Path, "exists", return_value=False):
-        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+        await execute_approved_clusters(
+            ctx, MagicMock(name="session"), uuid.UUID(int=99)
+        )
 
     _, kwargs = mock_dfg.await_args
     assert kwargs["goal"] == "original goal text"
@@ -242,7 +246,9 @@ async def test_real_files_appended_to_goal(
     ctx.git_service.repo_path = "/repo"
 
     with patch.object(Path, "exists", return_value=True):
-        await execute_approved_clusters(ctx, MagicMock(name="session"), uuid.UUID(int=99))
+        await execute_approved_clusters(
+            ctx, MagicMock(name="session"), uuid.UUID(int=99)
+        )
 
     _, kwargs = mock_dfg.await_args
     goal = kwargs["goal"]

@@ -67,7 +67,8 @@ async def test_engine_dispatch_fires_on_genuine_drift(tmp_path: Path) -> None:
         600,
     )
     params = _load_rule_params(
-        "runtime/worker_max_interval.yaml", "runtime.worker_max_interval_within_observed"
+        "runtime/worker_max_interval.yaml",
+        "runtime.worker_max_interval_within_observed",
     )
     ctx = _ctx_with_rows(tmp_path, [SimpleNamespace(samples=50, p95=900.0)])
     findings = await RuntimeGateEngine().verify_context(ctx, params)
@@ -76,7 +77,9 @@ async def test_engine_dispatch_fires_on_genuine_drift(tmp_path: Path) -> None:
     assert findings[0].severity.name == "BLOCK"
 
 
-async def test_engine_dispatch_clean_for_worker_within_threshold(tmp_path: Path) -> None:
+async def test_engine_dispatch_clean_for_worker_within_threshold(
+    tmp_path: Path,
+) -> None:
     _write_worker_yaml(
         tmp_path / ".intent" / "workers",
         "alpha",
@@ -84,7 +87,8 @@ async def test_engine_dispatch_clean_for_worker_within_threshold(tmp_path: Path)
         600,
     )
     params = _load_rule_params(
-        "runtime/worker_max_interval.yaml", "runtime.worker_max_interval_within_observed"
+        "runtime/worker_max_interval.yaml",
+        "runtime.worker_max_interval_within_observed",
     )
     ctx = _ctx_with_rows(tmp_path, [SimpleNamespace(samples=50, p95=620.0)])
     findings = await RuntimeGateEngine().verify_context(ctx, params)
@@ -108,7 +112,8 @@ async def test_engine_dispatch_surfaces_unavailable_when_db_session_absent(
         600,
     )
     params = _load_rule_params(
-        "runtime/worker_max_interval.yaml", "runtime.worker_max_interval_within_observed"
+        "runtime/worker_max_interval.yaml",
+        "runtime.worker_max_interval_within_observed",
     )
     ctx = _ctx_with_rows(tmp_path, [], db_session=None)
     findings = await RuntimeGateEngine().verify_context(ctx, params)

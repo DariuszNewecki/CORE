@@ -32,7 +32,9 @@ def _make_workflow(results_by_action: dict[str, _FakeActionResult]):
         return results_by_action[action_id]
 
     executor.execute = AsyncMock(side_effect=_execute)
-    with patch("will.workflows.dev_sync_workflow.ActionExecutor", return_value=executor):
+    with patch(
+        "will.workflows.dev_sync_workflow.ActionExecutor", return_value=executor
+    ):
         workflow = DevSyncWorkflow(MagicMock())
     return workflow, executor
 
@@ -62,9 +64,7 @@ async def test_happy_path_returns_ok_phase_workflow_result():
 
 async def test_fix_phase_failure_skips_sync_phase():
     results = dict(_ALL_OK)
-    results["fix.ids"] = _FakeActionResult(
-        "fix.ids", ok=False, data={"error": "boom"}
-    )
+    results["fix.ids"] = _FakeActionResult("fix.ids", ok=False, data={"error": "boom"})
     workflow, executor = _make_workflow(results)
 
     result = await workflow.run(write=False)

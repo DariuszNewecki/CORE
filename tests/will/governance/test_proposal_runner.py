@@ -23,9 +23,7 @@ async def test_create_dry_run_scores_but_does_not_persist() -> None:
     ProposalService.create or session.commit."""
     session = AsyncMock()
 
-    with patch(
-        "will.autonomy.proposal_service.ProposalService"
-    ) as service_cls:
+    with patch("will.autonomy.proposal_service.ProposalService") as service_cls:
         result = await create_and_score_proposal(
             session,
             goal="refactor the widget",

@@ -80,14 +80,28 @@ async def test_skips_when_manifest_empty(tmp_path: Path) -> None:
 
 
 # ID: e1a2b3c4-d5e6-4f70-8192-a3b4c5d6e7f8
-async def test_no_candidates_when_framework_adr_has_no_cross_ref(tmp_path: Path) -> None:
+async def test_no_candidates_when_framework_adr_has_no_cross_ref(
+    tmp_path: Path,
+) -> None:
     """Framework ADR with no project-path references → empty result."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/decisions/ADR-001-foundation.md", "governance_namespace": "framework"},
-        {"path": ".specs/decisions/ADR-200-project-thing.md", "governance_namespace": "project::core"},
-    ])
-    _fw_adr(tmp_path, "ADR-001-foundation.md",
-            "This ADR establishes the foundation.\n\nSee `.specs/papers/CORE-BYOR.md`.")
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/decisions/ADR-001-foundation.md",
+                "governance_namespace": "framework",
+            },
+            {
+                "path": ".specs/decisions/ADR-200-project-thing.md",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
+    _fw_adr(
+        tmp_path,
+        "ADR-001-foundation.md",
+        "This ADR establishes the foundation.\n\nSee `.specs/papers/CORE-BYOR.md`.",
+    )
     # framework paper is not in project set so no violation
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
@@ -97,10 +111,16 @@ async def test_no_candidates_when_framework_adr_has_no_cross_ref(tmp_path: Path)
 # ID: f2a3b4c5-d6e7-4081-9203-b4c5d6e7f809
 async def test_no_candidates_when_project_adr_cites_framework(tmp_path: Path) -> None:
     """Project::core ADR citing a framework path is fine — not scanned (correct direction)."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/papers/CORE-BYOR.md", "governance_namespace": "framework"},
-        {"path": ".specs/decisions/ADR-200-project.md", "governance_namespace": "project::core"},
-    ])
+    _write_manifest(
+        tmp_path,
+        [
+            {"path": ".specs/papers/CORE-BYOR.md", "governance_namespace": "framework"},
+            {
+                "path": ".specs/decisions/ADR-200-project.md",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
     # project ADR cites framework paper — editorial and permitted, not scanned
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
@@ -110,12 +130,21 @@ async def test_no_candidates_when_project_adr_cites_framework(tmp_path: Path) ->
 # ID: a3b4c5d6-e7f8-4192-0304-c5d6e7f80910
 async def test_no_candidates_when_no_project_paths(tmp_path: Path) -> None:
     """All paths are framework → nothing to detect, empty result."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/decisions/ADR-001-foundation.md", "governance_namespace": "framework"},
-        {"path": ".specs/papers/CORE-BYOR.md", "governance_namespace": "framework"},
-    ])
-    _fw_adr(tmp_path, "ADR-001-foundation.md",
-            "See `.specs/papers/CORE-BYOR.md` for the BYOR contract.")
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/decisions/ADR-001-foundation.md",
+                "governance_namespace": "framework",
+            },
+            {"path": ".specs/papers/CORE-BYOR.md", "governance_namespace": "framework"},
+        ],
+    )
+    _fw_adr(
+        tmp_path,
+        "ADR-001-foundation.md",
+        "See `.specs/papers/CORE-BYOR.md` for the BYOR contract.",
+    )
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
     assert result == []
@@ -124,13 +153,25 @@ async def test_no_candidates_when_no_project_paths(tmp_path: Path) -> None:
 # ID: b4c5d6e7-f809-4203-1415-d6e7f8091011
 async def test_draft_adr_not_scanned(tmp_path: Path) -> None:
     """Draft framework ADR with cross-ns reference is not scanned (speculative content)."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/decisions/ADR-001-draft.md", "governance_namespace": "framework"},
-        {"path": ".specs/decisions/ADR-200-project.md", "governance_namespace": "project::core"},
-    ])
-    _fw_adr(tmp_path, "ADR-001-draft.md",
-            "Draft cross-ref: `.specs/decisions/ADR-200-project.md`",
-            accepted=False)
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/decisions/ADR-001-draft.md",
+                "governance_namespace": "framework",
+            },
+            {
+                "path": ".specs/decisions/ADR-200-project.md",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
+    _fw_adr(
+        tmp_path,
+        "ADR-001-draft.md",
+        "Draft cross-ref: `.specs/decisions/ADR-200-project.md`",
+        accepted=False,
+    )
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
     assert result == []
@@ -142,14 +183,28 @@ async def test_draft_adr_not_scanned(tmp_path: Path) -> None:
 
 
 # ID: c5d6e7f8-0910-4314-1516-e7f809101112
-async def test_framework_adr_citing_project_path_emits_candidate(tmp_path: Path) -> None:
+async def test_framework_adr_citing_project_path_emits_candidate(
+    tmp_path: Path,
+) -> None:
     """Accepted framework ADR with a project-path reference → one CROSS_NS_DIRECTION candidate."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/decisions/ADR-001-foundation.md", "governance_namespace": "framework"},
-        {"path": ".specs/decisions/ADR-200-core-specific.md", "governance_namespace": "project::core"},
-    ])
-    _fw_adr(tmp_path, "ADR-001-foundation.md",
-            "Closes: `.specs/decisions/ADR-200-core-specific.md` for background.")
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/decisions/ADR-001-foundation.md",
+                "governance_namespace": "framework",
+            },
+            {
+                "path": ".specs/decisions/ADR-200-core-specific.md",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
+    _fw_adr(
+        tmp_path,
+        "ADR-001-foundation.md",
+        "Closes: `.specs/decisions/ADR-200-core-specific.md` for background.",
+    )
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
     assert len(result) == 1
@@ -161,14 +216,28 @@ async def test_framework_adr_citing_project_path_emits_candidate(tmp_path: Path)
 
 
 # ID: d6e7f809-1011-4415-1617-f80910111213
-async def test_framework_paper_citing_project_path_emits_candidate(tmp_path: Path) -> None:
+async def test_framework_paper_citing_project_path_emits_candidate(
+    tmp_path: Path,
+) -> None:
     """Framework paper (no status check) with a project-path reference → candidate."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/papers/CORE-Framework.md", "governance_namespace": "framework"},
-        {"path": ".intent/workers/audit_sensor_purity.yaml", "governance_namespace": "project::core"},
-    ])
-    _fw_paper(tmp_path, "CORE-Framework.md",
-              "The purity sensor is at `.intent/workers/audit_sensor_purity.yaml`.")
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/papers/CORE-Framework.md",
+                "governance_namespace": "framework",
+            },
+            {
+                "path": ".intent/workers/audit_sensor_purity.yaml",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
+    _fw_paper(
+        tmp_path,
+        "CORE-Framework.md",
+        "The purity sensor is at `.intent/workers/audit_sensor_purity.yaml`.",
+    )
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
     assert len(result) == 1
@@ -180,11 +249,23 @@ async def test_multiple_project_refs_in_one_file_emit_multiple_candidates(
     tmp_path: Path,
 ) -> None:
     """Each distinct project-path reference in a framework artifact emits one candidate."""
-    _write_manifest(tmp_path, [
-        {"path": ".specs/decisions/ADR-001-foundation.md", "governance_namespace": "framework"},
-        {"path": ".specs/decisions/ADR-200-project-a.md", "governance_namespace": "project::core"},
-        {"path": ".specs/decisions/ADR-201-project-b.md", "governance_namespace": "project::core"},
-    ])
+    _write_manifest(
+        tmp_path,
+        [
+            {
+                "path": ".specs/decisions/ADR-001-foundation.md",
+                "governance_namespace": "framework",
+            },
+            {
+                "path": ".specs/decisions/ADR-200-project-a.md",
+                "governance_namespace": "project::core",
+            },
+            {
+                "path": ".specs/decisions/ADR-201-project-b.md",
+                "governance_namespace": "project::core",
+            },
+        ],
+    )
     _fw_adr(
         tmp_path,
         "ADR-001-foundation.md",
@@ -194,7 +275,12 @@ async def test_multiple_project_refs_in_one_file_emit_multiple_candidates(
     check = CrossNsDirectionCheck(tmp_path)
     result = await check.run()
     assert len(result) == 2
-    refs = {doc for c in result for doc in c.documents if "ADR-200" in doc or "ADR-201" in doc}
+    refs = {
+        doc
+        for c in result
+        for doc in c.documents
+        if "ADR-200" in doc or "ADR-201" in doc
+    }
     assert ".specs/decisions/ADR-200-project-a.md" in refs
     assert ".specs/decisions/ADR-201-project-b.md" in refs
 

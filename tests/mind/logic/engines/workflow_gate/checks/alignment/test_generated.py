@@ -43,7 +43,6 @@ async def test_AlignmentVerificationCheck() -> None:
     session.execute.assert_awaited_once()
 
 
-
 import pytest
 
 

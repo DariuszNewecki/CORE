@@ -74,9 +74,7 @@ def _fail_result(errors: list[str]) -> ActionResult:
 async def test_run_posts_heartbeat_unconditionally() -> None:
     """Heartbeat is always posted, regardless of action outcome."""
     worker = _make_worker()
-    with patch(
-        "body.atomic.executor.ActionExecutor"
-    ) as mock_executor_cls:
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_cls:
         mock_executor = MagicMock()
         mock_executor.execute = AsyncMock(return_value=_ok_result())
         mock_executor_cls.return_value = mock_executor
@@ -90,9 +88,7 @@ async def test_run_posts_heartbeat_unconditionally() -> None:
 async def test_run_posts_report_on_success_no_archived() -> None:
     """Posts log.partition_archival.complete when action succeeds with nothing to archive."""
     worker = _make_worker()
-    with patch(
-        "body.atomic.executor.ActionExecutor"
-    ) as mock_executor_cls:
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_cls:
         mock_executor = MagicMock()
         mock_executor.execute = AsyncMock(return_value=_ok_result())
         mock_executor_cls.return_value = mock_executor
@@ -111,9 +107,7 @@ async def test_run_posts_report_with_archived_partitions() -> None:
     """Archived partition names appear in the report payload."""
     worker = _make_worker()
     archived = ["llm_exchange_log_2024_01", "llm_exchange_log_2024_02"]
-    with patch(
-        "body.atomic.executor.ActionExecutor"
-    ) as mock_executor_cls:
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_cls:
         mock_executor = MagicMock()
         mock_executor.execute = AsyncMock(return_value=_ok_result(archived))
         mock_executor_cls.return_value = mock_executor
@@ -129,9 +123,7 @@ async def test_run_posts_report_with_archived_partitions() -> None:
 async def test_run_posts_finding_on_executor_exception() -> None:
     """Posts log.partition_archival.failed finding when executor raises."""
     worker = _make_worker()
-    with patch(
-        "body.atomic.executor.ActionExecutor"
-    ) as mock_executor_cls:
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_cls:
         mock_executor = MagicMock()
         mock_executor.execute = AsyncMock(side_effect=RuntimeError("DB unreachable"))
         mock_executor_cls.return_value = mock_executor
@@ -149,9 +141,7 @@ async def test_run_posts_finding_on_executor_exception() -> None:
 async def test_run_posts_finding_on_action_not_ok() -> None:
     """Posts log.partition_archival.failed when action returns ok=False."""
     worker = _make_worker()
-    with patch(
-        "body.atomic.executor.ActionExecutor"
-    ) as mock_executor_cls:
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_cls:
         mock_executor = MagicMock()
         mock_executor.execute = AsyncMock(
             return_value=_fail_result(["llm_exchange_log_2024_01: permission denied"])

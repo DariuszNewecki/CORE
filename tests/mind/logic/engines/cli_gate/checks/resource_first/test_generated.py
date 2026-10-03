@@ -25,8 +25,6 @@ def test_resource_first_check_verify():
     assert finding.context["max_depth"] == 3
 
 
-
-
 # ID: 57dc0326-447c-4c83-bbfe-a7a511d026e0
 def test_ResourceFirstCheck():
     check = ResourceFirstCheck()

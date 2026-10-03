@@ -61,7 +61,9 @@ def test_semantic_preservation_passes_for_docstring_only_change() -> None:
     invariant still holds because docstrings are stripped before the
     normalized-AST comparison."""
     original = 'def handler():\n    """Old docstring."""\n    return 1\n'
-    modified = 'def handler():\n    """A completely different docstring."""\n    return 1\n'
+    modified = (
+        'def handler():\n    """A completely different docstring."""\n    return 1\n'
+    )
 
     violations = verify_metadata_only_diff(original, modified, {})
 

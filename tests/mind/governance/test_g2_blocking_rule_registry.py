@@ -41,7 +41,9 @@ from shared.infrastructure.intent.rule_registry import get_rule_enforcement_map
 
 
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
-_REGISTRY_PATH = _REPO_ROOT / ".specs" / "verification" / "g2_blocking_rule_registry.yaml"
+_REGISTRY_PATH = (
+    _REPO_ROOT / ".specs" / "verification" / "g2_blocking_rule_registry.yaml"
+)
 
 _CONVENTIONAL_ENGINES = {
     "ast_gate",

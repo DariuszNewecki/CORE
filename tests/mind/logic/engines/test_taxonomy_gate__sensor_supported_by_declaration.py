@@ -36,9 +36,7 @@ def _engine(repo: Path) -> TaxonomyGateEngine:
     return TaxonomyGateEngine(path_resolver=PathResolver(repo_root=repo))
 
 
-def _write_sensor(
-    workers_dir: Path, stem: str, artifact_types: list[str]
-) -> None:
+def _write_sensor(workers_dir: Path, stem: str, artifact_types: list[str]) -> None:
     workers_dir.mkdir(parents=True, exist_ok=True)
     (workers_dir / f"{stem}.yaml").write_text(
         "identity:\n  class: sensing\n"
@@ -67,7 +65,11 @@ async def test_matching_authored_and_introspected_yields_no_findings(
     artifact_type's supported_sensors -> zero findings."""
     _write_sensor(tmp_path / ".intent" / "workers", "audit_sensor_docs", ["docs"])
     fake_repo = _fake_intent_repo(
-        [SimpleNamespace(id="docs", content={"supported_sensors": ["audit_sensor_docs"]})]
+        [
+            SimpleNamespace(
+                id="docs", content={"supported_sensors": ["audit_sensor_docs"]}
+            )
+        ]
     )
     with patch(
         "mind.logic.engines.taxonomy_gate.get_intent_repository",

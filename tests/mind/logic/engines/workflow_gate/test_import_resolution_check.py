@@ -99,9 +99,7 @@ async def test_filter_all_requires_every_substring_present(tmp_path: Path) -> No
         b"has-neither\n"
     )
 
-    params = {
-        "tools": [{"tool": "toolA", "args": [], "filter_all": ["alpha", "beta"]}]
-    }
+    params = {"tools": [{"tool": "toolA", "args": [], "filter_all": ["alpha", "beta"]}]}
     with patch(
         "asyncio.create_subprocess_exec",
         AsyncMock(return_value=_fake_process(1, stdout=output)),

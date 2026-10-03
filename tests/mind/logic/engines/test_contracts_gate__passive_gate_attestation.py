@@ -92,9 +92,7 @@ def test_symbol_defined_not_found(tmp_path: Path) -> None:
 def test_symbol_defined_nested_method_found(tmp_path: Path) -> None:
     """Method nested inside a class is found by ast.walk."""
     py = tmp_path / "mod.py"
-    py.write_text(
-        "class Outer:\n    def approve(self): ...\n", encoding="utf-8"
-    )
+    py.write_text("class Outer:\n    def approve(self): ...\n", encoding="utf-8")
     assert _symbol_defined_in_file("approve", py) is True
 
 
@@ -174,9 +172,7 @@ def test_resolve_package_init(tmp_path: Path) -> None:
     (pkg / "__init__.py").write_text(
         "class MyOrchestrator:\n    pass\n", encoding="utf-8"
     )
-    result = _resolve_enforced_by_symbol(
-        "body.services.my_svc.MyOrchestrator", src
-    )
+    result = _resolve_enforced_by_symbol("body.services.my_svc.MyOrchestrator", src)
     assert result is not None
     assert "MyOrchestrator" in result
 
@@ -229,9 +225,7 @@ def test_class_a_resolves_passes(tmp_path: Path) -> None:
         tmp_path,
         mapping_content=_CLASS_A_MAPPING,
         src_files={
-            "body/validators/lcv.py": (
-                "class LogicConservationValidator:\n    pass\n"
-            )
+            "body/validators/lcv.py": ("class LogicConservationValidator:\n    pass\n")
         },
     )
     ctx = _make_context(repo)
@@ -377,9 +371,7 @@ def test_python_runtime_resolves_passes(tmp_path: Path) -> None:
     repo = _scaffold(
         tmp_path,
         mapping_content=_PYTHON_RUNTIME_RESOLVES_MAPPING,
-        src_files={
-            "body/atomic/registry.py": "def register_action():\n    pass\n"
-        },
+        src_files={"body/atomic/registry.py": "def register_action():\n    pass\n"},
     )
     ctx = _make_context(repo)
     findings = _check_passive_gate_symbol_attestation(

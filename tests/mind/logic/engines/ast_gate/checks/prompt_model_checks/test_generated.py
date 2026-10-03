@@ -26,9 +26,6 @@ def test_PromptModelChecks():
     assert "make_request_async" in result[0]
 
 
-
-
-
 # ID: c2ced4ec-8585-4ae0-85e9-9045e2f76872
 def test_PromptModelChecks_check_prompt_model_required() -> None:
     checks = PromptModelChecks()

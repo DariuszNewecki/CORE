@@ -144,17 +144,23 @@ async def test_e14_no_llm_env_leaks_into_child_scenario_process_spawn(
 
     await run_consequence_chain(source_repo, demo_state_root)
 
-    assert "env" in captured, "run_child_process's create_subprocess_exec was never invoked"
+    assert "env" in captured, (
+        "run_child_process's create_subprocess_exec was never invoked"
+    )
     child_env_obj = captured["env"]
     assert isinstance(child_env_obj, dict)
     child_env: dict[str, str] = child_env_obj
 
     env_str = str(child_env)
     for sentinel in ("sentinel-should-not-leak", "sentinel.invalid"):
-        assert sentinel not in env_str, f"sentinel leaked into child spawn env: {child_env}"
+        assert sentinel not in env_str, (
+            f"sentinel leaked into child spawn env: {child_env}"
+        )
     # Structural claim from consequence_chain.py: child_env is built from
     # nothing but PATH — no ambient key survives at all, sentinel or not.
-    assert set(child_env) <= {"PATH"}, f"unexpected keys in child spawn env: {child_env}"
+    assert set(child_env) <= {"PATH"}, (
+        f"unexpected keys in child spawn env: {child_env}"
+    )
 
     # Second half of E14: the clone's own .env is deterministic, not derived
     # from the parent's ambient LLM_ENABLED=True set above.

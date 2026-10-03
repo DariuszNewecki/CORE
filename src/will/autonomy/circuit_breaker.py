@@ -1,4 +1,4 @@
-# src/will/workers/circuit_breaker.py
+# src/will/autonomy/circuit_breaker.py
 """
 Circuit-breaker on repeated proposal failures (ADR-038 / closes #281).
 

@@ -43,7 +43,10 @@ def test_approval_rendered_as_policy_authority_not_human(passing_result) -> None
     md = build_markdown_report(passing_result, "human")
     payload = json.loads(build_json_report(passing_result, "human"))
 
-    assert payload["proposal"]["approval_authority"] == "risk_classification.safe_auto_approval"
+    assert (
+        payload["proposal"]["approval_authority"]
+        == "risk_classification.safe_auto_approval"
+    )
     assert payload["proposal"]["approver_identity"] == "autonomous_self_promote"
     # The operator confirmation is a SEPARATE field, never the approver.
     assert payload["operator_confirmation"] == "human"

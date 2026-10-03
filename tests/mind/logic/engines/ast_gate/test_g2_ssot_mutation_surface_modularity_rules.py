@@ -169,9 +169,7 @@ async def test_filehandler_required_passes_via_file_handler(tmp_path: Path) -> N
 
 async def test_needs_refactor_fires_when_four_concerns_present(tmp_path: Path) -> None:
     """4 concern areas (database, web, testing, cli) exceeds max_concerns=3."""
-    params = _load_rule_params(
-        "code/modularity.yaml", "modularity.needs_refactor"
-    )
+    params = _load_rule_params("code/modularity.yaml", "modularity.needs_refactor")
     result = await _verify(
         tmp_path,
         "src/body/services/example_mixed_service.py",
@@ -187,9 +185,7 @@ async def test_needs_refactor_fires_when_four_concerns_present(tmp_path: Path) -
 
 
 async def test_needs_refactor_passes_with_single_concern(tmp_path: Path) -> None:
-    params = _load_rule_params(
-        "code/modularity.yaml", "modularity.needs_refactor"
-    )
+    params = _load_rule_params("code/modularity.yaml", "modularity.needs_refactor")
     result = await _verify(
         tmp_path,
         "src/body/services/example_single_concern_service.py",

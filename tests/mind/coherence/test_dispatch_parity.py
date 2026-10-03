@@ -90,9 +90,7 @@ def _write_rules(
     enforcement: str = "blocking",
 ) -> None:
     rules_dir.mkdir(parents=True, exist_ok=True)
-    data = {
-        "rules": [{"id": rid, "enforcement": enforcement} for rid in rule_ids]
-    }
+    data = {"rules": [{"id": rid, "enforcement": enforcement} for rid in rule_ids]}
     (rules_dir / "test_rules.json").write_text(json.dumps(data), encoding="utf-8")
 
 
@@ -122,7 +120,9 @@ def _write_package_engines(engines_dir: Path, pkg_names: list[str]) -> None:
     for name in pkg_names:
         pkg_dir = engines_dir / name
         pkg_dir.mkdir(exist_ok=True)
-        (pkg_dir / "__init__.py").write_text("# engine package stub\n", encoding="utf-8")
+        (pkg_dir / "__init__.py").write_text(
+            "# engine package stub\n", encoding="utf-8"
+        )
 
 
 def _make_check(tmp_path: Path) -> DispatchParityCheck:
@@ -250,7 +250,9 @@ async def test_package_engine_is_not_unknown(tmp_path: Path) -> None:
     candidates = await check.run()
 
     unknown = [c for c in candidates if "UNKNOWN_ENGINE" in c.claim]
-    assert unknown == [], f"Package engines falsely flagged: {[c.claim for c in unknown]}"
+    assert unknown == [], (
+        f"Package engines falsely flagged: {[c.claim for c in unknown]}"
+    )
 
 
 async def test_substrate_taxonomy_engine_is_not_unknown(tmp_path: Path) -> None:

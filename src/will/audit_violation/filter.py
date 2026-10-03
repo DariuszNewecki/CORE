@@ -1,4 +1,4 @@
-# src/will/workers/audit_violation_filter.py
+# src/will/audit_violation/filter.py
 """
 Actionability filter for AuditViolationSensor.
 

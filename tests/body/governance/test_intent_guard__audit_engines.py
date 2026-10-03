@@ -331,15 +331,11 @@ def test_check_transaction_permits_any_src_py_write_against_real_rules(
     result = guard.check_transaction(
         ["src/body/analyzers/_does_not_need_to_exist.py"],
         op_classes={"src/body/analyzers/_does_not_need_to_exist.py": "create"},
-        target_classes={
-            "src/body/analyzers/_does_not_need_to_exist.py": "repo-source"
-        },
+        target_classes={"src/body/analyzers/_does_not_need_to_exist.py": "repo-source"},
     )
 
     constitutional_rule_names = {
-        v.rule_name
-        for v in result.violations
-        if v.severity == "constitutional"
+        v.rule_name for v in result.violations if v.severity == "constitutional"
     }
     assert constitutional_rule_names == set(), (
         "check_transaction hard-blocked a plain src/**/*.py write via "

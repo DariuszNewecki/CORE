@@ -17,7 +17,9 @@ from mind.logic.engines.ast_gate.checks.test_gen_acceptance_check import (
 )
 
 
-def _check(code: str, path: str = "src/will/agents/test_gen_cognitive_delegate.py") -> list[str]:
+def _check(
+    code: str, path: str = "src/will/agents/test_gen_cognitive_delegate.py"
+) -> list[str]:
     tree = ast.parse(code)
     return TestGenAcceptanceCheck.check(tree, Path(path))
 

@@ -34,7 +34,14 @@ def _write_phase(phases_dir: Path, name: str, implementation: str) -> Path:
 def _write_mapping(mappings_dir: Path, name: str, enforced_by: str) -> Path:
     mappings_dir.mkdir(parents=True, exist_ok=True)
     path = mappings_dir / f"{name}.yaml"
-    data = {"mappings": {"some.rule": {"engine": "passive_gate", "params": {"enforced_by": enforced_by}}}}
+    data = {
+        "mappings": {
+            "some.rule": {
+                "engine": "passive_gate",
+                "params": {"enforced_by": enforced_by},
+            }
+        }
+    }
     path.write_text(yaml.dump(data), encoding="utf-8")
     return path
 
@@ -94,8 +101,12 @@ class TestIntentBindingCheck:
     def test_enforced_by_with_prose_suffix(self, tmp_path: Path) -> None:
         """'SomeClass enum' suffix should be stripped; only the dotted path is checked."""
         mappings_dir = tmp_path / ".intent" / "enforcement" / "mappings"
-        _write_mapping(mappings_dir, "test_mapping", "shared.cli.command_meta.CommandBehavior enum")
-        _write_src(tmp_path / "src", ["shared", "cli", "command_meta"], "CommandBehavior")
+        _write_mapping(
+            mappings_dir, "test_mapping", "shared.cli.command_meta.CommandBehavior enum"
+        )
+        _write_src(
+            tmp_path / "src", ["shared", "cli", "command_meta"], "CommandBehavior"
+        )
         check = IntentBindingCheck(repo_root=tmp_path)
         candidates = _run(check)
         assert candidates == []
@@ -118,7 +129,12 @@ class TestExtractEnforcedBy:
         assert _extract_enforced_by(data) == ["a.b.C"]
 
     def test_extracts_nested(self) -> None:
-        data = {"mappings": {"rule1": {"params": {"enforced_by": "x.Y"}}, "rule2": {"params": {"enforced_by": "z.W"}}}}
+        data = {
+            "mappings": {
+                "rule1": {"params": {"enforced_by": "x.Y"}},
+                "rule2": {"params": {"enforced_by": "z.W"}},
+            }
+        }
         result = _extract_enforced_by(data)
         assert set(result) == {"x.Y", "z.W"}
 

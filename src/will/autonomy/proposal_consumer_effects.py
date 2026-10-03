@@ -1,4 +1,4 @@
-# src/will/workers/proposal_consumer_effects.py
+# src/will/autonomy/proposal_consumer_effects.py
 """
 ProposalConsumer post-execution side-effects.
 

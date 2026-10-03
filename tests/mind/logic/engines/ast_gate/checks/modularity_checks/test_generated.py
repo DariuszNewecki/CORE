@@ -188,9 +188,6 @@ def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
         assert finding["severity"] in ("error", "warning")
 
 
-
-
-
 # ID: fbe73d1b-a881-421e-ad78-845fa25d14a6
 def test_ModularityChecker(tmp_path: Path) -> None:
     source = "def foo():\n    return 1\n"

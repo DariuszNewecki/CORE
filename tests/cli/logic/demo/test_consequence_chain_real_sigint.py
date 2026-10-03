@@ -202,9 +202,7 @@ def test_e12_real_sigint_to_live_child_exits_130_and_leaves_no_survivors(
                     timeout=5,
                 )
                 orphan_lines = [
-                    line
-                    for line in result.stdout.splitlines()
-                    if run_id in line
+                    line for line in result.stdout.splitlines() if run_id in line
                 ]
                 if not orphan_lines:
                     break

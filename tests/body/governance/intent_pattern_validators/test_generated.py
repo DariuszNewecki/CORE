@@ -177,9 +177,6 @@ def test_PatternValidators_validate_test_file_pattern() -> None:
     cls._module_resolves.assert_any_call("sys")
 
 
-
-
-
 # ID: 3af3c4fa-5786-40ca-b9f8-0cece89953f9
 def test_PatternValidators():
     # Happy path: a clean test-file pattern with only valid absolute imports.

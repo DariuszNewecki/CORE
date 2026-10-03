@@ -139,9 +139,6 @@ def test_NamingChecks_check_max_file_lines():
     assert "exceeds limit of 1" in findings_over[0]
 
 
-
-
-
 # ID: e10c43cd-97c4-4624-8854-f81ae89399e9
 def test_NamingChecks_check_max_function_length() -> None:
     source = "def short_func():\n    return 1\n"

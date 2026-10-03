@@ -266,7 +266,10 @@ async def test_runtime_only_failure_drives_repair_iteration(
     )
     acceptance = MagicMock()
     acceptance.evaluate = AsyncMock(
-        side_effect=[runtime_failure, AcceptanceResult(accepted=True, violation_summary="")]
+        side_effect=[
+            runtime_failure,
+            AcceptanceResult(accepted=True, violation_summary=""),
+        ]
     )
 
     with (

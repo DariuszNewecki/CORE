@@ -39,7 +39,6 @@ def test_passive_gate_engine_verify():
     assert isinstance(result.message, str)
 
 
-
 import pytest
 
 

@@ -78,8 +78,6 @@ async def test_KnowledgeGateEngine() -> None:
     db_session.execute.assert_awaited_once()
 
 
-
-
 # ID: 522643cc-1278-4c47-a1d7-0e6bdb6792ce
 def test_KnowledgeGateEngine_verify():
     engine = KnowledgeGateEngine.__new__(KnowledgeGateEngine)

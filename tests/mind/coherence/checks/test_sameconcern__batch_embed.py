@@ -95,7 +95,9 @@ async def test_sameconcern_batch_fail_returns_empty() -> None:
 
     with (
         patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
-        patch("shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter") as ma,
+        patch(
+            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
+        ) as ma,
     ):
         mh.return_value.harvest.return_value = iter(claims)
         mock_adapter = AsyncMock()
@@ -187,7 +189,9 @@ async def test_r1scoped_batch_fail_returns_empty() -> None:
             ],
         ),
         patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
-        patch("shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter") as ma,
+        patch(
+            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
+        ) as ma,
     ):
         mh.return_value.harvest.return_value = iter([claim_a])
         mock_adapter = AsyncMock()

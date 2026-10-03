@@ -56,7 +56,9 @@ def test_preset_database_url_is_preserved() -> None:
     """A DATABASE_URL already in the process environment must survive the
     .env/.creds cascade untouched -- not get silently replaced by .env's own
     value."""
-    sentinel = "postgresql+asyncpg://sentinelu:sentinelp@sentinel.invalid:5432/sentinel_db"
+    sentinel = (
+        "postgresql+asyncpg://sentinelu:sentinelp@sentinel.invalid:5432/sentinel_db"
+    )
     result = _run(
         {"DATABASE_URL": sentinel},
         "from shared.config import settings; print(str(settings.DATABASE_URL))",

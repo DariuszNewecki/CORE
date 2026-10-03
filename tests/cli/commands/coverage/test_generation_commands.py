@@ -28,9 +28,7 @@ def _rendered(mock_print: AsyncMock) -> str:
 
 
 async def test_generate_adaptive_without_write_exits_locally_no_api_call():
-    with patch(
-        "cli.commands.coverage.generation_commands.CoreApiClient"
-    ) as client_cls:
+    with patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls:
         with pytest.raises(typer.Exit) as exc:
             await generate_adaptive_command.__wrapped__(
                 SimpleNamespace(),
@@ -43,9 +41,7 @@ async def test_generate_adaptive_without_write_exits_locally_no_api_call():
 
 
 async def test_generate_adaptive_with_write_calls_api():
-    with patch(
-        "cli.commands.coverage.generation_commands.CoreApiClient"
-    ) as client_cls:
+    with patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls:
         client = client_cls.return_value
         client.coverage_generate = AsyncMock(return_value={"run_id": "abc"})
         client.poll_coverage_run = AsyncMock(
@@ -65,9 +61,7 @@ async def test_generate_adaptive_with_write_calls_api():
 
 
 async def test_generate_adaptive_batch_without_write_exits_locally_no_api_call():
-    with patch(
-        "cli.commands.coverage.generation_commands.CoreApiClient"
-    ) as client_cls:
+    with patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls:
         with pytest.raises(typer.Exit) as exc:
             await generate_adaptive_batch_command.__wrapped__(
                 SimpleNamespace(), priority="all", write=False
@@ -79,9 +73,7 @@ async def test_generate_adaptive_batch_without_write_exits_locally_no_api_call()
 async def test_generate_adaptive_batch_priority_checked_before_write():
     """Bad priority is reported before the write gate — matches the API
     route's own validation ordering (priority, then write)."""
-    with patch(
-        "cli.commands.coverage.generation_commands.CoreApiClient"
-    ) as client_cls:
+    with patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls:
         with pytest.raises(typer.Exit) as exc:
             await generate_adaptive_batch_command.__wrapped__(
                 SimpleNamespace(), priority="bogus", write=False
@@ -91,9 +83,7 @@ async def test_generate_adaptive_batch_priority_checked_before_write():
 
 
 async def test_generate_adaptive_batch_with_write_calls_api():
-    with patch(
-        "cli.commands.coverage.generation_commands.CoreApiClient"
-    ) as client_cls:
+    with patch("cli.commands.coverage.generation_commands.CoreApiClient") as client_cls:
         client = client_cls.return_value
         client.coverage_generate_batch = AsyncMock(return_value={"run_id": "abc"})
         client.poll_coverage_run = AsyncMock(
@@ -131,7 +121,12 @@ async def test_generate_adaptive_renders_real_result_fields_and_exits_nonzero_on
                     "test_file": "tests/foo/test_bar.py",
                     "summary": {"gaps": 2, "succeeded": 1, "failed": 1, "skipped": 0},
                     "results": [
-                        {"symbol_name": "do_work", "symbol_kind": "function", "ok": True, "error": None},
+                        {
+                            "symbol_name": "do_work",
+                            "symbol_kind": "function",
+                            "ok": True,
+                            "error": None,
+                        },
                         {
                             "symbol_name": "do_other",
                             "symbol_kind": "function",
@@ -146,7 +141,10 @@ async def test_generate_adaptive_renders_real_result_fields_and_exits_nonzero_on
 
         with pytest.raises(typer.Exit) as exc:
             await generate_adaptive_command.__wrapped__(
-                SimpleNamespace(), file_path="src/foo/bar.py", write=True, max_failures=3
+                SimpleNamespace(),
+                file_path="src/foo/bar.py",
+                write=True,
+                max_failures=3,
             )
         assert exc.value.exit_code == 1
 
@@ -175,7 +173,12 @@ async def test_generate_adaptive_reports_success_and_exits_zero_when_all_symbols
                     "test_file": "tests/foo/test_bar.py",
                     "summary": {"gaps": 1, "succeeded": 1, "failed": 0, "skipped": 0},
                     "results": [
-                        {"symbol_name": "do_work", "symbol_kind": "function", "ok": True, "error": None},
+                        {
+                            "symbol_name": "do_work",
+                            "symbol_kind": "function",
+                            "ok": True,
+                            "error": None,
+                        },
                     ],
                     "files_produced": ["tests/foo/test_bar.py"],
                 },
@@ -244,13 +247,23 @@ async def test_generate_adaptive_batch_renders_summary_and_failed_files_exits_no
                         {
                             "file": "src/a.py",
                             "status": "completed",
-                            "summary": {"gaps": 1, "succeeded": 1, "failed": 0, "skipped": 0},
+                            "summary": {
+                                "gaps": 1,
+                                "succeeded": 1,
+                                "failed": 0,
+                                "skipped": 0,
+                            },
                         },
                         {"file": "src/b.py", "status": "error", "error": "boom"},
                         {
                             "file": "src/c.py",
                             "status": "completed",
-                            "summary": {"gaps": 2, "succeeded": 0, "failed": 2, "skipped": 0},
+                            "summary": {
+                                "gaps": 2,
+                                "succeeded": 0,
+                                "failed": 2,
+                                "skipped": 0,
+                            },
                         },
                     ],
                 },
@@ -290,7 +303,12 @@ async def test_generate_adaptive_batch_exits_zero_when_no_failures():
                         {
                             "file": "src/a.py",
                             "status": "completed",
-                            "summary": {"gaps": 1, "succeeded": 1, "failed": 0, "skipped": 0},
+                            "summary": {
+                                "gaps": 1,
+                                "succeeded": 1,
+                                "failed": 0,
+                                "skipped": 0,
+                            },
                         },
                     ],
                 },

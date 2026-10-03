@@ -74,8 +74,16 @@ def test_duplicate_within_a_single_file_is_blocked(tmp_path: Path) -> None:
 def test_placeholder_anchors_are_ignored(tmp_path: Path) -> None:
     # Malformed/placeholder anchors are not real UUID collisions — the
     # assign_ids/hook layer owns those, not duplicate detection.
-    a = _write(tmp_path, "a.py", "# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ndef a():\n    pass\n")
-    b = _write(tmp_path, "b.py", "# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ndef b():\n    pass\n")
+    a = _write(
+        tmp_path,
+        "a.py",
+        "# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ndef a():\n    pass\n",
+    )
+    b = _write(
+        tmp_path,
+        "b.py",
+        "# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ndef b():\n    pass\n",
+    )
 
     findings = check_duplicate_ids(_StubContext([a, b]), {})
 

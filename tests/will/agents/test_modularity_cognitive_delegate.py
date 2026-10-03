@@ -76,9 +76,7 @@ async def test_analyze_low_confidence_plan_raises(tmp_path) -> None:
     mock_model.manifest.role = "architect"
     mock_model.invoke = AsyncMock(return_value=plan_raw)
 
-    with patch(
-        "shared.models.prompt_model.PromptModel.load", return_value=mock_model
-    ):
+    with patch("shared.models.prompt_model.PromptModel.load", return_value=mock_model):
         with pytest.raises(CognitiveStepError) as exc_info:
             await delegate.execute_cognitive_step(
                 "analyze.modularity_seam", {"file_path": "src/body/big_module.py"}
@@ -115,9 +113,7 @@ async def test_analyze_accepted_plan_returns_resolved_path_and_plan_raw(
     mock_model.manifest.role = "architect"
     mock_model.invoke = AsyncMock(return_value=plan_raw)
 
-    with patch(
-        "shared.models.prompt_model.PromptModel.load", return_value=mock_model
-    ):
+    with patch("shared.models.prompt_model.PromptModel.load", return_value=mock_model):
         result = await delegate.execute_cognitive_step(
             "analyze.modularity_seam", {"file_path": "src/body/big_module.py"}
         )

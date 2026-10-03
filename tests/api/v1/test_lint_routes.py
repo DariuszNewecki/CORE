@@ -42,7 +42,11 @@ async def test_lint_endpoint_returns_ok_false_on_findings():
     result = {
         "ok": False,
         "tools": {
-            "black": {"returncode": 1, "stdout": "would reformat src/body/foo.py", "stderr": ""},
+            "black": {
+                "returncode": 1,
+                "stdout": "would reformat src/body/foo.py",
+                "stderr": "",
+            },
             "ruff": {"returncode": 0, "stdout": "", "stderr": ""},
         },
     }
