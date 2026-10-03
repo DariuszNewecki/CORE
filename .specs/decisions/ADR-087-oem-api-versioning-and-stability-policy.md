@@ -222,3 +222,20 @@ A consumer reading the spec without reading this ADR should still be able to fol
 The authoritative OpenAPI specification of CORE's public API belongs in CORE,
 with the API implementation. Other products, including core-platform, consume it;
 they do not own it.
+
+---
+
+## Amendment 2026-10-03 (later) — D4 header syntax corrected to the standards (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03)
+
+A standards correction to D4 item 2; the deprecation lane and the D5 window are
+unchanged. D4 named `Deprecation: true` and a `Sunset` value in RFC 3339 form. Both
+contradict the RFCs D4 cites. A deprecated route's responses carry:
+
+- `Deprecation: @<unix-seconds>` — an RFC 9745 Structured Field Date: the time the
+  route was (or will be) deprecated, i.e. the declared effective time of the
+  deprecation.
+- `Sunset: <HTTP-date>` — RFC 8594, e.g. `Sunset: Sat, 03 Apr 2027 00:00:00 GMT`:
+  the time the route is expected to become unavailable. It MUST NOT precede the
+  `Deprecation` time.

@@ -22,6 +22,9 @@ CONSTITUTIONAL:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from email.utils import format_datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,9 +39,14 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/project", tags=["Project"])
 
-# ADR-087 D4/D5: deprecation signal for POST /project/docs; six months from
-# the first release carrying it, and removal only at /v2/.
-DOCS_SUNSET = "2027-04-03"
+# ADR-087 D4 (amended 2026-10-03) / D5: deprecation signal for POST
+# /project/docs. Deprecated when 2ec0b734 declared it; sunset six months on;
+# removal only at /v2/.
+DOCS_DEPRECATED_AT = datetime(2026, 10, 3, 11, 55, 13, tzinfo=UTC)
+DOCS_SUNSET_AT = datetime(2027, 4, 3, tzinfo=UTC)
+# RFC 9745 Structured Field Date; RFC 8594 HTTP-date.
+DOCS_DEPRECATION_HEADER = f"@{int(DOCS_DEPRECATED_AT.timestamp())}"
+DOCS_SUNSET_HEADER = format_datetime(DOCS_SUNSET_AT, usegmt=True)
 
 
 # ID: 99f391a1-4bc9-4bad-898a-5038b5645f8e
@@ -75,8 +83,8 @@ async def generate_docs(
     is accepted for forward compatibility; the current implementation writes
     to the fixed path docs/10_CAPABILITY_REFERENCE.md.
     """
-    response.headers["Deprecation"] = "true"
-    response.headers["Sunset"] = DOCS_SUNSET
+    response.headers["Deprecation"] = DOCS_DEPRECATION_HEADER
+    response.headers["Sunset"] = DOCS_SUNSET_HEADER
     core_context: CoreContext = request.app.state.core_context
     repo_root = core_context.git_service.repo_path
     try:
