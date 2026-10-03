@@ -96,6 +96,7 @@ async def test_at_cap_writes_indeterminate_and_human_in_one_set_clause() -> None
         "delegated_count": 1,
         "delegated_finding_ids": ["f-1"],
         "delegated_subjects": ["python::rule::a.py"],
+        "cap_reason": "noop_cap_delegated",
     }
 
 
