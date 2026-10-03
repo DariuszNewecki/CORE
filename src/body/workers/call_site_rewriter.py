@@ -307,11 +307,10 @@ class CallSiteRewriter(Worker):
         not CrateCreationService directly.
         """
         try:
-            # Ensure action_executor is available on the context.
-            # action_executor is monkey-patched at CLI bootstrap time but is not
-            # guaranteed to exist when CoreContext is injected by the daemon.
-            # Pattern mirrors violation_executor.py and proposal_executor.py.
-            if not hasattr(self._ctx, "action_executor"):
+            # Ensure action_executor is available on the context. CoreContext
+            # declares the field with a None default, so test for None, not
+            # for the attribute (same defect as violation_executor.py).
+            if getattr(self._ctx, "action_executor", None) is None:
                 from body.atomic.executor import ActionExecutor
 
                 self._ctx.action_executor = ActionExecutor(self._ctx)

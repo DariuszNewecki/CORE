@@ -199,7 +199,7 @@ async def action_build_tests(
         if auditor_context is None:
             auditor_context = await core_context.registry.get_auditor_context()
 
-        if not hasattr(core_context, "action_executor"):
+        if getattr(core_context, "action_executor", None) is None:
             core_context.action_executor = ActionExecutor(core_context)
         executor = core_context.action_executor
 
