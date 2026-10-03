@@ -302,7 +302,7 @@ def test_existing_non_current_database_is_refused_before_any_service(
         "not current" in out
         and "no service was started" in out
         and "operator-run" in out
-        and "Upgrading an existing CORE database" in out
+        and "Upgrade a CORE database" in out
         and "core-admin database status" in out
     )
     assert seen

@@ -337,13 +337,13 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 
 > **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
 >
-> **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime` (2.11.0 or later). **Starting a new project needs no services at all:** `core-admin project new myproject --write` creates it with the machinery floor, then adopt a pack and audit — [step by step](https://dariusznewecki.github.io/CORE/getting-started/#start-a-new-governed-project-no-services).
+> **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime` (2.11.0 or later). **Starting a new project needs no services at all:** `core-admin project new myproject --write` creates it with the machinery floor, then adopt a pack and audit — [step by step](https://dariusznewecki.github.io/CORE/start-a-project/).
 >
 > **Fastest way to see CORE today: run it on itself, below.**
 
 > **Upgrading an existing database?** Supported since 2.10.2 and always operator-run — CORE never
 > migrates on its own, and the installer and every service start refuse a database that is not
-> current. Procedure: [Upgrading an existing CORE database](docs/getting-started.md#upgrading-an-existing-core-database).
+> current. Procedure: [Upgrade a CORE database](docs/upgrading.md).
 
 **Full local runtime** — one command. Clone, then run the installer:
 

@@ -287,8 +287,8 @@ refuse_not_current() {
 
   Upgrading a database created by a released version is an operator-run
   step, never done by the installer: follow the procedure
-  "Upgrading an existing CORE database" in docs/getting-started.md
-  (https://dariusznewecki.github.io/CORE/getting-started/#upgrading-an-existing-core-database),
+  "Upgrade a CORE database" in docs/upgrading.md
+  (https://dariusznewecki.github.io/CORE/upgrading/),
   then re-run this installer once 'core-admin database status' exits 0.
 
   Diagnose again at any time (read-only):  poetry run core-admin database status

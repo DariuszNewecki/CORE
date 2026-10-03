@@ -26,18 +26,29 @@ plugins:
 
 nav:
       - Home: index.md
-      - How It Works: how-it-works.md
-      - Vocabulary: vocabulary.md
-      - Autonomy Ladder: autonomy-ladder.md
-      - Getting Started: getting-started.md
-      - BYOR Quickstart: byor-quickstart.md
-      - Audit in CI (no install): cold-reviewer.md
-      - CLI Reference:
-              - Overview: cli-reference.md
+      - Tutorials:
+              - Start a governed project: start-a-project.md
+              - Audit in CI (GitHub): cold-reviewer.md
+      - How-to guides:
+              - Add a rule pack: adopt-a-pack.md
+              - Audit with pre-commit or GitLab: other-ci.md
+              - Govern your own repository: byor-quickstart.md
+              - Run the full runtime: getting-started.md
+              - Run a GRC gap analysis: grc-gap-analysis.md
+              - Upgrade a CORE database: upgrading.md
+      - Reference:
+              - CLI overview: cli-reference.md
               - core-admin: reference/core-admin.md
               - core: reference/core.md
-      - Proof Index: proof-index.md
-      - Contributing: contributing.md
+              - API contract: reference/api.md
+              - Vocabulary: vocabulary.md
+      - Explanation:
+              - How it works: how-it-works.md
+              - Autonomy ladder: autonomy-ladder.md
+              - Proof index: proof-index.md
+      - Project:
+              - Contributing: contributing.md
+              - Release process: release.md
 
 markdown_extensions:
       - admonition
