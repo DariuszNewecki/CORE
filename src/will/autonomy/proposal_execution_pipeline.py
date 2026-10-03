@@ -174,6 +174,27 @@ async def revive_deferred_findings_for_noop(
         return False, None
 
 
+# ID: 5aa69a61-0e5f-4ff2-8842-ead86107ad40
+def consequence_finding_ids(constraints: dict[str, Any] | None) -> list[str]:
+    """The finding IDs a consequence records as resolved by its proposal.
+
+    ``finding_ids`` is the deferral contract — findings deferred to this
+    proposal, which supervision re-defers if they drift back to open.
+    ``addressed_finding_ids`` is evidence only: findings the proposal works
+    on without taking them over (the test remediator releases a source
+    file's findings, since several per-symbol proposals share them). The
+    consequence records both, so every completed proposal is linked to the
+    findings it addressed (D5, 2026-10-03 deep dive), without widening the
+    deferral contract.
+    """
+    constraints = constraints or {}
+    ids = list(constraints.get("finding_ids") or [])
+    for fid in constraints.get("addressed_finding_ids") or []:
+        if fid not in ids:
+            ids.append(fid)
+    return ids
+
+
 # ID: 4095ae72-e22a-48bd-b8a0-41707a5b2bdf
 async def record_consequence(
     proposal_id: str,

@@ -341,6 +341,9 @@ async def _create_symbol_proposal(
             "rules": list(_TARGET_RULES),
             "symbol_name": symbol_name,
             "symbol_kind": symbol_kind,
+            # Evidence link, not deferral: the findings stay released for the
+            # file's other symbol proposals (see consequence_finding_ids).
+            "addressed_finding_ids": [str(f["id"]) for f in findings],
         },
     )
 

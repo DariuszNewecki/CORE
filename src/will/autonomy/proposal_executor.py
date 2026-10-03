@@ -38,6 +38,7 @@ from will.autonomy.proposal_execution_pipeline import (
     commit_proposal_changes,
     compute_changed_files,
     compute_production_set,
+    consequence_finding_ids,
     record_consequence,
     resolve_deferred_findings,
     revive_deferred_findings_for_noop,
@@ -421,8 +422,8 @@ class ProposalExecutor:
                             finding_ids=(
                                 []
                                 if nothing_to_commit
-                                else proposal.constitutional_constraints.get(
-                                    "finding_ids", []
+                                else consequence_finding_ids(
+                                    proposal.constitutional_constraints
                                 )
                             ),
                             policies=proposal.scope.policies,
