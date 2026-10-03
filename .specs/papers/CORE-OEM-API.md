@@ -145,14 +145,14 @@ All 14 `/inspect/` endpoints classify as `public`.
 
 | Method | Path | Class | Rationale |
 |---|---|---|---|
-| POST | `/v1/integrate` | **internal** | Integration / build dispatch. CI-internal; sidecars don't trigger builds. |
+| POST | `/v1/integrate` | **public** | Integration workflow (stage → format/lint → commit) on the governed repository's working tree. Governor-gated. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
 
 ### 3.10 `/v1/integrity` (2 endpoints)
 
 | Method | Path | Class | Rationale |
 |---|---|---|---|
-| POST | `/v1/integrity/baseline` | **internal** | File-integrity baseline establishment. Operator concern. |
-| POST | `/v1/integrity/verify` | **internal** | File-integrity verification. Operator concern. |
+| POST | `/v1/integrity/baseline` | **public** | SHA256 baseline of the governed repository's `src/`. Governor-gated. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
+| POST | `/v1/integrity/verify` | **public** | Verify the governed repository's `src/` against a baseline. Governor-gated. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
 
 ### 3.11 `/v1/knowledge` (1 endpoint)
 
@@ -166,7 +166,7 @@ The exact path is `/v1/knowledge/{something}` — F-40.3's OpenAPI pass will nam
 
 | Method | Path | Class | Rationale |
 |---|---|---|---|
-| POST | `/v1/lint` | **internal** | Triggers a lint run via `black --check` + `ruff check`. CI-internal; a sidecar would not run lint from the daemon. |
+| POST | `/v1/lint` | **public** | `black --check` + `ruff check` on the governed repository. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
 
 ### 3.13 `/v1/proposals` (6 endpoints)
 
@@ -187,14 +187,14 @@ The async-dispatch quality-gate surface (mypy / pytest / pip-audit / ruff / rado
 
 | Method | Path | Class | Rationale |
 |---|---|---|---|
-| POST | `/v1/quality/imports` | **internal** | Imports-resolution gate. CI-internal. |
+| POST | `/v1/quality/imports` | **public** | Import-resolution check on the governed repository. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
 | POST | `/v1/quality/policy-coverage` | **internal** | Constitutional policy-coverage audit. CI-internal. |
 | POST | `/v1/quality/lint` | **internal** | Lint gate dispatch. CI-internal. |
-| POST | `/v1/quality/tests` | **internal** | Test gate dispatch. CI-internal. |
+| POST | `/v1/quality/tests` | **public** | pytest on the governed repository, optionally scoped to a path. Reclassified 2026-10-03 (ADR-146 amendment): a consumer operation on the governed repository. |
 | POST | `/v1/quality/system` | **internal** | System-check gate dispatch. CI-internal. |
 | POST | `/v1/quality/gates` | **internal** | Six-gate bundle dispatch (the full quality run). CI-internal. |
 
-All quality gates classify as `internal` — they're CORE's own CI surface, not a sidecar concern. An OEM consumer that wants to expose "run mypy on this code" should do so in their own infrastructure rather than reach into CORE's gate dispatch.
+`/imports` and `/tests` are public: a consumer checks the repository CORE governs for them. The remaining quality routes are CORE's own CI gate dispatch and stay `internal`; an OEM consumer that wants to expose "run mypy on this code" should do so in their own infrastructure rather than reach into CORE's gate dispatch.
 
 ### 3.15 `/v1/refactor` (6 endpoints)
 
@@ -225,12 +225,12 @@ All `/sync/` endpoints classify as `internal` — they're CORE's own scheduler /
 
 | Category | Count | Routers |
 |---|---|---|
-| **public** | **~46** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (14), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), and read-side of `/coverage` (7) + `/refactor` (5) |
-| **internal** | **~28** | All of `/daemon` (3), `/development` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality` (7), `/sync` (5), plus write-side `/coverage` (3) and write-side `/refactor` (1), plus `/coverage/methods` (1) |
+| **public** | **78** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (14), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality/imports` + `/quality/tests` (2), read-side of `/coverage` (7) + `/refactor` (5), and routers added since this matrix was drafted |
+| **internal** | **21** | All of `/daemon` (3), `/development` (1), `/sync` (5), the rest of `/quality` (4), plus write-side `/coverage` (3) and write-side `/refactor` (1), plus `/coverage/methods` (1), and internal routes added since this matrix was drafted |
 | **deprecated** | 0 | — |
-| **Total** | **~74** | 15 routers + `/health` |
+| **Total** | **99** | all `/v1/` routers + `/health` |
 
-(Exact counts confirmed in F-40.3's OpenAPI annotation pass; this draft uses approximate counts for routers whose handler list wasn't expanded line-by-line.)
+(Counts are endpoints (method + path), measured 2026-10-03 from the running app and `docs/reference/openapi.json`. The spec is the exact source; §3 still lists routers by name and has not been extended to routers added after this matrix was drafted.)
 
 ## 5. Sidecar attachment cross-check (preview of F-40.4)
 
@@ -244,20 +244,20 @@ No sidecar needs a route classified `internal`. **F-40 Phase A's "without privat
 
 ## 6. Machine-readable spec
 
-The published OpenAPI spec for `/v1/` lives at `.specs/contracts/oem_api_v1.openapi.json` (snapshot, committed) and is also served at `/v1/openapi.json` by the running daemon. Both surfaces are generated from the same FastAPI route annotations in `src/api/v1/*_routes.py` — the committed snapshot is a point-in-time copy for consumers who want the contract without running CORE.
+The published OpenAPI spec for `/v1/` lives at `docs/reference/openapi.json` (committed; the authoritative contract per ADR-087 D9, amended 2026-10-03) and is also served at `/v1/openapi.json` by the running daemon. Both surfaces are generated from the same FastAPI route annotations in `src/api/v1/*_routes.py` — the committed snapshot is a point-in-time copy for consumers who want the contract without running CORE.
 
 Per ADR-087 D9:
 - `info.version` mirrors `core-runtime`'s PyPI version (or `0.0.0+source` in source-tree development mode).
 - `info.x-stability-policy` links to ADR-087.
 - Routes marked `internal` are absent from the spec (`include_in_schema=False`).
 
-To regenerate the snapshot after a route annotation change:
+To regenerate the committed copy after a route annotation change:
 
 ```bash
-python -c "import json; from api.main import app; json.dump(app.openapi(), open('.specs/contracts/oem_api_v1.openapi.json', 'w'), indent=2)"
+core-admin docs generate --write
 ```
 
-There is no CI gate enforcing snapshot freshness today. A pre-commit hook or CI step that regenerates and diffs is straightforward follow-up work but is not gating F-40.
+`tests/api/test_openapi_document.py` fails when the committed copy differs from what the code renders.
 
 ## 7. What this contract does NOT promise
 

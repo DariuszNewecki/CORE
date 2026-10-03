@@ -374,3 +374,75 @@ class CensusDiffResponse(BaseModel):
     error: str | None = None
     baseline: str | None = None
     diff: dict[str, Any] | None = None
+
+
+# ── Governed-repository checks (consumer surface, ADR-146 amendment 2026-10-03) ─
+
+
+# ID: 6f4849e4-514d-4f36-b1d1-954fcf9a98a1
+class LintToolResult(BaseModel):
+    """One tool's outcome inside a POST /v1/lint response."""
+
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+# ID: e2afca6a-9158-4b96-b0f5-a9303ccf4068
+class LintResponse(BaseModel):
+    """POST /v1/lint response.
+
+    `ok` is the verdict; `tools` is keyed by tool name (`black`, `ruff`) and is
+    empty when `error` reports a missing tool binary.
+    """
+
+    ok: bool
+    tools: dict[str, LintToolResult]
+    error: str | None = None
+
+
+# ID: 49ce782f-dd28-40b7-9296-ae043c446e47
+class ImportViolation(BaseModel):
+    """One unresolved or stale import found by POST /v1/quality/imports."""
+
+    file: str
+    line: int
+    rule: str
+    message: str
+
+
+# ID: b26207cf-5cfe-420b-abf6-dc1c052d73b6
+class QualityImportsResponse(BaseModel):
+    """POST /v1/quality/imports response. `status` is `ok` or `failed`."""
+
+    status: str
+    violations: list[ImportViolation]
+
+
+# ID: 08ddd3cf-9d12-4d1e-a17f-ac5b7f2db58b
+class IntegrityBaselineResponse(BaseModel):
+    """POST /v1/integrity/baseline response. `path` is repository-relative."""
+
+    label: str
+    path: str
+    files_hashed: int
+
+
+# ID: 204ae775-20ac-4e69-9eae-81e9ba7f132e
+class IntegrityVerifyResponse(BaseModel):
+    """POST /v1/integrity/verify response."""
+
+    label: str
+    ok: bool
+    errors: list[str]
+    checked_at: str | None = None
+
+
+# ID: 017c06a1-e7a5-4ce9-b06f-246d260212f4
+class IntegrateResponse(BaseModel):
+    """POST /v1/integrate success response (a failed workflow returns 502)."""
+
+    ok: bool
+    message: str | None = None
+    error: str | None = None
+    exit_code: int

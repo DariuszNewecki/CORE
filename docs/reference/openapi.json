@@ -1,0 +1,5616 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CORE OEM API",
+    "description": "\nThe CORE API surface — the stable, versioned interface that external\nintegrations and downstream distributions consume to embed CORE's\nconstitutional governance layer.\n\n**Stability policy:** see [ADR-087](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md).\n**Route classification:** see [CORE-OEM-API paper](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-OEM-API.md).\n\nRoutes marked `internal` (or absent from this spec) are CORE-operator\nconcerns — daemon lifecycle, autonomy-loop triggers, CI gate dispatch.\nThey are subject to change without notice and not part of this contract.\n",
+    "version": "2.11.0",
+    "x-stability-policy": "https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md"
+  },
+  "paths": {
+    "/v1/knowledge/capabilities": {
+      "get": {
+        "tags": [
+          "Knowledge"
+        ],
+        "summary": "List known capabilities",
+        "description": "Return the capability registry from the knowledge graph. Sidecar consumers (F-34 web dashboard) use this to render the capability tree and to anchor proposal/action views against the constitutional capability taxonomy.",
+        "operationId": "list_capabilities_v1_knowledge_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Capabilities V1 Knowledge Capabilities Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals": {
+      "post": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Create a proposal",
+        "description": "Build a proposal from a goal + action sequence, compute its risk, and (when `write=true`) persist it via ProposalService. With `write=false` (default) the proposal is constructed and risk-scored in-memory but NOT written to the database — useful for dry-run validation. Returns the proposal's `to_dict()` shape either way.",
+        "operationId": "create_proposal_v1_proposals_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProposalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Proposal V1 Proposals Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "List proposals",
+        "description": "List proposals, optionally filtered by `status`. When `status` is omitted, returns proposals awaiting approval. `limit` is capped at 500. Pass `after=<next_cursor>` from a previous response to advance the page. F-34 (web dashboard) consumes this endpoint to render the proposal queue.",
+        "operationId": "list_proposals_v1_proposals_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ProposalStatus value to filter by.",
+              "title": "Status"
+            },
+            "description": "ProposalStatus value to filter by."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Keyset cursor from a previous response.",
+              "title": "After"
+            },
+            "description": "Keyset cursor from a previous response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Proposals V1 Proposals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/chain": {
+      "get": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Governance chain for a proposal",
+        "description": "Return the complete governance chain for a proposal: the proposal itself, every linked finding (detected violations), and the execution consequence (files changed, git SHAs). `consequence` is null when the proposal has not yet been executed. Returns 404 if the proposal does not exist.",
+        "operationId": "get_proposal_chain_v1_proposals__proposal_id__chain_get",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceChainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}": {
+      "get": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Fetch a single proposal",
+        "description": "Return a proposal by `proposal_id`. Returns 404 if no proposal exists with that id.",
+        "operationId": "get_proposal_v1_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/approve": {
+      "post": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Approve a pending proposal",
+        "description": "Approve a proposal awaiting governance review. `approval_authority` is non-omittable per URS NFR.5 and validated against the `proposal_approval_authority` closed set inside ProposalStateManager. Returns 404 if the proposal doesn't exist; 400 if the authority is outside the closed vocabulary or the proposal is in a non-approvable state.",
+        "operationId": "approve_proposal_v1_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approve Proposal V1 Proposals  Proposal Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/reject": {
+      "post": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Reject a proposal",
+        "description": "Reject a proposal with a reason. Per ADR-010 §7a, rejection is symmetric with `mark_failed`: any findings parked at `deferred_to_proposal` are revived (flipped to `awaiting_reaudit` per ADR-045) so the audit sensor re-adjudicates them. Response includes `revived_count` for the operator. Returns 404 if the proposal doesn't exist.",
+        "operationId": "reject_proposal_v1_proposals__proposal_id__reject_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reject Proposal V1 Proposals  Proposal Id  Reject Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proposals/{proposal_id}/execute": {
+      "post": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Execute an approved proposal",
+        "description": "Execute an approved proposal as a governor-direct override. Defaults to dry-run; pass `{\"write\": true}` to apply changes. The proposal must be in approved status; ProposalExecutor manages its own session lifecycle.",
+        "operationId": "execute_proposal_v1_proposals__proposal_id__execute_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Execute Proposal V1 Proposals  Proposal Id  Execute Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/findings/{entry_id}/chain": {
+      "get": {
+        "tags": [
+          "Findings"
+        ],
+        "summary": "Governance chain for a finding",
+        "description": "Reverse lookup: given a blackboard finding entry ID, locate the proposal it was deferred to and return the full governance chain — the proposal, all linked findings, and the execution consequence. Returns 404 if the entry does not exist or has not been linked to a proposal.",
+        "operationId": "get_finding_chain_v1_findings__entry_id__chain_get",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceChainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lane": {
+      "get": {
+        "tags": [
+          "Lane"
+        ],
+        "summary": "List delegated findings (the assisted-lane work queue)",
+        "description": "Return findings delegated for human-gated remediation — the Assisted Remediation Lane work queue. A delegated finding is one at `status=indeterminate` with `resolution_mechanism=human` (ADR-109). Ordered oldest-first; the `limit` query param caps the response size. The context-bundle exporter (#653) will enrich each entry later; for now the raw finding payload is returned.",
+        "operationId": "list_delegated_findings_v1_lane_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Max delegated findings to return.",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Max delegated findings to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaneFindingListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lane/next": {
+      "get": {
+        "tags": [
+          "Lane"
+        ],
+        "summary": "Pull the next delegated finding (FIFO head)",
+        "description": "Return the oldest delegated finding — the lane's 'pull next work' surface — or 404 if the lane is empty. The rich context bundle (#653) will enrich this later; for now the raw finding is returned. Declared before /{finding_id} so 'next' is not captured as an id.",
+        "operationId": "next_delegated_finding_v1_lane_next_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaneFindingWithBundle"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lane/{finding_id}": {
+      "get": {
+        "tags": [
+          "Lane"
+        ],
+        "summary": "Get a single delegated finding with its context bundle",
+        "description": "Return one delegated finding by id (same governor-inbox predicate as the list) enriched with the #653 context bundle — rule rationale, whether the rule is still in the active registry, and the remediation-map guidance. 404 if it is not a live lane item — already worked, resolved, or never delegated.",
+        "operationId": "get_delegated_finding_v1_lane__finding_id__get",
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Blackboard finding id (uuid).",
+              "title": "Finding Id"
+            },
+            "description": "Blackboard finding id (uuid)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaneFindingWithBundle"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lane/{finding_id}/claim": {
+      "post": {
+        "tags": [
+          "Lane"
+        ],
+        "summary": "Mark a delegated finding as being worked",
+        "description": "Stamp a delegated finding as in-progress by an external agent (ADR-109 §2). Claiming does not change the finding's status — it stays a live lane item — it only records who is working it so it is visibly tracked, not parked. 404 if it is not a live lane item.",
+        "operationId": "claim_delegated_finding_v1_lane__finding_id__claim_post",
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Delegated finding id (uuid).",
+              "title": "Finding Id"
+            },
+            "description": "Delegated finding id (uuid)."
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identity of the working agent.",
+              "title": "Agent"
+            },
+            "description": "Identity of the working agent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaneClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lane/{finding_id}/propose": {
+      "post": {
+        "tags": [
+          "Lane"
+        ],
+        "summary": "Ingest a validated agent diff as a human-gated proposal",
+        "description": "Create a human-gated multi-file proposal from an agent-authored diff that has already cleared `assisted.validate_diff` (ADR-109 D3/D4). This endpoint is transport-only: LaneService constructs a frozen `ValidatedRemediationCandidate` via the Body-owned trusted validation service (ADR-154 D2), which re-reads the persisted verdict of the named validation run from `core.fix_runs` (it never trusts the caller's claim that validation passed) and confirms the submitted patch matches the bytes that were validated. The existing `proposals approve`/`execute` path drives the rest.",
+        "operationId": "propose_diff_v1_lane__finding_id__propose_post",
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Delegated finding id (uuid).",
+              "title": "Finding Id"
+            },
+            "description": "Delegated finding id (uuid)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaneProposeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets": {
+      "get": {
+        "tags": [
+          "Secrets",
+          "Secrets"
+        ],
+        "summary": "List all secret keys",
+        "description": "Return all secret keys with timestamps. Values are never returned.",
+        "operationId": "list_secrets_v1_secrets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Secrets V1 Secrets Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Secrets",
+          "Secrets"
+        ],
+        "summary": "Set a secret",
+        "description": "Create or overwrite an encrypted secret.\n\nReturns 409 if the key already exists and `force` is false.",
+        "operationId": "set_secret_v1_secrets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecretSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Set Secret V1 Secrets Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets/{key}": {
+      "get": {
+        "tags": [
+          "Secrets",
+          "Secrets"
+        ],
+        "summary": "Get / check a secret",
+        "description": "Check whether a secret exists, optionally returning its decrypted value.\n\nPass `?show=true` to include the plaintext value in the response.\nDefaults to `show=false` to avoid accidental exposure in logs.",
+        "operationId": "get_secret_v1_secrets__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "show",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Show"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Secret V1 Secrets  Key  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Secrets",
+          "Secrets"
+        ],
+        "summary": "Delete a secret",
+        "description": "Permanently delete an encrypted secret.",
+        "operationId": "delete_secret_v1_secrets__key__delete",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Secret V1 Secrets  Key  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets/{key}/rotate": {
+      "put": {
+        "tags": [
+          "Secrets",
+          "Secrets"
+        ],
+        "summary": "Rotate a secret value",
+        "description": "Replace the value of an existing secret and update last_rotated_at.",
+        "operationId": "rotate_secret_v1_secrets__key__rotate_put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecretRotateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Rotate Secret V1 Secrets  Key  Rotate Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/symbols/unassigned": {
+      "get": {
+        "tags": [
+          "Symbols",
+          "Symbols"
+        ],
+        "summary": "List symbols with no capability assignment",
+        "description": "Return all public, non-test symbols that have capability == 'unassigned'.\n\nMirrors the filter used by the CORE CLI's `symbols audit` check.\nValues from the knowledge graph view — no filesystem re-scan.",
+        "operationId": "list_unassigned_symbols_v1_symbols_unassigned_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Unassigned Symbols V1 Symbols Unassigned Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/symbols/drift": {
+      "get": {
+        "tags": [
+          "Symbols",
+          "Symbols"
+        ],
+        "summary": "Symbol drift summary from governed pipeline data",
+        "description": "Return symbol drift counters sourced from the governed pipeline.\n\nReports anchor_violations (open purity.stable_id_anchor findings),\npending_symbols (core.symbols rows pending classification), and\nlast_sync_at (most recent DbSyncWorker heartbeat timestamp).\n\nDoes not re-scan source — consumes governed pipeline output per ADR-143 D3.",
+        "operationId": "symbols_drift_v1_symbols_drift_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Symbols Drift V1 Symbols Drift Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vectors/status": {
+      "get": {
+        "tags": [
+          "Vectors",
+          "Vectors"
+        ],
+        "summary": "List Qdrant collections with status",
+        "description": "Return all active Qdrant collections with a liveness status.",
+        "operationId": "vector_status_v1_vectors_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Vector Status V1 Vectors Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vectors/query": {
+      "post": {
+        "tags": [
+          "Vectors",
+          "Vectors"
+        ],
+        "summary": "Semantic search over a vector collection",
+        "description": "Embed the query and return the closest matches from the named collection.\n\n`collection` may be a short alias ('policies', 'patterns', 'specs', 'code')\nor the raw Qdrant collection name.\nReturns up to `limit` results ordered by descending similarity.",
+        "operationId": "vector_query_v1_vectors_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VectorQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Vector Query V1 Vectors Query Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vectors/rebuild": {
+      "post": {
+        "tags": [
+          "Vectors",
+          "Vectors"
+        ],
+        "summary": "Delete a Qdrant collection and reset chunk_count",
+        "description": "Delete a Qdrant collection and reset chunk_count so RepoEmbedderWorker repopulates.\n\nDry-run by default — returns how many artifacts would be re-embedded.\nPass write=true to apply (destructive: deletes the live collection).\n\nRepoEmbedderWorker recreates the collection with current vectors on its next cycle.",
+        "operationId": "vector_rebuild_v1_vectors_rebuild_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VectorRebuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Vector Rebuild V1 Vectors Rebuild Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/docs": {
+      "post": {
+        "tags": [
+          "Project",
+          "Project"
+        ],
+        "summary": "Generate capability reference documentation",
+        "description": "Generate the canonical Capability Reference from the knowledge graph.\n\nFetches public capabilities from core.knowledge_graph and writes\ndocs/10_CAPABILITY_REFERENCE.md via FileHandler. The `output` parameter\nis accepted for forward compatibility; the current implementation writes\nto the fixed path docs/10_CAPABILITY_REFERENCE.md.",
+        "operationId": "generate_docs_v1_project_docs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Generate Docs V1 Project Docs Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/onboard": {
+      "post": {
+        "tags": [
+          "Project",
+          "Project"
+        ],
+        "summary": "Deliver BYOR machinery floor to an external repo",
+        "description": "Deliver the CORE machinery floor into an external repository (BYOR Phase A).\n\nCopies META schemas, taxonomies, constitution stub, and enforcement/config\nfrom examples/starter-intent/.intent/ into <path>/.intent/. Dry-run by default.\nPass write=true to apply; pass stage=true with write=true to stage for inspection.\n\nRequires the caller and the CORE API to be co-located on the same host/\nfilesystem: `path` is resolved and written on the API host, not the\ncaller's machine. This is not a convenience assumption but a consequence\nof ADR-054 D3 (core-api is loopback-bound, single-operator, no auth) —\na remote consumer CLI (ADR-146 D2) cannot safely direct writes to an\narbitrary server-side path without authentication, which loopback-only\nPhase 1 does not provide. See F-1, `.specs/planning/archive/CORE-CLI-2.9.0-Followups.md`.",
+        "operationId": "onboard_project_v1_project_onboard_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Onboard Project V1 Project Onboard Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/onboard/promote": {
+      "post": {
+        "tags": [
+          "Project",
+          "Project"
+        ],
+        "summary": "Promote a staged machinery floor to target",
+        "description": "Promote a staged machinery floor into the target repository (ADR-123 D2).\n\nReads from work/staged/<name>/.intent/ and writes to <path>/.intent/.\nRun POST /project/onboard with write=true and stage=true first.\n\nRequires the caller and the CORE API to be co-located on the same host/\nfilesystem — same constraint as POST /project/onboard; see that docstring\nand F-1 in `.specs/planning/archive/CORE-CLI-2.9.0-Followups.md`.",
+        "operationId": "promote_onboard_v1_project_onboard_promote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Promote Onboard V1 Project Onboard Promote Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/scout": {
+      "post": {
+        "tags": [
+          "Project",
+          "Project"
+        ],
+        "summary": "Detect signals and induce candidate governance rules",
+        "description": "Detect, suggest, and catalog-match candidate governance rules for a target repo.\n\nPhase B of ADR-119 (rule induction). Returns ScoutObservations and a list of\nRuleCandidate dicts for the caller to ratify. Does NOT write .intent/ files —\nthe caller (CLI) handles interactive ratification and writes using its local\nfilesystem access.\n\nSteps performed by this route:\n1. Extract aggregate AST signals from <path> (ScoutAnalyzer — PARSE phase).\n2. Call ScoutInducer (Mind) via injected cognitive_service to get LLM candidates.\n   Falls back to the embedded 4-rule universal menu if LLM is unavailable.\n3. Match each candidate against the enforcement catalog (engine + params + scope).\n\nReturns {\"path\": ..., \"signals\": {...}, \"candidates\": [...]} where each candidate\nincludes rule_id, statement, enforcement, rationale, and optional engine/params/scope\nfields when a catalog match exists.\n\nRequires Phase A (project onboard) to have delivered .intent/ to the target.",
+        "operationId": "scout_project_v1_project_scout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Scout Project V1 Project Scout Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit/runs": {
+      "post": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Start an audit run",
+        "description": "Start a constitutional audit run against the repo. With `wait=false` (default) returns 202 + a `run_id` to poll; the audit executes on a background task. With `wait=true` blocks and returns the full result (verdict + findings + stats) in-band (status 200). Audit duration is ~60s; clients invoking `wait=true` must set a long HTTP timeout.",
+        "operationId": "create_audit_run_v1_audit_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAuditRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Audit Run V1 Audit Runs Post"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Synchronous audit result (wait=true)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "List audit runs",
+        "description": "List recent audit runs newest-first (ordered by `run_id DESC`). `limit` defaults to 50 (max 500). Pass `after=<next_cursor>` from a previous response to advance the page. Returns `has_more` and `next_cursor` for keyset pagination.",
+        "operationId": "list_audit_runs_v1_audit_runs_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Keyset cursor from a previous response.",
+              "title": "After"
+            },
+            "description": "Keyset cursor from a previous response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Audit Runs V1 Audit Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Fetch a persisted audit run",
+        "description": "Read back an audit run's persisted record by `run_id`: verdict + counts + timestamps + status + findings list. Returns 404 if the run doesn't exist. Findings are denormalized on `core.audit_runs.findings` per ADR-054 amendment; pre-amendment rows return an empty list.",
+        "operationId": "get_audit_run_v1_audit_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit/remediations": {
+      "post": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Dispatch autonomous remediation",
+        "description": "Trigger autonomous remediation of findings from a prior audit run (`audit_run_id`). `mode` selects aggressiveness — wire vocabulary is `safe` | `medium` | `all`. `write=false` is the dry-run default (ADR-014). Returns 202 + a `run_id` for the new remediation run; use `GET /v1/audit/remediations/{run_id}` to read the result. 422 if `mode` is outside the allowed vocabulary.",
+        "operationId": "create_remediation_run_v1_audit_remediations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRemediationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit/remediations/{run_id}": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Fetch a remediation run",
+        "description": "Read back a remediation run's persisted record by `run_id`: mode, write flag, status, timestamps, result, and error if any. Returns 404 if the run doesn't exist.",
+        "operationId": "get_remediation_run_v1_audit_remediations__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemediationRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/integrate": {
+      "post": {
+        "tags": [
+          "Integration"
+        ],
+        "summary": "Integrate",
+        "description": "Run the integration workflow (stage → format/lint → commit).\n\nReturns 200 on success. Translates a failed workflow into a 502\nso the CLI can render a clear error; the underlying exit_code is\nsurfaced in the detail object.",
+        "operationId": "integrate_v1_integrate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lint": {
+      "post": {
+        "tags": [
+          "Lint"
+        ],
+        "summary": "Lint Endpoint",
+        "description": "Run black --check and ruff check on src/ and tests/.\n\nReturns 200 with the structured result regardless of pass/fail —\nthe response's `ok` field carries the verdict, and `tools.*` carry\nper-tool returncodes and captured output. This avoids the\n\"lint findings = HTTP error\" anti-pattern; a clean lint and a\ndirty lint are both successful API calls.",
+        "operationId": "lint_endpoint_v1_lint_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LintResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/run/{fix_id}": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Dispatch an atomic fix action",
+        "description": "Run an atomic action from the registry by `fix_id` (e.g. `fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if `fix_id` is unknown — the response body includes a registered ids count. Valid ids return 202 + a `run_id` to poll. `write=false` is the dry-run default (ADR-014). `params` carries action-specific kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as `**kwargs` to ActionExecutor.execute.",
+        "operationId": "run_fix_v1_fix_run__fix_id__post",
+        "parameters": [
+          {
+            "name": "fix_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fix Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunFixRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/all": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Dispatch the curated fix sequence",
+        "description": "Run the `flow.fix_code` curated sequence — a registered Flow YAML that bundles the standard fix-category atomic actions in their ADR-sanctioned execution order. Returns 202 + a `run_id`.",
+        "operationId": "run_fix_all_v1_fix_all_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunFlowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/modularity": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Dispatch the modularity remediation cycle",
+        "description": "Run the modularity remediation cycle — a Python-level workflow (ModularityRemediationService), not a Flow YAML — so there's no flow_id to validate. `params` supports `min_score` + `limit` for candidate selection. Returns 202 + a `run_id`.",
+        "operationId": "run_fix_modularity_v1_fix_modularity_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunFlowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/ir": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Bootstrap an IR scaffold file",
+        "description": "Bootstrap an Intent Representation (IR) scaffold file of the requested `kind` (`triage` or `log`). Synchronous — returns the relative path that was written. No background task; no core.fix_runs row. Returns 422 if `kind` is outside the closed vocabulary.",
+        "operationId": "run_fix_ir_v1_fix_ir_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunIRRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixIRResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/commands": {
+      "get": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "List registered fix-category atomic actions",
+        "description": "Return metadata for atomic actions whose category is `fix`. Use `GET /v1/actions` for the unfiltered view across every category.",
+        "operationId": "list_fix_commands_v1_fix_commands_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixCommandListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/fix/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Fetch a persisted fix run",
+        "description": "Read back a fix run's persisted record by `run_id`. The response shape matches ADR-055 D2: run_id, status, fix_id, kind, write, result, error. `result` is the JSONB ActionResult payload written by the background task; null while the run is still pending or executing. Returns 404 if no run exists with that id.",
+        "operationId": "get_fix_run_v1_fix_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/actions": {
+      "get": {
+        "tags": [
+          "Actions"
+        ],
+        "summary": "List registered atomic actions",
+        "description": "Return metadata for every registered atomic action. Used by OEM integrators to discover what governance primitives are available for embedding. For the fix-category-only view, use `GET /v1/fix/commands`.",
+        "operationId": "list_actions_v1_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Actions V1 Actions Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quality/imports": {
+      "post": {
+        "tags": [
+          "quality"
+        ],
+        "summary": "Quality Imports",
+        "description": "Run the import-resolution check inline over the governed repository's\nsrc/ (its root when it has no src/). Returns {status, violations}.",
+        "operationId": "quality_imports_v1_quality_imports_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityImportsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quality/tests": {
+      "post": {
+        "tags": [
+          "quality"
+        ],
+        "summary": "Quality Tests",
+        "description": "Dispatch pytest, optionally scoped to a path. Async.",
+        "operationId": "quality_tests_v1_quality_tests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualityTestsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/check": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Constitutional coverage compliance check",
+        "description": "Run the constitutional coverage compliance check — pass/fail verdict against the configured coverage targets. F-45 (hosted findings) renders this alongside audit findings for the same PR snapshot.",
+        "operationId": "coverage_check_v1_coverage_check_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Coverage Check V1 Coverage Check Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/report": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Latest pytest coverage report",
+        "description": "Return the most recently completed pytest coverage report from `core.coverage_runs`. `format=text` (default) returns the latest text-format run; `format=html` returns the latest html-format run. 404 with a hint to POST /v1/coverage/reports if no completed report-run of the requested format exists yet. GET no longer runs pytest inline (closes #608) — POST /v1/coverage/reports kicks off a fresh run as a background task.",
+        "operationId": "coverage_report_v1_coverage_report_get",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "text",
+                "html"
+              ],
+              "type": "string",
+              "default": "text",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Coverage Report V1 Coverage Report Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/targets": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Coverage targets",
+        "description": "Return the constitutional coverage targets — module-level thresholds the audit gate enforces. Sidecar configuration surface.",
+        "operationId": "coverage_targets_v1_coverage_targets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Coverage Targets V1 Coverage Targets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/gaps": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Coverage gaps ranked by deficit",
+        "description": "Return modules ranked by coverage deficit below `threshold` (default 75.0, range 0-100). `limit` caps results (default 20, max 200). F-34 dashboards use this as an actionable surface for operators to triage test debt.",
+        "operationId": "coverage_gaps_v1_coverage_gaps_get",
+        "parameters": [
+          {
+            "name": "threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100.0,
+              "minimum": 0.0,
+              "default": 75.0,
+              "title": "Threshold"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Coverage Gaps V1 Coverage Gaps Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/history": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Coverage history",
+        "description": "Return recent coverage measurements (newest first). `limit` defaults to 30, max 500. F-20-adjacent — surfaces coverage trajectory alongside the convergence metric.",
+        "operationId": "coverage_history_v1_coverage_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Coverage History V1 Coverage History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/coverage/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Coverage"
+        ],
+        "summary": "Fetch a persisted coverage run",
+        "description": "Read back a coverage run's persisted record by `run_id`: status, timestamps, result payload, error. Returns 404 if no run exists with that id.",
+        "operationId": "get_coverage_run_v1_coverage_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Coverage Run V1 Coverage Runs  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refactor/threshold": {
+      "get": {
+        "tags": [
+          "Refactor"
+        ],
+        "summary": "Constitutional modularity threshold",
+        "description": "Return the constitutional modularity score threshold — files scoring above this are refactor candidates. Sidecar configuration surface.",
+        "operationId": "refactor_threshold_v1_refactor_threshold_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Refactor Threshold V1 Refactor Threshold Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refactor/score": {
+      "get": {
+        "tags": [
+          "Refactor"
+        ],
+        "summary": "Per-file modularity score",
+        "description": "Return the per-file modularity score for `file` (relative path). Returns 404 if the file is unknown / missing; analyzable files return the full details payload from the modularity engine.",
+        "operationId": "refactor_score_v1_refactor_score_get",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "File"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Refactor Score V1 Refactor Score Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refactor/candidates": {
+      "get": {
+        "tags": [
+          "Refactor"
+        ],
+        "summary": "Refactor candidates ranked by score",
+        "description": "Return files exceeding the modularity threshold, highest score first. `min_score` filters to files at or above the given score (0-200); `limit` caps results (default 50, max 500). F-34 dashboards use this as an actionable refactor backlog view.",
+        "operationId": "refactor_candidates_v1_refactor_candidates_get",
+        "parameters": [
+          {
+            "name": "min_score",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 200.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Score"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 500,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Refactor Candidates V1 Refactor Candidates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refactor/stats": {
+      "get": {
+        "tags": [
+          "Refactor"
+        ],
+        "summary": "Modularity-score distribution",
+        "description": "Return the aggregate modularity-score distribution across the codebase — histogram + percentile summary used for trend analysis and dashboard rendering.",
+        "operationId": "refactor_stats_v1_refactor_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Refactor Stats V1 Refactor Stats Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refactor/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Refactor"
+        ],
+        "summary": "Fetch a persisted refactor run",
+        "description": "Read back a refactor run's persisted record by `run_id`: status, timestamps, captured proposal_ids in `result`, error. Returns 404 if no run exists with that id.",
+        "operationId": "get_refactor_run_v1_refactor_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Refactor Run V1 Refactor Runs  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/status/db": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Database connection + schema state",
+        "description": "Read-only DB-state snapshot: connection liveness + schema introspection summary. F-34 (web dashboard) uses this for the worker-health surface.",
+        "operationId": "status_db_v1_status_db_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Status Db V1 Status Db Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/status/drift": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Knowledge-graph drift snapshot",
+        "description": "Return a consolidated drift snapshot for symbols and/or vectors. `scope=symbols` and `scope=vectors` filter to one axis; `scope=all` (default) returns both. F-20 (convergence dashboard) consumes this to render real-time drift state alongside the convergence trajectory.",
+        "operationId": "status_drift_v1_status_drift_get",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Scope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Status Drift V1 Status Drift Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/decisions": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Recent decision traces",
+        "description": "Return recent constitutional decision traces with optional filters: `session_id` scopes to one session; `agent` filters to a specific actor; `pattern` filters to a named decision pattern. `limit` defaults to 50 (max 500). Empty filters return the global newest-first stream.",
+        "operationId": "decisions_list_v1_decisions_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pattern"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Keyset cursor from a previous response.",
+              "title": "After"
+            },
+            "description": "Keyset cursor from a previous response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Decisions List V1 Decisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/decisions/patterns": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Decision-pattern statistics",
+        "description": "Return aggregate pattern classification statistics across a lookback window. `days` defaults to 7 (max 365). The response shape mirrors the CLI's `inspect decisions patterns` output.",
+        "operationId": "decisions_patterns_v1_decisions_patterns_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Decisions Patterns V1 Decisions Patterns Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refusals": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Recent constitutional refusals",
+        "description": "Return recent constitutional refusal records (RefusalResult outcomes from components that declined to proceed). Optional filters: `type` narrows to one RefusalResult category (extraction_failed / low_confidence / boundary_violation / quality_threshold); `session` scopes to one session. F-34 renders these in the governance-trail view.",
+        "operationId": "refusals_list_v1_refusals_get",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Refusals List V1 Refusals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refusals/stats": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Refusal statistics by type",
+        "description": "Return refusal statistics grouped by RefusalResult type across a lookback window. `days` defaults to 7 (max 365).",
+        "operationId": "refusals_stats_v1_refusals_stats_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Refusals Stats V1 Refusals Stats Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/bridges": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Declared architecture bridge points",
+        "description": "Return constitutionally-declared data-flow crossings from .intent/architecture/bridges/*.yaml. Optional `consuming` query filters to bridges whose consuming_types include that string (e.g. AuditFinding, Proposal).",
+        "operationId": "analysis_bridges_v1_analysis_bridges_get",
+        "parameters": [
+          {
+            "name": "consuming",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Consuming"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Bridges V1 Analysis Bridges Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/clusters": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Semantic capability clusters",
+        "description": "Return semantic capability clusters derived from the knowledge graph. `limit` caps the number of clusters returned (max 200, default 25). F-45 (hosted findings) uses cluster info for finding enrichment.",
+        "operationId": "analysis_clusters_v1_analysis_clusters_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Clusters V1 Analysis Clusters Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/duplicates": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Semantic code-duplication candidates",
+        "description": "Return symbol pairs whose semantic similarity exceeds `threshold` (0.0-1.0, default 0.85). Used to surface DRY-violation candidates across the codebase.",
+        "operationId": "analysis_duplicates_v1_analysis_duplicates_get",
+        "parameters": [
+          {
+            "name": "threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.85,
+              "title": "Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Duplicates V1 Analysis Duplicates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/common-knowledge": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "DRY-violation candidates",
+        "description": "Return cross-file knowledge-overlap candidates. Similar to /analysis/duplicates but at the broader knowledge level rather than symbol pair similarity. `limit` defaults to 25 (max 200).",
+        "operationId": "analysis_common_knowledge_v1_analysis_common_knowledge_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analysis Common Knowledge V1 Analysis Common Knowledge Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/command-tree": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "CLI command hierarchy",
+        "description": "Return the introspected CLI command tree as a structured projection — sidecar UIs render this as a discoverable command palette.",
+        "operationId": "analysis_command_tree_v1_analysis_command_tree_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Analysis Command Tree V1 Analysis Command Tree Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/test-targets": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Test-target classification (SIMPLE vs COMPLEX)",
+        "description": "Return the test-coverage target classification (SIMPLE / COMPLEX) for in-scope source files. Used by test-generation flows to pick candidates and by F-45 dashboards to render coverage gaps.",
+        "operationId": "analysis_test_targets_v1_analysis_test_targets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Analysis Test Targets V1 Analysis Test Targets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/components": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Registered component inventory",
+        "description": "Return the registered V2 component inventory across the Mind/Body/Will layers. Optional `type` query filters to one component class (e.g. `analyzer`, `evaluator`, `strategist`). F-34 dashboards use this to render the component health surface.",
+        "operationId": "components_list_v1_components_get",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Components List V1 Components Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/capabilities": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Semantic capability search",
+        "description": "Semantic search across the capability registry via the Will cognitive service. `q` is the query (min length 1, required). `limit` caps results (default 10, max 200). Returns capabilities ranked by semantic similarity to the query.",
+        "operationId": "search_capabilities_v1_search_capabilities_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Search Capabilities V1 Search Capabilities Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/commands": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "CLI command search",
+        "description": "Fuzzy substring search over the CLI command registry (ADR-057 D5). `q` is the search string (min length 1, required). `limit` caps results (default 25, max 200).",
+        "operationId": "search_commands_v1_search_commands_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Search Commands V1 Search Commands Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/census/runs": {
+      "post": {
+        "tags": [
+          "Census"
+        ],
+        "summary": "Dispatch a structural census",
+        "description": "Trigger a CIM-0 structural census snapshot of the constitution and codebase. Returns 202 + a `run_id` to poll. F-20 (Convergence dashboard) ingests these snapshots over time to render the finding-rate vs resolution-rate trajectory.",
+        "operationId": "create_census_run_v1_census_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCensusRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncDispatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/census/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Census"
+        ],
+        "summary": "Fetch a persisted census run",
+        "description": "Read back a census run's persisted record by `run_id`: snapshot, baseline_name, status, timestamps, result, error. Returns 404 if the run doesn't exist.",
+        "operationId": "get_census_run_v1_census_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CensusRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/census/baselines/{name}": {
+      "post": {
+        "tags": [
+          "Census"
+        ],
+        "summary": "Create a named census baseline",
+        "description": "Promote a census snapshot to a named baseline. F-20 dashboards use baselines as reference points for the convergence trajectory. `snapshot_file` is optional; when omitted, the most recent snapshot is used. Returns 422 if no usable snapshot exists.",
+        "operationId": "create_census_baseline_v1_census_baselines__name__post",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBaselineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CensusBaselineCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/census/baselines": {
+      "get": {
+        "tags": [
+          "Census"
+        ],
+        "summary": "List census baselines",
+        "description": "Return all named baselines (newest first).",
+        "operationId": "list_census_baselines_v1_census_baselines_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CensusBaselineListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/census/diff": {
+      "get": {
+        "tags": [
+          "Census"
+        ],
+        "summary": "Compare current state to a baseline",
+        "description": "Diff the current census state against a baseline. The optional `baseline` query param selects which named baseline to compare against; omit to use the default baseline if configured. Returns the structured delta consumed by F-20 dashboards.",
+        "operationId": "census_diff_v1_census_diff_get",
+        "parameters": [
+          {
+            "name": "baseline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Baseline"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CensusDiffResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/integrity/baseline": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "summary": "Integrity Baseline",
+        "description": "Create a SHA256 baseline of src/ and return path + file count.",
+        "operationId": "integrity_baseline_v1_integrity_baseline_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityBaselineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/integrity/verify": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "summary": "Integrity Verify",
+        "description": "Verify src/ against the named baseline and return ok / errors.",
+        "operationId": "integrity_verify_v1_integrity_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityVerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness probe",
+        "description": "Returns 200 OK whenever the API process is responsive. Public; unauthenticated; safe to poll at high frequency.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionCommandItem": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "title": "Action Id"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "policies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Policies",
+            "default": []
+          },
+          "impact_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact Level"
+          },
+          "requires_db": {
+            "type": "boolean",
+            "title": "Requires Db",
+            "default": false
+          },
+          "requires_vectors": {
+            "type": "boolean",
+            "title": "Requires Vectors",
+            "default": false
+          },
+          "remediates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Remediates",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id"
+        ],
+        "title": "ActionCommandItem",
+        "description": "Metadata for one registered atomic action (GET /v1/fix/commands)."
+      },
+      "ApproveRequest": {
+        "properties": {
+          "approval_authority": {
+            "type": "string",
+            "title": "Approval Authority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approval_authority"
+        ],
+        "title": "ApproveRequest",
+        "description": "Body for POST /proposals/{id}/approve.\n\n`approved_by` is derived server-side from the request context and is\nnot accepted from the request body."
+      },
+      "AsyncDispatchResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "status",
+          "href"
+        ],
+        "title": "AsyncDispatchResponse",
+        "description": "Standard 202 response for all async-dispatch POST endpoints.\n\nCallers poll `href` to read the persisted run record once the\nbackground task completes."
+      },
+      "AuditRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "finding_count": {
+            "type": "integer",
+            "title": "Finding Count"
+          },
+          "blocking_count": {
+            "type": "integer",
+            "title": "Blocking Count"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "findings": {
+            "items": {},
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "verdict",
+          "finding_count",
+          "blocking_count",
+          "started_at",
+          "finished_at",
+          "status",
+          "findings"
+        ],
+        "title": "AuditRunResponse",
+        "description": "GET /v1/audit/runs/{run_id} response shape (ADR-054 amendment)."
+      },
+      "CensusBaselineCreateResponse": {
+        "properties": {
+          "baseline": {
+            "$ref": "#/components/schemas/CensusBaselineItem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "baseline"
+        ],
+        "title": "CensusBaselineCreateResponse",
+        "description": "POST /v1/census/baselines/{name} response."
+      },
+      "CensusBaselineItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "snapshot_file": {
+            "type": "string",
+            "title": "Snapshot File"
+          },
+          "git_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Commit"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "snapshot_file"
+        ],
+        "title": "CensusBaselineItem",
+        "description": "A single named census baseline record."
+      },
+      "CensusBaselineListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "baselines": {
+            "items": {
+              "$ref": "#/components/schemas/CensusBaselineItem"
+            },
+            "type": "array",
+            "title": "Baselines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "baselines"
+        ],
+        "title": "CensusBaselineListResponse",
+        "description": "GET /v1/census/baselines response."
+      },
+      "CensusDiffResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "diff": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "CensusDiffResponse",
+        "description": "GET /v1/census/diff response.\n\n`available=False` when no snapshot or baseline exists; `diff` carries\nthe CensusDiff model_dump when available."
+      },
+      "CensusRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "snapshot": {
+            "type": "boolean",
+            "title": "Snapshot"
+          },
+          "baseline_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "snapshot",
+          "status"
+        ],
+        "title": "CensusRunResponse",
+        "description": "GET /v1/census/runs/{run_id} response.\n\nIntentionally omits `requested_by` (internal username) per #727."
+      },
+      "ConsequenceRecord": {
+        "properties": {
+          "pre_execution_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pre Execution Sha"
+          },
+          "post_execution_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Execution Sha"
+          },
+          "files_changed": {
+            "items": {},
+            "type": "array",
+            "title": "Files Changed",
+            "default": []
+          },
+          "findings_resolved": {
+            "items": {},
+            "type": "array",
+            "title": "Findings Resolved",
+            "default": []
+          },
+          "authorized_by_rules": {
+            "items": {},
+            "type": "array",
+            "title": "Authorized By Rules",
+            "default": []
+          },
+          "recorded_at": {
+            "type": "string",
+            "title": "Recorded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recorded_at"
+        ],
+        "title": "ConsequenceRecord",
+        "description": "Execution consequence: what the proposal actually changed."
+      },
+      "CreateAuditRunRequest": {
+        "properties": {
+          "rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rule Ids",
+            "default": []
+          },
+          "policy_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Policy Ids",
+            "default": []
+          },
+          "files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Files",
+            "default": []
+          },
+          "force_llm": {
+            "type": "boolean",
+            "title": "Force Llm",
+            "default": false
+          },
+          "wait": {
+            "type": "boolean",
+            "title": "Wait",
+            "default": false
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "api"
+          }
+        },
+        "type": "object",
+        "title": "CreateAuditRunRequest",
+        "description": "Body for POST /audit/runs.\n\nEmpty body is valid and equivalent to a default-constructed model\n(full audit, async, no LLM-cache bypass)."
+      },
+      "CreateBaselineRequest": {
+        "properties": {
+          "snapshot_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot File"
+          }
+        },
+        "type": "object",
+        "title": "CreateBaselineRequest",
+        "description": "Body for POST /census/baselines/{name}.\n\n`snapshot_file` is optional — when omitted the most recent snapshot\nis used. The handler maps the missing-snapshot case to 422."
+      },
+      "CreateCensusRunRequest": {
+        "properties": {
+          "snapshot": {
+            "type": "boolean",
+            "title": "Snapshot",
+            "default": false
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By",
+            "default": "api"
+          }
+        },
+        "type": "object",
+        "title": "CreateCensusRunRequest",
+        "description": "Body for POST /census/runs."
+      },
+      "CreateProposalRequest": {
+        "properties": {
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "actions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Actions",
+            "default": []
+          },
+          "files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Files",
+            "default": []
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By",
+            "default": "cli_operator"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal"
+        ],
+        "title": "CreateProposalRequest",
+        "description": "Body for POST /proposals.\n\n`write=False` is a dry-run: server builds the Proposal and computes\nrisk but does not persist. `write=True` persists via\nProposalService.create."
+      },
+      "CreateRemediationRequest": {
+        "properties": {
+          "audit_run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audit Run Id"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "safe"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By",
+            "default": "api"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audit_run_id"
+        ],
+        "title": "CreateRemediationRequest",
+        "description": "Body for POST /audit/remediations (ADR-057 D4).\n\n`audit_run_id` is the prior `core.audit_runs` row whose findings are\nto be remediated. `mode` is the aggressiveness selector — wire\nvocabulary 'safe' | 'medium' | 'all' (mapped onto RemediationMode at\nthe facade). `write=false` is the dry-run default (ADR-014)."
+      },
+      "DocsRequest": {
+        "properties": {
+          "output": {
+            "type": "string",
+            "title": "Output",
+            "default": "docs/10_CAPABILITY_REFERENCE.md"
+          }
+        },
+        "type": "object",
+        "title": "DocsRequest",
+        "description": "Pydantic model declaring the target output path for generated API reference documentation.\n\nArgs:\n    output: Filesystem or repository-relative path where the documentation\n        will be written, defaulting to the capabilities reference file."
+      },
+      "ExecuteRequest": {
+        "properties": {
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ExecuteRequest",
+        "description": "Body for POST /proposals/{id}/execute."
+      },
+      "FindingEvidence": {
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "check_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Id"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "file_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Path"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "evidence": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "evidence_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Class"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_id"
+        ],
+        "title": "FindingEvidence",
+        "description": "A single blackboard finding linked to a proposal."
+      },
+      "FixCommandListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "commands": {
+            "items": {
+              "$ref": "#/components/schemas/ActionCommandItem"
+            },
+            "type": "array",
+            "title": "Commands"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "commands"
+        ],
+        "title": "FixCommandListResponse",
+        "description": "GET /v1/fix/commands response — whitelisted action metadata."
+      },
+      "FixIRResponse": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "FixIRResponse",
+        "description": "POST /v1/fix/ir synchronous response — the written scaffold path."
+      },
+      "FixRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "fix_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fix Id"
+          },
+          "target_files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Files"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "kind",
+          "fix_id",
+          "target_files",
+          "write",
+          "status",
+          "requested_by",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "result",
+          "error"
+        ],
+        "title": "FixRunResponse",
+        "description": "GET /v1/fix/runs/{run_id} response shape (ADR-055 D2)."
+      },
+      "GovernanceChainResponse": {
+        "properties": {
+          "proposal": {
+            "$ref": "#/components/schemas/ProposalSummary"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingEvidence"
+            },
+            "type": "array",
+            "title": "Findings",
+            "default": []
+          },
+          "consequence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConsequenceRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal"
+        ],
+        "title": "GovernanceChainResponse",
+        "description": "GET /v1/proposals/{id}/chain and /v1/findings/{id}/chain response.\n\nTraces a finding from detection through approval, execution, and file\nchanges. consequence is None when the proposal has not yet been executed."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImportViolation": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "line": {
+            "type": "integer",
+            "title": "Line"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "line",
+          "rule",
+          "message"
+        ],
+        "title": "ImportViolation",
+        "description": "One unresolved or stale import found by POST /v1/quality/imports."
+      },
+      "IntegrateRequest": {
+        "properties": {
+          "commit_message": {
+            "type": "string",
+            "title": "Commit Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "commit_message"
+        ],
+        "title": "IntegrateRequest",
+        "description": "Body for POST /integrate."
+      },
+      "IntegrateResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "exit_code": {
+            "type": "integer",
+            "title": "Exit Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "exit_code"
+        ],
+        "title": "IntegrateResponse",
+        "description": "POST /v1/integrate success response (a failed workflow returns 502)."
+      },
+      "IntegrityBaselineResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "files_hashed": {
+            "type": "integer",
+            "title": "Files Hashed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "path",
+          "files_hashed"
+        ],
+        "title": "IntegrityBaselineResponse",
+        "description": "POST /v1/integrity/baseline response. `path` is repository-relative."
+      },
+      "IntegrityRequest": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": "default"
+          }
+        },
+        "type": "object",
+        "title": "IntegrityRequest",
+        "description": "Body for POST /integrity/baseline and POST /integrity/verify.\n\nEmpty body is valid and equivalent to label='default'."
+      },
+      "IntegrityVerifyResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "ok",
+          "errors"
+        ],
+        "title": "IntegrityVerifyResponse",
+        "description": "POST /v1/integrity/verify response."
+      },
+      "LaneBundle": {
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/LaneBundleRule"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule"
+        ],
+        "title": "LaneBundle",
+        "description": "Context bundle attached to a delegated finding (ADR-109 #653)."
+      },
+      "LaneBundleRule": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "in_registry": {
+            "type": "boolean",
+            "title": "In Registry",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "LaneBundleRule",
+        "description": "Rule metadata within a lane finding bundle (ADR-109 #653)."
+      },
+      "LaneClaimResponse": {
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "title": "Finding Id"
+          },
+          "claimed_by": {
+            "type": "string",
+            "title": "Claimed By"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "finding_id",
+          "claimed_by",
+          "status"
+        ],
+        "title": "LaneClaimResponse",
+        "description": "POST /v1/lane/{finding_id}/claim response."
+      },
+      "LaneFindingItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject",
+          "payload"
+        ],
+        "title": "LaneFindingItem",
+        "description": "A single delegated finding from the Assisted Remediation Lane."
+      },
+      "LaneFindingListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/LaneFindingItem"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "findings"
+        ],
+        "title": "LaneFindingListResponse",
+        "description": "GET /v1/lane response — paginated delegated finding list."
+      },
+      "LaneFindingWithBundle": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "bundle": {
+            "$ref": "#/components/schemas/LaneBundle"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject",
+          "payload",
+          "bundle"
+        ],
+        "title": "LaneFindingWithBundle",
+        "description": "Delegated finding enriched with the ADR-109 #653 context bundle."
+      },
+      "LaneProposeResponse": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "approval_required": {
+            "type": "boolean",
+            "title": "Approval Required"
+          },
+          "scope_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "status",
+          "approval_required",
+          "scope_files"
+        ],
+        "title": "LaneProposeResponse",
+        "description": "POST /v1/lane/{finding_id}/propose response (201)."
+      },
+      "LintResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "tools": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LintToolResult"
+            },
+            "type": "object",
+            "title": "Tools"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "tools"
+        ],
+        "title": "LintResponse",
+        "description": "POST /v1/lint response.\n\n`ok` is the verdict; `tools` is keyed by tool name (`black`, `ruff`) and is\nempty when `error` reports a missing tool binary."
+      },
+      "LintToolResult": {
+        "properties": {
+          "returncode": {
+            "type": "integer",
+            "title": "Returncode"
+          },
+          "stdout": {
+            "type": "string",
+            "title": "Stdout"
+          },
+          "stderr": {
+            "type": "string",
+            "title": "Stderr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "returncode",
+          "stdout",
+          "stderr"
+        ],
+        "title": "LintToolResult",
+        "description": "One tool's outcome inside a POST /v1/lint response."
+      },
+      "OnboardRequest": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          },
+          "stage": {
+            "type": "boolean",
+            "title": "Stage",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "OnboardRequest",
+        "description": "Represents a request to onboard a new file into the repository.\n\nBoth the file path and the execution mode are declared explicitly so the\ncaller can decide whether to persist changes or stage them for review.\n\nArgs:\n    path: Filesystem path to the file being onboarded.\n    write: When True, applies changes directly to the filesystem.\n           When False, performs a dry-run reporting what would change.\n    stage: When True, prepares the changes as a staged commit for review."
+      },
+      "PromoteRequest": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "PromoteRequest",
+        "description": "Request to promote a file or resource from one state to a higher-priority tier.\n\nRepresents the minimal payload needed to trigger a governance-aware promotion action,\nwhere the target is identified solely by its filesystem path.\n\nArgs:\n    path: Filesystem path identifying the resource to be promoted."
+      },
+      "ProposalActionItem": {
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id"
+          },
+          "flow_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Id"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters",
+            "default": {}
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ProposalActionItem",
+        "description": "Single action entry in a ProposalResponse."
+      },
+      "ProposalResponse": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalActionItem"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "scope": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scope"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "validation_checks": {
+            "title": "Validation Checks"
+          },
+          "validation_results": {
+            "title": "Validation Results"
+          },
+          "execution_started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Started At"
+          },
+          "execution_completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Completed At"
+          },
+          "execution_results": {
+            "title": "Execution Results"
+          },
+          "constitutional_constraints": {
+            "title": "Constitutional Constraints"
+          },
+          "approval_required": {
+            "type": "boolean",
+            "title": "Approval Required",
+            "default": false
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approval_authority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Authority"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "goal",
+          "actions",
+          "scope",
+          "status",
+          "created_at"
+        ],
+        "title": "ProposalResponse",
+        "description": "GET /v1/proposals/{id} response shape (Proposal.to_dict() surface)."
+      },
+      "ProposalSummary": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk"
+          },
+          "approval_authority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Authority"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "execution_results": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Results"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "goal",
+          "status",
+          "created_at"
+        ],
+        "title": "ProposalSummary",
+        "description": "Proposal fields relevant to the governance chain."
+      },
+      "ProposeRequest": {
+        "properties": {
+          "patch": {
+            "type": "string",
+            "title": "Patch"
+          },
+          "validation_run_id": {
+            "type": "string",
+            "title": "Validation Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "patch",
+          "validation_run_id"
+        ],
+        "title": "ProposeRequest",
+        "description": "Body for `POST /lane/{finding_id}/propose`.\n\nThe agent-authored unified diff plus the id of the `assisted.validate_diff`\nrun that already cleared it (an `assisted.validate_diff` action dispatched\nvia `POST /fix/run/{fix_id}`, tracked in `core.fix_runs`). LaneService\n(via the Body-owned trusted validation service) re-reads that run's\npersisted verdict — it never trusts the caller's word that validation\npassed."
+      },
+      "QualityImportsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/ImportViolation"
+            },
+            "type": "array",
+            "title": "Violations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "violations"
+        ],
+        "title": "QualityImportsResponse",
+        "description": "POST /v1/quality/imports response. `status` is `ok` or `failed`."
+      },
+      "QualityTestsRequest": {
+        "properties": {
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By",
+            "default": "api"
+          }
+        },
+        "type": "object",
+        "title": "QualityTestsRequest",
+        "description": "Body for POST /quality/tests."
+      },
+      "RejectRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "RejectRequest",
+        "description": "Body for POST /proposals/{id}/reject."
+      },
+      "RemediationRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "audit_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Run Id"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "audit_run_id",
+          "mode",
+          "write",
+          "status",
+          "requested_by",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "result",
+          "error"
+        ],
+        "title": "RemediationRunResponse",
+        "description": "GET /v1/audit/remediations/{run_id} response shape."
+      },
+      "RunFixRequest": {
+        "properties": {
+          "target_files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Files"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By",
+            "default": "api"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "title": "RunFixRequest",
+        "description": "Body for POST /fix/run/{fix_id}.\n\nEmpty body is valid and equivalent to a default-constructed model\n(no target file restriction, dry-run).\n\n`params` carries action-specific kwargs (e.g. fix.docstrings's\n`limit`); forwarded as **kwargs to ActionExecutor.execute."
+      },
+      "RunFlowRequest": {
+        "properties": {
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By",
+            "default": "api"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "title": "RunFlowRequest",
+        "description": "Body for POST /fix/all and POST /fix/modularity.\n\n`params` carries operation-specific kwargs (e.g. /fix/modularity's\n`min_score` and `limit`); forwarded as **kwargs by route handlers\nthat honor them. /fix/all currently ignores params — caller can\npass them but they are unused."
+      },
+      "RunIRRequest": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "triage",
+              "log"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "RunIRRequest",
+        "description": "Body for POST /fix/ir."
+      },
+      "ScoutRequest": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "reset": {
+            "type": "boolean",
+            "title": "Reset",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "ScoutRequest",
+        "description": "Request model for a scout operation targeting a filesystem path.\n\nEncapsulates the path to explore and whether prior scout state should be\ncleared before beginning a fresh walk.\n\nArgs:\n    path: Filesystem path the scout should examine.\n    reset: When True, discards any cached or previous scout results for\n           the given path before starting."
+      },
+      "SecretRotateRequest": {
+        "properties": {
+          "new_value": {
+            "type": "string",
+            "title": "New Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_value"
+        ],
+        "title": "SecretRotateRequest",
+        "description": "Data model for a request to rotate a secret's value.\n\nDescribes the replacement value to be applied when rotating a governed\nsecret, enabling substitution of the existing credential with a new one.\n\nArgs:\n    new_value: The secret string that will replace the current value."
+      },
+      "SecretSetRequest": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "SecretSetRequest",
+        "description": "Internal contract for storing a secret via the secret-management API.\n\nEncapsulates the full set of parameters required to create or update a\nsecret, with optional metadata and an override flag for existing entries.\n\nArgs:\n    key: The unique identifier of the secret to store.\n    value: The secret's content to be persisted securely.\n    description: Human-readable metadata describing the secret's purpose.\n    force: When True, overwrites an existing secret with the same key\n        instead of raising a conflict."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VectorQueryRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "collection": {
+            "type": "string",
+            "title": "Collection",
+            "default": "policies"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "VectorQueryRequest",
+        "description": "Request model for vector similarity searches against a knowledge collection.\n\nEncapsulates the search query, target collection, and result limit with\nconstitutional bounds (1-50) enforced at the schema level.\n\nArgs:\n    query: The natural-language search text to match against stored vectors.\n    collection: Name of the vector collection to query (default: \"policies\").\n    limit: Maximum number of results to return, constrained to 1-50."
+      },
+      "VectorRebuildRequest": {
+        "properties": {
+          "collection": {
+            "type": "string",
+            "title": "Collection"
+          },
+          "write": {
+            "type": "boolean",
+            "title": "Write",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "collection"
+        ],
+        "title": "VectorRebuildRequest",
+        "description": "Request to rebuild vector embeddings for a collection.\n\nRepresents an atomic, governed action intent to reindex or reconstruct\nvector data within a specified collection, optionally persisting the\nresult based on write-mode.\n\nArgs:\n    collection: Name of the target collection to rebuild.\n    write: When True, persist the rebuilt vectors; when False,\n        perform a dry-run without making changes."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Audit",
+      "description": "Audit runs + remediation triggers (public)."
+    },
+    {
+      "name": "Census",
+      "description": "Convergence-metric snapshots + baselines (public)."
+    },
+    {
+      "name": "Inspect",
+      "description": "Read-only state introspection (public)."
+    },
+    {
+      "name": "Proposals",
+      "description": "Autonomous-proposal queue (public)."
+    },
+    {
+      "name": "Fix",
+      "description": "Atomic-action dispatch (public)."
+    },
+    {
+      "name": "Actions",
+      "description": "Atomic-action registry (public)."
+    },
+    {
+      "name": "Knowledge",
+      "description": "Knowledge-graph query (public)."
+    },
+    {
+      "name": "Coverage",
+      "description": "Coverage runs + reports (mixed public/internal)."
+    },
+    {
+      "name": "Refactor",
+      "description": "Refactor candidates + dispatch (mixed public/internal)."
+    }
+  ]
+}

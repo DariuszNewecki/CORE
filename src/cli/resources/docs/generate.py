@@ -1,7 +1,7 @@
 # src/cli/resources/docs/generate.py
 
 """
-`core-admin docs generate` — regenerate the CLI reference pages.
+`core-admin docs generate` — regenerate the generated reference pages.
 
 Renders both command trees with ``shared.cli.reference_markdown``:
 
@@ -9,6 +9,10 @@ Renders both command trees with ``shared.cli.reference_markdown``:
 - ``docs/reference/core.md`` from the installed core-cli package (the released
   ``core`` CLI, ADR-146), which must be importable — the page is never left
   silently stale because core-cli is missing.
+
+and CORE's public API contract with ``api.openapi_document``:
+
+- ``docs/reference/openapi.json`` (ADR-087 D9, amended 2026-10-03).
 
 Dry-runs by default (reports which pages would change); ``--write`` writes
 through FileHandler into CORE's own source checkout.
@@ -21,6 +25,7 @@ import difflib
 import typer
 from rich.console import Console
 
+from api.openapi_document import OPENAPI_DOCUMENT, render_openapi_document
 from body.infrastructure.storage.file_handler import FileHandler
 from cli.logic.byor import core_source_root
 from cli.utils import core_command
@@ -42,7 +47,12 @@ from . import app
 
 console = Console()
 
-__all__ = ["CORE_ADMIN_PAGE", "CORE_CLI_PAGE", "generate_docs_command"]
+__all__ = [
+    "CORE_ADMIN_PAGE",
+    "CORE_CLI_PAGE",
+    "OPENAPI_DOCUMENT",
+    "generate_docs_command",
+]
 
 
 def _change_summary(old: str | None, new: str) -> str:
@@ -66,7 +76,7 @@ def _change_summary(old: str | None, new: str) -> str:
     layer=CommandLayer.BODY,
     # Writes into CORE's own source checkout — an operator surface.
     exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="Regenerate the CLI reference pages from the live command trees.",
+    summary="Regenerate the CLI reference pages and the OpenAPI contract.",
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=False)
@@ -79,11 +89,12 @@ async def generate_docs_command(
         help="Write the pages. Without --write, reports which pages would change.",
     ),
 ) -> None:
-    """Regenerate the CLI reference pages from the live command trees.
+    """Regenerate the CLI reference pages and the OpenAPI contract.
 
-    Writes docs/reference/core-admin.md (this CLI) and docs/reference/core.md
-    (the installed core-cli package). Runs from a CORE source checkout only,
-    and needs core-cli installed (pip install core-cli).
+    Writes docs/reference/core-admin.md (this CLI), docs/reference/core.md
+    (the installed core-cli package) and docs/reference/openapi.json (CORE's
+    public API contract). Runs from a CORE source checkout only, and needs
+    core-cli installed (pip install core-cli).
 
     Example: core-admin docs generate --write
     """
@@ -104,6 +115,7 @@ async def generate_docs_command(
         raise typer.Exit(1)
 
     pages = build_reference_pages(ctx.find_root().command, core_cli)
+    pages[OPENAPI_DOCUMENT] = render_openapi_document()
 
     handler = FileHandler(str(core_root))
     for rel_path, content in pages.items():

@@ -43,7 +43,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session, open_background_session, require_governor
-from api.v1.schemas import AsyncDispatchResponse
+from api.v1.schemas import AsyncDispatchResponse, QualityImportsResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
@@ -59,10 +59,10 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/quality",
-    # F-40.1: internal — quality-gate dispatch (mypy/pytest/pip-audit/
-    # ruff/radon/vulture) is CI-internal, not a sidecar concern.
-    # Excluded from /v1/openapi.json per ADR-087.
-    include_in_schema=False,
+    # F-40.1: per route. /imports and /tests check the governed repository
+    # and are public (ADR-146 amendment 2026-10-03); the gate-bundle routes
+    # are CORE's CI surface and stay internal, marked include_in_schema=False
+    # per route (CORE-OEM-API §3.14).
 )
 
 # ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
@@ -78,13 +78,6 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
         "pip-audit/radon/vulture); none pass fix/write flags."
     ),
 }
-
-
-# ID: 3b42b16d-03d5-4114-bbda-75965bf614ad
-class QualityTargetRequest(BaseModel):
-    """Body for the two synchronous /quality endpoints."""
-
-    target_files: list[str] | None = None
 
 
 # ID: 5d78bfbd-f21b-4918-b6ab-aee0ffbad1d2
@@ -170,16 +163,15 @@ async def _dispatch_quality(
 # ----------------------------------------------------------------------
 
 
-@router.post("/imports")
+@router.post("/imports", response_model=QualityImportsResponse)
 # ID: 426c8ef0-3264-4e0d-9d6a-330bc46bbea3
-async def quality_imports(
-    payload: QualityTargetRequest = Body(default_factory=QualityTargetRequest),
-) -> dict:
-    """Run the import-resolution check inline. Returns {status, violations}."""
-    return await run_quality_imports(payload.target_files)
+async def quality_imports() -> dict:
+    """Run the import-resolution check inline over the governed repository's
+    src/ (its root when it has no src/). Returns {status, violations}."""
+    return await run_quality_imports()
 
 
-@router.post("/policy-coverage")
+@router.post("/policy-coverage", include_in_schema=False)
 # ID: 7c1b5e8a-4f2d-49a6-b3e8-d1c4a2f6b9e0
 async def quality_policy_coverage(request: Request) -> dict:
     """Run the constitutional policy-coverage audit inline.
@@ -202,6 +194,7 @@ async def quality_policy_coverage(request: Request) -> dict:
     status_code=202,
     response_model=AsyncDispatchResponse,
     dependencies=[require_governor],
+    include_in_schema=False,
 )
 # ID: d410a899-05c7-4ba4-a36e-1e3bb56623ee
 async def quality_lint(
@@ -244,7 +237,12 @@ async def quality_tests(
     )
 
 
-@router.post("/system", status_code=202, response_model=AsyncDispatchResponse)
+@router.post(
+    "/system",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
+    include_in_schema=False,
+)
 # ID: 8cd84f9d-a9eb-4c17-bc5c-eef650da7e7e
 async def quality_system(
     request: Request,
@@ -265,7 +263,12 @@ async def quality_system(
     )
 
 
-@router.post("/gates", status_code=202, response_model=AsyncDispatchResponse)
+@router.post(
+    "/gates",
+    status_code=202,
+    response_model=AsyncDispatchResponse,
+    include_in_schema=False,
+)
 # ID: c8876c66-40b1-4d55-b81d-dc9d91558ccb
 async def quality_gates(
     request: Request,

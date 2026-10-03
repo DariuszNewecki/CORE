@@ -27,6 +27,7 @@ from fastapi import APIRouter, Body, Request
 from pydantic import BaseModel
 
 from api.dependencies import require_governor
+from api.v1.schemas import IntegrityBaselineResponse, IntegrityVerifyResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.integrity_runner import (
@@ -41,10 +42,8 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "governor-only"
 router = APIRouter(
     prefix="/integrity",
-    # F-40.1: internal — file-integrity baseline/verify is operator
-    # concern, not part of the OEM API contract. Excluded from
-    # /v1/openapi.json per ADR-087.
-    include_in_schema=False,
+    # F-40.1: public — fingerprints the governed repository's src/, a
+    # consumer operation (ADR-146 amendment 2026-10-03; CORE-OEM-API §3.10).
     dependencies=[require_governor],
 )
 
@@ -59,7 +58,7 @@ class IntegrityRequest(BaseModel):
     label: str = "default"
 
 
-@router.post("/baseline")
+@router.post("/baseline", response_model=IntegrityBaselineResponse)
 # ID: d93ed634-a710-4e61-ad28-88a5a35e1a0d
 async def integrity_baseline(
     request: Request,
@@ -70,7 +69,7 @@ async def integrity_baseline(
     return create_baseline(core_context, payload.label)
 
 
-@router.post("/verify")
+@router.post("/verify", response_model=IntegrityVerifyResponse)
 # ID: 804f2a54-a7c5-4900-afe2-f43e6702a6ee
 async def integrity_verify(
     request: Request,

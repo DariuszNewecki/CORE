@@ -550,20 +550,13 @@ _QUALITY_GATES: list[tuple[str, list[str], bool]] = [
 
 
 # ID: b64958a3-c4ec-4822-bf52-db5c25a1eb32
-async def run_quality_imports(target_files: list[str] | None) -> dict:
+async def run_quality_imports() -> dict:
     """Run the import-resolution check synchronously.
 
-    Wraps body.atomic.check_actions.action_check_imports. `target_files`
-    is accepted for forward compatibility with ADR-055 D3 but is not
-    yet honored by the backend, which checks all of src/.
+    Wraps body.atomic.check_actions.action_check_imports, which checks the
+    whole of the bound repository's src/ (its root when it has no src/).
     """
     from body.atomic.check_actions import action_check_imports
-
-    if target_files:
-        logger.info(
-            "run_quality_imports: target_files supplied but backend "
-            "currently checks all of src/ — argument ignored"
-        )
 
     result = await action_check_imports()
     return {

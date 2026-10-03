@@ -26,13 +26,9 @@ class QualityClient:
         self._facade = facade
 
     # ID: 4f8fbaeb-0a08-45b9-b38a-dab3039b56c0
-    async def quality_imports(self, target_files: list[str] | None = None) -> dict:
+    async def quality_imports(self) -> dict:
         """POST /v1/quality/imports — synchronous import-resolution check."""
-        return await self._facade._request(
-            "POST",
-            "/v1/quality/imports",
-            json={"target_files": target_files or []},
-        )
+        return await self._facade._request("POST", "/v1/quality/imports")
 
     # ID: 48a167ac-14f3-4b84-9b73-94eaf4a430d0
     async def quality_policy_coverage(self) -> dict:

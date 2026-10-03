@@ -1069,11 +1069,12 @@ Reader-facing documentation generated from live sources (the CLI trees).
 core-admin docs generate [OPTIONS]
 ```
 
-Regenerate the CLI reference pages from the live command trees.
+Regenerate the CLI reference pages and the OpenAPI contract.
 
-Writes docs/reference/core-admin.md (this CLI) and docs/reference/core.md
-(the installed core-cli package). Runs from a CORE source checkout only,
-and needs core-cli installed (pip install core-cli).
+Writes docs/reference/core-admin.md (this CLI), docs/reference/core.md
+(the installed core-cli package) and docs/reference/openapi.json (CORE's
+public API contract). Runs from a CORE source checkout only, and needs
+core-cli installed (pip install core-cli).
 
 Example: core-admin docs generate --write
 

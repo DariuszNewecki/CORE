@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from api.v1.schemas import LintResponse
 from shared.logger import getLogger
 from will.governance.lint_runner import run_lint
 
@@ -26,9 +27,8 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/lint",
-    # F-40.1: internal — lint dispatch is CI-internal, not part of the
-    # OEM API contract. Excluded from /v1/openapi.json per ADR-087.
-    include_in_schema=False,
+    # F-40.1: public — lints the governed repository, a consumer operation
+    # (ADR-146 amendment 2026-10-03; CORE-OEM-API §3.12).
 )
 
 # ADR-132 D9 (#808): routes confirmed intentionally ungated, with rationale.
@@ -41,7 +41,7 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
 }
 
 
-@router.post("")
+@router.post("", response_model=LintResponse)
 # ID: 923355cf-ad6d-446a-865f-539025a11428
 async def lint_endpoint() -> dict:
     """Run black --check and ruff check on src/ and tests/.

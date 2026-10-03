@@ -3,7 +3,8 @@
 Calls the undecorated coroutine (``generate_docs_command.__wrapped__``) so the
 ``@core_command`` machinery stays out of the way. The core-admin tree comes
 from a fake Typer context and the core-cli tree from a patched loader, so the
-tests do not depend on core-cli being installed; pages land in ``tmp_path``.
+tests do not depend on core-cli being installed; the OpenAPI renderer is
+patched to a fixed document; pages land in ``tmp_path``.
 """
 
 from __future__ import annotations
@@ -45,6 +46,9 @@ async def _run(repo: Path, *, write: bool, core_cli: object = "default") -> None
     with (
         patch.object(gen, "core_source_root", return_value=repo),
         patch.object(gen, "_load_core_cli", return_value=loaded),
+        patch.object(
+            gen, "render_openapi_document", return_value='{"openapi": "3.1.0"}\n'
+        ),
     ):
         await gen.generate_docs_command.__wrapped__(ctx=_ctx(), write=write)
 
@@ -64,6 +68,8 @@ async def test_write_creates_both_pages(tmp_path: Path) -> None:
     assert "### `core-admin grp show` {#grp-show}" in admin
     assert "### `core grp show` {#grp-show}" in consumer
     assert "version 9.9.9" in consumer
+    spec = (tmp_path / gen.OPENAPI_DOCUMENT).read_text(encoding="utf-8")
+    assert spec == '{"openapi": "3.1.0"}\n'
 
 
 @pytest.mark.asyncio

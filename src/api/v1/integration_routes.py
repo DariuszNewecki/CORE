@@ -20,6 +20,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from api.dependencies import require_governor
+from api.v1.schemas import IntegrateResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.lifecycle.integration_runner import run_integration
@@ -31,10 +32,8 @@ logger = getLogger(__name__)
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/integrate",
-    # F-40.1: internal — integration/build dispatch is CI-internal, not
-    # part of the OEM API contract. Excluded from /v1/openapi.json per
-    # ADR-087.
-    include_in_schema=False,
+    # F-40.1: public — integrates the governed repository's working tree,
+    # a consumer operation (ADR-146 amendment 2026-10-03; CORE-OEM-API §3.9).
 )
 
 
@@ -45,7 +44,7 @@ class IntegrateRequest(BaseModel):
     commit_message: str
 
 
-@router.post("", dependencies=[require_governor])
+@router.post("", response_model=IntegrateResponse, dependencies=[require_governor])
 # ID: 578732cb-c976-4577-a6ef-3024e24d9833
 async def integrate(
     payload: IntegrateRequest,

@@ -4,8 +4,8 @@
 
 Sync endpoints (/quality/imports) are pass-throughs to the
 will.governance.fix_runner facade; tests stub the facade functions and
-confirm the route shapes the inline response and forwards the
-target_files parameter.
+confirm the route shapes the inline response. The route takes no body:
+the check always covers the whole governed repository.
 
 Async endpoints (/quality/lint, /quality/tests, /quality/system,
 /quality/gates) follow the same INSERT-then-schedule pattern as the
@@ -28,7 +28,6 @@ from api.v1.fix_routes import get_fix_run
 from api.v1.quality_routes import (
     QualityAsyncRequest,
     QualityLintRequest,
-    QualityTargetRequest,
     QualityTestsRequest,
     quality_gates,
     quality_imports,
@@ -50,11 +49,9 @@ async def test_quality_imports_ok_path_returns_status_ok_and_empty_violations():
         "api.v1.quality_routes.run_quality_imports",
         AsyncMock(return_value={"status": "ok", "violations": []}),
     ) as mock:
-        out = await quality_imports(
-            payload=QualityTargetRequest(target_files=None),
-        )
+        out = await quality_imports()
 
-    mock.assert_awaited_once_with(None)
+    mock.assert_awaited_once_with()
     assert out == {"status": "ok", "violations": []}
 
 
@@ -66,11 +63,9 @@ async def test_quality_imports_failed_path_propagates_violations():
         "api.v1.quality_routes.run_quality_imports",
         AsyncMock(return_value={"status": "failed", "violations": violations}),
     ) as mock:
-        out = await quality_imports(
-            payload=QualityTargetRequest(target_files=["src/x.py"]),
-        )
+        out = await quality_imports()
 
-    mock.assert_awaited_once_with(["src/x.py"])
+    mock.assert_awaited_once_with()
     assert out["status"] == "failed"
     assert out["violations"] == violations
 
