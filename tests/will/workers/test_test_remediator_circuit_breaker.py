@@ -334,3 +334,33 @@ async def test_report_includes_proposals_skipped_cap() -> None:
     # "proposals_skipped_dedup", which suggested a dedup that never happened).
     assert "source_files_complete" in report_payload
     assert "proposals_skipped_dedup" not in report_payload
+
+
+async def test_no_gaps_is_reported_not_posted_as_a_finding() -> None:
+    """D5 (2026-10-03): a source file the gap evaluator finds complete is
+    informational evidence. It is posted as a report, never as a terminal
+    finding (as a finding it was ~157k rows a week, 85% of all findings)."""
+    worker = _make_worker()
+    complete = MagicMock(ok=True, data={"gaps": [], "covered_count": 4})
+    patches = _patch_operations(
+        **{
+            "body.evaluators.test_gap_evaluator.TestGapEvaluator": MagicMock(
+                return_value=MagicMock(execute=AsyncMock(return_value=complete))
+            ),
+        }
+    )
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "shared.infrastructure.intent.operational_config.load_operational_config",
+                return_value=MagicMock(blackboard=MagicMock(remediation_cap_n=_CAP_N)),
+            )
+        )
+        for target, mock in patches.items():
+            stack.enter_context(patch(target, mock))
+        await worker.run()  # type: ignore[attr-defined]
+
+    subjects = [c.kwargs["subject"] for c in worker.post_report.await_args_list]  # type: ignore[attr-defined]
+    assert f"test.coverage.complete::{_SOURCE_FILE}" in subjects
+    worker.post_observation.assert_not_awaited()  # type: ignore[attr-defined]

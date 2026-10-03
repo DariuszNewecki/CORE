@@ -109,7 +109,7 @@ class TestRemediatorWorker(Worker):
         3. For each source_file:
            a. File-level circuit breaker: abandon immediately if inherited count >= cap_n
            b. Call TestGapEvaluator → GapReport (AST-only, no LLM)
-           c. If no gaps: post test.coverage.complete, release findings
+           c. If no gaps: report test.coverage.complete, release findings
            d. For each untested symbol:
               - Dedup skip if active flow.build_test_for_symbol proposal exists
               - Per-symbol circuit breaker: skip if recent symbol failures >= cap_n
@@ -276,13 +276,15 @@ class TestRemediatorWorker(Worker):
                     source_file,
                     gap_result.data.get("covered_count", 0),
                 )
-                await self.post_observation(
+                # Informational evidence, not work: a report, never a finding
+                # (D5, 2026-10-03 — as a terminal finding it was 85% of all
+                # findings, ~157k a week, inflating every finding-based rate).
+                await self.post_report(
                     subject=f"test.coverage.complete::{source_file}",
                     payload={
                         "source_file": source_file,
                         "covered_count": gap_result.data.get("covered_count", 0),
                     },
-                    status="resolved",
                 )
                 entries_released += await _release_entries(entry_ids)
                 source_files_skipped.append(source_file)
