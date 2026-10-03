@@ -338,3 +338,42 @@ async def test_evaluate_snake_case_method_name_counts_as_covered(repo_root, eval
 
     assert result.ok
     assert result.data["gap_count"] == 0
+
+
+async def _evaluate(repo_root, evaluator, source: str, tests: str):
+    (repo_root / "src" / "mypkg" / "service.py").write_text(source)
+    test_dir = repo_root / "tests" / "mypkg" / "service"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "test_generated.py").write_text(tests)
+    with patch(
+        "body.evaluators.test_gap_evaluator.source_to_test_path",
+        return_value="tests/mypkg/service/test_generated.py",
+    ):
+        return await evaluator.execute(source_file="src/mypkg/service.py")
+
+
+@pytest.mark.asyncio
+async def test_bare_method_test_covers_unique_method(repo_root, evaluator):
+    """Regression (2026-10-03): test_check_logger_not_presentation never counted
+    for LoggingChecks.check_logger_not_presentation, so it was re-minted 8 times."""
+    result = await _evaluate(
+        repo_root,
+        evaluator,
+        "class LoggingChecks:\n    def check_logger(self): pass\n",
+        "def test_check_logger(): assert True\n",
+    )
+    covered = {c["name"] for c in result.data["already_covered"]}
+    assert "LoggingChecks.check_logger" in covered
+
+
+@pytest.mark.asyncio
+async def test_bare_method_test_does_not_cover_ambiguous_method(repo_root, evaluator):
+    """`verify` on two classes: a bare test_verify proves neither."""
+    result = await _evaluate(
+        repo_root,
+        evaluator,
+        "class A:\n    def verify(self): pass\nclass B:\n    def verify(self): pass\n",
+        "def test_verify(): assert True\n",
+    )
+    gaps = {g["name"] for g in result.data["gaps"]}
+    assert {"A.verify", "B.verify"} <= gaps

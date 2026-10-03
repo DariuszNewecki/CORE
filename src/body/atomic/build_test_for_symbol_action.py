@@ -22,6 +22,7 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
+import ast
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -160,6 +161,30 @@ async def action_build_test_for_symbol(
         snippet_body = strip_leading_future_imports(generated_code)
         if test_path.exists():
             existing = test_path.read_text(encoding="utf-8")
+            collisions = _colliding_test_names(existing, snippet_body)
+            if collisions:
+                # Appending a same-named top-level test would shadow the
+                # existing one: pytest keeps only the last definition, so a
+                # test silently stops running (2026-10-03: 10 shadowed tests
+                # committed overnight). Refuse rather than write.
+                logger.warning(
+                    "build.test_for_symbol: refusing to append %s to %s — "
+                    "name(s) already defined there: %s",
+                    symbol_name,
+                    test_file,
+                    ", ".join(collisions),
+                )
+                return ActionResult(
+                    action_id="build.test_for_symbol",
+                    ok=False,
+                    data={
+                        "error": "test_name_collision",
+                        "colliding_names": collisions,
+                        "test_file": test_file,
+                        "symbol_name": symbol_name,
+                    },
+                    duration_sec=time.time() - start,
+                )
             full_content = existing.rstrip() + "\n\n\n" + snippet_body + "\n"
         else:
             full_content = (
@@ -207,3 +232,25 @@ async def action_build_test_for_symbol(
         },
         duration_sec=time.time() - start,
     )
+
+
+def _colliding_test_names(existing: str, snippet: str) -> list[str]:
+    """Top-level function/class names the snippet would redefine in existing.
+
+    Unparseable input yields no collisions: syntax is judged elsewhere (the
+    IntentGuard pass above and the flow's sandbox validation).
+    """
+    try:
+        existing_names = {
+            n.name
+            for n in ast.parse(existing).body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        }
+        snippet_names = [
+            n.name
+            for n in ast.parse(snippet).body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        ]
+    except SyntaxError:
+        return []
+    return sorted({name for name in snippet_names if name in existing_names})

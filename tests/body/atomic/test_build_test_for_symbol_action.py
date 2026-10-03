@@ -220,7 +220,9 @@ async def test_action_returns_not_ok_on_intent_guard_violation(
 
 
 @pytest.mark.asyncio
-async def test_append_to_existing_file_stays_collectible(mock_core_context, source_setup):
+async def test_append_to_existing_file_stays_collectible(
+    mock_core_context, source_setup
+):
     """#792 regression: appending a snippet (whose mandated first line is
     `from __future__ import annotations`) to an existing test file must not
     produce a mid-file future import → SyntaxError at pytest collection."""
@@ -271,3 +273,46 @@ async def test_append_to_existing_file_stays_collectible(mock_core_context, sour
     ast.parse(appended)
     assert appended.count("from __future__") == 1
     assert "def test_first():" in appended and "def test_do_work():" in appended
+
+
+@pytest.mark.asyncio
+async def test_action_refuses_to_shadow_an_existing_test(
+    mock_core_context, source_setup, tmp_path
+):
+    """Regression (2026-10-03): appending a same-named test shadowed the previous
+    one (pytest keeps only the last definition); 10 tests stopped running."""
+    from body.atomic.build_test_for_symbol_action import action_build_test_for_symbol
+
+    test_dir = tmp_path / "tests" / "mypkg" / "service"
+    test_dir.mkdir(parents=True)
+    (test_dir / "test_generated.py").write_text(
+        "from __future__ import annotations\n\n\ndef test_do_work():\n    assert True\n"
+    )
+    mock_validation = MagicMock(is_valid=True, violations=[])
+    mock_intent_guard = MagicMock()
+    mock_intent_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with (
+        patch(
+            "body.atomic.build_test_for_symbol_action.get_intent_guard",
+            return_value=mock_intent_guard,
+        ),
+        patch(
+            "body.atomic.build_test_for_symbol_action.source_to_test_path",
+            return_value="tests/mypkg/service/test_generated.py",
+        ),
+        authorize_execution("build.test_for_symbol"),
+    ):
+        result = await action_build_test_for_symbol(
+            source_file=source_setup,
+            symbol_name="do_work",
+            symbol_kind="function",
+            generated_code=_GOOD_CODE,
+            core_context=mock_core_context,
+            write=True,
+        )
+
+    assert not result.ok
+    assert result.data["error"] == "test_name_collision"
+    assert result.data["colliding_names"] == ["test_do_work"]
+    mock_core_context.file_handler.write.assert_not_called()

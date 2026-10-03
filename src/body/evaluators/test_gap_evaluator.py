@@ -163,10 +163,27 @@ class TestGapEvaluator(BaseEvaluator):
         # (lowercase, no '_' or '.'), or the remediator re-mints the same
         # symbol after every landing (2026-10-02 loop).
         tested_keys = {_name_key(name) for name in tested_names}
+        # A method "Class.method" is also covered by a bare test_<method> when
+        # no other symbol in this file has that method/function name — the
+        # generator often drops the class, and an unrecognised landing is
+        # re-minted every cycle with the same function name, shadowing the
+        # previous copy (2026-10-03 loop: LoggingChecks.check_logger_not_presentation
+        # minted 8 times overnight). Ambiguous bare names (e.g. `verify` on
+        # several classes) are never credited.
+        leaf_counts: dict[str, int] = {}
+        for sym in symbols:
+            leaf = _name_key(sym.name.rsplit(".", 1)[-1])
+            leaf_counts[leaf] = leaf_counts.get(leaf, 0) + 1
         gaps: list[SymbolGap] = []
         covered: list[SymbolGap] = []
         for sym in symbols:
-            if _name_key(sym.name) in tested_keys:
+            leaf_key = _name_key(sym.name.rsplit(".", 1)[-1])
+            bare_method_covered = (
+                "." in sym.name
+                and leaf_counts.get(leaf_key) == 1
+                and leaf_key in tested_keys
+            )
+            if _name_key(sym.name) in tested_keys or bare_method_covered:
                 sym.tested = True
                 covered.append(sym)
             else:

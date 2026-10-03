@@ -39,24 +39,8 @@ def test_ApiAuthChecks():
         assert ApiAuthChecks.check_sensitive_route_must_be_gated(tree) == []
 
 
-from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
-
-
-# ID: 048df3c7-bd85-4496-b8ce-6bc24bfc7231
-def test_check_route_module_must_declare_exposure() -> None:
-    source = "ROUTER_EXPOSURE = 'governor-only'\n"
-    tree = ast.parse(source)
-
-    with patch(
-        "mind.logic.engines.ast_gate.checks.api_auth_checks._find_router_exposure",
-        return_value=ast.Constant(value="governor-only"),
-    ):
-        result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
-
-    assert result == []
-
-
 import mind.logic.engines.ast_gate.checks.api_auth_checks as api_auth_checks
+from mind.logic.engines.ast_gate.checks.api_auth_checks import ApiAuthChecks
 
 
 # ID: f5c5231a-999c-41bc-9d87-fab129fae109
@@ -101,33 +85,6 @@ def test_ApiAuthChecks_check_router_exposure_enforcement() -> None:
     assert result == []
 
 
-# ID: aaf792ac-e418-47b8-9634-042ab5db5400
-def test_check_route_module_must_declare_exposure() -> None:
-    source = "ROUTER_EXPOSURE = 'user-facing'\n"
-    tree = ast.parse(source)
-    with patch(
-        "mind.logic.engines.ast_gate.checks.api_auth_checks._find_router_exposure",
-        return_value=object(),
-    ):
-        result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
-    assert result == []
-
-
-# ID: 22a9316f-cad8-4ea2-b9f2-c2ec8a8eb8ad
-def test_check_route_module_must_declare_exposure() -> None:
-    tree = ast.parse("x = 1\n")
-
-    with patch(
-        "mind.logic.engines.ast_gate.checks.api_auth_checks._find_router_exposure",
-        return_value=None,
-    ):
-        result = ApiAuthChecks.check_route_module_must_declare_exposure(tree)
-
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert "ROUTER_EXPOSURE" in result[0]
-
-
 # ID: 646356cc-1978-4ce1-a33b-2267d6b884a3
 def test_check_route_module_must_declare_exposure() -> None:
     source = "ROUTER_EXPOSURE = 'user-facing'\n"
@@ -141,9 +98,6 @@ def test_check_route_module_must_declare_exposure() -> None:
 
     assert result == []
     mock_find.assert_called_once_with(tree)
-
-
-
 
 
 # ID: 8926317a-838c-4b55-8233-0826de08bc5b
