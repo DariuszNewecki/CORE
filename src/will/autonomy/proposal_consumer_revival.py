@@ -26,7 +26,8 @@ Three operations:
     EXECUTION time both use BlackboardService.revive_findings_for_failed_proposal
     — flips status to 'awaiting_reaudit' (ADR-045), passes the ADR-104 D9
     remediation-attempt cap so a finding that fails this many times is
-    abandoned instead of revived forever. This is correct for ceremony
+    delegated to the governor instead of revived forever (D9 as amended
+    2026-10-03). This is correct for ceremony
     findings specifically because they are born, and stay while deferred,
     resolution_mechanism='reaudit' — the same predicate
     revive_findings_for_failed_proposal already requires. A ceremony
@@ -181,10 +182,10 @@ async def revive_and_report(
                                share the same key shape by design).
 
     The ADR-104 D9 remediation-attempt cap (a finding that has now failed
-    remediation that many times is abandoned (terminal Type-B) instead of
-    revived, with a terminal
+    remediation that many times is delegated to the governor —
+    ``indeterminate``/``human`` — instead of revived, with a
     ``blackboard.remediation_cap_reached::<finding_subject>`` observation
-    per ``worker_only_inserts``) applies to the autonomous AND ceremony
+    per ``worker_only_inserts``; D9 as amended 2026-10-03) applies to the autonomous AND ceremony
     lineages alike (both revive via the same capped call). The
     governor-reject path (proposal_service.reject) never passes it — a
     human decision is not a remediation failure — and neither does
@@ -192,7 +193,7 @@ async def revive_and_report(
     decision, 2026-08-23): a human delegated the work; the delegation does
     not expire because one attempt failed to execute.
 
-    A zero-revival, zero-abandon outcome is legitimate (the proposal had no
+    A zero-revival, zero-delegation outcome is legitimate (the proposal had no
     deferred findings) and is logged silently; nothing is posted then.
     """
     lineage = await _proposal_revival_lineage(proposal_id)
@@ -228,38 +229,32 @@ async def report_revival(
     *report_subject_family* names the revival report; a no-op completion is
     not a failure, so its caller passes ``proposal.noop.revival``.
 
-    Two at-cap shapes, one observation subject: the D9 failure path
-    abandons (``abandoned_*`` keys, reason ``remediation_cap_reached``); the
-    D10 no-op path delegates to the governor (``delegated_*`` keys, reason
-    ``noop_cap_delegated``, finding now ``indeterminate``/``human``).
+    Two at-cap paths, one observation subject, both delegating to the
+    governor (finding now ``indeterminate``/``human``): the D9 failure path
+    (reason ``failure_cap_delegated``, ADR-104 D9 as amended 2026-10-03) and
+    the D10 no-op path (reason ``noop_cap_delegated``). The revival dict's
+    ``cap_reason`` names which.
     """
-    # ADR-104 D9 (#637): findings that reached the remediation-attempt cap
-    # were abandoned terminally by the service. Post one terminal Type-B
-    # observation per abandoned finding so the cap event is named and folds
-    # into the F-19 `stuck` bucket. Posted here (not in the service) per
+    # ADR-104 D9/D10 (#637, #901): findings that reached the remediation-
+    # attempt cap were delegated to the governor by the service. Post one
+    # observation per delegated finding so the cap event is named (D4).
+    # Posted here (not in the service) per
     # architecture.blackboard.worker_only_inserts.
     #
     # Subject uses the original finding's subject (stable per violation class),
-    # not entry_id (UUID), so the same violation does not generate a new F-19
-    # subject each time it cycles through the cap. abandoned_finding_ids is
-    # only ever non-empty on the autonomous path (assisted-lane revival never
-    # abandons), so cap_n is only actually read when the loop body below
-    # runs — but it must still resolve, since bare cap_n is no longer in this
-    # function's scope after the lineage split.
+    # not entry_id (UUID). delegated_finding_ids is only non-empty on the
+    # capped paths (assisted-lane revival never delegates at a cap).
     from shared.infrastructure.intent.operational_config import (
         load_operational_config,
     )
 
     cap_n = load_operational_config().blackboard.remediation_cap_n
 
+    # Both at-cap paths delegate to the governor (ADR-104 D9 as amended
+    # 2026-10-03, D10); the revival names which via ``cap_reason``.
+    cap_reason = revival.get("cap_reason", "noop_cap_delegated")
     at_cap: list[tuple[str, str, str, str]] = [
-        (entry_id, subject, "remediation_cap_reached", "abandoned")
-        for entry_id, subject in zip(
-            revival.get("abandoned_finding_ids", []),
-            revival.get("abandoned_subjects", []),
-        )
-    ] + [
-        (entry_id, subject, "noop_cap_delegated", "indeterminate")
+        (entry_id, subject, cap_reason, "indeterminate")
         for entry_id, subject in zip(
             revival.get("delegated_finding_ids", []),
             revival.get("delegated_subjects", []),
@@ -291,9 +286,7 @@ async def report_revival(
                 "cap (n=%d) for proposal %s",
                 entry_id,
                 finding_subject,
-                "delegated to the governor"
-                if finding_status == "indeterminate"
-                else "abandoned",
+                "delegated to the governor",
                 cap_n,
                 proposal_id,
             )

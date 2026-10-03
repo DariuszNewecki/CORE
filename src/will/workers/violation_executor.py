@@ -210,18 +210,19 @@ class ViolationExecutorWorker(Worker):
 
         # Steps 3-10: Process each file
         for file_path, file_findings in by_file.items():
-            # ADR-104 D9 circuit breaker (unmapped-rule path): query the accumulated
-            # attempt count from prior abandoned findings. If it has already reached
-            # or exceeded cap_n, abandon fresh findings immediately rather than
-            # running a ceremony that will fail again.
+            # ADR-104 D9 circuit breaker (unmapped-rule path), as amended
+            # 2026-10-03: query the accumulated attempt count from prior
+            # abandoned findings. At or over cap_n, delegate the fresh findings
+            # to the governor once rather than running a ceremony that will
+            # fail again — never abandon, which would re-post them every cycle.
             inherited = await self._query_file_attempt_count(file_path)
             if inherited >= cap_n:
                 entry_ids = [str(f["id"]) for f in file_findings]
-                await self._abandon_capped_findings(entry_ids, inherited)
+                await self._delegate_capped_findings(entry_ids, inherited, file_path)
                 capped += 1
                 logger.warning(
                     "ViolationExecutorWorker: '%s' — remediation cap exhausted "
-                    "(inherited=%d, cap=%d); %d finding(s) abandoned without ceremony",
+                    "(inherited=%d, cap=%d); %d finding(s) delegated to the governor",
                     file_path,
                     inherited,
                     cap_n,
@@ -518,16 +519,33 @@ class ViolationExecutorWorker(Worker):
             return 0
 
     # ID: d5e8b1a4-3f96-4c27-8a73-2b5c9e6f0d12
-    async def _abandon_capped_findings(self, entry_ids: list[str], count: int) -> None:
-        """Abandon findings that have hit the remediation cap, stamping count."""
+    async def _delegate_capped_findings(
+        self, entry_ids: list[str], count: int, file_path: str
+    ) -> None:
+        """Delegate findings at the remediation cap to the governor, stamping
+        count and the last ceremony failure for this file (ADR-104 D9 as
+        amended 2026-10-03)."""
         try:
             from body.services.service_registry import service_registry
 
             svc = await service_registry.get_blackboard_service()
-            await svc.abandon_remediation_capped_findings(entry_ids, count)
+            last = await svc.fetch_latest_report_payload(
+                f"audit.remediation.failed::{file_path}"
+            )
+            await svc.delegate_remediation_capped_findings(
+                entry_ids,
+                count,
+                {
+                    "reason": "failure_cap_delegated",
+                    "detail": (last or {}).get("reason")
+                    or "LLM remediation ceremony attempts exhausted for this file",
+                    "attempted_actions": "llm_remediation_ceremony",
+                    "attempt_count": count,
+                },
+            )
         except Exception as exc:
             logger.error(
-                "ViolationExecutorWorker: abandon_capped_findings failed — %s", exc
+                "ViolationExecutorWorker: delegate_capped_findings failed — %s", exc
             )
 
     # ID: 7e1d8f4a-3c2b-4d5e-9a6f-2c4d8b3e9f1c

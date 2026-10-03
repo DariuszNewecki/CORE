@@ -500,24 +500,24 @@ class BlackboardProposalService:
         not count attempts), behaviour is exactly as above: every matching
         finding is revived, no counter touched. When an int, each finding's
         ``payload.remediation_attempt_count`` is incremented and, when this
-        failure makes the count reach the cap, the finding is *abandoned*
-        (terminal Type-B) instead of revived — breaking the
-        generate → fail → revive → regenerate loop on a perpetually-failing
-        remediation. This is the D3 orphan abandon-at-cap principle applied
-        one trigger over (gate failure, not worker death); the abandoned
-        finding keeps its original (non-Type-A) subject, so
-        F19_CONVERGENCE_SQL counts it as ``stuck`` with no classifier
-        change. Per ``architecture.blackboard.worker_only_inserts`` the
-        terminal observation announcing the abandon (D4) is posted by the
-        calling Worker, not here.
+        failure makes the count reach the cap, the finding is *delegated to
+        the governor* (``indeterminate`` + ``human``) instead of revived —
+        breaking the generate → fail → revive → regenerate loop without
+        dropping responsibility (ADR-104 D9 as amended 2026-10-03; ADR-154
+        rejection disposition). ``payload.delegation`` records the reason
+        ``failure_cap_delegated``, the failure reason, the proposal and its
+        attempted actions. ``indeterminate`` is in the sensor's dedup set, so
+        the violation is not re-posted while delegated. Per
+        ``architecture.blackboard.worker_only_inserts`` the cap observation
+        (D4) is posted by the calling Worker, not here.
 
         Returns:
-          None if nothing was revived or abandoned — nothing to report.
+          None if nothing was revived or delegated — nothing to report.
           Otherwise a dict with ``proposal_id``, ``failure_reason``,
-          ``revived_count`` / ``revived_finding_ids`` / ``revived_subjects``
-          and ``abandoned_count`` / ``abandoned_finding_ids`` /
-          ``abandoned_subjects`` (the last three empty on the uncapped
-          path). Both id and subject lists are returned — IDs for precise
+          ``revived_count`` / ``revived_finding_ids`` / ``revived_subjects``,
+          ``delegated_count`` / ``delegated_finding_ids`` /
+          ``delegated_subjects`` (empty on the uncapped path) and
+          ``cap_reason``. Both id and subject lists are returned — IDs for precise
           downstream queries, subjects for human-readable audit trails.
 
         The caller MUST NOT rely on this method raising on partial failure.
@@ -528,8 +528,8 @@ class BlackboardProposalService:
         """
         from body.services.service_registry import ServiceRegistry
 
-        abandoned_ids: list[str] = []
-        abandoned_subjects: list[str] = []
+        delegated_ids: list[str] = []
+        delegated_subjects: list[str] = []
 
         async with ServiceRegistry.session() as session:
             async with session.begin():
@@ -592,7 +592,7 @@ class BlackboardProposalService:
                     )
                     rows = selected.fetchall()
                     # (count + 1) is the attempt this failure represents.
-                    to_abandon = [
+                    to_delegate = [
                         (r[0], r[1]) for r in rows if (r[2] + 1) >= remediation_cap_n
                     ]
                     to_revive = [
@@ -626,43 +626,74 @@ class BlackboardProposalService:
                             {"ids": [i for i, _ in to_revive]},
                         )
 
-                    if to_abandon:
+                    if to_delegate:
+                        # ADR-104 D9 as amended 2026-10-03: exhausting
+                        # autonomous remediation hands the finding to the
+                        # governor once (ADR-154 rejection disposition),
+                        # never abandons it — an abandoned subject leaves the
+                        # sensor's dedup set and is re-posted every cycle.
+                        # 'human' is co-assigned here, literally (ADR-091 D2
+                        # Amendment). The delegation carries the attempted
+                        # actions and the last failure reason.
                         await session.execute(
                             text(
                                 """
                                 UPDATE core.blackboard_entries
-                                SET status = 'abandoned',
-                                    resolved_at = now(),
+                                SET status = 'indeterminate',
+                                    resolution_mechanism = 'human',
+                                    claimed_by = NULL,
+                                    claimed_at = NULL,
+                                    resolved_at = NULL,
                                     payload = jsonb_set(
-                                        payload,
-                                        '{remediation_attempt_count}',
-                                        to_jsonb(COALESCE(
-                                            (payload->>'remediation_attempt_count')::int,
-                                            0
-                                        ) + 1)
+                                        jsonb_set(
+                                            payload,
+                                            '{remediation_attempt_count}',
+                                            to_jsonb(COALESCE(
+                                                (payload->>'remediation_attempt_count')::int,
+                                                0
+                                            ) + 1)
+                                        ),
+                                        '{delegation}',
+                                        jsonb_build_object(
+                                            'reason', 'failure_cap_delegated',
+                                            'detail', cast(:reason as text),
+                                            'proposal_id', cast(:proposal_id as text),
+                                            'attempted_actions', (
+                                                SELECT a.actions
+                                                FROM core.autonomous_proposals a
+                                                WHERE a.proposal_id = cast(:proposal_id as text)
+                                            ),
+                                            'delegated_at', to_char(now() at time zone 'UTC',
+                                                                    'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                        ),
+                                        true
                                     ),
                                     updated_at = now()
                                 WHERE id = ANY(cast(:ids as uuid[]))
                                   AND status = 'deferred_to_proposal'
                                 """
                             ),
-                            {"ids": [i for i, _ in to_abandon]},
+                            {
+                                "ids": [i for i, _ in to_delegate],
+                                "reason": failure_reason,
+                                "proposal_id": proposal_id,
+                            },
                         )
 
                     revived_ids = [i for i, _ in to_revive]
                     revived_subjects = [s for _, s in to_revive]
-                    abandoned_ids = [i for i, _ in to_abandon]
-                    abandoned_subjects = [s for _, s in to_abandon]
+                    delegated_ids = [i for i, _ in to_delegate]
+                    delegated_subjects = [s for _, s in to_delegate]
 
         logger.info(
-            "Revived %d / abandoned %d finding(s) for failed proposal %s (reason: %s)",
+            "Revived %d / delegated %d finding(s) for failed proposal %s (reason: %s)",
             len(revived_ids),
-            len(abandoned_ids),
+            len(delegated_ids),
             proposal_id,
             failure_reason,
         )
 
-        if not revived_ids and not abandoned_ids:
+        if not revived_ids and not delegated_ids:
             return None
 
         return {
@@ -671,9 +702,10 @@ class BlackboardProposalService:
             "revived_count": len(revived_ids),
             "revived_finding_ids": revived_ids,
             "revived_subjects": revived_subjects,
-            "abandoned_count": len(abandoned_ids),
-            "abandoned_finding_ids": abandoned_ids,
-            "abandoned_subjects": abandoned_subjects,
+            "delegated_count": len(delegated_ids),
+            "delegated_finding_ids": delegated_ids,
+            "delegated_subjects": delegated_subjects,
+            "cap_reason": "failure_cap_delegated",
         }
 
     # ID: d6660208-ab59-4dca-9f41-e5881850037d
@@ -838,6 +870,7 @@ class BlackboardProposalService:
             "delegated_count": len(delegated_ids),
             "delegated_finding_ids": delegated_ids,
             "delegated_subjects": [s for _, s in to_delegate],
+            "cap_reason": "noop_cap_delegated",
         }
 
     # ID: 90c7c05a-a380-4d5a-9b1e-a911c3ed5d02
@@ -956,24 +989,30 @@ class BlackboardProposalService:
                 )
 
     # ID: 995d1685-c278-4992-bed8-8bfac48cd4f9
-    async def abandon_remediation_capped_findings(
-        self, entry_ids: list[str], count: int
+    async def delegate_remediation_capped_findings(
+        self, entry_ids: list[str], count: int, delegation: dict[str, Any]
     ) -> list[str]:
         """
-        Immediately abandon findings whose inherited remediation_attempt_count
-        has already reached or exceeded the cap (ADR-104 D9 circuit breaker).
+        Delegate to the governor the findings whose inherited
+        remediation_attempt_count has reached the cap (ADR-104 D9 as amended
+        2026-10-03; ADR-154 rejection disposition).
 
-        Called by TestRemediatorWorker when the inherited count for a
-        source_file equals or exceeds cap_n BEFORE a new proposal is created,
-        so the loop terminates without wasting an LLM call on a proposal that
-        would be abandoned immediately on failure.
-
-        Sets status='abandoned' and stamps remediation_attempt_count=count in
-        the payload. Only touches entries in 'open' or 'claimed' status.
-        Returns the list of entry IDs that were actually abandoned (RETURNING).
+        Called when a re-posted finding's lineage has already exhausted
+        autonomous remediation (the violation remediator's mapped path, the
+        violation executor's unmapped path, the test remediator), so no new
+        proposal or ceremony is attempted. The finding moves to
+        ``status='indeterminate'`` with ``resolution_mechanism='human'``
+        co-assigned (``indeterminate_requires_human_mechanism``), stamps
+        ``remediation_attempt_count=count`` and records *delegation* (reason,
+        last failure, attempted actions) under ``payload.delegation``.
+        ``indeterminate`` is in the sensor's dedup set, so the violation is
+        not re-posted while delegated. Only touches entries in 'open' or
+        'claimed' status. Returns the entry IDs actually delegated.
         """
         if not entry_ids:
             return []
+
+        import json
 
         from body.services.service_registry import ServiceRegistry
 
@@ -983,12 +1022,25 @@ class BlackboardProposalService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'abandoned',
-                            resolved_at = now(),
+                        SET status = 'indeterminate',
+                            resolution_mechanism = 'human',
+                            claimed_by = NULL,
+                            claimed_at = NULL,
+                            resolved_at = NULL,
                             payload = jsonb_set(
-                                payload,
-                                '{remediation_attempt_count}',
-                                to_jsonb(cast(:count as int))
+                                jsonb_set(
+                                    payload,
+                                    '{remediation_attempt_count}',
+                                    to_jsonb(cast(:count as int))
+                                ),
+                                '{delegation}',
+                                cast(:delegation as jsonb)
+                                || jsonb_build_object(
+                                    'delegated_at',
+                                    to_char(now() at time zone 'UTC',
+                                            'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                ),
+                                true
                             ),
                             updated_at = now()
                         WHERE id = ANY(cast(:ids as uuid[]))
@@ -996,7 +1048,11 @@ class BlackboardProposalService:
                         RETURNING id::text
                         """
                     ),
-                    {"ids": entry_ids, "count": count},
+                    {
+                        "ids": entry_ids,
+                        "count": count,
+                        "delegation": json.dumps(delegation),
+                    },
                 )
                 return [row[0] for row in result.fetchall()]
 

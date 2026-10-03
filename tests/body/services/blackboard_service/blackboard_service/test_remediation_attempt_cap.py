@@ -1,23 +1,24 @@
 """Integration tests for ADR-104 D9 (#637) — the remediation-attempt cap on
 ``BlackboardService.revive_findings_for_failed_proposal``.
 
-The D3 orphan abandon-at-cap principle, applied one trigger over: a finding
-revived from a failed proposal counts its attempts in
+A finding revived from a failed proposal counts its attempts in
 ``payload.remediation_attempt_count``; when ``remediation_cap_n`` is supplied
-and this failure makes the count reach the cap, the finding is abandoned
-(terminal Type-B) instead of routed back to awaiting_reaudit — breaking the
-generate -> fail -> revive -> regenerate loop on a perpetually-failing
-remediation. These tests exercise the acceptance cases (ADR-104 D9 criterion 7)
+and this failure makes the count reach the cap, the finding is delegated to
+the governor (``indeterminate`` + ``human``, ADR-104 D9 as amended
+2026-10-03) instead of routed back to awaiting_reaudit — breaking the
+generate -> fail -> revive -> regenerate loop without dropping
+responsibility. These tests exercise the acceptance cases (ADR-104 D9 criterion 7)
 against the live test DB:
 
   * below the cap: revived to awaiting_reaudit, count incremented, claim
     markers cleared (the pre-#637 behaviour, now also counting);
-  * at the cap: abandoned (terminal, resolved_at set), count incremented,
-    surfaced in the abandoned set so the worker can post the terminal
-    blackboard.remediation_cap_reached observation;
+  * at the cap: delegated (indeterminate + human, delegation reason
+    failure_cap_delegated), count incremented, surfaced in the delegated set
+    so the worker can post the blackboard.remediation_cap_reached
+    observation;
   * uncapped path (remediation_cap_n=None, the governor-reject caller):
     revived without touching the counter — a human decision is not a
-    remediation failure and must not count toward auto-abandon.
+    remediation failure and must not count toward the cap.
 
 Synthetic UUIDs + self-cleanup, same pattern as the ADR-104 D3
 release_orphaned_claims tests.
@@ -117,6 +118,8 @@ async def _fetch(db_session: AsyncSession, entry_id: str):
             select status,
                    claimed_by,
                    resolved_at,
+                   resolution_mechanism,
+                   payload->'delegation'->>'reason' as delegation_reason,
                    (payload->>'remediation_attempt_count')::int as attempt_count
               from core.blackboard_entries
              where id = cast(:id as uuid)
@@ -171,7 +174,7 @@ async def test_below_cap_revives_and_increments(db_session: AsyncSession) -> Non
         assert revival is not None
         assert revival["revived_count"] == 1
         assert entry_id in revival["revived_finding_ids"]
-        assert revival["abandoned_count"] == 0
+        assert revival["delegated_count"] == 0
         row = await _fetch(db_session, entry_id)
         assert row.status == "awaiting_reaudit"
         assert row.claimed_by is None
@@ -182,12 +185,13 @@ async def test_below_cap_revives_and_increments(db_session: AsyncSession) -> Non
 
 
 # ID: 6da1a5a5-cfbb-4028-9e1e-7be72b87f4ed
-async def test_at_cap_abandons(db_session: AsyncSession) -> None:
-    """A finding whose next failure reaches the cap is abandoned (terminal,
-    resolved_at set) instead of revived — the ADR-104 D9 rail that breaks the
-    generate -> fail -> revive loop. With cap=3 and a prior count of 2, this
-    failure takes the count to 3 and abandons; the entry surfaces in the
-    abandoned set so the worker posts the terminal observation (D4)."""
+async def test_at_cap_delegates_to_the_governor(db_session: AsyncSession) -> None:
+    """A finding whose next failure reaches the cap is delegated to the
+    governor instead of revived — the ADR-104 D9 rail (as amended
+    2026-10-03) that breaks the generate -> fail -> revive loop without
+    abandoning the finding. With cap=3 and a prior count of 2, this failure
+    takes the count to 3 and delegates; the entry surfaces in the delegated
+    set so the worker posts the cap observation (D4)."""
     emitter = uuid.uuid4()
     entry_id = str(uuid.uuid4())
     proposal_id = f"test-d9-atcap-{uuid.uuid4().hex[:8]}"
@@ -205,12 +209,14 @@ async def test_at_cap_abandons(db_session: AsyncSession) -> None:
             remediation_cap_n=_CAP,
         )
         assert revival is not None
-        assert revival["abandoned_count"] == 1
-        assert entry_id in revival["abandoned_finding_ids"]
+        assert revival["delegated_count"] == 1
+        assert entry_id in revival["delegated_finding_ids"]
         assert revival["revived_count"] == 0
+        assert revival["cap_reason"] == "failure_cap_delegated"
         row = await _fetch(db_session, entry_id)
-        assert row.status == "abandoned"
-        assert row.resolved_at is not None
+        assert row.status == "indeterminate"
+        assert row.resolution_mechanism == "human"
+        assert row.delegation_reason == "failure_cap_delegated"
         assert row.attempt_count == _CAP
     finally:
         await _cleanup(db_session, entry_id, emitter)
@@ -223,7 +229,7 @@ async def test_uncapped_path_revives_without_counting(
     """The governor-reject path passes no cap (remediation_cap_n=None): the
     finding is revived to awaiting_reaudit exactly as pre-#637, and the attempt
     counter is left untouched — a human decision must not count toward
-    auto-abandon. Seeded with no counter at all to prove the uncapped path
+    the cap. Seeded with no counter at all to prove the uncapped path
     neither requires nor writes it."""
     emitter = uuid.uuid4()
     entry_id = str(uuid.uuid4())
@@ -242,7 +248,7 @@ async def test_uncapped_path_revives_without_counting(
         )
         assert revival is not None
         assert revival["revived_count"] == 1
-        assert revival["abandoned_count"] == 0
+        assert revival["delegated_count"] == 0
         row = await _fetch(db_session, entry_id)
         assert row.status == "awaiting_reaudit"
         assert row.claimed_by is None

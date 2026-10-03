@@ -25,11 +25,12 @@ transitions for findings:
   dicts whose rule has no remediation map entry.
 - mark_delegated: terminal 'indeterminate' for entries whose rule is
   DELEGATE — non-automatable, awaiting governor decision.
-- abandon_capped_findings: ADR-104 D9 counter inheritance for the mapped
-  path (#901). A finding whose abandoned lineage (same subject) already
-  reached ``remediation_cap_n`` is abandoned again, terminally, before a
-  proposal is minted for it — the sensor re-posts abandoned violations as
-  fresh rows, so without this read the cap resets every cycle.
+- delegate_capped_findings: ADR-104 D9 counter inheritance for the mapped
+  path (#901), as amended 2026-10-03. A finding whose abandoned lineage
+  (same subject) already reached ``remediation_cap_n`` is delegated to the
+  governor (``indeterminate`` + ``human``) with the last failure, before a
+  proposal is minted for it — never abandoned again, which would have the
+  sensor re-post it every cycle.
 
 Implements:
   ADR-010    — Finding→Proposal linkage and the §7/§7a revival contract
@@ -226,37 +227,33 @@ async def mark_delegated(service: Any, findings: list[dict[str, Any]]) -> int:
 
 
 # ID: f5ef69e5-baba-4d33-a37f-87b25e5c9f34
-async def abandon_capped_findings(
+async def delegate_capped_findings(
     service: Any,
     findings: list[dict[str, Any]],
     cap_n: int,
-    rearm_after_sec: int | None = None,
 ) -> list[str]:
-    """Abandon the findings whose subject lineage has exhausted the
-    remediation-attempt cap; return their entry ids.
+    """Delegate to the governor the findings whose subject lineage has
+    exhausted the remediation-attempt cap; return their entry ids.
 
-    ADR-104 D9 counter inheritance (#901), mapped-rule path. For each
-    finding the highest ``remediation_attempt_count`` among *abandoned*
-    findings with the same subject is read; at or over *cap_n* the fresh
-    finding is abandoned immediately with that count stamped, mirroring
-    ViolationExecutorWorker's per-file check for unmapped rules. Findings
-    under the cap are untouched. Fail-soft per finding: a service error
-    reads as count 0 (the finding proceeds to a proposal), so a lookup
-    hiccup degrades toward retry, never toward silent abandonment.
-
-    *rearm_after_sec* (ADR-104 D11) is passed to the lineage query so a
-    lineage whose last real failure is older than the window re-arms.
+    ADR-104 D9 counter inheritance (#901), mapped-rule path, as amended
+    2026-10-03: for each finding the highest ``remediation_attempt_count``
+    among *abandoned* findings with the same subject is read; at or over
+    *cap_n* the fresh finding is handed to the governor (``indeterminate`` +
+    ``human``) with the attempt count, the lineage's last failure reason and
+    the attempted actions — never abandoned, which would leave it to be
+    re-posted every cycle. No time window: elapsed time does not re-arm.
+    Findings under the cap are untouched. Fail-soft per finding: a lookup
+    error reads as count 0 (the finding proceeds to a proposal), so a hiccup
+    degrades toward retry, never toward silent abandonment.
     """
-    abandoned: list[str] = []
+    delegated: list[str] = []
     for finding in findings:
         subject = str(finding.get("subject") or "")
         entry_id = _entry_id(finding)
         if not subject:
             continue
         try:
-            inherited = await service.query_max_attempt_count_by_subject(
-                subject, rearm_after_sec=rearm_after_sec
-            )
+            inherited = await service.query_max_attempt_count_by_subject(subject)
         except Exception as e:
             logger.warning(
                 "ViolationRemediatorWorker: could not read inherited attempt "
@@ -268,24 +265,41 @@ async def abandon_capped_findings(
         if inherited < cap_n:
             continue
         try:
-            done = await service.abandon_remediation_capped_findings(
-                [entry_id], inherited
+            last = await service.query_last_failed_proposal_for_subject(subject)
+        except Exception as e:
+            logger.warning(
+                "ViolationRemediatorWorker: could not read last failure for %s: %s",
+                subject,
+                e,
+            )
+            last = None
+        delegation = {
+            "reason": "failure_cap_delegated",
+            "detail": (last or {}).get("failure_reason")
+            or "remediation attempts exhausted in an earlier lineage",
+            "proposal_id": (last or {}).get("proposal_id"),
+            "attempted_actions": (last or {}).get("actions"),
+            "attempt_count": inherited,
+        }
+        try:
+            done = await service.delegate_remediation_capped_findings(
+                [entry_id], inherited, delegation
             )
         except Exception as e:
             logger.error(
-                "ViolationRemediatorWorker: failed to abandon capped finding %s: %s",
+                "ViolationRemediatorWorker: failed to delegate capped finding %s: %s",
                 entry_id,
                 e,
             )
             continue
         if done:
-            abandoned.extend(done)
+            delegated.extend(done)
             logger.warning(
                 "ViolationRemediatorWorker: %s — remediation cap exhausted "
-                "(inherited=%d, cap=%d); finding %s abandoned without a proposal",
+                "(inherited=%d, cap=%d); finding %s delegated to the governor",
                 subject,
                 inherited,
                 cap_n,
                 entry_id,
             )
-    return abandoned
+    return delegated

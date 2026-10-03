@@ -9,10 +9,11 @@ fresh row next cycle with a zero counter. The unmapped path
 from the abandoned lineage before doing work; the mapped path did not, so
 after abandon-at-cap it minted the next proposal for the same file and
 rule as if nothing had happened. These tests pin the collaborator
-``abandon_capped_findings`` (subject-scoped lookup, fail-soft to 0,
-abandon with the inherited count stamped) and the run() wiring: a group
-whose every finding is at the cap mints nothing; a partially capped group
-mints a proposal for the survivors only.
+``delegate_capped_findings`` (subject-scoped lookup, fail-soft to 0,
+delegate to the governor with the inherited count and last failure —
+ADR-104 D9 as amended 2026-10-03) and the run() wiring: a group whose every
+finding is at the cap mints nothing; a partially capped group mints a
+proposal for the survivors only.
 
 Hermetic: blackboard service is a stub, proposal creation is mocked.
 """
@@ -23,7 +24,7 @@ import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from will.autonomy.violation_remediator_blackboard import abandon_capped_findings
+from will.autonomy.violation_remediator_blackboard import delegate_capped_findings
 from will.workers.violation_remediator import ViolationRemediatorWorker
 
 
@@ -40,26 +41,33 @@ def _finding(file_path: str) -> dict[str, Any]:
 
 
 class _StubBlackboard:
-    """Counts by subject; records every abandon call."""
+    """Counts by subject; records every delegation call."""
 
     def __init__(self, counts: dict[str, int], *, raise_for: str | None = None):
         self._counts = counts
         self._raise_for = raise_for
-        self.abandoned: list[tuple[list[str], int]] = []
-        self.rearm_seen: list[int | None] = []
+        self.delegated: list[tuple[list[str], int]] = []
+        self.delegations: list[dict[str, Any]] = []
 
-    async def query_max_attempt_count_by_subject(
-        self, subject: str, rearm_after_sec: int | None = None
-    ) -> int:
-        self.rearm_seen.append(rearm_after_sec)
+    async def query_max_attempt_count_by_subject(self, subject: str) -> int:
         if subject == self._raise_for:
             raise RuntimeError("lookup outage")
         return self._counts.get(subject, 0)
 
-    async def abandon_remediation_capped_findings(
-        self, entry_ids: list[str], count: int
+    async def query_last_failed_proposal_for_subject(
+        self, subject: str
+    ) -> dict[str, Any] | None:
+        return {
+            "proposal_id": "pid-old",
+            "failure_reason": "Blocked by IntentGuard: superseded rule",
+            "actions": [{"action_id": _REF_ID}],
+        }
+
+    async def delegate_remediation_capped_findings(
+        self, entry_ids: list[str], count: int, delegation: dict[str, Any]
     ) -> list[str]:
-        self.abandoned.append((entry_ids, count))
+        self.delegated.append((entry_ids, count))
+        self.delegations.append(delegation)
         return list(entry_ids)
 
 
@@ -69,38 +77,34 @@ class _StubBlackboard:
 
 
 # ID: 1295b812-d697-44d4-a9e5-cf1af400787d
-async def test_abandons_only_findings_at_or_over_the_cap() -> None:
+async def test_delegates_only_findings_at_or_over_the_cap() -> None:
     at_cap, under, over = _finding("a.py"), _finding("b.py"), _finding("c.py")
     svc = _StubBlackboard(
         {at_cap["subject"]: 3, under["subject"]: 2, over["subject"]: 7}
     )
 
-    abandoned = await abandon_capped_findings(svc, [at_cap, under, over], cap_n=3)
+    delegated = await delegate_capped_findings(svc, [at_cap, under, over], cap_n=3)
 
-    assert abandoned == [at_cap["id"], over["id"]]
-    # The inherited count is stamped, so the lineage keeps climbing.
-    assert svc.abandoned == [([at_cap["id"]], 3), ([over["id"]], 7)]
+    assert delegated == [at_cap["id"], over["id"]]
+    # The inherited count is stamped on the delegated finding.
+    assert svc.delegated == [([at_cap["id"]], 3), ([over["id"]], 7)]
+    # The delegation carries what the governor needs (ADR-104 D9 amended).
+    first = svc.delegations[0]
+    assert first["reason"] == "failure_cap_delegated"
+    assert first["detail"] == "Blocked by IntentGuard: superseded rule"
+    assert first["proposal_id"] == "pid-old"
+    assert first["attempted_actions"] == [{"action_id": _REF_ID}]
+    assert first["attempt_count"] == 3
 
 
 # ID: 3670b314-601a-43f3-8186-8cbef762ba70
 async def test_lookup_outage_reads_as_zero_and_keeps_the_finding() -> None:
-    """Fail-soft toward retry: a service hiccup must never abandon."""
+    """Fail-soft toward retry: a service hiccup must never delegate."""
     f = _finding("a.py")
     svc = _StubBlackboard({f["subject"]: 99}, raise_for=f["subject"])
 
-    assert await abandon_capped_findings(svc, [f], cap_n=3) == []
-    assert svc.abandoned == []
-
-
-# ID: 5b15cf97-0ee6-4316-a853-7136b855044a
-async def test_rearm_window_is_passed_to_the_lineage_query() -> None:
-    """ADR-104 D11: the re-arm window reaches the lineage query."""
-    f = _finding("a.py")
-    svc = _StubBlackboard({})
-
-    await abandon_capped_findings(svc, [f], cap_n=3, rearm_after_sec=604800)
-
-    assert svc.rearm_seen == [604800]
+    assert await delegate_capped_findings(svc, [f], cap_n=3) == []
+    assert svc.delegated == []
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +169,7 @@ async def test_fully_capped_group_mints_no_proposal() -> None:
     payload, create = await _run([f], svc)
 
     create.assert_not_awaited()
-    assert svc.abandoned == [([f["id"]], 3)]
+    assert svc.delegated == [([f["id"]], 3)]
     assert payload["proposals_created"] == 0
     assert payload["proposals_capped"] == 1
     assert payload["entries_capped"] == 1
@@ -175,7 +179,7 @@ async def test_fully_capped_group_mints_no_proposal() -> None:
 # ID: 28d699b6-8d9f-4ffd-92cb-e147c03cc104
 async def test_partially_capped_group_mints_for_the_survivors_only() -> None:
     """Two findings share the (ref_id, file_path) group key here only
-    because the test pins them to one file; the capped one is abandoned,
+    because the test pins them to one file; the capped one is delegated,
     the other still reaches _create_proposal alone."""
     capped, fresh = _finding("x.py"), _finding("x.py")
     svc = _StubBlackboard({capped["subject"]: 3})
@@ -200,6 +204,6 @@ async def test_uncapped_findings_proceed_unchanged() -> None:
     payload, create = await _run([f], svc)
 
     create.assert_awaited_once()
-    assert svc.abandoned == []
+    assert svc.delegated == []
     assert payload["entries_capped"] == 0
     assert payload["proposals_capped"] == 0

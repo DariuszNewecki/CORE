@@ -8,6 +8,7 @@ original finding's subject (stable per violation class) rather than the
 entry UUID, so the same capped violation does not generate a new F-19
 subject on every proposal failure cycle.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -28,19 +29,21 @@ def _make_worker() -> MagicMock:
 
 
 def _make_revival_result(
-    abandoned_ids: list[str],
-    abandoned_subjects: list[str],
+    delegated_ids: list[str],
+    delegated_subjects: list[str],
     revived_count: int = 0,
 ) -> dict:
+    # The D9 failure path's at-cap shape (ADR-104 D9 as amended 2026-10-03).
     return {
         "proposal_id": _PROPOSAL_ID,
         "failure_reason": "executor_failed",
         "revived_count": revived_count,
         "revived_finding_ids": [],
         "revived_subjects": [],
-        "abandoned_count": len(abandoned_ids),
-        "abandoned_finding_ids": abandoned_ids,
-        "abandoned_subjects": abandoned_subjects,
+        "delegated_count": len(delegated_ids),
+        "delegated_finding_ids": delegated_ids,
+        "delegated_subjects": delegated_subjects,
+        "cap_reason": "failure_cap_delegated",
     }
 
 
@@ -69,8 +72,8 @@ async def test_cap_reached_subject_uses_finding_subject_not_entry_id() -> None:
     from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
-        abandoned_ids=[_ENTRY_ID_1],
-        abandoned_subjects=[_FINDING_SUBJECT_1],
+        delegated_ids=[_ENTRY_ID_1],
+        delegated_subjects=[_FINDING_SUBJECT_1],
     )
     bb_service = _make_bb_service(revival)
     registry = _make_registry(bb_service)
@@ -99,13 +102,13 @@ async def test_cap_reached_subject_uses_finding_subject_not_entry_id() -> None:
     assert call_kwargs["payload"]["finding_subject"] == _FINDING_SUBJECT_1
 
 
-async def test_cap_reached_posts_one_observation_per_abandoned_finding() -> None:
-    """Two abandoned findings → two stable, distinct observations."""
+async def test_cap_reached_posts_one_observation_per_delegated_finding() -> None:
+    """Two delegated findings → two stable, distinct observations."""
     from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
-        abandoned_ids=[_ENTRY_ID_1, _ENTRY_ID_2],
-        abandoned_subjects=[_FINDING_SUBJECT_1, _FINDING_SUBJECT_2],
+        delegated_ids=[_ENTRY_ID_1, _ENTRY_ID_2],
+        delegated_subjects=[_FINDING_SUBJECT_1, _FINDING_SUBJECT_2],
     )
     bb_service = _make_bb_service(revival)
     registry = _make_registry(bb_service)
@@ -122,20 +125,19 @@ async def test_cap_reached_posts_one_observation_per_abandoned_finding() -> None
 
     assert worker.post_observation.await_count == 2
     subjects = [
-        call.kwargs["subject"]
-        for call in worker.post_observation.await_args_list
+        call.kwargs["subject"] for call in worker.post_observation.await_args_list
     ]
     assert subjects[0] == f"blackboard.remediation_cap_reached::{_FINDING_SUBJECT_1}"
     assert subjects[1] == f"blackboard.remediation_cap_reached::{_FINDING_SUBJECT_2}"
 
 
-async def test_no_abandoned_findings_posts_nothing() -> None:
-    """If the revival has no abandoned findings, no observation is posted."""
+async def test_no_delegated_findings_posts_nothing() -> None:
+    """If the revival has no delegated findings, no observation is posted."""
     from will.autonomy.proposal_consumer_revival import revive_and_report
 
     revival = _make_revival_result(
-        abandoned_ids=[],
-        abandoned_subjects=[],
+        delegated_ids=[],
+        delegated_subjects=[],
         revived_count=2,
     )
     bb_service = _make_bb_service(revival)

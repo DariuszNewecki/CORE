@@ -8,7 +8,8 @@ Three behaviours under test:
    abandon_entries_and_increment_attempt_count (NOT bare abandon_entries).
 
 2. Circuit breaker fires: when inherited count >= cap_n before _process_file,
-   the file is skipped and findings are abandoned via _abandon_capped_findings.
+   the file is skipped and findings are delegated to the governor via
+   _delegate_capped_findings (ADR-104 D9 as amended 2026-10-03).
 
 3. Circuit breaker skips: when inherited count < cap_n, normal ceremony runs.
 
@@ -65,7 +66,7 @@ def _patch_run(**overrides):  # type: ignore[no-untyped-def]
         "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
             return_value=0
         ),
-        "will.workers.violation_executor.ViolationExecutorWorker._abandon_capped_findings": AsyncMock(),
+        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings": AsyncMock(),
         "will.workers.violation_executor.ViolationExecutorWorker._process_file": AsyncMock(
             return_value=(True, ["cli.dangerous_explicit"])
         ),
@@ -111,7 +112,7 @@ async def test_abandon_findings_uses_increment_method() -> None:
 
 async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     """
-    When _query_file_attempt_count returns cap_n, _abandon_capped_findings is
+    When _query_file_attempt_count returns cap_n, _delegate_capped_findings is
     called and _process_file is NOT called.
     """
     worker = _make_worker()
@@ -138,8 +139,8 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._abandon_capped_findings"
-    ].assert_awaited_once_with(["entry-aaa"], _CAP_N)
+        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
+    ].assert_awaited_once_with(["entry-aaa"], _CAP_N, _FILE)
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"
     ].assert_not_awaited()
@@ -171,7 +172,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._abandon_capped_findings"
+        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
     ].assert_awaited_once()
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"
@@ -186,7 +187,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     """
     When inherited < cap_n, the normal ceremony path runs:
-    _process_file is called, _abandon_capped_findings is NOT called.
+    _process_file is called, _delegate_capped_findings is NOT called.
     """
     worker = _make_worker()
     patches = _patch_run(
@@ -212,7 +213,7 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._abandon_capped_findings"
+        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
     ].assert_not_awaited()
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"

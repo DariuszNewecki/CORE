@@ -78,11 +78,14 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
         "will.workers.test_remediator.worker._query_recent_symbol_failures": AsyncMock(
             return_value=0
         ),
-        "will.workers.test_remediator.worker._abandon_capped_findings": AsyncMock(
+        "will.workers.test_remediator.worker._delegate_capped_findings": AsyncMock(
             return_value=["entry-id-1"]
         ),
         "will.workers.test_remediator.worker._create_symbol_proposal": AsyncMock(
             return_value="proposal-id-1"
+        ),
+        "will.workers.test_remediator.worker._last_failed_proposal": AsyncMock(
+            return_value=None
         ),
         "will.workers.test_remediator.worker._inherit_attempt_count": AsyncMock(),
         "will.workers.test_remediator.worker._release_entries": AsyncMock(
@@ -103,8 +106,8 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
 
 async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     """
-    inherited == cap_n (3 == 3) → _abandon_capped_findings called,
-    post_observation called for each abandoned entry, _create_proposal NOT called.
+    inherited == cap_n (3 == 3) → _delegate_capped_findings called (ADR-104 D9
+    as amended 2026-10-03), post_observation called, _create_proposal NOT called.
     """
     worker = _make_worker()
     patches = _patch_operations(
@@ -126,21 +129,23 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    patches[
-        "will.workers.test_remediator.worker._abandon_capped_findings"
-    ].assert_awaited_once_with(["entry-id-1"], _CAP_N)
+    delegate = patches["will.workers.test_remediator.worker._delegate_capped_findings"]
+    delegate.assert_awaited_once()
+    entry_ids, count, delegation = delegate.await_args.args
+    assert (entry_ids, count) == (["entry-id-1"], _CAP_N)
+    assert delegation["reason"] == "failure_cap_delegated"
+    assert delegation["attempt_count"] == _CAP_N
     worker.post_observation.assert_awaited_once()  # type: ignore[attr-defined]
     call_kwargs = worker.post_observation.await_args.kwargs  # type: ignore[attr-defined]
     # Stable subject per source_file — NOT per finding UUID — so F-19 does not
     # accumulate a new distinct subject each sensor cycle for capped files.
     assert (
-        call_kwargs["subject"]
-        == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
+        call_kwargs["subject"] == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
     )
     call_payload = call_kwargs["payload"]
-    assert call_payload["reason"] == "remediation_cap_exhausted_via_inheritance"
+    assert call_payload["reason"] == "failure_cap_delegated"
     assert call_payload["source_file"] == _SOURCE_FILE
-    assert "abandoned_entry_ids" in call_payload
+    assert "delegated_entry_ids" in call_payload
     patches[
         "will.workers.test_remediator.worker._create_symbol_proposal"
     ].assert_not_awaited()
@@ -174,7 +179,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
         "will.workers.test_remediator.worker._create_symbol_proposal"
     ].assert_not_awaited()
     patches[
-        "will.workers.test_remediator.worker._abandon_capped_findings"
+        "will.workers.test_remediator.worker._delegate_capped_findings"
     ].assert_awaited_once()
 
 
@@ -205,7 +210,7 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.test_remediator.worker._abandon_capped_findings"
+        "will.workers.test_remediator.worker._delegate_capped_findings"
     ].assert_not_awaited()
     patches[
         "will.workers.test_remediator.worker._create_symbol_proposal"
@@ -243,7 +248,7 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.test_remediator.worker._abandon_capped_findings"
+        "will.workers.test_remediator.worker._delegate_capped_findings"
     ].assert_not_awaited()
     patches[
         "will.workers.test_remediator.worker._inherit_attempt_count"
@@ -255,7 +260,7 @@ async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:
 
 async def test_circuit_breaker_multiple_findings_posts_once() -> None:
     """
-    When multiple findings are abandoned for the same capped source_file,
+    When multiple findings are delegated for the same capped source_file,
     post_observation is called ONCE (not once per finding) with the stable
     per-source-file subject. This prevents UUID-per-finding subjects from
     polluting F-19's created_24h counter each sensor cycle.
@@ -273,7 +278,7 @@ async def test_circuit_breaker_multiple_findings_posts_once() -> None:
             "will.workers.test_remediator.worker._query_source_file_attempt_count": AsyncMock(
                 return_value=_CAP_N
             ),
-            "will.workers.test_remediator.worker._abandon_capped_findings": AsyncMock(
+            "will.workers.test_remediator.worker._delegate_capped_findings": AsyncMock(
                 return_value=["entry-id-1", "entry-id-2"]
             ),
         }
@@ -290,15 +295,14 @@ async def test_circuit_breaker_multiple_findings_posts_once() -> None:
             stack.enter_context(patch(target, mock))
         await worker.run()  # type: ignore[attr-defined]
 
-    # ONE observation regardless of how many findings were abandoned.
+    # ONE observation regardless of how many findings were delegated.
     worker.post_observation.assert_awaited_once()  # type: ignore[attr-defined]
     call_kwargs = worker.post_observation.await_args.kwargs  # type: ignore[attr-defined]
     assert (
-        call_kwargs["subject"]
-        == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
+        call_kwargs["subject"] == f"blackboard.remediation_cap_reached::{_SOURCE_FILE}"
     )
     payload = call_kwargs["payload"]
-    assert set(payload["abandoned_entry_ids"]) == {"entry-id-1", "entry-id-2"}
+    assert set(payload["delegated_entry_ids"]) == {"entry-id-1", "entry-id-2"}
 
 
 async def test_report_includes_proposals_skipped_cap() -> None:

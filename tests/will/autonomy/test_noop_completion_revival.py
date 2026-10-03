@@ -333,8 +333,9 @@ async def test_report_revival_posts_report_when_only_delegations_happened() -> N
 
 
 # ID: c0e48a3f-d07f-467d-86c2-19eed9015d63
-async def test_report_revival_default_family_is_unchanged_for_failures() -> None:
-    """D9 failure path: abandoned findings keep reason remediation_cap_reached."""
+async def test_report_revival_failure_cap_is_delegated() -> None:
+    """D9 failure path (as amended 2026-10-03): findings at the cap are
+    delegated, and the observation names reason failure_cap_delegated."""
     worker = MagicMock()
     worker.post_report = AsyncMock()
     worker.post_observation = AsyncMock()
@@ -352,13 +353,14 @@ async def test_report_revival_default_family_is_unchanged_for_failures() -> None
                 "failure_reason": "boom",
                 "revived_count": 1,
                 "revived_subjects": ["s"],
-                "abandoned_finding_ids": ["f-9"],
-                "abandoned_subjects": ["python::rule::z.py"],
+                "delegated_finding_ids": ["f-9"],
+                "delegated_subjects": ["python::rule::z.py"],
+                "cap_reason": "failure_cap_delegated",
             },
         )
     obs = worker.post_observation.await_args.kwargs["payload"]
-    assert obs["reason"] == "remediation_cap_reached"
-    assert obs["finding_status"] == "abandoned"
+    assert obs["reason"] == "failure_cap_delegated"
+    assert obs["finding_status"] == "indeterminate"
     assert (
         worker.post_report.await_args.kwargs["subject"]
         == "proposal.failure.revival::pid-fail"

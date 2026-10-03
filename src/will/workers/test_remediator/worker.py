@@ -63,10 +63,11 @@ from shared.logger import getLogger
 from shared.workers.base import Worker
 
 from ._operations import (
-    _abandon_capped_findings,
     _create_symbol_proposal,
+    _delegate_capped_findings,
     _get_active_symbol_proposals,
     _inherit_attempt_count,
+    _last_failed_proposal,
     _load_open_findings,
     _query_recent_symbol_failures,
     _query_source_file_attempt_count,
@@ -183,34 +184,50 @@ class TestRemediatorWorker(Worker):
         for source_file, findings in by_source.items():
             entry_ids = [f["id"] for f in findings]
 
-            # File-level circuit breaker: inherited abandoned count.
+            # File-level circuit breaker: inherited abandoned count. At the
+            # cap the findings go to the governor once (ADR-104 D9 as amended
+            # 2026-10-03), carrying the last failed proposal.
             inherited = await _query_source_file_attempt_count(source_file)
             if inherited >= cap_n:
-                abandoned_ids = await _abandon_capped_findings(entry_ids, inherited)
+                last = await _last_failed_proposal(
+                    str(findings[0].get("subject") or "")
+                )
+                delegated_ids = await _delegate_capped_findings(
+                    entry_ids,
+                    inherited,
+                    {
+                        "reason": "failure_cap_delegated",
+                        "detail": (last or {}).get("failure_reason")
+                        or "test generation attempts exhausted for this source file",
+                        "proposal_id": (last or {}).get("proposal_id"),
+                        "attempted_actions": (last or {}).get("actions"),
+                        "attempt_count": inherited,
+                    },
+                )
                 proposals_skipped_cap += 1
                 # Stable subject (source_file path, not finding UUID) — prevents one
                 # unique cap_reached subject per sensor cycle from flooding F-19's
                 # created_24h/stuck_24h counts. The first appearance sets first_seen;
                 # subsequent posts to the same subject leave first_seen unchanged.
-                if abandoned_ids:
+                if delegated_ids:
                     await self.post_observation(
                         subject=f"blackboard.remediation_cap_reached::{source_file}",
                         payload={
                             "source_file": source_file,
-                            "reason": "remediation_cap_exhausted_via_inheritance",
+                            "reason": "failure_cap_delegated",
                             "remediation_cap_n": cap_n,
                             "inherited_count": inherited,
-                            "abandoned_entry_ids": abandoned_ids,
+                            "delegated_entry_ids": delegated_ids,
                         },
                         status="abandoned",
                     )
                 logger.warning(
                     "TestRemediatorWorker: '%s' — file-level cap exhausted "
-                    "(inherited=%d, cap=%d); %d finding(s) abandoned",
+                    "(inherited=%d, cap=%d); %d finding(s) delegated to the governor",
                     source_file,
                     inherited,
                     cap_n,
-                    len(abandoned_ids),
+                    len(delegated_ids),
                 )
                 continue
 
@@ -221,19 +238,28 @@ class TestRemediatorWorker(Worker):
                 error = gap_result.data.get("error", "unknown")
                 logger.warning(
                     "TestRemediatorWorker: gap evaluation failed for '%s': %s — "
-                    "abandoning findings; source must be fixed before tests can be generated",
+                    "delegating findings; source must be fixed before tests can be generated",
                     source_file,
                     error,
                 )
-                abandoned_ids = await _abandon_capped_findings(entry_ids, inherited)
-                if abandoned_ids:
+                delegated_ids = await _delegate_capped_findings(
+                    entry_ids,
+                    inherited,
+                    {
+                        "reason": "gap_evaluation_failed",
+                        "detail": str(error),
+                        "attempted_actions": "test_gap_evaluation",
+                        "attempt_count": inherited,
+                    },
+                )
+                if delegated_ids:
                     await self.post_observation(
                         subject=f"blackboard.remediation_cap_reached::{source_file}",
                         payload={
                             "source_file": source_file,
                             "reason": "gap_evaluation_failed",
                             "error": error,
-                            "abandoned_entry_ids": abandoned_ids,
+                            "delegated_entry_ids": delegated_ids,
                         },
                         status="abandoned",
                     )

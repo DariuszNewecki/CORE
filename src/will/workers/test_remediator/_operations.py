@@ -199,14 +199,18 @@ async def _inherit_attempt_count(entry_ids: list[str], count: int) -> None:
         )
 
 
-async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str]:
+async def _delegate_capped_findings(
+    entry_ids: list[str], count: int, delegation: dict[str, Any]
+) -> list[str]:
     """
-    Immediately abandon findings whose inherited remediation_attempt_count has
-    reached the cap (ADR-104 D9 circuit breaker).
+    Delegate to the governor the findings for a source file the test
+    remediator will not attempt again (ADR-104 D9 as amended 2026-10-03):
+    the inherited remediation_attempt_count has reached the cap, or the
+    source cannot be gap-evaluated. The findings become ``indeterminate`` +
+    ``human`` with *delegation* recorded — never abandoned, which would leave
+    the sensor to re-post them every cycle.
 
-    Called by TestRemediatorWorker when inherited >= cap_n, so no new proposal
-    is created for a source_file whose remediation budget is exhausted. Returns
-    the entry IDs that were actually abandoned; fail-soft, returns [] on error.
+    Returns the entry IDs actually delegated; fail-soft, returns [] on error.
     """
     if not entry_ids:
         return []
@@ -215,14 +219,32 @@ async def _abandon_capped_findings(entry_ids: list[str], count: int) -> list[str
 
     try:
         bb_service = await service_registry.get_blackboard_service()
-        return await bb_service.abandon_remediation_capped_findings(entry_ids, count)
+        return await bb_service.delegate_remediation_capped_findings(
+            entry_ids, count, delegation
+        )
     except Exception as e:
         logger.warning(
-            "TestRemediatorWorker: failed to abandon capped findings (count=%d): %s",
+            "TestRemediatorWorker: failed to delegate capped findings (count=%d): %s",
             count,
             e,
         )
         return []
+
+
+async def _last_failed_proposal(subject: str) -> dict[str, Any] | None:
+    """The lineage's most recent failed proposal, or None (fail-soft)."""
+    if not subject:
+        return None
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        return await bb_service.query_last_failed_proposal_for_subject(subject)
+    except Exception as e:
+        logger.warning(
+            "TestRemediatorWorker: could not read last failure for %s: %s", subject, e
+        )
+        return None
 
 
 async def _release_entries(entry_ids: list[str]) -> int:

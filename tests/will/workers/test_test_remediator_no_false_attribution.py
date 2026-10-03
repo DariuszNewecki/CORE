@@ -44,7 +44,9 @@ def _make_worker() -> object:
     return w
 
 
-def _patch_operations(*, gaps: list[dict[str, str]], active_symbol_proposals=None, **overrides):  # type: ignore[no-untyped-def]
+def _patch_operations(
+    *, gaps: list[dict[str, str]], active_symbol_proposals=None, **overrides
+):  # type: ignore[no-untyped-def]
     """Same shape as test_test_remediator_circuit_breaker.py's helper, with
     `gaps` and `active_symbol_proposals` exposed as direct parameters since
     these tests vary them per scenario."""
@@ -65,8 +67,11 @@ def _patch_operations(*, gaps: list[dict[str, str]], active_symbol_proposals=Non
         "will.workers.test_remediator.worker._query_recent_symbol_failures": AsyncMock(
             return_value=0
         ),
-        "will.workers.test_remediator.worker._abandon_capped_findings": AsyncMock(
+        "will.workers.test_remediator.worker._delegate_capped_findings": AsyncMock(
             return_value=[]
+        ),
+        "will.workers.test_remediator.worker._last_failed_proposal": AsyncMock(
+            return_value=None
         ),
         "will.workers.test_remediator.worker._inherit_attempt_count": AsyncMock(),
         "will.workers.test_remediator.worker._release_entries": AsyncMock(
@@ -99,7 +104,9 @@ async def _run_with_patches(worker, findings: list[dict], patches: dict) -> None
         await worker.run()  # type: ignore[attr-defined]
 
 
-async def test_multi_symbol_missing_finding_creates_both_proposals_and_releases() -> None:
+async def test_multi_symbol_missing_finding_creates_both_proposals_and_releases() -> (
+    None
+):
     """A file-level `.missing` finding with two untested symbols: both
     symbol proposals get created, but the finding is released -- not
     deferred to either one, since it isn't about either symbol
@@ -108,7 +115,10 @@ async def test_multi_symbol_missing_finding_creates_both_proposals_and_releases(
     findings = [
         {
             "id": "entry-missing-1",
-            "payload": {"source_file": _SOURCE_FILE, "test_file": "tests/foo/test_bar.py"},
+            "payload": {
+                "source_file": _SOURCE_FILE,
+                "test_file": "tests/foo/test_bar.py",
+            },
         }
     ]
     gaps = [
@@ -129,9 +139,9 @@ async def test_multi_symbol_missing_finding_creates_both_proposals_and_releases(
     called_symbols = {c.kwargs["symbol_name"] for c in create_mock.await_args_list}
     assert called_symbols == {"foo", "bar"}
 
-    patches["will.workers.test_remediator.worker._release_entries"].assert_awaited_once_with(
-        ["entry-missing-1"]
-    )
+    patches[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-missing-1"])
 
     report_payload = worker.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload["entries_deferred"] == 0
@@ -170,9 +180,9 @@ async def test_failure_finding_with_convention_matched_name_is_still_released() 
     await _run_with_patches(worker, findings, patches)
 
     create_mock.assert_awaited_once()
-    patches["will.workers.test_remediator.worker._release_entries"].assert_awaited_once_with(
-        ["entry-failure-matched"]
-    )
+    patches[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-failure-matched"])
     report_payload = worker.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload["entries_deferred"] == 0
 
@@ -203,12 +213,14 @@ async def test_failure_finding_with_non_matched_name_is_released() -> None:
     await _run_with_patches(worker, findings, patches)
 
     create_mock.assert_awaited_once()
-    patches["will.workers.test_remediator.worker._release_entries"].assert_awaited_once_with(
-        ["entry-failure-unmatched"]
-    )
+    patches[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-failure-unmatched"])
 
 
-async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop() -> None:
+async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop() -> (
+    None
+):
     """Two consecutive cycles for the same source_file/finding:
 
     Cycle 1: no active proposals yet -> creates one symbol proposal ->
@@ -233,14 +245,16 @@ async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop
     patches_1 = _patch_operations(
         gaps=gaps,
         active_symbol_proposals=set(),
-        **{"will.workers.test_remediator.worker._create_symbol_proposal": create_mock_1},
+        **{
+            "will.workers.test_remediator.worker._create_symbol_proposal": create_mock_1
+        },
     )
     await _run_with_patches(worker1, [finding], patches_1)
 
     create_mock_1.assert_awaited_once()
-    patches_1["will.workers.test_remediator.worker._release_entries"].assert_awaited_once_with(
-        ["entry-reeval-1"]
-    )
+    patches_1[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-reeval-1"])
 
     # --- Cycle 2: the proposal from cycle 1 is now active/visible ---
     worker2 = _make_worker()
@@ -248,14 +262,16 @@ async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop
     patches_2 = _patch_operations(
         gaps=gaps,
         active_symbol_proposals={(_SOURCE_FILE, "foo")},
-        **{"will.workers.test_remediator.worker._create_symbol_proposal": create_mock_2},
+        **{
+            "will.workers.test_remediator.worker._create_symbol_proposal": create_mock_2
+        },
     )
     await _run_with_patches(worker2, [finding], patches_2)
 
     create_mock_2.assert_not_awaited()
-    patches_2["will.workers.test_remediator.worker._release_entries"].assert_awaited_once_with(
-        ["entry-reeval-1"]
-    )
+    patches_2[
+        "will.workers.test_remediator.worker._release_entries"
+    ].assert_awaited_once_with(["entry-reeval-1"])
     report_payload_2 = worker2.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload_2["symbols_skipped_dedup"] == 1
     assert report_payload_2["proposals_created"] == 0
