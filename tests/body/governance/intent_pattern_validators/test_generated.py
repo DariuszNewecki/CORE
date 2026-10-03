@@ -69,9 +69,6 @@ def test_PatternValidators_check_no_global_module_mutation() -> None:
     assert "monkeypatch.setattr" in violation.suggested_fix
 
 
-
-
-
 # ID: d8d0ba96-45b7-423a-b42a-27becae09793
 def test_PatternValidators_check_no_placeholder_test_body() -> None:
     source = "def test_something():\n    value = 1 + 1\n"
@@ -92,4 +89,41 @@ def test_PatternValidators_check_no_placeholder_test_body() -> None:
     assert violation.rule_name == "code.tests.no_placeholder_test_body"
     assert violation.path == "tests/test_sample.py"
     assert "test_something" in violation.message
+    assert violation.severity == "error"
+
+
+
+
+# ID: 29c12000-ecc2-4e9e-b2d9-b004266c334c
+def test_PatternValidators_check_no_imported_symbol_redeclared():
+    from body.governance.intent_pattern_validators import (
+        _TEST_NO_IMPORTED_SYMBOL_REDECLARED_RULE_ID,
+        PatternValidators,
+    )
+
+    source = (
+        "from body.foo import Widget\n"
+        "\n"
+        "class Widget:\n"
+        "    pass\n"
+        "\n"
+        "def some_other():\n"
+        "    pass\n"
+    )
+    tree = ast.parse(source)
+
+    with patch.object(
+        PatternValidators,
+        "_load_test_quality_rule_statements",
+        return_value={},
+    ):
+        violations = PatternValidators.check_no_imported_symbol_redeclared(
+            tree, "tests/test_widget.py"
+        )
+
+    assert len(violations) == 1
+    violation = violations[0]
+    assert violation.rule_name == _TEST_NO_IMPORTED_SYMBOL_REDECLARED_RULE_ID
+    assert violation.path == "tests/test_widget.py"
+    assert "Widget" in violation.message
     assert violation.severity == "error"
