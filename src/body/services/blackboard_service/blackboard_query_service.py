@@ -23,6 +23,46 @@ _CFG = load_operational_config().blackboard
 CORE_ROLE = "facade"  # ADR-095 D3
 
 
+# ADR-104 D9 as amended (2026-10-03): an exhausted cap lineage returns to
+# autonomous eligibility only through a recorded changed condition, never
+# elapsed time or a bare status change. The recognised conditions, as each
+# stamps payload.resolution on the resolved finding:
+#   - governor action on the delegated finding (resolve_indeterminate_entry):
+#     resolution_authority = 'principal.governor';
+#   - ADR-127 clean-pass drain (adjudicate_*_findings, violation gone):
+#     resolution_authority = 'system.audit';
+#   - rule retirement (resolve_findings_with_retired_rules):
+#     resolved_by = 'rule_registry_sweep'.
+# Abandoned rows older than the latest such event for the same key no longer
+# count toward the inherited cap.
+def _max_abandoned_count_since_rearm(key: str) -> str:
+    """SQL for the max abandoned attempt count for one key (a ``{t}``-aliased
+    predicate on ``core.blackboard_entries``) since its latest re-arm event."""
+    return f"""
+        SELECT COALESCE(MAX((a.payload->>'remediation_attempt_count')::int), 0)
+        FROM core.blackboard_entries a
+        WHERE a.entry_type = 'finding'
+          AND a.status = 'abandoned'
+          AND {key.format(t="a")}
+          AND a.updated_at > COALESCE(
+              (
+                  SELECT max(r.resolved_at)
+                  FROM core.blackboard_entries r
+                  WHERE r.entry_type = 'finding'
+                    AND r.status = 'resolved'
+                    AND {key.format(t="r")}
+                    AND (
+                        r.payload->'resolution'->>'resolution_authority'
+                            IN ('principal.governor', 'system.audit')
+                        OR r.payload->'resolution'->>'resolved_by'
+                            = 'rule_registry_sweep'
+                    )
+              ),
+              '-infinity'::timestamptz
+          )
+    """
+
+
 # ID: 0f7e0bf6-9fba-44b1-9605-b7dcadf97fac
 class BlackboardQueryService:
     # ID: b980a1a9-eca8-4268-b8ba-86fbcf94b6ce
@@ -517,23 +557,18 @@ class BlackboardQueryService:
         Used by TestRemediatorWorker to seed fresh findings with the
         accumulated count from prior abandoned cycles so the cap cannot be
         bypassed by finding renewal (ADR-104 D9 counter inheritance).
-        Returns 0 when no abandoned findings exist for this source_file.
+        Only abandoned rows newer than the source file's latest re-arm event
+        count (ADR-104 D9 as amended; see _max_abandoned_count_since_rearm).
+        Returns 0 when no such abandoned findings exist for this source_file.
         """
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
             result = await session.execute(
                 text(
-                    """
-                    SELECT COALESCE(
-                        MAX((payload->>'remediation_attempt_count')::int),
-                        0
+                    _max_abandoned_count_since_rearm(
+                        "{t}.payload->>'source_file' = :source_file"
                     )
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND status = 'abandoned'
-                      AND payload->>'source_file' = :source_file
-                    """
                 ),
                 {"source_file": source_file},
             )
@@ -550,23 +585,18 @@ class BlackboardQueryService:
         instead of payload->>'source_file'. Used by ViolationExecutorWorker's
         circuit breaker to detect when a file's remediation budget is exhausted
         across finding-renewal cycles (ADR-104 D9 extended to unmapped-rule path).
-        Returns 0 when no abandoned findings exist for this file_path.
+        Only abandoned rows newer than the file_path's latest re-arm event
+        count (ADR-104 D9 as amended; see _max_abandoned_count_since_rearm).
+        Returns 0 when no such abandoned findings exist for this file_path.
         """
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
             result = await session.execute(
                 text(
-                    """
-                    SELECT COALESCE(
-                        MAX((payload->>'remediation_attempt_count')::int),
-                        0
+                    _max_abandoned_count_since_rearm(
+                        "{t}.payload->>'file_path' = :file_path"
                     )
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND status = 'abandoned'
-                      AND payload->>'file_path' = :file_path
-                    """
                 ),
                 {"file_path": file_path},
             )
@@ -624,26 +654,16 @@ class BlackboardQueryService:
         cap must be read from the abandoned lineage before a new proposal
         is minted. Scoped by subject rather than file so one exhausted
         rule on a file does not block other rules' remediation of it.
-        Returns 0 when no abandoned findings exist for this subject. There
-        is no time window: elapsed time does not re-arm a capped lineage
-        (ADR-104 D9 as amended 2026-10-03).
+        Returns 0 when no abandoned findings exist for this subject since its
+        latest re-arm event. There is no time window: elapsed time does not
+        re-arm a capped lineage; only a recorded changed condition does (ADR-104
+        D9 as amended 2026-10-03; see _max_abandoned_count_since_rearm).
         """
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
             result = await session.execute(
-                text(
-                    """
-                    SELECT COALESCE(
-                        MAX((payload->>'remediation_attempt_count')::int),
-                        0
-                    )
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND status = 'abandoned'
-                      AND subject = :subject
-                    """
-                ),
+                text(_max_abandoned_count_since_rearm("{t}.subject = :subject")),
                 {"subject": subject},
             )
             row = result.fetchone()
