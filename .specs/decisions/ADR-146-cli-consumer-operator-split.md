@@ -158,3 +158,22 @@ No intermediate shim or import guard is required.
 | D5 | `core-cli/core_cli/` | New package namespace for consumer resource modules |
 | D6 | Entry point wiring | `core-cli` exposes `core`; CORE retains `core-admin`; `cli_user:app` retired |
 | D7 | Import audit | Verify no `body`/`mind`/`will` import paths in extracted `core-cli` files |
+
+---
+
+## Amendment 2026-10-03 — `core-cli` is an independent HTTP client (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03)
+
+The consumer/operator split (D1–D3, D6) stands. D4 is superseded and D7's
+independence claim is corrected:
+
+- `core-cli` MUST have no runtime dependency on `core-runtime`.
+- The boundary between `core-cli` and CORE is HTTP, described by the OpenAPI
+  contract (ADR-087 D9, amended 2026-10-03).
+- CORE's internal Python packages (`shared`, `cli.utils`, `api.cli`, and any
+  other) are not part of the client contract.
+
+D7 stated that `core-cli` was "entirely independent of CORE's layer internals".
+Under D4 it was not: it imported `shared`, `cli.utils` and `api.cli` from
+`core-runtime`, and through `cli.utils` loaded CORE's database session layer.

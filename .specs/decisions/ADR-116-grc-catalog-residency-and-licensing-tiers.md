@@ -237,3 +237,13 @@ from this ratification.
 - ADR-113 (per-finding evidence class), ADR-108/ADR-111 (external adoption, `examples/` reference-data precedent).
 - `.specs/planning/CORE-BYOR-Program-Backlog.md` — T5b.
 - #678 (regulation-derived catalog-as-data; the provenance/no-reproduction discipline).
+
+---
+
+## Amendment 2026-10-03 — D6 packaging settled (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03)
+
+D6 left open whether the `public/` tier is packaged into the published
+`core-runtime` wheel. Ruled: the public GRC catalogs are part of the open product
+and ship in the `core-runtime` wheel. Licensed and internal catalogs do not.

@@ -212,3 +212,13 @@ A consumer reading the spec without reading this ADR should still be able to fol
 - **Constitutional anchors:** ADR-084 D6 (interface symmetry), ADR-085 §Context 5+3 row (F-40 exit criterion)
 - **Coordination:** ADR-086 (Installation Architecture), F-48.5 #541 (Python-surface semver policy — different layer)
 - **External conventions referenced:** RFC 8594 (`Sunset` HTTP header), RFC 9745 (`Deprecation` HTTP header)
+
+---
+
+## Amendment 2026-10-03 — D9: the OpenAPI contract lives in CORE (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03)
+
+The authoritative OpenAPI specification of CORE's public API belongs in CORE,
+with the API implementation. Other products, including core-platform, consume it;
+they do not own it.
