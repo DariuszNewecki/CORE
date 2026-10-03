@@ -16,17 +16,22 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ADMIN="${CORE_ADMIN:-poetry run core-admin}"
 
 cd "$HERE" || exit 1
-OUT="$($ADMIN code audit --offline --format=text --severity=block 2>&1)"
+# JSON, not text: the text report is a Rich table that truncates rule ids
+# ("starter.no_bare_…") on a narrow, non-TTY CI log.
+OUT="$($ADMIN code audit --offline --format=json --severity=block 2>/dev/null)"
 CODE=$?
-
-echo "$OUT" | tail -25
-echo "----------------------------------------------------------------------"
 
 if [[ $CODE -eq 0 ]]; then
   echo "FAIL: audit passed, but src/hello.py must violate starter.no_bare_except."
   exit 1
 fi
-if ! grep -q "starter.no_bare_except" <<<"$OUT"; then
+if ! python3 -c '
+import json, sys
+findings = json.loads(sys.stdin.read()).get("findings") or []
+ids = {f.get("check_id") or f.get("rule_id") for f in findings}
+print("findings:", ", ".join(sorted(i for i in ids if i)))
+sys.exit(0 if "starter.no_bare_except" in ids else 1)
+' <<<"$OUT"; then
   echo "FAIL: expected a 'starter.no_bare_except' finding; none was reported."
   exit 1
 fi
