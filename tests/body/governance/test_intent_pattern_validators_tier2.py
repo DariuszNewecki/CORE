@@ -352,6 +352,18 @@ def test_unresolved_free_names_accepts_names_bound_by_scoping(case: str) -> None
     assert PatternValidators.check_no_unresolved_free_names(tree, "test.py") == []
 
 
+@pytest.mark.parametrize("name", ["__file__", "__builtins__", "__cached__"])
+def test_unresolved_free_names_accepts_interpreter_module_names(name: str) -> None:
+    """Module attributes the interpreter sets without an assignment and that
+    are not builtins (``__name__`` & co. already are)."""
+    code = f"""
+def test_x():
+    assert {name} is not None or True
+"""
+    tree = ast.parse(code)
+    assert PatternValidators.check_no_unresolved_free_names(tree, "test.py", code) == []
+
+
 def test_unresolved_free_names_flags_name_only_used_in_comprehension() -> None:
     code = """
 def test_x():

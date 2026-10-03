@@ -25,6 +25,13 @@ CORE_ROLE = "catalog"  # ADR-095 D3
 
 _PYTHON_BUILTINS: frozenset[str] = frozenset(dir(builtins))
 
+# Module attributes the interpreter sets without an assignment in the source
+# and that are not builtins (__name__, __doc__, __spec__, __loader__ and
+# __package__ already are).
+_INTERPRETER_MODULE_NAMES: frozenset[str] = frozenset(
+    {"__file__", "__builtins__", "__cached__"}
+)
+
 _GENERATED_RESOLVE_RULE_ID = "code.imports.generated_must_resolve"
 _GENERATED_NO_RELATIVE_RULE_ID = "code.imports.generated_no_relative"
 
@@ -760,7 +767,9 @@ class PatternValidators:
             # Parses but does not compile (e.g. ``nonlocal`` with no binding).
             return _unanalysable(f"source does not compile ({exc.msg})")
 
-        defined = _module_level_names(top) | _PYTHON_BUILTINS
+        defined = (
+            _module_level_names(top) | _PYTHON_BUILTINS | _INTERPRETER_MODULE_NAMES
+        )
         loads, unmatched = _unresolved_global_loads(tree, top, defined)
         if unmatched is not None:
             return _unanalysable(
