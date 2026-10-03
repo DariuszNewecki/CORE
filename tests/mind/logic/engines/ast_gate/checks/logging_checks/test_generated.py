@@ -161,9 +161,6 @@ def test_check_logger_not_presentation() -> None:
     assert len(findings) >= 1
 
 
-
-
-
 # ID: 5699285e-3865-4423-812d-dcb2db743eef
 def test_check_logger_not_presentation() -> None:
     rich_tree = ast.parse("logger.info(Table())")
@@ -179,3 +176,29 @@ def test_check_logger_not_presentation() -> None:
     assert isinstance(plain_findings, list)
     assert plain_findings == []
     assert len(rich_findings) >= 1 or len(markup_findings) >= 1
+
+
+
+
+
+# ID: 7c549b51-65e7-4497-b05c-c003266a70eb
+def test_LoggingChecks_check_logger_not_presentation():
+    """Happy path: a logger call passing Rich markup string is flagged as a finding."""
+    source = 'logger.info("[bold]hello[/bold]")\n'
+    tree = ast.parse(source)
+
+    findings = LoggingChecks.check_logger_not_presentation(tree)
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert "logger used as renderer" in findings[0]
+    assert "Rich markup" in findings[0]
+
+    # Happy path (clean): a plain logger string must produce no findings.
+    clean_tree = ast.parse('logger.info("plain operational message")\n')
+    clean_findings = LoggingChecks.check_logger_not_presentation(clean_tree)
+    assert clean_findings == []
+
+    # Plain-text labels are NOT Rich markup and must not be flagged.
+    label_tree = ast.parse('logger.info("[DRY RUN] starting")\n')
+    assert LoggingChecks.check_logger_not_presentation(label_tree) == []
