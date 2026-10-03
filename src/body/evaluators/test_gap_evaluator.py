@@ -23,35 +23,10 @@ from body.evaluators.base_evaluator import BaseEvaluator
 from shared.component_primitive import ComponentResult
 from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
+from shared.utils.public_symbols import extract_public_symbols
 
 
 logger = getLogger(__name__)
-
-_DUNDER_SKIP: frozenset[str] = frozenset(
-    {
-        "__init__",
-        "__repr__",
-        "__str__",
-        "__eq__",
-        "__hash__",
-        "__lt__",
-        "__le__",
-        "__gt__",
-        "__ge__",
-        "__len__",
-        "__bool__",
-        "__enter__",
-        "__exit__",
-        "__aenter__",
-        "__aexit__",
-        "__iter__",
-        "__next__",
-        "__contains__",
-        "__getitem__",
-        "__setitem__",
-        "__delitem__",
-    }
-)
 
 
 @dataclass
@@ -219,43 +194,17 @@ class TestGapEvaluator(BaseEvaluator):
 
 # ID: a6b5bc75-c1b5-4cc2-b2b5-ceed9349d070
 def _extract_public_symbols(source_path: Path) -> list[SymbolGap]:
-    """Extract public module-level functions, classes, and class methods via AST."""
-    source = source_path.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(source_path))
-    symbols: list[SymbolGap] = []
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if not node.name.startswith("_"):
-                symbols.append(
-                    SymbolGap(
-                        name=node.name,
-                        kind="function",
-                        signature=_format_signature(node),
-                    )
-                )
-        elif isinstance(node, ast.ClassDef):
-            if not node.name.startswith("_"):
-                symbols.append(
-                    SymbolGap(
-                        name=node.name,
-                        kind="class",
-                        signature=f"class {node.name}",
-                    )
-                )
-                for child in ast.iter_child_nodes(node):
-                    if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        if (
-                            not child.name.startswith("_")
-                            and child.name not in _DUNDER_SKIP
-                        ):
-                            symbols.append(
-                                SymbolGap(
-                                    name=f"{node.name}.{child.name}",
-                                    kind="method",
-                                    signature=_format_signature(child),
-                                )
-                            )
-    return symbols
+    """Public module-level functions, classes and class methods, via AST.
+
+    The predicate is ``shared.utils.public_symbols.extract_public_symbols``
+    — the same one the coverage scan uses to exempt modules with no public
+    symbols (ADR-133 D2; governor ruling 2026-10-03), so the two cannot
+    diverge. This wraps each result as an untested ``SymbolGap``.
+    """
+    return [
+        SymbolGap(name=s.name, kind=s.kind, signature=s.signature)
+        for s in extract_public_symbols(source_path)
+    ]
 
 
 # ID: 26137180-53a9-4360-8535-a221d09ae847
@@ -284,9 +233,3 @@ def _extract_tested_names(test_path: Path) -> set[str]:
 def _name_key(name: str) -> str:
     """Case- and separator-insensitive key: 'Svc.run' == 'Svc_run' == 'svc_run'."""
     return name.lower().replace("_", "").replace(".", "")
-
-
-def _format_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
-    args = [arg.arg for arg in node.args.args]
-    prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
-    return f"{prefix} {node.name}({', '.join(args)})"

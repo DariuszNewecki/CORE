@@ -17,6 +17,15 @@ source_root: "src"
 test_root: "tests"
 test_file_suffix: "/test_generated.py"
 
+# Governor ruling 2026-10-03 (CORE-TestGovernance.md, "Modules with no public
+# symbols"): for the ADR-133 symbol-governed autonomous test pipeline, an
+# in-scope module with no public testable symbols -- by the same ADR-133 D2
+# predicate TestGapEvaluator uses (shared.utils.public_symbols) -- is exempt
+# from the "corresponding test file required" condition: it is not reported
+# as test.coverage / test.runner.missing work. Narrow: private code may still
+# need tests; modules with public testable symbols are not exempt.
+exempt_modules_without_public_symbols: true
+
 excluded_filenames:
   - "__init__.py"
 

@@ -27,6 +27,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from shared.logger import getLogger
+from shared.utils.public_symbols import has_public_testable_symbols
 
 
 logger = getLogger(__name__)
@@ -271,6 +272,10 @@ def uncovered_source_files(
       - source_root, test_root, test_file_suffix
       - excluded_filenames (skip-list)
       - include_files (scope limiter; if non-empty, only these are scanned)
+      - exempt_modules_without_public_symbols (governor ruling 2026-10-03):
+        when true, a module with no public testable symbols — by the ADR-133
+        D2 predicate the gap evaluator uses — is not reported, since the
+        symbol-governed pipeline has nothing to test in it. Absent = false.
     """
     if config is None:
         config = load_test_coverage_config()
@@ -280,6 +285,7 @@ def uncovered_source_files(
         config.get("excluded_filenames", _FALLBACK_EXCLUDED_FILENAMES)
     )
     include_files: frozenset[str] = frozenset(config.get("include_files") or [])
+    exempt_symbol_less = bool(config.get("exempt_modules_without_public_symbols"))
 
     src_root = repo_root / source_root_rel
     if not src_root.exists():
@@ -312,7 +318,10 @@ def uncovered_source_files(
 
         test_path = repo_root / test_rel
 
-        if not test_path.exists():
-            uncovered.append(source_file)
+        if test_path.exists():
+            continue
+        if exempt_symbol_less and not has_public_testable_symbols(py_file):
+            continue
+        uncovered.append(source_file)
 
     return uncovered

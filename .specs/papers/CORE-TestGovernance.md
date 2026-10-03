@@ -55,6 +55,21 @@ Path mapping is governed entirely by
 `.intent/enforcement/config/test_coverage.yaml`. No path logic lives in
 the worker.
 
+#### Modules with no public symbols (governor ruling, 2026-10-03)
+
+For the ADR-133 symbol-governed autonomous test pipeline, an in-scope Python
+module with **no public testable symbols** is exempt from the "corresponding
+test file required" condition. It is not reported as test-coverage work and is
+neither given an empty test file nor delegated: the pipeline has nothing in it
+to test. "Public testable symbol" is the ADR-133 D2 predicate the gap evaluator
+uses — public module-level functions and classes, and the public, non-dunder
+methods of public classes — shared by the coverage scan and the evaluator so
+the two cannot diverge. The switch is `exempt_modules_without_public_symbols`
+in `test_coverage.yaml`.
+
+The rule is narrow. It does not say private code never needs tests, and it
+does not exempt any module that has a public testable symbol.
+
 ### Stage 2 — Test Execution
 
 **Worker:** `TestRunnerSensor`
