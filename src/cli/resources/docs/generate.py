@@ -21,7 +21,6 @@ import importlib
 import importlib.metadata
 import importlib.util
 
-import click
 import typer
 from rich.console import Console
 
@@ -34,7 +33,11 @@ from shared.cli.command_meta import (
     CommandLayer,
     command_meta,
 )
-from shared.cli.reference_markdown import click_command_for, render_cli_reference
+from shared.cli.reference_markdown import (
+    Command,
+    click_command_for,
+    render_cli_reference,
+)
 
 from . import app
 
@@ -59,7 +62,7 @@ def _core_cli_intro(version: str) -> str:
     )
 
 
-def _load_core_cli() -> tuple[click.Command, str] | None:
+def _load_core_cli() -> tuple[Command, str] | None:
     """The installed core-cli command tree and its version, or None if absent."""
     if importlib.util.find_spec("core_cli") is None:
         return None
