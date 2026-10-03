@@ -130,3 +130,26 @@ def test_EngineResult():
     assert result.violations == []
     assert result.engine_id == "test_engine"
     assert result.extra == {}
+
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7ae71fb7-d1b7-48d1-8ece-e402a6b6febc
+async def test_BaseEngine_verify():
+    # Arrange
+    engine = MagicMock(spec=BaseEngine)
+    engine.verify = AsyncMock(return_value=MagicMock())
+
+    file_path = Path("/tmp/audit_target.py")
+    params = {"rule": "no_todo_comments"}
+
+    # Act
+    result = await engine.verify(file_path, params)
+
+    # Assert
+    engine.verify.assert_awaited_once_with(file_path, params)
+    assert result is not None
