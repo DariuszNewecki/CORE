@@ -31,15 +31,16 @@ This directory serves two roles in that model:
 | **Scout LLM-fallback** | The four rules here are the curated menu `project scout` presents when no LLM is available |
 
 > The machinery layer (`META/`, `taxonomies/`, `enforcement/config/`) is bundled
-> in the `core-runtime` wheel (`shared._machinery_floor` package data, ADR-108 D3).
-> `project onboard` reads the floor from the installed package — this directory
-> serves only as the Scout LLM-fallback rules source, not as the machinery floor source.
+> in the `core-runtime` wheel (`shared._machinery_floor` package data, ADR-108 D3),
+> and `project onboard` / `project new` deliver it from there. This directory carries a
+> byte-identical copy so it runs as-is: the audit does not yet fall back to the bundled
+> floor for a rules-only `.intent/`.
 
 ## What the four rules enforce
 
 See [`.intent/constitution/CONSTITUTION.md`](.intent/constitution/CONSTITUTION.md).
-Four deterministic, LLM-free rules: `# ID:` anchors on public symbols (blocking),
-docstrings, no `print()` in library code, and no silently-swallowed exceptions.
+Four deterministic, LLM-free rules: no silently-swallowed exceptions (blocking),
+docstrings, no `print()` in library code, and no hardcoded secrets.
 These are illustrative universal rules — `project scout` may propose different or
 additional rules fitted to your specific codebase.
 

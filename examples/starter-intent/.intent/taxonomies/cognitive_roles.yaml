@@ -1,0 +1,61 @@
+version: "1.0.0"
+status: active
+authority: constitutional
+title: CORE Cognitive Role Taxonomy
+description: >
+  Canonical declaration of cognitive roles in CORE. A cognitive role is a
+  stable responsibility within the system: it states why cognition is
+  required, not how it is executed. This file is the authoritative source of
+  the cognitive-role name set — the values referenced by the `role` field in
+  var/prompts/**/model.yaml, by the core.cognitive_roles table, and by every
+  foreign key that points at it. Model/provider bindings (which model serves a
+  role) and operational attributes (required capabilities, concurrency,
+  specialization) are resource concerns recorded elsewhere, not declared here.
+  Framework authority: .specs/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md.
+  ConstitutionalCoherenceAnalyst declared by ADR-067.
+
+roles:
+  Architect:
+    description: High-reasoning role for complex architectural refactoring and design.
+
+  CapabilityTagger:
+    description: Tags orphaned symbols with canonical dot-notation capability keys.
+
+  CodeReviewer:
+    description: Reviews code for clarity, style, and correctness.
+
+  Coder:
+    description: Generates and refactors source code.
+
+  ConstitutionalCoherenceAnalyst:
+    description: >
+      Candidate-finder for constitutional document coherence analysis.
+      Identifies potential contradictions, gaps, and drift between ADRs, rule
+      domains, and northstar documents. Read-only, analysis-only.
+
+  DocstringWriter:
+    # DB description was empty; authored here — confirm or rewrite.
+    description: Authors and maintains docstrings and inline documentation for code artifacts.
+
+  LocalCoder:
+    # DB text: "Local Ollama coding-focused role for symbol enrichment and
+    # code-adjacent reasoning." Provider binding ("Ollama") lifted; locality kept (it is identity).
+    description: Locally-executed coding role for symbol enrichment and code-adjacent reasoning.
+
+  LocalReasoner:
+    # DB text bound the model: "Assigned to qwen2.5:7b via Ollama." Binding
+    # lifted to keep this a why-not-how declaration; locality kept (it is identity).
+    description: >
+      Constitutional reasoning role for governance inspection, policy coherence
+      analysis, and cross-document alignment checks.
+
+  Planner:
+    description: Decomposes high-level goals into step-by-step plans.
+
+  RemoteCoder:
+    # DB text: "Cloud-based code generation and remediation via Grok API."
+    # Provider binding ("via Grok API") lifted.
+    description: Cloud-based code generation and remediation.
+
+  Vectorizer:
+    description: Creates semantic vector embeddings from text.

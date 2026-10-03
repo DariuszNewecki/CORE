@@ -1,0 +1,26 @@
+# .intent/enforcement/config/task_type_phases.yaml
+# Canonical task_type → governance phase mapping.
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: active
+#
+# PURPOSE:
+#   Single source of truth for which governance phase each
+#   task_type routes to. Consumed by the service
+#   (ContextService.build_for_task) and the CLI
+#   (cli/resources/context/build.py) via the helper
+#   shared.infrastructure.intent.task_type_phases.
+#
+# RULE: task_type → phase mapping MUST be read from this
+# file. No hardcoded copies permitted in src/.
+#
+# See ADR-004.
+
+default_phase: "execution"
+
+mapping:
+  code_generation: "execution"
+  code_modification: "execution"
+  test_generation: "audit"
+  "test.generate": "audit"
+  conversational: "runtime"

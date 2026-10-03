@@ -1,0 +1,48 @@
+# .intent/enforcement/config/circuit_breaker.yaml
+#
+# Circuit-breaker on repeated proposal failures.
+# Authority: policy
+# Phase: runtime
+# Status: active
+# Closes: #281
+# ADR: ADR-038
+#
+# PURPOSE:
+#   Bounds failure amplification in the autonomous remediation loop.
+#   When the most recent N failed proposals for the same
+#   (ref_id, file_path) carry the same canonical error signature, the
+#   circuit trips: ViolationRemediatorWorker stops minting new proposals
+#   for that key, marks the current cycle's findings DELEGATE, and posts
+#   a `governance.circuit_breaker_tripped` finding for governor triage.
+#
+# RULE: ViolationRemediatorWorker MUST consult this file (via
+#   load_circuit_breaker_config) before creating any proposal. The
+#   threshold and signature parameters MUST NOT be hardcoded in src/.
+
+# Number of consecutive identical-signature failures that trip the
+# circuit. ADR-038 D2.
+threshold_n: 5
+
+# Number of leading characters of `failure_reason` retained after
+# canonicalization to form the comparison signature. ADR-038 D1.
+signature_window_chars: 200
+
+# Maximum number of historical failed proposals scanned per
+# (ref_id, file_path) lookup. Bounds the DB query cost. Should always
+# be >= threshold_n; values larger than threshold_n + a small margin
+# add no signal because the consecutive-identical rule short-circuits.
+max_lookback: 25
+
+# Volatile substring patterns stripped from `failure_reason` before
+# truncation. Each pattern matches noise that varies between otherwise
+# identical failures (timestamps, ids, durations) so that systematic
+# failures hash to the same signature. ADR-038 D1.
+volatile_patterns:
+  - name: iso_timestamp
+    regex: '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?'
+  - name: uuid
+    regex: '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+  - name: duration_seconds
+    regex: '\d+\.\d+s'
+  - name: pid
+    regex: 'pid=\d+'

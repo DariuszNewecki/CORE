@@ -232,6 +232,13 @@ jobs:
           path: ${{ runner.temp }}/offline-audit-result.json
           if-no-files-found: warn
 
+      # The published starter (examples/starter-intent, mirrored to
+      # core-audit-demo) must still catch its planted violation. It went
+      # unverified from 2026-06-29 to 2026-10-03 while the script claimed to
+      # run here; now it does.
+      - name: Starter constitution regression (verify.sh)
+        run: examples/starter-intent/verify.sh
+
       # ADR-115 D3: lint statically (ruff), not via the core-api server.
       - name: Lint (ruff — static, no server)
         run: poetry run ruff check src tests

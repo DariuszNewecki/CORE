@@ -1,0 +1,65 @@
+# .intent/enforcement/config/normative_markers.yaml
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: active
+#
+# PURPOSE:
+#   Canonical register of §2.5 normative-marker tokens and required-behavior
+#   action verbs used by the Constitutional Coherence Checker.
+#
+#   Source of truth for:
+#     - governance_embedder harvester (ADR-073 D4): which paragraphs to embed
+#     - ROW3_CITATION check (ADR-073 D6): which paper §s require rule citation
+#     - SPECGAP check (ADR-073 D7): upstream-normative classification + action-verb signal
+#
+# RULE: this is the canonical machine-readable register. The textual definition
+#   in CORE-Governance-Topology §2.5 is the constitutional source; this register
+#   implements it. Mutation requires governor review but no paper amendment,
+#   because the marker list operationalizes §2.5's definition rather than altering it.
+#
+# REFERENCE: ADR-073 D10 establishes this artifact.
+
+# §2.5 normative markers — case-insensitive substring/word-boundary match.
+# Topology §2.5: "A normative claim contains MUST, MUST NOT, SHALL, MAY NOT,
+# is constitutionally prohibited, or makes a categorical statement about what
+# the system does or does not do."
+#
+# The "categorical statement" clause is intentionally NOT mechanized in v1
+# (per D10 final paragraph). The regex-friendly subset below is the v1
+# detection surface. LLM-judged categorical-statement detection is deferred.
+markers:
+  - MUST
+  - MUST NOT
+  - SHALL
+  - SHALL NOT
+  - MAY NOT
+  - never
+  - always
+  - forbidden
+  - prohibited
+  - constitutional
+  - constitutionally
+  - required
+  - no exception
+
+# Action verbs signalling required-behavior claims, used by SPECGAP (D7) condition 3.
+# Match as case-insensitive word stems; common tense variants caught by literal
+# substring check at the implementation layer.
+action_verbs:
+  - fail
+  - stop
+  - block
+  - reject
+  - abort
+  - halt
+  - refuse
+  - prevent
+
+# Aspirational-marker tokens that exempt a paper § from ROW3_CITATION emission
+# even when it contains normative markers. Used by ROW3_CITATION (D6).
+aspirational_markers:
+  - aspirational
+  - TBD
+  - deferred
+  - pending
+  - not yet enforced

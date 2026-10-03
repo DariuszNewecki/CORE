@@ -15,15 +15,15 @@ Four rules, deliberately universal — they mean the same thing in any Python
 project, carry none of CORE's internal vocabulary, and are all checked
 deterministically (no language model, no network):
 
-1. **Every public function and class is identifiable.** A `# ID:` anchor on the
-   line above each public `def`/`class` gives every symbol a stable identity that
-   survives renames and refactors. *(blocking)*
+1. **No silent failures.** A bare `except:` (or `except Exception: pass`) hides
+   the bug you most need to see. Name the exception and handle it. *(blocking)*
 2. **Public symbols are documented.** A docstring states intent for anyone — or
    any tool — reading the code later. *(reporting)*
 3. **Library code logs, it does not print.** `print()` in importable code is a
    debugging leftover; use a logger. *(reporting)*
-4. **No silent failures.** A bare `except:` (or `except Exception: pass`) hides
-   bugs. Name the exception and handle it. *(reporting)*
+4. **No hardcoded secrets.** Passwords, API keys and tokens assigned to string
+   literals leak into version control; read them from the environment or a
+   secrets manager. *(reporting)*
 
 `blocking` rules fail the audit (non-zero exit, blocks merge under branch
 protection). `reporting` rules surface as findings but do not fail the gate.
@@ -33,6 +33,4 @@ protection). `reporting` rules surface as findings but do not fail the gate.
 Add a rule by adding an entry to `.intent/rules/starter.json` and a mapping in
 `.intent/enforcement/mappings/starter.yaml` that points it at a check. The
 machinery under `.intent/META/`, `.intent/taxonomies/`, and
-`.intent/enforcement/config/` is CORE's — you should not need to edit it. (A
-future release moves that machinery into the `core-runtime` wheel so your
-`.intent/` shrinks to just this constitution and your rules.)
+`.intent/enforcement/config/` is CORE's — you should not need to edit it.

@@ -19,10 +19,10 @@ in the CORE roadmap.
 A **minimal starter constitution** — four universal, deterministic (LLM-free)
 rules, in plain language with none of CORE's internal vocabulary:
 
-1. **`# ID:` anchors** on every public function/class — *blocking*.
+1. **No silently-swallowed exceptions** — *blocking*.
 2. **Docstrings** on public symbols — *reporting*.
 3. **No `print()`** in importable code — *reporting*.
-4. **No silently-swallowed exceptions** — *reporting*.
+4. **No hardcoded secrets** — *reporting*.
 
 `src/hello.py` deliberately breaks all four, so the audit fails with one blocking
 finding and annotates the offending lines. See
@@ -32,8 +32,9 @@ finding and annotates the offending lines. See
 
 1. Copy the contents of
    [`examples/starter-intent/.intent/`](https://github.com/DariuszNewecki/CORE/tree/main/examples/starter-intent)
-   into your repository root. It is the smallest constitution that runs — not a
-   copy of CORE's full ~250-file self-hosting ruleset.
+   into your repository root. It is the smallest constitution that runs: the
+   four rules plus the machinery files CORE's audit reads (`META/`,
+   `taxonomies/`, `enforcement/config/`), which you never need to edit.
 2. Add `.github/workflows/audit.yml`:
    ```yaml
    name: Constitutional Audit
@@ -57,8 +58,8 @@ pip install core-runtime
 core-admin code audit --offline --format=text --severity=block
 ```
 
-Exit codes: `0` no findings; `1` findings present; `2` configuration error;
-`64` internal error (treat as gate failure).
+Exit codes: `0` no blocking findings; `1` blocking findings present (or the audit
+ran degraded); `2` configuration error; `64` internal error (treat as gate failure).
 
 ## License
 

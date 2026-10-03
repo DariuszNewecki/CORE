@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CORE Phase Definition Schema",
+  "description": "Schema for constitutional phase declarations in .intent/phases/*.yaml. Per ADR-074 D6: validates that every phase YAML declares its phase_type, description, authority, and a non-empty failure_modes mapping from failure-class names to response-strategy values drawn from enums.json#/definitions/failure_mode. Per ADR-074 D5, failure-class names are per-phase YAML keys (not a global closed enum in v1); the schema constrains values only.",
+  "type": "object",
+  "additionalProperties": true,
+
+  "properties": {
+
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+
+    "kind": {
+      "type": "string",
+      "const": "phase"
+    },
+
+    "phase_type": {
+      "$ref": "./enums.json#/definitions/phase"
+    },
+
+    "authority": {
+      "$ref": "./enums.json#/definitions/authority"
+    },
+
+    "description": {
+      "type": "string",
+      "minLength": 5
+    },
+
+    "failure_modes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "./enums.json#/definitions/failure_mode"
+      },
+      "description": "Map from failure-class name (per-phase, governor-authored per ADR-074 D5) to response-strategy value drawn from the failure_mode enum. Map shape, not list, so the class-to-strategy binding is declarative."
+    },
+
+    "notes": {
+      "type": "string"
+    },
+
+    "implementation": {
+      "type": "string"
+    }
+  },
+
+  "required": [
+    "phase_type",
+    "description",
+    "failure_modes",
+    "authority"
+  ]
+}

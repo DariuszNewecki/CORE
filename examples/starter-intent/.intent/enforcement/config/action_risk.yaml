@@ -1,0 +1,70 @@
+# .intent/enforcement/config/action_risk.yaml
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: active
+#
+# PURPOSE:
+#   Single source of truth for action impact classification.
+#   Governs which actions auto-execute (safe) versus which require
+#   human approval (moderate) or are blocked unless explicitly
+#   authorized (dangerous).
+#
+#   Consumed by src/body/atomic/executor.py via the helper
+#   shared.infrastructure.intent.action_risk.
+#
+# RULE: impact_level for every registered action MUST be declared
+#   here. No impact_level literals permitted in @register_action
+#   decorators in src/. See ADR-008.
+#
+#   ADR-078 amendment (2026-05-30): risk values declared here are
+#   cross-referenced by .intent/taxonomies/operational_capabilities.yaml
+#   per ADR-078 D3. Any operational capability whose risk field does
+#   not resolve to a defined entry here is a load-time failure of
+#   src/shared/infrastructure/intent/operational_capabilities.py.
+#
+# VALUES: safe | moderate | dangerous
+
+actions:
+  assisted.apply_diff: moderate
+  assisted.validate_diff: safe
+  author.llm_resource: moderate
+  build.test_for_symbol: safe
+  build.tests: safe
+  check.imports: safe
+  claim.proposal: safe
+  crate.create: safe
+  document.gap_analysis: safe
+  file.create: moderate
+  file.edit: moderate
+  file.read: safe
+  file.tag_metadata: safe
+  fix.atomic_actions: moderate
+  fix.capability_tagging: moderate
+  fix.docstrings: moderate
+  fix.duplicate_ids: moderate
+  fix.format: safe
+  fix.headers: safe
+  fix.ids: safe
+  fix.imports: safe
+  fix.logging: safe
+  fix.modularity: moderate
+  fix.path_resolver: moderate
+  fix.placeholders: safe
+  fix.settings_access: dangerous
+  fix.vulture_heal: dangerous
+  log.archive_partitions: moderate
+  log.maintain_partitions: safe
+  project.cognitive_roles: moderate
+  refactor.apply_split: dangerous
+  remediate.cognitive_role: moderate
+  # #894 seeding unit (Governor ruling D, 2026-09-15): the one governed writer for an
+  # isolated external-run database (llm_resources, role_resource_assignments,
+  # system_config from a seed document); refuses any other database. Never in the
+  # safe-auto-approval envelope.
+  seed.external_run_resources: moderate
+  sync.db: moderate
+  sync.vectors_code: moderate
+  sync.vectors_constitution: moderate
+  test.candidate_validate: safe
+  test.execute: moderate
+  test.sandbox_validate: safe

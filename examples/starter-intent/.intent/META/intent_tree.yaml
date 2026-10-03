@@ -1,0 +1,27 @@
+$schema: "META/intent_tree.schema.json"
+
+# Authoritative declaration of which .intent/ directories are part of the Mind.
+# IntentRepository reads this file to decide what to scan. This is the STARTER
+# subset: only what the offline audit gate needs to govern an external repo.
+# CORE's own .intent/ declares many more directories (workers, flows, workflows,
+# artifact_types, ...) that exist only for CORE's self-hosting runtime and have
+# no meaning for a project that is merely being audited.
+
+required_directories:
+  - META
+  - constitution
+  - rules
+
+optional_directories:
+  - enforcement
+  - taxonomies
+
+validated_directories:
+  - META
+  - rules
+
+notes: >
+  Starter intent tree for external repositories adopting the CORE Constitutional
+  Audit. The directories listed are the minimal set the stateless (offline)
+  audit loads. Source of truth: examples/starter-intent in the CORE repository.
+  Do not hand-edit a downstream copy.
