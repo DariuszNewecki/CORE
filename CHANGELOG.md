@@ -8,6 +8,14 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Changed
+
+- **`core-admin cognitive-roles sync [--write]`** replaces `cognitive-roles diff` and
+  `cognitive-roles project --apply`, matching CORE's standard verb and `--write` convention.
+  Without `--write` it shows drift and exits 1 when out of sync (as `diff` did). The old names
+  still work as hidden, deprecated aliases with their previous behaviour and print a notice;
+  they will be removed in a later release.
+
 ## [2.11.0] — 2026-10-02
 
 **A new governed project with no services at all; adopt-pack works from a pip install.** With

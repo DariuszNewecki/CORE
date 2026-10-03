@@ -71,6 +71,10 @@ mappings:
       # shape as export-context) and cognitive-roles.project (#821 Unit 2:
       # the command *projects* cognitive-role capabilities). Same shape as
       # the 2026-08-26 additions.
+      # 2026-10-02: `project` removed -- cognitive-roles.project/diff renamed to
+      # the standard `sync --write` (old names kept as hidden deprecated
+      # aliases; hidden commands are not vocabulary). First removal: the list
+      # had only grown, and a full cleanup is scheduled separately.
       allowed_verbs:
         - accept
         - accessibility
@@ -132,7 +136,6 @@ mappings:
         - onboard
         - patterns
         - promote
-        - project
         - propose
         - purge
         - query

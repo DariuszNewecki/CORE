@@ -59,6 +59,7 @@ def walk_typer_app(
                         "has_callback": False,
                         "has_explicit_meta": False,
                         "callback": None,
+                        "hidden": bool(getattr(cmd_info, "hidden", False)),
                     }
                 )
             continue
@@ -114,6 +115,9 @@ def walk_typer_app(
                 "has_callback": True,
                 "has_explicit_meta": has_explicit,
                 "callback": callback,
+                # Hidden commands are deprecated aliases / internal entry points;
+                # vocabulary checks skip them (cli.standard_verbs).
+                "hidden": bool(getattr(cmd_info, "hidden", False)),
             }
         )
 

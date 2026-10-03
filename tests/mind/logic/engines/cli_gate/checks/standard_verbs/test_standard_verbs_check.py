@@ -106,3 +106,13 @@ def test_multiple_commands_only_non_standard_flagged():
     findings = check.verify(commands, PARAMS)
     flagged = {f.context["command_name"] for f in findings}
     assert flagged == {"workers.blackboard", "lane.claim"}
+
+
+def test_hidden_command_is_not_vocabulary():
+    """A hidden command is a deprecated alias (e.g. cognitive-roles.diff after
+    the 2026-10-02 rename to sync); it is not checked against the verbs."""
+    check = StandardVerbsCheck()
+    hidden = {**_cmd("cognitive-roles.diff"), "hidden": True}
+    visible = _cmd("cognitive-roles.diff")
+    assert check.verify([hidden], PARAMS) == []
+    assert len(check.verify([visible], PARAMS)) == 1

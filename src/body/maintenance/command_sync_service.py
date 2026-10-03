@@ -54,6 +54,7 @@ async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
                 "has_explicit_meta",
                 "file_path",
                 "callback",
+                "hidden",
             }
         }
 

@@ -34,6 +34,10 @@ class StandardVerbsCheck(CliCheck):
         findings: list[AuditFinding] = []
 
         for cmd in commands:
+            if cmd.get("hidden"):
+                # A hidden command is a deprecated alias or internal entry
+                # point, not part of the public vocabulary this rule governs.
+                continue
             name = cmd.get("name") or ""
             parts = name.split(".")
             if len(parts) < 2:
