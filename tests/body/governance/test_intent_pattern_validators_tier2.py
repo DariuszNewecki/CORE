@@ -317,6 +317,31 @@ def test_x():
     bump()
     assert hits == 1
 """,
+    # Evaluated in the enclosing scope (shapes from existing repo tests that
+    # an earlier draft of the fail-closed check refused).
+    "lambda_in_decorator": """
+import pytest
+
+@pytest.mark.parametrize("mutate", [lambda b: b.pop("k"), lambda b: b.clear()])
+def test_x(mutate):
+    assert mutate
+""",
+    "generator_in_decorator": """
+import pytest
+
+@pytest.mark.parametrize("n", sorted(p for p in range(3)))
+def test_x(n):
+    assert n >= 0
+""",
+    "lambda_default": """
+def test_x(f=lambda v: v):
+    assert f(1)
+""",
+    "comprehension_iterable_uses_outer_name": """
+def test_x():
+    ids = [1]
+    assert all(i for i in ids)
+""",
 }
 
 
@@ -338,6 +363,20 @@ def test_x():
     assert "'undefined_y' at line 3" in v[0].message
 
 
+def test_unresolved_free_names_flags_free_name_inside_decorator_lambda() -> None:
+    code = """
+import pytest
+
+@pytest.mark.parametrize("f", [lambda b: missing_v(b)])
+def test_x(f):
+    assert f
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert "'missing_v' at line 4" in v[0].message
+
+
 def test_unresolved_free_names_reports_line_of_the_unbound_use() -> None:
     """A name bound in one scope but free in another is flagged at the free use."""
     code = """
@@ -352,6 +391,63 @@ def test_b():
     v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
     assert len(v) == 1
     assert "'finding' at line 7" in v[0].message
+
+
+def test_unresolved_free_names_fails_closed_when_source_does_not_compile() -> None:
+    """Parses but does not compile: no compiler view, so the gate refuses
+    rather than relying on a later gate (governor ruling 2026-10-03)."""
+    code = """
+def test_x():
+    nonlocal missing
+    assert missing
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert v[0].rule_name == "code.tests.no_unresolved_free_names"
+    assert "does not compile" in v[0].message
+
+
+def test_unresolved_free_names_fails_closed_on_unmatched_scope() -> None:
+    """A scope the walker cannot pair with its symbol table (here a PEP 695
+    ``type`` alias) is refused, not silently skipped."""
+    code = """
+type Alias = list[int]
+
+def test_x():
+    assert Alias
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert v[0].rule_name == "code.tests.no_unresolved_free_names"
+    assert "could not be matched" in v[0].message
+
+
+def test_unresolved_free_names_accepts_generic_function() -> None:
+    code = """
+def ident[T](value: T) -> T:
+    return value
+
+def test_x():
+    assert ident(1) == 1
+"""
+    tree = ast.parse(code)
+    assert PatternValidators.check_no_unresolved_free_names(tree, "test.py", code) == []
+
+
+def test_unresolved_free_names_flags_free_name_in_generic_function() -> None:
+    code = """
+def ident[T](value: T) -> T:
+    return missing_w
+
+def test_x():
+    assert ident(1)
+"""
+    tree = ast.parse(code)
+    v = PatternValidators.check_no_unresolved_free_names(tree, "test.py", code)
+    assert len(v) == 1
+    assert "'missing_w' at line 3" in v[0].message
 
 
 def test_validate_test_file_pattern_accepts_comprehension_target() -> None:

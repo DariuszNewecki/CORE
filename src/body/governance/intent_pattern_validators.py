@@ -105,6 +105,46 @@ def _scope_table_name(node: ast.AST) -> str | None:
     return None
 
 
+def _scope_parts(node: ast.AST) -> tuple[list[ast.AST], list[ast.AST]]:
+    """Split a scope-opening node's children into those the compiler evaluates
+    in the enclosing scope (decorators, defaults, annotations, class bases, a
+    comprehension's first iterable) and those inside the new scope."""
+    outer: list[ast.AST] = []
+    inner: list[ast.AST] = []
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        args = node.args
+        outer.extend(args.defaults)
+        outer.extend(d for d in args.kw_defaults if d is not None)
+        if isinstance(node, ast.Lambda):
+            inner.append(node.body)
+            return outer, inner
+        outer.extend(node.decorator_list)
+        outer.extend(getattr(node, "type_params", []))
+        every_arg = [*args.posonlyargs, *args.args, *args.kwonlyargs]
+        every_arg.extend(a for a in (args.vararg, args.kwarg) if a is not None)
+        outer.extend(a.annotation for a in every_arg if a.annotation is not None)
+        if node.returns is not None:
+            outer.append(node.returns)
+        inner.extend(node.body)
+    elif isinstance(node, ast.ClassDef):
+        outer.extend(node.decorator_list)
+        outer.extend(getattr(node, "type_params", []))
+        outer.extend(node.bases)
+        outer.extend(node.keywords)
+        inner.extend(node.body)
+    elif isinstance(node, (ast.GeneratorExp, ast.ListComp, ast.SetComp, ast.DictComp)):
+        first, *rest = node.generators
+        outer.append(first.iter)
+        inner.append(first.target)
+        inner.extend(first.ifs)
+        inner.extend(rest)
+        if isinstance(node, ast.DictComp):
+            inner.extend([node.key, node.value])
+        else:
+            inner.append(node.elt)
+    return outer, inner
+
+
 def _module_level_names(top: symtable.SymbolTable) -> set[str]:
     """Names bound at module level: module-scope assignments, imports, defs and
     classes, plus names a nested scope declares ``global`` and assigns."""
@@ -125,11 +165,27 @@ def _module_level_names(top: symtable.SymbolTable) -> set[str]:
     return defined
 
 
+def _all_tables(top: symtable.SymbolTable) -> list[symtable.SymbolTable]:
+    """``top`` and every table nested under it."""
+    tables = [top]
+    i = 0
+    while i < len(tables):
+        tables.extend(tables[i].get_children())
+        i += 1
+    return tables
+
+
+def _is_type_parameter_scope(table: symtable.SymbolTable) -> bool:
+    """PEP 695 annotation scope wrapping a generic def/class (``def f[T]()``)."""
+    return "type param" in str(table.get_type()).lower()
+
+
 def _unresolved_global_loads(
     tree: ast.Module, top: symtable.SymbolTable, defined: set[str]
-) -> list[ast.Name]:
+) -> tuple[list[ast.Name], str | None]:
     """First Load of each name, per scope, that the compiler resolves as global
-    and that ``defined`` does not bind.
+    and that ``defined`` does not bind; plus a description of the first scope
+    that could not be paired with its symbol table, or None.
 
     Walks ``tree`` alongside the compiler's symbol tables, so every scoping rule
     (comprehension targets, lambda and nested-def parameters, walrus, match
@@ -138,10 +194,17 @@ def _unresolved_global_loads(
     the enclosing scope. A name absent from the current table (a decorator, a
     default or a comprehension's first iterable, which the compiler evaluates
     in the enclosing scope) is looked up outward.
+
+    Pairing fails when a def, class, lambda or generator expression finds no
+    table, or a table is left unpaired (a construct the walker does not model,
+    e.g. a ``type`` alias). Names inside such a scope were never checked, so
+    the caller must refuse rather than accept.
     """
     unresolved: list[ast.Name] = []
     reported: set[tuple[int, str]] = set()
     pending_children: dict[int, dict[str, list[symtable.SymbolTable]]] = {}
+    paired: set[int] = {top.get_id()}
+    unmatched: list[str] = []
 
     # ID: 50cc4926-a5f7-433a-974a-64e8a911c6f2
     def child_table(
@@ -180,15 +243,37 @@ def _unresolved_global_loads(
                 break
         name = _scope_table_name(node)
         lineno = getattr(node, "lineno", None)
-        if name is not None and lineno is not None:
-            opened = child_table(scopes[-1], name, lineno)
-            if opened is not None:
-                scopes = [*scopes, opened]
-        for child in ast.iter_child_nodes(node):
+        if name is None or lineno is None:
+            for child in ast.iter_child_nodes(node):
+                visit(child, scopes)
+            return
+        # Enclosing-scope parts first: the compiler evaluates (and numbers the
+        # tables of) decorators, defaults and the first iterable before the
+        # scope's own body.
+        outer, inner = _scope_parts(node)
+        for child in outer:
+            visit(child, scopes)
+        opened = child_table(scopes[-1], name, lineno)
+        if opened is not None and _is_type_parameter_scope(opened):
+            # The def/class's own table sits inside its annotation scope.
+            paired.add(opened.get_id())
+            scopes = [*scopes, opened]
+            opened = child_table(opened, name, lineno)
+        if opened is not None:
+            paired.add(opened.get_id())
+            scopes = [*scopes, opened]
+        elif not isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
+            unmatched.append(f"{type(node).__name__} {name!r} at line {lineno}")
+        for child in inner:
             visit(child, scopes)
 
     visit(tree, [top])
-    return unresolved
+    for table in _all_tables(top):
+        if table.get_id() not in paired:
+            unmatched.append(
+                f"symbol table {table.get_name()!r} at line {table.get_lineno()}"
+            )
+    return unresolved, (unmatched[0] if unmatched else None)
 
 
 # ID: 5d89fc56-2fb5-45da-98f0-f813e8e79343
@@ -638,42 +723,57 @@ class PatternValidators:
 
         Name resolution is delegated to the compiler (stdlib ``symtable``): a
         Load is flagged only if the compiler resolves the name as global, it
-        is not bound at module level, and it is not a builtin. ``code`` is the
-        source ``tree`` was parsed from; without it the tree is unparsed and
-        reported line numbers refer to that normalised form.
+        is not bound at module level, and it is not a builtin. Source that does
+        not compile, or a scope that cannot be paired with its symbol table,
+        yields a violation: names that were not checked are not accepted.
+        ``code`` is the source ``tree`` was parsed from; without it the tree is
+        unparsed and reported line numbers refer to that normalised form.
         """
         statements = cls._load_test_quality_rule_statements()
 
         if code is None:
             code = ast.unparse(tree)
             tree = ast.parse(code)
+        statement = statements.get(
+            _TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
+            "Free name referenced without being imported or defined — "
+            "test will NameError at collection.",
+        )
+
+        # Fail closed: when names cannot be resolved, the gate refuses rather
+        # than relying on a later gate (governor ruling 2026-10-03).
+        def _unanalysable(reason: str) -> list[ViolationReport]:
+            return [
+                ViolationReport(
+                    rule_name=_TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
+                    path=target_path,
+                    message=f"{statement} Names could not be checked: {reason}.",
+                    severity="error",
+                    suggested_fix="Rewrite the test in plain, compilable Python.",
+                    source_policy="rules.code.tests",
+                )
+            ]
+
         try:
             top = symtable.symtable(code, target_path, "exec")
         except SyntaxError as exc:
-            # Parses but does not compile (e.g. module-level ``nonlocal``):
-            # the pytest acceptance gate rejects it; name analysis has no
-            # compiler view to offer.
-            logger.info(
-                "check_no_unresolved_free_names: %s does not compile (%s); skipped",
-                target_path,
-                exc,
-            )
-            return []
+            # Parses but does not compile (e.g. ``nonlocal`` with no binding).
+            return _unanalysable(f"source does not compile ({exc.msg})")
 
         defined = _module_level_names(top) | _PYTHON_BUILTINS
+        loads, unmatched = _unresolved_global_loads(tree, top, defined)
+        if unmatched is not None:
+            return _unanalysable(
+                f"scope could not be matched to its symbol table ({unmatched})"
+            )
         violations: list[ViolationReport] = []
-        for sub in _unresolved_global_loads(tree, top, defined):
+        for sub in loads:
             name = sub.id
             violations.append(
                 ViolationReport(
                     rule_name=_TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
                     path=target_path,
-                    message=statements.get(
-                        _TEST_NO_UNRESOLVED_FREE_NAMES_RULE_ID,
-                        "Free name referenced without being imported or defined — "
-                        "test will NameError at collection.",
-                    )
-                    + f" Name: {name!r} at line {sub.lineno}.",
+                    message=f"{statement} Name: {name!r} at line {sub.lineno}.",
                     severity="error",
                     suggested_fix=(
                         f"Add the missing import for {name!r}, "
