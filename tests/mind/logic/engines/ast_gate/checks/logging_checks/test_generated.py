@@ -67,3 +67,20 @@ def test_LoggingChecks() -> None:
 
     # Ensure no unexpected external I/O is touched (guard rail).
     _ = MagicMock()
+
+
+
+
+
+# ID: 8b6c646a-06a9-4ecc-8ee1-b7ae252d090c
+def test_check_logger_not_presentation() -> None:
+    source = (
+        "def f():\n"
+        "    logger.info('plain operational message')\n"
+        "    logger.debug('[DRY RUN] processing %s', item)\n"
+    )
+    tree = ast.parse(source)
+
+    findings = LoggingChecks.check_logger_not_presentation(tree)
+
+    assert findings == []
