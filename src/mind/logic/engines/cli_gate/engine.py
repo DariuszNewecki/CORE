@@ -8,7 +8,7 @@ seven registry-interrogating rules and adds source-AST verification of
 ``cli.discovery_strict`` against the CLI loader file.
 
 CONSTITUTIONAL ALIGNMENT:
-- All eight check_types are context-level (``is_context_level_for``
+- All ten check_types are context-level (``is_context_level_for``
   returns True) — the substrate is the live Typer app, not a per-file
   walk, so the per-file dispatcher is never engaged.
 - The Typer app import is deferred to ``verify_context`` so engine
@@ -27,9 +27,11 @@ from mind.logic.engines.cli_gate.checks import (
     AsyncExecutionCheck,
     DangerousExplicitCheck,
     DiscoveryStrictCheck,
+    DocsNoPhantomCommandsCheck,
     HelpRequiredCheck,
     NoDuplicatesCheck,
     NoLayerExposureCheck,
+    ReferenceCurrentCheck,
     ResourceFirstCheck,
     StandardVerbsCheck,
 )
@@ -60,6 +62,9 @@ class CliGateEngine(BaseEngine):
             "discovery_strict",
             "help_required",
             "no_duplicates",
+            # ADR-167: docs correspondence with the live CLIs.
+            "reference_current",
+            "docs_no_phantom_commands",
         }
     )
 
@@ -76,6 +81,8 @@ class CliGateEngine(BaseEngine):
             HelpRequiredCheck(),
             NoDuplicatesCheck(),
             DiscoveryStrictCheck(path_resolver=path_resolver),
+            ReferenceCurrentCheck(path_resolver=path_resolver),
+            DocsNoPhantomCommandsCheck(path_resolver=path_resolver),
         ]
 
         self._checks: dict[str, CliCheck] = {

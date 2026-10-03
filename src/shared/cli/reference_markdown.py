@@ -15,6 +15,9 @@ so a regenerated page only changes when the CLI changed.
 
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
+import importlib.util
 import inspect
 import re
 from pathlib import Path
@@ -208,3 +211,57 @@ def render_cli_reference(root: Command, binary: str, intro: str = "") -> str:
             lines += _render_command(path, command)
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+# --- The two reference pages (ADR-167 D2) ----------------------------------
+# One builder serves both `core-admin docs generate` (writes the pages) and
+# the `cli.reference_current` rule (compares them), so the two can never
+# disagree about what "current" means.
+
+CORE_ADMIN_PAGE = "docs/reference/core-admin.md"
+CORE_CLI_PAGE = "docs/reference/core.md"
+
+_CORE_ADMIN_INTRO = (
+    "The operator CLI, shipped in `core-runtime`. Generated from the command tree "
+    "in this repository; see the [CLI overview](../cli-reference.md) for which "
+    "binary does what."
+)
+
+
+def _core_cli_intro(version: str) -> str:
+    return (
+        f"The consumer CLI, shipped in `core-cli` (this page: version {version}, the "
+        "released package). Most commands talk to a running CORE API. See the "
+        "[CLI overview](../cli-reference.md) for which binary does what."
+    )
+
+
+# ID: 1f6c7272-a2ea-4cd4-98fe-48413859e203
+def load_core_cli_tree() -> tuple[Command, str] | None:
+    """The installed core-cli command tree and its version, or None if absent."""
+    if importlib.util.find_spec("core_cli") is None:
+        return None
+    core_cli_main = importlib.import_module("core_cli.main")
+    return click_command_for(core_cli_main.app), importlib.metadata.version("core-cli")
+
+
+# ID: 9c21384a-b2d1-43dc-bc1a-277cc59f81e7
+def build_reference_pages(
+    core_admin_root: Command, core_cli: tuple[Command, str] | None
+) -> dict[str, str]:
+    """Repo-relative path -> content for each reference page that can be built.
+
+    The ``core`` page is omitted when ``core_cli`` is None (not installed);
+    callers decide whether that is a refusal or a finding.
+    """
+    pages = {
+        CORE_ADMIN_PAGE: render_cli_reference(
+            core_admin_root, "core-admin", _CORE_ADMIN_INTRO
+        )
+    }
+    if core_cli is not None:
+        root, version = core_cli
+        pages[CORE_CLI_PAGE] = render_cli_reference(
+            root, "core", _core_cli_intro(version)
+        )
+    return pages

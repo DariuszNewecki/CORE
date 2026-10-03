@@ -839,6 +839,8 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .intent/rules/cli/interface_design.json
     governance_namespace: project::core
+  - path: .intent/rules/cli/docs_correspondence.json
+    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .intent/rules/code/** -- Python-specific style/structure rules for
@@ -1156,6 +1158,8 @@ classifications:
   # .intent/enforcement/mappings/cli/**
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/mappings/cli/interface_design.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/cli/docs_correspondence.yaml
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
@@ -1825,6 +1829,8 @@ classifications:
   - path: .specs/decisions/ADR-162-database-upgrade-remediation-ruling.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-166-two-governed-write-surfaces.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-167-docs-cli-correspondence.md
     governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core

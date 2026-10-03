@@ -116,6 +116,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      # ADR-167 D2: the released core-cli, so the offline audit's
+      # cli.reference_current compares docs/reference/core.md too.
+      - name: Install released core-cli
+        run: poetry run pip install --no-deps core-cli
+
       - name: Vocabulary freshness check
         run: poetry run core-admin intent sync vocabulary --check
 

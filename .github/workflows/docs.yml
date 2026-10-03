@@ -33,7 +33,9 @@ jobs:
                   pip install mkdocs mkdocs-material
 
             - name: Build MkDocs site
-              run: mkdocs build --clean
+              # ADR-167 D5: --strict turns broken links/anchors (mkdocs.yml
+              # validation) into a failed build.
+              run: mkdocs build --strict --clean
 
             - name: Upload site to GitHub Pages
               uses: actions/upload-pages-artifact@v5

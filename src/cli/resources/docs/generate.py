@@ -17,9 +17,6 @@ through FileHandler into CORE's own source checkout.
 from __future__ import annotations
 
 import difflib
-import importlib
-import importlib.metadata
-import importlib.util
 
 import typer
 from rich.console import Console
@@ -34,40 +31,18 @@ from shared.cli.command_meta import (
     command_meta,
 )
 from shared.cli.reference_markdown import (
-    Command,
-    click_command_for,
-    render_cli_reference,
+    CORE_ADMIN_PAGE,
+    CORE_CLI_PAGE,
+    build_reference_pages,
 )
+from shared.cli.reference_markdown import load_core_cli_tree as _load_core_cli
 
 from . import app
 
 
 console = Console()
 
-CORE_ADMIN_PAGE = "docs/reference/core-admin.md"
-CORE_CLI_PAGE = "docs/reference/core.md"
-
-_CORE_ADMIN_INTRO = (
-    "The operator CLI, shipped in `core-runtime`. Generated from the command tree "
-    "in this repository; see the [CLI overview](../cli-reference.md) for which "
-    "binary does what."
-)
-
-
-def _core_cli_intro(version: str) -> str:
-    return (
-        f"The consumer CLI, shipped in `core-cli` (this page: version {version}, the "
-        "released package). Most commands talk to a running CORE API. See the "
-        "[CLI overview](../cli-reference.md) for which binary does what."
-    )
-
-
-def _load_core_cli() -> tuple[Command, str] | None:
-    """The installed core-cli command tree and its version, or None if absent."""
-    if importlib.util.find_spec("core_cli") is None:
-        return None
-    core_cli_main = importlib.import_module("core_cli.main")
-    return click_command_for(core_cli_main.app), importlib.metadata.version("core-cli")
+__all__ = ["CORE_ADMIN_PAGE", "CORE_CLI_PAGE", "generate_docs_command"]
 
 
 def _change_summary(old: str | None, new: str) -> str:
@@ -128,17 +103,7 @@ async def generate_docs_command(
         )
         raise typer.Exit(1)
 
-    core_cli_root, core_cli_version = core_cli
-    pages = {
-        CORE_ADMIN_PAGE: render_cli_reference(
-            ctx.find_root().command, "core-admin", _CORE_ADMIN_INTRO
-        ),
-        CORE_CLI_PAGE: render_cli_reference(
-            core_cli_root,
-            "core",
-            _core_cli_intro(core_cli_version),
-        ),
-    }
+    pages = build_reference_pages(ctx.find_root().command, core_cli)
 
     handler = FileHandler(str(core_root))
     for rel_path, content in pages.items():

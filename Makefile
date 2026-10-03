@@ -47,9 +47,12 @@ help: ## Show this help message
 	@echo "Tip: run 'core-admin --help' to see the resource-based CLI hierarchy."
 
 # ---- Setup -------------------------------------------------------------------
-install: ## Install dependencies (poetry install)
+install: ## Install dependencies (poetry install + released core-cli)
 	@echo "📦 Installing dependencies..."
 	$(POETRY) install
+	@# ADR-167 D2: the released core-cli, so cli.reference_current can compare
+	@# docs/reference/core.md. --no-deps keeps the editable core-runtime.
+	$(POETRY) run pip install --no-deps core-cli
 
 lock: ## Resolve and lock dependencies
 	@echo "🔒 Resolving and locking dependencies..."

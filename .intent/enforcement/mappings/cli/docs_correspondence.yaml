@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/cli/docs_correspondence.yaml
+#
+# Enforcement mappings for documentation/CLI correspondence (ADR-167).
+# Based on: .intent/rules/cli/docs_correspondence.json
+#
+# Both check_types are CONTEXT-LEVEL cli_gate checks (SCOPE_INERT, ADR-076):
+# `applies_to` is documentary. The files a check reads are declared in its
+# params. They run in the cli rule namespace, so audit_sensor_cli senses them
+# in the daemon (ADR-167 D4).
+
+mappings:
+  # LAW: generated reference pages match the live command trees (ADR-167 D2)
+  cli.reference_current:
+    engine: cli_gate
+    params:
+      check_type: reference_current
+    scope:
+      applies_to: ["docs/reference/*.md"]
+
+  # LAW: every command mentioned in docs exists and is current (ADR-167 D3)
+  cli.docs_no_phantom_commands:
+    engine: cli_gate
+    params:
+      check_type: docs_no_phantom_commands
+      include: ["docs/**/*.md"]
+      exclude: ["docs/reference"]
+      extra_paths: ["README.md"]
+      allow_mentions: []
+    scope:
+      applies_to: ["docs/**/*.md", "README.md"]

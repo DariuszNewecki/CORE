@@ -1,0 +1,30 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.cli.docs_correspondence",
+        "title": "Documentation corresponds to the live CLIs (ADR-167)",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "cli.reference_current",
+            "statement": "The generated CLI reference pages (docs/reference/core-admin.md, docs/reference/core.md) MUST equal what the shared reference builder renders from the live core-admin tree and the installed released core-cli. Where core-cli is not installed the core page is not compared and a finding says so; the rule never passes with the comparison skipped.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-167 D1/D2. CLI to docs direction: the generated reference lists every visible command, so a current reference means no command is undocumented. Remedy: core-admin docs generate --write."
+        },
+        {
+            "id": "cli.docs_no_phantom_commands",
+            "statement": "Every `core-admin <group> <command>` or `core <group> <command>` mentioned inside a code span or fenced code block in docs/ (excluding the generated docs/reference/) or in a listed extra path MUST resolve to a live, visible command. core-admin mentions resolve against the live tree; core mentions against the committed docs/reference/core.md. Strings listed in allow_mentions are exempt.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-167 D1/D3. Docs to CLI direction: docs drifted to ~25 commands that did not exist where documented. A mention of a hidden (deprecated) core-admin alias is a finding too: it exists, but a reader should not copy it."
+        }
+    ]
+}

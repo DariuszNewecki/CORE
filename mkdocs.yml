@@ -11,6 +11,14 @@ theme:
             - navigation.top # back-to-top button
             - toc.integrate # put headings inside the page, not in a sidebar
 
+# ADR-167 D5: link and anchor validity is a tool gate. Deploy Docs builds
+# with --strict, so any of these warnings fails the build.
+validation:
+      links:
+            not_found: warn
+            anchors: warn
+      anchors: warn
+
 plugins:
       - search:
               lang: en

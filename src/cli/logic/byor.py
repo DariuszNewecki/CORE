@@ -3,7 +3,7 @@
 """
 BYOR onboarding — deliver the machinery floor into an external repository.
 
-Per ADR-111 (amended by ADR-119 D2/D6), `core-admin project onboard <target>`
+Per ADR-111 (amended by ADR-119 D2/D6), `core project onboard <target>`
 delivers ONLY the machinery floor — META schemas, taxonomies, constitution stub,
 and enforcement/config — into the target repo's `.intent/`. No rules, no mappings.
 Rules are per-repo-inducted by `project scout` (Phase B) or authored manually.
@@ -365,7 +365,7 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     if not stage_dir.is_dir():
         logger.error(
             "No staged content found at %s — "
-            "run `core-admin project onboard %s --write --stage` first.",
+            "run `core project onboard %s --write --stage` first.",
             stage_dir,
             path,
         )
@@ -374,7 +374,7 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     if not stage_intent.is_dir():
         logger.error(
             "Stage at %s exists but has no .intent/ subdirectory. "
-            "Re-run `core-admin project onboard %s --write --stage` to refresh.",
+            "Re-run `core project onboard %s --write --stage` to refresh.",
             stage_dir,
             path,
         )

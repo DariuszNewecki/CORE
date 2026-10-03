@@ -48,6 +48,8 @@ class TestInit:
             "help_required",
             "no_duplicates",
             "discovery_strict",
+            "reference_current",
+            "docs_no_phantom_commands",
         }
         assert set(engine._checks.keys()) == expected_check_types
 

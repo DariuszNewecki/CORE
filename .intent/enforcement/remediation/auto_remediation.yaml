@@ -462,6 +462,23 @@ mappings:
       required.
     status: DELEGATE
 
+  cli.reference_current:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      ADR-167 D2. Remedy is deterministic (core-admin docs generate --write)
+      but remediation through a proposal is not yet decided (ADR-167 "Not
+      decided here"); an operator runs it. action: field is a placeholder.
+    status: DELEGATE
+
+  cli.docs_no_phantom_commands:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      ADR-167 D3. A phantom or deprecated command mention needs a human (or
+      governed LLM draft) to rewrite the doc. No automatable fixer.
+    status: DELEGATE
+
   code.tests.no_magicmock_on_await:
     action: fix.modularity
     confidence: 0.40
