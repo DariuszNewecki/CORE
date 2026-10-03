@@ -143,6 +143,7 @@ def _unresolved_global_loads(
     reported: set[tuple[int, str]] = set()
     pending_children: dict[int, dict[str, list[symtable.SymbolTable]]] = {}
 
+    # ID: 50cc4926-a5f7-433a-974a-64e8a911c6f2
     def child_table(
         parent: symtable.SymbolTable, name: str, lineno: int
     ) -> symtable.SymbolTable | None:
@@ -162,6 +163,7 @@ def _unresolved_global_loads(
                 return candidates.pop(i)
         return candidates.pop(0)
 
+    # ID: c4b491d6-0714-4ab1-9fc3-546bf923a982
     def visit(node: ast.AST, scopes: list[symtable.SymbolTable]) -> None:
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
             for table in reversed(scopes):
