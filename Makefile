@@ -230,7 +230,7 @@ vectorize: ## Full vectorization (Constitution + Code)
 	$(CORE_ADMIN) vectors sync-code --write
 
 integrate: ## Finalize changes and integrate into system
-	$(CORE_ADMIN) proposals integrate --message "feat: Integrate changes via make"
+	$(POETRY) run core proposals integrate --message "feat: Integrate changes via make" --write
 
 # ---- Docs --------------------------------------------------------------------
 docs: ## Generate capability documentation
