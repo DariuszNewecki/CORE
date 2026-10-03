@@ -116,6 +116,9 @@ include_files:
   # all files; recommendation var/tmp/include-files-widening-recommendation-20260921.md).
   # Pure by constitution (no DB/FS/Body/Will/LLM) -- the 08-26 failure classes
   # (FastAPI+DB handlers, Rich renderers) are absent here.
+  # 2026-10-03: knowledge_source_check.py removed with the module (dead code:
+  # its db.* rules retired in ca398a2e 2026-01-07; base classes archived in
+  # fd93be36 2026-04-04, unimportable since). Governor ruling 2026-10-03.
   - "src/mind/logic/engines/_knowledge_gate_duplication.py"
   - "src/mind/logic/engines/action_gate.py"
   - "src/mind/logic/engines/artifact_gate.py"
@@ -131,7 +134,6 @@ include_files:
   - "src/mind/logic/engines/ast_gate/checks/generic_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/import_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/indeterminate_human_checks.py"
-  - "src/mind/logic/engines/ast_gate/checks/knowledge_source_check.py"
   - "src/mind/logic/engines/ast_gate/checks/logging_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/metadata_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/modularity_checks.py"
