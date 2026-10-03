@@ -36,20 +36,42 @@ CORE is a **controlled production pipeline** whose purpose is to converge toward
 
 ---
 
-## Where to Start
+## Choose your path
 
-New to CORE? Start with the functional description before reading the architecture:
+| You want to… | Start here | You need |
+|---|---|---|
+| Audit code against rules on your machine | [Start a governed project](start-a-project.md) | Python 3.12+ |
+| Add ready-made rules to a governed repository | [Add a rule pack](adopt-a-pack.md) | Python 3.12+ |
+| Block pull requests that break the rules | [Audit in CI](cold-reviewer.md) (GitHub) · [pre-commit or GitLab](other-ci.md) | A repository with a `.intent/` |
+| Bring an existing repository under governance, with rules fitted to it | [Govern your own repository](byor-quickstart.md) | `core-cli` and a running CORE |
+| Run the whole loop — audit, propose, approve, fix, verify — and see CORE govern itself | [Run the full runtime](getting-started.md) | Docker, Poetry; an LLM only for code generation |
+| Check compliance documents against a regulation | [Run a GRC gap analysis](grc-gap-analysis.md) | The full runtime |
+| Upgrade an existing installation | [Upgrade a CORE database](upgrading.md) | — |
+| Build on CORE's API | [API contract](reference/api.md) | — |
+
+CORE ships two command-line tools. `core-admin` (`pip install core-runtime`) runs CORE
+on your machine and operates a CORE installation. `core` (`pip install core-cli`) is a
+small client for a running CORE: proposals, the remediation lane, onboarding. See
+[which one you need](cli-reference.md).
+
+## Know this first
+
+- **Not production-attested.** CORE's own
+  [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
+  is NOT ATTESTED. Do not leave it unattended on code that matters.
+- **No API authentication.** The API binds to `127.0.0.1` and trusts every caller.
+  Keep it there.
+- **An LLM is optional.** Auditing, rule packs, CI gating and the deterministic fixes
+  need none. Code generation, rule induction and judged GRC verdicts do; CORE names no
+  vendor and works with a local model server or an external API.
+- **Open and complete.** Everything on this site is in the open-source product (MIT),
+  free indefinitely. Commercial offerings add usability and scale around it, never a
+  missing capability (ADR-084).
+
+## Understand it
 
 - [**What It Does**](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md) — what CORE is for, in plain language
-
-Then:
-
 - [How It Works](how-it-works.md) — the constitutional model and enforcement loop
-- [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
-- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3, unproven unattended) and roadmap
-- [Getting Started](getting-started.md) — install and run your first audit
-- [Audit in CI (no install)](cold-reviewer.md) — the GitHub Action
-- [BYOR Quickstart](byor-quickstart.md) — govern your own repo from a naked machine, step by step
-- [CLI Reference](cli-reference.md) — commands and workflows
+- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3, unproven unattended)
 - [Proof Index](proof-index.md) — each claim CORE makes, with its evidence and limits
-- [Contributing](contributing.md) — how to engage with the project
+- [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely

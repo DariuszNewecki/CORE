@@ -53,14 +53,15 @@ full path instead.
 ## Step 1 — Install the CLI
 
 ```bash
-pip install core-cli
+pip install core-cli core-runtime
 ```
 
-`core-cli` depends on `core-runtime`, so this pulls in both entry points:
+This guide uses both command-line tools. `core-cli` (2.0 and later) is a standalone
+HTTP client and does not install `core-runtime`, so name both:
 
 ```bash
-core --help          # consumer CLI — onboard, scout, audit-via-API, etc.
-core-admin --help    # operator CLI — offline audit, daemon control, etc.
+core --help          # core-cli — onboard, scout, promote: talks to a running CORE
+core-admin --help    # core-runtime — the offline audit in step 6, and more
 ```
 
 If the shell cannot find either command, your Python scripts directory is not

@@ -7,8 +7,8 @@ text.
 
 | Binary | Package | Audience | Reference |
 |---|---|---|---|
-| `core-admin` | `pip install core-runtime` | Operators of a CORE installation, and anyone auditing or starting a governed repository locally | [`core-admin` reference](reference/core-admin.md) |
-| `core` | `pip install core-cli` | Consumers of a running CORE: proposals, secrets, BYOR onboarding, assisted remediation. Most commands talk to a running CORE API | [`core` reference](reference/core.md) |
+| `core-admin` | `pip install core-runtime` | Anyone auditing or starting a governed repository locally, and operators of a CORE installation (services, secrets, vector store, database) | [`core-admin` reference](reference/core-admin.md) |
+| `core` | `pip install core-cli` | Users of a running CORE, working on the repository it governs: proposals, checks and fixes, BYOR onboarding, assisted remediation. Every command talks to a running CORE API; the package is a standalone HTTP client and does not install `core-runtime` | [`core` reference](reference/core.md) |
 
 Both reference pages are generated from the live command trees by
 `core-admin docs generate --write`, so they list exactly what the installed CLIs accept.
@@ -45,7 +45,7 @@ That is intended: CORE does not choose a project's law. It never overwrites: a n
 target, or a target inside CORE's own repository, is refused. Without `--write` it previews
 the files.
 
-`project onboard`, `project scout`, `project promote` and `project docs` belong to `core`
+`project onboard`, `project scout` and `project promote` belong to `core`
 and talk to a running CORE API (ADR-146 D2). See [byor-quickstart.md](byor-quickstart.md).
 
 ### `demo consequence-chain`
@@ -95,7 +95,7 @@ pending or the ledger contradicts the schema, 1 when the check itself failed.
 
 CORE never migrates a database on its own. Upgrading an existing database is an operator-run
 step — the procedure for each released baseline is in
-[Upgrading an existing CORE database](getting-started.md#upgrading-an-existing-core-database).
+[Upgrade a CORE database](upgrading.md).
 
 ```bash
 core-admin database status                          # read-only; exit 0 current, 2 pending/contradictory
