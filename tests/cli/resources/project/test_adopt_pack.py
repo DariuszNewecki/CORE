@@ -51,14 +51,20 @@ def _floored_repo(tmp_path: Path) -> Path:
     return target
 
 
-async def _run(target: Path, *, write: bool, override: list[str] | None = None):
+async def _run(
+    target: Path,
+    *,
+    write: bool,
+    override: list[str] | None = None,
+    pack_id: str = PACK_ID,
+):
     # Pretend CORE lives elsewhere so the tmp target is a legitimate external repo.
     with patch(
         "cli.logic.byor.core_source_root",
         return_value=target.parent / "core-install",
     ):
         await adopt_pack_command.__wrapped__(
-            pack_id=PACK_ID, target_dir=target, write=write, override=override or []
+            pack_id=pack_id, target_dir=target, write=write, override=override or []
         )
 
 
@@ -200,3 +206,34 @@ async def test_pack_resolves_from_bundle_when_law_root_repo_has_no_packs(
 
     rules = adopter / ".intent" / "rules" / "packs" / f"{SLUG}.json"
     assert rules.is_file()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("write", [False, True])
+async def test_refuses_pack_whose_rule_ids_are_already_declared(
+    tmp_path: Path, write: bool
+) -> None:
+    """Regression (2026-10-03): python-hygiene contains the starter's four
+    rules; adopting both made the audit stop with ``Duplicate rule_id``.
+    adopt-pack now refuses the second pack, in preview and with --write."""
+    target = _floored_repo(tmp_path)
+    await _run(target, write=True)
+    with pytest.raises(typer.Exit) as exc:
+        await _run(target, write=write, pack_id="core/python-hygiene")
+    assert exc.value.exit_code == 1
+    rules_dir = target / ".intent" / "rules" / "packs"
+    assert sorted(p.name for p in rules_dir.iterdir()) == [f"{SLUG}.json"]
+
+
+@pytest.mark.asyncio
+async def test_refuses_collision_with_hand_authored_rule(tmp_path: Path) -> None:
+    target = _floored_repo(tmp_path)
+    own = target / ".intent" / "rules" / "local" / "mine.yaml"
+    own.parent.mkdir(parents=True)
+    own.write_text(
+        "rules:\n  - id: starter.no_print\n    statement: no print\n"
+        "    enforcement: blocking\n"
+    )
+    with pytest.raises(typer.Exit):
+        await _run(target, write=True)
+    assert not (target / ".intent" / "rules" / "packs").exists()

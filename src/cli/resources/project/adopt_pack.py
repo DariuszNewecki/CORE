@@ -139,6 +139,31 @@ async def adopt_pack_command(
         )
         raise typer.Exit(1)
 
+    # Two rule documents declaring the same rule ID stop the audit (the
+    # repository refuses duplicates), e.g. python-hygiene contains the
+    # starter's rules. Refuse before writing; re-adopting this pack replaces
+    # its own file, so that file does not count.
+    pack_ids = {r.get("id") for r in pack.rules if r.get("id")}
+    taken = {
+        rid: path
+        for rid, path in _declared_rule_ids(
+            intent_dir / "rules", skip=rules_file
+        ).items()
+        if rid in pack_ids
+    }
+    if taken:
+        console.print(
+            f"[bold red]{pack_id!r} declares rule IDs this repository already "
+            f"has[/bold red] — adopting it would stop the audit with a duplicate "
+            "rule error:"
+        )
+        for rid, path in sorted(taken.items()):
+            console.print(f"  {rid}  (in {path.relative_to(target_dir)})")
+        console.print(
+            "Remove the conflicting rules (or the pack that brought them) first."
+        )
+        raise typer.Exit(1)
+
     # Build effective rules (apply overrides to enforcement level)
     effective_rules = []
     for rule in pack.rules:
@@ -232,6 +257,54 @@ async def adopt_pack_command(
         "\n[bold green]Pack applied.[/bold green] "
         "Run 'core-admin code audit --offline' to see findings."
     )
+
+
+_RULE_SECTIONS = ("rules", "safety_rules", "agent_rules", "principles")
+
+
+def _declared_rule_ids(rules_dir: Path, skip: Path) -> dict[str, Path]:
+    """Rule IDs declared by the rule documents under ``rules_dir``.
+
+    Reads the same files and sections the intent repository indexes (YAML or
+    JSON; ``rules`` and its sibling sections, as a list or an id-keyed map),
+    ignoring ``skip`` and unreadable files.
+    """
+    import yaml as _yaml
+
+    declared: dict[str, Path] = {}
+    if not rules_dir.is_dir():
+        return declared
+    for pattern in ("*.yaml", "*.yml", "*.json"):
+        for path in sorted(rules_dir.rglob(pattern)):
+            if path == skip:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+                data = (
+                    json.loads(text)
+                    if path.suffix == ".json"
+                    else _yaml.safe_load(text)
+                )
+            except (OSError, ValueError, _yaml.YAMLError):
+                continue
+            if not isinstance(data, dict) or data.get("kind") == "governance_pack":
+                continue
+            for section in _RULE_SECTIONS:
+                rules = data.get(section)
+                if isinstance(rules, dict):
+                    ids = [k for k, v in rules.items() if isinstance(v, dict)]
+                elif isinstance(rules, list):
+                    ids = [
+                        r.get("id") or r.get("rule_id")
+                        for r in rules
+                        if isinstance(r, dict)
+                    ]
+                else:
+                    continue
+                for rid in ids:
+                    if isinstance(rid, str) and rid.strip():
+                        declared.setdefault(rid, path)
+    return declared
 
 
 def _upsert_pack_in_tree(
