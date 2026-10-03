@@ -110,7 +110,6 @@ def test_FloorIntegrityReport():
     assert "floor files: 3" in desc
 
 
-
 from shared.infrastructure.intent.machinery_floor_integrity import verify_floor
 
 
@@ -141,3 +140,19 @@ def test_verify_floor(tmp_path: Path) -> None:
     assert report.ok == ("a.txt",)
     assert report.modified == ("b.txt",)
     assert report.missing == ("c.txt",)
+
+
+
+
+# ID: 3bc0ac04-016d-4b53-a16c-fc964fdbdf35
+def test_FloorIntegrityReport_describe() -> None:
+    report = FloorIntegrityReport(
+        ok=["a.py", "b.py"],
+        modified=["c.py"],
+        missing=["d.py"],
+    )
+    result = report.describe()
+    assert isinstance(result, str)
+    assert "floor files: 4" in result
+    assert "modified: c.py" in result
+    assert "missing: d.py" in result
