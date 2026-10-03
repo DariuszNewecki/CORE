@@ -47,3 +47,65 @@ async def test_WorkerShopManager_run() -> None:
         "flagged": 0,
         "resolved": 0,
     }
+
+
+
+
+
+# ID: 0acb9420-8aca-4cbd-bc69-db60208eb5c4
+async def test_WorkerShopManager() -> None:
+    worker = WorkerShopManager()
+
+    # Mock worker async IO boundary methods
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    # Build a minimal schedule state where one worker is over threshold
+    schedule_state = MagicMock()
+    schedule_state.active_uuids = frozenset({"uuid-1"})
+    schedule_state.thresholds = {"uuid-1": 60}
+
+    registered_workers = [
+        {
+            "worker_name": "silent_worker",
+            "worker_uuid": "uuid-1",
+            "seconds_silent": 120,
+        }
+    ]
+
+    existing_findings: dict[str, str] = {}
+
+    blackboard_svc = MagicMock()
+    blackboard_svc.fetch_open_findings = AsyncMock(return_value=[])
+    blackboard_svc.resolve_entries = AsyncMock()
+
+    worker_registry_svc = MagicMock()
+    worker_registry_svc.fetch_registered_workers = AsyncMock(
+        return_value=registered_workers
+    )
+
+    fake_registry = MagicMock()
+    fake_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
+    fake_registry.get_worker_registry_service = AsyncMock(
+        return_value=worker_registry_svc
+    )
+
+    with (
+        patch("body.services.service_registry.service_registry", fake_registry),
+        patch(
+            "will.workers.worker_shop_manager.load_worker_schedule_state",
+            return_value=schedule_state,
+        ),
+    ):
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+    worker.post_finding.assert_awaited_once()
+
+    call_kwargs = worker.post_finding.call_args.kwargs
+    assert call_kwargs["subject"] == "worker.silent::uuid-1"
+    assert call_kwargs["payload"]["worker_uuid"] == "uuid-1"
+    assert call_kwargs["payload"]["seconds_silent"] == 120
+    assert call_kwargs["resolution_mechanism"] == "self_resolve"
