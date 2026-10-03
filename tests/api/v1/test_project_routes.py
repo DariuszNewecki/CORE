@@ -11,6 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
+from fastapi import Response
+
 from api.v1.project_routes import generate_docs
 
 
@@ -38,12 +40,36 @@ async def test_generate_docs_patches_inner_call():
     session = _mock_session()
 
     mock_main = AsyncMock(return_value=None)
+    response = Response()
     result = await generate_docs(
-        body=body, request=request, generate_docs_fn=mock_main, session=session
+        body=body,
+        request=request,
+        response=response,
+        generate_docs_fn=mock_main,
+        session=session,
     )
 
     assert result == {"output": "docs/10_CAPABILITY_REFERENCE.md", "generated": True}
     mock_main.assert_awaited_once()
+
+
+async def test_generate_docs_signals_deprecation():
+    """ADR-087 D4: deprecated route carries Deprecation + Sunset headers and
+    `deprecated: true` in the OpenAPI document."""
+    from api.v1.project_routes import DOCS_SUNSET, DocsRequest, router
+
+    response = Response()
+    await generate_docs(
+        body=DocsRequest(),
+        request=_make_request(),
+        response=response,
+        generate_docs_fn=AsyncMock(return_value=None),
+        session=_mock_session(),
+    )
+    assert response.headers["Deprecation"] == "true"
+    assert response.headers["Sunset"] == DOCS_SUNSET
+    route = next(r for r in router.routes if r.path == "/project/docs")
+    assert route.deprecated is True
 
 
 def test_generate_docs_route_carries_governor_gate():

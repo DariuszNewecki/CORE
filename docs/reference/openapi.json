@@ -1071,7 +1071,7 @@
           "Project",
           "Project"
         ],
-        "summary": "Generate capability reference documentation",
+        "summary": "Generate capability reference documentation (deprecated)",
         "description": "Generate the canonical Capability Reference from the knowledge graph.\n\nFetches public capabilities from core.knowledge_graph and writes\ndocs/10_CAPABILITY_REFERENCE.md via FileHandler. The `output` parameter\nis accepted for forward compatibility; the current implementation writes\nto the fixed path docs/10_CAPABILITY_REFERENCE.md.",
         "operationId": "generate_docs_v1_project_docs_post",
         "requestBody": {
@@ -1107,7 +1107,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/v1/project/onboard": {

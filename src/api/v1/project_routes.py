@@ -3,7 +3,10 @@
 """Project management routes — capability-docs generation (ADR-146 D2).
 
 Exposes:
-- POST /project/docs — generate capability reference documentation
+- POST /project/docs — generate capability reference documentation.
+  DEPRECATED 2026-10-03 (ADR-087 D4): it writes CORE's own docs/ outside the
+  proposal path; `core-admin docs generate` is the documentation generator.
+  Removal waits for /v2/ (ADR-087 D5).
 
 Sibling /project routes split off for modularity (modularity.needs_refactor,
 #782): BYOR onboarding (POST /project/onboard, /onboard/promote) lives in
@@ -19,7 +22,7 @@ CONSTITUTIONAL:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +35,10 @@ logger = getLogger(__name__)
 
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/project", tags=["Project"])
+
+# ADR-087 D4/D5: deprecation signal for POST /project/docs; six months from
+# the first release carrying it, and removal only at /v2/.
+DOCS_SUNSET = "2027-04-03"
 
 
 # ID: 99f391a1-4bc9-4bad-898a-5038b5645f8e
@@ -50,12 +57,14 @@ class DocsRequest(BaseModel):
 @router.post(
     "/docs",
     dependencies=[require_governor],
-    summary="Generate capability reference documentation",
+    summary="Generate capability reference documentation (deprecated)",
+    deprecated=True,
 )
 # ID: 3891de91-00a6-4067-9702-4eef4159d27e
 async def generate_docs(
     body: DocsRequest,
     request: Request,
+    response: Response,
     generate_docs_fn: CapabilityDocsDep,
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
@@ -66,6 +75,8 @@ async def generate_docs(
     is accepted for forward compatibility; the current implementation writes
     to the fixed path docs/10_CAPABILITY_REFERENCE.md.
     """
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = DOCS_SUNSET
     core_context: CoreContext = request.app.state.core_context
     repo_root = core_context.git_service.repo_path
     try:

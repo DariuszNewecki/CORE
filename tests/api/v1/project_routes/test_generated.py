@@ -26,6 +26,7 @@ async def test_generate_docs():
         result = await generate_docs(
             body=MagicMock(output="custom_path.md"),
             request=mock_request,
+            response=MagicMock(headers={}),
             generate_docs_fn=mock_gen_docs,
             session=mock_session,
         )

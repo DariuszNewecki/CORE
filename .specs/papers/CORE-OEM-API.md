@@ -25,7 +25,7 @@ This document is that written line. It walks every endpoint under `src/api/` (~7
 
 - **`public`** — Part of F-40's stable surface. Consumers (CORE's own sidecars per ADR-084 D3, and third-party OEM integrators per the F-40 paper) may call. Stability semantics are F-40.2's scope.
 - **`internal`** — CORE operator / autonomy-loop concern. Reachable today over `127.0.0.1:8000` but no contract is offered; shape can change in any release. Not advertised to external consumers; the OpenAPI spec (F-40.3) excludes these.
-- **`deprecated`** — Exists for backwards compatibility; scheduled for removal. Currently: none.
+- **`deprecated`** — Exists for backwards compatibility; scheduled for removal. Currently: see §6.1.
 
 Routes labeled `public` collectively form **CORE OEM API v1**. The `/v1/` URL prefix is the wire signature of this contract.
 
@@ -225,9 +225,9 @@ All `/sync/` endpoints classify as `internal` — they're CORE's own scheduler /
 
 | Category | Count | Routers |
 |---|---|---|
-| **public** | **78** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (14), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality/imports` + `/quality/tests` (2), read-side of `/coverage` (7) + `/refactor` (5), and routers added since this matrix was drafted |
+| **public** | **77** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (14), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality/imports` + `/quality/tests` (2), read-side of `/coverage` (7) + `/refactor` (5), and routers added since this matrix was drafted |
 | **internal** | **21** | All of `/daemon` (3), `/development` (1), `/sync` (5), the rest of `/quality` (4), plus write-side `/coverage` (3) and write-side `/refactor` (1), plus `/coverage/methods` (1), and internal routes added since this matrix was drafted |
-| **deprecated** | 0 | — |
+| **deprecated** | 1 | `POST /v1/project/docs` (§6.1) |
 | **Total** | **99** | all `/v1/` routers + `/health` |
 
 (Counts are endpoints (method + path), measured 2026-10-03 from the running app and `docs/reference/openapi.json`. The spec is the exact source; §3 still lists routers by name and has not been extended to routers added after this matrix was drafted.)
@@ -258,6 +258,14 @@ core-admin docs generate --write
 ```
 
 `tests/api/test_openapi_document.py` fails when the committed copy differs from what the code renders.
+
+### 6.1 Deprecation candidates
+
+Per ADR-087 D4/D5: each route below carries `deprecated: true` in the spec and `Deprecation` / `Sunset` response headers, keeps working unchanged, and is removed no earlier than its sunset date and only at `/v2/`.
+
+| Route | Deprecated | Sunset | Reason | Use instead |
+|---|---|---|---|---|
+| `POST /v1/project/docs` | 2026-10-03 | 2027-04-03 | Writes CORE's own `docs/10_CAPABILITY_REFERENCE.md` outside the proposal path; a second documentation generator beside ADR-167's. | `core-admin docs generate` |
 
 ## 7. What this contract does NOT promise
 
