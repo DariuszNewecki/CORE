@@ -127,9 +127,6 @@ def test_PatternValidators_check_no_imported_symbol_redeclared():
     assert violation.severity == "error"
 
 
-
-
-
 # ID: d0bdb7c7-dd41-42b1-9e9f-f3822a736c2c
 def test_PatternValidators_check_no_magicmock_on_await() -> None:
     code = (
@@ -156,3 +153,28 @@ def test_PatternValidators_check_no_magicmock_on_await() -> None:
     assert violation.path == "tests/test_x.py"
     assert violation.severity == "error"
     assert "run" in violation.message
+
+
+
+
+
+# ID: 0bfc5271-0c96-4ff9-9fe1-c37171519009
+def test_PatternValidators_validate_test_file_pattern() -> None:
+    cls = MagicMock()
+    cls._module_resolves = MagicMock(return_value=True)
+    cls._load_generated_import_rule_statements = MagicMock(return_value={})
+    cls.check_no_magicmock_on_await = MagicMock(return_value=[])
+    cls.check_no_imported_symbol_redeclared = MagicMock(return_value=[])
+    cls.check_no_placeholder_test_body = MagicMock(return_value=[])
+    cls.check_no_global_module_mutation = MagicMock(return_value=[])
+    cls.check_no_unresolved_free_names = MagicMock(return_value=[])
+
+    code = "import os\nfrom sys import path\n"
+
+    result = PatternValidators.validate_test_file_pattern.__func__(
+        cls, code, "target/test_file.py"
+    )
+
+    assert result == []
+    cls._module_resolves.assert_any_call("os")
+    cls._module_resolves.assert_any_call("sys")
