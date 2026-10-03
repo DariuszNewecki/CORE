@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-88 commands.
+93 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -28,11 +28,12 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 2 | Runtime state and health of the running CORE system. |
+| [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
 | [`tests`](#tests) | 1 | Test maturity dashboard and autonomous generation insights. |
 | [`tools`](#tools) | 2 | Governed, operator-focused maintenance and refactoring tools. |
-| [`vectors`](#vectors) | 2 | Vector store operations (Qdrant). |
+| [`vectors`](#vectors) | 3 | Vector store operations (Qdrant). |
 | [`workers`](#workers) | 6 | Constitutional worker management. |
 
 ---
@@ -1353,6 +1354,61 @@ recent crawl stats, and blast radius top symbols.
 
 ---
 
+## `core-admin secrets` {#secrets}
+
+Manage encrypted secrets in the database.
+
+### `core-admin secrets delete` {#secrets-delete}
+
+```
+core-admin secrets delete KEY [OPTIONS]
+```
+
+Delete a secret from the database.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `KEY` | required | Secret key to delete |
+| `--yes`, `-y` | off | Skip confirmation prompt |
+
+### `core-admin secrets get` {#secrets-get}
+
+```
+core-admin secrets get KEY [OPTIONS]
+```
+
+Retrieve an encrypted secret from the database.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `KEY` | required | Secret key to retrieve |
+| `--show`, `-s` | off | Display the secret value |
+
+### `core-admin secrets list` {#secrets-list}
+
+```
+core-admin secrets list
+```
+
+List all secret keys in the database (does not show values).
+
+### `core-admin secrets set` {#secrets-set}
+
+```
+core-admin secrets set KEY [OPTIONS]
+```
+
+Store an encrypted secret in the database.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `KEY` | required | Secret key (e.g., 'anthropic.api_key') |
+| `--value`, `-v` | required | Secret value (will be encrypted) |
+| `--description`, `-d` |  | Optional description |
+| `--force`, `-f` | off | Overwrite without confirmation |
+
+---
+
 ## `core-admin status` {#status}
 
 Single-glance system state and readiness.
@@ -1499,6 +1555,14 @@ operator-invokable command instead of a manual API call sequence.
 |---|---|---|
 | `--write` | off | Persist rebuilt vectors to Qdrant (default: dry-run). |
 | `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
+
+### `core-admin vectors status` {#vectors-status}
+
+```
+core-admin vectors status
+```
+
+Show vector store health and collection statistics.
 
 ---
 

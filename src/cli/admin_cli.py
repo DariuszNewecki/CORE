@@ -65,6 +65,7 @@ from cli.resources.intent import app as intent_app
 from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.project import app as project_app
 from cli.resources.runtime import app as runtime_app
+from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
@@ -94,6 +95,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(symbols_app, name="symbols")
     app_instance.add_typer(vectors_app, name="vectors")
     app_instance.add_typer(workers_app, name="workers")
+    app_instance.add_typer(secrets_app, name="secrets")
     app_instance.add_typer(constitution_app, name="constitution")
     app_instance.add_typer(coherence_app, name="coherence")
     app_instance.add_typer(project_app, name="project")
