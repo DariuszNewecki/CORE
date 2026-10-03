@@ -1,0 +1,47 @@
+# grc-catalogs/licensed/gdpr/provenance.yaml
+#
+# Per-catalog provenance + IP audit trail (ADR-116 D5). Machine-readable so the
+# tier-vs-IP distinction and the "text not reproduced" discipline are a checkable
+# property of every catalog, not tribal knowledge. A gap report cites the
+# framework + catalog_version it ran against.
+
+framework: "Regulation (EU) 2016/679 (GDPR)"
+tier: public
+catalog: catalog.yaml
+
+source:
+  publisher: "European Parliament and Council of the European Union"
+  document: "Regulation (EU) 2016/679 — General Data Protection Regulation"
+  revision: "consolidated text 2016-05-04 (CELEX 02016R0679-20160504)"
+  url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02016R0679-20160504"
+  url_eli: "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+
+ip_status: official-eu-law-reusable   # Decision 2011/833/EU
+text_reproduced: false
+ip_notes: >-
+  GDPR is an official text of the European Union. Under Commission Decision
+  2011/833/EU, EU legal acts published in the Official Journal are freely
+  reusable. Requirement statements in catalog.yaml are CORE-authored paraphrases
+  of each article's intent, bound to checkable verification engines and citing
+  article identifiers. The Regulation's full article text is NOT reproduced, and
+  this catalog is not a substitute for the authoritative Official Journal text.
+
+derivation: >-
+  CORE-authored paraphrase of article intent per cited article identifier, bound
+  to a verification engine (regex_gate / llm_gate / attestation_gate). Article
+  identifiers and headings reflect the canonical structure of Regulation (EU)
+  2016/679.
+
+# Verification state (ADR-116 lifecycle). Authored at 0.1.0; not yet published.
+# The two approved EUR-Lex sources above were unreachable at authoring time
+# (CELEX consolidated page exceeded the fetch limit; ELI URL returned HTTP 503),
+# so a live cross-check of article headings against the Official Journal text is
+# still OUTSTANDING. Per the governor's decision this catalog was authored from
+# the stable canonical article identifiers and held at 'authored'; promotion to
+# 'published' is gated on a successful fetch from an approved source confirming
+# the cited identifiers/headings.
+source_verified: false
+verification_pending: "live cross-check of cited article identifiers/headings against an approved EUR-Lex source"
+
+catalog_version: "0.1.0"
+maintained_by: "CORE GRC"

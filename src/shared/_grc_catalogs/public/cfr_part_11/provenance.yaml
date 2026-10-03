@@ -1,0 +1,42 @@
+# grc-catalogs/licensed/cfr_part_11/provenance.yaml
+#
+# Per-catalog provenance + IP audit trail (ADR-116 D5). Machine-readable so the
+# tier-vs-IP distinction and the "text not reproduced" discipline are a checkable
+# property of every catalog, not tribal knowledge. A gap report cites the
+# framework + catalog_version it ran against.
+
+framework: "21 CFR Part 11 — Electronic Records; Electronic Signatures"
+tier: public
+catalog: catalog.yaml
+
+source:
+  publisher: "U.S. Food and Drug Administration (FDA) / U.S. Government Publishing Office"
+  document: "U.S. Code of Federal Regulations, Title 21, Part 11 — Electronic Records; Electronic Signatures"
+  revision: "2024 annual edition (revised as of April 1, 2024)"
+  url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11"
+  url_verified: "https://www.govinfo.gov/content/pkg/CFR-2024-title21-vol1/xml/CFR-2024-title21-vol1-part11.xml"
+
+ip_status: public-domain
+text_reproduced: false
+ip_notes: >-
+  21 CFR Part 11 is part of the U.S. Code of Federal Regulations, a work of the
+  U.S. Government and not subject to copyright in the United States. Requirement
+  statements in catalog.yaml are CORE-authored paraphrases of section intent,
+  bound to checkable verification engines and citing section identifiers. The
+  regulation's full text is NOT reproduced, and this catalog is not a substitute
+  for the authoritative CFR text.
+
+derivation: >-
+  CORE-authored paraphrase of section intent per cited section identifier, bound
+  to a verification engine (regex_gate / llm_gate / attestation_gate). Section
+  identifiers and headings were verified against the authoritative GPO text.
+
+# Verification state (ADR-116 lifecycle). The primary source (eCFR) anti-bot-
+# redirects automated clients, so verification was performed against the
+# equally-authoritative GPO source (govinfo.gov, url_verified above). Section
+# identifiers and headings for all of Part 11 (§§ 11.1–11.300) were confirmed.
+source_verified: true
+verified_against: "govinfo.gov — CFR-2024-title21-vol1-part11 (GPO official CFR)"
+
+catalog_version: "0.1.0"
+maintained_by: "CORE GRC"

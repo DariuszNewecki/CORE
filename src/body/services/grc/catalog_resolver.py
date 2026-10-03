@@ -50,18 +50,24 @@ class CatalogPublicationUnknownError(RuntimeError):
 def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
     """Resolve the GRC catalog corpus root.
 
-    Defaults to ``PathResolver.grc_catalogs_dir``; an explicit ``catalog_root``
-    (e.g. a deploy-time entitlement mount, ADR-116 D3) overrides it. PathResolver
-    is in shared/ and is the governed way for body/ to resolve repo-relative paths
-    without importing Settings (architecture.boundary.settings_access).
+    Defaults to ``PathResolver.grc_catalogs_dir`` when that directory exists,
+    else to the public corpus bundled in the installed wheel (ADR-116 D6,
+    amended 2026-10-03); an explicit ``catalog_root`` (e.g. a deploy-time
+    entitlement mount, ADR-116 D3) overrides both. PathResolver is in shared/
+    and is the governed way for body/ to resolve repo-relative paths without
+    importing Settings (architecture.boundary.settings_access).
     """
     if catalog_root is not None:
         return Path(catalog_root).resolve()
+    from shared.infrastructure.bundled_grc_catalogs import bundled_grc_catalogs_dir
     from shared.infrastructure.intent.intent_repository import get_intent_repository
     from shared.path_resolver import PathResolver
 
     repo_root = get_intent_repository().root.parent
-    return PathResolver.from_repo(repo_root).grc_catalogs_dir
+    repo_corpus = PathResolver.from_repo(repo_root).grc_catalogs_dir
+    if repo_corpus.is_dir():
+        return repo_corpus
+    return bundled_grc_catalogs_dir() or repo_corpus
 
 
 # ID: c2d1814a-dc77-4b3a-b066-b5f66b274e28

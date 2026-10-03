@@ -1,0 +1,33 @@
+# grc-catalogs/public/nist_800_171/provenance.yaml
+#
+# Per-catalog provenance + IP audit trail (ADR-116 D5). Machine-readable so the
+# public-vs-copyrighted distinction and the "text not reproduced" discipline are
+# a checkable property of every catalog, not tribal knowledge. A gap report
+# cites the framework + catalog_version it ran against.
+
+framework: "NIST SP 800-171 Rev. 2"
+tier: public
+catalog: catalog.yaml
+
+source:
+  publisher: "U.S. National Institute of Standards and Technology (NIST)"
+  document: "NIST Special Publication 800-171 Revision 2 — Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations"
+  revision: "Rev. 2 (February 2020)"
+  url: "https://csrc.nist.gov/pubs/sp/800/171/r2/final"
+
+ip_status: public-domain
+text_reproduced: false
+ip_notes: >-
+  NIST publications are works of the U.S. Government and are not subject to
+  copyright in the United States. Requirement statements in catalog.yaml are
+  CORE-authored paraphrases of control intent, bound to checkable verification
+  engines and citing control identifiers. The standard's full control text is
+  NOT reproduced, and this catalog is not a substitute for the authoritative
+  publication.
+
+derivation: >-
+  CORE-authored paraphrase of control intent per cited control identifier,
+  bound to a verification engine (regex_gate / llm_gate / attestation_gate).
+
+catalog_version: "0.1.0"
+maintained_by: "CORE GRC"
