@@ -839,7 +839,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...v2.11.0
 [2.10.2]: https://github.com/DariuszNewecki/CORE/compare/v2.10.1...v2.10.2
 [2.8.0]: https://github.com/DariuszNewecki/CORE/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/DariuszNewecki/CORE/compare/v2.6.0...v2.7.0

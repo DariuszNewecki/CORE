@@ -51,7 +51,13 @@ No secrets are stored in the environment — OIDC handles authentication.
 Once the one-time setup is complete:
 
 1. Update the version in `pyproject.toml` under `[project] version` (PEP 621, per #543).
-2. Update the release badge in `README.md` to match.
+   It is the only canonical version.
+2. Run `python scripts/release_pins.py --write`. It brings every release pin
+   to that version: the `Dockerfile` default, the README badge, the
+   cold-reviewer Action tag, the GitLab template, the pre-commit example, and
+   the CHANGELOG comparison links. It lists any pin it cannot rewrite safely
+   (the README "Current Release" line, which also describes the release);
+   edit those by hand. CI runs `--check` and fails on any drift.
 3. Commit the bump (`chore: bump version to X.Y.Z`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
 
@@ -83,7 +89,7 @@ publishes via OIDC. The release appears at
 ## Semver
 
 CORE follows semantic versioning per ADR-086 D7; the semver policy was
-finalized in #541 (F-48.5). CORE is past 1.0 (current release 2.9.1), so
+finalized in #541 (F-48.5). CORE is past 1.0, so
 minor bumps add backward-compatible surface and patches are fixes only.
 
 Versions are immutable. Mistakes ship as a new patch version, never as

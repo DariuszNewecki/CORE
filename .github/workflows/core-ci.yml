@@ -81,6 +81,8 @@ jobs:
         run: pip install pyyaml --quiet
       - name: Validate manifest invariants + README sync
         run: python scripts/production_readiness.py
+      - name: Release pins match pyproject version (read-only)
+        run: python scripts/release_pins.py --check
 
   # ADR-157 D3.1: extracted from `validate` -- none of these four checks need
   # the database (vocabulary sync is file-based; audit runs --offline; ruff

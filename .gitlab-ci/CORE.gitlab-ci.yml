@@ -41,7 +41,7 @@ core-constitutional-audit:
     CORE_SEVERITY: "block"
     CORE_INTENT: ".intent/"
     # Pinned to match the Dockerfile default (F-10.3). Bump with releases.
-    CORE_RUNTIME_VERSION: "2.7.0"
+    CORE_RUNTIME_VERSION: "2.11.0"
 
   before_script:
     # Skip pip install when using a pre-built image that already has core-runtime.
