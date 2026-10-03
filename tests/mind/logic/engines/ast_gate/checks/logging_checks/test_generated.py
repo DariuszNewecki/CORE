@@ -83,9 +83,6 @@ def test_check_logger_not_presentation() -> None:
     assert findings == []
 
 
-
-
-
 # ID: 0279646f-8f21-4240-845f-6fcdcdc6dc63
 def test_check_logger_not_presentation() -> None:
     source = (
@@ -98,3 +95,18 @@ def test_check_logger_not_presentation() -> None:
     findings = LoggingChecks.check_logger_not_presentation(tree)
 
     assert findings == []
+
+
+
+
+
+# ID: 983c095a-5158-47b9-8c3c-7a1d98cb2ffb
+def test_check_logger_not_presentation() -> None:
+    source = (
+        "logger.info('plain text')\n"
+        "logger.info('has [bold]markup[/bold]')\n"
+        "logger.info(table)\n"
+    )
+    tree = ast.parse(source)
+    result = LoggingChecks.check_logger_not_presentation(tree)
+    assert isinstance(result, list)
