@@ -109,9 +109,6 @@ def test_check_logger_not_presentation() -> None:
     assert isinstance(result, list)
 
 
-
-
-
 # ID: d1cdc10a-6ef0-4813-9b3e-0c0600d508fc
 def test_check_logger_not_presentation():
     source = (
@@ -126,3 +123,20 @@ def test_check_logger_not_presentation():
     assert isinstance(findings, list)
     assert len(findings) == 1
     assert "Rich markup detected in log string" in findings[0]
+
+
+
+
+
+# ID: 40489b16-ea82-4d9f-9e25-42ea4f314e36
+def test_check_logger_not_presentation() -> None:
+    check = LoggingChecks.check_logger_not_presentation
+
+    safe_source = "logger.info('a plain operational message')\n"
+    safe_tree = ast.parse(safe_source)
+    assert check(safe_tree) == []
+
+    rich_source = 'logger.info("[bold]hello[/bold]")\n'
+    rich_tree = ast.parse(rich_source)
+    findings = check(rich_tree)
+    assert findings
