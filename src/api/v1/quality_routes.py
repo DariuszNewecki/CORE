@@ -165,10 +165,11 @@ async def _dispatch_quality(
 
 @router.post("/imports", response_model=QualityImportsResponse)
 # ID: 426c8ef0-3264-4e0d-9d6a-330bc46bbea3
-async def quality_imports() -> dict:
+async def quality_imports(request: Request) -> dict:
     """Run the import-resolution check inline over the governed repository's
     src/ (its root when it has no src/). Returns {status, violations}."""
-    return await run_quality_imports()
+    core_context: CoreContext = request.app.state.core_context
+    return await run_quality_imports(core_context)
 
 
 @router.post("/policy-coverage", include_in_schema=False)

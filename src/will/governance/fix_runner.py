@@ -550,15 +550,14 @@ _QUALITY_GATES: list[tuple[str, list[str], bool]] = [
 
 
 # ID: b64958a3-c4ec-4822-bf52-db5c25a1eb32
-async def run_quality_imports() -> dict:
+async def run_quality_imports(context: CoreContext) -> dict:
     """Run the import-resolution check synchronously.
 
-    Wraps body.atomic.check_actions.action_check_imports, which checks the
-    whole of the bound repository's src/ (its root when it has no src/).
+    Executes check.imports through ActionExecutor, which binds it to the
+    governed repository; it checks that repository's src/ (its root when it
+    has no src/).
     """
-    from body.atomic.check_actions import action_check_imports
-
-    result = await action_check_imports()
+    result = await ActionExecutor(context).execute("check.imports")
     return {
         "status": "ok" if result.ok else "failed",
         "violations": result.data.get("violations", []),

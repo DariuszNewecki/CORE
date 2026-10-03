@@ -41,6 +41,14 @@ from api.v1.quality_routes import (
 # Synchronous endpoints
 # ----------------------------------------------------------------------
 
+_CONTEXT = object()
+
+
+def _imports_request() -> MagicMock:
+    request = MagicMock()
+    request.app.state.core_context = _CONTEXT
+    return request
+
 
 async def test_quality_imports_ok_path_returns_status_ok_and_empty_violations():
     """When the facade reports no violations the route returns
@@ -49,9 +57,9 @@ async def test_quality_imports_ok_path_returns_status_ok_and_empty_violations():
         "api.v1.quality_routes.run_quality_imports",
         AsyncMock(return_value={"status": "ok", "violations": []}),
     ) as mock:
-        out = await quality_imports()
+        out = await quality_imports(request=_imports_request())
 
-    mock.assert_awaited_once_with()
+    mock.assert_awaited_once_with(_CONTEXT)
     assert out == {"status": "ok", "violations": []}
 
 
@@ -63,9 +71,9 @@ async def test_quality_imports_failed_path_propagates_violations():
         "api.v1.quality_routes.run_quality_imports",
         AsyncMock(return_value={"status": "failed", "violations": violations}),
     ) as mock:
-        out = await quality_imports()
+        out = await quality_imports(request=_imports_request())
 
-    mock.assert_awaited_once_with()
+    mock.assert_awaited_once_with(_CONTEXT)
     assert out["status"] == "failed"
     assert out["violations"] == violations
 
