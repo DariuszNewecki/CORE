@@ -248,3 +248,19 @@ This ADR is closed when:
 - `.intent/enforcement/config/action_risk.yaml` — risk registry (D5).
 - `.intent/enforcement/mappings/code/tests.yaml` — enforcement mapping for the `code.tests.*` quality rules introduced by this ADR (D5).
 - Issue #563 — F-19 convergence metric; reducing failure rate contributes to this goal.
+
+---
+
+## Amendment 2026-10-03 — D4 no-gap disposition (governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03). Clarifies D4 step 3; no new decision.
+
+On the no-gap path the worker has nothing to generate, but it is not the producer of the
+claimed `test.runner.missing` finding and does not decide whether that condition still
+holds. It returns the finding to `awaiting_reaudit` (ADR-045), where TestRunnerSensor's
+quarantine drain resolves it when the governed test file now exists and reopens it when
+it is still missing. It does not release the finding to `open`: no adjudication path reads
+`open`, so the worker re-claimed it every cycle (72 findings, the oldest from 2026-06-30;
+~150k `test.coverage.complete` notices a week). The notice itself is a report, not a
+finding. A `test.runner.failure` with no symbol gaps is a separate lifecycle case and is not
+covered by this disposition.

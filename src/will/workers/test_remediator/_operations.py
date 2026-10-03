@@ -265,6 +265,32 @@ async def _release_entries(entry_ids: list[str]) -> int:
         return 0
 
 
+async def _return_for_reaudit(entry_ids: list[str]) -> int:
+    """
+    Hand claimed findings back to TestRunnerSensor's re-audit (ADR-045).
+
+    The ADR-133 D4 no-gap path (2026-10-03): the gap evaluator found every
+    public symbol tested, so this worker has nothing to generate — but it is
+    not the producer and does not decide whether ``test.runner.missing``
+    still holds. ``awaiting_reaudit`` lets the sensor's quarantine drain
+    resolve it (governed test file now exists) or reopen it (still missing).
+    Releasing to ``open`` instead had this worker re-claim it every cycle.
+    """
+    from body.services.service_registry import service_registry
+
+    if not entry_ids:
+        return 0
+
+    try:
+        blackboard_service = await service_registry.get_blackboard_service()
+        return await blackboard_service.return_claimed_entries_for_reaudit(entry_ids)
+    except Exception as e:
+        logger.error(
+            "TestRemediatorWorker: failed to return entries for reaudit: %s", e
+        )
+        return 0
+
+
 async def _get_active_symbol_proposals() -> set[tuple[str, str]]:
     """
     Return (source_file, symbol_name) pairs currently in flight for

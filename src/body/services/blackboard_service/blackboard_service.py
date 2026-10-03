@@ -238,6 +238,50 @@ class BlackboardService:
                     released += result.rowcount
         return released
 
+    # ID: d6c306ec-1d91-4af8-ab72-d8e540b25bc8
+    async def return_claimed_entries_for_reaudit(self, entry_ids: list[str]) -> int:
+        """
+        Hand claimed findings back to their producer's re-audit (ADR-045).
+
+        For a consumer that claimed a finding, found nothing to do, and must
+        not decide on its own whether the condition still holds — the
+        producing sensor's ``awaiting_reaudit`` drain decides (resolve when
+        the condition is gone, reopen when it still holds). Releasing to
+        ``open`` instead would let the consumer re-claim it next cycle, a
+        loop no adjudication path ever sees (ADR-133 D4 no-gap path,
+        2026-10-03).
+
+        Only ``claimed`` rows with ``resolution_mechanism = 'reaudit'`` move
+        (``architecture.blackboard.reaudit_requires_reaudit_mechanism``).
+        Returns the count of rows actually updated.
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        returned = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'awaiting_reaudit',
+                                claimed_by = NULL,
+                                claimed_at = NULL,
+                                updated_at = now()
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status = 'claimed'
+                              AND resolution_mechanism = 'reaudit'
+                            """
+                        ),
+                        {"entry_id": entry_id},
+                    )
+                    returned += result.rowcount
+        return returned
+
     # ID: 4c7a9e2f-b518-4d63-a0e1-d6f3b82c5a10
     async def abandon_entries(self, entry_ids: list[str]) -> int:
         """

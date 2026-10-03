@@ -72,6 +72,7 @@ from ._operations import (
     _query_recent_symbol_failures,
     _query_source_file_attempt_count,
     _release_entries,
+    _return_for_reaudit,
 )
 
 
@@ -178,6 +179,7 @@ class TestRemediatorWorker(Worker):
         source_files_skipped: list[str] = []
         entries_deferred: int = 0
         entries_released: int = 0
+        entries_returned_for_reaudit: int = 0
         proposals_skipped_cap: int = 0
         symbols_skipped_dedup: int = 0
 
@@ -286,7 +288,20 @@ class TestRemediatorWorker(Worker):
                         "covered_count": gap_result.data.get("covered_count", 0),
                     },
                 )
-                entries_released += await _release_entries(entry_ids)
+                # ADR-133 D4 no-gap disposition (2026-10-03): a missing-test
+                # finding goes back to TestRunnerSensor's re-audit, which
+                # resolves it now that the tests exist — never to `open`,
+                # where this worker re-claimed it every cycle. Other findings
+                # (test.runner.failure) keep the release path; a failure with
+                # no symbol gaps is a separate lifecycle case.
+                missing_ids = [
+                    f["id"]
+                    for f in findings
+                    if "::test.runner.missing::" in str(f.get("subject") or "")
+                ]
+                other_ids = [i for i in entry_ids if i not in missing_ids]
+                entries_returned_for_reaudit += await _return_for_reaudit(missing_ids)
+                entries_released += await _release_entries(other_ids)
                 source_files_skipped.append(source_file)
                 continue
 
@@ -386,6 +401,7 @@ class TestRemediatorWorker(Worker):
                 "symbols_skipped_dedup": symbols_skipped_dedup,
                 "entries_deferred": entries_deferred,
                 "entries_released": entries_released,
+                "entries_returned_for_reaudit": entries_returned_for_reaudit,
                 "created_proposals": proposals_created,
                 "skipped_source_files": source_files_skipped,
             },
