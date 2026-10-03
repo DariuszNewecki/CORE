@@ -427,17 +427,24 @@ async def _create_symbol_proposal(
         return None
 
 
-async def _query_recent_symbol_failures(
+async def _query_symbol_failure_lineage(
     source_file: str,
     symbol_name: str,
-    lookback_hours: int = 24,
-) -> int:
+) -> tuple[int, str | None]:
     """
-    Count failed flow.build_test_for_symbol proposals for (source_file, symbol_name)
-    in the last lookback_hours. Per-symbol circuit breaker (ADR-133 D4).
-    Returns 0 on error so the caller fails open.
+    Failed flow.build_test_for_symbol attempts for (source_file, symbol_name),
+    and the last failure's reason. Per-symbol circuit breaker (ADR-133 D4).
+
+    Lineage-based, not time-windowed (ADR-104 D9 as amended 2026-10-03:
+    elapsed time is not a materially changed condition). The lineage starts
+    after the governor last resolved a delegated test finding for this file
+    (``resolved`` + ``human``) — resolving the lane item is the re-arm; time
+    never is. The reason is the acceptance gate's first detail when there is
+    one, else the proposal's failure_reason.
+
+    Returns (0, None) on error so the caller fails open.
     """
-    from sqlalchemy import Integer, String, bindparam, text
+    from sqlalchemy import String, bindparam, text
 
     from body.services.service_registry import service_registry
 
@@ -446,25 +453,37 @@ async def _query_recent_symbol_failures(
             result = await session.execute(
                 text(
                     """
-                    SELECT count(*) FROM core.autonomous_proposals
-                    WHERE status = 'failed'
-                      AND failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
-                      AND scope->'files' @> cast(:source_file_json as jsonb)
-                      AND constitutional_constraints->>'symbol_name' = :symbol_name
-                      AND updated_at > now() - make_interval(hours => :hours)
+                    SELECT p.failure_reason, p.execution_results
+                    FROM core.autonomous_proposals p
+                    WHERE p.status = 'failed'
+                      AND p.failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
+                      AND p.scope->'files' @> cast(:source_file_json as jsonb)
+                      AND p.constitutional_constraints->>'symbol_name' = :symbol_name
+                      AND p.updated_at > COALESCE(
+                          (
+                              SELECT max(b.resolved_at)
+                              FROM core.blackboard_entries b
+                              WHERE b.entry_type = 'finding'
+                                AND b.status = 'resolved'
+                                AND b.resolution_mechanism = 'human'
+                                AND b.subject LIKE 'python::test.runner.%::' || :source_file
+                          ),
+                          '-infinity'::timestamptz
+                      )
+                    ORDER BY p.updated_at DESC
                     """
                 ).bindparams(
                     bindparam("source_file_json", type_=String),
                     bindparam("symbol_name", type_=String),
-                    bindparam("hours", type_=Integer),
+                    bindparam("source_file", type_=String),
                 ),
                 {
                     "source_file_json": f'["{source_file}"]',
                     "symbol_name": symbol_name,
-                    "hours": lookback_hours,
+                    "source_file": source_file,
                 },
             )
-            return int(result.scalar_one())
+            rows = result.fetchall()
     except Exception as e:
         logger.warning(
             "TestRemediatorWorker: could not query symbol failures "
@@ -473,4 +492,29 @@ async def _query_recent_symbol_failures(
             symbol_name,
             e,
         )
-        return 0
+        return 0, None
+    if not rows:
+        return 0, None
+    return len(rows), _failure_detail(rows[0][0], rows[0][1])
+
+
+def _failure_detail(failure_reason: str | None, execution_results: Any) -> str | None:
+    """The most specific reason a build_test_for_symbol attempt failed."""
+
+    def _first_detail(node: Any) -> str | None:
+        if isinstance(node, dict):
+            details = node.get("details")
+            if isinstance(details, list) and details:
+                return str(details[0])
+            for value in node.values():
+                found = _first_detail(value)
+                if found:
+                    return found
+        elif isinstance(node, list):
+            for value in node:
+                found = _first_detail(value)
+                if found:
+                    return found
+        return None
+
+    return _first_detail(execution_results) or failure_reason

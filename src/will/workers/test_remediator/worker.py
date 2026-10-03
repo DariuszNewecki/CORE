@@ -69,8 +69,8 @@ from ._operations import (
     _inherit_attempt_count,
     _last_failed_proposal,
     _load_open_findings,
-    _query_recent_symbol_failures,
     _query_source_file_attempt_count,
+    _query_symbol_failure_lineage,
     _release_entries,
     _return_for_reaudit,
 )
@@ -305,7 +305,12 @@ class TestRemediatorWorker(Worker):
                 source_files_skipped.append(source_file)
                 continue
 
-            # Per-symbol proposals (ADR-133 D3/D4).
+            # Per-symbol proposals (ADR-133 D3/D4). A symbol whose lineage has
+            # exhausted cap_n attempts is skipped for good — no time window
+            # (ADR-104 D9 as amended 2026-10-03). When every remaining gap is
+            # capped, the file's findings are delegated to the governor once.
+            capped_symbols: list[dict[str, Any]] = []
+            autonomous_work_left = False
             for gap in gaps:
                 symbol_name = gap["name"]
                 symbol_kind = gap["kind"]
@@ -313,6 +318,7 @@ class TestRemediatorWorker(Worker):
                 sym_key = (source_file, symbol_name)
 
                 if sym_key in active_symbol_proposals:
+                    autonomous_work_left = True
                     symbols_skipped_dedup += 1
                     logger.debug(
                         "TestRemediatorWorker: skipping '%s::%s' — "
@@ -322,10 +328,17 @@ class TestRemediatorWorker(Worker):
                     )
                     continue
 
-                sym_failures = await _query_recent_symbol_failures(
+                sym_failures, last_failure = await _query_symbol_failure_lineage(
                     source_file, symbol_name
                 )
                 if sym_failures >= cap_n:
+                    capped_symbols.append(
+                        {
+                            "symbol_name": symbol_name,
+                            "attempt_count": sym_failures,
+                            "last_failure": last_failure,
+                        }
+                    )
                     proposals_skipped_cap += 1
                     logger.warning(
                         "TestRemediatorWorker: '%s::%s' — per-symbol cap reached "
@@ -337,6 +350,7 @@ class TestRemediatorWorker(Worker):
                     )
                     continue
 
+                autonomous_work_left = True
                 proposal_id = await _create_symbol_proposal(
                     source_file=source_file,
                     symbol_name=symbol_name,
@@ -384,6 +398,38 @@ class TestRemediatorWorker(Worker):
             # above skips re-creating it — identical in shape to the
             # pre-existing all-dedup-skipped release path, not a new
             # hot loop.
+            if capped_symbols and not autonomous_work_left:
+                first = capped_symbols[0]
+                delegated_ids = await _delegate_capped_findings(
+                    entry_ids,
+                    max(c["attempt_count"] for c in capped_symbols),
+                    {
+                        "reason": "failure_cap_delegated",
+                        "detail": first["last_failure"]
+                        or "test generation attempts exhausted for this symbol",
+                        "source_file": source_file,
+                        "symbol_name": first["symbol_name"],
+                        "attempted_actions": "flow.build_test_for_symbol",
+                        "attempt_count": first["attempt_count"],
+                        "capped_symbols": capped_symbols,
+                    },
+                )
+                if delegated_ids:
+                    await self.post_observation(
+                        subject=f"blackboard.remediation_cap_reached::{source_file}",
+                        payload={
+                            "source_file": source_file,
+                            "reason": "failure_cap_delegated",
+                            "remediation_cap_n": cap_n,
+                            "capped_symbols": [
+                                c["symbol_name"] for c in capped_symbols
+                            ],
+                            "delegated_entry_ids": delegated_ids,
+                        },
+                        status="abandoned",
+                    )
+                continue
+
             if inherited > 0:
                 await _inherit_attempt_count(entry_ids, inherited)
             entries_released += await _release_entries(entry_ids)

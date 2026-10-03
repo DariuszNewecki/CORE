@@ -75,8 +75,8 @@ def _patch_operations(**overrides):  # type: ignore[no-untyped-def]
         "will.workers.test_remediator.worker._query_source_file_attempt_count": AsyncMock(
             return_value=0
         ),
-        "will.workers.test_remediator.worker._query_recent_symbol_failures": AsyncMock(
-            return_value=0
+        "will.workers.test_remediator.worker._query_symbol_failure_lineage": AsyncMock(
+            return_value=(0, None)
         ),
         "will.workers.test_remediator.worker._delegate_capped_findings": AsyncMock(
             return_value=["entry-id-1"]
