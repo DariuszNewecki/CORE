@@ -92,8 +92,6 @@ def test_PatternValidators_check_no_placeholder_test_body() -> None:
     assert violation.severity == "error"
 
 
-
-
 # ID: 29c12000-ecc2-4e9e-b2d9-b004266c334c
 def test_PatternValidators_check_no_imported_symbol_redeclared():
     from body.governance.intent_pattern_validators import (
@@ -127,3 +125,34 @@ def test_PatternValidators_check_no_imported_symbol_redeclared():
     assert violation.path == "tests/test_widget.py"
     assert "Widget" in violation.message
     assert violation.severity == "error"
+
+
+
+
+
+# ID: d0bdb7c7-dd41-42b1-9e9f-f3822a736c2c
+def test_PatternValidators_check_no_magicmock_on_await() -> None:
+    code = (
+        "async def test_x():\n"
+        "    svc = MagicMock()\n"
+        "    svc.run = MagicMock()\n"
+        "    await svc.run()\n"
+    )
+    tree = ast.parse(code)
+
+    with patch.object(
+        PatternValidators,
+        "_load_test_quality_rule_statements",
+        return_value={},
+    ):
+        violations = PatternValidators.check_no_magicmock_on_await(
+            tree, code, "tests/test_x.py"
+        )
+
+    assert isinstance(violations, list)
+    assert len(violations) == 1
+    violation = violations[0]
+    assert violation.rule_name == "code.tests.no_magicmock_on_await"
+    assert violation.path == "tests/test_x.py"
+    assert violation.severity == "error"
+    assert "run" in violation.message
