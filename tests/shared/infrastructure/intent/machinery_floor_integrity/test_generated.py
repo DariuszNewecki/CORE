@@ -142,8 +142,6 @@ def test_verify_floor(tmp_path: Path) -> None:
     assert report.missing == ("c.txt",)
 
 
-
-
 # ID: 3bc0ac04-016d-4b53-a16c-fc964fdbdf35
 def test_FloorIntegrityReport_describe() -> None:
     report = FloorIntegrityReport(
@@ -156,3 +154,11 @@ def test_FloorIntegrityReport_describe() -> None:
     assert "floor files: 4" in result
     assert "modified: c.py" in result
     assert "missing: d.py" in result
+
+
+
+
+# ID: f965489e-6e69-44f7-8da8-1ea45ef53d4f
+def test_FloorIntegrityReport_clean() -> None:
+    report = FloorIntegrityReport(modified=[], missing=[])
+    assert report.clean is True
