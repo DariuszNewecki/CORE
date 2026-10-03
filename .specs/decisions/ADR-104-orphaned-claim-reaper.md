@@ -199,3 +199,42 @@ Governance corollaries inherited from the parent ADR:
 9. D9's failure path still abandons at cap — pinned by the existing D9 test, unchanged.
 10. The delegated finding survives N sensor cycles with the violation present (no re-post, no auto-resolve) and is closed by the clean-pass drain once it is absent.
 11. The `proposal.noop.revival` report and run-report counters distinguish delegated-at-cap from revived.
+
+## Addendum — D9 amended: cap exhaustion delegates to the governor (2026-10-03, governor ruling)
+
+**Status:** Accepted (governor ruling 2026-10-03). Amends D9's terminal state and D10's
+judgment line for the failure path; D9's counter and knob are unchanged.
+
+**Ruling.** When the autonomous remediation cap is exhausted, the finding lineage follows
+the existing ADR-154 rejection disposition: it moves **once** to `indeterminate` +
+`human`, carrying the rule, target, attempted action, attempt count and last failure
+reason. It returns to autonomous eligibility only through explicit governor action or a
+recorded materially changed condition. **Elapsed time alone is not a materially changed
+condition** and does not re-arm the finding. Re-posts of the same subject or lineage are
+absorbed by the delegated finding and must not create duplicate work or repeated churn.
+
+**What this replaces.**
+- D9: "the finding is **abandoned (terminal Type-B)**" at cap → it is delegated as above.
+  The `blackboard.remediation_cap_reached` observation is still posted (D4).
+- D10's judgment line ("`abandoned` where the daemon tried and failed at something it
+  could in principle do") no longer holds for the failure path: exhausting autonomous
+  remediation ends autonomy, not responsibility. D10 acceptance criterion 9 ("D9's
+  failure path still abandons at cap") is reversed; criteria 8 and 10–11 stand.
+- The time-based re-arm (`remediation_rearm_after_sec`, cited in code as "ADR-104 D11
+  draft" — no D11 was ever recorded) is withdrawn.
+
+**Why.** Measured 2026-10-03 (`var/reports/violation-remediation-deep-dive-20261003.md`):
+`abandoned` is excluded from the sensor's dedup set, so an abandoned lineage is re-posted
+every cycle and re-abandoned — six formatter findings ~1,225 times each over 66 days,
+five `test.runner.missing` lineages ~1,000 times each per week — and never reached a
+human. The July cause (a superseded rule still blocking) had been fixed; nobody knew. A
+delegated finding stays in the dedup set (D10's load-bearing invariant), so delegation
+also ends the churn.
+
+**Scope.** Every autonomous remediation cap: the violation remediator's mapped path
+(inherited count), the violation executor's unmapped path, and the test remediator.
+
+**Changed conditions recognised today.** Governor action on the delegated finding;
+ADR-127's clean-pass drain (the violation is gone); retirement of the rule
+(`resolve_findings_with_retired_rules`). Other changed conditions are added by recording
+them, not by a timer.
