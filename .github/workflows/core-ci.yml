@@ -2,8 +2,12 @@
 name: CORE CI
 
 on:
+  # develop only. main receives fast-forwards of commits that already passed
+  # here. Check results attach to the commit SHA, so main's required checks
+  # are satisfied by the develop run, and a second run on main would re-test
+  # identical bytes (~15 min). Governor decision 2026-10-04.
   push:
-    branches: [main, develop]
+    branches: [develop]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
