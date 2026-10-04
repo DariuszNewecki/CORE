@@ -213,8 +213,6 @@
           - "src/shared/infrastructure/validation/ruff_linter.py"
           - "src/shared/infrastructure/validation/test_runner.py"         # shared test-execution substrate; subprocess is the only pytest interface
           - "src/body/quality/coverage_analyzer.py"
-          - "src/cli/commands/check/quality_gates.py"
-          - "src/cli/commands/coverage/services/coverage_rep*"
           - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation -- same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
           - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess -- same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
           # Workflow gate checks invoke external quality tools inline -- no Body delegation
