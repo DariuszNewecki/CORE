@@ -481,3 +481,79 @@ Closes #942 when:
 | API launch (unit / entry point) | deployment | Unix-socket listener |
 | `/etc/core/principals.yaml` | deployment, governor-owned | the Layer 2 binding |
 | `.env` mode | deployment, governor act | `core` only |
+
+---
+
+## Amendment to D10 — runtime isolation, socket-only governor, revised order (2026-10-04, accepted)
+
+**Status:** Accepted (governor approved 2026-10-04, after an external review of D10's step-3 plan).
+
+### Why
+
+The external review (ChatGPT, with read access to `develop`) confirmed one gap D10 missed, and it was then verified on the host:
+- `/opt/dev/CORE`, `src/`, `.venv/` and `site-packages` are owned `core:core-dev`, mode `2775`.
+- The `core` services run from that tree through an editable install (`core_runtime.pth`).
+- The assistant (`core-claude`, in `core-dev`) can write all of it, and can restart the services through the `core-services` wrapper.
+
+So taking away the assistant's database credential (D10.5) only moves the forgery one step: the assistant changes code that runs as `core`, and the database sees `core`.
+
+The review also showed that D10.6 step 3b had a fault. Stamping `principal.governor` server-side while `require_governor` is still a pass-through makes a forged stamp look more authoritative.
+
+### D10.8 — The assistant cannot change what runs with production authority
+
+An identity that does not hold the production credential must not be able to modify anything consumed by a process that does:
+- the executable code;
+- the Python path and venv (including `.pth` files and dependencies);
+- the environment;
+- the service unit definitions.
+
+Concretely:
+- The services run a release build (a wheel) installed into a venv outside the development tree, owned by `core` or root, and not writable by the assistant (proposed: `/opt/core/`).
+- The units carry `User=core` / `Group=core` where they are system units, or remain `core`-user units. Either way, their definitions are not writable by the assistant.
+- The checked-in `infra/systemd/` copies state this, and they drop the `/home/lira/.local/bin` residue.
+
+Moving development bytes into the runtime is a **deployment act performed by the governor**. The assistant may change source, build it and test it. It cannot make its own output live. This is CORE's claim ("AI cannot authorize its own output") applied to the repository that builds CORE.
+
+Consequence for the development loop: the assistant no longer restarts services to make its own changes live. Changes take effect on the governor's next deployment.
+
+### D10.3 as amended — governor authority only over the Unix socket
+
+For Single-Governor Local, the only route to governor authority is a Unix-socket peer uid that the binding maps to `principal.governor`. TCP is user-facing only and can never perform a governor act.
+
+D10.3's "or a valid `platform_admin` JWT" clause is withdrawn: the code it names (`require_role`, `get_current_user`) no longer exists. A remote or multi-governor topology re-opens the question in its own decision.
+
+The socket is defence in depth beyond the peer-uid check:
+- It lives in a `core`-owned directory (proposed: `/run/core/api.sock`).
+- Its group does not include the assistant, and is not `core-dev`.
+- An assistant that cannot connect at all (`EACCES`) satisfies Verification as well as one that gets 403.
+
+### D10.6 as amended — revised order
+
+Code landing is separate from security activation. A governor-capable stamp never exists without the check that guards it.
+
+1. **Identity, dormant.** Unix-socket listener with the peer-credential protocol, a fail-closed binding loader, and a `caller_principal` dependency. Nothing enforced.
+2. **core-cli learns Unix sockets** (`CORE_API_URL=unix:///…`). Governor operations need it; user-facing calls may stay on TCP.
+3. **Runtime isolation (D10.8).** Release-build runtime outside the development tree, the unit definitions, and the deployment act.
+4. **Stamps and enforcement together.** Server-side governor stamps (D10.4) land in the same change as the live `require_governor`. `_oss_passthrough` is removed.
+5. **Activation (governor).** Install the binding file and socket permissions; deploy.
+6. **Inventory.** Give each DB-direct `core-admin` command the assistant uses an API route, or mark it governor-only.
+7. **Credential isolation (D10.5).** `.env` readable by the services only. Confirm `core_test_db` has no privileges on the production database.
+
+### D10.7 as amended — the claim is narrow
+
+What D10 proves is that **the assistant cannot impersonate the governor**. It does not prove that the assistant cannot cause a remediation cap to re-arm.
+
+`system.audit` closures also re-arm caps (`_max_abandoned_count_since_rearm`) and are not authenticated here. After D10.8 they can only come from code the assistant cannot change. The re-arm writers get their own tests, and the gap is recorded rather than closed by D10.
+
+### Verification as amended
+
+#942 closes only when all of these hold:
+1. **As `core-claude`:** governor routes are refused over the socket (`EACCES` or 403) and over TCP (403).
+2. **As `core-darek` over the socket:** governor routes succeed, and the stored actor is `core-darek`.
+3. **With the binding missing:** nobody is governor.
+4. **As `core-claude`:**
+   - reading `.env` gives permission denied;
+   - writing to the runtime tree, its venv or its unit definitions gives permission denied;
+   - the inventoried commands still work.
+5. `_oss_passthrough` is gone from `src/`.
+6. `core_test_db` cannot connect to the production database, or holds no privileges on it.
