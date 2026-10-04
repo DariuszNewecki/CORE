@@ -105,3 +105,15 @@ mappings:
         context-grounded imports; this rule makes that enforceable rather than aspirational.
     scope:
       applies_to: ["tests/**/test_generated.py"]
+
+  # LAW: the import-resolution gate MUST NOT be silenced inline.
+  # A suppressed import-not-found is a never-verified import (5be4b881).
+  # regex_gate matches with re.MULTILINE, so "^" anchors per line.
+  code.imports.no_resolution_suppression:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "type:\\s*ignore\\[[^\\]]*\\bimport-not-found\\b"
+        - "^\\s*(?:from\\s+\\S+\\s+)?import\\s.*#\\s*type:\\s*ignore\\s*$"
+    scope:
+      applies_to: ["src/**/*.py"]

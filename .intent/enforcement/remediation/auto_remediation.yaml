@@ -2077,6 +2077,16 @@ mappings:
       -- semantic decision. Pending a resolver-aware handler in fix.imports.
     status: PENDING
 
+  code.imports.no_resolution_suppression:
+    action: fix.imports
+    confidence: 0.40
+    description: >
+      A source line silences import-resolution checking inline (type: ignore
+      on an unresolved import). Removing the comment alone would only expose
+      the broken import; the real fix is repairing or deleting the import --
+      semantic decision. Non-automatable. Routed to governor inbox as DELEGATE.
+    status: DELEGATE
+
   # -- Code tests (3 rules) --
 
   code.tests.no_global_module_mutation:
