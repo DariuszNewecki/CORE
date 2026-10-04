@@ -3867,25 +3867,6 @@ files = [
 ]
 
 [[package]]
-name = "ruamel-yaml"
-version = "0.19.1"
-description = "ruamel.yaml is a YAML parser/emitter that supports roundtrip preservation of comments, seq/map flow style, and map key order"
-optional = true
-python-versions = ">=3.9"
-groups = ["main"]
-markers = "extra == \"migration\""
-files = [
-    {file = "ruamel_yaml-0.19.1-py3-none-any.whl", hash = "sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93"},
-    {file = "ruamel_yaml-0.19.1.tar.gz", hash = "sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993"},
-]
-
-[package.extras]
-docs = ["mercurial (>5.7)", "ryd"]
-jinja2 = ["ruamel.yaml.jinja2 (>=0.2)"]
-libyaml = ["ruamel.yaml.clibz (>=0.3.7) ; platform_python_implementation == \"CPython\""]
-oldlibyaml = ["ruamel.yaml.clib ; platform_python_implementation == \"CPython\""]
-
-[[package]]
 name = "ruff"
 version = "0.16.9"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -5126,10 +5107,9 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_it
 type = ["pytest-mypy"]
 
 [extras]
-migration = ["ruamel-yaml"]
 telemetry = ["opentelemetry-api", "opentelemetry-instrumentation-fastapi", "opentelemetry-instrumentation-sqlalchemy", "opentelemetry-sdk"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "e2f0db930aa4495e13a686e20bc790fdb39662786aee9230e7afced6b0281802"
+content-hash = "acc4fadbec24a35aa3db5c83efcddacbadacebbd6f8f436ae6ded9b7144f0011"
