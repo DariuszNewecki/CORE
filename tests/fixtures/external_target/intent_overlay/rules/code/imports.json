@@ -41,6 +41,14 @@
             "authority": "policy",
             "phase": "execution",
             "rationale": "Generated test modules live at predictable test-tree locations whose relative-import position is fragile under file relocations and Python path conventions. Absolute imports are unambiguous and survive future test-file reorganization. The build_tests_action goal string at src/body/atomic/build_tests_action.py already directs the LLM to ground imports in provided context evidence; this rule enforces what the prompt asks (issue #574) rather than leaving it aspirational. Enforcement surface: src/body/governance/intent_pattern_validators.py::PatternValidators.validate_test_file_pattern."
+        },
+        {
+            "id": "code.imports.no_resolution_suppression",
+            "statement": "Source files in src/ MUST NOT suppress import-resolution diagnostics inline: no `# type: ignore[...import-not-found...]`, and no bare `# type: ignore` on an import statement. An import that does not resolve is a defect to fix or remove, not a diagnostic to silence.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "code.imports.must_resolve (blocking) is verified through mypy's import-not-found diagnostic (mappings/code/imports.yaml). An inline suppression removes that line from verification while the rule still reports green, so a blocking rule can be bypassed one line at a time without any governance record. Observed 2026-10-04: /v1/analysis/test-targets imported a never-existing module for five months behind this suppression (fixed 5be4b881); /analysis/clusters and /analysis/common-knowledge did too, until they were deprecated and their dead imports removed (303c4fe7). Landed as reporting (3825bba0); promoted to blocking at zero findings, 2026-10-04."
         }
     ]
 }
