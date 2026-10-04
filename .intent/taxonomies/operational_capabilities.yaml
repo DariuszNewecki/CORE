@@ -360,15 +360,6 @@ capabilities:
       modify: []
       delete: []
 
-  manage.define_symbols:
-    description: DB-only symbol-to-capability-key assignment; writes core.symbols capability fields.
-    risk: moderate
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
   refactor.apply_split:
     description: Writes pre-computed SplitResult module files to src/ and removes the replaced monolith; used by execution_phase for code-splitting operations.
     risk: dangerous

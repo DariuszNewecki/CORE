@@ -10,10 +10,8 @@ that CodeGenerationPhase (which reads 'planning') continues to work
 without modification.
 
 ARCHITECTURAL NOTE:
-  PlanningPhase (src/will/phases/planning_phase.py) is a generic utility
-  class with no constitutional-phase interface.  It has no execute() method
-  and must NOT be used here.  The correct agent for constitutional planning
-  is PlannerAgent (src/will/agents/planner_agent.py).
+  The correct agent for constitutional planning is PlannerAgent
+  (src/will/agents/planner_agent.py).
 """
 
 from __future__ import annotations
