@@ -21,12 +21,15 @@ core-platform mounts real role guards on top when running in Console mode.
 
 from __future__ import annotations
 
+import pwd
 from collections.abc import AsyncGenerator, Awaitable, Callable
+from dataclasses import dataclass
 from typing import Annotated, Any
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.serve import PEER_CRED_EXTENSION
 from body.analyzers.scout_analyzer import ScoutAnalyzer
 from body.introspection.drift_service import run_drift_analysis_async
 from body.introspection.generate_capability_docs import (
@@ -34,6 +37,7 @@ from body.introspection.generate_capability_docs import (
 )
 from body.services.consequence_log_service import ConsequenceLogService
 from shared.infrastructure.database.session_manager import get_db_session, get_session
+from shared.infrastructure.principal_binding import load_principal_binding
 from shared.infrastructure.secrets_service import SecretsService
 from shared.infrastructure.secrets_service import (
     get_secrets_service as _get_secrets_svc,
@@ -62,6 +66,49 @@ async def _oss_passthrough() -> dict:
 
 require_governor = Depends(_oss_passthrough)
 require_operator = Depends(_oss_passthrough)
+
+
+@dataclass(frozen=True)
+# ID: e4c361b1-f851-4885-979c-8a03ccd07d1e
+class CallerPrincipal:
+    """Who called, as the kernel and the principal binding say (ADR-132 D10).
+
+    ``uid`` is None on TCP, which carries no identity. ``role`` is None when
+    the uid is unbound or the binding is unavailable (``binding_error``).
+    """
+
+    uid: int | None
+    account: str | None
+    role: str | None
+    binding_error: str | None = None
+
+
+# ID: d1aa4d9f-e173-4be9-a38a-07af629f5e2b
+async def get_caller_principal(request: Request) -> CallerPrincipal:
+    """Resolve the caller from the connection's kernel peer credentials.
+
+    Not yet consulted by any gate: ``require_governor`` stays a pass-through
+    until stamps and enforcement land together (ADR-132 D10.6 as amended).
+    """
+    extensions = request.scope.get("extensions") or {}
+    peer_cred = extensions.get(PEER_CRED_EXTENSION)
+    if peer_cred is None:
+        return CallerPrincipal(uid=None, account=None, role=None)
+    uid = int(peer_cred["uid"])
+    try:
+        account: str | None = pwd.getpwuid(uid).pw_name
+    except KeyError:
+        account = None
+    binding = load_principal_binding()
+    return CallerPrincipal(
+        uid=uid,
+        account=account,
+        role=binding.role_for(uid),
+        binding_error=binding.error,
+    )
+
+
+caller_principal = Depends(get_caller_principal)
 
 
 # ID: 7854c52e-6493-402f-ba18-08ecdcf1fd2b
