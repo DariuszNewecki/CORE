@@ -7,6 +7,8 @@ Includes both sync and async variants to support the full CLI lifecycle.
 from __future__ import annotations
 
 import asyncio
+import os
+import pwd
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -217,6 +219,32 @@ def run_direct_command(
     )
 
 
+# Names the account that owns CORE's systemd user units, when the operator
+# runs core-admin from a different account (governor/agent/services split).
+SERVICE_USER_ENV_VAR = "CORE_SERVICE_USER"
+# Root-owned wrapper that runs `systemctl --user` as the service user with a
+# validated verb/unit allowlist; reached via `sudo -n -u <service user>`.
+SERVICES_WRAPPER = "/usr/local/bin/core-services"
+
+
+# ID: 397980d6-b439-45b5-ad79-2385fe83e7cd
+def systemctl_service_user() -> str | None:
+    """Return the account systemctl calls are delegated to, or None.
+
+    Delegation applies when ``CORE_SERVICE_USER`` names an account other
+    than the effective user: CORE's units are that account's systemd user
+    units, invisible to ``systemctl --user`` from any other account. Unset,
+    empty, or naming the current user means no delegation (the services
+    account itself, and single-account installs).
+    """
+    service_user = os.environ.get(SERVICE_USER_ENV_VAR, "").strip()
+    if not service_user:
+        return None
+    if service_user == pwd.getpwuid(os.geteuid()).pw_name:
+        return None
+    return service_user
+
+
 # ID: b58e3f7a-c12d-4856-9430-7d9e2c5a8b46
 def run_systemctl(*args: str) -> SubprocessResult:
     """Run ``systemctl --user <args...>`` and return a typed SubprocessResult.
@@ -227,8 +255,17 @@ def run_systemctl(*args: str) -> SubprocessResult:
     helper keeps the dangerous-primitive surface confined to this module
     (already exempted under governance.dangerous_execution_primitives) and
     gives the rule's enforcement a single typed surface to track.
+
+    When ``systemctl_service_user()`` names another account, the call goes
+    through ``sudo -n -u <user> SERVICES_WRAPPER <args...>`` instead. The
+    wrapper enforces its own verb/unit allowlist; a refused call comes back
+    as a non-zero returncode with the wrapper's stderr, never a prompt.
     """
-    cmd = ["systemctl", "--user", *args]
+    service_user = systemctl_service_user()
+    if service_user is None:
+        cmd = ["systemctl", "--user", *args]
+    else:
+        cmd = ["sudo", "-n", "-u", service_user, SERVICES_WRAPPER, *args]
     logger.debug("Sync Exec: %s", " ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     return SubprocessResult(

@@ -253,6 +253,13 @@ make daemon-start            # background daemon (works on a fresh clone)
 (If you've installed CORE's systemd user units, `core-admin daemon up` starts the
 full set — `core-daemon`, `core-api`, and the worker instances — instead.)
 
+(If the units belong to a different account than the one you run `core-admin` from,
+set `CORE_SERVICE_USER=<that account>`. The `daemon` commands then go through
+`sudo -n -u <that account> /usr/local/bin/core-services`, a root-owned wrapper you
+install that allows only `core-*` units. `daemon-reload` is skipped in that mode.
+`daemon status` skips the drift check or the stray scan, and says so, when the
+wrapper or file permissions don't allow them.)
+
 With the daemon running, routine maintenance is **automatic**: `DbSyncWorker`
 keeps the knowledge graph and vectors in sync on a ~5-minute cadence, and the
 remediation loop proposes fixes for structural violations. You rarely need to

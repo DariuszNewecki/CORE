@@ -48,7 +48,11 @@ from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
-from shared.utils.subprocess_utils import list_all_processes, run_systemctl
+from shared.utils.subprocess_utils import (
+    list_all_processes,
+    run_systemctl,
+    systemctl_service_user,
+)
 from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
 
 
@@ -181,13 +185,16 @@ def _systemd_units() -> list[str]:
 
 
 # ID: 8a3b1c4d-6e7f-4a2b-9c1d-5e2f3a4b5c6d
-def _enabled_template_stems() -> set[str]:
+def _enabled_template_stems() -> set[str] | None:
     """Stems of currently-enabled core-daemon-worker@<stem>.service instances.
 
     Used by `daemon status` to surface drift between .intent/workers/ state
     and systemd-enabled state (ADR-081 D6). Best-effort — returns an empty
     set if the wants directory is missing, so drift detection degrades to
-    silent rather than blocking the status command.
+    silent rather than blocking the status command. Returns None when the
+    directory exists but cannot be read (the units belong to another
+    account whose home is closed to the caller) — "unknown", which the
+    caller must not report as "nothing enabled".
 
     Probes the user-systemd wants directory directly because
     ``systemctl --user list-unit-files --state=enabled`` enumerates only
@@ -196,17 +203,24 @@ def _enabled_template_stems() -> set[str]:
     (the canonical user-systemd location), so listing those is the source
     of truth.
     """
-    wants_dir = Path.home() / ".config" / "systemd" / "user" / "default.target.wants"
-    if not wants_dir.is_dir():
-        return set()
-    stems: set[str] = set()
+    import pwd
+
+    service_user = systemctl_service_user()
+    home = Path(pwd.getpwnam(service_user).pw_dir) if service_user else Path.home()
+    wants_dir = home / ".config" / "systemd" / "user" / "default.target.wants"
     try:
-        for entry in wants_dir.glob("core-daemon-worker@*.service"):
-            m = _TEMPLATE_UNIT_RE.match(entry.name)
-            if m:
-                stems.add(m.group(1))
+        entries = list(wants_dir.iterdir())
+    except FileNotFoundError:
+        return set()
+    except PermissionError:
+        return None
     except OSError:
         return set()
+    stems: set[str] = set()
+    for entry in entries:
+        m = _TEMPLATE_UNIT_RE.fullmatch(entry.name)
+        if m and entry.name.endswith(".service"):
+            stems.add(m.group(1))
     return stems
 
 
@@ -314,8 +328,17 @@ def _daemon_reload() -> None:
     """Run ``systemctl --user daemon-reload`` so updated unit files take effect.
 
     Called before start and restart — harmless when unit files haven't
-    changed, required when they have.
+    changed, required when they have. Skipped when systemctl calls are
+    delegated to the service account: the wrapper does not allow it, and
+    unit files can only change under that account anyway.
     """
+    service_user = systemctl_service_user()
+    if service_user is not None:
+        console.print(
+            f"[dim]daemon-reload skipped: units belong to {service_user}; "
+            "reload as that account after editing unit files.[/dim]"
+        )
+        return
     result = run_systemctl("daemon-reload")
     if result.returncode != 0:
         console.print(f"[yellow]daemon-reload warning: {result.stderr}[/yellow]")
@@ -404,11 +427,15 @@ def status() -> None:
 
     units = _systemd_units()
     systemd_pids: set[int] = set()
+    show_failed = False
     for unit in units:
         is_active = run_systemctl("is-active", unit).stdout
-        show = run_systemctl(
+        show_result = run_systemctl(
             "show", unit, "--property=MainPID,ActiveEnterTimestamp"
-        ).stdout
+        )
+        if show_result.returncode != 0:
+            show_failed = True
+        show = show_result.stdout
         props = dict(
             line.split("=", 1) for line in show.strip().splitlines() if "=" in line
         )
@@ -432,6 +459,12 @@ def status() -> None:
     # demoted / retired.
     expected_heavy = set(_heavy_worker_stems())
     enabled_templates = _enabled_template_stems()
+    if enabled_templates is None:
+        console.print(
+            "[yellow]Worker/systemd drift check skipped: the service account's "
+            "unit directory is not readable from this account.[/yellow]"
+        )
+        enabled_templates = expected_heavy
     missing_enable = sorted(expected_heavy - enabled_templates)
     orphan_enable = sorted(enabled_templates - expected_heavy)
     if missing_enable or orphan_enable:
@@ -464,6 +497,15 @@ def status() -> None:
     # Per ADR-081 D6, daemon invocations with `--only <stem>` for a known
     # heavy worker are recognised as legitimate even if systemd isn't tracking
     # their MainPID (e.g. governor ran a foreground daemon for testing).
+    # Without systemd's MainPIDs every managed process would read as a stray,
+    # so a failed `show` (e.g. a delegation wrapper refusing it) skips the scan.
+    if show_failed:
+        console.print(
+            "[yellow]Stray scan skipped: systemd MainPIDs unavailable "
+            "(`systemctl show` failed).[/yellow]"
+        )
+        return
+
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
     venv_python = f"{BootstrapRegistry.get_repo_path()}/.venv/bin/python"
