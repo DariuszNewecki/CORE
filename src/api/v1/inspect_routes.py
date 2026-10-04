@@ -20,6 +20,8 @@ CONSTITUTIONAL:
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -298,7 +300,8 @@ async def analysis_command_tree(request: Request) -> dict:
 async def analysis_test_targets(request: Request) -> dict:
     """Return SIMPLE / COMPLEX classification for in-scope source files."""
     core_context: CoreContext = request.app.state.core_context
-    return get_analysis_test_targets(core_context)
+    # CPU-bound scan of src/ (seconds); keep it off the API event loop.
+    return await asyncio.to_thread(get_analysis_test_targets, core_context)
 
 
 # ---------- /components --------------------------------------------------

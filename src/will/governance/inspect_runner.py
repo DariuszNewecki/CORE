@@ -367,17 +367,36 @@ def get_analysis_command_tree(context: CoreContext) -> dict:
 
 # ID: 3a4b5c6d-7e8f-4091-a2b3-c4d5e6f70819
 def get_analysis_test_targets(context: CoreContext) -> dict:
-    """Return SIMPLE / COMPLEX classification for in-scope source files."""
-    try:
-        from body.quality.test_target_classifier import (
-            classify_test_targets,  # type: ignore[import-not-found]
-        )
+    """Return SIMPLE / COMPLEX classification of public functions under src/.
 
-        targets = classify_test_targets(context.git_service.repo_path)
+    Classification is TestTargetAnalyzer's heuristic: radon complexity
+    above its threshold, a CoreContext/AsyncSession argument, or I/O
+    imports in the file make a function COMPLEX; everything else is
+    SIMPLE. Each target carries its repo-relative ``file``. CPU-bound
+    (seconds on CORE's own tree) — the route runs it off the event loop.
+    """
+    from dataclasses import asdict
+    from pathlib import Path
+
+    from body.self_healing.test_target_analyzer import TestTargetAnalyzer
+
+    try:
+        repo_root = Path(context.git_service.repo_path)
+        analyzer = TestTargetAnalyzer()
+        targets: list[dict[str, Any]] = []
+        for path in sorted((repo_root / "src").rglob("*.py")):
+            rel = path.relative_to(repo_root).as_posix()
+            targets.extend(
+                {"file": rel, **asdict(t)} for t in analyzer.analyze_file(path)
+            )
         return {"available": True, "count": len(targets), "targets": targets}
     except Exception as exc:
-        logger.info("inspect_runner: test_target_classifier unavailable: %s", exc)
-        return {"available": False, "error": str(exc), "targets": []}
+        logger.warning("inspect_runner: test-target classification failed: %s", exc)
+        return {
+            "available": False,
+            "error": "Test-target classification failed — see server logs.",
+            "targets": [],
+        }
 
 
 # ID: ed356df8-f508-450a-85bc-cdc8b3bc2af7
