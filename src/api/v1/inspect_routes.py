@@ -21,8 +21,10 @@ CONSTITUTIONAL:
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
+from email.utils import format_datetime
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session
@@ -30,9 +32,7 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.inspect_runner import (
     get_analysis_bridges,
-    get_analysis_clusters,
     get_analysis_command_tree,
-    get_analysis_common_knowledge,
     get_analysis_duplicates,
     get_analysis_test_targets,
     get_components_list,
@@ -53,6 +53,23 @@ logger = getLogger(__name__)
 # Each top-level namespace gets its own router. They are mounted together
 # in api/main.py so the URL prefixes are preserved verbatim.
 ROUTER_EXPOSURE = "user-facing"
+
+# ADR-087 D4/D5: deprecation signal for GET /analysis/clusters and
+# GET /analysis/common-knowledge. Neither ever had a backend -- the modules
+# they imported never existed (f062c24c) -- so both always answered
+# available=false. They keep that exact response until removal at /v2/.
+ANALYSIS_STUBS_DEPRECATED_AT = datetime(2026, 10, 4, tzinfo=UTC)
+ANALYSIS_STUBS_SUNSET_AT = datetime(2027, 4, 4, tzinfo=UTC)
+# RFC 9745 Structured Field Date; RFC 8594 HTTP-date.
+ANALYSIS_STUBS_DEPRECATION_HEADER = f"@{int(ANALYSIS_STUBS_DEPRECATED_AT.timestamp())}"
+ANALYSIS_STUBS_SUNSET_HEADER = format_datetime(ANALYSIS_STUBS_SUNSET_AT, usegmt=True)
+
+
+def _signal_deprecation(response: Response) -> None:
+    response.headers["Deprecation"] = ANALYSIS_STUBS_DEPRECATION_HEADER
+    response.headers["Sunset"] = ANALYSIS_STUBS_SUNSET_HEADER
+
+
 status_router = APIRouter(prefix="/status")
 decisions_router = APIRouter(prefix="/decisions")
 refusals_router = APIRouter(prefix="/refusals")
@@ -219,20 +236,23 @@ async def analysis_bridges(
 
 @analysis_router.get(
     "/clusters",
-    summary="Semantic capability clusters",
+    summary="Semantic capability clusters (deprecated)",
     description=(
-        "Return semantic capability clusters derived from the knowledge "
-        "graph. `limit` caps the number of clusters returned (max 200, "
-        "default 25). F-45 (hosted findings) uses cluster info for "
-        "finding enrichment."
+        "Deprecated (ADR-087 D4): never had a backend and always returns "
+        "`available: false` with an empty `clusters` list. Sunset "
+        "2027-04-04; removed at /v2/. `limit` is accepted (max 200, "
+        "default 25) and ignored."
     ),
+    deprecated=True,
 )
 # ID: e7457ab4-e2d4-4400-91b6-4e9d17a3f8a7
 async def analysis_clusters(
+    response: Response,
     limit: int = Query(default=25, ge=1, le=200),
 ) -> dict:
-    """Return semantic capability clusters."""
-    return await get_analysis_clusters(limit=limit)
+    """Deprecated stub: always unavailable (ADR-087 D4)."""
+    _signal_deprecation(response)
+    return {"available": False, "clusters": []}
 
 
 @analysis_router.get(
@@ -256,19 +276,23 @@ async def analysis_duplicates(
 
 @analysis_router.get(
     "/common-knowledge",
-    summary="DRY-violation candidates",
+    summary="DRY-violation candidates (deprecated)",
     description=(
-        "Return cross-file knowledge-overlap candidates. Similar to "
-        "/analysis/duplicates but at the broader knowledge level rather "
-        "than symbol pair similarity. `limit` defaults to 25 (max 200)."
+        "Deprecated (ADR-087 D4): never had a backend and always returns "
+        "`available: false` with an empty `candidates` list. Use "
+        "/analysis/duplicates. Sunset 2027-04-04; removed at /v2/. "
+        "`limit` is accepted (max 200, default 25) and ignored."
     ),
+    deprecated=True,
 )
 # ID: 419495cb-a5f2-482b-aa25-375dcf729f67
 async def analysis_common_knowledge(
+    response: Response,
     limit: int = Query(default=25, ge=1, le=200),
 ) -> dict:
-    """Return DRY-violation candidates."""
-    return await get_analysis_common_knowledge(limit=limit)
+    """Deprecated stub: always unavailable (ADR-087 D4)."""
+    _signal_deprecation(response)
+    return {"available": False, "candidates": []}
 
 
 @analysis_router.get(

@@ -2761,9 +2761,10 @@
         "tags": [
           "Inspect"
         ],
-        "summary": "Semantic capability clusters",
-        "description": "Return semantic capability clusters derived from the knowledge graph. `limit` caps the number of clusters returned (max 200, default 25). F-45 (hosted findings) uses cluster info for finding enrichment.",
+        "summary": "Semantic capability clusters (deprecated)",
+        "description": "Deprecated (ADR-087 D4): never had a backend and always returns `available: false` with an empty `clusters` list. Sunset 2027-04-04; removed at /v2/. `limit` is accepted (max 200, default 25) and ignored.",
         "operationId": "analysis_clusters_v1_analysis_clusters_get",
+        "deprecated": true,
         "parameters": [
           {
             "name": "limit",
@@ -2857,9 +2858,10 @@
         "tags": [
           "Inspect"
         ],
-        "summary": "DRY-violation candidates",
-        "description": "Return cross-file knowledge-overlap candidates. Similar to /analysis/duplicates but at the broader knowledge level rather than symbol pair similarity. `limit` defaults to 25 (max 200).",
+        "summary": "DRY-violation candidates (deprecated)",
+        "description": "Deprecated (ADR-087 D4): never had a backend and always returns `available: false` with an empty `candidates` list. Use /analysis/duplicates. Sunset 2027-04-04; removed at /v2/. `limit` is accepted (max 200, default 25) and ignored.",
         "operationId": "analysis_common_knowledge_v1_analysis_common_knowledge_get",
+        "deprecated": true,
         "parameters": [
           {
             "name": "limit",

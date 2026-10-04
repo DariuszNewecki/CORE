@@ -13,7 +13,8 @@ Surface groups:
 * `/status/*`      — DB and drift status
 * `/decisions`     — DecisionTraceRepository projection
 * `/refusals`      — RefusalRepository projection
-* `/analysis/*`    — semantic clusters / duplicates / DRY candidates / command-tree / test targets
+* `/analysis/*`    — duplicates / command-tree / test targets (clusters and common-knowledge are
+                    deprecated stubs in api/v1/inspect_routes.py; ADR-087 D4)
 * `/components`    — V2 component inventory across Mind/Body/Will (ADR-057 D5)
 * `/search/*`      — semantic capability search via Will cognitive service (ADR-057 D5)
 
@@ -37,9 +38,7 @@ from shared.logger import getLogger
 
 __all__ = [
     "get_analysis_bridges",
-    "get_analysis_clusters",
     "get_analysis_command_tree",
-    "get_analysis_common_knowledge",
     "get_analysis_duplicates",
     "get_analysis_test_targets",
     "get_components_list",
@@ -279,27 +278,6 @@ async def get_refusals_stats(*, days: int = 7) -> dict:
 # ---------- /analysis -----------------------------------------------------
 
 
-# ID: 9b2d1276-5361-4fc9-a7b6-d266674afc8c
-async def get_analysis_clusters(*, limit: int = 25) -> dict:
-    """Return semantic capability clusters.
-
-    Backed by `body.self_healing.cluster_inspector` (when present). Pre-
-    cutover the CLI rendered clusters from a sibling table; the Phase 3
-    surface returns the same row set as a plain projection. Missing
-    backend → empty list.
-    """
-    try:
-        from body.self_healing.cluster_inspector import (
-            inspect_clusters_async,  # type: ignore[import-not-found]
-        )
-    except Exception as exc:
-        logger.info("inspect_runner: cluster_inspector unavailable: %s", exc)
-        return {"available": False, "clusters": []}
-
-    clusters = await inspect_clusters_async(limit=limit)
-    return {"available": True, "count": len(clusters), "clusters": clusters}
-
-
 # ID: cfbef0bb-2cba-44be-a771-d861b36f9132
 async def get_analysis_duplicates(
     context: CoreContext, *, threshold: float = 0.85
@@ -318,25 +296,6 @@ async def get_analysis_duplicates(
         return {"ok": True, "threshold": threshold, "note": "results emitted to logs"}
     except Exception as exc:
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
-
-
-# ID: 1e2f3a4b-5c6d-4e7f-8091-a2b3c4d5e6f7
-async def get_analysis_common_knowledge(*, limit: int = 25) -> dict:
-    """Return DRY-violation candidates surfaced by the duplicate engine."""
-    try:
-        from body.self_healing.common_knowledge_inspector import (  # type: ignore[import-not-found]
-            inspect_common_knowledge_async,
-        )
-    except Exception as exc:
-        logger.info("inspect_runner: common_knowledge_inspector unavailable: %s", exc)
-        return {"available": False, "candidates": []}
-
-    candidates = await inspect_common_knowledge_async(limit=limit)
-    return {
-        "available": True,
-        "count": len(candidates),
-        "candidates": candidates,
-    }
 
 
 # ID: 2f3a4b5c-6d7e-4f80-91a2-b3c4d5e6f708

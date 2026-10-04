@@ -130,9 +130,9 @@ All read-only state introspection, per the module docstring ("Every endpoint her
 | GET | `/v1/status/drift` | **public** | Knowledge-graph drift state. F-34 + F-20 dashboard surface. |
 | GET | `/v1/decisions` + `/decisions/patterns` | **public** | Constitutional decision query. F-34 audit-trail surface. |
 | GET | `/v1/refusals` + `/refusals/stats` | **public** | Refusal-result inventory. F-34 governance-trail surface. |
-| GET | `/v1/analysis/clusters` | **public** | Code-cluster analysis. F-45 enrichment surface. |
+| GET | `/v1/analysis/clusters` | **deprecated** | Never had a backend; see §6.1. |
 | GET | `/v1/analysis/duplicates` | **public** | Duplicate-symbol analysis. F-45 enrichment surface. |
-| GET | `/v1/analysis/common-knowledge` | **public** | Cross-file knowledge surface. F-45 enrichment surface. |
+| GET | `/v1/analysis/common-knowledge` | **deprecated** | Never had a backend; see §6.1. |
 | GET | `/v1/analysis/command-tree` | **public** | CLI command tree projection. F-34 surface. |
 | GET | `/v1/analysis/test-targets` | **public** | Test-coverage targets surface. F-34/F-45 surface. |
 | GET | `/v1/components` | **public** | Component inventory. F-34 surface. |
@@ -225,9 +225,9 @@ All `/sync/` endpoints classify as `internal` — they're CORE's own scheduler /
 
 | Category | Count | Routers |
 |---|---|---|
-| **public** | **77** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (14), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality/imports` + `/quality/tests` (2), read-side of `/coverage` (7) + `/refactor` (5), and routers added since this matrix was drafted |
+| **public** | **75** | `/health`, all of `/audit` (4), `/census` (5), `/inspect` (12), `/proposals` (6), `/fix` + `/actions` (7), `/knowledge` (1), `/integrate` (1), `/integrity` (2), `/lint` (1), `/quality/imports` + `/quality/tests` (2), read-side of `/coverage` (7) + `/refactor` (5), and routers added since this matrix was drafted |
 | **internal** | **21** | All of `/daemon` (3), `/development` (1), `/sync` (5), the rest of `/quality` (4), plus write-side `/coverage` (3) and write-side `/refactor` (1), plus `/coverage/methods` (1), and internal routes added since this matrix was drafted |
-| **deprecated** | 1 | `POST /v1/project/docs` (§6.1) |
+| **deprecated** | 3 | `POST /v1/project/docs`, `GET /v1/analysis/clusters`, `GET /v1/analysis/common-knowledge` (§6.1) |
 | **Total** | **99** | all `/v1/` routers + `/health` |
 
 (Counts are endpoints (method + path), measured 2026-10-03 from the running app and `docs/reference/openapi.json`. The spec is the exact source; §3 still lists routers by name and has not been extended to routers added after this matrix was drafted.)
@@ -266,6 +266,8 @@ Per ADR-087 D4/D5: each route below carries `deprecated: true` in the spec and `
 | Route | Deprecated | Sunset | Reason | Use instead |
 |---|---|---|---|---|
 | `POST /v1/project/docs` | 2026-10-03 | 2027-04-03 | Writes CORE's own `docs/10_CAPABILITY_REFERENCE.md` outside the proposal path; a second documentation generator beside ADR-167's. | `core-admin docs generate` |
+| `GET /v1/analysis/clusters` | 2026-10-04 | 2027-04-04 | Never had a backend: the module it imported never existed, so it has always answered `available: false`. The response stays exactly that until removal. | — |
+| `GET /v1/analysis/common-knowledge` | 2026-10-04 | 2027-04-04 | Never had a backend: the module it imported never existed, so it has always answered `available: false`. The response stays exactly that until removal. | `GET /v1/analysis/duplicates` |
 
 ## 7. What this contract does NOT promise
 

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from fastapi import Response
+
 from api.v1.inspect_routes import (
     analysis_clusters,
     analysis_command_tree,
@@ -111,15 +113,13 @@ async def test_refusals_stats_passes_days():
     assert "stats" in out
 
 
-async def test_analysis_clusters_passes_limit():
-    with patch(
-        "api.v1.inspect_routes.get_analysis_clusters",
-        new=AsyncMock(return_value={"available": False, "clusters": []}),
-    ) as facade:
-        out = await analysis_clusters(limit=10)
-    _, kwargs = facade.call_args
-    assert kwargs["limit"] == 10
-    assert "clusters" in out
+async def test_analysis_clusters_is_deprecated_stub():
+    """ADR-087 D4: unchanged unavailable payload plus Deprecation/Sunset."""
+    response = Response()
+    out = await analysis_clusters(response=response, limit=10)
+    assert out == {"available": False, "clusters": []}
+    assert response.headers["Deprecation"] == "@1791072000"
+    assert response.headers["Sunset"] == "Sun, 04 Apr 2027 00:00:00 GMT"
 
 
 async def test_analysis_duplicates_passes_threshold():
@@ -134,15 +134,31 @@ async def test_analysis_duplicates_passes_threshold():
     assert out["threshold"] == 0.9
 
 
-async def test_analysis_common_knowledge_passes_limit():
-    with patch(
-        "api.v1.inspect_routes.get_analysis_common_knowledge",
-        new=AsyncMock(return_value={"available": False, "candidates": []}),
-    ) as facade:
-        out = await analysis_common_knowledge(limit=15)
-    _, kwargs = facade.call_args
-    assert kwargs["limit"] == 15
-    assert "candidates" in out
+async def test_analysis_common_knowledge_is_deprecated_stub():
+    """ADR-087 D4: unchanged unavailable payload plus Deprecation/Sunset."""
+    response = Response()
+    out = await analysis_common_knowledge(response=response, limit=15)
+    assert out == {"available": False, "candidates": []}
+    assert response.headers["Deprecation"] == "@1791072000"
+    assert response.headers["Sunset"] == "Sun, 04 Apr 2027 00:00:00 GMT"
+
+
+def test_analysis_stub_routes_marked_deprecated_in_openapi():
+    """Only the two backend-less routes carry `deprecated: true`."""
+    from api.v1.inspect_routes import analysis_router
+
+    deprecated = {r.path for r in analysis_router.routes if r.deprecated}
+    assert deprecated == {"/analysis/clusters", "/analysis/common-knowledge"}
+
+
+def test_analysis_stub_sunset_does_not_precede_deprecation():
+    """RFC 9745: the Sunset time must not precede the Deprecation time."""
+    from api.v1.inspect_routes import (
+        ANALYSIS_STUBS_DEPRECATED_AT,
+        ANALYSIS_STUBS_SUNSET_AT,
+    )
+
+    assert ANALYSIS_STUBS_SUNSET_AT >= ANALYSIS_STUBS_DEPRECATED_AT
 
 
 async def test_analysis_command_tree_returns_facade_payload():
