@@ -289,15 +289,6 @@ capabilities:
       modify: []
       delete: []
 
-  manage.define_symbols:
-    description: DB-only symbol-to-capability-key assignment; writes core.symbols capability fields.
-    risk: moderate
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
   remediate.cognitive_role:
     description: Returns finding-shape for the calling Worker to post; no direct FS or DB side effects.
     risk: moderate
