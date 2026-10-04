@@ -457,3 +457,46 @@ async def test_ascii_only_clean_for_plain_ascii(
     tmp_intent_yaml.write_text("description: word -- word\n", encoding="utf-8")
     result = await engine.verify(tmp_intent_yaml, params)
     assert not result.violations
+
+
+# ---------------------------------------------------------------------------
+# code.imports.no_resolution_suppression
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "from pkg.missing import thing  # type: ignore[import-not-found]\n",
+        "import pkg.missing  # type: ignore[import-untyped, import-not-found]\n",
+        "from pkg.missing import thing  # type: ignore\n",
+    ],
+)
+async def test_no_resolution_suppression_fires(
+    tmp_py: Path, engine: RegexGateEngine, line: str
+) -> None:
+    params = _load_rule_params(
+        "code/imports.yaml", "code.imports.no_resolution_suppression"
+    )
+    tmp_py.write_text(line, encoding="utf-8")
+    result = await engine.verify(tmp_py, params)
+    assert result.violations
+
+
+async def test_no_resolution_suppression_clean_for_unrelated_ignores(
+    tmp_py: Path, engine: RegexGateEngine
+) -> None:
+    params = _load_rule_params(
+        "code/imports.yaml", "code.imports.no_resolution_suppression"
+    )
+    tmp_py.write_text(
+        "from pkg.real import thing\n"
+        "import yaml  # type: ignore[import-untyped]\n"
+        "x = thing.attr  # type: ignore[attr-defined]\n"
+        "y = thing.call()  # type: ignore\n",
+        encoding="utf-8",
+    )
+    result = await engine.verify(tmp_py, params)
+    assert not result.violations, (
+        f"non-resolution ignores should not false-positive; got {result.violations}"
+    )
