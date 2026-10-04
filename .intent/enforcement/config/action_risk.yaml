@@ -38,7 +38,6 @@
 actions:
   # -- Infrastructure / state machine / cross-artifact (unconstrained) ---------
   action.execute: moderate
-  admin.meta: safe
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
   author.llm_resource: moderate

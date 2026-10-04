@@ -44,16 +44,6 @@ capabilities:
       modify: []
       delete: []
 
-  admin.meta:
-    description: Constitutional file index -- lists indexed .intent/ files for operator inspection. Read-only.
-    risk: safe
-    fs_profile:
-      read:
-        - {path_pattern: ".intent/**", modes: [dev, live]}
-      create: []
-      modify: []
-      delete: []
-
   assisted.apply_diff:
     description: Applies a governor-approved unified diff to the main working tree via git apply; used by the assisted remediation lane.
     risk: moderate
