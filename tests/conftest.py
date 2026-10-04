@@ -1,6 +1,7 @@
 # tests/conftest.py
 from __future__ import annotations
 
+import asyncio
 import functools
 import os
 import socket
@@ -10,8 +11,11 @@ from urllib.parse import urlparse
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.pool import NullPool
 
+from shared.config import settings
 from shared.infrastructure.database import session_manager
 from shared.infrastructure.database.session_manager import (
     dispose_all_engines_for_current_loop_only,
@@ -56,6 +60,13 @@ async def _truncate_core_tables_between_tests(
     # next test runs against unknown, potentially test-polluted state, and
     # the suite reports it as if nothing happened. Let it fail loudly.
     async with get_session() as session:
+        # #941: prove identity on this same connection, inside the same
+        # transaction as the TRUNCATE, every time — never a cached verdict.
+        # A failed identity query propagates, so no TRUNCATE is issued.
+        connected = (
+            await session.execute(text("SELECT current_database()"))
+        ).scalar_one()
+        _refuse_unless_test_database(connected, "teardown current_database()")
         # Tables that accumulate during test runs. Config/registry tables
         # (system_config, llm_resources, cognitive_roles) are excluded —
         # tests read them and cleaning them would break subsequent tests.
@@ -72,6 +83,75 @@ async def _truncate_core_tables_between_tests(
             )
         )
         await session.commit()
+
+
+# --- #941 — integration runs must target `core_test`, by identity ------------
+#
+# The TRUNCATE above, and the integration tests' own fixture writes, run against
+# whatever `settings.DATABASE_URL` resolves to. The live `core` database sits on
+# the same host and port as `core_test`, so the reachability probe cannot tell
+# them apart — a single wrong character in `.env.test` (#592 was exactly this
+# class of failure) would wipe live blackboard and proposal history.
+#
+# Two checks share one assertion:
+# 1. Session preflight (below): before the first integration test's fixtures
+#    run, the configured database name AND the connected server's
+#    `current_database()` must both be exactly `core_test`. A session-scoped
+#    autouse fixture is set up before any narrower-scoped fixture, so a wrong
+#    target aborts before any fixture can write.
+# 2. Teardown (above): the TRUNCATE re-proves identity on its own connection.
+#
+# Exact equality, fail closed: #848 (per-xdist-worker databases) must widen
+# this deliberately rather than inherit a permissive pattern.
+_EXPECTED_TEST_DATABASE = "core_test"
+
+
+def _refuse_unless_test_database(name: str | None, source: str) -> None:
+    if name == _EXPECTED_TEST_DATABASE:
+        return
+    pytest.exit(
+        f"#941: integration tests must run against {_EXPECTED_TEST_DATABASE!r}, "
+        f"but {source} reports {name!r} — refusing before any test fixture "
+        "writes or any TRUNCATE runs. Check DATABASE_URL in .env.test.",
+        returncode=1,
+    )
+
+
+def _configured_database_name() -> str | None:
+    if not settings.DATABASE_URL:
+        return None
+    return make_url(settings.DATABASE_URL).database
+
+
+async def _connected_database_name() -> str:
+    # Own NullPool engine: session_manager caches engines per event loop, and
+    # this runs on a throwaway loop before any test loop exists.
+    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    try:
+        async with engine.connect() as conn:
+            return (await conn.execute(text("SELECT current_database()"))).scalar_one()
+    finally:
+        await engine.dispose()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _require_test_database_identity(request: pytest.FixtureRequest) -> None:
+    if not any(
+        item.get_closest_marker("integration") is not None
+        for item in request.session.items
+    ):
+        return
+    if not settings.DATABASE_URL:
+        # No engine can be built at all; the skip/fail fixtures below own
+        # the "no database" case. Nothing can be written or truncated.
+        return
+    _refuse_unless_test_database(_configured_database_name(), "settings.DATABASE_URL")
+    reachable, _ = _db_reachability()
+    if not reachable:
+        return
+    _refuse_unless_test_database(
+        asyncio.run(_connected_database_name()), "current_database()"
+    )
 
 
 # --- Skip DB-backed tests when the database is unreachable ----------------------

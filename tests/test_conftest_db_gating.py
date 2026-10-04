@@ -21,6 +21,11 @@ being swallowed.
    `integration` marker on a test that needs the database can't show up
    as a green skip in the one job where DB is never even attempted.
 
+4. #941 — integration runs must target `core_test` by identity: a session
+   preflight refuses a wrong configured or connected database name before
+   any test fixture can write, and the TRUNCATE teardown re-proves identity
+   on its own connection, issuing no TRUNCATE and no commit on mismatch.
+
 Fixture functions are called via `.__wrapped__` (same pattern as
 tests/cli/resources/vectors/test_rebuild.py) to exercise the underlying
 logic directly without going through pytest's own fixture injection.
@@ -28,6 +33,10 @@ logic directly without going through pytest's own fixture injection.
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -181,3 +190,160 @@ async def test_unreachable_db_with_unit_job_flag_fails_instead_of_skipping(
     with pytest.raises(pytest.fail.Exception):
         async with conftest_module.get_session():
             pass
+
+
+# --- #941 — database identity guard -------------------------------------------
+
+
+class _IdentitySession:
+    """Fake session: answers `current_database()` with `name`, records the rest."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.statements: list[str] = []
+        self.commits = 0
+
+    async def __aenter__(self) -> _IdentitySession:
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        return None
+
+    async def execute(self, statement: object, *args: object, **kwargs: object):
+        sql = str(statement)
+        self.statements.append(sql)
+        result = MagicMock()
+        result.scalar_one.return_value = self.name
+        return result
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+
+async def _drive_teardown(session: _IdentitySession) -> None:
+    fake_request = MagicMock()
+    fake_request.node.get_closest_marker.return_value = MagicMock()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(conftest_module, "_db_reachability", lambda: (True, ""))
+        mp.setattr(conftest_module, "get_session", lambda: session)
+        gen = conftest_module._truncate_core_tables_between_tests.__wrapped__(
+            fake_request
+        )
+        await anext(gen)
+        with pytest.raises(StopAsyncIteration):
+            await anext(gen)
+
+
+async def test_teardown_wrong_database_issues_no_truncate_and_no_commit() -> None:
+    session = _IdentitySession("core")
+    with pytest.raises(pytest.exit.Exception, match="'core'"):
+        await _drive_teardown(session)
+    assert not any("TRUNCATE" in sql for sql in session.statements)
+    assert session.commits == 0
+
+
+async def test_teardown_core_test_still_truncates_after_identity_check() -> None:
+    session = _IdentitySession("core_test")
+    await _drive_teardown(session)
+    assert "current_database()" in session.statements[0]
+    assert "TRUNCATE" in session.statements[1]
+    assert session.commits == 1
+
+
+def _items(*integration: bool) -> MagicMock:
+    request = MagicMock()
+    request.session.items = [
+        MagicMock(get_closest_marker=MagicMock(return_value=MagicMock() if i else None))
+        for i in integration
+    ]
+    return request
+
+
+def _patch_database_url(mp: pytest.MonkeyPatch, database: str) -> None:
+    mp.setattr(
+        conftest_module.settings,
+        "DATABASE_URL",
+        f"postgresql+asyncpg://u:p@127.0.0.1:5432/{database}",
+    )
+
+
+def test_preflight_ignores_unit_only_runs() -> None:
+    with pytest.MonkeyPatch.context() as mp:
+        _patch_database_url(mp, "core")
+        conftest_module._require_test_database_identity.__wrapped__(
+            _items(False, False)
+        )
+
+
+def test_preflight_refuses_wrong_configured_name_before_connecting() -> None:
+    def _must_not_connect() -> tuple[bool, str]:
+        raise AssertionError("preflight probed the server before the name check")
+
+    with pytest.MonkeyPatch.context() as mp:
+        _patch_database_url(mp, "core")
+        mp.setattr(conftest_module, "_db_reachability", _must_not_connect)
+        with pytest.raises(pytest.exit.Exception, match=r"settings\.DATABASE_URL"):
+            conftest_module._require_test_database_identity.__wrapped__(
+                _items(False, True)
+            )
+
+
+def test_preflight_refuses_wrong_connected_name() -> None:
+    """Configured name is right but the server says otherwise (alias, proxy)."""
+
+    async def _connected() -> str:
+        return "core"
+
+    with pytest.MonkeyPatch.context() as mp:
+        _patch_database_url(mp, "core_test")
+        mp.setattr(conftest_module, "_db_reachability", lambda: (True, ""))
+        mp.setattr(conftest_module, "_connected_database_name", _connected)
+        with pytest.raises(pytest.exit.Exception, match="current_database"):
+            conftest_module._require_test_database_identity.__wrapped__(_items(True))
+
+
+def test_preflight_accepts_core_test_and_defers_unreachable_to_skip_fixture() -> None:
+    async def _connected() -> str:
+        raise AssertionError("must not connect when unreachable")
+
+    with pytest.MonkeyPatch.context() as mp:
+        _patch_database_url(mp, "core_test")
+        mp.setattr(conftest_module, "_db_reachability", lambda: (False, "down"))
+        mp.setattr(conftest_module, "_connected_database_name", _connected)
+        conftest_module._require_test_database_identity.__wrapped__(_items(True))
+
+
+def test_wrong_env_target_aborts_real_run_before_any_test_body() -> None:
+    """End to end through the real root conftest: a child pytest run whose
+    DATABASE_URL names a non-`core_test` database exits non-zero with the
+    #941 refusal, and its integration test never runs. The probe database
+    does not exist, so even a broken guard could not touch live data."""
+    repo_root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ)
+    env["CORE_DB_IDENTITY_PROBE_DATABASE"] = "core_guard_probe_941"
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(repo_root), env.get("PYTHONPATH")])
+    )
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/test_smoke_db.py",
+            "-p",
+            "tests.helpers.db_identity_probe_plugin",
+            "-p",
+            "no:cacheprovider",
+            "--no-cov",
+            "-q",
+        ],
+        cwd=repo_root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert "#941" in output and "core_guard_probe_941" in output, output
+    assert "passed" not in output and "PASSED" not in output, output
