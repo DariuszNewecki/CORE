@@ -37,3 +37,35 @@ async def test_DeadCodeCheck_verify():
     a = next(v for v in violations if v.file_path == "/repo/src/a.py")
     assert a.context["issue_count"] == 2
     assert a.context["tool"] == "vulture"
+
+
+
+
+
+# ID: 2072bd64-3e85-477b-a5a1-f24f41c8ce08
+async def test_DeadCodeCheck():
+    path_resolver = MagicMock()
+    path_resolver.repo_root = "/repo"
+
+    check = DeadCodeCheck(path_resolver)
+
+    stdout = "src/foo.py:10: unused function 'bar'\nsrc/foo.py:20: unreachable code\n"
+
+    with (
+        patch(
+            "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+            new=AsyncMock(return_value=MagicMock(stdout=stdout)),
+        ),
+        patch(
+            "mind.logic.engines.workflow_gate.checks.dead_code._intent_declared_class_names",
+            return_value=set(),
+        ),
+    ):
+        result = await check.verify(None, {"confidence": 80})
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    violation = result[0]
+    assert violation.file_path == "src/foo.py"
+    assert violation.context["issue_count"] == 2
+    assert len(violation.context["sample_issues"]) == 2
