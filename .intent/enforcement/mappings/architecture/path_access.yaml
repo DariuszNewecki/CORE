@@ -29,7 +29,6 @@ mappings:
         # Canonical surfaces -- these ARE the abstraction
         - "src/shared/path_resolver.py"
         - "src/body/infrastructure/storage/file_handler.py"
-        - "src/shared/infrastructure/storage/file_provider.py"
         # Tests construct paths against tmp_path directly
         - "tests/**/*.py"
         # Glob/exclude pattern strings -- not path construction expressions

@@ -215,7 +215,6 @@
           - "src/body/quality/coverage_analyzer.py"
           - "src/cli/commands/check/quality_gates.py"
           - "src/cli/commands/coverage/services/coverage_rep*"
-          - "src/body/self_healing/test_context/metrics.py"
           - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation -- same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
           - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess -- same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
           # Workflow gate checks invoke external quality tools inline -- no Body delegation
@@ -258,8 +257,6 @@
           # Self-healing and canary paths invoke pytest as subprocess; routing through
           # Body's test.execute atomic action via ActionExecutor is the long-term target
           # but requires non-trivial DI plumbing in the autonomous pipeline.
-          - "src/will/self_healing/context_aware_test_generator.py"
-          - "src/will/self_healing/alignment/sandbox.py"
           - "src/will/phases/canary/pytest_runner.py"
 
           - "tests/**"

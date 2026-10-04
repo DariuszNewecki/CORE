@@ -133,7 +133,6 @@ include_files:
   - "src/mind/logic/engines/ast_gate/checks/prompt_model_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/protected_namespace_access_check.py"
   - "src/mind/logic/engines/ast_gate/checks/purity_checks.py"
-  - "src/mind/logic/engines/ast_gate/checks/purity_enforcement_check.py"
   - "src/mind/logic/engines/ast_gate/checks/runtime_import_boundary.py"
   - "src/mind/logic/engines/ast_gate/checks/schema_conformance_checks.py"
   - "src/mind/logic/engines/ast_gate/checks/test_gen_acceptance_check.py"
