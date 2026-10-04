@@ -266,6 +266,18 @@ or note in this ADR, and no implementation follows from it.
 
 ---
 
+## Note — D4's payload field is named `route_to`, not `resolution_authority` (2026-10-04, #943)
+
+D4 has the routing marker written as `resolution_authority: principal.governor` at the top level of a finding's payload. That name now means something else. `payload.resolution.resolution_authority` records under whose authority a finding was *closed*. Since e6922d5e (ADR-104 D9 amended), a closure stamped `principal.governor` re-arms an exhausted remediation cap. Two fields with one name and one value invite a refactor that reads the wrong one. A daemon-written routing hint would then act as a governor decision, and the daemon could re-arm its own caps.
+
+The routing marker is renamed `route_to`. Its value is unchanged: `principal.governor`. `AuditViolationSensor` writes it via `_route_to(rule_id)`. `resolution_authority` is used only inside `payload.resolution`.
+
+No decision changes. D4's routing intent stands: architectural-judgment findings are routed to the governor, and the data says so.
+
+Verified at rename time: nothing in `src/`, `.intent/` or `docs/` reads the top-level field. D4 says "the autonomous remediator filters findings by `resolution_authority`", but no such reader exists; routing is done by `will.audit_violation.filter` and the remediation map. Rows written before the rename keep the old top-level key. Since nothing reads it, they are inert. A backfill is optional and is a governor-run DB write.
+
+---
+
 ## References
 
 - ADR-006 — alignment of `needs_split` with its statement.

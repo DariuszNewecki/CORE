@@ -384,3 +384,100 @@ future contributor adding a new mutation route to one of these six files must
 know not to add themselves to `INTENTIONALLY_UNGATED` by copy-paste without
 reading it — mitigated by the orphan-check catching a stale entry, not a
 misapplied one, so this residual risk is accepted rather than fully closed.
+
+---
+
+## Addendum — D10: the governor is the OS account, read by the kernel (2026-10-04, accepted)
+
+**Status of this addendum:** Accepted (governor reviewed and approved 2026-10-04). Closes #942 when its Verification list passes.
+
+### The gap
+
+`principal.governor` is the mark CORE treats as a human decision. It is stamped on proposal approvals (`approval_authority`) and on finding closures (`payload.resolution.resolution_authority`). Since ADR-104 D9 amended, a finding closure with it re-arms an exhausted remediation cap. Nothing verifies who writes it (#942, recon in `var/reports/issue-942-recon-20261004.md`):
+
+1. `core-admin workers resolve`: `--authority` defaults to `principal.governor`, and `--by` is free text.
+2. `POST /v1/proposals/{id}/approve` takes `approval_authority` from the request body. `require_governor` is `_oss_passthrough`, so `approved_by` is `"unknown"`.
+3. Every OS account in `core-dev` (governor, services, coding assistant) reads `.env` and holds the same production DB credential.
+
+**D4 has diverged from the code.** D4 says the gate "is fully enforced — it is not bypassed, relaxed, or conditional." The code makes it a pass-through in OSS mode. This addendum resolves the divergence in D4's favour, with a different identity source than D1's JWT for local callers.
+
+**Why now.** On 2026-10-04 the shared `core` login was split: `core-darek` (governor), `core` (services) and `core-claude` (coding assistant). For the first time, the OS can tell the governor apart from the assistant. CORE's claim is that AI output is not trusted by default. That claim has to hold for the assistant that builds CORE.
+
+### D10.1 — Identity of a local caller comes from the kernel
+
+For a caller on the same host, the API learns its identity from the peer credentials of a Unix-domain socket connection (`SO_PEERCRED`: uid, gid, pid). The kernel supplies them; the caller cannot choose them.
+
+The identity is never taken from a request body or header, a CLI flag, an environment variable, or a free-text field.
+
+A TCP connection carries no peer identity. On TCP, D1–D2 (JWT, `platform_admin`) remain the only route to governor authority. Anonymous TCP is user-facing only.
+
+### D10.2 — The principal binding lives where the assistant cannot write
+
+ADR-068's Layer 2 binding maps OS account to principal role. For local callers it is a deployment file outside the repository, owned by root and not writable by the services account or the assistant account (proposed: `/etc/core/principals.yaml`).
+
+It is not `.intent/`: the assistant has write access to the working tree, and a binding it can edit binds nothing.
+
+A missing, unreadable or malformed binding fails closed: no caller is `principal.governor`. This follows the fail-closed-on-unknown-authority principle.
+
+### D10.3 — `require_governor` is live (resolves the D4 divergence)
+
+`_oss_passthrough` is removed. `require_governor` passes only when one of these holds:
+- the peer uid on the Unix socket is bound to `principal.governor` (D10.1–D10.2);
+- the request carries a valid `platform_admin` JWT (D1–D2).
+
+Otherwise it returns 403. OSS mode changes the credential ceremony (no JWT needed locally), not the gate.
+
+### D10.4 — Governor stamps are written by the server, from the authenticated identity
+
+Wherever a record claims `principal.governor`, the API writes the claim and the actor from the identity established in D10.3:
+- proposal `approval_authority` and `approved_by`;
+- `payload.resolution.resolution_authority` and `resolved_by`;
+- any future governor act.
+
+Request bodies cannot supply them. `approve`'s `approval_authority` body field is dropped or must equal the server's value. Governor acts that exist only as DB-direct CLI commands today, starting with `workers resolve`, gain an API route and call it.
+
+### D10.5 — The production DB credential belongs to the services account only
+
+The production database credential is readable only by the services account (`core`) and by root. The coding assistant account holds no production DB credential. It reaches CORE through the API, and later through the MCP surface (direction in the ADR-168 draft).
+
+Unchanged by this addendum:
+- the `core_test` credential (`.env.test`), which tests need;
+- the assistant's read and write access to the working tree;
+- git, and the offline audit used by the ADR-168 pre-commit hook.
+
+### D10.6 — Order of work: the assistant keeps working at every step
+
+The credential is revoked last. Each step lands on its own.
+
+1. #943: the routing field is renamed, so only one field means "resolved under this authority".
+2. Spike: uvicorn 0.38 does not put peer credentials in the ASGI scope. Prove that a protocol subclass or listener wrapper can supply them. If it can't, this addendum returns to the governor before step 3.
+3. The API also listens on a Unix socket. Add the binding file, make `require_governor` live (D10.3), stamp server-side (D10.4), add the resolve route, and point `workers resolve` at it.
+4. Inventory: list each `core-admin` command the assistant uses that opens a DB session directly (28 CLI files do today). Each gets an API route or is marked governor-only.
+5. Governor act: tighten `.env` to `core` only (for example `0600 core:core`) and confirm the services still start.
+
+### D10.7 — What this does not cover
+
+- **The services account.** `core` still holds the DB credential, so a code path running as `core` can still write a stamp. That code is CORE's own, subject to its gates and review. The threat model here is the assistant, not the runtime.
+- **`system.*` closures** (for example `system.audit`, which also re-arms caps) are written by services and are not authenticated by this addendum. They are covered by the point above.
+- **Root.** Root is the governor's own power, by design.
+- **Remote and multi-governor topologies.** These stay with D1–D2 (JWT), and with ADR-068 D3 SoD when it activates.
+
+### Verification
+
+Closes #942 when:
+1. As `core-claude`: `POST /v1/proposals/{id}/approve` and the resolve route return 403 over both the socket and TCP.
+2. As `core-darek` over the socket, both succeed, and the stored `approved_by` / `resolved_by` name `core-darek`.
+3. With the binding file missing, both return 403 for everyone.
+4. As `core-claude`, reading `.env` gives permission denied, and its CLI commands from the step 4 inventory still work.
+5. `_oss_passthrough` no longer exists in `src/`.
+
+### Governed surfaces this touches
+
+| Surface | Authority | Change |
+|---|---|---|
+| `src/api/dependencies.py` | code | live `require_governor`; peer-credential identity |
+| `src/api/v1/proposals_routes.py` | code | server-side `approval_authority` / `approved_by` |
+| new resolve route; `src/cli/resources/workers/blackboard.py` | code | `workers resolve` goes through the API and becomes `dangerous=True` |
+| API launch (unit / entry point) | deployment | Unix-socket listener |
+| `/etc/core/principals.yaml` | deployment, governor-owned | the Layer 2 binding |
+| `.env` mode | deployment, governor act | `core` only |
