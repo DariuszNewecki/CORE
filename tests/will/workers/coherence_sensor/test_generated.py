@@ -47,3 +47,36 @@ async def test_CoherenceSensorWorker_run() -> None:
     worker.post_heartbeat.assert_awaited_once()
     worker.post_artifact_finding.assert_awaited_once()
     worker.post_report.assert_awaited_once()
+
+
+
+
+
+# ID: 06dabee6-9008-4029-a396-19b3d5f7ea06
+def test_CoherenceSensorWorker() -> None:
+    from will.workers.coherence_sensor import CoherenceSensorWorker
+
+    with (
+        patch(
+            "will.workers.coherence_sensor.Worker.__init__", return_value=None
+        ) as mock_super_init,
+        patch("will.workers.coherence_sensor.strict_yaml_processor") as mock_yaml,
+    ):
+        mock_yaml.load_strict.return_value = {"coherence_lookback_seconds": 3600}
+
+        worker = CoherenceSensorWorker.__new__(CoherenceSensorWorker)
+        worker._declaration = {
+            "mandate": {
+                "scope": {
+                    "artifact_type": ["python"],
+                    "rule_namespace": "coherence.incoherence",
+                }
+            }
+        }
+        # re-run __init__ with the patched declaration
+        CoherenceSensorWorker.__init__(worker)
+
+        result = worker._load_lookback_seconds()
+
+        assert result == 3600
+        mock_super_init.assert_called_once()
