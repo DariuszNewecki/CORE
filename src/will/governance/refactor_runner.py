@@ -90,8 +90,8 @@ def _analyze_one(checker: ModularityChecker, file_path: Path) -> dict | None:
 def get_refactor_threshold(repo_root: Path) -> float:
     """Return the authoritative modularity threshold from the constitution.
 
-    Mirrors `refactor_support.config.get_modularity_threshold` so the
-    behaviour the CLI observed pre-cutover is preserved through the API.
+    Successor of the CLI-side threshold lookup removed with the API
+    cutover; the behaviour the CLI observed pre-cutover is preserved.
     """
     try:
         loader = EnforcementMappingLoader(repo_root / ".intent")

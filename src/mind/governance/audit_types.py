@@ -46,8 +46,7 @@ class AuditCheckMetadata:
 # ID: c4583c77-b87e-4196-a63c-1bbcee63fc3a
 class AuditCheckResult:
     """
-    Normalized result for a single audit check, produced by the audit runner
-    and consumed by the AuditRunReporter.
+    Normalized result for a single audit check, produced by the audit runner.
     """
 
     name: str

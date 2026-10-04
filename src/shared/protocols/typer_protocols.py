@@ -4,7 +4,10 @@
 Single source of truth for TyperCommandLike, TyperGroupLike, TyperAppLike.
 Consumed by:
   - body.maintenance.command_sync_service
-  - cli.logic.diagnostics
+  - mind.logic.engines.cli_gate.engine
+  - shared.cli.app_introspection
+  - cli.resources.admin.{accessibility,self_check}
+  - cli.resources.database.sync_registry
 """
 
 from __future__ import annotations
