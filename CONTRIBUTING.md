@@ -49,9 +49,23 @@ this **must be explicitly stated** in the commit message and anchored to an ADR.
 
 ---
 
-### 2. Direct Commits to Main
-Changes are committed directly to `main` — CORE does not use pull requests.
+### 2. How CORE Is Developed: Branches and People
+**Branches.**
+- `main` is the stable branch. It is GitHub's default and what you get when you clone or install. It is protected: a commit reaches `main` only after it has passed CI's required checks. That applies to everyone, administrators included.
+- `develop` is where work lands first. It is promoted to `main` once its CI run is green.
+- CORE does not use pull requests. Commits go to `develop` directly.
+
 Every commit must be traceable to an ADR or a declared governance intent.
+
+**People.** CORE is built by one human governor and one AI agent (Claude Code).
+- They work under separate operating-system accounts and separate GitHub identities. The agent commits as `core-claude-bot`, so every commit shows who produced it.
+- The governor sets direction and makes the decisions.
+- The agent writes the code, the tests and the drafts.
+- Promotion to `main` happens only on the governor's go-ahead. That is a working rule between the two, not a technical lock; the technical lock is the CI gate above.
+
+**Limits.** CORE cannot yet *technically* prevent the agent from acting as the governor. That work is designed and deliberately parked until it pays for itself (ADR-132, "D10 activation parked"). Nothing in CORE claims otherwise.
+
+**If you are only trying CORE, none of this affects you.** Install it or clone `main` as the [README](README.md#quick-start) describes. The separate-account setup is how this repository is developed; CORE does not require it.
 
 Commits must be:
 - small

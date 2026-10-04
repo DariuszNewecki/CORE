@@ -379,6 +379,8 @@ Full documentation, architecture deep-dive, and governance reference:
 To understand what CORE is for before reading its implementation, start here:
 [`.specs/northstar/CORE-What-It-Does.md`](.specs/northstar/CORE%20-%20What%20It%20Does.md)
 
+**Who builds CORE and how:** one human governor and one AI agent, using separate accounts. `main` is stable and protected; work lands on `develop` first. The details are in [CONTRIBUTING.md](CONTRIBUTING.md#2-how-core-is-developed-branches-and-people). None of this changes anything for someone trying CORE: install it or clone `main` as above.
+
 ---
 
 ## Issue Tracker Guide
