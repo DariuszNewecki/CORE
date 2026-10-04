@@ -371,7 +371,11 @@ async def run_compose_command(
 
 # ID: 3797bae4-956b-4af1-9b67-c626709244d9
 async def run_vulture(
-    target: str, repo_root: Path | str, confidence: int = 80
+    target: str,
+    repo_root: Path | str,
+    confidence: int = 80,
+    ignore_decorators: list[str] | None = None,
+    ignore_names: list[str] | None = None,
 ) -> SubprocessResult:
     """Run ``vulture <target> --min-confidence <confidence>`` and return the result.
 
@@ -384,6 +388,14 @@ async def run_vulture(
     sanctuary confines the dangerous-primitive surface to shared/utils/
     (already exempted under the governance rule) and leaves dead_code.py
     free of subprocess imports.
+
+    ``ignore_decorators`` / ``ignore_names`` pass through to vulture's own
+    ``--ignore-decorators`` / ``--ignore-names`` (glob patterns): symbols
+    registered by decorator or loaded by declared name are not dead.
     """
     cmd = ["vulture", target, "--min-confidence", str(confidence)]
+    if ignore_decorators:
+        cmd += ["--ignore-decorators", ",".join(ignore_decorators)]
+    if ignore_names:
+        cmd += ["--ignore-names", ",".join(ignore_names)]
     return await run_command_async(cmd, cwd=repo_root)

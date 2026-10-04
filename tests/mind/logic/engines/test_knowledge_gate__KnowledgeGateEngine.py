@@ -72,6 +72,9 @@ class _NoWorkers:
     def list_workers(self):
         return []
 
+    def list_phases(self):
+        return []
+
 
 class _OrphanContext:
     """Minimal AuditorContext stand-in for _check_orphan_files — only
@@ -116,4 +119,69 @@ def test_orphan_check_resolves_dotdot_relative_imports(tmp_path):
     )
     assert "src/orphan.py" in flagged, (
         "a genuinely unreachable file must still be flagged"
+    )
+
+
+class _OnePhase(_NoWorkers):
+    """intent_repo stand-in declaring one phase implementation."""
+
+    def __init__(self, impl: str) -> None:
+        self._impl = impl
+
+    def list_phases(self):
+        return ["p"]
+
+    def load_phase(self, phase_id):
+        return {"implementation": self._impl}
+
+
+def _orphans(tmp_path, entry_points, intent_repo=None) -> set[str]:
+    ctx = _OrphanContext(tmp_path)
+    if intent_repo is not None:
+        ctx.intent_repo = intent_repo
+    findings = KnowledgeGateEngine()._check_orphan_files(
+        ctx, {"entry_points": entry_points}
+    )
+    return {f.file_path for f in findings}
+
+
+def test_orphan_check_follows_string_named_modules(tmp_path):
+    """Dynamic loads named by string are uses: a dotted ``module.Class`` path
+    (service_registry KERNEL_SERVICES) and a ``src/....py`` path (a child
+    process launched by file, as consequence_chain runs scenario_runner)."""
+    src = tmp_path / "src"
+    (src / "pkg").mkdir(parents=True)
+    (src / "pkg" / "entry.py").write_text(
+        'SERVICES = {"svc": "pkg.service.Service"}\nRUNNER = "src/pkg/runner.py"\n'
+    )
+    (src / "pkg" / "service.py").write_text("class Service: ...\n")
+    (src / "pkg" / "runner.py").write_text("x = 1\n")
+    (src / "pkg" / "orphan.py").write_text("x = 1\n")
+    flagged = _orphans(tmp_path, ["src/pkg/entry.py"])
+    assert "src/pkg/service.py" not in flagged
+    assert "src/pkg/runner.py" not in flagged
+    assert "src/pkg/orphan.py" in flagged
+
+
+def test_orphan_check_ignores_docstring_mentions(tmp_path):
+    """A module named only in a docstring is still an orphan."""
+    src = tmp_path / "src"
+    (src / "pkg").mkdir(parents=True)
+    (src / "pkg" / "entry.py").write_text(
+        '"""Formerly delegated to pkg.retired; see src/pkg/retired.py."""\n'
+    )
+    (src / "pkg" / "retired.py").write_text("x = 1\n")
+    assert "src/pkg/retired.py" in _orphans(tmp_path, ["src/pkg/entry.py"])
+
+
+def test_orphan_check_seeds_declared_phases(tmp_path):
+    """A phase loaded by phase_registry from its .intent implementation path
+    is reachable even though nothing imports it."""
+    src = tmp_path / "src"
+    (src / "pkg").mkdir(parents=True)
+    (src / "pkg" / "entry.py").write_text("x = 1\n")
+    (src / "pkg" / "audit_phase.py").write_text("class AuditPhase: ...\n")
+    assert "src/pkg/audit_phase.py" in _orphans(tmp_path, ["src/pkg/entry.py"])
+    assert "src/pkg/audit_phase.py" not in _orphans(
+        tmp_path, ["src/pkg/entry.py"], _OnePhase("pkg.audit_phase.AuditPhase")
     )

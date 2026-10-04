@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 import fnmatch
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -630,6 +631,25 @@ class KnowledgeGateEngine(BaseEngine):
                             )
                             if resolved_sub:
                                 imports.append(resolved_sub)
+            # String literals naming a src/ module are dynamic-load edges:
+            # dotted class/module paths (service_registry KERNEL_SERVICES,
+            # importlib.import_module("...")) and "src/....py" paths (child
+            # processes launched by file). Bare string statements (docstrings)
+            # are skipped so a prose mention does not count as a use.
+            docstrings = {
+                id(n.value)
+                for n in ast.walk(tree)
+                if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+            }
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Constant)
+                    and isinstance(node.value, str)
+                    and id(node) not in docstrings
+                ):
+                    target = _string_module_target(node.value, repo_path, src_root)
+                    if target is not None:
+                        imports.append(target)
             return imports
 
         # 3b. Seed from constitutionally declared workers (via IntentRepository)
@@ -655,6 +675,18 @@ class KnowledgeGateEngine(BaseEngine):
                     )
         except Exception as e:
             logger.warning("orphan_file_check: worker seeding failed: %s", e)
+
+        # 3c. Seed from constitutionally declared phases (phase_registry loads
+        # each `implementation: module.Class` by import_module).
+        try:
+            for phase_id in context.intent_repo.list_phases():
+                impl = context.intent_repo.load_phase(phase_id).get("implementation")
+                if isinstance(impl, str):
+                    target = _string_module_target(impl, repo_path, src_root)
+                    if target is not None:
+                        seeds.add(target)
+        except Exception as e:
+            logger.warning("orphan_file_check: phase seeding failed: %s", e)
 
         # 5. BFS from seeds
         reachable: set[Path] = set()
@@ -693,3 +725,31 @@ class KnowledgeGateEngine(BaseEngine):
         )
 
         return findings
+
+
+_DOTTED_NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+")
+
+
+def _string_module_target(value: str, repo_path: Path, src_root: Path) -> Path | None:
+    """The src/ file a string literal names, if any.
+
+    Accepts a ``"src/....py"`` path, a dotted module path, or a dotted
+    ``module.Class`` path (resolved by dropping the last segment). Anything
+    else, including dotted strings that resolve to nothing, returns None.
+    """
+    if value.startswith("src/") and value.endswith(".py"):
+        candidate = repo_path / value
+        return candidate if candidate.is_file() else None
+    if not _DOTTED_NAME.fullmatch(value):
+        return None
+    parts = value.split(".")
+    for end in (len(parts), len(parts) - 1):
+        if end < 1:
+            continue
+        for candidate in (
+            src_root.joinpath(*parts[:end]).with_suffix(".py"),
+            src_root.joinpath(*parts[:end], "__init__.py"),
+        ):
+            if candidate.is_file():
+                return candidate
+    return None
