@@ -557,3 +557,38 @@ What D10 proves is that **the assistant cannot impersonate the governor**. It do
    - the inventoried commands still work.
 5. `_oss_passthrough` is gone from `src/`.
 6. `core_test_db` cannot connect to the production database, or holds no privileges on it.
+
+## Addendum — D10 activation parked until D10.8 is complete (2026-10-04, accepted)
+
+**Status:** Accepted (governor chose "park" 2026-10-04).
+
+### What was found after the amendment
+
+The D10.8 design pass (`var/reports/adr132-d10-8-runtime-isolation-design-20261004.md`) found two more routes by which bytes the assistant writes run as `core`. D10.8's text does not cover them:
+
+- **R3, git configuration.** Services run git in the development tree. `.git/` must stay group-writable so that the assistant can commit. A group-writable directory without the sticky bit lets a member replace any file in it, `.git/config` and hooks included, whoever owns that file. Changing the file's ownership or mode does not close this.
+- **R4, repo-provided code that CORE runs on purpose.** The services run the repository's tests and `conftest.py` as `core`. The assistant writes those files. This route is by design and can only be closed by changing the identity that executes repository code.
+
+The routes are equivalent. While any one of R1–R4 is open, closing the others gives no protection against the assistant, and only adds deployment friction.
+
+### Decision
+
+1. **D10.8 is all-or-nothing.** It is satisfied only when R1–R4 are all closed:
+   - the release runtime (R1, R2);
+   - the services' git separated from the development tree (R3);
+   - repository code executed under an identity without the production credential (R4).
+   Partial isolation is not recorded as progress toward #942.
+2. **Activation is parked.** Steps 3–7 of D10.6 as amended wait for D10.8 to be complete. Step 1 (dormant identity) stays as landed; it enforces nothing and claims nothing. Step 2 (core-cli Unix sockets) may land independently, because it is transport only.
+3. **Trigger to unpark.** Either a third principal (a second human or another agent) works on the deployment, or the daemon executes generated code at a volume where R4 is a practical rather than a theoretical route.
+4. **The current claim, stated narrowly.** For as long as D10 is parked:
+   - Governor attribution rests on the OS account split: commit authorship and journald/file ownership distinguish `core-darek`, `core-claude` and `core`.
+   - Governor attribution also rests on trust.
+   - It does **not** rest on enforcement.
+   - No record, report or release note may describe governor stamps as authenticated.
+   - #942 stays open, labelled parked.
+
+### Consequences
+
+- Development loop unchanged: the assistant may still restart services to make its changes live.
+- D10.5 (credential isolation) is also parked; it is meaningful only after D10.8.
+- `.intent/` writability by the assistant is tracked separately; same shape, one level up.
