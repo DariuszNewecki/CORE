@@ -23,7 +23,6 @@ CORE_ADMIN  := $(POETRY) run core-admin
 # declaration: `make install` and CI install exactly this version. Move it
 # deliberately, with a regenerated docs/reference/core.md.
 CORE_CLI_DOCS_VERSION := 2.0.0
-OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 
 # Daemon PID file — lives in var/ (runtime, gitignored)
 DAEMON_PID  := var/run/core-daemon.pid
@@ -33,12 +32,11 @@ DAEMON_LOG  := var/log/core-daemon.log
 .PHONY: \
   help install core-cli-docs-version lock run stop \
   daemon daemon-start daemon-stop daemon-status daemon-restart daemon-logs \
-  audit check-constitution check-ui validate \
-  lint format test coverage dev-sync \
-  dupes traces refusals cli-tree clean nuke \
-  docs vectorize integrate \
+  check-constitution \
+  test coverage \
+  traces refusals clean nuke \
   migrate export-db sync-knowledge \
-  patterns state context
+  patterns state
 
 # ---- Help (auto-documented) --------------------------------------------------
 help: ## Show this help message
@@ -46,7 +44,7 @@ help: ## Show this help message
 	@echo "------------------------------------------------------------"
 	@echo "Usage: make [target]"
 	@echo ""
-	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS=":.*## "} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Tip: run 'core-admin --help' to see the resource-based CLI hierarchy."
 
@@ -150,28 +148,9 @@ check-constitution: ## Check constitutional compliance (audit)
 	@echo "⚖️  Running constitutional audit..."
 	$(CORE_ADMIN) code audit
 
-check-ui: ## Check for UI leaks in Body layer (Headless enforcement)
-	@echo "🔍 Checking Body-layer UI contracts..."
-	$(CORE_ADMIN) code check-ui
-
-audit: dev-sync check-constitution check-ui ## Full audit: sync → constitution → ui
-	@echo "✅ Full system audit complete"
-
-validate: audit ## Alias for audit (pre-commit validation)
-	@echo "✅ Validation complete"
-
 # ==============================================================================
 
 # ---- Individual Resource Actions (Neurons) -----------------------------------
-lint: ## Check code format and quality (read-only)
-	$(CORE_ADMIN) code lint
-
-format: ## Fix code style and import order
-	@echo "✨ Formatting code (Black/Ruff)..."
-	$(CORE_ADMIN) code format --write
-	@echo "🧹 Sorting imports..."
-	$(CORE_ADMIN) code format-imports --write
-
 test: ## Run test suite
 	@echo "🧪 Running tests with pytest..."
 	$(POETRY) run pytest --cov=src --cov-report=json --cov-fail-under=38
@@ -180,34 +159,7 @@ coverage: ## Check coverage compliance
 	@echo "📈 Checking coverage meets constitutional requirement..."
 	$(CORE_ADMIN) code audit --verbose
 
-# ==============================================================================
-#   DEV-SYNC: Atomic Operations Composed (The "Limb" Pipeline)
-# ==============================================================================
-
-dev-sync: ## Synchronize local state (IDs -> Dedup -> Format -> DB -> Vectors)
-	@echo "🔄 CORE Development Sync Pipeline"
-	@echo "=================================="
-	@echo "1️⃣  Fixing symbol IDs..."
-	@$(CORE_ADMIN) symbols fix-ids --write
-	@echo "2️⃣  Resolving duplicate IDs..."
-	@$(CORE_ADMIN) symbols resolve-duplicates --write
-	@echo "3️⃣  Formatting code & imports..."
-	@$(MAKE) format
-	@echo "4️⃣  Syncing knowledge graph..."
-	@$(CORE_ADMIN) symbols sync --write
-	@echo "5️⃣  Updating memory (vectors)..."
-	@$(CORE_ADMIN) vectors sync-code --write
-	@echo "6️⃣  Generating operational summary..."
-	@$(CORE_ADMIN) admin summary
-	@echo "✅ Dev-sync complete"
-
-# ==============================================================================
-
 # ---- Forensics & Analytics (Admin Resource) ----------------------------------
-dupes: ## Check for duplicate code (semantic analysis)
-	@echo "👯 Running semantic duplication analysis..."
-	$(CORE_ADMIN) code audit-duplicates --threshold 0.96
-
 traces: ## View recent autonomous decision traces
 	$(CORE_ADMIN) admin traces
 
@@ -229,26 +181,6 @@ export-db: ## Export DB tables to canonical YAML
 
 sync-knowledge: ## Scan codebase and sync symbols to DB (SSOT)
 	$(CORE_ADMIN) database sync --write
-
-vectorize: ## Full vectorization (Constitution + Code)
-	@echo "🧠 Vectorizing constitution..."
-	$(CORE_ADMIN) vectors sync --write
-	@echo "🧠 Vectorizing code symbols..."
-	$(CORE_ADMIN) vectors sync-code --write
-
-integrate: ## Finalize changes and integrate into system
-	$(POETRY) run core proposals integrate --message "feat: Integrate changes via make" --write
-
-# ---- Docs --------------------------------------------------------------------
-docs: ## Generate capability documentation
-	@echo "📚 Generating capability documentation..."
-	$(CORE_ADMIN) project docs
-
-# ---- Context (LLM session packets) ------------------------------------------
-context: ## Build context packets for upload to Claude.ai Project Files
-	@echo "📦 Building context packets (intent + specs + tree)..."
-	@$(POETRY) run python infra/scripts/dev/context_builder.py --intent --specs
-	# Output: context_intent_specs.txt + context_tree.txt — upload both to Claude.ai Project Files.
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches

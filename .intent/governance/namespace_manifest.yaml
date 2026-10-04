@@ -1284,8 +1284,6 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/planning/** -- CORE's own roadmaps and planning notes.
   # ---------------------------------------------------------------------
-  - path: .specs/planning/CORE-BYOR-Program-Backlog.md
-    governance_namespace: project::core
   - path: .specs/planning/INTERACTION-CONTRACT.md
     governance_namespace: project::core
     notes: >
@@ -1704,18 +1702,6 @@ classifications:
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/finalization_integrity.yaml
     governance_namespace: framework
-  - path: .intent/packs/architectural_boundaries.yaml
-    governance_namespace: framework
-    notes: >-
-      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
-  - path: .intent/packs/python_hygiene.yaml
-    governance_namespace: framework
-    notes: >-
-      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
-  - path: .intent/packs/starter_python.yaml
-    governance_namespace: framework
-    notes: >-
-      REVIEW: no sibling precedent. Rule bundles (architectural_boundaries/python_hygiene/starter_python) are reusable across any governed project. Classified framework.
   - path: .intent/rules/governance/consequence_evidence_degraded.json
     governance_namespace: framework
   - path: .intent/rules/governance/proposal_finalization_integrity.json

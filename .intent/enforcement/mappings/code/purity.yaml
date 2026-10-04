@@ -134,10 +134,8 @@
         entry_points:
           - "src/cli/"
           - "src/body/atomic/"
-          - "src/main.py"
           - "src/api/main.py"
           - "src/mind/logic/engines/"
-          - "src/mind/governance/checks/"
           - "src/will/workers/"
           - "src/will/phases/"
           - "src/body/services/"
@@ -147,7 +145,6 @@
           - "src/will/tools/"
           - "src/will/agents/"
           - "src/will/workflows/"
-          - "src/will/cli_logic/"
           - "src/will/autonomy/"
           - "src/will/orchestration/"
           - "src/body/self_healing/"

@@ -57,11 +57,9 @@ include_files:
   - "src/body/self_healing/placeholder_fixer_service.py"
 
   # -- will/workers -- pure helpers / models (lowest risk) --------------------
-  - "src/will/workers/violation_remediator_body/models.py"
+  - "src/will/workers/violation_remediator_body/worker.py"
   - "src/will/workers/repo_embedding/helpers.py"
   - "src/will/workers/test_remediator/_operations.py"
-  - "src/will/workers/violation_remediator_body/ceremony.py"
-  - "src/will/workers/violation_remediator_blackboard.py"
 
   # -- will/workers -- sensors (bounded deps) ---------------------------------
   - "src/will/workers/coherence_sensor.py"
@@ -74,15 +72,9 @@ include_files:
   - "src/will/workers/observer_worker.py"
   - "src/will/workers/intent_inspector.py"
   - "src/will/workers/prompt_extractor_worker.py"
-  - "src/will/workers/violation_remediator_body/_host.py"
-  - "src/will/workers/violation_remediator_body/llm.py"
-  - "src/will/workers/violation_remediator_body/context.py"
-  - "src/will/workers/violation_remediator_proposal.py"
   - "src/will/workers/worker_shop_manager.py"
 
   # -- will/workers -- proposal pipeline --------------------------------------
-  - "src/will/workers/proposal_consumer_effects.py"
-  - "src/will/workers/proposal_consumer_revival.py"
   - "src/will/workers/proposal_consumer_worker.py"
 
   # -- will/workers -- external-service-heavy (Qdrant / DB / FS) -------------

@@ -27,6 +27,6 @@ flow:
       required: true
 
     # Constitutional vectors are independent of code vectors
-    - ref_id: sync.constitutional.vectors
+    - ref_id: sync.vectors_constitution
       kind: action
       required: false

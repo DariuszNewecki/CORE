@@ -57,6 +57,7 @@ _CONVENTIONAL_ENGINES = {
     "knowledge_gate",
     "contracts_gate",
     "runtime_gate",
+    "reference_gate",
 }
 
 _VALID_STATES = {"unverified", "gap", "decision_required", "verified"}
