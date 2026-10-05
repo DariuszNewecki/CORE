@@ -34,6 +34,7 @@ import json
 import time
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID
 
@@ -47,16 +48,13 @@ from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
-from shared.infrastructure.intent.audit_verdict import (
-    law_drift_degrades,
-    load_audit_verdict_policy,
-)
 from shared.infrastructure.intent.law_state import (
     LawState,
     law_drift_findings,
     observe_law_state,
 )
 from shared.logger import getLogger
+from shared.models import AuditSeverity
 from shared.path_resolver import PathResolver
 from shared.workers.blackboard_publisher import _sanitize_payload
 
@@ -248,18 +246,20 @@ async def run_sync_audit(
                 policy_ids=policy_ids,
                 files=files or None,
             )
-            # ADR-169 D2: a filtered verdict states its law too, and is
-            # never PASS while the law evaluated is not the law of record.
+            # The filtered verdict is DECIDED from its findings with the same
+            # function as a full audit -- it used to be hard-coded PASS
+            # whatever the rule found. ADR-169 D2: it also states its law.
             law_state = observe_law_state(context.auditor_context.intent_repo.root)
-            law_drift = law_drift_degrades(
-                load_audit_verdict_policy(), law_state.relationship
+            filtered_findings = [*raw_findings, *law_drift_findings(law_state)]
+            verdict = _decide_filtered_verdict(
+                filtered_findings, stats_dict, law_state.relationship
             )
             results: dict[str, Any] = {
-                "findings": [*raw_findings, *law_drift_findings(law_state)],
+                "findings": filtered_findings,
                 "executed_rule_ids": executed_ids,
-                "passed": not law_drift,
+                "passed": verdict == AuditVerdict.PASS,
                 "stats": stats_dict,
-                "verdict": AuditVerdict.DEGRADED if law_drift else None,
+                "verdict": verdict,
                 "law_state": law_state.to_dict(),
             }
         else:
@@ -276,12 +276,10 @@ async def run_sync_audit(
         findings=findings_dicts, symbol_index={}
     )
 
-    verdict_enum = results.get("verdict")
-    verdict_str = (
-        verdict_enum.value
-        if verdict_enum is not None
-        else ("PASS" if results["passed"] else "FAIL")
-    )
+    # Every branch decides its verdict; a missing one is unknown, not PASS
+    # or FAIL rebuilt from ``passed``.
+    verdict_enum = results.get("verdict") or AuditVerdict.DEGRADED
+    verdict_str = verdict_enum.value
 
     common_payload: dict[str, Any] = {
         "verdict": verdict_str,
@@ -398,6 +396,50 @@ async def run_sync_audit(
     await _record_run_observation(context, session, results, run_id)
     common_payload["run_id"] = str(run_id)
     return common_payload
+
+
+def _decide_filtered_verdict(
+    findings: list[Any], stats: Mapping[str, Any], law_relationship: str
+) -> AuditVerdict:
+    """Decide a filtered run's verdict with ConstitutionalAuditor's rules.
+
+    run_filtered_audit returns finding dicts and per-run stats. A rule that
+    raised is counted in ``failed_rules``; a per-file crash carries
+    finding_type ENFORCEMENT_FAILURE -- both are crashed rules (DEGRADED). An
+    ENFORCEMENT_UNAVAILABLE finding is treated as a blocking rule's missing
+    evidence (DEGRADED): the dicts do not carry the rule's enforcement level,
+    so this fails closed rather than let unknown compliance pass.
+    """
+    as_objects: list[Any] = []
+    crashed: set[str] = set()
+    unavailable = 0
+    for f in findings:
+        if not isinstance(f, Mapping):
+            as_objects.append(f)  # already an AuditFinding
+            continue
+        context = f.get("context") or {}
+        finding_type = context.get("finding_type")
+        if finding_type == "ENFORCEMENT_FAILURE":
+            crashed.add(str(f.get("check_id")))
+        elif finding_type == "ENFORCEMENT_UNAVAILABLE":
+            unavailable += 1
+        severity_name = str(f.get("severity", "info")).upper()
+        as_objects.append(
+            SimpleNamespace(
+                severity=AuditSeverity.__members__.get(
+                    severity_name, AuditSeverity.INFO
+                ),
+                context=context,
+            )
+        )
+    if stats.get("failed_rules", 0):
+        crashed.add("filtered_audit.rule_evaluation_failed")
+    return ConstitutionalAuditor._determine_verdict(
+        as_objects,
+        stats={"blocking_unavailable_rules": unavailable},
+        crashed_rule_ids=crashed,
+        law_relationship=law_relationship,
+    )
 
 
 async def _record_run_observation(
