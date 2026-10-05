@@ -246,7 +246,7 @@ digest has drifted — surface it to the governor.
 - `architecture.execution_write.repository_containment` (passive gate, `enforced_by` FileHandler) — Every execution-time filesystem write MUST resolve within the bound repository root; a write resolving outside it MUST be refused before any mutation (`RepositoryBoundaryViolationError`), and the refusal MUST name this rule. ADR-159 Trial 0 probe I-5 is decided against it (#895 U3 D2).
 
 **Intent references (`.intent/**`)**
-- `architecture.intent.references_resolve` — Concrete `.intent/` references MUST resolve: flow `kind: action` steps → an `@atomic_action` id; `test_coverage.yaml` `include_files` → files; mapping `params.entry_points` → paths; worker `implementation.module`/`class` → a module defining or re-exporting the class; namespace-manifest `.intent/` paths → files (`reference_gate` engine).
+- `architecture.intent.references_resolve` — Concrete `.intent/` references MUST resolve: flow `kind: action` steps → an `@atomic_action` id; `test_coverage.yaml` `include_files` → files; mapping `params.entry_points` → paths; worker `implementation.module`/`class` → a module defining or re-exporting the class; namespace-manifest `.intent/` paths → files; `auto_remediation.yaml` ACTIVE/DELEGATE targets → an `@register_action` id or active `flow_id` (PENDING exempt) (`reference_gate` engine).
 
 **Constitution / governance read-only (`src/**`)**
 - `architecture.constitution_read_only` — The constitutional intent directory MUST be immutable.

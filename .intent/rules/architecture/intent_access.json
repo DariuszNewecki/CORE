@@ -36,11 +36,11 @@
     },
     {
       "id": "architecture.intent.references_resolve",
-      "statement": "Concrete references that .intent/ declares MUST resolve: flow steps of kind action to an @atomic_action id in src/; test_coverage.yaml include_files to existing files; enforcement-mapping params.entry_points to existing files or directories; worker implementation.module/class to a module under src/ that defines or re-exports that class; namespace_manifest classification paths under .intent/ to existing files.",
+      "statement": "Concrete references that .intent/ declares MUST resolve: flow steps of kind action to an @atomic_action id in src/; test_coverage.yaml include_files to existing files; enforcement-mapping params.entry_points to existing files or directories; worker implementation.module/class to a module under src/ that defines or re-exports that class; namespace_manifest classification paths under .intent/ to existing files; auto_remediation.yaml entries with status ACTIVE or DELEGATE to an @register_action id under src/body/atomic/ (action) or an active flow_id (flow) -- PENDING entries name actions not yet built and are exempt.",
       "enforcement": "blocking",
       "authority": "constitution",
       "phase": "audit",
-      "rationale": "Retirements and renames left 16 such references dangling (2026-10-04 residue investigation): a flow step naming a renamed action, test generation capped against deleted files, an orphan check rooted at missing entry points. Each misdirects the runtime without failing loudly. Field-aware by design: globs, output locations, exclude lists and prose are out of scope because their existence is not part of their meaning."
+      "rationale": "Retirements and renames left 16 such references dangling (2026-10-04 residue investigation): a flow step naming a renamed action, test generation capped against deleted files, an orphan check rooted at missing entry points; remediation-map DELEGATE entries twice left naming retired actions (9fd70022, 88f0fe43) while only ACTIVE entries were checked (#935). Each misdirects the runtime without failing loudly. Field-aware by design: globs, output locations, exclude lists and prose are out of scope because their existence is not part of their meaning."
     }
   ]
 }

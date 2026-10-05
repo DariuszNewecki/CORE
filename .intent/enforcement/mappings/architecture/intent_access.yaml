@@ -71,7 +71,8 @@ mappings:
   # Context-level sweep (reference_gate engine): every concrete reference
   # .intent/ declares -- flow action steps, test_coverage include_files,
   # mapping entry_points, worker implementation module/class, namespace
-  # manifest .intent/ paths -- must resolve. applies_to anchors at .intent/
+  # manifest .intent/ paths, remediation-map ACTIVE/DELEGATE targets (#935)
+  # -- must resolve. applies_to anchors at .intent/
   # so an edit to any declaring file re-evaluates the sweep.
   architecture.intent.references_resolve:
     engine: reference_gate

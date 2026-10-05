@@ -20,7 +20,11 @@ Field-aware by design — only fields whose meaning is "this must exist now":
   → a module under ``src/`` defining that class;
 - ``governance/namespace_manifest.yaml`` classification ``path`` under
   ``.intent/`` → files (other trees may hold gitignored, machine-local
-  documents such as ``.specs/core-ng/``, whose absence is not residue).
+  documents such as ``.specs/core-ng/``, whose absence is not residue);
+- ``enforcement/remediation/auto_remediation.yaml`` ACTIVE and DELEGATE
+  entries → an ``@register_action`` id under ``src/body/atomic/``
+  (``action:``) or an active flow's ``flow_id`` (``flow:``). PENDING
+  entries name actions not yet built, by declaration, and are exempt (#935).
 
 Globs, output locations, exclude lists and prose are deliberately out of
 scope: their existence is not part of their meaning.
@@ -42,6 +46,7 @@ from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
 
+from .artifact_gate import _extract_register_action_remediates
 from .base import BaseEngine, EngineResult, EvidenceClass
 from .taxonomy_gate import _collect_atomic_action_ids
 
@@ -57,6 +62,11 @@ _CHECK = "intent_references_resolve"
 _CHECK_ID = "architecture.intent.references_resolve"
 _TEST_COVERAGE_REL = "enforcement/config/test_coverage.yaml"
 _NAMESPACE_MANIFEST_REL = "governance/namespace_manifest.yaml"
+_REMEDIATION_MAP_REL = "enforcement/remediation/auto_remediation.yaml"
+_BODY_ATOMIC_REL = "src/body/atomic"
+# Statuses whose target is routed (ACTIVE: proposals; DELEGATE: governor
+# inbox). PENDING is "action does not yet exist in registry" by declaration.
+_ROUTED_STATUSES = frozenset({"ACTIVE", "DELEGATE"})
 
 
 # ID: 44e4ff98-ccc1-46a8-b11d-69d158680e4c
@@ -118,6 +128,7 @@ def find_dangling_references(repo_root: Path) -> list[AuditFinding]:
     dangling += _mapping_entry_points(intent, repo_root)
     dangling += _worker_implementations(intent, repo_root)
     dangling += _namespace_manifest_paths(intent, repo_root)
+    dangling += _remediation_targets(intent, repo_root)
     return [
         AuditFinding(
             check_id=_CHECK_ID,
@@ -247,3 +258,50 @@ def _namespace_manifest_paths(
         and entry["path"].startswith(".intent/")
         and not (repo_root / entry["path"]).exists()
     ]
+
+
+def _remediation_targets(
+    intent: IntentRepository, repo_root: Path
+) -> list[tuple[Path, str, str, str]]:
+    path = intent.resolve_rel(_REMEDIATION_MAP_REL)
+    if not path.exists():
+        return []
+    mappings = intent.load_document(path).get("mappings")
+    if not isinstance(mappings, dict):
+        return []
+    # Same predicate dispatch and the ACTIVE-routing check use: an action
+    # exists when body/atomic registers it, not merely when it is decorated.
+    action_ids = set(_extract_register_action_remediates(repo_root / _BODY_ATOMIC_REL))
+    flow_ids = _active_flow_ids(intent)
+    out: list[tuple[Path, str, str, str]] = []
+    for rule_id, entry in mappings.items():
+        if not isinstance(entry, dict) or entry.get("status") not in _ROUTED_STATUSES:
+            continue
+        action = entry.get("action")
+        if isinstance(action, str) and action not in action_ids:
+            out.append(
+                (
+                    path,
+                    f"mappings.{rule_id}.action",
+                    action,
+                    f"no @register_action declares in {_BODY_ATOMIC_REL}/",
+                )
+            )
+        flow = entry.get("flow")
+        if isinstance(flow, str) and flow not in flow_ids:
+            out.append(
+                (path, f"mappings.{rule_id}.flow", flow, "is not an active flow_id")
+            )
+    return out
+
+
+def _active_flow_ids(intent: IntentRepository) -> set[str]:
+    """flow_ids FlowRegistry would load (metadata.status defaults to active)."""
+    ids: set[str] = set()
+    for _path, doc in intent.iter_flow_documents():
+        if (doc.get("metadata") or {}).get("status", "active") != "active":
+            continue
+        flow_id = (doc.get("flow") or {}).get("flow_id")
+        if isinstance(flow_id, str):
+            ids.add(flow_id)
+    return ids

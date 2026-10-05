@@ -37,8 +37,22 @@ def repo(tmp_path: Path) -> Path:
     _write(tmp_path, "src/will/workers/pkg/impl.py", "class PkgWorker: ...\n")
     _write(
         tmp_path,
+        "src/body/atomic/fix_actions.py",
+        "@register_action(action_id='fix.real')\nasync def f(**kwargs): ...\n",
+    )
+    _write(
+        tmp_path,
+        ".intent/enforcement/remediation/auto_remediation.yaml",
+        "mappings:\n"
+        "  rule.active: {action: fix.real, status: ACTIVE}\n"
+        "  rule.delegate: {action: fix.real, status: DELEGATE}\n"
+        "  rule.flow: {flow: flow.x, status: DELEGATE}\n"
+        "  rule.pending: {action: fix.not_built_yet, status: PENDING}\n",
+    )
+    _write(
+        tmp_path,
         ".intent/flows/flow.x.yaml",
-        "kind: flow\nflow:\n  steps:\n"
+        "kind: flow\nflow:\n  flow_id: flow.x\n  steps:\n"
         "    - {ref_id: sync.real, kind: action}\n"
         "    - {ref_id: some.cognitive.role, kind: cognitive}\n",
     )
@@ -149,3 +163,58 @@ async def test_engine_dispatches_context_level(repo: Path) -> None:
         {"check_type": "nope"},
     )
     assert unknown[0].check_id == "reference_gate.unknown_check_type"
+
+
+def _set_remediation_entry(repo: Path, line: str) -> None:
+    path = repo / ".intent/enforcement/remediation/auto_remediation.yaml"
+    path.write_text(path.read_text(encoding="utf-8") + line, encoding="utf-8")
+
+
+def test_delegate_entry_naming_retired_action_fires(repo: Path) -> None:
+    """#935: DELEGATE targets were never checked; twice a retired action was
+    left behind (9fd70022, 88f0fe43)."""
+    _set_remediation_entry(repo, "  rule.stale: {action: fix.code, status: DELEGATE}\n")
+    findings = find_dangling_references(repo)
+    assert {(f.context["field"], f.context["reference"]) for f in findings} == {
+        ("mappings.rule.stale.action", "fix.code")
+    }
+    assert (
+        findings[0].file_path == ".intent/enforcement/remediation/auto_remediation.yaml"
+    )
+
+
+def test_active_entry_naming_unregistered_action_fires(repo: Path) -> None:
+    _set_remediation_entry(repo, "  rule.gone: {action: fix.gone, status: ACTIVE}\n")
+    assert _refs(repo) == {("mappings.rule.gone.action", "fix.gone")}
+
+
+def test_atomic_only_action_does_not_satisfy_a_remediation_target(repo: Path) -> None:
+    """sync.real is @atomic_action but not @register_action: dispatch cannot
+    route to it, so it does not resolve a remediation entry."""
+    _set_remediation_entry(repo, "  rule.sync: {action: sync.real, status: DELEGATE}\n")
+    assert _refs(repo) == {("mappings.rule.sync.action", "sync.real")}
+
+
+def test_flow_entry_naming_missing_or_inactive_flow_fires(repo: Path) -> None:
+    _write(
+        repo,
+        ".intent/flows/flow.old.yaml",
+        "kind: flow\nmetadata: {status: deprecated}\nflow:\n  flow_id: flow.old\n"
+        "  steps: []\n",
+    )
+    _set_remediation_entry(
+        repo,
+        "  rule.f1: {flow: flow.build_tests, status: ACTIVE}\n"
+        "  rule.f2: {flow: flow.old, status: DELEGATE}\n",
+    )
+    assert _refs(repo) == {
+        ("mappings.rule.f1.flow", "flow.build_tests"),
+        ("mappings.rule.f2.flow", "flow.old"),
+    }
+
+
+def test_pending_entry_is_exempt(repo: Path) -> None:
+    _set_remediation_entry(
+        repo, "  rule.later: {action: fix.someday, status: PENDING}\n"
+    )
+    assert _refs(repo) == set()
