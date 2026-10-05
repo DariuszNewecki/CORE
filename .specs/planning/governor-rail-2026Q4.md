@@ -222,6 +222,9 @@ is a visible decision rather than a drift:
 > **Not on the list, deliberately:** #920 (reject without disposition) — a rejection that does
 > not reject collides with the bar the first time a generated test is rejected; it stays a
 > decision. #808's five clusters (#921–#925) are decisions, not ignores.
+>
+> **Picked up 2026-10-05 (governor).** From the audit-engine false-positive cluster:
+> #904, #876, #870 — fixed in 929be92f and c518b854. #858, #869, #902 stay on the list.
 
 ◆ **On the last candidate:** the `permitted_tools` rule is already drafted
 (`var/tmp/ingest-fix-drafts/rule-workers-no-full-audit.md`) and applying it is a Path A
