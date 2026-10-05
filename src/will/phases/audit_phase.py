@@ -13,7 +13,8 @@ Routing:
                              + StyleCheckPhase
 
 Blocking semantics per sub-phase:
-  CanaryValidationPhase  — import integrity gate is BLOCKING;
+  CanaryValidationPhase  — import integrity gate is BLOCKING, including
+                           when the check cannot run (fail-closed);
                            test failures are ADVISORY
   SandboxValidationPhase — test failures are ADVISORY (phase returns ok=True)
   StyleCheckPhase        — style errors are BLOCKING; warnings are advisory
@@ -106,9 +107,11 @@ class AuditPhase:
             if not result.ok:
                 # Determine if this is a hard block or advisory
                 import_failed = result.data.get("import_integrity_failed", False)
+                # A check that could not run blocks too: unknown is not a pass (#904).
+                import_unavailable = result.data.get("import_check_unavailable", False)
                 is_style = sub_phase_name == "style_check"
 
-                if import_failed or is_style:
+                if import_failed or import_unavailable or is_style:
                     # Hard block — import integrity and style errors are constitutional
                     logger.error(
                         "❌ AUDIT: sub-phase '%s' BLOCKED workflow: %s",

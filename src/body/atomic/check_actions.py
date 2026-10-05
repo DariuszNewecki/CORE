@@ -86,7 +86,9 @@ async def action_check_imports(
 
     Returns structured violations in ActionResult.data["violations"].
     ok=True means zero violations found.
-    ok=False means violations exist — callers treat this as a blocking signal.
+    ok=False with data["violation_count"] means violations exist.
+    ok=False without it means the check could not run (data["error"] says why);
+    callers must not report that as a violation count (#904).
     """
     start = time.time()
     target = _import_check_target(core_context)

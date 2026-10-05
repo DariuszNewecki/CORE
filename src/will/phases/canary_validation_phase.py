@@ -86,8 +86,36 @@ class CanaryValidationPhase:
                 write=False,
             )
 
+            if not import_result.ok and "violation_count" not in import_result.data:
+                # The check did not run (refused by the executor, ruff missing,
+                # unparseable output). Import integrity is UNKNOWN, not violated:
+                # say so, and fail closed rather than continue unverified (#904).
+                reason = import_result.data.get("error", "no reason given")
+                logger.error(
+                    "❌ Import integrity check could not run: %s. "
+                    "Canary validation blocked (fail-closed).",
+                    reason,
+                )
+                return PhaseResult(
+                    name="canary_validation",
+                    ok=False,
+                    error=(
+                        f"Import integrity check could not run: {reason}. "
+                        "Import resolution is unknown, not violated; "
+                        "blocking until the check can run."
+                    ),
+                    data={
+                        "import_check_unavailable": True,
+                        "finding_type": "ENFORCEMENT_UNAVAILABLE",
+                        "reason": reason,
+                        "details": import_result.data.get("details"),
+                        "advisory": False,  # fail-closed: blocking
+                    },
+                    duration_sec=time.time() - start,
+                )
+
             if not import_result.ok:
-                violation_count = import_result.data.get("violation_count", "?")
+                violation_count = import_result.data["violation_count"]
                 violations = import_result.data.get("violations", [])
 
                 logger.error(
