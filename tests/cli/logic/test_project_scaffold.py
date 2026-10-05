@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 import typer
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from cli.logic.byor import _machinery_floor_files, _resolve_machinery_floor
 from cli.logic.project_scaffold import plan_new_project, write_new_project
 
@@ -94,6 +95,32 @@ def test_write_delivers_floor_bytes_and_skeleton(parent: Path, core_root: Path) 
     for rel, text in plan.skeleton_files:
         assert (plan.target_root / rel).read_text(encoding="utf-8") == text
     assert not (core_root / "demo").exists()
+
+
+# ID: 19d92f9d-e94b-4e12-a825-013219ab2b30
+def test_every_written_file_is_recorded_as_an_outside_write(
+    parent: Path, core_root: Path
+) -> None:
+    """ADR-169 D5: the new project lies outside CORE's repository."""
+    plan = plan_new_project("demo", parent, core_root)
+    outside = OutsideWriteLog(plan.target_root, produced_by="project.new")
+
+    write_new_project(plan, core_root, write=True, outside=outside)
+
+    recorded = {e.path for e in outside.entries}
+    expected = {rel for _, rel in plan.floor_copies} | {
+        rel for rel, _ in plan.skeleton_files
+    }
+    assert recorded == {Path(r).as_posix() for r in expected}
+    assert all(e.operation == "write" and e.content_hash for e in outside.entries)
+
+
+# ID: 3ccc64b1-b4ab-4659-b485-5995995c9e5c
+def test_dry_run_records_nothing(parent: Path, core_root: Path) -> None:
+    plan = plan_new_project("demo", parent, core_root)
+    outside = OutsideWriteLog(plan.target_root, produced_by="project.new")
+    write_new_project(plan, core_root, write=False, outside=outside)
+    assert outside.entries == []
 
 
 # ID: 29e2131b-8ffa-4e81-8e1a-75dd5538cd10

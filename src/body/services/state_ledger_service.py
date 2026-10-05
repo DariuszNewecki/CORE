@@ -11,8 +11,10 @@ law evaluated (ADR-169 D2), and the identity of the code the daemon loaded
 
 Constitutional standing:
 - Layer:  body/services — infrastructure service.
-- Append-only: one INSERT per observation; rows are never updated (the table
-  refuses UPDATE by trigger).
+- Append-only: one INSERT per observation, plus one core.state_changes row
+  per changed path since the previous observation (ADR-169 D4,
+  body.services.change_attribution); rows are never updated (both tables
+  refuse UPDATE by trigger).
 - git runs through shared GitService (the sole git subprocess sanctuary).
 - No LLM calls. No file writes.
 """
@@ -26,6 +28,11 @@ from typing import Any, Literal
 
 from sqlalchemy import text
 
+from body.services.change_attribution import (
+    ChangeFact,
+    attribute_changes,
+    load_proposal_claims,
+)
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.law_state import LawState, observe_law_state
 from shared.logger import getLogger
@@ -95,10 +102,22 @@ class StateLedgerService:
     """Append-only writer for core.state_observations (ADR-169 D1)."""
 
     # ID: 3216469e-7943-41a9-a7c2-b9b202e831c6
-    async def record(self, session: Any, observation: StateObservation) -> None:
-        """INSERT one observation and commit."""
+    async def record(
+        self, session: Any, observation: StateObservation
+    ) -> list[ChangeFact]:
+        """INSERT one observation, attribute what changed since the previous
+        one (ADR-169 D4), INSERT those facts, and commit. Returns the facts."""
+        previous = await self.latest(session, observation.repo_root)
+        return await self._append(session, observation, previous)
+
+    async def _append(
+        self,
+        session: Any,
+        observation: StateObservation,
+        previous: dict[str, Any] | None,
+    ) -> list[ChangeFact]:
         law = observation.law_state
-        await session.execute(
+        result = await session.execute(
             text(
                 """
                 INSERT INTO core.state_observations
@@ -110,6 +129,7 @@ class StateLedgerService:
                      :relationship, :record_digest, :evaluated_digest,
                      cast(:drift as jsonb), :code_identity,
                      cast(:audit_run_id as uuid))
+                RETURNING observation_id
                 """
             ),
             {
@@ -126,13 +146,86 @@ class StateLedgerService:
                 "audit_run_id": observation.audit_run_id,
             },
         )
+        observation_id = result.scalar_one()
+        changes = await self._attribute(session, observation, previous)
+        if changes and previous is not None:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO core.state_changes
+                        (observation_id, previous_observation_id, path,
+                         governance_provenance, producer_provenance, persistence,
+                         commit_sha, producer_identity, proposal_id)
+                    VALUES
+                        (:observation_id, :previous_observation_id, :path,
+                         :governance, :producer, :persistence,
+                         :commit_sha, :identity, :proposal_id)
+                    """
+                ),
+                [
+                    {
+                        "observation_id": observation_id,
+                        "previous_observation_id": previous["observation_id"],
+                        "path": _sanitize_payload(c.path),
+                        "governance": c.governance_provenance,
+                        "producer": c.producer_provenance,
+                        "persistence": c.persistence,
+                        "commit_sha": c.commit_sha,
+                        "identity": _sanitize_payload(c.producer_identity),
+                        "proposal_id": c.proposal_id,
+                    }
+                    for c in changes
+                ],
+            )
         await session.commit()
         logger.info(
-            "state observation recorded: trigger=%s head=%s law=%s dirty=%d",
+            "state observation recorded: trigger=%s head=%s law=%s dirty=%d changes=%d",
             observation.trigger,
             (observation.head_sha or "?")[:12],
             law.relationship,
             len(observation.dirty_paths),
+            len(changes),
+        )
+        return changes
+
+    async def _attribute(
+        self,
+        session: Any,
+        observation: StateObservation,
+        previous: dict[str, Any] | None,
+    ) -> list[ChangeFact]:
+        """ADR-169 D4 facts for the change from ``previous`` to ``observation``.
+
+        The first observation of a repository has nothing to compare with.
+        """
+        if previous is None:
+            return []
+        previous_head = previous.get("head_sha")
+        head = observation.head_sha
+        commits: list[tuple[str, str, list[str]]] | None = []
+        if previous_head and head and previous_head != head:
+            try:
+                commits = GitService(observation.repo_root).commits_between(
+                    previous_head, head
+                )
+            except RuntimeError as exc:
+                logger.warning(
+                    "change attribution: commits %s..%s unreadable: %s",
+                    previous_head[:12],
+                    head[:12],
+                    exc,
+                )
+                commits = None
+        claims = await load_proposal_claims(
+            session, [sha for sha, _, _ in commits or []]
+        )
+        return attribute_changes(
+            previous_head,
+            previous.get("dirty_paths"),
+            head,
+            observation.dirty_paths,
+            commits,
+            claims,
         )
 
     # ID: d341cb98-c44b-46d3-95cf-d9955e3679ab
@@ -141,8 +234,9 @@ class StateLedgerService:
         result = await session.execute(
             text(
                 """
-                SELECT head_sha, dirty_paths, law_relationship, law_record_digest,
-                       law_evaluated_digest, law_drift_paths, loaded_code_identity
+                SELECT observation_id, head_sha, dirty_paths, law_relationship,
+                       law_record_digest, law_evaluated_digest, law_drift_paths,
+                       loaded_code_identity
                 FROM core.state_observations
                 WHERE repo_root = :repo_root
                 ORDER BY observed_at DESC
@@ -157,13 +251,14 @@ class StateLedgerService:
     # ID: 3efda24e-93f1-433e-852e-7e6193c5e8ca
     async def record_if_changed(
         self, observation: StateObservation, session: Any = None
-    ) -> bool:
+    ) -> list[ChangeFact] | None:
         """Append ``observation`` only when it differs from the latest row.
 
         Keeps the ledger's history (every change is a row) without one row
-        per cycle while nothing changes. Returns True when a row was written.
-        Without ``session`` the service opens its own (callers outside Body
-        do not hold sessions).
+        per cycle while nothing changes. Returns the change facts when a row
+        was written (possibly empty), None when nothing was written. Without
+        ``session`` the service opens its own (callers outside Body do not
+        hold sessions).
         """
         if session is None:
             from body.services.service_registry import ServiceRegistry
@@ -174,9 +269,8 @@ class StateLedgerService:
         if previous is not None and observation_key(previous) == observation_key(
             _as_row(observation)
         ):
-            return False
-        await self.record(session, observation)
-        return True
+            return None
+        return await self._append(session, observation, previous)
 
 
 def _as_row(observation: StateObservation) -> dict[str, Any]:

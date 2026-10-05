@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 import typer
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from cli.logic.byor import deliver_external_intent_files
 
 
@@ -44,6 +45,23 @@ def test_writes_files_under_target_intent(tmp_path: Path) -> None:
     assert (target / ".intent/enforcement/mappings/packs/x.yaml").read_text() == (
         "mappings:\n"
     )
+
+
+def test_each_delivered_file_is_recorded_as_an_outside_write(tmp_path: Path) -> None:
+    """ADR-169 D5: the caller passes a log; every written file lands in it."""
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "repos" / "my-project"
+    target.mkdir(parents=True)
+    outside = OutsideWriteLog(target, produced_by="project.adopt_pack")
+
+    deliver_external_intent_files(
+        target, core_root, {".intent/rules/packs/x.json": "{}\n"}, outside
+    )
+
+    assert [(e.path, e.operation) for e in outside.entries] == [
+        (".intent/rules/packs/x.json", "write")
+    ]
 
 
 def test_refuses_target_inside_core_root(tmp_path: Path) -> None:

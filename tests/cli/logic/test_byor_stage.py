@@ -226,6 +226,68 @@ async def test_stage_then_promote_roundtrip(tmp_path: Path) -> None:
     assert not stage_dir.exists(), "Stage dir should be cleaned up after promotion"
 
 
+async def test_only_writes_into_the_target_are_outside_writes(tmp_path: Path) -> None:
+    """ADR-169 D5: staging lands inside CORE's repo and is not recorded; the
+    promotion into the target is, file by file, and the log is flushed."""
+    from body.services.outside_write_ledger import OutsideWriteLog
+    from cli.logic.byor import _stage_dir_for, initialize_repository, promote_staged
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "project"
+    target.mkdir()
+    context = _make_context(core_root)
+    flushed: list[tuple[str, list]] = []
+
+    async def _capture(self: OutsideWriteLog) -> bool:
+        flushed.append((self.produced_by, list(self.entries)))
+        self.entries.clear()
+        return True
+
+    with patch.object(OutsideWriteLog, "flush", _capture):
+        await initialize_repository(
+            context=context,
+            path=target,
+            dry_run=False,
+            stage_dir=_stage_dir_for(core_root, target),
+        )
+        assert flushed == []
+        await promote_staged(context=context, path=target)
+
+    [(producer, entries)] = flushed
+    assert producer == "project.onboard.promote"
+    delivered = sorted(
+        p.relative_to(target).as_posix()
+        for p in (target / ".intent").rglob("*")
+        if p.is_file()
+    )
+    assert sorted(e.path for e in entries) == delivered
+    assert all(e.content_hash for e in entries)
+
+
+async def test_direct_onboard_records_its_writes(tmp_path: Path) -> None:
+    from body.services.outside_write_ledger import OutsideWriteLog
+    from cli.logic.byor import initialize_repository
+
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+    target = tmp_path / "project"
+    target.mkdir()
+    flushed: list[tuple[str, int]] = []
+
+    async def _capture(self: OutsideWriteLog) -> bool:
+        flushed.append((self.produced_by, len(self.entries)))
+        return True
+
+    with patch.object(OutsideWriteLog, "flush", _capture):
+        await initialize_repository(
+            context=_make_context(core_root), path=target, dry_run=False
+        )
+
+    delivered = [p for p in (target / ".intent").rglob("*") if p.is_file()]
+    assert flushed == [("project.onboard", len(delivered))]
+
+
 # ---------------------------------------------------------------------------
 # _reject_unsafe_target wiring (#787, CodeQL py/path-injection) — unit
 # coverage of the guard itself lives in test_byor_target_safety.py; these

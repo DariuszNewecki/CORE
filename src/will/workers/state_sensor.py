@@ -26,6 +26,11 @@ Each cycle:
    ``daemon.stale_code_escalation_minutes``, a
    ``governance::stale_daemon_escalated::core-daemon`` finding is posted once.
    Both resolve themselves on the first cycle after a restart.
+4. **Change attribution (D4).** Every ledger row carries the three D4 facts
+   for each path changed since the previous row (core.state_changes, written
+   by StateLedgerService). A committed ``.intent/`` change with no known
+   producer posts ``governance::unattributed_change::<path>@<sha>``
+   (resolution: human). Uncommitted law changes are already named by (2).
 
 ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:     governance::law_drift::, governance::stale_daemon::,
@@ -43,6 +48,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from body.services.change_attribution import UNREADABLE_RANGE_PATH
 from shared.infrastructure.code_identity import code_drift, loaded_code_identity
 from shared.infrastructure.intent.law_state import LawState
 from shared.logger import getLogger
@@ -54,6 +60,7 @@ logger = getLogger(__name__)
 LAW_DRIFT_PREFIX = "governance::law_drift"
 STALE_DAEMON_PREFIX = "governance::stale_daemon"
 STALE_ESCALATED_PREFIX = "governance::stale_daemon_escalated"
+UNATTRIBUTED_PREFIX = "governance::unattributed_change"
 
 # The process this sensor runs in. Dedicated --only processes carry their own
 # gate (they suspend their acting worker and report it); the finding speaks
@@ -72,6 +79,23 @@ def law_drift_subjects(law: LawState) -> dict[str, str]:
         return {f"{LAW_DRIFT_PREFIX}::{_UNKNOWN_PATH}": _UNKNOWN_PATH}
     paths = law.drift_paths or [".intent"]
     return {f"{LAW_DRIFT_PREFIX}::{path}": path for path in paths}
+
+
+# ID: 71b2d8ae-98fd-41e5-b096-97d07eefa637
+def unattributed_law_changes(changes: list[Any]) -> list[Any]:
+    """Committed changes under .intent/ whose producer is unknown (ADR-169 D4).
+
+    The commit range that could not be read at all is included: its paths are
+    unknown, so it may contain law. ``.intent/`` is covered first; ``src/``
+    follows (ADR-169 D4).
+    """
+    return [
+        c
+        for c in changes
+        if c.persistence == "committed"
+        and c.producer_provenance == "unknown"
+        and (c.path.startswith(".intent/") or c.path == UNREADABLE_RANGE_PATH)
+    ]
 
 
 # ID: bc732ed2-e0f7-4210-b848-f9eac89c283a
@@ -124,12 +148,13 @@ class StateSensor(ScheduledWorker):
             "cycle",
             loaded_code_identity=loaded_code_identity(),
         )
-        recorded = await StateLedgerService().record_if_changed(observation)
+        changes = await StateLedgerService().record_if_changed(observation)
 
         blackboard = await service_registry.get_blackboard_service()
         law = observation.law_state
         law_open, law_posted, law_resolved = await self._sync_law_drift(blackboard, law)
         stale = await self._sync_stale_daemon(blackboard)
+        unattributed = await self._post_unattributed(changes or [])
 
         await self.post_report(
             subject="state_sensor.run.complete",
@@ -140,10 +165,40 @@ class StateSensor(ScheduledWorker):
                 "law_drift_open": law_open,
                 "law_drift_posted": law_posted,
                 "law_drift_resolved": law_resolved,
-                "ledger_row_appended": recorded,
+                "ledger_row_appended": changes is not None,
+                "changes_attributed": len(changes or []),
+                "unattributed_posted": unattributed,
                 **stale,
             },
         )
+
+    async def _post_unattributed(self, changes: list[Any]) -> int:
+        """ADR-169 D4: a committed change to the law with no known producer.
+
+        Uncommitted law changes are already named by the law-drift findings.
+        Each finding records one historical fact, so a human closes it.
+        """
+        posted = 0
+        for change in unattributed_law_changes(changes):
+            sha = (change.commit_sha or "")[:12]
+            await self.post_finding(
+                subject=f"{UNATTRIBUTED_PREFIX}::{change.path}@{sha}",
+                payload={
+                    "rule": "governance.change_attribution",
+                    "path": change.path,
+                    "commit_sha": change.commit_sha,
+                    "governance_provenance": change.governance_provenance,
+                    "producer_provenance": change.producer_provenance,
+                    "persistence": change.persistence,
+                    "message": (
+                        f"{change.path} was committed at {sha} but CORE cannot "
+                        "attribute it to a producer (ADR-169 D4)."
+                    ),
+                },
+                resolution_mechanism="human",
+            )
+            posted += 1
+        return posted
 
     async def _open_findings(self, blackboard: Any, prefix: str) -> dict[str, Any]:
         """{subject: finding} for open findings under ``prefix::``."""

@@ -44,6 +44,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from rich.rule import Rule
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -240,6 +241,10 @@ async def induce_rules(
 
     if reset and inducted_path.exists():
         inducted_path.unlink()
+        # ADR-169 D5: a deletion in the target project is an outside write.
+        reset_log = OutsideWriteLog(target_root, produced_by="project.scout")
+        reset_log.deleted(inducted_path)
+        await reset_log.flush()
         console.print(
             "[yellow]  ↳ Reset: removed existing scout_inducted.json.[/yellow]"
         )
@@ -1028,6 +1033,12 @@ async def _write_intent_file(
     if write:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
+        # ADR-169 D5: recorded in the outside-write ledger.
+        outside = OutsideWriteLog(
+            context.git_service.repo_path, produced_by="project.scout"
+        )
+        outside.wrote(dest)
+        await outside.flush()
         if dest.is_file():
             logger.info("   -> ✅ .intent/%s", output_rel)
         else:

@@ -17,6 +17,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from cli.logic.byor import core_source_root
 from cli.logic.project_scaffold import plan_new_project, write_new_project
 from cli.utils import core_command
@@ -58,7 +59,13 @@ async def new_project_command(
     parent = (path if path is not None else Path.cwd()).expanduser().resolve()
 
     plan = plan_new_project(name, parent, core_root)
-    count = write_new_project(plan, core_root, write=write)
+    # ADR-169 D5: the new project's files are outside CORE's repository; each
+    # write is recorded, even if creation stops part-way.
+    outside = OutsideWriteLog(plan.target_root, produced_by="project.new")
+    try:
+        count = write_new_project(plan, core_root, write=write, outside=outside)
+    finally:
+        await outside.flush()
 
     if not write:
         console.print(

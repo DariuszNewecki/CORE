@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING
 
 import typer
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from shared.logger import getLogger
 
 
@@ -139,6 +140,7 @@ def deliver_external_intent_files(
     target_root: Path,
     core_root: Path | None,
     files: dict[str, str],
+    outside: OutsideWriteLog | None = None,
 ) -> int:
     """Write text files into an external target's ``.intent/`` (ADR-111 D3 lane).
 
@@ -155,6 +157,8 @@ def deliver_external_intent_files(
     to text content. Refuses the same targets ``_reject_unsafe_target``
     refuses, so a pack can never be written into CORE's own constitution.
     Returns the number of files written. No git-add: the operator commits.
+    Each written file is added to ``outside`` (ADR-169 D5); the caller flushes
+    it — this helper is synchronous and the ledger is not.
     """
     target_root = target_root.resolve()
     _reject_unsafe_target(
@@ -176,6 +180,8 @@ def deliver_external_intent_files(
                 "Target path not accessible on the CORE host: %s (%s)", dest, exc
             )
             raise typer.Exit(code=1) from exc
+        if outside is not None:
+            outside.wrote(dest)
         written += 1
     return written
 
@@ -292,24 +298,39 @@ async def initialize_repository(
     # FileHandler's is_relative_to boundary guard cannot cross the repo boundary to an
     # external project; byor.py is excluded from no_direct_writes in mutation_surface.yaml
     # for this reason). No git-add: the operator commits .intent/ in the target repo.
+    # ADR-169 D5: writes into the external target are recorded; a stage lives
+    # inside CORE's own repository and is not an outside write.
+    outside = (
+        OutsideWriteLog(target_root, produced_by="project.onboard")
+        if write and stage_dir is None
+        else None
+    )
     delivered = 0
-    for src in source_files:
-        rel = src.relative_to(starter_dir)
-        dest = dest_root / ".intent" / rel
-        if write:
-            try:
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src, dest)
-            except OSError as exc:
-                logger.error(
-                    "Target path not accessible on the CORE host: %s (%s)", dest, exc
-                )
-                raise typer.Exit(code=1) from exc
-            if not dest.is_file():
-                logger.error("   ❌ not delivered: %s", rel)
-                continue
-        delivered += 1
-        logger.info("   -> %s %s", "✅" if write else "[DRY RUN] would write", rel)
+    try:
+        for src in source_files:
+            rel = src.relative_to(starter_dir)
+            dest = dest_root / ".intent" / rel
+            if write:
+                try:
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dest)
+                except OSError as exc:
+                    logger.error(
+                        "Target path not accessible on the CORE host: %s (%s)",
+                        dest,
+                        exc,
+                    )
+                    raise typer.Exit(code=1) from exc
+                if not dest.is_file():
+                    logger.error("   ❌ not delivered: %s", rel)
+                    continue
+                if outside is not None:
+                    outside.wrote(dest)
+            delivered += 1
+            logger.info("   -> %s %s", "✅" if write else "[DRY RUN] would write", rel)
+    finally:
+        if outside is not None:
+            await outside.flush()
 
     if not write:
         logger.info(
@@ -405,23 +426,29 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
 
     # Direct stdlib writes to external target (same sanctioned exception as
     # initialize_repository — FileHandler boundary guard cannot cross repos).
+    # ADR-169 D5: every file promoted into the target is recorded.
+    outside = OutsideWriteLog(target_root, produced_by="project.onboard.promote")
     delivered = 0
-    for src in source_files:
-        rel = src.relative_to(stage_intent)
-        dest = target_intent / rel
-        try:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
-        except OSError as exc:
-            logger.error(
-                "Target path not accessible on the CORE host: %s (%s)", dest, exc
-            )
-            raise typer.Exit(code=1) from exc
-        if not dest.is_file():
-            logger.error("   ❌ not delivered: %s", rel)
-            continue
-        delivered += 1
-        logger.info("   -> ✅ %s", rel)
+    try:
+        for src in source_files:
+            rel = src.relative_to(stage_intent)
+            dest = target_intent / rel
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+            except OSError as exc:
+                logger.error(
+                    "Target path not accessible on the CORE host: %s (%s)", dest, exc
+                )
+                raise typer.Exit(code=1) from exc
+            if not dest.is_file():
+                logger.error("   ❌ not delivered: %s", rel)
+                continue
+            outside.wrote(dest)
+            delivered += 1
+            logger.info("   -> ✅ %s", rel)
+    finally:
+        await outside.flush()
 
     # ADR-123 D2 step 5: remove stage on success.
     shutil.rmtree(stage_dir)

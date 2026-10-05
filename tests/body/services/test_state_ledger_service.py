@@ -74,14 +74,14 @@ def test_audit_run_observation_reuses_the_verdicts_law_state(repo: Path) -> None
     assert obs.loaded_code_identity is None
 
 
-async def test_record_is_one_insert_with_the_observation(repo: Path) -> None:
+async def test_first_record_is_one_insert_and_no_changes(repo: Path) -> None:
     obs = observe_state(repo, repo / ".intent", "boot")
-    session = MagicMock()
-    session.execute = AsyncMock()
-    session.commit = AsyncMock()
+    session = _session_with_latest(None)
 
-    await StateLedgerService().record(session, obs)
+    changes = await StateLedgerService().record(session, obs)
 
+    assert changes == []  # nothing to compare the first observation with
+    assert session.execute.await_count == 2  # SELECT latest + INSERT
     sql = str(session.execute.await_args.args[0])
     params = session.execute.await_args.args[1]
     assert "INSERT INTO core.state_observations" in sql
@@ -93,10 +93,21 @@ async def test_record_is_one_insert_with_the_observation(repo: Path) -> None:
 
 
 def _session_with_latest(row: dict | None) -> MagicMock:
+    """latest() returns ``row``; every later statement returns a result whose
+    scalar_one() is a fresh observation id and fetchall() is empty."""
     session = MagicMock()
     latest = MagicMock()
     latest.mappings.return_value.first.return_value = row
-    session.execute = AsyncMock(side_effect=[latest, MagicMock()])
+
+    def _results():
+        yield latest
+        while True:
+            result = MagicMock()
+            result.scalar_one.return_value = "obs-new"
+            result.fetchall.return_value = []
+            yield result
+
+    session.execute = AsyncMock(side_effect=_results())
     session.commit = AsyncMock()
     return session
 
@@ -104,6 +115,7 @@ def _session_with_latest(row: dict | None) -> MagicMock:
 def _row_of(obs) -> dict:
     law = obs.law_state
     return {
+        "observation_id": "obs-prev",
         "head_sha": obs.head_sha,
         "dirty_paths": obs.dirty_paths,
         "law_relationship": law.relationship,
@@ -118,7 +130,7 @@ async def test_unchanged_state_appends_no_row(repo: Path) -> None:
     obs = observe_state(repo, repo / ".intent", "cycle", loaded_code_identity="c")
     session = _session_with_latest(_row_of(obs))
 
-    assert await StateLedgerService().record_if_changed(obs, session) is False
+    assert await StateLedgerService().record_if_changed(obs, session) is None
     assert session.execute.await_count == 1  # the SELECT only
     session.commit.assert_not_awaited()
 
@@ -129,16 +141,25 @@ async def test_changed_state_appends_a_row(repo: Path) -> None:
     after = observe_state(repo, repo / ".intent", "cycle", loaded_code_identity="c")
     session = _session_with_latest(_row_of(before))
 
-    assert await StateLedgerService().record_if_changed(after, session) is True
+    changes = await StateLedgerService().record_if_changed(after, session)
+
     insert_sql = str(session.execute.await_args_list[1].args[0])
     assert "INSERT INTO core.state_observations" in insert_sql
     assert session.execute.await_args_list[1].args[1]["trigger"] == "cycle"
+    # ADR-169 D4: the newly dirty law file is attributed and written.
+    assert [(c.path, c.persistence) for c in changes] == [
+        (".intent/law.yaml", "uncommitted")
+    ]
+    change_sql, change_rows = session.execute.await_args_list[2].args
+    assert "INSERT INTO core.state_changes" in str(change_sql)
+    assert change_rows[0]["previous_observation_id"] == "obs-prev"
+    assert change_rows[0]["observation_id"] == "obs-new"
 
 
 async def test_first_observation_is_always_appended(repo: Path) -> None:
     obs = observe_state(repo, repo / ".intent", "cycle")
     session = _session_with_latest(None)
-    assert await StateLedgerService().record_if_changed(obs, session) is True
+    assert await StateLedgerService().record_if_changed(obs, session) == []
 
 
 def test_observation_key_reads_jsonb_as_text_or_list() -> None:
@@ -146,3 +167,26 @@ def test_observation_key_reads_jsonb_as_text_or_list() -> None:
     assert observation_key(row) == observation_key(
         {"head_sha": "h", "dirty_paths": ["a", "b"], "law_drift_paths": "[]"}
     )
+
+
+async def test_restart_attributes_commits_made_since_the_last_observation(
+    repo: Path,
+) -> None:
+    """ADR-169 acceptance check 4: the boot observation is compared with the
+    previous one; each change carries its D4 facts, git author git-asserted."""
+    before = observe_state(repo, repo / ".intent", "boot", loaded_code_identity="a")
+    (repo / ".intent/law.yaml").write_text("x: 5\n")
+    # Later -c options win: the commit's asserted author is Gov.
+    _git(repo, "-c", "user.name=Gov", "-c", "user.email=gov@x", "commit", "-qam", "law")
+    after = observe_state(repo, repo / ".intent", "boot", loaded_code_identity="b")
+    session = _session_with_latest(_row_of(before))
+
+    changes = await StateLedgerService().record(session, after)
+
+    [change] = changes
+    assert change.path == ".intent/law.yaml"
+    assert change.persistence == "committed"
+    assert change.governance_provenance == "direct"
+    assert change.producer_provenance == "git-asserted"
+    assert change.producer_identity == "Gov <gov@x>"
+    assert change.commit_sha == after.head_sha

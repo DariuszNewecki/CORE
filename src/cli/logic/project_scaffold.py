@@ -35,6 +35,7 @@ from pathlib import Path
 
 import typer
 
+from body.services.outside_write_ledger import OutsideWriteLog
 from cli.logic.byor import (
     _machinery_floor_files,
     _reject_unsafe_target,
@@ -113,8 +114,16 @@ def plan_new_project(name: str, parent: Path, core_root: Path | None) -> NewProj
 
 
 # ID: f94ed88f-7e5d-4afc-8e8b-35340efaf035
-def write_new_project(plan: NewProjectPlan, core_root: Path | None, write: bool) -> int:
+def write_new_project(
+    plan: NewProjectPlan,
+    core_root: Path | None,
+    write: bool,
+    outside: OutsideWriteLog | None = None,
+) -> int:
     """Check the target and, with ``write=True``, deliver the plan. Returns the file count.
+
+    Each written file is added to ``outside`` (ADR-169 D5); the caller flushes
+    it, since this function is synchronous and the ledger is not.
 
     Refuses (``typer.Exit(1)``), in dry-run as well as write mode, when the target
     overlaps CORE's own repository or is a system directory (BYOR's guard), when it
@@ -146,10 +155,14 @@ def write_new_project(plan: NewProjectPlan, core_root: Path | None, write: bool)
             dest = target / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
+            if outside is not None:
+                outside.wrote(dest)
         for rel, text in plan.skeleton_files:
             dest = target / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(text, encoding="utf-8")
+            if outside is not None:
+                outside.wrote(dest)
     except OSError as exc:
         logger.error("Could not write the new project at %s: %s", target, exc)
         raise typer.Exit(code=1) from exc

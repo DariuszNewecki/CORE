@@ -249,7 +249,15 @@ async def adopt_pack_command(
     if tree_update is not None:
         files[tree_yaml.relative_to(target_dir).as_posix()] = tree_update
 
-    deliver_external_intent_files(target_dir, core_root, files)
+    # ADR-169 D5: the pack's out-of-repo writes are recorded, even if the
+    # delivery stops part-way.
+    from body.services.outside_write_ledger import OutsideWriteLog
+
+    outside = OutsideWriteLog(target_dir, produced_by="project.adopt_pack")
+    try:
+        deliver_external_intent_files(target_dir, core_root, files, outside)
+    finally:
+        await outside.flush()
     if tree_update is not None:
         console.print(f"  Updated {tree_yaml.name}: packs: section")
 

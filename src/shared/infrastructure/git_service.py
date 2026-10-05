@@ -291,6 +291,35 @@ class GitService:
         ).split()
         return dict(zip(paths, ids, strict=True))
 
+    # ID: 3fd72f33-7ee9-444f-ba14-a980878cca45
+    def commits_between(self, base: str, head: str) -> list[tuple[str, str, list[str]]]:
+        """Commits reachable from head but not from base, oldest first, as
+        ``(sha, "Author Name <email>", [paths changed])`` (ADR-169 D4).
+
+        The author is git metadata — asserted by whoever committed, not
+        authenticated. Works when base is not an ancestor of head (rebase):
+        the commits listed are exactly those new relative to base. Raises
+        RuntimeError on failure (e.g. base no longer exists).
+        """
+        out = self._run_raw(
+            [
+                "-c",
+                "core.quotepath=off",
+                "log",
+                "--reverse",
+                "--format=%x00%H%x09%an <%ae>",
+                "--name-only",
+                f"{base}..{head}",
+            ]
+        )
+        commits: list[tuple[str, str, list[str]]] = []
+        for block in out.split("\0")[1:]:
+            header, _, body = block.partition("\n")
+            sha, _, author = header.partition("\t")
+            paths = [line for line in body.splitlines() if line.strip()]
+            commits.append((sha.strip(), author.strip(), paths))
+        return commits
+
     # ID: f7658d8e-47bc-44b7-b83a-301263687d19
     def changed_paths(self, pathspec: str) -> list[str]:
         """Repo-relative paths under pathspec that differ from HEAD in the

@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.services.change_attribution import UNREADABLE_RANGE_PATH, ChangeFact
 from body.services.state_ledger_service import StateObservation
 from shared.infrastructure.code_identity import CodeDrift
 from shared.infrastructure.intent.law_state import LawState
@@ -24,6 +25,7 @@ from will.workers.state_sensor import (
     StateSensor,
     escalation_due,
     law_drift_subjects,
+    unattributed_law_changes,
 )
 
 
@@ -114,12 +116,13 @@ async def _cycle(
     blackboard: _Blackboard,
     *,
     escalation_minutes: int = 30,
+    changes: list | None = None,
 ) -> tuple[MagicMock, AsyncMock]:
     sensor, publisher = _sensor()
     observation = StateObservation(
         trigger="cycle", repo_root="/repo", law_state=law, head_sha=law.head_sha
     )
-    record = AsyncMock(return_value=True)
+    record = AsyncMock(return_value=changes)
     with (
         patch(
             "body.services.state_ledger_service.observe_state",
@@ -249,3 +252,53 @@ async def test_restart_resolves_stale_and_escalated_findings() -> None:
         "governance::stale_daemon_escalated::core-daemon",
     ]
     assert _subjects(publisher) == []
+
+
+# -- change attribution (D4) ---------------------------------------------------
+
+
+def _fact(path: str, producer: str, persistence: str = "committed") -> ChangeFact:
+    return ChangeFact(
+        path=path,
+        governance_provenance="direct",
+        producer_provenance=producer,  # type: ignore[arg-type]
+        persistence=persistence,  # type: ignore[arg-type]
+        commit_sha="d" * 40,
+    )
+
+
+def test_only_committed_unattributed_law_is_flagged() -> None:
+    flagged = _fact(".intent/rules/a.json", "unknown")
+    unreadable = _fact(UNREADABLE_RANGE_PATH, "unknown")
+    changes = [
+        flagged,
+        unreadable,
+        _fact(".intent/rules/b.json", "git-asserted"),  # attributed
+        _fact("src/m.py", "unknown"),  # src/ follows later (D4)
+        _fact(".intent/c.yaml", "unknown", "uncommitted"),  # law_drift names it
+    ]
+    assert unattributed_law_changes(changes) == [flagged, unreadable]
+
+
+async def test_unattributed_law_change_posts_a_human_finding() -> None:
+    publisher, _ = await _cycle(
+        _MATCH,
+        _CODE_MATCH,
+        _Blackboard(),
+        changes=[_fact(".intent/rules/a.json", "unknown")],
+    )
+    call = publisher.post_finding.await_args
+    assert (
+        call.args[0]
+        == "governance::unattributed_change::.intent/rules/a.json@dddddddddddd"
+    )
+    assert call.kwargs["resolution_mechanism"] == "human"
+    report = publisher.post_report.await_args.args[1]
+    assert report["changes_attributed"] == 1
+    assert report["unattributed_posted"] == 1
+
+
+async def test_unchanged_state_reports_no_ledger_row() -> None:
+    publisher, _ = await _cycle(_MATCH, _CODE_MATCH, _Blackboard(), changes=None)
+    report = publisher.post_report.await_args.args[1]
+    assert report["ledger_row_appended"] is False
