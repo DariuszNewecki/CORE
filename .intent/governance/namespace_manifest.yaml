@@ -1818,6 +1818,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-167-docs-cli-correspondence.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-169-core-knows-its-own-state.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
