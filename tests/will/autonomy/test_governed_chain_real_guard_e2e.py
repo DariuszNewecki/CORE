@@ -275,9 +275,19 @@ async def test_protected_path_mutation_is_refused_by_the_real_guard(
     row = await _proposal_row(proposal_id)
     assert row["status"] == "failed"
     assert row["consequence_recorded_at"] is None
-    # The refusal must be the guard's own hard invariant, not some other
-    # failure that merely mentions the path.
+    # The refusal must be the guard's .intent/ hard invariant
+    # (governance.constitution.read_only), not some other failure that merely
+    # mentions the path. Its wording is the rule's description when CORE's
+    # rules are loaded, else IntentGuard's fallback text -- both cite .intent.
     evidence = f"{row.get('failure_reason')} {row.get('execution_results')}"
-    assert "Writes to .intent/ are constitutionally prohibited" in evidence, evidence
+    assert "Blocked by IntentGuard:" in evidence, evidence
+    assert any(
+        text in evidence
+        for text in (
+            "The constitutional intent directory (.intent/**) MUST be treated "
+            "as immutable",
+            "Writes to .intent/ are constitutionally prohibited",
+        )
+    ), evidence
     reported = await _run_complete_entry(proposal_id)
     assert reported is not None and reported["lifecycle_status"] == "failed"
