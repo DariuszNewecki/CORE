@@ -69,7 +69,9 @@ from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
+from cli.utils.exit_codes import EXIT_CONFIG_ERROR
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.errors import GovernanceError
 
 
 console = Console()
@@ -143,7 +145,14 @@ def main(ctx: typer.Context) -> None:
     # *value*, core_command builds the context on demand, so skipping here can
     # never leave a running command without one.
     if not _help_requested(sys.argv[1:]):
-        ctx.obj = create_core_context(service_registry)
+        try:
+            ctx.obj = create_core_context(service_registry)
+        except GovernanceError as exc:
+            # An unusable .intent/ (e.g. rules-only, no machinery floor) is an
+            # operator configuration error, not a crash: say what is wrong and
+            # how to fix it, exit 2 -- never a traceback (#939, ADR-085 D5).
+            console.print(f"[bold red]Configuration error:[/bold red] {exc}")
+            raise typer.Exit(EXIT_CONFIG_ERROR) from exc
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +29,23 @@ _BOOTSTRAP_REQUIRED_FILES = (
     "META/data_contract.schema.json",
     "META/enums.json",
 )
+
+
+def _machinery_floor_hint() -> str:
+    """How to supply the machinery floor, naming where the bundled copy lives.
+
+    ADR-108 D3 (amended 2026-10-05): the floor must be on disk in the
+    project's .intent/ -- there is no silent fallback at bootstrap. The
+    error must therefore tell the operator exactly what to copy (#939).
+    """
+    floor = Path(str(importlib.resources.files("shared._machinery_floor")))
+    return (
+        "\nA project's .intent/ must contain CORE's machinery floor (META/, "
+        "taxonomies/, enforcement/config/) next to its rules -- ADR-108 D3. "
+        "New project: `core-admin project new` or `core project onboard`. "
+        f"Existing .intent/: copy the missing floor files from {floor} into "
+        ".intent/ (do not overwrite your own files)."
+    )
 
 
 @dataclass(frozen=True)
@@ -73,7 +91,10 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
 
     meta_root = intent_root / "META"
     if not meta_root.exists() or not meta_root.is_dir():
-        msg = f".intent/META does not exist or is not a directory: {meta_root}"
+        msg = (
+            f".intent/META does not exist or is not a directory: {meta_root}"
+            + _machinery_floor_hint()
+        )
         if strict:
             raise GovernanceError(msg)
         errors.append(msg)
@@ -109,6 +130,7 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
         msg = (
             "Bootstrap Contract v0 violated. Missing required intent artifacts:\n"
             + "\n".join(f"- {m}" for m in missing)
+            + _machinery_floor_hint()
         )
         if strict:
             raise GovernanceError(msg)

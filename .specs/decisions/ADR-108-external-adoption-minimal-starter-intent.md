@@ -223,3 +223,30 @@ all-skipped-in-stateless) are unchanged and remain non-blocking.
 the CI gate / GitHub Action now fails until rules are authored or ratified, or a governance
 pack is explicitly adopted. Regression-pinned in
 `tests/mind/governance/test_stateless_audit__fails_closed.py::test_empty_constitution_fails_closed`.
+
+---
+
+## Amendment — 2026-10-05 (D3 closed: the floor is delivered, not fallen back to; #939)
+
+**Status:** Governor-ruled 2026-10-05 (option B). Appended; D3's text above is not edited.
+
+D3 recorded the direction "the loader falls back to the packaged baseline when the consumer
+does not override". It was implemented only for five taxonomy/vocabulary loaders
+(`resolve_floor_path`); the bootstrap gate (`validate_intent_tree`, run by every
+`IntentRepository`) still requires `.intent/META` on disk. A rules-only `.intent/` therefore
+crashed every `core-admin` command with a traceback (#939).
+
+**Ruling.** The machinery floor is **delivered into the project's `.intent/`**, not supplied
+by fallback at bootstrap. `project new` and `project onboard` already deliver it; an existing
+`.intent/` copies it from the bundled package (`shared._machinery_floor`). A rules-only
+`.intent/` is unsupported. The adoption footprint stays: the floor is CORE-owned bytes the
+adopter copies and does not author (D1's split is unchanged).
+
+**Required behaviour.** A missing floor is an operator configuration error: the refusal names
+what is missing, the bundled floor's location and the delivering commands, and the CLI exits
+`EXIT_CONFIG_ERROR` (2) without a traceback (ADR-085 D5). Regression-pinned in
+`tests/cli/test_admin_cli__intent_config_error.py`.
+
+**Not changed.** The five loader-level `resolve_floor_path` fallbacks stay (wheel bootstrap of
+CORE's own loaders); they are not a promise that a floor-less `.intent/` works. A2 (wheel
+bundles the machinery floor only, never rules) stands.
