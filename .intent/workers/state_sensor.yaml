@@ -1,0 +1,41 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.state_sensor
+  title: State Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    ADR-169 slice 2 (2026-10-05). CORE observes its own state every cycle:
+    the append-only state ledger gains a row whenever the state changed (D1),
+    an uncommitted .intent/ edit is named on the blackboard within one cycle
+    (D2), and a daemon running code that differs from src/ on disk is flagged
+    and escalated per ADR-030 (D3). Deterministic; no LLM dependency.
+
+identity:
+  uuid: "8aaec496-67be-4e95-bd48-f22b7391f0ff"
+  class: governance
+
+mandate:
+  responsibility: >
+    Observe CORE's own state each cycle -- HEAD, dirty paths, law of record
+    vs law evaluated, loaded code identity -- appending it to the state ledger
+    when it changed (ADR-169 D1) and posting self-resolving findings for each
+    .intent/ path that differs from HEAD (D2) and for a daemon whose loaded
+    code differs from src/ on disk, escalated after the ADR-030 window (D3).
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 300
+
+implementation:
+  module: will.workers.state_sensor
+  class: StateSensor
+  requires_core_context: true

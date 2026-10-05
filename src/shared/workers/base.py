@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.code_identity import code_drift
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
@@ -192,7 +193,8 @@ class Worker(ABC):
         lease_task = asyncio.create_task(self._renew_lease_until_cancelled())
         try:
             self._cycle_post_count = 0
-            await self.run()
+            if not await self._suspended_for_stale_code():
+                await self.run()
             if self._cycle_post_count == 0:
                 raise WorkerSilenceError(
                     f"Worker {self._worker_name!r} completed run() without posting "
@@ -321,6 +323,41 @@ class Worker(ABC):
                 released,
             )
         return released
+
+    async def _suspended_for_stale_code(self) -> bool:
+        """ADR-030 / ADR-169 D3: an acting worker does not act on stale code.
+
+        When this process's loaded code differs from ``src/`` on disk (or that
+        cannot be established), a worker declared ``identity.class: acting``
+        skips its cycle until the governor restarts the daemon. The skip is
+        recorded (heartbeat + report), never silent. Sensing and governance
+        workers keep running, so the condition stays visible. Returns True
+        when the cycle was suspended.
+        """
+        if self._declaration.get("identity", {}).get("class") != "acting":
+            return False
+        drift = code_drift()
+        if not drift.suspends_autonomy:
+            return False
+        await self.post_heartbeat()
+        await self.post_report(
+            subject=f"{self.declaration_name}.suspended.stale_code",
+            payload={
+                "rule": "governance.stale_daemon",
+                "state": drift.state,
+                "loaded_code_identity": drift.loaded_identity,
+                "disk_code_identity": drift.disk_identity,
+                "reason": drift.reason,
+                "resolution": "restart the daemon (core-admin daemon restart)",
+            },
+        )
+        logger.warning(
+            "%s: autonomous execution suspended -- loaded code is %s vs src/ on "
+            "disk (ADR-030); restart the daemon to resume",
+            self._worker_name,
+            drift.state,
+        )
+        return True
 
     # -------------------------------------------------------------------------
     # Blackboard API — subclasses use these to fulfill history obligation

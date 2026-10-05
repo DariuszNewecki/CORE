@@ -774,6 +774,15 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     logger.info("CORE daemon starting...")
 
+    # ADR-169 D3 / ADR-030: fingerprint src/ before anything else, in every
+    # process (main and --only): this is the code the process is loading. An
+    # acting worker suspends itself while it differs from src/ on disk
+    # (shared.workers.base._suspended_for_stale_code). A capture failure is
+    # not fatal, but fails closed: the process is "unknown", never "match".
+    from shared.infrastructure.code_identity import capture_loaded_code_identity
+
+    capture_loaded_code_identity(BootstrapRegistry.get_repo_path())
+
     # Schema gate (ADR-162 D2): read-only; the daemon must not start workers
     # against a schema the code does not match. Refusal exits 78 (EX_CONFIG)
     # with the remedy named; CORE_STRICT_MODE does not relax it, and an
@@ -848,15 +857,16 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     # ADR-169 D1: record the state this daemon boots into -- HEAD, dirty
     # paths, law of record vs law evaluated, and the identity of the code it
-    # loads. The main daemon records it (dedicated --only processes share the
-    # same checkout and boot together). A ledger failure never stops the boot:
-    # it is logged, and the observation is simply missing.
+    # loads (captured above). The main daemon records it (dedicated --only
+    # processes share the same checkout and boot together). A ledger failure
+    # never stops the boot: it is logged, and the observation is simply missing.
     if only is None:
         try:
             from body.services.state_ledger_service import (
                 StateLedgerService,
                 observe_state,
             )
+            from shared.infrastructure.code_identity import loaded_code_identity
             from shared.path_resolver import PathResolver
 
             repo_root = BootstrapRegistry.get_repo_path()
@@ -864,7 +874,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
                 repo_root,
                 PathResolver(repo_root).intent_root,
                 "boot",
-                include_code_identity=True,
+                loaded_code_identity=loaded_code_identity(),
             )
             async with service_registry.session() as session:
                 await StateLedgerService().record(session, observation)

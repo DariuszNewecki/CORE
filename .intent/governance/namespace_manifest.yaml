@@ -1648,6 +1648,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/workers/prompt_drift_sensor.yaml
     governance_namespace: framework
+  - path: .intent/workers/state_sensor.yaml
+    governance_namespace: framework
 
   # .specs/META/ -- framework schema definitions
   - path: .specs/META/adr.header.schema.json

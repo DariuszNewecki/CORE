@@ -190,6 +190,12 @@ daemon:
   # subprocess call (dead), so systemctl invocations had no timeout
   # protection at all until this fix wired it via asyncio.wait_for.
   systemctl_timeout_sec: 30.0
+  # ADR-030 / ADR-169 D3 -- the StateSensor posts governance::stale_daemon
+  # when this daemon's loaded code differs from src/ on disk. If that finding
+  # is still open after this window, it re-posts at elevated priority
+  # (governance::stale_daemon_escalated). ADR-030: "configurable window
+  # (default 30 minutes)".
+  stale_code_escalation_minutes: 30
 
 # ---------------------------------------------------------------------------
 # Worker classification (ADR-081 D7 / ADR-082)

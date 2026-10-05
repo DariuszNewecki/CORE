@@ -2633,7 +2633,7 @@ CREATE TABLE core.state_observations (
     loaded_code_identity text,
     audit_run_id uuid,
     CONSTRAINT state_observations_law_relationship_check CHECK ((law_relationship = ANY (ARRAY['MATCH'::text, 'DRIFT'::text, 'UNKNOWN'::text]))),
-    CONSTRAINT state_observations_trigger_check CHECK ((trigger = ANY (ARRAY['boot'::text, 'audit_run'::text])))
+    CONSTRAINT state_observations_trigger_check CHECK ((trigger = ANY (ARRAY['boot'::text, 'audit_run'::text, 'cycle'::text])))
 );
 
 
@@ -6515,4 +6515,5 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20260919c_adr054_audit_fi
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919d_users_display_name.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919e_adr052_phase4_drop_runtime_settings.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005_adr169_state_observations.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20261005b_adr169_cycle_trigger.sql', false);
 -- CORE-LEDGER-SEED-END

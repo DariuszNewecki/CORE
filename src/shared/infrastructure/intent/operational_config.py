@@ -236,6 +236,9 @@ class DaemonConfig:
     set_debug: bool = False
     startup_jitter_cap_sec: int = 30
     systemctl_timeout_sec: float = 30.0
+    # ADR-030: an unattended governance::stale_daemon finding re-posts at
+    # elevated priority after this window (default 30 minutes per ADR-030).
+    stale_code_escalation_minutes: int = 30
 
 
 @dataclass(frozen=True)

@@ -81,7 +81,8 @@ class ScheduledWorker(Worker, ABC):
             cycle_start = time.monotonic()
             try:
                 self._cycle_post_count = 0
-                await self.run()
+                if not await self._suspended_for_stale_code():
+                    await self.run()
                 if self._cycle_post_count == 0:
                     raise WorkerSilenceError(
                         f"{self._worker_name} completed a cycle without posting "

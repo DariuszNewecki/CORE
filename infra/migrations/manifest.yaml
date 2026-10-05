@@ -79,6 +79,7 @@ migrations:
     - 20260919d_users_display_name.sql
     - 20260919e_adr052_phase4_drop_runtime_settings.sql
     - 20261005_adr169_state_observations.sql
+    - 20261005b_adr169_cycle_trigger.sql
 
   # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
   # Each `verify` returns one boolean. Structural probes read the catalog;
@@ -259,6 +260,12 @@ migrations:
            and exists (select 1 from pg_trigger
                        where tgrelid = to_regclass('core.state_observations')
                          and tgname = 'trg_state_observations_append_only')
+    20261005b_adr169_cycle_trigger.sql:
+      verify: >-
+        select exists (select 1 from pg_constraint
+                       where conrelid = to_regclass('core.state_observations')
+                         and conname = 'state_observations_trigger_check'
+                         and pg_get_constraintdef(oid) like '%cycle%')
 
   # -- declared baselines (ADR-162 D3/D4) ----------------------------------
   # `status` suggests the LATEST baseline whose probes all hold (read-only);

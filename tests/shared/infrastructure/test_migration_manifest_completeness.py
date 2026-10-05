@@ -213,6 +213,7 @@ def test_baselines_cover_every_tagged_release_from_v2_9_1() -> None:
     through = manifest.order.index(manifest.baseline("v2.10.2").through)
     assert list(manifest.order[through + 1 :]) == [
         "20261005_adr169_state_observations.sql",  # ADR-169 D1, unreleased
+        "20261005b_adr169_cycle_trigger.sql",  # ADR-169 D1 slice 2, unreleased
     ]
     # v2.10.1 shipped every entry before the 20260919 ledger column — including
     # the two 20260722 files, which its schema.sql already carried.
