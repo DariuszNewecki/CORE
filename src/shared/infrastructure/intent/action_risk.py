@@ -363,6 +363,11 @@ SAFE_AUTO_APPROVAL_ENVELOPE_REL_PATH = (
 )
 
 
+# The proposal_approval_authority value (.intent/META/enums.json) under which
+# a proposal is approved by this envelope rather than by a principal.
+SAFE_AUTO_APPROVAL_AUTHORITY = "risk_classification.safe_auto_approval"
+
+
 # ID: 2d9e4f1a-7b3c-4e8d-9a5f-1c6b8d3e7f2a
 def load_safe_auto_approval_envelope() -> dict[str, Any]:
     """

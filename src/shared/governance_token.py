@@ -57,6 +57,37 @@ def current_capability() -> str | None:
     return _executor_token.get()
 
 
+# The approval authority of the proposal whose actions are executing (#903).
+# Set by ProposalExecutor around action / flow dispatch; None outside any
+# proposal (e.g. a direct CLI invocation by the operator).
+_approval_authority: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "approval_authority", default=None
+)
+
+
+@contextmanager
+# ID: 55244217-30a2-4e91-8cb9-75952d07257a
+def approval_scope(approval_authority: str | None) -> Iterator[None]:
+    """Execute a proposal's actions under its recorded approval authority.
+
+    Lets execution-time checks distinguish a proposal approved by the
+    safe-auto-approval envelope (bound by that envelope at execution too)
+    from a governor-approved one (ADR ruling 7: not bound by it). Flows run
+    their steps inside the same scope, so every step sees it.
+    """
+    token = _approval_authority.set(approval_authority)
+    try:
+        yield
+    finally:
+        _approval_authority.reset(token)
+
+
+# ID: a17aabce-d613-41eb-98b3-c6eda3d716cb
+def current_approval_authority() -> str | None:
+    """The approval authority of the executing proposal, or None outside one."""
+    return _approval_authority.get()
+
+
 # ID: b2ded143-129c-41fa-8287-92f9bf4b1fdd
 def verify_authorization(action_id: str) -> None:
     """

@@ -31,6 +31,8 @@ import pytest
 from body.atomic.executor import ActionExecutor, _check_physical_containment
 from body.atomic.registry import ActionCategory, ActionDefinition, ActionRegistry
 from shared.action_types import ActionResult
+from shared.governance_token import approval_scope, current_approval_authority
+from shared.infrastructure.intent.action_risk import SAFE_AUTO_APPROVAL_AUTHORITY
 
 
 _ENVELOPE = {
@@ -116,12 +118,42 @@ class TestCheckPhysicalContainment:
         ctx = SimpleNamespace(git_service=None)
         assert _check_physical_containment(ctx, "package/example.py") is None
 
-    def test_envelope_load_failure_is_a_noop(self, repo) -> None:
-        with patch(
-            "body.atomic.executor.load_safe_auto_approval_envelope",
-            return_value={"_error": True, "reason": "broken"},
+    @pytest.mark.parametrize("authority", [None, "principal.governor"])
+    def test_envelope_load_failure_does_not_bind_non_envelope_authority(
+        self, repo, authority
+    ) -> None:
+        """Governor approval (ADR ruling 7) and direct operator invocation
+        (no proposal) are not bound by the envelope: an unloadable envelope
+        does not stop them."""
+        with (
+            patch(
+                "body.atomic.executor.load_safe_auto_approval_envelope",
+                return_value={"_error": True, "reason": "broken"},
+            ),
+            approval_scope(authority),
         ):
             assert _check_physical_containment(_ctx(repo), "package/example.py") is None
+
+    def test_envelope_load_failure_denies_safe_auto_approved_execution(
+        self, repo
+    ) -> None:
+        """#903: approved under the envelope while it loaded, executed after
+        it became unloadable -- denied, not waved through."""
+        with (
+            patch(
+                "body.atomic.executor.load_safe_auto_approval_envelope",
+                return_value={"_error": True, "reason": "broken"},
+            ),
+            approval_scope(SAFE_AUTO_APPROVAL_AUTHORITY),
+        ):
+            denial = _check_physical_containment(_ctx(repo), "package/example.py")
+        assert denial is not None
+        assert "envelope cannot be loaded" in denial
+
+    def test_approval_scope_is_reset_after_the_block(self) -> None:
+        with approval_scope(SAFE_AUTO_APPROVAL_AUTHORITY):
+            assert current_approval_authority() == SAFE_AUTO_APPROVAL_AUTHORITY
+        assert current_approval_authority() is None
 
     def test_symlinked_file_pointing_outside_repo_is_denied(self, repo) -> None:
         outside = repo.parent / "outside.py"

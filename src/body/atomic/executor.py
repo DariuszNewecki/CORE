@@ -31,8 +31,9 @@ from body.atomic.registry import ActionCategory, ActionDefinition, action_regist
 from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.governance_token import authorize_execution
+from shared.governance_token import authorize_execution, current_approval_authority
 from shared.infrastructure.intent.action_risk import (
+    SAFE_AUTO_APPROVAL_AUTHORITY,
     load_action_risk_raw,
     load_safe_auto_approval_envelope,
 )
@@ -148,10 +149,18 @@ def _check_physical_containment(
 
     envelope = load_safe_auto_approval_envelope()
     if envelope.get("_error"):
-        # The envelope's own fail-closed contract already denies every
-        # safe-auto-approval at the proposal-approval gate when it cannot
-        # load (validate_envelope raises there). Anything still reaching
-        # execute() despite that is not bound by this envelope at all.
+        # #903 (governor ruling 2026-09-15): a proposal safe-auto-approved
+        # while the envelope loaded is still bound by it at execution -- an
+        # envelope that has since become unloadable cannot vouch for it, so
+        # execution is denied. Governor-approved execution (ADR ruling 7)
+        # and direct operator invocations are not bound by the envelope and
+        # proceed; the approval gate already refuses new safe-auto-approvals
+        # while the envelope cannot load.
+        if current_approval_authority() == SAFE_AUTO_APPROVAL_AUTHORITY:
+            return (
+                "the safe-auto-approval envelope cannot be loaded at execution "
+                "time; a safe-auto-approved proposal is not executed without it"
+            )
         return None
 
     prefixes: tuple[str, ...] = envelope["authorized_path_prefixes"]

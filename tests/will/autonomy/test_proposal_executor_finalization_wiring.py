@@ -294,3 +294,57 @@ async def test_incomplete_rollback_is_part_of_the_failure_reason() -> None:
     reason = mark_failed_mock.await_args.kwargs["reason"]
     assert reason.startswith("ADR-148 D3: git commit failed")
     assert "ROLLBACK INCOMPLETE: 1 production path(s) still differ: a.py" in reason
+
+
+async def test_actions_execute_under_the_proposals_approval_authority() -> None:
+    """#903: the executor's envelope check needs to know how the proposal
+    was approved; ProposalExecutor dispatches each action inside
+    approval_scope(proposal.approval_authority), and resets it after."""
+    from shared.governance_token import current_approval_authority
+
+    action = MagicMock(ref_id="fix.format", ref_kind="action", order=0, parameters={})
+    proposal = _make_proposal(
+        actions=[action],
+        approval_authority="risk_classification.safe_auto_approval",
+    )
+    executor, session, repo_instance = _make_executor(proposal)
+    seen: list[str | None] = []
+
+    async def _execute(*_args: object, **kwargs: object) -> MagicMock:
+        if kwargs.get("action_id") == "fix.format":  # not the claim call
+            seen.append(current_approval_authority())
+        return MagicMock(ok=True, data={})
+
+    executor.action_executor.execute = AsyncMock(side_effect=_execute)
+
+    with (
+        patch(
+            "will.autonomy.proposal_executor.service_registry.session",
+            MagicMock(return_value=_session_ctx(session)),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalRepository",
+            MagicMock(return_value=repo_instance),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalStateManager",
+            MagicMock(return_value=AsyncMock()),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.capture_git_sha",
+            MagicMock(return_value="deadbeef"),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.commit_proposal_changes",
+            MagicMock(return_value=CommitOutcome.NOTHING_TO_COMMIT),
+        ),
+        patch("will.autonomy.proposal_executor.record_consequence", AsyncMock()),
+        patch(
+            "will.autonomy.proposal_executor.resolve_deferred_findings",
+            AsyncMock(),
+        ),
+    ):
+        await executor.execute("pid-exec-1", claimed_by=MagicMock(), write=True)
+
+    assert seen == ["risk_classification.safe_auto_approval"]
+    assert current_approval_authority() is None

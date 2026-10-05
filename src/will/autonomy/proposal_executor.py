@@ -25,6 +25,7 @@ from body.flows.result import declared_production
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.exceptions import GovernanceInstrumentError
+from shared.governance_token import approval_scope
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -231,11 +232,12 @@ class ProposalExecutor:
                                 scoped_context,
                                 cognitive_delegate=cognitive_delegate,
                             )
-                            result = await flow_executor.execute(
-                                flow_id=ref_id,
-                                write=write,
-                                **params,
-                            )
+                            with approval_scope(proposal.approval_authority):
+                                result = await flow_executor.execute(
+                                    flow_id=ref_id,
+                                    write=write,
+                                    **params,
+                                )
                             if scoped_git is not None and result.ok:
                                 # ADR-107 D1/D3/D4: a flow commits its steps'
                                 # DECLARED production (files_produced), not the
@@ -257,12 +259,13 @@ class ProposalExecutor:
                         # executor sandboxes only when impact is WRITE_CODE /
                         # WRITE_METADATA AND write=True; CLI direct invocations
                         # leave pre_execution_sha=None and pass through.
-                        result = await self.action_executor.execute(
-                            action_id=ref_id,
-                            write=write,
-                            pre_execution_sha=pre_execution_sha,
-                            **params,
-                        )
+                        with approval_scope(proposal.approval_authority):
+                            result = await self.action_executor.execute(
+                                action_id=ref_id,
+                                write=write,
+                                pre_execution_sha=pre_execution_sha,
+                                **params,
+                            )
 
                     action_duration = time.time() - action_start
 
