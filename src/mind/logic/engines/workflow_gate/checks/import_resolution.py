@@ -118,25 +118,31 @@ class ImportResolutionCheck(WorkflowCheck):
         violations: list[str] = []
         for spec in tool_specs:
             tool_violations = await self._run_tool(spec, target)
-            if tool_violations is None:
-                # Tool absent: fail the whole rule closed rather than
-                # silently trusting whatever tools did run -- a missing
-                # instrument means compliance is unknown, not proven.
+            if isinstance(tool_violations, str):
+                # Tool absent or out of time: fail the whole rule closed
+                # rather than silently trusting whatever tools did run -- a
+                # missing or unfinished instrument means compliance is
+                # unknown, not proven, and not violated either (#876).
                 tool_name = spec.get("tool", "?")
+                cause = (
+                    f"did not complete within {_CFG.import_timeout_sec:g}s"
+                    if tool_violations == "timeout"
+                    else "is not installed in this environment"
+                )
                 return [
                     StructuredViolation(
                         file_path="System",
                         message=(
                             f"Import resolution check ({self.check_type}) "
-                            f"could not run: tool '{tool_name}' is not "
-                            "installed in this environment. Compliance "
-                            "status UNKNOWN for this rule -- not a pass."
+                            f"could not run: tool '{tool_name}' {cause}. "
+                            "Compliance status UNKNOWN for this rule -- not "
+                            "a pass."
                         ),
                         context={
                             "finding_type": "ENFORCEMENT_UNAVAILABLE",
                             "tool": tool_name,
                             "check_type": self.check_type,
-                            "reason": "tool_not_installed",
+                            "reason": tool_violations,
                         },
                     )
                 ]
@@ -144,12 +150,13 @@ class ImportResolutionCheck(WorkflowCheck):
         return violations
 
     # ID: 8b6b6a1a-4c1e-4a2d-9b0e-1f3a7d5c2e6b
-    async def _run_tool(self, spec: dict[str, Any], target: str) -> list[str] | None:
+    async def _run_tool(self, spec: dict[str, Any], target: str) -> list[str] | str:
         """Run one declared tool against `target`.
 
-        Returns the filtered violation list, or None if the tool binary
-        itself is not installed (the caller treats that as fail-closed
-        for the whole check, not just this tool's contribution).
+        Returns the filtered violation list, or an unavailability reason
+        string -- "tool_not_installed" or "timeout" -- when the tool could
+        not produce a result (the caller treats that as fail-closed for the
+        whole check, not just this tool's contribution).
         """
         tool = str(spec.get("tool", ""))
         args = [str(a) for a in spec.get("args", [])]
@@ -169,7 +176,7 @@ class ImportResolutionCheck(WorkflowCheck):
             if process is not None and process.returncode is None:
                 process.kill()
                 await process.wait()
-            return [f"{tool} import check timed out (>{_CFG.import_timeout_sec:g}s)"]
+            return "timeout"
         except FileNotFoundError as exc:
             logger.debug(
                 "%s: tool '%s' not installed in this environment (%s)",
@@ -177,7 +184,7 @@ class ImportResolutionCheck(WorkflowCheck):
                 tool,
                 exc,
             )
-            return None
+            return "tool_not_installed"
         except Exception as e:
             return [f"{tool} import check error: {e}"]
 

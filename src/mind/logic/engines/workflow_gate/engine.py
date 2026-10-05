@@ -72,7 +72,9 @@ class WorkflowGateEngine(BaseEngine):
                 "mypy_check",
                 ["mypy", "src/"],
             ),
-            QualityGateCheck(path_resolver, "security_check", ["pip-audit"]),
+            QualityGateCheck(
+                path_resolver, "security_check", ["pip-audit", "--format=json"]
+            ),
             QualityGateCheck(
                 path_resolver,
                 "pytest_check",

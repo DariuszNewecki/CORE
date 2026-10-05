@@ -15,6 +15,7 @@ from the rule's declared ``enforcement`` and overrides every finding.
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from collections import OrderedDict
 from collections.abc import Sequence
@@ -77,6 +78,10 @@ class QualityGateCheck(WorkflowCheck):
             )
 
             if process.returncode != 0:
+                if self.check_type == "security_check":
+                    return self._parse_pip_audit(
+                        stdout.decode().strip(), stderr.decode().strip()
+                    )
                 output = stdout.decode().strip() or stderr.decode().strip()
                 return self._parse_output(output)
         except TimeoutError:
@@ -93,8 +98,19 @@ class QualityGateCheck(WorkflowCheck):
                 self.check_type,
                 _CFG.quality_timeout_sec,
             )
+            # A gate that ran out of time found nothing either way: compliance
+            # is UNKNOWN, not violated (#876). Same shape as tool-absence
+            # below, so blocking rules route to DEGRADED, never FAIL or PASS.
             return [
-                f"Gate {self.check_type} timed out after {_CFG.quality_timeout_sec}s"
+                self._unavailable(
+                    reason="timeout",
+                    message=(
+                        f"Quality gate {self.check_type} did not complete within "
+                        f"{_CFG.quality_timeout_sec}s. Compliance status UNKNOWN "
+                        f"for this rule — not a violation, not a pass."
+                    ),
+                    timeout_sec=_CFG.quality_timeout_sec,
+                )
             ]
         except FileNotFoundError as exc:
             # Tool not installed in this environment (the F-10.3 Action's
@@ -119,24 +135,91 @@ class QualityGateCheck(WorkflowCheck):
                 exc,
             )
             return [
-                StructuredViolation(
-                    file_path="System",
+                self._unavailable(
+                    reason="tool_not_installed",
                     message=(
                         f"Quality gate {self.check_type} could not run: tool "
                         f"'{tool_name}' is not installed in this environment. "
                         f"Compliance status UNKNOWN for this rule — not a pass."
                     ),
-                    context={
-                        "finding_type": "ENFORCEMENT_UNAVAILABLE",
-                        "tool": tool_name,
-                        "check_type": self.check_type,
-                        "reason": "tool_not_installed",
-                    },
+                    tool=tool_name,
                 )
             ]
         except Exception as e:
             return [f"Gate {self.check_type} error: {e!s}"]
         return []
+
+    def _unavailable(
+        self, reason: str, message: str, **extra: Any
+    ) -> StructuredViolation:
+        """One ENFORCEMENT_UNAVAILABLE finding: the gate could not decide."""
+        context: dict[str, Any] = {
+            "finding_type": "ENFORCEMENT_UNAVAILABLE",
+            "tool": self.cmd[0],
+            "check_type": self.check_type,
+            "reason": reason,
+        }
+        context.update(extra)
+        return StructuredViolation(file_path="System", message=message, context=context)
+
+    def _parse_pip_audit(self, stdout: str, stderr: str) -> list[StructuredViolation]:
+        """Count real vulnerabilities from ``pip-audit --format=json`` (#870).
+
+        A non-zero exit without a parseable report (network or resolver
+        failure) is the tool failing to run, not a security finding.
+        """
+        try:
+            report = json.loads(stdout)
+            dependencies = report["dependencies"]
+        except (ValueError, TypeError, KeyError):
+            return [
+                self._unavailable(
+                    reason="tool_error",
+                    message=(
+                        "Quality gate security_check could not run: pip-audit "
+                        "exited non-zero without a JSON report. Compliance "
+                        "status UNKNOWN for this rule — not a pass."
+                    ),
+                    sample_issues=[
+                        ln for ln in (stderr or stdout).splitlines() if ln.strip()
+                    ][:_SAMPLE_CAP],
+                )
+            ]
+
+        vulns = [
+            f"{dep.get('name')} {dep.get('version')} {vuln.get('id')}"
+            for dep in dependencies
+            for vuln in dep.get("vulns", [])
+        ]
+        if not vulns:
+            return [
+                self._unavailable(
+                    reason="tool_error",
+                    message=(
+                        "Quality gate security_check could not run cleanly: "
+                        "pip-audit exited non-zero but reported no "
+                        "vulnerabilities. Compliance status UNKNOWN."
+                    ),
+                    sample_issues=[ln for ln in stderr.splitlines() if ln.strip()][
+                        :_SAMPLE_CAP
+                    ],
+                )
+            ]
+        return [
+            StructuredViolation(
+                file_path="pyproject.toml",
+                message=(
+                    f"Quality Gate security_check failed: {len(vulns)} known "
+                    "vulnerability(ies)"
+                ),
+                context={
+                    "tool": "pip_audit",
+                    "issue_count": len(vulns),
+                    "sample_issues": vulns[:_SAMPLE_CAP],
+                    "first_issue_line": None,
+                },
+            )
+        ]
 
     def _parse_output(self, output: str) -> list[StructuredViolation]:
         """Parse tool output into per-affected-file structured violations.
@@ -145,7 +228,8 @@ class QualityGateCheck(WorkflowCheck):
         wrapped tool. mypy groups by source path; pytest collection by test
         file; pip-audit (and any other aggregate tool whose output we cannot
         confidently key by file) degrades to a single honest finding whose
-        ``issue_count`` still reflects the real scale.
+        ``issue_count`` still reflects the real scale. pip-audit is parsed
+        from its JSON report by ``_parse_pip_audit`` instead.
         """
         if self.check_type == "mypy_check":
             return self._parse_mypy(output)
@@ -216,8 +300,8 @@ class QualityGateCheck(WorkflowCheck):
         """Single honest finding for tools we don't key per-file yet.
 
         ``issue_count`` reflects the number of non-blank output lines so the
-        scale is not silently collapsed to 1. Refining pip-audit to true
-        per-package findings (ADR-098 D1) is tracked as follow-up work.
+        scale is not silently collapsed to 1. Not used for pip-audit, whose
+        table framing would inflate the count (#870).
         """
         lines = [ln for ln in output.splitlines() if ln.strip()]
         count = len(lines) or 1

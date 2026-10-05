@@ -43,6 +43,7 @@ for the live-mapping, real-engine proof.
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from mind.logic.engines.workflow_gate.base_check import StructuredViolation
@@ -128,6 +129,7 @@ def test_import_resolution_surfaces_unavailable_when_tool_missing() -> None:
     assert isinstance(violation, StructuredViolation)
     assert violation.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
     assert violation.context["tool"] == "ruff"
+    assert violation.context["reason"] == "tool_not_installed"
 
 
 def test_ruff_format_silent_skips_when_ruff_missing() -> None:
@@ -185,3 +187,41 @@ def test_linter_compliance_silent_skips_ruff_then_runs_black_on_mixed_absence() 
         f"Expected empty violations (ruff skip + black pass); got {result}"
     )
     assert call_count["n"] == 2, "Expected both subprocess calls to be attempted"
+
+
+def test_import_resolution_timeout_is_unavailable_not_a_violation() -> None:
+    """#876: a declared import tool that runs out of time surfaces as one
+    ENFORCEMENT_UNAVAILABLE finding (reason "timeout") and its process is
+    killed -- not a BLOCK-severity "timed out" violation string."""
+    check = ImportResolutionCheck()
+    proc = MagicMock()
+    proc.returncode = None
+    proc.kill = MagicMock()
+    proc.wait = AsyncMock(return_value=None)
+
+    async def hang_forever(*args, **kwargs):
+        await asyncio.sleep(3600)
+
+    proc.communicate = hang_forever
+
+    async def fake_exec(*args, **kwargs):
+        return proc
+
+    with (
+        patch("asyncio.create_subprocess_exec", side_effect=fake_exec),
+        patch(
+            "mind.logic.engines.workflow_gate.checks.import_resolution._CFG",
+            SimpleNamespace(import_timeout_sec=0.01),
+        ),
+    ):
+        result = asyncio.run(
+            check.verify(None, {"tools": [{"tool": "ruff", "args": []}]})
+        )
+
+    proc.kill.assert_called_once()
+    assert len(result) == 1
+    violation = result[0]
+    assert isinstance(violation, StructuredViolation)
+    assert violation.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert violation.context["reason"] == "timeout"
+    assert "did not complete within 0.01s" in violation.message

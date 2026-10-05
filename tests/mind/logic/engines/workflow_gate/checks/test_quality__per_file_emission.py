@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -47,13 +48,13 @@ def _path_resolver() -> MagicMock:
     return pr
 
 
-def _run_verify(check_type: str, output: str) -> list:
+def _run_verify(check_type: str, output: str, stderr: str = "") -> list:
     """Run QualityGateCheck.verify with a mocked nonzero-exit subprocess."""
     check = QualityGateCheck(_path_resolver(), check_type, ["tool"])
 
     async def fake_exec(*args, **kwargs):
         proc = MagicMock()
-        proc.communicate = AsyncMock(return_value=(output.encode(), b""))
+        proc.communicate = AsyncMock(return_value=(output.encode(), stderr.encode()))
         proc.returncode = 1
         return proc
 
@@ -99,14 +100,63 @@ def test_sample_issues_capped_at_ten_but_count_is_full() -> None:
     assert len(result[0].context["sample_issues"]) == 10
 
 
-def test_security_gate_degrades_to_single_honest_finding() -> None:
-    """pip-audit (not keyed per-file yet) → one finding on pyproject.toml."""
-    result = _run_verify("security_check", "starlette 0.1 GHSA-x\npip 1.0 PYSEC-y")
+_PIP_AUDIT_JSON = json.dumps(
+    {
+        "dependencies": [
+            {"name": "starlette", "version": "0.1", "vulns": [{"id": "GHSA-x"}]},
+            {"name": "pip", "version": "1.0", "vulns": [{"id": "PYSEC-y"}]},
+            {"name": "rich", "version": "13.0", "vulns": []},
+            {"name": "local-pkg", "skip_reason": "not on PyPI"},
+        ],
+        "fixes": [],
+    }
+)
+
+
+def test_security_gate_counts_vulnerabilities_not_output_lines() -> None:
+    """#870: issue_count is the number of vulnerabilities in pip-audit's JSON
+    report — not header + separator + rows of its columns table."""
+    result = _run_verify("security_check", _PIP_AUDIT_JSON)
 
     assert len(result) == 1
     assert result[0].file_path == "pyproject.toml"
     assert result[0].context["tool"] == "pip_audit"
     assert result[0].context["issue_count"] == 2
+    assert result[0].context["sample_issues"] == [
+        "starlette 0.1 GHSA-x",
+        "pip 1.0 PYSEC-y",
+    ]
+
+
+def test_security_gate_columns_table_is_not_counted_as_issues() -> None:
+    """#870 regression: the old line count gave 4 for this 2-row table. A
+    non-JSON report is the tool failing to run, not a security finding."""
+    table = (
+        "Name      Version ID      Fix Versions\n"
+        "--------- ------- ------- ------------\n"
+        "starlette 0.1     GHSA-x  0.2\n"
+        "pip       1.0     PYSEC-y 1.1"
+    )
+    result = _run_verify("security_check", table)
+
+    assert len(result) == 1
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "tool_error"
+    assert "issue_count" not in result[0].context
+
+
+def test_security_gate_tool_failure_is_unavailable_not_a_finding() -> None:
+    """#870: pip-audit failing (network, resolver) exits non-zero with only
+    stderr — compliance is unknown, not N security issues."""
+    result = _run_verify(
+        "security_check", "", stderr="ERROR: Failed to connect to vulnerability service"
+    )
+
+    assert len(result) == 1
+    assert result[0].file_path == "System"
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "tool_error"
+    assert "Failed to connect" in result[0].context["sample_issues"][0]
 
 
 def test_mypy_crash_without_parseable_lines_falls_back() -> None:
@@ -176,8 +226,15 @@ def test_timeout_kills_orphaned_subprocess() -> None:
         result = asyncio.run(check.verify(None, {}))
 
     proc.kill.assert_called_once()
+    # #876: a timeout is unknown compliance, not a violation.
     assert len(result) == 1
-    assert "timed out" in result[0]
+    violation = result[0]
+    assert isinstance(violation, StructuredViolation)
+    assert violation.file_path == "System"
+    assert violation.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert violation.context["reason"] == "timeout"
+    assert violation.context["timeout_sec"] == 0.01
+    assert "did not complete within 0.01s" in violation.message
 
 
 def test_engine_wraps_structured_violations_preserving_context() -> None:
