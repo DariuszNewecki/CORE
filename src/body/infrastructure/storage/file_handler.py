@@ -162,7 +162,7 @@ class FileHandler:
         the idempotent re-validation at the repo-source tier rather
         than carving out a named bypass.
         """
-        rel_path = rel_path.strip().removeprefix("./")
+        rel_path = self._canonical_rel(rel_path)
         # Target-class boundaries are constitutional (ADR-097 D2) — read
         # from the canonical CORE install (resolve_default_repo_path)
         # rather than from this FileHandler's repo_path, which in a
@@ -212,7 +212,7 @@ class FileHandler:
         untouched. ``.py`` targets are refused: source-shape checks (syntax,
         ``# ID:`` anchors) need the whole file, so use ``write``.
         """
-        rel_path = rel_path.strip().removeprefix("./")
+        rel_path = self._canonical_rel(rel_path)
         if rel_path.endswith(".py"):
             raise ValueError(
                 f"Streaming write refused for {rel_path}: .py needs the whole "
@@ -284,7 +284,7 @@ class FileHandler:
 
     # ID: 84aa153b-1651-4ca8-abf3-f15a57fe6b80
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
-        suggested_path = suggested_path.strip().removeprefix("./")
+        suggested_path = self._canonical_rel(suggested_path)
         self._guard_paths([suggested_path], op_class="create")
         payload = {"prompt": prompt, "suggested_path": suggested_path, "code": code}
         fname = f"pw-{abs(hash(suggested_path + prompt))}.json"
@@ -302,7 +302,7 @@ class FileHandler:
 
     # ID: 5f626d7b-5ce4-46c8-adc6-6228eef7c41a
     def remove_file(self, rel_path: str) -> FileOpResult:
-        rel_path = rel_path.strip().removeprefix("./")
+        rel_path = self._canonical_rel(rel_path)
         self._guard_paths([rel_path], op_class="delete")
         abs_path = self._resolve_repo_path(rel_path)
         abs_path.unlink(missing_ok=True)
@@ -319,7 +319,7 @@ class FileHandler:
         typical caller (shadow tree materialization) lands under
         ``var/tmp/`` which classifies as ``ephemeral-scratch``.
         """
-        rel_path = rel_path.strip().removeprefix("./")
+        rel_path = self._canonical_rel(rel_path)
         target_class = resolve_target_class(rel_path)
         self._guard_paths(
             [rel_path],
@@ -390,30 +390,46 @@ class FileHandler:
     # ---------------------------------------------------------------------
 
     def _normalize_rel_dir(self, rel_dir: str) -> str:
-        """Normalize a directory argument to a repo-relative posix string.
+        """Normalize a directory argument to its canonical repo-relative form.
 
-        #908: the previous ``.strip("/")`` idiom ran BEFORE
-        ``_resolve_repo_path`` and so re-rooted absolute paths under the
-        bound root (``ensure_dir("/opt/dev/CORE/var/x")`` created
-        ``<root>/opt/dev/CORE/var/x``; ``/etc/x`` became ``<root>/etc/x``
-        and was accepted instead of refused). Absolute paths are now
-        decided by the containment rule here, before any guard or
-        mutation: inside the root they are rewritten to their
-        repo-relative form so IntentGuard and target-class resolution
-        see the canonical shape; outside the root they are refused under
-        ``architecture.execution_write.repository_containment`` with the
-        caller's original string as ``attempted_path``. Only a trailing
-        slash is stripped from the relative form.
+        #908 refused absolute paths outside the bound root (they used to be
+        re-rooted under it); #949 extends the same canonicalisation to
+        relative paths, so ``..`` segments and symlinks are resolved before
+        IntentGuard and target-class resolution see the path. See
+        ``_canonical_rel``.
         """
-        cleaned = str(rel_dir).strip().removeprefix("./")
-        if Path(cleaned).is_absolute():
-            candidate = Path(cleaned).resolve()
-            if not candidate.is_relative_to(self.repo_path):
-                raise RepositoryBoundaryViolationError(
-                    attempted_path=rel_dir, bound_root=str(self.repo_path)
-                )
-            cleaned = candidate.relative_to(self.repo_path).as_posix()
-        return cleaned.rstrip("/")
+        return self._canonical_rel(rel_dir)
+
+    # ID: 17a94846-a86c-44c2-a74b-54da3718b707
+    def _canonical_rel(self, rel_path: str | Path) -> str:
+        """The canonical repo-relative destination of ``rel_path`` (#949).
+
+        Every guarded entry point classifies and guards THIS form, never the
+        caller's spelling. ``..`` segments and symlinks are resolved first,
+        so a path that merely *starts* in scratch (``var/tmp/../../.intent/x``)
+        is classified, guarded and written as what it is (``.intent/x``) —
+        ADR-097 D2 defines a target class by where a path *resolves*.
+
+        Absolute paths inside the bound root are rewritten to their relative
+        form; any destination outside it is refused under
+        ``architecture.execution_write.repository_containment`` with the
+        caller's original string as ``attempted_path`` (#908). The root
+        itself canonicalises to ``""``. A trailing slash is not preserved;
+        directory callers append their own.
+
+        Canonicalisation decides the destination at call time; it is not a
+        defence against a concurrent actor swapping a symlink afterwards.
+        """
+        cleaned = str(rel_path).strip().removeprefix("./")
+        candidate = (
+            Path(cleaned) if Path(cleaned).is_absolute() else self.repo_path / cleaned
+        ).resolve()
+        if not candidate.is_relative_to(self.repo_path):
+            raise RepositoryBoundaryViolationError(
+                attempted_path=str(rel_path), bound_root=str(self.repo_path)
+            )
+        rel = candidate.relative_to(self.repo_path).as_posix()
+        return "" if rel == "." else rel
 
     def _resolve_repo_path(self, rel_path: str) -> Path:
         """Resolve a repo-relative path to an absolute path, refusing escapes.

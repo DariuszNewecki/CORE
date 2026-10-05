@@ -7,8 +7,9 @@ Pins three behaviors that the step 4 dispatch flip will rely on:
    ``.intent/`` writes, policy rules evaluated, capability tier advisory log.
 
 2. **ephemeral-scratch short-circuit**: when ``target_classes`` maps a path
-   to ``"ephemeral-scratch"``, that path skips both the hard invariant and
-   policy rule evaluation. This is the structural sanctuary that lets
+   to ``"ephemeral-scratch"`` AND the path resolves into scratch, it skips
+   policy rule evaluation. It never skips the ``.intent/`` hard invariant,
+   which is decided first on the resolved destination (#949). This is the structural sanctuary that lets
    shadow_materializer / sandbox writes pass the chokepoint without per-file
    excludes. The capability tier still runs (ADR-079 stage 1 log).
 
@@ -141,17 +142,37 @@ def test_ephemeral_scratch_skips_substring_bug_target(guard: IntentGuard) -> Non
     assert result.violations == []
 
 
-def test_ephemeral_scratch_skips_even_intent_path(guard: IntentGuard) -> None:
-    """Verifies the dispatch ordering: ephemeral-scratch is evaluated
-    BEFORE the hard invariant. A pathologically-classified .intent/
-    path would skip the hard invariant — caller responsibility, not
-    a guard bug. This pins the ordering, not the policy."""
+@pytest.mark.parametrize(
+    "path", [".intent/scratch.yaml", "var/tmp/../../.intent/scratch.yaml"]
+)
+def test_scratch_hint_never_skips_the_intent_hard_invariant(
+    guard: IntentGuard, path: str
+) -> None:
+    """#949: the .intent/ hard invariant is decided on the resolved
+    destination BEFORE target-class dispatch. A scratch hint -- forged, or
+    computed from a path that merely starts in var/tmp/ -- cannot skip it.
+    (This test used to pin the opposite ordering as "caller
+    responsibility".)"""
     result = guard.check_transaction(
-        proposed_paths=[".intent/scratch.yaml"],
-        target_classes={".intent/scratch.yaml": "ephemeral-scratch"},
+        proposed_paths=[path],
+        target_classes={path: "ephemeral-scratch"},
     )
-    assert result.is_valid is True
-    assert result.violations == []
+    assert result.is_valid is False
+    assert any("intent" in v.message.lower() for v in result.violations)
+
+
+def test_scratch_hint_disagreeing_with_destination_is_not_honoured(
+    guard: IntentGuard,
+) -> None:
+    """#949: a scratch hint on a path that resolves into src/ falls through
+    to policy evaluation; the always-block rule fires."""
+    path = "var/tmp/../../src/foo.py"
+    result = guard.check_transaction(
+        proposed_paths=[path],
+        target_classes={path: "ephemeral-scratch"},
+    )
+    assert result.is_valid is False
+    assert any(v.rule_name == "test.adr097.always_block" for v in result.violations)
 
 
 # ---------------------------------------------------------------------------

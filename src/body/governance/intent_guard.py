@@ -22,6 +22,7 @@ from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
 )
+from shared.infrastructure.intent.target_class import resolve_target_class
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -355,18 +356,11 @@ class IntentGuard:
                 mode=current_mode,
             )
 
-            # ADR-097 step 2: target-class dispatch.
-            # ephemeral-scratch skips the rest of per-path evaluation:
-            # the path is by-construction non-committal (under var/tmp/),
-            # so no hard invariant or policy rule should fire on it. The
-            # capability tier already ran above. When target_classes is
-            # not supplied, this resolves to None and the existing
-            # repo-source-equivalent flow runs (backwards-compatible).
-            target_class = self._resolve_target_class_for_path(path_str, target_classes)
-            if target_class == "ephemeral-scratch":
-                continue
-
-            # 1. HARD INVARIANT: Absolute block on .intent writes
+            # 1. HARD INVARIANT: Absolute block on .intent writes. Decided on
+            # the RESOLVED destination and before any target-class dispatch,
+            # so no class hint -- forged, stale or computed from a path that
+            # merely starts in scratch (var/tmp/../../.intent/x) -- can skip
+            # it (#949; ADR-097 D6: .intent/ writes stay denied at this tier).
             if self._is_under_intent(abs_path):
                 rule = next(
                     (r for r in self.rules if r.name == self._READ_ONLY_RULE_ID), None
@@ -387,6 +381,21 @@ class IntentGuard:
                     )
                 )
                 has_hard_invariant_violation = True
+                continue
+
+            # ADR-097 step 2: target-class dispatch. ephemeral-scratch skips
+            # policy evaluation: the path is by-construction non-committal,
+            # so no policy rule should fire on it. The capability tier
+            # already ran above. The scratch exemption is honoured only when
+            # the RESOLVED destination is itself scratch (#949): a hint that
+            # disagrees with where the path lands falls through to the
+            # repo-source-equivalent flow. When target_classes is not
+            # supplied this resolves to None and that flow runs
+            # (backwards-compatible).
+            target_class = self._resolve_target_class_for_path(path_str, target_classes)
+            if target_class == "ephemeral-scratch" and self._resolves_to_scratch(
+                abs_path
+            ):
                 continue
 
             # 2. POLICY EVALUATION
@@ -477,6 +486,14 @@ class IntentGuard:
             return True
         except ValueError:
             return False
+
+    def _resolves_to_scratch(self, abs_path: Path) -> bool:
+        """True when the resolved destination classifies as ephemeral-scratch."""
+        try:
+            rel = abs_path.relative_to(self.repo_path.resolve()).as_posix()
+        except ValueError:
+            return False
+        return resolve_target_class(rel) == "ephemeral-scratch"
 
     def _resolve_target_class_for_path(
         self,
