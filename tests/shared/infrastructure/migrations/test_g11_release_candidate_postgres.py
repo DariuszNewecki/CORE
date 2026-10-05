@@ -342,7 +342,9 @@ async def test_failed_release_migration_is_rolled_back_unrecorded_and_retries_ex
         "where env_key = 'core.crypto.master_key'"
     )
     retry = await migrate_db(write=True, session_factory=db.session_factory)
-    assert retry.applied == [DROP_RS]
+    # DROP_RS exactly once, then the entries the failed pass never reached.
+    assert retry.applied == pending[pending.index(DROP_RS) :]
+    assert retry.applied.count(DROP_RS) == 1
     assert (
         await db.scalar("select to_regclass('core.runtime_settings') is null") is True
     )

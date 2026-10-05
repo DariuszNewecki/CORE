@@ -71,6 +71,14 @@ BACKFILLS = [
 # ── fresh install (D9) ───────────────────────────────────────────────────────
 
 
+def _unreleased() -> list[str]:
+    """Manifest entries after the latest declared release baseline: shipped by
+    no release yet, so every upgrade path replays them (none is reconcilable)."""
+    manifest = load_manifest()
+    through = manifest.order.index(manifest.baselines[-1].through)
+    return list(manifest.order[through + 1 :])
+
+
 # ID: 75bb4dcb-f084-4ca1-ba9b-a1479c57389b
 async def test_fresh_install_from_schema_sql_has_a_complete_ledger(
     fresh_database: FreshDatabase,
@@ -93,16 +101,23 @@ async def test_fresh_install_from_schema_sql_has_a_complete_ledger(
 
     # Nothing can be "adopted" over a complete ledger: v2.9.1's and v2.10.1's
     # absence discriminators fail on the current schema (the latter on the
-    # ledger column v2.10.2 introduced); v2.10.2 -- the current shape itself --
-    # holds but has nothing to record. None of them writes.
+    # ledger column v2.10.2 introduced). v2.10.2 holds; when it is the current
+    # shape it has nothing to record, and when unreleased entries follow it the
+    # ledger already records beyond it and adoption is refused. None writes.
     with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
         await adopt_baseline("v2.9.1", write=True, session_factory=db.session_factory)
     with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
         await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
-    noop = await adopt_baseline(
-        "v2.10.2", write=True, session_factory=db.session_factory
-    )
-    assert noop.to_record == [] and noop.recorded == []
+    if _unreleased():
+        with pytest.raises(MigrationServiceError, match=r"beyond baseline v2\.10\.2"):
+            await adopt_baseline(
+                "v2.10.2", write=True, session_factory=db.session_factory
+            )
+    else:
+        noop = await adopt_baseline(
+            "v2.10.2", write=True, session_factory=db.session_factory
+        )
+        assert noop.to_record == [] and noop.recorded == []
     assert list(await db.ledger_rows()) == list(manifest.order)
 
 
@@ -237,8 +252,10 @@ async def test_v2_10_1_shaped_database_refuses_v2_9_1_and_suggests_v2_10_1(
         e.id for e in manifest.entries_through(manifest.baseline("v2.10.1").through)
     ]
     report = await migrate_db(write=True, session_factory=db.session_factory)
-    assert report.pending_before == [RECONCILED_COLUMN, *BACKFILLS]
-    assert report.applied == [RECONCILED_COLUMN]  # idempotent ADD COLUMN IF NOT EXISTS
+    assert report.pending_before == [RECONCILED_COLUMN, *BACKFILLS, *_unreleased()]
+    # the ledger column is an idempotent ADD COLUMN IF NOT EXISTS; unreleased
+    # entries are new to a v2.10.1 schema, so they execute too
+    assert report.applied == [RECONCILED_COLUMN, *_unreleased()]
     assert report.reconciled == BACKFILLS  # structures already present: no DDL re-run
     assert (await status(session_factory=db.session_factory)).is_current
 
@@ -342,7 +359,8 @@ async def test_cli_upgrade_sequence_cold(fresh_database: FreshDatabase) -> None:
 
     code, out, _ = _core_admin(url, "migrate", "--write")
     assert code == 0 and "Migrations complete" in out, out[-800:]
-    assert "14 applied, 0 reconciled" in out  # the whole span incl. U5a backfills
+    # the whole span incl. U5a backfills, plus any unreleased entries
+    assert f"{14 + len(_unreleased())} applied, 0 reconciled" in out
 
     code, out, _ = _core_admin(url, "status", "--format", "json")
     assert code == 0, out[-800:]

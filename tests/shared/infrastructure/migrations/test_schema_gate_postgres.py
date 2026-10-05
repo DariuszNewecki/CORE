@@ -42,6 +42,14 @@ SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql
 SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
 
 
+def _unreleased() -> list[str]:
+    """Manifest entries after the latest declared release baseline: shipped by
+    no release yet, so every upgrade path replays them (none is reconcilable)."""
+    manifest = load_manifest()
+    through = manifest.order.index(manifest.baselines[-1].through)
+    return list(manifest.order[through + 1 :])
+
+
 async def _refuses(
     db: FreshDatabase, component: str = "CORE daemon"
 ) -> SchemaGateRefusal:
@@ -76,7 +84,8 @@ async def test_pending_migrations_refuse_naming_the_first_and_the_remedy(
     await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
     verdict = await evaluate_schema_gate(session_factory=db.session_factory)
     assert verdict.state is SchemaGateState.PENDING
-    assert "5 migration(s)" in verdict.message  # ledger column + 4 U5a backfills
+    # ledger column + 4 U5a backfills + any unreleased entries
+    assert f"{5 + len(_unreleased())} migration(s)" in verdict.message
     assert "first: 20260919_adr162_migrations_reconciled.sql" in verdict.message
     assert verdict.remedy == "core-admin database migrate --write"
     refusal = await _refuses(db)

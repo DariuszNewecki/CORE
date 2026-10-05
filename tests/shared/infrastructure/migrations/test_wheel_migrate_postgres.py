@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from shared.infrastructure.repositories.db.common import REPO_ROOT
+from shared.infrastructure.repositories.db.manifest import load_manifest
 
 
 if TYPE_CHECKING:
@@ -36,6 +37,14 @@ pytestmark = [pytest.mark.integration, pytest.mark.slow]
 assert REPO_ROOT is not None
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 BASELINES = ["v2.9.1", "v2.10.1"]
+
+
+def _unreleased() -> list[str]:
+    """Manifest entries after the latest declared release baseline: shipped by
+    no release yet, so every upgrade path replays them (none is reconcilable)."""
+    manifest = load_manifest()
+    through = manifest.order.index(manifest.baselines[-1].through)
+    return list(manifest.order[through + 1 :])
 
 
 @pytest.fixture(scope="module")
@@ -118,9 +127,11 @@ async def test_wheel_migrates_an_external_database_without_a_checkout(
     assert code == 0, out[-1200:]
     # v2.9.1 executes the whole span; v2.10.1 executes the ledger column and
     # reconciles the four U5a backfills its schema already carries.
+    # Unreleased entries (after the latest baseline) execute on both paths.
+    extra = len(_unreleased())
     expected = {
-        "v2.9.1": "14 applied, 0 reconciled",
-        "v2.10.1": "1 applied, 4 reconciled",
+        "v2.9.1": f"{14 + extra} applied, 0 reconciled",
+        "v2.10.1": f"{1 + extra} applied, 4 reconciled",
     }
     assert expected[tag] in out, out[-1200:]
 
