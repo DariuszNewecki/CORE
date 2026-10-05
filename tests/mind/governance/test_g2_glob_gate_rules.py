@@ -2,27 +2,13 @@
 
 """#842 Unit E: glob_gate blocking-rule fixture pairs.
 
-Depth-verifies the 3 glob_gate blocking rules confirmed to actually work
-(architecture.constitution_read_only, architecture.meta_read_only,
-governance.constitution.read_only -- all a "path matches a prohibited
-.intent/ pattern" shape), plus the missing compliant half of
-constitution_read_only (its violating fixture already lives in
-test_rule_fires__per_engine_type.py).
-
-file_path is passed directly as the candidate write target, matching the
-convention the existing constitution_read_only fixture already
-established -- these are immutability guards checked against whatever
-path a write operation targets, not a per-source-file content scan (scope
-.applies_to: src/**/*.py describes which *callers* this check runs for,
-not the shape of file_path itself).
-
-governance.constitution.read_only already had
-tests/proof_index/test_claim_09_intent_immutable.py, but that test only
-asserts the mapping's shape (engine=glob_gate, patterns_prohibited
-contains ".intent", enforcement=blocking) -- it never calls
-GlobGateEngine.verify(), so it doesn't satisfy #842's "directly exercise
-that symbol" bar. It remains valid as its own regression check; this
-file adds the real fixture pair G2 requires.
+The three .intent read-only rules (architecture.constitution_read_only,
+architecture.meta_read_only, governance.constitution.read_only) used to have
+fixture pairs here that handed GlobGateEngine.verify() a relative .intent/
+path. Real dispatch never does that: the audit iterates the rule's own
+src/**/*.py scope, so the mapping could never fire (#936). They are now
+passive_gate rules enforced by IntentGuard's tier-1 invariant, with real
+refusal fixtures in tests/body/governance/test_intent_guard__read_only_rules.py.
 
 autonomy.lanes.boundary_enforcement was a gap row here (glob_gate) at the
 time #842 Unit E filed #853 -- its scope (src/will/agents/**/*.py) and its
@@ -46,10 +32,7 @@ path matching rather than the pre-existing `_match()` helper: real dispatch
 filesystem path, but `_match()`'s prefix branch only ever does a leading
 `str.startswith`, which can never match an absolute path against a
 repo-relative pattern prefix like "var/prompts" -- confirmed by writing
-these fixtures with a real tmp_path (necessarily absolute) rather than the
-relative Path(...) literals the constitution_read_only-style fixtures above
-use (those go through a different, write-interception call path that
-passes a relative candidate path, per this file's own note above). Both
+these fixtures with a real tmp_path (necessarily absolute). Both
 rules' fixture pairs below use tmp_path-relative var/prompts/ layouts
 matching each rule's own applies_to scope, not an arbitrary path.
 """
@@ -72,70 +55,6 @@ def _load_rule_params(mapping_rel: str, rule_id: str) -> dict:
     path = _MAPPINGS / mapping_rel
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     return data["mappings"][rule_id]["params"]
-
-
-# ---------------------------------------------------------------------------
-# architecture.constitution_read_only -- compliant half only; violating half
-# already in test_rule_fires__per_engine_type.py.
-# ---------------------------------------------------------------------------
-
-
-async def test_constitution_read_only_clean_for_ordinary_src_file() -> None:
-    params = _load_rule_params(
-        "architecture/core_safety.yaml", "architecture.constitution_read_only"
-    )
-    result = await GlobGateEngine().verify(
-        Path("src/body/atomic/some_action.py"), params
-    )
-    assert not result.violations
-
-
-# ---------------------------------------------------------------------------
-# architecture.meta_read_only
-# ---------------------------------------------------------------------------
-
-
-async def test_meta_read_only_fires_on_meta_path() -> None:
-    params = _load_rule_params(
-        "architecture/core_safety.yaml", "architecture.meta_read_only"
-    )
-    result = await GlobGateEngine().verify(Path(".intent/META/schema.json"), params)
-    assert result.violations
-
-
-async def test_meta_read_only_clean_for_ordinary_src_file() -> None:
-    params = _load_rule_params(
-        "architecture/core_safety.yaml", "architecture.meta_read_only"
-    )
-    result = await GlobGateEngine().verify(
-        Path("src/body/atomic/some_action.py"), params
-    )
-    assert not result.violations
-
-
-# ---------------------------------------------------------------------------
-# governance.constitution.read_only
-# ---------------------------------------------------------------------------
-
-
-async def test_governance_constitution_read_only_fires_on_any_intent_path() -> None:
-    params = _load_rule_params(
-        "architecture/governance_basics.yaml", "governance.constitution.read_only"
-    )
-    result = await GlobGateEngine().verify(
-        Path(".intent/rules/architecture/core_safety.json"), params
-    )
-    assert result.violations
-
-
-async def test_governance_constitution_read_only_clean_for_ordinary_src_file() -> None:
-    params = _load_rule_params(
-        "architecture/governance_basics.yaml", "governance.constitution.read_only"
-    )
-    result = await GlobGateEngine().verify(
-        Path("src/body/atomic/some_action.py"), params
-    )
-    assert not result.violations
 
 
 # ---------------------------------------------------------------------------

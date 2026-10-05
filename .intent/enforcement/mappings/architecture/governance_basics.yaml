@@ -4,14 +4,27 @@
 
   mappings:
     # 1. Protection of the Constitution itself
+    # ENFORCEMENT: runtime refusal at the write chokepoint, not an audit
+    # engine pretending to perform it (#936; precedent:
+    # architecture.execution_write.repository_containment).
     governance.constitution.read_only:
-      engine: glob_gate
+      engine: passive_gate
       params:
-        patterns_prohibited:
-          - .intent/**
+        attestation_class: "A"
+        enforced_by: "body.governance.intent_guard.IntentGuard"
+        enforcement_note: >
+          Runtime check -- IntentGuard.check_transaction tier 1 (hard invariant)
+          refuses every write whose path is under .intent/ and reports it as
+          governance.constitution.read_only. Every governed write reaches it
+          through FileHandler, which classifies .intent/ paths as
+          governed-artifact, so the ephemeral-scratch short-circuit never
+          applies. Writes that bypass FileHandler are the blocking
+          governance.mutation_surface.filehandler_required. A static scan of
+          src/ cannot see a write target; the previous glob_gate mapping
+          (.intent/** over src/**/*.py) could never match (#936).
       scope:
         applies_to:
-          - src/**/*.py
+          - "src/body/governance/intent_guard.py"
 
     # 2. THE BLOCKING LAW: Logic mutations must be governed.
     # This list EXCLUDES components that are allowed to use direct writes.

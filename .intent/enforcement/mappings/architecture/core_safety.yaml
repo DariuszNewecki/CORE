@@ -20,22 +20,34 @@ mappings:
   # IMMUTABILITY: Constitution is read-only to code
   # =========================================================================
   architecture.constitution_read_only:
-    engine: glob_gate
+    engine: passive_gate
     params:
-      patterns_prohibited:
-        - ".intent/constitution/**"
+      attestation_class: "A"
+      enforced_by: "body.governance.intent_guard.IntentGuard"
+      enforcement_note: >
+        Runtime check -- writes under .intent/constitution/ are refused by IntentGuard's
+        tier-1 .intent/ invariant (reported as
+        governance.constitution.read_only); see that rule's mapping in
+        governance_basics.yaml for the full path. The previous glob_gate
+        mapping (.intent/constitution/** over src/**/*.py) could never match (#936).
     scope:
       applies_to:
-        - "src/**/*.py"
+        - "src/body/governance/intent_guard.py"
 
   # =========================================================================
   # IMMUTABILITY: META schema is read-only to code
   # =========================================================================
   architecture.meta_read_only:
-    engine: glob_gate
+    engine: passive_gate
     params:
-      patterns_prohibited:
-        - ".intent/META/**"
+      attestation_class: "A"
+      enforced_by: "body.governance.intent_guard.IntentGuard"
+      enforcement_note: >
+        Runtime check -- writes under .intent/META/ are refused by IntentGuard's
+        tier-1 .intent/ invariant (reported as
+        governance.constitution.read_only); see that rule's mapping in
+        governance_basics.yaml for the full path. The previous glob_gate
+        mapping (.intent/META/** over src/**/*.py) could never match (#936).
     scope:
       applies_to:
-        - "src/**/*.py"
+        - "src/body/governance/intent_guard.py"

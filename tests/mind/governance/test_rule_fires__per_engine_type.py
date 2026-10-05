@@ -149,27 +149,6 @@ async def test_regex_gate_fires_on_hardcoded_runtime_dir(tmp_py: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-# ID: 199ab82c-7f11-4670-bc35-74975210a3b8
-async def test_glob_gate_fires_on_prohibited_constitution_path() -> None:
-    """architecture.constitution_read_only — a path inside .intent/constitution/ is prohibited.
-
-    GlobGateEngine.verify() takes a file_path; we pass a path that matches the
-    patterns_prohibited glob without creating an actual file.
-    """
-    params = _load_rule_params(
-        "architecture/core_safety.yaml", "architecture.constitution_read_only"
-    )
-    violating_path = Path(".intent/constitution/governance_frame.yaml")
-
-    engine = GlobGateEngine()
-    result = await engine.verify(violating_path, params)
-
-    assert result.violations, (
-        f"Expected violation for path inside .intent/constitution/ under rule "
-        f"architecture.constitution_read_only; got none. engine_result={result}"
-    )
-
-
 # ID: c06394e9-08b6-4934-a284-631536cc0b70
 async def test_glob_gate_fires_on_layer_exclusivity_violation() -> None:
     """architecture.layer_exclusivity — a source file outside the declared layers is a violation.
