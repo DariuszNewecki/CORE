@@ -334,9 +334,16 @@ async def test_actions_execute_under_the_proposals_approval_authority() -> None:
             "will.autonomy.proposal_executor.capture_git_sha",
             MagicMock(return_value="deadbeef"),
         ),
+        # The commit-failure branch (as in the sibling tests): fully stubbed,
+        # so no completion-path collaborator can reach the database. Only
+        # the approval scope during dispatch is under test here.
         patch(
             "will.autonomy.proposal_executor.commit_proposal_changes",
-            MagicMock(return_value=CommitOutcome.NOTHING_TO_COMMIT),
+            MagicMock(return_value=CommitOutcome.FAILED),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.rollback_proposal",
+            MagicMock(return_value=None),
         ),
         patch("will.autonomy.proposal_executor.record_consequence", AsyncMock()),
         patch(
