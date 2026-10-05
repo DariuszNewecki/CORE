@@ -536,6 +536,9 @@ class RepositoriesConfig:
 class GitConfig:
     recent_commits_n: int = 10
     changed_files_log_n: int = 20
+    # #951 / ADR-101 D1: identity for commits CORE produces autonomously.
+    autonomous_author_name: str = "CORE daemon"
+    autonomous_author_email: str = "core-daemon@core.invalid"
 
 
 @dataclass(frozen=True)

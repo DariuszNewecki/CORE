@@ -19,7 +19,10 @@ from enum import Enum
 from typing import Any
 
 from body.services.service_registry import service_registry
-from shared.infrastructure.git_service import StagingContaminationError
+from shared.infrastructure.git_service import (
+    StagingContaminationError,
+    autonomous_identity,
+)
 from shared.logger import getLogger
 
 
@@ -411,6 +414,8 @@ def commit_proposal_changes(
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
+            # #951 / ADR-101 D1: CORE produced these bytes; commit as CORE.
+            identity=autonomous_identity(),
         )
         logger.info("Git commit created for proposal %s", proposal_id)
         return CommitOutcome.COMMITTED

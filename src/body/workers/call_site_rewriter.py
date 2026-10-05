@@ -42,6 +42,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from shared.ai.response_parser import extract_code
+from shared.infrastructure.git_service import autonomous_identity
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -240,6 +241,7 @@ class CallSiteRewriter(Worker):
             self._ctx.git_service.commit_paths(
                 [file_path],
                 f"fix(prompt-model): rewrite direct LLM calls in {file_path}",
+                identity=autonomous_identity(),  # #951 / ADR-101 D1
             )
         except RuntimeError as e:
             # Non-fatal — file is already applied

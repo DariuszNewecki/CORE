@@ -36,6 +36,18 @@ CORE_ROLE = "facade"  # ADR-095 D3
 _CFG_GIT = load_operational_config().git
 
 
+# ID: afdd1e4f-113e-4043-ab55-8d941f06f8a0
+def autonomous_identity() -> tuple[str, str]:
+    """(name, email) for commits CORE produces autonomously (#951).
+
+    ADR-101 D1: a commit carries the identity of whoever produced its
+    bytes. Proposal execution and autonomous workers are CORE, not the
+    person whose global git identity the daemon's account happens to have.
+    Read from operational_config ``git.autonomous_author_*``.
+    """
+    return (_CFG_GIT.autonomous_author_name, _CFG_GIT.autonomous_author_email)
+
+
 # ID: b483a756-582b-4b64-b96c-f5936639f7ae
 class StagingContaminationError(RuntimeError):
     """Raised by commit_paths when the staging area contains paths outside
@@ -469,9 +481,20 @@ class GitService:
         return {line for line in output.splitlines() if line}
 
     # ID: 2055eaae-98c7-499d-ab38-9a976090c8a0
-    def commit_paths(self, paths: list[str], message: str) -> None:
+    def commit_paths(
+        self,
+        paths: list[str],
+        message: str,
+        *,
+        identity: tuple[str, str] | None = None,
+    ) -> None:
         """
         Stages and commits exactly the given paths.
+
+        ``identity`` (name, email) sets both author and committer for this
+        commit only (``git -c user.name -c user.email``). Callers committing
+        bytes CORE produced autonomously pass ``autonomous_identity()``
+        (#951 / ADR-101 D1); without it the process's git identity applies.
 
         Used by ProposalExecutor's success branches per ADR-021 D3. Mirrors
         the two-pass retry pattern in `commit` for pre-commit hook
@@ -516,9 +539,14 @@ class GitService:
             )
 
         # ADR-129 D1 Layer 2: pathspec-restricted commit.
+        who = (
+            ["-c", f"user.name={identity[0]}", "-c", f"user.email={identity[1]}"]
+            if identity is not None
+            else []
+        )
         self._run_command(["add", "--", *paths])
         try:
-            self._run_command(["commit", "-m", message, "--", *paths])
+            self._run_command([*who, "commit", "-m", message, "--", *paths])
         except RuntimeError as first_err:
             logger.info(
                 "GitService.commit_paths: first commit attempt failed — "
@@ -526,7 +554,7 @@ class GitService:
                 first_err,
             )
             self._run_command(["add", "--", *paths])
-            self._run_command(["commit", "-m", message, "--", *paths])
+            self._run_command([*who, "commit", "-m", message, "--", *paths])
 
     # ID: c4b41786-639d-40e3-bba2-858baffa7802
     def get_recent_commits(self, n: int = _CFG_GIT.recent_commits_n) -> list[str]:

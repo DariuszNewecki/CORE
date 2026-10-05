@@ -138,6 +138,36 @@ def test_commit_proposal_changes_attributes_only_action_bytes(
     assert proposal_id[:16] in msg, "commit message must carry the proposal_id prefix"
 
 
+def test_proposal_commit_carries_cores_identity_not_the_accounts(
+    repo_with_target: Path,
+) -> None:
+    """#951 / ADR-101 D1: CORE produced the bytes, so the commit's author
+    AND committer are CORE's identity -- not the account's git identity
+    (here the repo-local "Test <test@example.com>", standing in for the
+    daemon account's global identity, which is a person's)."""
+    (repo_with_target / "target.py").write_text("# action bytes\n")
+    commit_proposal_changes(
+        git_service=GitService(repo_with_target),
+        proposal_id="951-identity-proposal",
+        proposal_goal="fix.format",
+        action_results=_production("target.py"),
+    )
+    who = _run(["git", "log", "-1", "--format=%an <%ae>|%cn <%ce>"], repo_with_target)
+    assert who == (
+        "CORE daemon <core-daemon@core.invalid>|CORE daemon <core-daemon@core.invalid>"
+    )
+
+
+def test_commit_paths_without_identity_keeps_the_process_identity(
+    repo_with_target: Path,
+) -> None:
+    """Human-invoked commits (dev integrate, refactor CLI) are unchanged."""
+    (repo_with_target / "target.py").write_text("# operator bytes\n")
+    GitService(repo_with_target).commit_paths(["target.py"], "operator change")
+    who = _run(["git", "log", "-1", "--format=%an <%ae>"], repo_with_target)
+    assert who == "Test <test@example.com>"
+
+
 def test_rollback_proposal_restores_only_action_touched_paths(
     tmp_path: Path,
 ) -> None:
