@@ -219,6 +219,98 @@ class GitService:
         """
         return self._run_command(["status", "--porcelain", "--untracked-files=all"])
 
+    def _run_raw(self, command: list[str], stdin: str | None = None) -> str:
+        """Run a git command and return stdout verbatim (no strip).
+
+        For NUL-delimited (``-z``) output, where stripping would eat the
+        leading status column of the first entry. Raises RuntimeError on
+        failure, like ``_run_command``.
+        """
+        try:
+            result = subprocess.run(
+                ["git", *command],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                input=stdin,
+                check=True,
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            msg = e.stderr or e.stdout or ""
+            raise RuntimeError(f"Git command failed: {msg}") from e
+
+    @staticmethod
+    # ID: 0266ed3c-ab7e-4c8a-a55b-e434cc1d3b3b
+    def toplevel_of(path: str | Path) -> Path | None:
+        """Return the work-tree root of the git repository containing path,
+        or None when path is not inside a git work tree (ADR-169)."""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=Path(path),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except (subprocess.CalledProcessError, OSError):
+            return None
+        top = result.stdout.strip()
+        return Path(top) if top else None
+
+    # ID: 38608e3e-6bcf-4bf3-815f-c3c3df261198
+    def ls_tree_blobs(self, rev: str, pathspec: str) -> dict[str, str]:
+        """Map repo-relative path -> blob id for every file under pathspec at rev."""
+        out = self._run_raw(["ls-tree", "-r", "-z", rev, "--", pathspec])
+        blobs: dict[str, str] = {}
+        for entry in out.split("\0"):
+            if not entry:
+                continue
+            meta, _, path = entry.partition("\t")
+            parts = meta.split()
+            if len(parts) == 3 and parts[1] == "blob":
+                blobs[path] = parts[2]
+        return blobs
+
+    # ID: df1c585a-1f75-4f2c-a15f-0396000ffb16
+    def hash_working_paths(self, pathspec: str) -> dict[str, str]:
+        """Map repo-relative path -> blob id for the working-tree files under
+        pathspec: tracked and untracked, honouring .gitignore. Computes ids
+        with ``hash-object`` without writing objects; deleted tracked files
+        are absent from the result."""
+        listed = self._run_raw(
+            ["ls-files", "-z", "-co", "--exclude-standard", "--", pathspec]
+        )
+        paths = sorted(
+            {p for p in listed.split("\0") if p and (self.repo_path / p).is_file()}
+        )
+        if not paths:
+            return {}
+        ids = self._run_raw(
+            ["hash-object", "--stdin-paths"], stdin="\n".join(paths) + "\n"
+        ).split()
+        return dict(zip(paths, ids, strict=True))
+
+    # ID: f7658d8e-47bc-44b7-b83a-301263687d19
+    def changed_paths(self, pathspec: str) -> list[str]:
+        """Repo-relative paths under pathspec that differ from HEAD in the
+        index or working tree, untracked files included (porcelain -z)."""
+        out = self._run_raw(
+            ["status", "--porcelain", "-z", "--untracked-files=all", "--", pathspec]
+        )
+        entries = out.split("\0")
+        paths: list[str] = []
+        i = 0
+        while i < len(entries):
+            entry = entries[i]
+            i += 1
+            if len(entry) < 4:
+                continue
+            paths.append(entry[3:])
+            if entry[0] in "RC":
+                i += 1  # a rename/copy entry is followed by its source path
+        return sorted(set(paths))
+
     # ID: db520983-cdb8-4b99-a1d9-60467128b6dc
     def add_all(self) -> None:
         """Stages all changes, including untracked files.

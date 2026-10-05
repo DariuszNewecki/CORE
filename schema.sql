@@ -428,6 +428,19 @@ $$;
 
 
 --
+-- Name: state_observations_append_only(); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.state_observations_append_only() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RAISE EXCEPTION 'core.state_observations is append-only (ADR-169 D1)';
+END;
+$$;
+
+
+--
 -- Name: touch_blackboard_updated_at(); Type: FUNCTION; Schema: core; Owner: -
 --
 
@@ -2603,6 +2616,35 @@ CREATE TABLE core.semantic_cache (
 
 
 --
+-- Name: state_observations; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.state_observations (
+    observation_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    observed_at timestamp with time zone DEFAULT now() NOT NULL,
+    trigger text NOT NULL,
+    repo_root text NOT NULL,
+    head_sha text,
+    dirty_paths jsonb DEFAULT '[]'::jsonb NOT NULL,
+    law_relationship text NOT NULL,
+    law_record_digest text,
+    law_evaluated_digest text,
+    law_drift_paths jsonb DEFAULT '[]'::jsonb NOT NULL,
+    loaded_code_identity text,
+    audit_run_id uuid,
+    CONSTRAINT state_observations_law_relationship_check CHECK ((law_relationship = ANY (ARRAY['MATCH'::text, 'DRIFT'::text, 'UNKNOWN'::text]))),
+    CONSTRAINT state_observations_trigger_check CHECK ((trigger = ANY (ARRAY['boot'::text, 'audit_run'::text])))
+);
+
+
+--
+-- Name: TABLE state_observations; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.state_observations IS 'ADR-169 D1 state ledger: append-only observations of HEAD, dirty paths, law of record vs law evaluated, and loaded code identity.';
+
+
+--
 -- Name: suspended_users; Type: TABLE; Schema: core; Owner: -
 --
 
@@ -4048,6 +4090,14 @@ ALTER TABLE ONLY core.semantic_cache
 
 
 --
+-- Name: state_observations state_observations_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.state_observations
+    ADD CONSTRAINT state_observations_pkey PRIMARY KEY (observation_id);
+
+
+--
 -- Name: suspended_users suspended_users_pkey; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -5040,6 +5090,13 @@ CREATE INDEX idx_retrieval_used ON core.retrieval_feedback USING gin (actually_u
 
 
 --
+-- Name: idx_state_observations_observed_at; Type: INDEX; Schema: core; Owner: -
+--
+
+CREATE INDEX idx_state_observations_observed_at ON core.state_observations USING btree (observed_at DESC);
+
+
+--
 -- Name: idx_symbol_capability_links_symbol_id; Type: INDEX; Schema: core; Owner: -
 --
 
@@ -5943,6 +6000,13 @@ CREATE TRIGGER trg_decorator_registry_updated_at BEFORE UPDATE ON core.decorator
 
 
 --
+-- Name: state_observations trg_state_observations_append_only; Type: TRIGGER; Schema: core; Owner: -
+--
+
+CREATE TRIGGER trg_state_observations_append_only BEFORE UPDATE ON core.state_observations FOR EACH ROW EXECUTE FUNCTION core.state_observations_append_only();
+
+
+--
 -- Name: symbol_decorators trg_symbol_decorators_updated_at; Type: TRIGGER; Schema: core; Owner: -
 --
 
@@ -6300,6 +6364,14 @@ ALTER TABLE ONLY core.secret_store
 
 
 --
+-- Name: state_observations state_observations_audit_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.state_observations
+    ADD CONSTRAINT state_observations_audit_run_id_fkey FOREIGN KEY (audit_run_id) REFERENCES core.audit_runs(run_id) ON DELETE SET NULL;
+
+
+--
 -- Name: suspended_users suspended_users_user_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -6390,6 +6462,13 @@ ALTER TABLE ONLY core.tasks
 -- with: poetry run python infra/scripts/render_ledger_seed.py
 --
 
+--
+-- CORE migration ledger seed (ADR-162 D9). Generated from
+-- infra/migrations/manifest.yaml by infra/scripts/reset_test_db.sh so that a
+-- fresh install starts with a complete ledger. Do not edit by hand; regenerate
+-- with: poetry run python infra/scripts/render_ledger_seed.py
+--
+
 -- CORE-LEDGER-SEED-BEGIN
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260426_drop_legacy_proposals.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260427_add_approval_authority_to_autonomous_proposals.sql', false);
@@ -6435,4 +6514,5 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20260919b_adr052_core_arc
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919c_adr054_audit_findings_run_id.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919d_users_display_name.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260919e_adr052_phase4_drop_runtime_settings.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20261005_adr169_state_observations.sql', false);
 -- CORE-LEDGER-SEED-END

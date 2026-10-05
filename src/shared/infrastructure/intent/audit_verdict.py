@@ -45,6 +45,7 @@ _KNOWN_PRECONDITIONS: frozenset[str] = frozenset(
         "stats_error",
         "any_unmapped_mapping_required_rules",
         "any_blocking_unavailable_rules",
+        "law_drift",
     }
 )
 
@@ -136,3 +137,16 @@ def load_audit_verdict_policy() -> dict[str, Any]:
             reason,
         )
         return {"_error": True, "reason": reason}
+
+
+# ID: 1e43c492-57cc-470f-99d8-23e394af27e8
+def law_drift_degrades(policy: dict[str, Any], relationship: str | None) -> bool:
+    """True when the policy declares ``law_drift`` and the evaluated law is not
+    known to be the law of record (relationship DRIFT or UNKNOWN; ADR-169 D2).
+
+    One implementation for every verdict path (online auditor, stateless
+    audit, persisted runs), so they cannot disagree about drift.
+    """
+    if policy.get("_error"):
+        return False  # the error sentinel already forces DEGRADED
+    return "law_drift" in policy.get("degraded_on", []) and relationship != "MATCH"

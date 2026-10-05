@@ -40,12 +40,22 @@ from uuid import UUID
 from sqlalchemy import text
 
 from body.services.file_service import FileService
+from body.services.state_ledger_service import StateLedgerService, observe_state
 from mind.enforcement.audit import run_audit_workflow
 from mind.governance.audit_postprocessor import apply_entry_point_downgrade
 from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
+from shared.infrastructure.intent.audit_verdict import (
+    law_drift_degrades,
+    load_audit_verdict_policy,
+)
+from shared.infrastructure.intent.law_state import (
+    LawState,
+    law_drift_findings,
+    observe_law_state,
+)
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.workers.blackboard_publisher import _sanitize_payload
@@ -108,7 +118,7 @@ async def run_and_persist_audit(
         logger.info("audit_runner: inserted pending run %s", run_id)
 
     try:
-        passed, findings = await run_audit_workflow(context)
+        results = await run_audit_workflow(context)
     except Exception:
         logger.exception("audit_runner: run_audit_workflow raised for %s", run_id)
         await session.execute(
@@ -125,7 +135,10 @@ async def run_and_persist_audit(
         await session.commit()
         raise
 
-    verdict = AuditVerdict.PASS if passed else AuditVerdict.FAIL
+    # The auditor's verdict as decided. Re-deriving it from ``passed`` (as
+    # this path used to) collapsed DEGRADED into FAIL (ADR-005 S3, ADR-169 D2).
+    findings = results["findings"]
+    verdict = results.get("verdict") or AuditVerdict.DEGRADED
     finding_count = len(findings)
     blocking_count = sum(1 for f in findings if f.severity.is_blocking)
     findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
@@ -165,6 +178,7 @@ async def run_and_persist_audit(
         finding_count,
         blocking_count,
     )
+    await _record_run_observation(context, session, results, run_id)
 
     return {
         "run_id": str(run_id),
@@ -234,12 +248,19 @@ async def run_sync_audit(
                 policy_ids=policy_ids,
                 files=files or None,
             )
+            # ADR-169 D2: a filtered verdict states its law too, and is
+            # never PASS while the law evaluated is not the law of record.
+            law_state = observe_law_state(context.auditor_context.intent_repo.root)
+            law_drift = law_drift_degrades(
+                load_audit_verdict_policy(), law_state.relationship
+            )
             results: dict[str, Any] = {
-                "findings": raw_findings,
+                "findings": [*raw_findings, *law_drift_findings(law_state)],
                 "executed_rule_ids": executed_ids,
-                "passed": True,
+                "passed": not law_drift,
                 "stats": stats_dict,
-                "verdict": None,
+                "verdict": AuditVerdict.DEGRADED if law_drift else None,
+                "law_state": law_state.to_dict(),
             }
         else:
             auditor = ConstitutionalAuditor(context.auditor_context)
@@ -270,6 +291,7 @@ async def run_sync_audit(
         "executed_rule_ids": sorted(list(results.get("executed_rule_ids", []))),
         "auto_ignored": ignored_data,
         "duration_sec": duration,
+        "law_state": results.get("law_state"),
     }
 
     if filtered:
@@ -373,5 +395,36 @@ async def run_sync_audit(
         duration,
     )
 
+    await _record_run_observation(context, session, results, run_id)
     common_payload["run_id"] = str(run_id)
     return common_payload
+
+
+async def _record_run_observation(
+    context: CoreContext, session: Any, results: Mapping[str, Any], run_id: Any
+) -> None:
+    """ADR-169 D1: append the state this persisted run was evaluated in.
+
+    Uses the law state the auditor observed for the verdict, so the ledger
+    row and the verdict describe the same observation. A ledger failure is
+    logged, never raised: the audit result is already persisted.
+    """
+    try:
+        law = results.get("law_state")
+        auditor_context = context.auditor_context
+        if not law or auditor_context is None:
+            return
+        observation = observe_state(
+            context.git_service.repo_path,
+            auditor_context.intent_repo.root,
+            "audit_run",
+            law_state=LawState(**law),
+            audit_run_id=str(run_id),
+        )
+        await StateLedgerService().record(session, observation)
+    except Exception as exc:
+        logger.warning(
+            "audit_runner: state observation for run %s not recorded: %s",
+            run_id,
+            exc,
+        )

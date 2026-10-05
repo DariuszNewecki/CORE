@@ -13,6 +13,8 @@ CONSTITUTIONAL FIX:
 
 from __future__ import annotations
 
+from typing import Any
+
 from shared.logger import getLogger
 
 
@@ -22,28 +24,28 @@ from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext
-from shared.models import AuditFinding
 from shared.utils.subprocess_utils import run_poetry_command
 
 
 # ID: 7de7e5c2-0fbf-4028-8111-e3722b7d0ad9
-async def run_audit_workflow(context: CoreContext) -> tuple[bool, list[AuditFinding]]:
+async def run_audit_workflow(context: CoreContext) -> dict[str, Any]:
     """
     The core async logic for running the audit.
 
-    Returns:
-        tuple(passed: bool, findings: list[AuditFinding])
+    Returns the full ``ConstitutionalAuditor.run_full_audit_async`` result
+    (findings, stats, verdict, passed, law_state). The verdict is returned as
+    decided -- a caller must not re-derive it from ``passed``, which collapses
+    DEGRADED into FAIL (ADR-005 S3; ADR-169 D2).
     """
     # Inject Qdrant service from CoreContext into AuditorContext
     auditor_context = context.auditor_context
     if auditor_context is None:
-        return False, []
+        return {"passed": False, "findings": [], "verdict": None, "stats": {}}
     if context.qdrant_service and not hasattr(auditor_context, "qdrant_service"):
         auditor_context.qdrant_service = context.qdrant_service
 
     auditor = ConstitutionalAuditor(auditor_context)
-    results = await auditor.run_full_audit_async()
-    return results["passed"], results["findings"]
+    return await auditor.run_full_audit_async()
 
 
 # ID: 09884f64-313e-4f9d-84d0-de9e2d16a8d3

@@ -78,6 +78,7 @@ migrations:
     - 20260919c_adr054_audit_findings_run_id.sql
     - 20260919d_users_display_name.sql
     - 20260919e_adr052_phase4_drop_runtime_settings.sql
+    - 20261005_adr169_state_observations.sql
 
   # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
   # Each `verify` returns one boolean. Structural probes read the catalog;
@@ -252,6 +253,12 @@ migrations:
       reconcilable: true
       verify: >-
         select to_regclass('core.runtime_settings') is null
+    20261005_adr169_state_observations.sql:
+      verify: >-
+        select to_regclass('core.state_observations') is not null
+           and exists (select 1 from pg_trigger
+                       where tgrelid = to_regclass('core.state_observations')
+                         and tgname = 'trg_state_observations_append_only')
 
   # -- declared baselines (ADR-162 D3/D4) ----------------------------------
   # `status` suggests the LATEST baseline whose probes all hold (read-only);

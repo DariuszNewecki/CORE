@@ -206,11 +206,14 @@ def test_baselines_cover_every_tagged_release_from_v2_9_1() -> None:
     assert tags == ["v2.9.1", "v2.10.1", "v2.10.2"]
     assert manifest.baseline("v2.9.1").through.startswith("20260628_")
     assert manifest.baseline("v2.10.1").through.startswith("20260914_885_")
-    # v2.10.2 completed ADR-162: its baseline runs through the LAST entry, so a
-    # v2.10.2 database (fully ledgered by its own schema.sql seed) has nothing
-    # to replay -- the fixture is the current schema.
-    assert manifest.baseline("v2.10.2").through == manifest.order[-1]
+    # v2.10.2 completed ADR-162: its baseline runs through 20260919e. Entries
+    # after it are unreleased and replayed on upgrade from a v2.10.2 database;
+    # the next release declares its own baseline through them.
     assert manifest.baseline("v2.10.2").through.startswith("20260919e_")
+    through = manifest.order.index(manifest.baseline("v2.10.2").through)
+    assert list(manifest.order[through + 1 :]) == [
+        "20261005_adr169_state_observations.sql",  # ADR-169 D1, unreleased
+    ]
     # v2.10.1 shipped every entry before the 20260919 ledger column — including
     # the two 20260722 files, which its schema.sql already carried.
     v2_10_1 = [

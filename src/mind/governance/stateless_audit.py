@@ -57,8 +57,15 @@ from typing import Any
 from mind.governance.audit_context import AuditorContext
 from mind.governance.filtered_audit import run_filtered_audit
 from mind.governance.rule_extractor import extract_executable_rules
-from shared.infrastructure.intent.audit_verdict import load_audit_verdict_policy
+from shared.infrastructure.intent.audit_verdict import (
+    law_drift_degrades,
+    load_audit_verdict_policy,
+)
 from shared.infrastructure.intent.intent_repository import IntentRepository
+from shared.infrastructure.intent.law_state import (
+    law_drift_findings,
+    observe_law_state,
+)
 from shared.logger import getLogger
 
 
@@ -180,6 +187,9 @@ async def run_stateless_audit(
     # into skipped_rules; the rest are passed to run_filtered_audit as
     # an explicit allowlist.
     context.reload_governance()
+    # ADR-169 D2: which law this run evaluates, and whether it is the law of
+    # record, observed right after the reload that read it.
+    law_state = observe_law_state(intent_repo.root)
     all_rules = extract_executable_rules(context.policies, context.enforcement_loader)
 
     # #907: every skipped entry carries the rule's on-disk `enforcement`
@@ -255,6 +265,7 @@ async def run_stateless_audit(
         logger.error("stateless_audit: %s (no_governance_bypass)", collapse_reason)
         return {
             "verdict": "ERROR",
+            "law_state": law_state.to_dict(),
             "passed": False,
             "stats": {
                 "total_rules": 0,
@@ -282,6 +293,7 @@ async def run_stateless_audit(
     )
     duration = time.perf_counter() - start_time
 
+    raw_findings = [*raw_findings, *law_drift_findings(law_state)]
     findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in raw_findings]
 
     blocking_findings = [
@@ -345,7 +357,15 @@ async def run_stateless_audit(
         skipped_blocking_rule_ids and "any_blocking_unavailable_rules" in degraded_on
     )
 
-    if verdict_policy.get("_error") or degraded_findings or blocking_skipped:
+    # ADR-169 D2: same precondition, same helper as the online auditor.
+    law_drift = law_drift_degrades(verdict_policy, law_state.relationship)
+
+    if (
+        verdict_policy.get("_error")
+        or degraded_findings
+        or blocking_skipped
+        or law_drift
+    ):
         verdict = "DEGRADED"
         passed = False
     elif genuine_blocking_findings:
@@ -370,6 +390,7 @@ async def run_stateless_audit(
             "skipped_blocking_rule_ids": skipped_blocking_rule_ids,
         },
         "findings": findings_dicts,
+        "law_state": law_state.to_dict(),
         "executed_rule_ids": sorted(executed_ids),
         "skipped_rules": skipped_rules,
         "duration_sec": duration,

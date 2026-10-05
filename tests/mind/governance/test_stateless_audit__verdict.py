@@ -36,6 +36,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.stateless_audit import run_stateless_audit
+from shared.infrastructure.intent.law_state import LawState
+
+
+_LAW_MATCH = LawState(relationship="MATCH", head_sha="0" * 40)
 
 
 def _rule(rule_id: str, engine: str = "regex_gate") -> ExecutableRule:
@@ -89,6 +93,12 @@ def _genuine_violation(rule_id: str) -> dict:
 async def _run(findings: list[dict], tmp_path: Path):
     intent_repo = MagicMock()
     with (
+        # ADR-169 D2: these tests are about other verdict inputs; the law
+        # evaluated is stated to be the law of record.
+        patch(
+            "mind.governance.stateless_audit.observe_law_state",
+            return_value=_LAW_MATCH,
+        ),
         patch(
             "mind.governance.stateless_audit.extract_executable_rules",
             return_value=[_rule("some.rule")],

@@ -846,6 +846,33 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             sweep_err,
         )
 
+    # ADR-169 D1: record the state this daemon boots into -- HEAD, dirty
+    # paths, law of record vs law evaluated, and the identity of the code it
+    # loads. The main daemon records it (dedicated --only processes share the
+    # same checkout and boot together). A ledger failure never stops the boot:
+    # it is logged, and the observation is simply missing.
+    if only is None:
+        try:
+            from body.services.state_ledger_service import (
+                StateLedgerService,
+                observe_state,
+            )
+            from shared.path_resolver import PathResolver
+
+            repo_root = BootstrapRegistry.get_repo_path()
+            observation = observe_state(
+                repo_root,
+                PathResolver(repo_root).intent_root,
+                "boot",
+                include_code_identity=True,
+            )
+            async with service_registry.session() as session:
+                await StateLedgerService().record(session, observation)
+        except Exception as ledger_err:
+            logger.warning(
+                "CORE daemon: boot state observation not recorded: %s", ledger_err
+            )
+
     # ADR-081 Step 0 — loop-hold instrumentation (Option 1, permanent telemetry).
     # Gated on operational_config.daemon.set_debug. When enabled, the asyncio
     # event loop emits a `logger.warning` on the "asyncio" logger whenever a

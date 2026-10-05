@@ -23,7 +23,14 @@ from mind.governance.constitutional_auditor_dynamic import (
     run_dynamic_rules,
 )
 from mind.logic.engines.registry import EngineRegistry
-from shared.infrastructure.intent.audit_verdict import load_audit_verdict_policy
+from shared.infrastructure.intent.audit_verdict import (
+    law_drift_degrades,
+    load_audit_verdict_policy,
+)
+from shared.infrastructure.intent.law_state import (
+    law_drift_findings,
+    observe_law_state,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -98,6 +105,10 @@ class ConstitutionalAuditor:
         self.context.reload_governance()
         self.context.invalidate_file_cache()
 
+        # ADR-169 D2: which law this run evaluates, and whether it is the law
+        # of record. Observed once, right after the reload that read it.
+        law_state = observe_law_state(self.context.intent_repo.root)
+
         # ADR-044: TTL sweep at audit start. Idempotent per AuditorContext.
         await self.context.sweep_llm_gate_cache()
 
@@ -127,13 +138,21 @@ class ConstitutionalAuditor:
         stats = get_dynamic_execution_stats(
             self.context, executed_rule_ids, crashed_rule_ids, unavailable_rule_ids
         )
+        stats["law_state"] = law_state.to_dict()
+        findings.extend(law_drift_findings(law_state))
 
-        verdict = self._determine_verdict(findings, stats, crashed_rule_ids)
+        verdict = self._determine_verdict(
+            findings,
+            stats,
+            crashed_rule_ids,
+            law_relationship=law_state.relationship,
+        )
 
         logger.info(
-            "Audit verdict: %s (executed=%d, crashed=%d, unmapped=%d, "
+            "Audit verdict: %s (law=%s, executed=%d, crashed=%d, unmapped=%d, "
             "unavailable=%d, blocking_unavailable=%d)",
             verdict.value,
+            law_state.relationship,
             stats.get("executed_dynamic_rules", 0),
             stats.get("crashed_rules", 0),
             stats.get("unmapped_rules", 0),
@@ -149,6 +168,7 @@ class ConstitutionalAuditor:
             "unavailable_rule_ids": unavailable_rule_ids,
             "verdict": verdict,
             "passed": verdict == AuditVerdict.PASS,
+            "law_state": law_state.to_dict(),
         }
 
     @staticmethod
@@ -157,6 +177,7 @@ class ConstitutionalAuditor:
         findings: list[AuditFinding],
         stats: dict,
         crashed_rule_ids: set[str],
+        law_relationship: str | None = None,
     ) -> AuditVerdict:
         """Determine audit verdict with truthfulness guarantees.
 
@@ -164,6 +185,10 @@ class ConstitutionalAuditor:
         and loaded via shared.infrastructure.intent.audit_verdict. A
         missing or corrupt policy forces DEGRADED per ADR-005 §3 — the
         loader's error sentinel MUST NOT be treated as a passable state.
+
+        ``law_relationship`` is the ADR-169 D2 relation between the law
+        evaluated and the law of record. None means it was not observed,
+        which the ``law_drift`` precondition treats like DRIFT: not PASS.
         """
         policy = load_audit_verdict_policy()
         if policy.get("_error"):
@@ -196,6 +221,10 @@ class ConstitutionalAuditor:
             "any_blocking_unavailable_rules" in policy["degraded_on"]
             and stats.get("blocking_unavailable_rules", 0) > 0
         ):
+            return AuditVerdict.DEGRADED
+
+        # ADR-169 D2: the law evaluated is not known to be the law of record.
+        if law_drift_degrades(policy, law_relationship):
             return AuditVerdict.DEGRADED
 
         fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}

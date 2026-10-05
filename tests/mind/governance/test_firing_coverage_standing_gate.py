@@ -306,9 +306,12 @@ async def test_run_dynamic_rules_surfaces_scope_inert_to_verdict(monkeypatch):
     # Verdict integration: with no crashes, no ignored finding_type
     # carve-out (SCOPE_INERT is not in ENFORCEMENT_FAILURE's exemption),
     # and a BLOCK severity, the verdict resolves to FAIL.
+    # ADR-169 D2: the law evaluated is stated to be the law of record, so
+    # the verdict turns on the SCOPE_INERT finding alone.
     verdict = ConstitutionalAuditor._determine_verdict(
         findings,
         stats={},
         crashed_rule_ids=crashed,
+        law_relationship="MATCH",
     )
     assert verdict == AuditVerdict.FAIL
