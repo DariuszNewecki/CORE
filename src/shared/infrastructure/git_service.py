@@ -393,30 +393,75 @@ class GitService:
             self._run_command(["commit", "-m", message])
 
     # ID: 898f3694-920f-4915-b35b-61a143d39a6e
-    def restore_paths(self, paths: list[str]) -> None:
-        """
-        Reverts the working-tree state of the given tracked paths to HEAD.
+    def restore_paths(self, paths: list[str], source: str = "HEAD") -> list[str]:
+        """Restore ``paths`` -- index AND working tree -- to ``source`` (#871).
 
-        Used by ProposalExecutor's failure branches per ADR-021 D2/D4.
-        Untracked paths in the input are silently dropped (consistent with
-        `git checkout -- <pathspec>` semantics).
+        The rollback primitive behind ``rollback_proposal`` (ADR-101 D3).
+        For each path that exists in ``source`` both the staged copy and the
+        working copy are restored from it, so a mutation that was already
+        ``git add``-ed is reverted too (``git checkout -- <paths>`` restored
+        from the index, which by then held the mutation). A path absent from
+        ``source`` was created by the action: it is unstaged and its
+        untracked file removed (ignored files are left alone). Paths not
+        listed are never touched, so unrelated staged or unstaged edits
+        survive.
+
+        Returns the listed paths that still differ from ``source`` afterwards
+        (index, working tree, or a leftover untracked file) -- empty when
+        the restore is verified. Raises RuntimeError when git fails.
         """
         if not paths:
             logger.debug("GitService.restore_paths: no paths to restore")
-            return
-
-        ls_output = self._run_command(["ls-files", "--", *paths])
-        tracked = [line for line in ls_output.splitlines() if line]
-
-        if not tracked:
-            logger.info(
-                "GitService.restore_paths: no tracked paths in input (count_input=%d)",
-                len(paths),
+            return []
+        in_source = set(
+            self._run_command(
+                ["ls-tree", "-r", "--name-only", source, "--", *paths]
+            ).splitlines()
+        )
+        restore = [p for p in paths if p in in_source]
+        created = [p for p in paths if p not in in_source]
+        if restore:
+            self._run_command(
+                [
+                    "restore",
+                    f"--source={source}",
+                    "--staged",
+                    "--worktree",
+                    "--",
+                    *restore,
+                ]
             )
-            return
+        if created:
+            self._run_command(
+                ["rm", "--cached", "-q", "--ignore-unmatch", "--", *created]
+            )
+            self._run_command(["clean", "-f", "-q", "--", *created])
 
-        self._run_command(["checkout", "--", *tracked])
-        logger.info("GitService.restore_paths: reverted %d paths", len(tracked))
+        residue = set(
+            self._run_command(
+                ["diff", "--name-only", source, "--", *paths]
+            ).splitlines()
+        )
+        residue |= set(
+            self._run_command(
+                ["diff", "--cached", "--name-only", source, "--", *paths]
+            ).splitlines()
+        )
+        if created:
+            residue |= set(
+                self._run_command(
+                    ["ls-files", "--others", "--exclude-standard", "--", *created]
+                ).splitlines()
+            )
+        residue.discard("")
+        logger.info(
+            "GitService.restore_paths: restored %d, removed %d, residue %d (source %s)",
+            len(restore),
+            len(created),
+            len(residue),
+            source[:12],
+        )
+        return sorted(residue)
 
     def _get_staged_paths(self) -> set[str]:
         """Return paths currently staged in the index (git diff --cached --name-only)."""

@@ -288,7 +288,7 @@ def rollback_proposal(
     proposal_id: str,
     action_results: dict[str, Any],
     pre_sha: str | None,
-) -> None:
+) -> str | None:
     """Restore the action's production set after proposal failure.
 
     Per ADR-101 D3, rollback restores the same set that would have been
@@ -299,15 +299,20 @@ def rollback_proposal(
     the symmetric violation of D1: the rollback "speaks for" bytes the
     action did not author.
 
-    Computes the production set the same way :func:`commit_proposal_changes`
-    does and passes it to ``git_service.restore_paths``. No-op when
-    *git_service* is None, *pre_sha* is None, or the production set is
-    empty (sandbox-only writes that never reached the main tree need no
-    rollback). Fail-soft: a rollback failure is logged at WARNING and
-    swallowed — the proposal is already marked failed regardless.
+    The production set is restored — index and working tree — to the
+    captured pre-execution baseline ``pre_sha`` (#871: restoring from the
+    index left already-staged mutation bytes in place), action-created
+    files are removed, and the result is verified.
+
+    Returns None when the production set is back at the baseline, or when
+    there was nothing to restore (no git service, or sandbox-only writes
+    that never reached the main tree). Otherwise returns a description of
+    what was not restored — the caller makes it part of the proposal's
+    failure reason, so a failed rollback is operator-visible rather than
+    only a log line (#871).
     """
-    if git_service is None or pre_sha is None:
-        return
+    if git_service is None:
+        return None
     try:
         production = compute_production_set(action_results)
         if not production:
@@ -316,20 +321,31 @@ def rollback_proposal(
                 "(ADR-101 D3)",
                 proposal_id,
             )
-            return
-        git_service.restore_paths(production)
-        logger.info(
-            "Reverted production set for proposal %s (count=%d, sha=%s)",
-            proposal_id,
-            len(production),
-            pre_sha,
-        )
+            return None
+        if pre_sha is None:
+            problem = (
+                "no pre-execution baseline was captured; "
+                f"{len(production)} production path(s) not restored: "
+                + ", ".join(production)
+            )
+        else:
+            residue = git_service.restore_paths(production, source=pre_sha)
+            if not residue:
+                logger.info(
+                    "Reverted production set for proposal %s (count=%d, sha=%s)",
+                    proposal_id,
+                    len(production),
+                    pre_sha,
+                )
+                return None
+            problem = (
+                f"{len(residue)} production path(s) still differ from "
+                f"{pre_sha[:12]} after rollback: " + ", ".join(residue)
+            )
     except Exception as rollback_err:
-        logger.warning(
-            "Rollback failed for proposal %s: %s",
-            proposal_id,
-            rollback_err,
-        )
+        problem = f"rollback raised: {rollback_err}"
+    logger.error("Rollback incomplete for proposal %s: %s", proposal_id, problem)
+    return problem
 
 
 # ID: a096add6-5be4-4917-b872-061674977646

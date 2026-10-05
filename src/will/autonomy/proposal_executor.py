@@ -361,13 +361,17 @@ class ProposalExecutor:
                                 "ADR-148 D3: git commit failed — proposal not "
                                 "completed to avoid a completed row with no git record"
                             )
-                        failure_reason = reason
-                        rollback_proposal(
+                        rollback_problem = rollback_proposal(
                             git_service=self.core_context.git_service,
                             proposal_id=proposal.proposal_id,
                             action_results=action_results,
                             pre_sha=pre_execution_sha,
                         )
+                        if rollback_problem:
+                            reason = (
+                                f"{reason}; ROLLBACK INCOMPLETE: {rollback_problem}"
+                            )
+                        failure_reason = reason
                         await state_manager.mark_failed(
                             proposal.proposal_id,
                             reason=reason,
@@ -477,18 +481,22 @@ class ProposalExecutor:
                         aid for aid, res in action_results.items() if not res["ok"]
                     ]
                     reason = f"Actions failed: {', '.join(failed_actions)}"
+                    # Roll back first, so an incomplete rollback is part of
+                    # the recorded failure reason (#871).
+                    rollback_problem = rollback_proposal(
+                        git_service=self.core_context.git_service,
+                        proposal_id=proposal.proposal_id,
+                        action_results=action_results,
+                        pre_sha=pre_execution_sha,
+                    )
+                    if rollback_problem:
+                        reason = f"{reason}; ROLLBACK INCOMPLETE: {rollback_problem}"
                     failure_reason = reason
                     await state_manager.mark_failed(
                         proposal.proposal_id, reason=reason, results=action_results
                     )
                     logger.error(
                         "Proposal failed: %s - %s", proposal.proposal_id, reason
-                    )
-                    rollback_proposal(
-                        git_service=self.core_context.git_service,
-                        proposal_id=proposal.proposal_id,
-                        action_results=action_results,
-                        pre_sha=pre_execution_sha,
                     )
             else:
                 logger.info("DRY-RUN complete - no status updates")

@@ -67,7 +67,7 @@ async def test_commit_failure_triggers_rollback_and_mark_failed() -> None:
     mark_failed_mock = AsyncMock()
     mark_finalizing_mock = AsyncMock()
     mark_completed_mock = AsyncMock()
-    rollback_mock = MagicMock()
+    rollback_mock = MagicMock(return_value=None)  # rollback verified
 
     with (
         patch(
@@ -246,3 +246,51 @@ async def test_commit_and_consequence_success_reaches_completed() -> None:
     mark_finalizing_mock.assert_awaited_once()
     mark_completed_mock.assert_awaited_once_with("pid-exec-1")
     mark_failed_mock.assert_not_awaited()
+
+
+async def test_incomplete_rollback_is_part_of_the_failure_reason() -> None:
+    """#871: a rollback that could not restore the production set is
+    recorded in the proposal's failure reason, not only logged."""
+    proposal = _make_proposal()
+    executor, session, repo_instance = _make_executor(proposal)
+    mark_failed_mock = AsyncMock()
+
+    with (
+        patch(
+            "will.autonomy.proposal_executor.service_registry.session",
+            MagicMock(return_value=_session_ctx(session)),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalRepository",
+            MagicMock(return_value=repo_instance),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalStateManager"
+        ) as state_manager_cls,
+        patch(
+            "will.autonomy.proposal_executor.capture_git_sha",
+            MagicMock(return_value="deadbeef"),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.commit_proposal_changes",
+            MagicMock(return_value=CommitOutcome.FAILED),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.rollback_proposal",
+            MagicMock(return_value="1 production path(s) still differ: a.py"),
+        ),
+        patch("will.autonomy.proposal_executor.record_consequence", AsyncMock()),
+        patch(
+            "will.autonomy.proposal_executor.resolve_deferred_findings",
+            AsyncMock(),
+        ),
+    ):
+        state_manager_cls.return_value.mark_failed = mark_failed_mock
+        result = await executor.execute(
+            "pid-exec-1", claimed_by=MagicMock(), write=True
+        )
+
+    assert result["lifecycle_status"] == "failed"
+    reason = mark_failed_mock.await_args.kwargs["reason"]
+    assert reason.startswith("ADR-148 D3: git commit failed")
+    assert "ROLLBACK INCOMPLETE: 1 production path(s) still differ: a.py" in reason

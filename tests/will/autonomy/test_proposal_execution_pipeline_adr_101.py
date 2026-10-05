@@ -180,6 +180,149 @@ def test_rollback_proposal_restores_only_action_touched_paths(
     )
 
 
+def _status(repo: Path, *paths: str) -> str:
+    return _run(["git", "status", "--porcelain", "--", *paths], repo)
+
+
+def _production(*paths: str) -> dict:
+    return {"fix.x:0": {"ok": True, "data": {"_sandbox_target_paths": list(paths)}}}
+
+
+def test_rollback_reverts_an_already_staged_mutation(tmp_path: Path) -> None:
+    """#871: the mutation was ``git add``-ed (commit_paths' staging step)
+    before the commit failed. Rollback must restore index AND working tree
+    to the baseline; an unrelated staged path stays staged."""
+    repo = tmp_path
+    _init_repo(repo)
+    (repo / "target.py").write_text("baseline\n")
+    (repo / "other.py").write_text("other\n")
+    _run(["git", "add", "-A"], repo)
+    _run(["git", "commit", "-m", "initial"], repo)
+    pre_sha = _run(["git", "rev-parse", "HEAD"], repo)
+
+    (repo / "target.py").write_text("staged mutation\n")
+    (repo / "other.py").write_text("operator staged edit\n")
+    _run(["git", "add", "target.py", "other.py"], repo)
+
+    problem = rollback_proposal(
+        git_service=GitService(repo),
+        proposal_id="test-871",
+        action_results=_production("target.py"),
+        pre_sha=pre_sha,
+    )
+
+    assert problem is None
+    assert (repo / "target.py").read_text() == "baseline\n"
+    assert _status(repo, "target.py") == "", "index and worktree back at baseline"
+    assert _status(repo, "other.py") == "M  other.py", "unrelated staged edit kept"
+
+
+def test_rollback_removes_files_the_action_created(tmp_path: Path) -> None:
+    """A path absent from the baseline was produced by the action: staged
+    or untracked, it is removed. Unrelated untracked files stay."""
+    repo = tmp_path
+    _init_repo(repo)
+    (repo / "keep.py").write_text("k\n")
+    _run(["git", "add", "-A"], repo)
+    _run(["git", "commit", "-m", "initial"], repo)
+    pre_sha = _run(["git", "rev-parse", "HEAD"], repo)
+
+    (repo / "pkg").mkdir()
+    (repo / "pkg/new_staged.py").write_text("x\n")
+    (repo / "pkg/new_untracked.py").write_text("y\n")
+    (repo / "operator_scratch.txt").write_text("mine\n")
+    _run(["git", "add", "pkg/new_staged.py"], repo)
+
+    problem = rollback_proposal(
+        git_service=GitService(repo),
+        proposal_id="test-871-created",
+        action_results=_production("pkg/new_staged.py", "pkg/new_untracked.py"),
+        pre_sha=pre_sha,
+    )
+
+    assert problem is None
+    assert not (repo / "pkg/new_staged.py").exists()
+    assert not (repo / "pkg/new_untracked.py").exists()
+    assert _status(repo, "pkg") == ""
+    assert (repo / "operator_scratch.txt").read_text() == "mine\n"
+
+
+def test_rollback_restores_to_the_baseline_not_a_later_head(tmp_path: Path) -> None:
+    """The restoration source is the captured pre-execution SHA."""
+    repo = tmp_path
+    _init_repo(repo)
+    (repo / "t.py").write_text("v1\n")
+    _run(["git", "add", "-A"], repo)
+    _run(["git", "commit", "-m", "v1"], repo)
+    pre_sha = _run(["git", "rev-parse", "HEAD"], repo)
+    (repo / "t.py").write_text("v2\n")
+    _run(["git", "commit", "-qam", "v2"], repo)
+
+    problem = rollback_proposal(
+        git_service=GitService(repo),
+        proposal_id="test-871-source",
+        action_results=_production("t.py"),
+        pre_sha=pre_sha,
+    )
+
+    assert problem is None
+    assert (repo / "t.py").read_text() == "v1\n"
+
+
+def test_rollback_without_a_baseline_is_reported_not_silent() -> None:
+    problem = rollback_proposal(
+        git_service=object(),
+        proposal_id="test-871-nobase",
+        action_results=_production("a.py"),
+        pre_sha=None,
+    )
+    assert problem is not None
+    assert "no pre-execution baseline" in problem
+    assert "a.py" in problem
+
+
+def test_rollback_residue_is_reported() -> None:
+    class _Git:
+        def restore_paths(self, paths, source):
+            return ["a.py"]
+
+    problem = rollback_proposal(
+        git_service=_Git(),
+        proposal_id="test-871-residue",
+        action_results=_production("a.py"),
+        pre_sha="f" * 40,
+    )
+    assert problem is not None
+    assert "still differ" in problem and "a.py" in problem
+
+
+def test_rollback_error_is_reported_not_swallowed() -> None:
+    class _Git:
+        def restore_paths(self, paths, source):
+            raise RuntimeError("Git command failed: index.lock exists")
+
+    problem = rollback_proposal(
+        git_service=_Git(),
+        proposal_id="test-871-raise",
+        action_results=_production("a.py"),
+        pre_sha="f" * 40,
+    )
+    assert problem is not None
+    assert "index.lock" in problem
+
+
+def test_nothing_to_roll_back_is_not_a_problem(tmp_path: Path) -> None:
+    assert (
+        rollback_proposal(
+            git_service=object(),
+            proposal_id="test-871-empty",
+            action_results=_production(),
+            pre_sha="f" * 40,
+        )
+        is None
+    )
+
+
 def test_autonomy_dirty_tree_loader_retired() -> None:
     """ADR-101 D4: autonomy_dirty_tree.yaml + loader were retired
     alongside _check_scope_collision. The loader module no longer exists.
