@@ -3,7 +3,7 @@
   "info": {
     "title": "CORE OEM API",
     "description": "\nThe CORE API surface — the stable, versioned interface that external\nintegrations and downstream distributions consume to embed CORE's\nconstitutional governance layer.\n\n**Stability policy:** see [ADR-087](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md).\n**Route classification:** see [CORE-OEM-API paper](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-OEM-API.md).\n\nRoutes marked `internal` (or absent from this spec) are CORE-operator\nconcerns — daemon lifecycle, autonomy-loop triggers, CI gate dispatch.\nThey are subject to change without notice and not part of this contract.\n",
-    "version": "2.12.0",
+    "version": "2.12.1",
     "x-stability-policy": "https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md"
   },
   "paths": {

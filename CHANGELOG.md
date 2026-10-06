@@ -8,12 +8,33 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.12.1] — 2026-10-06
+
+**Both documented install paths work from public artifacts on a clean Ubuntu 26.04 LTS machine,
+and a newcomer's first audit is clean.** These are fixes from a cold-room run (a fresh VM cut off
+from the maintainers' network). Patch release: no database migrations, so a 2.12.0 database needs
+no upgrade.
+
 ### Fixed
 
+- **Adopter projects load their capability taxonomy again (#957).** Since July, the machinery
+  floor's `action_risk.yaml` had lacked seven entries for capabilities its own taxonomy declares,
+  so in every project built on the floor the taxonomy failed to load and IntentGuard's capability
+  check (advisory) switched itself off. The entries are restored; CORE's own repository was not
+  affected.
+- **No warnings on a clean adopter audit (#957).** A project that does not declare
+  `substrate_enforcement.yaml` uses the built-in default quietly; a declared but unreadable one
+  still warns.
+- **A repository with no commit yet (#958)** is reported in plain words ("commit .intent/ to
+  establish" the law of record) instead of a raw git `ambiguous argument 'HEAD'` error.
+- **Checks that could not run (#956)** show as `NOT EVALUATED` / `unavailable` in the audit
+  tables and overview, instead of `ERROR` / `needs human`. The verdict (DEGRADED) and the JSON
+  output are unchanged.
 - **`install-core.sh` on a fresh clone** stopped at its install-time audit on 2.12.0: the
   blocking `cli.reference_current` rule needs the declared core-cli release, which the
   installer did not install. It now installs it, as `make install` and CI do (cold-room run,
-  Ubuntu 26.04.1).
+  Ubuntu 26.04.1). The installer also no longer counts a check that could not run as a blocking
+  finding.
 - **The "Start a project" tutorial** reaches PASS again. It now commits the adopted law before
   auditing; without a commit, 2.12.0's law-drift check correctly reports DEGRADED.
 - **The getting-started guide** states what a fresh install's first audit shows (DEGRADED, exit
@@ -993,7 +1014,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...HEAD
+[2.12.1]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...v2.11.0
 [2.10.2]: https://github.com/DariuszNewecki/CORE/compare/v2.10.1...v2.10.2
