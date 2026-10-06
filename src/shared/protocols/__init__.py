@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from .cognitive import CognitiveProtocol
 from .executor import ActionExecutorProtocol
-from .interpreter import TaskStructureProtocol
 from .knowledge import SessionProviderProtocol
 from .llm import LLMClientProtocol
 
@@ -17,5 +16,4 @@ __all__ = [
     "CognitiveProtocol",
     "LLMClientProtocol",
     "SessionProviderProtocol",
-    "TaskStructureProtocol",
 ]
