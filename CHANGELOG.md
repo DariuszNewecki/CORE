@@ -44,8 +44,9 @@ no upgrade.
 ### Changed
 
 - **Faster git-clone install on Python 3.14** (Ubuntu 26.04 LTS): the lockfile moves uvloop
-  0.21.0 → 0.23.0, which ships ready-built wheels for Python 3.14 instead of compiling from
-  source (#959).
+  0.21.0 → 0.23.0, grpcio 1.74.0 → 1.84.0 and httptools 0.6.4 → 0.8.0, each of which ships
+  ready-built wheels for Python 3.14 instead of compiling from source (#959). The pip install
+  path already resolved newer versions.
 
 ## [2.12.0] — 2026-10-06
 
