@@ -50,11 +50,15 @@ def _make_type_ref(type_id: str, supported_actions: list[str]) -> ArtifactTypeRe
 
 # ID: 416d40bd-cbf5-4624-b082-a77969874fca
 def _write_action_risk(repo: Path, entries: dict[str, dict[str, object]]) -> None:
-    """Write a minimal action_risk.yaml under .intent/enforcement/config/."""
+    """Write a minimal action_risk.yaml under .intent/enforcement/config/.
+
+    Entries sit under the top-level ``actions:`` mapping, the canonical
+    on-disk format — a flat file here once hid a reader that skipped it.
+    """
     config_dir = repo / ".intent" / "enforcement" / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
     (config_dir / "action_risk.yaml").write_text(
-        yaml.dump(entries),
+        yaml.dump({"actions": entries}),
         encoding="utf-8",
     )
 
@@ -129,3 +133,23 @@ async def test_action_supported_by_declaration_asymmetric(tmp_path: Path) -> Non
     assert f.context["artifact_type_id"] == "document_corpus"
     assert f.context["action_id"] == "document.gap_analysis"
     assert f.context["direction"] == "introspected_not_authored"
+
+
+# ── Regression: the real action_risk.yaml is read ─────────────────────────────
+
+
+def test_collect_pairs_reads_the_real_action_risk_file() -> None:
+    """The live file nests entries under ``actions:``; reading it must yield
+    its declared pairs. Before the fix the reader walked the top level, saw
+    only the ``actions`` key, and returned nothing — so every artifact_type's
+    supported_actions surfaced as a false finding (governor inbox, 2026-10-03).
+    """
+    from mind.logic.engines.taxonomy_gate import _collect_action_artifact_pairs
+
+    repo_root = Path(__file__).resolve().parents[4]
+    pairs = _collect_action_artifact_pairs(
+        repo_root / ".intent" / "enforcement" / "config" / "action_risk.yaml"
+    )
+
+    assert ("python", "fix.format") in pairs
+    assert ("document_corpus", "document.gap_analysis") in pairs

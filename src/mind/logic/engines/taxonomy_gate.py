@@ -694,7 +694,9 @@ def _collect_sensor_artifact_pairs(workers_dir: Path) -> set[tuple[str, str]]:
 def _collect_action_artifact_pairs(action_risk_path: Path) -> set[tuple[str, str]]:
     """Read action_risk.yaml; emit (artifact_type_id, action_id) pairs.
 
-    Only entries that carry a non-empty ``artifact_types`` list contribute.
+    Entries live under the top-level ``actions:`` mapping (the canonical
+    format, as read by ``shared.infrastructure.intent.action_risk``). Only
+    entries that carry a non-empty ``artifact_types`` list contribute.
     Entries without ``artifact_types`` (legacy Python-only actions from before
     ADR-092-A) contribute nothing.
     """
@@ -706,9 +708,14 @@ def _collect_action_artifact_pairs(action_risk_path: Path) -> set[tuple[str, str
     except Exception as exc:
         logger.debug("taxonomy_gate: cannot load %s: %s", action_risk_path, exc)
         return pairs
-    if not isinstance(data, dict):
+    actions = data.get("actions") if isinstance(data, dict) else None
+    if not isinstance(actions, dict):
+        logger.warning(
+            "taxonomy_gate: %s has no 'actions' mapping; no action artifact_types read",
+            action_risk_path,
+        )
         return pairs
-    for action_id, entry in data.items():
+    for action_id, entry in actions.items():
         if not isinstance(entry, dict):
             continue
         artifact_types = entry.get("artifact_types")
