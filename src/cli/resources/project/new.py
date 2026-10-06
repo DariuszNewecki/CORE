@@ -60,8 +60,11 @@ async def new_project_command(
 
     plan = plan_new_project(name, parent, core_root)
     # ADR-169 D5: the new project's files are outside CORE's repository; each
-    # write is recorded, even if creation stops part-way.
+    # write is recorded, even if creation stops part-way. No ledger, no write
+    # (#953).
     outside = OutsideWriteLog(plan.target_root, produced_by="project.new")
+    if write:
+        await outside.require_ledger()
     try:
         count = write_new_project(plan, core_root, write=write, outside=outside)
     finally:

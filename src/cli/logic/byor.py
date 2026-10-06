@@ -305,6 +305,8 @@ async def initialize_repository(
         if write and stage_dir is None
         else None
     )
+    if outside is not None:
+        await outside.require_ledger()  # no ledger, no write (#953)
     delivered = 0
     try:
         for src in source_files:
@@ -428,6 +430,7 @@ async def promote_staged(context: CoreContext, path: Path) -> None:
     # initialize_repository — FileHandler boundary guard cannot cross repos).
     # ADR-169 D5: every file promoted into the target is recorded.
     outside = OutsideWriteLog(target_root, produced_by="project.onboard.promote")
+    await outside.require_ledger()  # no ledger, no write (#953)
     delivered = 0
     try:
         for src in source_files:

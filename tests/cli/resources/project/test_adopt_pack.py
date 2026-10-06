@@ -35,6 +35,15 @@ PACK_ID = "core/starter-python"
 SLUG = "core_starter_python"
 
 
+@pytest.fixture(autouse=True)
+def _standalone_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No CORE database configured: these tests are about the files written,
+    not the outside-write ledger (covered in test_outside_write_ledger.py)."""
+    monkeypatch.setattr(
+        "body.services.outside_write_ledger.database_is_configured", lambda: False
+    )
+
+
 def _bare_repo(tmp_path: Path) -> Path:
     target = tmp_path / "target-repo"
     (target / "pkg").mkdir(parents=True)

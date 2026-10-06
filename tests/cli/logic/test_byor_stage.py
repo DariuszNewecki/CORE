@@ -20,6 +20,15 @@ import typer
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _standalone_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No CORE database configured: these tests are about the files written,
+    not the outside-write ledger (covered in test_outside_write_ledger.py)."""
+    monkeypatch.setattr(
+        "body.services.outside_write_ledger.database_is_configured", lambda: False
+    )
+
+
 def _make_context(core_root: Path) -> MagicMock:
     ctx = MagicMock()
     ctx.git_service.repo_path = core_root

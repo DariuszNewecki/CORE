@@ -240,9 +240,11 @@ async def induce_rules(
         raise typer.Exit(code=1)
 
     if reset and inducted_path.exists():
-        inducted_path.unlink()
         # ADR-169 D5: a deletion in the target project is an outside write.
+        # No ledger, no delete (#953).
         reset_log = OutsideWriteLog(target_root, produced_by="project.scout")
+        await reset_log.require_ledger()
+        inducted_path.unlink()
         reset_log.deleted(inducted_path)
         await reset_log.flush()
         console.print(
@@ -1031,12 +1033,14 @@ async def _write_intent_file(
     dest = target_intent / output_rel
 
     if write:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(content, encoding="utf-8")
-        # ADR-169 D5: recorded in the outside-write ledger.
+        # ADR-169 D5: recorded in the outside-write ledger; no ledger, no
+        # write (#953).
         outside = OutsideWriteLog(
             context.git_service.repo_path, produced_by="project.scout"
         )
+        await outside.require_ledger()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
         outside.wrote(dest)
         await outside.flush()
         if dest.is_file():

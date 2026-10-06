@@ -75,6 +75,17 @@ def _engine_echo() -> bool:
     return str(getattr(settings, "DATABASE_ECHO", "false")).lower() == "true"
 
 
+# ID: 23044df2-b617-4951-9474-00ad0c371ddb
+def database_is_configured() -> bool:
+    """True when this installation names a CORE database (DATABASE_URL set).
+
+    Says nothing about reachability. A standalone install (e.g. a plain
+    ``pip install`` used to scaffold an adopter project) has none; callers use
+    this to tell "no CORE database here" from "CORE database down".
+    """
+    return bool(settings.DATABASE_URL)
+
+
 def _create_state() -> _DbState:
     """
     Create a new engine + session factory.

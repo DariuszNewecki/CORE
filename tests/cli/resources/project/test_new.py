@@ -13,6 +13,15 @@ import typer
 from cli.resources.project.new import new_project_command
 
 
+@pytest.fixture(autouse=True)
+def _standalone_install(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No CORE database configured: these tests are about the files written,
+    not the outside-write ledger (covered in test_outside_write_ledger.py)."""
+    monkeypatch.setattr(
+        "body.services.outside_write_ledger.database_is_configured", lambda: False
+    )
+
+
 def _ctx(core_root: Path) -> MagicMock:
     ctx = MagicMock(spec=typer.Context)
     ctx.obj = MagicMock()
@@ -65,3 +74,31 @@ def test_runs_without_brain_services_or_core_checkout(
 
     assert (tmp_path / "demo" / ".intent").is_dir()
     ctx.obj.registry.get_qdrant_service.assert_not_called()
+
+
+# ID: 6c413a83-4a6b-40d5-be50-67bf3cdf6fd0
+async def test_configured_but_unreachable_ledger_refuses_and_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#953 (governor ruling, option A): a CORE installation whose ledger is
+    down refuses the outside write before creating anything."""
+    from contextlib import asynccontextmanager
+
+    from body.services.outside_write_ledger import OutsideWriteLedgerUnavailable
+
+    @asynccontextmanager
+    async def _down():
+        raise ConnectionError("no database")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(
+        "body.services.outside_write_ledger.database_is_configured", lambda: True
+    )
+    monkeypatch.setattr("body.services.service_registry.ServiceRegistry.session", _down)
+    core_root = tmp_path / "core"
+    core_root.mkdir()
+
+    with pytest.raises(OutsideWriteLedgerUnavailable):
+        await new_project_command(_ctx(core_root), "demo", tmp_path, True)
+
+    assert not (tmp_path / "demo").exists()

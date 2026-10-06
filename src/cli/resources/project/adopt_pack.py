@@ -254,6 +254,7 @@ async def adopt_pack_command(
     from body.services.outside_write_ledger import OutsideWriteLog
 
     outside = OutsideWriteLog(target_dir, produced_by="project.adopt_pack")
+    await outside.require_ledger()  # no ledger, no write (#953)
     try:
         deliver_external_intent_files(target_dir, core_root, files, outside)
     finally:
