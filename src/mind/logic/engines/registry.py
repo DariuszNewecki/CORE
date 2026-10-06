@@ -114,10 +114,18 @@ class EngineRegistry:
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         global PASSIVE_ALIASES
-        try:
-            data = get_intent_repository().load_policy(
-                "taxonomies/substrate_enforcement"
+        repo = get_intent_repository()
+        if not repo.has_policy("taxonomies/substrate_enforcement"):
+            # An adopter project need not declare the taxonomy; the built-in set
+            # is the substrate default, not a degraded state (#957). A declared
+            # but unreadable taxonomy still warns below.
+            logger.debug(
+                "EngineRegistry: no substrate_enforcement taxonomy declared; "
+                "using the built-in PASSIVE_ALIASES."
             )
+            return
+        try:
+            data = repo.load_policy("taxonomies/substrate_enforcement")
             entries = data.get("entries", {})
             if isinstance(entries, dict) and entries:
                 PASSIVE_ALIASES = set(entries.keys())

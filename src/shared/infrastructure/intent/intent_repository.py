@@ -261,6 +261,14 @@ class IntentRepository(RootedRepository):
 
         raise GovernanceError(f"Policy not found for id: {policy_id}")
 
+    # ID: 74ac4a96-ee1f-40da-9ae0-43ffcbca2964
+    def has_policy(self, policy_id: str) -> bool:
+        """True when a policy id (the slash form load_policy accepts) resolves
+        to a file. Lets a caller tell "not declared" from "declared but
+        unreadable", which load_policy reports with the same error type."""
+        policy_id = policy_id.strip().lstrip("/")
+        return any(p.exists() for p in self._candidate_paths_for_id(policy_id))
+
     # ID: 375428ca-11be-4c31-b12b-9e0f7c11b766
     def list_workflows(self) -> list[str]:
         base = self.resolve_rel("workflows/definitions")

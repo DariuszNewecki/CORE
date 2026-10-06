@@ -40,3 +40,14 @@ def test_iter_documents_under_limits_the_walk(tmp_path: Path) -> None:
     names = [p.name for p, _ in repo.iter_documents(under="enforcement/mappings")]
     assert names == ["good.yaml"]
     assert list(repo.iter_documents(under="does/not/exist")) == []
+
+
+def test_has_policy_tells_absent_from_present(tmp_path: Path) -> None:
+    """#957: callers need "not declared" apart from "declared but unreadable"."""
+    repo = _repo(tmp_path)
+    (tmp_path / ".intent" / "taxonomies").mkdir()
+    (tmp_path / ".intent" / "taxonomies" / "present.yaml").write_text("x: [\n")
+    assert repo.has_policy("taxonomies/present") is True
+    assert repo.has_policy("taxonomies/absent") is False
+    with pytest.raises(GovernanceError):
+        repo.load_policy("taxonomies/present")  # present, but unreadable
