@@ -179,3 +179,12 @@ attribute what it writes and observe the state it governs. #937 (`keygen`) waits
   `MATCH`/`DRIFT` relationship; scope exclusions for cryptographic chaining and general
   filesystem surveillance.
 - 2026-10-05 — accepted by the governor.
+
+## Amendment — 2026-10-06 (#953): the ledger is a precondition
+
+Governor ruling. D5 is enforced, not best effort: with a CORE database configured, a write site
+checks the ledger before its first write and refuses, writing nothing, when it is unreachable;
+entries that fail to record after writing are kept and the command fails. Boundary: an
+installation with no CORE database configured (a standalone install scaffolding an adopter
+project) has no CORE state to record; the writes proceed and every unrecorded path is reported.
+Declined: write anyway with a warning; a local queue replayed later.

@@ -6,10 +6,11 @@
 # ADR:         ADR-005 (.specs/decisions/ADR-005-govern-audit-verdict-policy.md)
 # Loader:      src/shared/infrastructure/intent/audit_verdict.py
 #
-# This file is the governance authority over audit verdict semantics.
-# Verdict semantics are governed here. Source code may change only as
-# necessary to interpret and execute vocabulary authorized by this
-# policy and its governing ADRs.
+# This file governs CORE's own audit verdict semantics. It sits
+# on top of the substrate minimum (the machinery floor's copy,
+# ADR-005 Amendment 2026-10-06): it may add entries, never remove
+# one. Source code may change only as necessary to interpret and
+# execute vocabulary authorized by this policy and its governing ADRs.
 #
 # ---------------------------------------------------------------------
 # What each verdict guarantees
