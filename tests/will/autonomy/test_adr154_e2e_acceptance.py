@@ -59,9 +59,13 @@ from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.git_service import GitService
 from will.autonomy.proposal_executor import ProposalExecutor
 from will.autonomy.proposal_service import ProposalService
-from will.remediation import RemediationCeremony, WorkerRemediationBlackboard
+from will.remediation import (
+    RemediationCeremony,
+    WorkerRemediationBlackboard,
+    finding_state,
+)
 from will.workers.audit_violation_sensor import AuditViolationSensor
-from will.workers.violation_executor import ViolationExecutorWorker
+from will.workers.violation_executor import _CFG, ViolationExecutorWorker
 
 
 pytestmark = [pytest.mark.integration]
@@ -255,7 +259,9 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
     # ------------------------------------------------------------------
     worker = ViolationExecutorWorker(core_context=core_context)
     await worker._register()
-    findings = await worker._claim_unmapped_findings(mapped_rule_ids=set())
+    findings = await finding_state.claim_unmapped_findings(
+        set(), claimed_by=worker._worker_uuid, limit=_CFG.claim_limit
+    )
     assert findings, "the seeded finding must be claimable as unmapped"
     ours = [f for f in findings if f["payload"].get("rule") == _RULE_ID]
     assert len(ours) == 1, f"expected exactly our finding claimed, got {findings}"

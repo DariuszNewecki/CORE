@@ -116,6 +116,10 @@ class ViolationExecutorWorker(Worker):
         """
         Main cycle. Steps 1-10 from CORE-ViolationExecutor.md.
         """
+        # Lazy import (finding-state helpers, ADR-095 split): keeps
+        # will.remediation off this module's import-time graph, as before.
+        from will.remediation import finding_state
+
         # Step 1: Heartbeat
         await self.post_heartbeat()
 
@@ -133,7 +137,9 @@ class ViolationExecutorWorker(Worker):
         )
 
         # Steps 1-2 (claim): Claim open findings for unmapped rules only
-        findings = await self._claim_unmapped_findings(mapped_rule_ids)
+        findings = await finding_state.claim_unmapped_findings(
+            mapped_rule_ids, claimed_by=self._worker_uuid, limit=_CFG.claim_limit
+        )
 
         if not findings:
             await self.post_report(
@@ -186,7 +192,7 @@ class ViolationExecutorWorker(Worker):
             deferred_findings = [f for _, f_list in deferred for f in f_list]
             deferred_paths = [path for path, _ in deferred]
 
-            await self._release_findings(deferred_findings)
+            await finding_state.release_findings(deferred_findings)
             await self._post_blast_bound_finding(
                 cap=self._files_per_cycle_max,
                 total_files=len(all_files),
@@ -215,10 +221,12 @@ class ViolationExecutorWorker(Worker):
             # abandoned findings. At or over cap_n, delegate the fresh findings
             # to the governor once rather than running a ceremony that will
             # fail again — never abandon, which would re-post them every cycle.
-            inherited = await self._query_file_attempt_count(file_path)
+            inherited = await finding_state.query_file_attempt_count(file_path)
             if inherited >= cap_n:
                 entry_ids = [str(f["id"]) for f in file_findings]
-                await self._delegate_capped_findings(entry_ids, inherited, file_path)
+                await finding_state.delegate_capped_findings(
+                    entry_ids, inherited, file_path
+                )
                 capped += 1
                 logger.warning(
                     "ViolationExecutorWorker: '%s' — remediation cap exhausted "
@@ -283,6 +291,10 @@ class ViolationExecutorWorker(Worker):
 
         Returns (success, list_of_rule_ids_processed).
         """
+        # Lazy import (finding-state helpers, ADR-095 split): keeps
+        # will.remediation off this module's import-time graph, as before.
+        from will.remediation import finding_state
+
         # Step 4: RemediationMap gate — race condition check.
         # If any finding's rule became mapped AFTER we claimed it,
         # release those findings back to open for RemediatorWorker.
@@ -292,7 +304,7 @@ class ViolationExecutorWorker(Worker):
             if str((f.get("payload") or {}).get("rule") or "") in mapped_rule_ids
         ]
         if late_mapped:
-            await self._release_findings(late_mapped)
+            await finding_state.release_findings(late_mapped)
             findings = [f for f in findings if f not in late_mapped]
             logger.info(
                 "ViolationExecutorWorker: released %d finding(s) back to open "
@@ -347,7 +359,7 @@ class ViolationExecutorWorker(Worker):
                 file_path,
                 exc,
             )
-            await self._abandon_findings(findings)
+            await finding_state.abandon_findings(findings)
             return False, []
 
     # -------------------------------------------------------------------------
@@ -428,125 +440,6 @@ class ViolationExecutorWorker(Worker):
     # -------------------------------------------------------------------------
     # Blackboard helpers
     # -------------------------------------------------------------------------
-
-    # ID: 4788d491-6c2d-4222-9cd8-14b063c7a0ec
-    async def _claim_unmapped_findings(
-        self, mapped_rule_ids: set[str]
-    ) -> list[dict[str, Any]]:
-        """Atomically claim open audit-violation findings for unmapped rules."""
-        try:
-            from body.services.service_registry import service_registry
-            from shared.infrastructure.intent.audit_namespaces import (
-                audit_violation_like_patterns,
-            )
-            from will.audit_violation.filter import is_autonomously_remediable_target
-
-            svc = await service_registry.get_blackboard_service()
-            claimed = await svc.claim_unmapped_violation_findings(
-                mapped_rule_ids=mapped_rule_ids,
-                patterns=audit_violation_like_patterns(),
-                limit=_CFG.claim_limit,
-                claimed_by=self._worker_uuid,
-            )
-            # The ceremony rewrites Python source only; a finding on any other
-            # target goes to the governor instead of failing the ceremony.
-            non_remediable = [
-                f
-                for f in claimed
-                if not is_autonomously_remediable_target(
-                    str((f.get("payload") or {}).get("file_path") or ".py")
-                )
-            ]
-            if non_remediable:
-                await svc.mark_indeterminate([str(f["id"]) for f in non_remediable])
-            return [f for f in claimed if f not in non_remediable]
-        except Exception as exc:
-            logger.error(
-                "ViolationExecutorWorker: claim_unmapped_violation_findings failed — %s",
-                exc,
-            )
-            return []
-
-    # ID: b3b9c33a-d475-413d-b963-2363bbb4bf84
-    async def _release_findings(self, findings: list[dict[str, Any]]) -> None:
-        """Release claimed findings back to open status."""
-        try:
-            from body.services.service_registry import service_registry
-
-            svc = await service_registry.get_blackboard_service()
-            entry_ids = [str(f["id"]) for f in findings]
-            await svc.release_claimed_entries(entry_ids)
-        except Exception as exc:
-            logger.error(
-                "ViolationExecutorWorker: release_claimed_entries failed — %s", exc
-            )
-
-    # ID: a4fb50f5-af70-45b4-a40b-56ff94d1d937
-    async def _abandon_findings(self, findings: list[dict[str, Any]]) -> None:
-        """Abandon findings after an unrecoverable ceremony failure.
-
-        Increments remediation_attempt_count so the circuit breaker can detect
-        exhaustion across finding-renewal cycles (ADR-104 D9 unmapped-rule path).
-        """
-        try:
-            from body.services.service_registry import service_registry
-
-            svc = await service_registry.get_blackboard_service()
-            entry_ids = [str(f["id"]) for f in findings]
-            await svc.abandon_entries_and_increment_attempt_count(entry_ids)
-        except Exception as exc:
-            logger.error(
-                "ViolationExecutorWorker: abandon_entries_and_increment failed — %s",
-                exc,
-            )
-
-    # ID: c9f3a2b8-7e14-4d60-9b52-1e4c7d3f8a06
-    async def _query_file_attempt_count(self, file_path: str) -> int:
-        """Return the highest remediation_attempt_count from abandoned findings
-        for this file_path. Returns 0 on error or when no abandoned findings exist."""
-        try:
-            from body.services.service_registry import service_registry
-
-            svc = await service_registry.get_blackboard_service()
-            return await svc.query_max_attempt_count_by_file_path(file_path)
-        except Exception as exc:
-            logger.warning(
-                "ViolationExecutorWorker: could not query inherited count "
-                "for '%s': %s — defaulting to 0",
-                file_path,
-                exc,
-            )
-            return 0
-
-    # ID: d5e8b1a4-3f96-4c27-8a73-2b5c9e6f0d12
-    async def _delegate_capped_findings(
-        self, entry_ids: list[str], count: int, file_path: str
-    ) -> None:
-        """Delegate findings at the remediation cap to the governor, stamping
-        count and the last ceremony failure for this file (ADR-104 D9 as
-        amended 2026-10-03)."""
-        try:
-            from body.services.service_registry import service_registry
-
-            svc = await service_registry.get_blackboard_service()
-            last = await svc.fetch_latest_report_payload(
-                f"audit.remediation.failed::{file_path}"
-            )
-            await svc.delegate_remediation_capped_findings(
-                entry_ids,
-                count,
-                {
-                    "reason": "failure_cap_delegated",
-                    "detail": (last or {}).get("reason")
-                    or "LLM remediation ceremony attempts exhausted for this file",
-                    "attempted_actions": "llm_remediation_ceremony",
-                    "attempt_count": count,
-                },
-            )
-        except Exception as exc:
-            logger.error(
-                "ViolationExecutorWorker: delegate_capped_findings failed — %s", exc
-            )
 
     # ID: 7e1d8f4a-3c2b-4d5e-9a6f-2c4d8b3e9f1c
     async def _post_blast_bound_finding(

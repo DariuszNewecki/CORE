@@ -4,12 +4,12 @@ Unit tests for ViolationExecutorWorker ADR-104 D9 cap mechanism
 
 Three behaviours under test:
 
-1. Ceremony failure path: _abandon_findings calls
+1. Ceremony failure path: finding_state.abandon_findings calls
    abandon_entries_and_increment_attempt_count (NOT bare abandon_entries).
 
 2. Circuit breaker fires: when inherited count >= cap_n before _process_file,
    the file is skipped and findings are delegated to the governor via
-   _delegate_capped_findings (ADR-104 D9 as amended 2026-10-03).
+   finding_state.delegate_capped_findings (ADR-104 D9 as amended 2026-10-03).
 
 3. Circuit breaker skips: when inherited count < cap_n, normal ceremony runs.
 
@@ -60,18 +60,18 @@ def _patch_run(**overrides):  # type: ignore[no-untyped-def]
         "will.workers.violation_executor.ViolationExecutorWorker._load_mapped_rule_ids": MagicMock(
             return_value=set()
         ),
-        "will.workers.violation_executor.ViolationExecutorWorker._claim_unmapped_findings": AsyncMock(
+        "will.remediation.finding_state.claim_unmapped_findings": AsyncMock(
             return_value=[_FINDING]
         ),
-        "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
+        "will.remediation.finding_state.query_file_attempt_count": AsyncMock(
             return_value=0
         ),
-        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings": AsyncMock(),
+        "will.remediation.finding_state.delegate_capped_findings": AsyncMock(),
         "will.workers.violation_executor.ViolationExecutorWorker._process_file": AsyncMock(
             return_value=(True, ["cli.dangerous_explicit"])
         ),
         "will.workers.violation_executor.ViolationExecutorWorker._surface_candidate": AsyncMock(),
-        "will.workers.violation_executor.ViolationExecutorWorker._release_findings": AsyncMock(),
+        "will.remediation.finding_state.release_findings": AsyncMock(),
         "will.workers.violation_executor.ViolationExecutorWorker._post_blast_bound_finding": AsyncMock(),
     }
     defaults.update(overrides)
@@ -85,7 +85,7 @@ def _patch_run(**overrides):  # type: ignore[no-untyped-def]
 
 async def test_abandon_findings_uses_increment_method() -> None:
     """
-    _abandon_findings calls abandon_entries_and_increment_attempt_count,
+    finding_state.abandon_findings calls abandon_entries_and_increment_attempt_count,
     not the plain abandon_entries. Verified by inspecting the mock call on
     the blackboard service returned by service_registry.
     """
@@ -98,7 +98,9 @@ async def test_abandon_findings_uses_increment_method() -> None:
         "body.services.service_registry.service_registry",
         new=MagicMock(get_blackboard_service=AsyncMock(return_value=mock_svc)),
     ):
-        await worker._abandon_findings([_FINDING])  # type: ignore[attr-defined]
+        from will.remediation import finding_state
+
+        await finding_state.abandon_findings([_FINDING])
 
     mock_svc.abandon_entries_and_increment_attempt_count.assert_awaited_once_with(
         ["entry-aaa"]
@@ -112,13 +114,13 @@ async def test_abandon_findings_uses_increment_method() -> None:
 
 async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
     """
-    When _query_file_attempt_count returns cap_n, _delegate_capped_findings is
+    When query_file_attempt_count returns cap_n, delegate_capped_findings is
     called and _process_file is NOT called.
     """
     worker = _make_worker()
     patches = _patch_run(
         **{
-            "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
+            "will.remediation.finding_state.query_file_attempt_count": AsyncMock(
                 return_value=_CAP_N
             ),
         }
@@ -139,7 +141,7 @@ async def test_circuit_breaker_fires_when_inherited_equals_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
+        "will.remediation.finding_state.delegate_capped_findings"
     ].assert_awaited_once_with(["entry-aaa"], _CAP_N, _FILE)
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"
@@ -151,7 +153,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
     worker = _make_worker()
     patches = _patch_run(
         **{
-            "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
+            "will.remediation.finding_state.query_file_attempt_count": AsyncMock(
                 return_value=7
             ),
         }
@@ -172,7 +174,7 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
+        "will.remediation.finding_state.delegate_capped_findings"
     ].assert_awaited_once()
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"
@@ -187,12 +189,12 @@ async def test_circuit_breaker_fires_when_inherited_exceeds_cap() -> None:
 async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     """
     When inherited < cap_n, the normal ceremony path runs:
-    _process_file is called, _delegate_capped_findings is NOT called.
+    _process_file is called, delegate_capped_findings is NOT called.
     """
     worker = _make_worker()
     patches = _patch_run(
         **{
-            "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
+            "will.remediation.finding_state.query_file_attempt_count": AsyncMock(
                 return_value=2
             ),
         }
@@ -213,7 +215,7 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
         await worker.run()  # type: ignore[attr-defined]
 
     patches[
-        "will.workers.violation_executor.ViolationExecutorWorker._delegate_capped_findings"
+        "will.remediation.finding_state.delegate_capped_findings"
     ].assert_not_awaited()
     patches[
         "will.workers.violation_executor.ViolationExecutorWorker._process_file"
@@ -230,7 +232,7 @@ async def test_report_includes_capped_counter() -> None:
     worker = _make_worker()
     patches = _patch_run(
         **{
-            "will.workers.violation_executor.ViolationExecutorWorker._query_file_attempt_count": AsyncMock(
+            "will.remediation.finding_state.query_file_attempt_count": AsyncMock(
                 return_value=_CAP_N
             ),
         }
