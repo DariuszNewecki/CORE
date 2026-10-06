@@ -179,6 +179,22 @@ This runs the full constitutional rule library across all enforcement engines an
 
 A clean audit (zero blocking violations) is the precondition for autonomous operation.
 
+**What a fresh install shows.** Both audits report **DEGRADED** and exit with code **1**.
+This is expected, and not a failure. DEGRADED means CORE could not evaluate every
+blocking rule, so it refuses to call the result a PASS:
+
+- The offline audit reports 0 blocking findings and names the blocking rules it
+  skipped because they need running services.
+- The full audit lists `runtime.worker_max_interval_within_observed` as needing a
+  human, with "insufficient evidence". That rule compares each worker's heartbeat
+  timing over at least 24 hours of history, which a new install does not have yet.
+  It is an *unavailable* check, not a violation. It resolves once the daemon has
+  run long enough (`make daemon-start`).
+
+Exit codes: `0` PASS · `1` FAIL or DEGRADED · `2` configuration error · `64` internal
+error (treat it as the gate not having run). A FAIL always names at least one blocking
+violation, with its file and line.
+
 ---
 
 ## Sync the Vector Layer
