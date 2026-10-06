@@ -44,11 +44,17 @@ checked" as a failure, never as a pass.
 
 ```bash
 core-admin project adopt-pack core/starter-python --write
+git add -A && git commit -m "Adopt core/starter-python"
 ```
 
 A pack is a ready-made set of rules. `core/starter-python` adds four, one of them
 blocking. The packs that ship with CORE are `core/starter-python`, `core/python-hygiene`
 and `core/architectural-boundaries`.
+
+Commit the law before you audit. CORE judges the law of record: the `.intent/` committed
+at `HEAD`. When `.intent/` has uncommitted changes, or the repository has no commit yet,
+the audit cannot establish which law it evaluated, and the verdict is DEGRADED, never
+PASS. (If git asks who you are, set `git config user.name` and `user.email` first.)
 
 ## 5. Audit again
 
