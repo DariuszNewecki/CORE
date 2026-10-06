@@ -1,9 +1,10 @@
-"""ADR-117 — var/tmp janitor (Phase 1, report-only) selection predicate.
+"""ADR-117 — var/tmp janitor selection predicate and Phase-2 deletion.
 
 These exercise the real derivation (`find_reap_candidates`), not a bypass: each
 test seeds a temp tree and ages entries with ``os.utime``, then asserts the
 age/pin/boundary predicate selects exactly the stale-and-unpinned entries.
-Phase 1 has no deletion path, so there is nothing destructive to test here.
+`_reap` (actual deletion) is exercised directly, through a real FileService
+bound to a temporary repository root.
 """
 
 from __future__ import annotations
@@ -12,8 +13,11 @@ import os
 import time
 from pathlib import Path
 
+from body.services.file_service import FileService
 from will.workers.var_tmp_janitor import (
     RETENTION_DAYS,
+    ReapCandidate,
+    _reap,
     find_reap_candidates,
 )
 
@@ -88,3 +92,78 @@ def test_retention_rails_sourced_from_operational_config() -> None:
     cfg = load_operational_config().workers.var_tmp_janitor
     assert RETENTION_DAYS == cfg.retention_days
     assert MAX_REAP_PER_RUN == cfg.max_reap_per_run
+
+
+# --- Phase 2: deletion (`_reap`) through a real FileService ------------------
+
+
+def _tmp_root(repo: Path) -> Path:
+    root = repo / "var" / "tmp"
+    root.mkdir(parents=True)
+    return root
+
+
+def _candidate(path: Path) -> ReapCandidate:
+    return ReapCandidate(path=path, age_days=RETENTION_DAYS + 1.0, size_bytes=1)
+
+
+def test_reap_removes_directory_through_file_service(tmp_path: Path) -> None:
+    root = _tmp_root(tmp_path)
+    stale = root / "stale_dir"
+    stale.mkdir()
+    (stale / "f.txt").write_text("x", encoding="utf-8")
+
+    assert _reap(_candidate(stale), root, FileService(tmp_path)) is True
+    assert not stale.exists()
+    assert root.is_dir()  # var/tmp itself is never deleted
+
+
+def test_reap_removes_file_through_file_service(tmp_path: Path) -> None:
+    root = _tmp_root(tmp_path)
+    stale = root / "stale.log"
+    stale.write_text("x", encoding="utf-8")
+
+    assert _reap(_candidate(stale), root, FileService(tmp_path)) is True
+    assert not stale.exists()
+
+
+def test_reap_missing_entry_is_reported_not_raised(tmp_path: Path) -> None:
+    root = _tmp_root(tmp_path)
+
+    assert _reap(_candidate(root / "gone"), root, FileService(tmp_path)) is False
+
+
+def test_reap_refuses_symlink_and_leaves_target(tmp_path: Path) -> None:
+    """ADR-117 D3: a symlink in var/tmp is never followed or removed."""
+    root = _tmp_root(tmp_path)
+    target = tmp_path / "src_like"
+    target.mkdir()
+    (target / "keep.py").write_text("x", encoding="utf-8")
+    link = root / "link_out"
+    link.symlink_to(target)
+
+    assert _reap(_candidate(link), root, FileService(tmp_path)) is False
+    assert link.is_symlink()
+    assert (target / "keep.py").exists()
+
+
+def test_reap_refuses_path_outside_tmp_root(tmp_path: Path) -> None:
+    """ADR-117 D3 hard boundary: only direct children of var/tmp are reaped."""
+    root = _tmp_root(tmp_path)
+    outside = tmp_path / "var" / "reports"
+    outside.mkdir()
+
+    assert _reap(_candidate(outside), root, FileService(tmp_path)) is False
+    assert outside.exists()
+
+
+def test_reap_refuses_path_outside_the_service_repository(tmp_path: Path) -> None:
+    """The FileHandler chokepoint bounds deletion to its repository."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    foreign_root = _tmp_root(tmp_path / "elsewhere")
+    foreign = foreign_root / "stale_dir"
+    foreign.mkdir()
+
+    assert _reap(_candidate(foreign), foreign_root, FileService(repo)) is False
+    assert foreign.exists()

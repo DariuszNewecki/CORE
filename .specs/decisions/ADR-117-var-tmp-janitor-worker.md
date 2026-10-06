@@ -100,3 +100,27 @@ well within the ADR-103 cap.
 - **Not** addressed here: per-creator cleanup of `probe-*`-style ad-hoc bursts (none exists
   in-tree to fix); a future such harness should clean up after itself rather than lean on
   the janitor.
+
+## Amendment (2026-10-06, governor ruling) — Phase 2 lands; D4 superseded
+
+Phase 2 is promoted: `var_tmp_janitor` now deletes. Phase 1 had run report-only since
+2026-06-19 without the switch ever being made, while `var/tmp/` grew to 3.3G.
+
+**D4 is superseded.** Deletion does **not** go through a `dangerous`-impact `tmp.reap`
+`@atomic_action`. `dangerous` is enforced only by the proposal approval layer
+(`action_risk.yaml` → `Proposal.requires_approval`); `ActionExecutor._check_authorization`
+is a pass-through by design (#633). A worker that called a `dangerous` action directly
+would therefore run it unattended every six hours with nothing actually asking for
+approval — the exact non-governor-caller case #633 names. Routing every sweep through a
+proposal instead would make the janitor need a human every run, which defeats the
+self-bounding consequence this ADR exists for.
+
+Instead the worker deletes through Body's `FileService` (`remove_tree` / `remove_file`) —
+the FileHandler chokepoint D4 was actually protecting, where `var/tmp/` classifies as
+`ephemeral-scratch` — matching the `canary_janitor` precedent (ADR-147, as noted
+2026-07-13 / 2026-10-02). No new action, no `action_risk.yaml` entry.
+
+D2, D3, D5 rails, and D6 are unchanged, and D3 is tightened: a symlink entry is never
+followed or removed, and a target whose resolved path is not a direct child of
+`var/tmp/` is refused. The blackboard subject becomes `var_tmp_janitor.reap` (report
+fields: `reaped`, `failed`, `skipped_over_cap`, `reclaimed_bytes`).

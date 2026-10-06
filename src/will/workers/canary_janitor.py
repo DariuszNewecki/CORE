@@ -14,8 +14,8 @@ entirely, so every in-flight sandbox at kill time was orphaned. 1,948 stale
 
 This worker is that backstop: it scans `work/canary/` and deletes sandbox
 directories older than the retention threshold. Unlike `var_tmp_janitor`
-(ADR-117 Phase 1, report-only — `var/tmp/` can hold arbitrary scratch content
-from many sources), a `work/canary/sandbox_*` directory is exclusively a
+(which shipped report-only first, ADR-117 Phase 1 — `var/tmp/` can hold
+arbitrary scratch content from many sources), a `work/canary/sandbox_*` directory is exclusively a
 transient repo snapshot produced by this codebase for the duration of a
 single canary trial; once stale it has no retention value, so this worker
 deletes directly rather than only reporting (ADR-147 D5). Selection is a
