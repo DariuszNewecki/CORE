@@ -1683,7 +1683,7 @@ Inspect the constitutional worker blackboard (read-only).
 | Argument / option | Default | Description |
 |---|---|---|
 | `--filter`, `-f` |  | Filter by subject prefix (e.g. 'ai.prompt.model_required'). |
-| `--status`, `-s` |  | Filter by status: open \| claimed \| resolved \| abandoned. |
+| `--status`, `-s` |  | Filter by status: open \| claimed \| resolved \| abandoned \| indeterminate. |
 | `--type`, `-t` |  | Filter by entry_type: finding \| report \| heartbeat \| claim \| proposal. |
 | `--limit`, `-n` | `50` | Maximum number of entries to display. |
 | `--payload`, `-p` | off | Show full JSON payload for each entry. |

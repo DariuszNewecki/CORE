@@ -9,6 +9,7 @@ from typing import Any
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from cli.utils.decorators import core_command
@@ -35,7 +36,7 @@ async def workers_blackboard_cmd(
         None,
         "--status",
         "-s",
-        help="Filter by status: open | claimed | resolved | abandoned.",
+        help="Filter by status: open | claimed | resolved | abandoned | indeterminate.",
     ),
     entry_type: str | None = typer.Option(
         None,
@@ -79,6 +80,9 @@ async def workers_blackboard_cmd(
         title=f"Blackboard — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
         show_lines=show_payload,
     )
+    # The full entry ID is shown so `workers resolve <entry_id>` is usable
+    # from this listing alone.
+    table.add_column("ID", style="dim", no_wrap=True)
     table.add_column("Type", style="cyan", no_wrap=True)
     table.add_column("Status", no_wrap=True)
     table.add_column("Subject")
@@ -95,15 +99,24 @@ async def workers_blackboard_cmd(
         "dry_run_complete": "cyan",
     }
     for row in rows:
-        _entry_id, etype, estatus, subject, worker_uuid, created_at, payload = row
+        entry_id, etype, estatus, subject, worker_uuid, created_at, payload = row
         status_style = _STATUS_STYLE.get(estatus, "white")
         status_str = f"[{status_style}]{estatus}[/{status_style}]"
         created_str = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
         worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
-        row_cells = [etype, status_str, subject, worker_str, created_str]
+        # Subjects and payloads are data, not markup: unescaped, a literal
+        # like "[python]" in a finding message is swallowed as a Rich tag.
+        row_cells = [
+            str(entry_id),
+            etype,
+            status_str,
+            escape(subject or ""),
+            worker_str,
+            created_str,
+        ]
         if show_payload:
             raw = payload if isinstance(payload, dict) else json.loads(payload or "{}")
-            row_cells.append(json.dumps(raw, indent=2))
+            row_cells.append(escape(json.dumps(raw, indent=2)))
         table.add_row(*row_cells)
     console.print(table)
 
