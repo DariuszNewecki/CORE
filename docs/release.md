@@ -54,8 +54,9 @@ Once the one-time setup is complete:
    It is the only canonical version.
 2. Run `python scripts/release_pins.py --write`. It brings every release pin
    to that version: the `Dockerfile` default, the README badge, the
-   cold-reviewer Action tag, the GitLab template, the pre-commit example, and
-   the CHANGELOG comparison links. It lists any pin it cannot rewrite safely
+   cold-reviewer Action tag, the GitLab template, the pre-commit example, the
+   committed OpenAPI contract's `info.version`, and the CHANGELOG comparison
+   links. It lists any pin it cannot rewrite safely
    (the README "Current Release" line, which also describes the release);
    edit those by hand. CI runs `--check` and fails on any drift.
 3. Commit the bump (`chore: bump version to X.Y.Z`).

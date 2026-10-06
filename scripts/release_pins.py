@@ -52,6 +52,9 @@ PINS: tuple[Pin, ...] = (
     Pin("docs/cold-reviewer.md", rf"\(`@v{V}` above\)"),
     Pin(".gitlab-ci/CORE.gitlab-ci.yml", rf'CORE_RUNTIME_VERSION: "{V}"'),
     Pin(".pre-commit-hooks.yaml", rf"rev: v{V}\b"),
+    # info.version of the committed OpenAPI contract (ADR-087 D9); the app
+    # renders it from the package version, and a test compares the two.
+    Pin("docs/reference/openapi.json", rf'^    "version": "{V}",$'),
 )
 
 
