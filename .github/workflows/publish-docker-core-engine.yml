@@ -54,12 +54,19 @@ jobs:
       - name: Wait for core-runtime==${{ steps.ver.outputs.version }} on PyPI (iff ordering)
         run: |
           V="${{ steps.ver.outputs.version }}"
+          # #960: ask pip itself, which is what the image build runs. The JSON
+          # API can list a release before pip's index (CDN) does; on v2.12.1
+          # core-engine passed this wait on the JSON API and then failed
+          # `pip install` seconds later. --python-version 3.12 matches the
+          # images' base, so the runner's own Python cannot cause a miss.
           for i in $(seq 1 30); do
-            if curl -fsS "https://pypi.org/pypi/core-runtime/${V}/json" >/dev/null 2>&1; then
-              echo "core-runtime==${V} is on PyPI — proceeding."
+            if python3 -m pip download --quiet --no-deps --no-cache-dir \
+                 --python-version 3.12 --dest "$RUNNER_TEMP/pypi-wait" \
+                 "core-runtime==${V}" >/dev/null 2>&1; then
+              echo "core-runtime==${V} resolves with pip — proceeding."
               exit 0
             fi
-            echo "[$i/30] core-runtime==${V} not on PyPI yet; waiting 20s..."
+            echo "[$i/30] pip cannot resolve core-runtime==${V} yet; waiting 20s..."
             sleep 20
           done
           echo "::error::core-runtime==${V} never appeared on PyPI — refusing to build core-engine (ADR-086 D7 iff invariant)."
