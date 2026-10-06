@@ -39,11 +39,14 @@ FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 BASELINES = ["v2.9.1", "v2.10.1"]
 
 
-def _unreleased() -> list[str]:
-    """Manifest entries after the latest declared release baseline: shipped by
-    no release yet, so every upgrade path replays them (none is reconcilable)."""
+def _after_v2_10_2() -> list[str]:
+    """Manifest entries after the v2.10.2 baseline. The hard-coded counts below
+    (ledger column, U5a backfills, the v2.9.1 span) were fixed at v2.10.2;
+    every entry added since is new to a v2.9.1 or v2.10.1 schema, so both
+    upgrade paths execute it (none is reconcilable). Anchored to v2.10.2, not
+    to the latest baseline, so declaring a later release changes nothing."""
     manifest = load_manifest()
-    through = manifest.order.index(manifest.baselines[-1].through)
+    through = manifest.order.index(manifest.baseline("v2.10.2").through)
     return list(manifest.order[through + 1 :])
 
 
@@ -127,8 +130,8 @@ async def test_wheel_migrates_an_external_database_without_a_checkout(
     assert code == 0, out[-1200:]
     # v2.9.1 executes the whole span; v2.10.1 executes the ledger column and
     # reconciles the four U5a backfills its schema already carries.
-    # Unreleased entries (after the latest baseline) execute on both paths.
-    extra = len(_unreleased())
+    # Entries after v2.10.2 are new to both schemas and execute on both paths.
+    extra = len(_after_v2_10_2())
     expected = {
         "v2.9.1": f"{14 + extra} applied, 0 reconciled",
         "v2.10.1": f"{1 + extra} applied, 4 reconciled",

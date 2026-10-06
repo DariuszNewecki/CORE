@@ -42,11 +42,14 @@ SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql
 SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
 
 
-def _unreleased() -> list[str]:
-    """Manifest entries after the latest declared release baseline: shipped by
-    no release yet, so every upgrade path replays them (none is reconcilable)."""
+def _after_v2_10_2() -> list[str]:
+    """Manifest entries after the v2.10.2 baseline. The hard-coded counts below
+    (ledger column, U5a backfills, the v2.9.1 span) were fixed at v2.10.2;
+    every entry added since is new to a v2.9.1 or v2.10.1 schema, so both
+    upgrade paths execute it (none is reconcilable). Anchored to v2.10.2, not
+    to the latest baseline, so declaring a later release changes nothing."""
     manifest = load_manifest()
-    through = manifest.order.index(manifest.baselines[-1].through)
+    through = manifest.order.index(manifest.baseline("v2.10.2").through)
     return list(manifest.order[through + 1 :])
 
 
@@ -84,8 +87,8 @@ async def test_pending_migrations_refuse_naming_the_first_and_the_remedy(
     await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
     verdict = await evaluate_schema_gate(session_factory=db.session_factory)
     assert verdict.state is SchemaGateState.PENDING
-    # ledger column + 4 U5a backfills + any unreleased entries
-    assert f"{5 + len(_unreleased())} migration(s)" in verdict.message
+    # ledger column + 4 U5a backfills + every entry after v2.10.2
+    assert f"{5 + len(_after_v2_10_2())} migration(s)" in verdict.message
     assert "first: 20260919_adr162_migrations_reconciled.sql" in verdict.message
     assert verdict.remedy == "core-admin database migrate --write"
     refusal = await _refuses(db)

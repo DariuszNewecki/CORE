@@ -80,6 +80,17 @@ def _unreleased() -> list[str]:
     return list(manifest.order[through + 1 :])
 
 
+def _after_v2_10_2() -> list[str]:
+    """Manifest entries after the v2.10.2 baseline. The hard-coded counts below
+    (ledger column, U5a backfills, the v2.9.1 span) were fixed at v2.10.2;
+    every entry added since is new to a v2.9.1 or v2.10.1 schema, so both
+    upgrade paths execute it (none is reconcilable). Anchored to v2.10.2, not
+    to the latest baseline, so declaring a later release changes nothing."""
+    manifest = load_manifest()
+    through = manifest.order.index(manifest.baseline("v2.10.2").through)
+    return list(manifest.order[through + 1 :])
+
+
 # ID: 75bb4dcb-f084-4ca1-ba9b-a1479c57389b
 async def test_fresh_install_from_schema_sql_has_a_complete_ledger(
     fresh_database: FreshDatabase,
@@ -254,10 +265,10 @@ async def test_v2_10_1_shaped_database_refuses_v2_9_1_and_suggests_v2_10_1(
         e.id for e in manifest.entries_through(manifest.baseline("v2.10.1").through)
     ]
     report = await migrate_db(write=True, session_factory=db.session_factory)
-    assert report.pending_before == [RECONCILED_COLUMN, *BACKFILLS, *_unreleased()]
+    assert report.pending_before == [RECONCILED_COLUMN, *BACKFILLS, *_after_v2_10_2()]
     # the ledger column is an idempotent ADD COLUMN IF NOT EXISTS; unreleased
     # entries are new to a v2.10.1 schema, so they execute too
-    assert report.applied == [RECONCILED_COLUMN, *_unreleased()]
+    assert report.applied == [RECONCILED_COLUMN, *_after_v2_10_2()]
     assert report.reconciled == BACKFILLS  # structures already present: no DDL re-run
     assert (await status(session_factory=db.session_factory)).is_current
 
@@ -361,8 +372,8 @@ async def test_cli_upgrade_sequence_cold(fresh_database: FreshDatabase) -> None:
 
     code, out, _ = _core_admin(url, "migrate", "--write")
     assert code == 0 and "Migrations complete" in out, out[-800:]
-    # the whole span incl. U5a backfills, plus any unreleased entries
-    assert f"{14 + len(_unreleased())} applied, 0 reconciled" in out
+    # the whole span incl. U5a backfills, plus every entry after v2.10.2
+    assert f"{14 + len(_after_v2_10_2())} applied, 0 reconciled" in out
 
     code, out, _ = _core_admin(url, "status", "--format", "json")
     assert code == 0, out[-800:]
