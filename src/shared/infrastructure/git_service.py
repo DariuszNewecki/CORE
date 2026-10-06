@@ -127,6 +127,22 @@ class GitService:
         """Returns the hash of the current HEAD commit."""
         return self._run_command(["rev-parse", "HEAD"])
 
+    # ID: d139c53d-af81-4ced-88d9-58fb673179e5
+    def has_head(self) -> bool:
+        """True when HEAD resolves to a commit. A freshly initialised repository
+        has none yet; that is a state, not a failure, so nothing is logged."""
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--verify", "--quiet", "HEAD^{commit}"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            return False
+        return True
+
     # ID: e7a5c19d-2f48-4b6c-9d3a-1f0b4e8c5d72
     def get_current_branch(self) -> str:
         """

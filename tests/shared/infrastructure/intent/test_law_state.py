@@ -92,6 +92,25 @@ def test_committing_the_edit_restores_match(repo: Path) -> None:
     assert observe_law_state(repo / ".intent").relationship == "MATCH"
 
 
+def test_repository_without_a_commit_is_unknown_and_logs_no_git_error(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """#958: `git init` without a commit is a known state. The relationship is
+    UNKNOWN (never MATCH), the reason says what to do, and no git failure is
+    logged at WARNING or above."""
+    _git(tmp_path, "init", "-q")
+    (tmp_path / ".intent").mkdir()
+    (tmp_path / ".intent/policy.yaml").write_text("x: 1\n")
+    with caplog.at_level("DEBUG"):
+        state = observe_law_state(tmp_path / ".intent")
+    assert state.relationship == "UNKNOWN"
+    assert state.reason and "no commit yet" in state.reason
+    assert "commit .intent/" in state.reason
+    assert not [r for r in caplog.records if r.levelno >= 30]
+    (finding,) = law_drift_findings(state)
+    assert "no commit yet" in finding.message
+
+
 def test_outside_a_git_work_tree_is_unknown_never_match(tmp_path: Path) -> None:
     (tmp_path / ".intent").mkdir()
     state = observe_law_state(tmp_path / ".intent")

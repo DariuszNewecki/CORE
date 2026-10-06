@@ -83,6 +83,16 @@ def observe_law_state(intent_root: Path) -> LawState:
         )
     rel = root.relative_to(top).as_posix()
     git = GitService(top)
+    if not git.has_head():
+        # A repository with no commit has no law of record yet. A known state,
+        # reported in the finding, not a git failure (#958).
+        return LawState(
+            relationship="UNKNOWN",
+            reason=(
+                "the repository has no commit yet, so there is no law of record; "
+                "commit .intent/ to establish it"
+            ),
+        )
     try:
         head_sha = git.get_current_commit()
         record = git.ls_tree_blobs("HEAD", rel)
