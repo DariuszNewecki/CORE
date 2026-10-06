@@ -150,8 +150,13 @@ except Exception as exc:  # missing or malformed JSON: fail closed
     sys.exit(0)
 verdict = str(data.get("verdict") or "ERROR").upper()
 findings = data.get("findings") or []
+# A check that could not run is not a blocking violation (#956, #847/#856):
+# it already makes the verdict DEGRADED, which is reported as such below.
+not_evaluated = {"ENFORCEMENT_UNAVAILABLE", "ENFORCEMENT_FAILURE"}
 block = [
-    f for f in findings if str(f.get("severity", "")).lower() in ("block", "blocking")
+    f for f in findings
+    if str(f.get("severity", "")).lower() in ("block", "blocking")
+    and (f.get("context") or {}).get("finding_type") not in not_evaluated
 ]
 skipped = (data.get("stats") or {}).get("skipped_blocking_rule_ids") or []
 print(f"{verdict}\t{len(block)}\t{len(skipped)}\t{', '.join(skipped)}")

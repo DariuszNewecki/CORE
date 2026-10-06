@@ -71,6 +71,8 @@ _FAKES: dict[str, str] = {
         '    case "${FAKE_AUDIT:-DEGRADED}" in\n'
         '      PASS) printf \'{"verdict":"PASS","findings":[],"stats":{"skipped_blocking_rule_ids":[]}}\'; exit 0 ;;\n'
         '      DEGRADED) printf \'{"verdict":"DEGRADED","findings":[],"stats":{"skipped_blocking_rule_ids":["a.b","c.d","e.f"]}}\'; exit 1 ;;\n'
+        '      DEGRADED_UNAVAILABLE) printf \'{"verdict":"DEGRADED","findings":[{"severity":"block","context":{"finding_type":"ENFORCEMENT_UNAVAILABLE"}}],"stats":{}}\'; exit 1 ;;\n'
+        '      DEGRADED_BLOCK) printf \'{"verdict":"DEGRADED","findings":[{"severity":"block","context":{}}],"stats":{}}\'; exit 1 ;;\n'
         '      FAIL) printf \'{"verdict":"FAIL","findings":[{"severity":"block"},{"severity":"block"}],"stats":{}}\'; exit 1 ;;\n'
         '      *) printf "not json"; exit 2 ;;\n'
         "    esac ;;\n"
@@ -415,6 +417,28 @@ def test_missing_core_cli_declaration_refuses(tmp_path: Path) -> None:
     assert code != 0
     assert "Makefile declares no CORE_CLI_DOCS_VERSION" in out
     assert not any("core-cli==" in c for c in calls)
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: 1cd8c573-8749-4445-9ce6-d8fd03258c95
+def test_not_evaluated_blocking_finding_does_not_stop_the_install(
+    tmp_path: Path, path: str
+) -> None:
+    """#956: a blocking rule that could not run (ENFORCEMENT_UNAVAILABLE)
+    already makes the verdict DEGRADED; it is not a blocking violation."""
+    ws = _workspace(tmp_path)
+    kw = {"audit": "DEGRADED_UNAVAILABLE"}
+    code, out, _ = _bare(ws, **kw) if path == "bare" else _run(ws, **kw)
+    assert code == 0, out
+    assert "tree clean (0 blocking findings)" in out
+
+
+# ID: bc45e4f3-5e47-4245-9755-191406b0cfc3
+def test_degraded_with_a_real_blocking_finding_still_stops(tmp_path: Path) -> None:
+    ws = _workspace(tmp_path)
+    code, out, _ = _bare(ws, audit="DEGRADED_BLOCK")
+    assert code != 0
+    assert "1 blocking finding(s) present" in out
 
 
 @pytest.mark.parametrize("path", ["bare", "docker"])

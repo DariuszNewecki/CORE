@@ -18,6 +18,7 @@ from rich.table import Table
 
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
+from shared.models.audit_rendering import is_not_evaluated
 
 
 logger = getLogger(__name__)
@@ -32,10 +33,26 @@ _EVIDENCE_STYLES = {
 }
 
 
+# #956: a check that could not run established no verdict, so it has no
+# evidence class to show and is not a violation of its severity.
+_NOT_EVALUATED_SEVERITY = "[bold yellow]NOT EVALUATED[/bold yellow]"
+_NOT_EVALUATED_EVIDENCE = "[yellow]unavailable[/yellow]"
+
+
 # ID: 7b5e2a91-3c64-4d8f-9a1e-6f2b8c4d7e03
 def _evidence_label(evidence_class: EvidenceClass) -> str:
     """Render a finding's evidence class (ADR-113) for the Rich tables."""
     return _EVIDENCE_STYLES.get(evidence_class, str(evidence_class))
+
+
+def _row_labels(finding: AuditFinding, severity_styles: dict) -> tuple[str, str]:
+    """Severity and evidence cells; a not-evaluated finding shows as such (#956)."""
+    if is_not_evaluated(finding):
+        return _NOT_EVALUATED_SEVERITY, _NOT_EVALUATED_EVIDENCE
+    return (
+        severity_styles.get(finding.severity, str(finding.severity)),
+        _evidence_label(finding.evidence_class),
+    )
 
 
 # ID: b0dc9c82-dd40-4970-94e8-911fd3354930
@@ -64,9 +81,10 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
         issue_count = finding.context.get("issue_count")
         if isinstance(issue_count, int) and issue_count > 1 and finding.file_path:
             location += f" (x{issue_count})"
+        severity_cell, evidence_cell = _row_labels(finding, severity_styles)
         table.add_row(
-            severity_styles.get(finding.severity, str(finding.severity)),
-            _evidence_label(finding.evidence_class),
+            severity_cell,
+            evidence_cell,
             escape(finding.check_id),
             escape(finding.message),
             escape(location),
@@ -105,9 +123,10 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
     )
     for (check_id, severity), finding_list in sorted_items:
         representative_message = finding_list[0].message
+        severity_cell, evidence_cell = _row_labels(finding_list[0], severity_styles)
         table.add_row(
-            severity_styles.get(severity, str(severity)),
-            _evidence_label(finding_list[0].evidence_class),
+            severity_cell,
+            evidence_cell,
             escape(check_id),
             escape(representative_message),
             str(len(finding_list)),

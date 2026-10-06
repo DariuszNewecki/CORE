@@ -8,7 +8,11 @@ from rich.table import Table
 from rich.text import Text
 
 from shared.logger import getLogger
-from shared.models.audit_rendering import SeverityGroup, get_severity_style
+from shared.models.audit_rendering import (
+    SeverityGroup,
+    get_severity_style,
+    is_not_evaluated,
+)
 
 
 logger = getLogger(__name__)
@@ -29,13 +33,23 @@ def render_overview(console: Console, groups: list[SeverityGroup]) -> None:
     table.add_column("Severity", style="dim")
     table.add_column("Count", justify="right", style="cyan")
     table.add_column("%", justify="right", style="magenta")
+    not_evaluated = 0
     for group in groups:
-        count = len(group.findings)
+        # #956: a check that could not run is not a finding of its severity.
+        skipped = sum(1 for f in group.findings if is_not_evaluated(f))
+        not_evaluated += skipped
+        count = len(group.findings) - skipped
         if count == 0:
             continue
         pct = count / total * 100
         sev_text = Text(group.severity.name, style=get_severity_style(group.severity))
         table.add_row(sev_text, str(count), f"{pct:.1f}%")
+    if not_evaluated:
+        table.add_row(
+            Text("NOT EVALUATED", style="bold yellow"),
+            str(not_evaluated),
+            f"{not_evaluated / total * 100:.1f}%",
+        )
     console.print(table)
     _render_iceberg_rollup(console, groups)
 
