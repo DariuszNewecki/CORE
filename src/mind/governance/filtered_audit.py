@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 from shared.models.audit_models import AuditFinding, AuditSeverity, EvidenceClass
@@ -119,7 +119,7 @@ async def run_filtered_audit(
     rule_patterns: list[str] | None = None,
     executed_rule_ids: set[str] | None = None,
     files: list[str] | None = None,
-) -> tuple[list, set[str], dict[str, int]]:
+) -> tuple[list, set[str], dict[str, Any]]:
     """
     Execute filtered subset of constitutional rules.
 
@@ -269,6 +269,10 @@ async def run_filtered_audit(
         "failed_rules": len(failed_rules),
         "total_findings": len(all_findings),
         "skipped_context_level": len(skipped_context_level),
+        # ADR-168 D4.3: the ids, so a scoped caller can name what it did not
+        # evaluate instead of reporting a bare count (#961).
+        "skipped_context_level_ids": sorted(skipped_context_level),
+        "failed_rule_ids": sorted(failed_rules),
     }
 
     logger.info(
