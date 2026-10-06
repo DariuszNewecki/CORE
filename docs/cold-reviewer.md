@@ -80,7 +80,7 @@ Open a pull request that touches a file your rules scope. The check runs, annota
 
 The action emits one output:
 
-- `verdict` — `PASS` (no findings at severity, every blocking rule evaluated), `DEGRADED` (no findings, but one or more *blocking* rules could not be evaluated offline — compliance for those is unknown, not passed; exit 1), `FAIL` (findings present), or `ERROR` (internal failure, or the audit produced no recognisable verdict). The verdict is derived from the audit's JSON result, never from the exit code alone.
+- `verdict` — `PASS` (no findings at severity, every blocking rule evaluated, and the `.intent/` evaluated is the committed law), `DEGRADED` (compliance is unknown, not passed — a *blocking* rule could not be evaluated offline or crashed, a rule that requires an enforcement mapping has none, or the `.intent/` evaluated differs from the committed law; takes precedence over FAIL; exit 1), `FAIL` (findings present), or `ERROR` (internal failure, or the audit produced no recognisable verdict). The verdict is derived from the audit's JSON result, never from the exit code alone. These meanings are the same for every repository: they come from the CORE package, and your `.intent/` can make them stricter but not weaker (ADR-005 Amendment 2026-10-06).
 
 ---
 

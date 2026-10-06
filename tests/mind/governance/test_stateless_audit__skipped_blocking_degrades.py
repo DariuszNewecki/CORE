@@ -231,24 +231,31 @@ async def test_skipped_entries_expose_id_enforcement_and_reason(
     assert by_id["modernization.legacy_scars"]["enforcement"] == "advisory"
 
 
-async def test_degraded_precondition_is_governed_not_hardcoded(tmp_path: Path) -> None:
-    """The skip->DEGRADED link reads audit_verdict.yaml's degraded_on. If a
-    governor removed any_blocking_unavailable_rules from that list, the
-    stateless path would follow -- proving there is no private vocabulary."""
+async def test_project_policy_cannot_switch_off_skipped_blocking(
+    tmp_path: Path,
+) -> None:
+    """#952 (governor ruling, option A): the skip->DEGRADED link reads the
+    governed degraded_on vocabulary, and a project policy that omits
+    any_blocking_unavailable_rules (an adopter's older floor copy) cannot
+    remove it -- the real loader unions the bundled floor in."""
     rules = [
         _rule("a.ast", "ast_gate", "blocking"),
         _rule("x.graph", "knowledge_gate", "blocking"),
     ]
+    mock_repo = MagicMock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = {
+        "fail_severities": ["BLOCK"],
+        "ignored_finding_types": ["ENFORCEMENT_FAILURE"],
+        "degraded_on": ["any_crashed_rules", "stats_error"],
+    }
     with patch(
-        "mind.governance.stateless_audit.load_audit_verdict_policy",
-        return_value={
-            "fail_severities": ["BLOCK"],
-            "ignored_finding_types": ["ENFORCEMENT_FAILURE", "ENFORCEMENT_UNAVAILABLE"],
-            "degraded_on": ["any_crashed_rules"],
-        },
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
     ):
         result = await _run(rules, tmp_path)
-    assert result["verdict"] == "PASS"
+    assert result["verdict"] == "DEGRADED"
+    assert result["stats"]["skipped_blocking_rule_ids"] == ["x.graph"]
 
 
 async def test_reproduced_offline_case_no_longer_passes(tmp_path: Path) -> None:

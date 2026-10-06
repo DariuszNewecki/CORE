@@ -23,6 +23,7 @@ from shared.infrastructure.intent.audit_verdict import (
     _KNOWN_PRECONDITIONS,
     _validate_policy,
     law_drift_degrades,
+    load_audit_verdict_policy,
 )
 from shared.infrastructure.intent.law_state import LawState
 
@@ -60,8 +61,19 @@ def test_law_drift_degrades_unless_match(relationship, expected) -> None:
     assert law_drift_degrades(_POLICY, relationship) is expected
 
 
-def test_policy_without_law_drift_never_degrades_on_it() -> None:
-    assert law_drift_degrades(_POLICY_WITHOUT_LAW_DRIFT, "DRIFT") is False
+def test_project_policy_without_law_drift_still_degrades_on_it() -> None:
+    """#952 (governor ruling, option A): a project policy that omits
+    law_drift cannot switch it off; the loader unions the bundled floor in."""
+    mock_repo = MagicMock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = dict(_POLICY_WITHOUT_LAW_DRIFT)
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        policy = load_audit_verdict_policy()
+    assert law_drift_degrades(policy, "DRIFT") is True
+    assert law_drift_degrades(policy, "MATCH") is False
 
 
 # --- online auditor --------------------------------------------------------

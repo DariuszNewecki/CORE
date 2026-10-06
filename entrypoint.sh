@@ -26,13 +26,26 @@
 #
 # Verdict -> exit mapping (exit codes per cli/utils/exit_codes.py):
 #   PASS      -> 0   (requires the CLI to have exited 0; otherwise ERROR/64)
-#   DEGRADED  -> CLI exit, forced non-zero (1)  blocking rule(s) not evaluated
+#   DEGRADED  -> CLI exit, forced non-zero (1)  compliance unknown (rule not
+#                evaluated, or .intent/ differs from the committed law)
 #   FAIL      -> CLI exit, forced non-zero (1)  findings at/above severity
 #   ERROR     -> CLI exit, forced non-zero (2 config / 64 internal)
 #   anything else (missing/unknown verdict, malformed or missing JSON,
 #   crashed command) -> ERROR, exit 64: fail closed.
 
 set +e
+
+# trust_workspace <dir>
+# The audit compares the .intent/ it evaluates with the committed law (ADR-169
+# D2) through git. The container runs as root over a checkout owned by the
+# runner (or the host user), which git refuses as "dubious ownership"; the law
+# relation would then be UNKNOWN and every verdict DEGRADED. Trust exactly the
+# workspace being audited -- via environment, so no gitconfig file is written.
+trust_workspace() {
+  export GIT_CONFIG_COUNT=1
+  export GIT_CONFIG_KEY_0=safe.directory
+  export GIT_CONFIG_VALUE_0="$1"
+}
 
 # resolve_verdict <result.json> <raw_exit>
 # Prints "VERDICT EXIT SKIPPED_BLOCKING_IDS" on one line, derived from the
@@ -103,6 +116,7 @@ if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
     echo "::error::Cannot enter workspace $WORKSPACE"
     exit 64
   }
+  trust_workspace "$WORKSPACE"
 
   if [ "$INTENT_PATH" != ".intent/" ] && [ "$INTENT_PATH" != ".intent" ]; then
     echo "::error::intent-path: '$INTENT_PATH' not yet supported. MVP requires .intent/ at the repo root. File an issue at https://github.com/DariuszNewecki/CORE/issues if you need a custom path."
@@ -129,7 +143,7 @@ if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
 
   case "$VERDICT" in
     DEGRADED)
-      echo "::warning title=CORE audit DEGRADED::blocking rule(s) NOT evaluated in stateless mode (not PASS): ${SKIPPED_BLOCKING:-none listed}"
+      echo "::warning title=CORE audit DEGRADED::compliance unknown, not PASS (a blocking rule was not evaluated, or .intent/ differs from the committed law); skipped blocking rules: ${SKIPPED_BLOCKING:-none listed}"
       ;;
     ERROR)
       echo "::error title=CORE audit ERROR::audit did not produce a recognised verdict (raw exit $RAW_EXIT); failing closed"
@@ -150,6 +164,7 @@ else
     echo "Mount your repository: docker run --rm -v \"\$PWD:/workspace\" ghcr.io/dariusznewecki/core-audit-gate"
     exit 64
   }
+  trust_workspace "$WORKSPACE"
 
   if [ ! -d ".intent" ]; then
     echo "ERROR: No .intent/ directory found at the repository root."
@@ -168,7 +183,7 @@ else
 
   echo ""
   if [ "$VERDICT" = "DEGRADED" ]; then
-    echo "CORE audit: blocking rule(s) NOT evaluated in stateless mode (not PASS): ${SKIPPED_BLOCKING:-none listed}"
+    echo "CORE audit: compliance unknown, not PASS (a blocking rule was not evaluated, or .intent/ differs from the committed law); skipped blocking rules: ${SKIPPED_BLOCKING:-none listed}"
   fi
   echo "CORE audit verdict: $VERDICT (exit $EXIT_CODE, raw exit $RAW_EXIT)"
 

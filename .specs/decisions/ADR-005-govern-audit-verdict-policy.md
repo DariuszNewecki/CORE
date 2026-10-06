@@ -152,3 +152,32 @@ none of those things.
 - Stale docstring cleanup at `src/mind/governance/audit_types.py:34`
   (`AuditSeverity.LOW` reference — the enum has no `LOW`). Drive-by in
   the implementation session.
+
+## Amendment — 2026-10-06 (#952): the substrate minimum
+
+**Governor ruling (option A).** What a verdict *means* is the same for every
+project; only *what is checked* is project law. The Decision above made
+`audit_verdict.yaml` the whole authority over verdict semantics, per project.
+That let an adopter's copy (the bundled machinery floor, which ADR-108 calls
+CORE-owned bytes) say less than CORE's own: no `law_drift`, no
+`any_blocking_unavailable_rules`, no `any_unmapped_mapping_required_rules`. An
+adopter could get PASS where CORE's policy gives DEGRADED, while the Action
+documents PASS as "every blocking rule evaluated".
+
+**Decision.** The bundled machinery floor's
+`enforcement/config/audit_verdict.yaml` is the **substrate minimum**. The
+loader reads it from the installed package, never through the project's
+`.intent/`, and unions each of its three lists (`fail_severities`,
+`ignored_finding_types`, `degraded_on`) into the project policy. A project may
+add entries; it cannot remove a floor entry. The floor carries all five
+DEGRADED preconditions, the three instrument finding types
+(`ENFORCEMENT_FAILURE`, `ENFORCEMENT_UNAVAILABLE`, `LAW_DRIFT`) and `BLOCK`.
+
+**What stays.** Policy is still data, not code: the minimum is a governed YAML
+file, edited under CORE's own review, and ships with the package. §3 is
+unchanged: a missing or corrupt project policy is still DEGRADED, and so is an
+unreadable floor. A project's policy can still make the verdict stricter.
+
+**Declined.** Option B (on by default, but a project may switch conditions off)
+was declined: a PASS that a settings file can redefine cannot be trusted
+outside that project.

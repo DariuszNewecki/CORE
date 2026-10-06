@@ -84,6 +84,8 @@ def _run(
     shim.write_text(
         "#!/bin/bash\n"
         '[ -n "$FAKE_STDOUT_FILE" ] && cat "$FAKE_STDOUT_FILE"\n'
+        'printf "%s\\n" "${GIT_CONFIG_COUNT:-}" "${GIT_CONFIG_KEY_0:-}" '
+        '"${GIT_CONFIG_VALUE_0:-}" > "$(dirname "$0")/git_env"\n'
         'exit "${FAKE_EXIT:-0}"\n',
         encoding="utf-8",
     )
@@ -229,3 +231,17 @@ def test_text_format_renders_verdict_and_skipped_blocking(tmp_path: Path) -> Non
     assert code == 1
     assert "DEGRADED" in out
     assert "runtime.worker_max_interval_within_observed" in out
+
+
+def test_audit_runs_with_the_workspace_trusted_by_git(tmp_path: Path) -> None:
+    """#952: the verdict's law_drift precondition reads git; the container runs
+    as root over a runner-owned checkout, which git refuses as dubious
+    ownership -- every adopter would be DEGRADED. The entrypoint trusts exactly
+    the audited workspace, via environment (no gitconfig file written). The
+    plain-docker shape makes the same call but hardcodes /workspace, which
+    this harness cannot provide."""
+    _run(tmp_path, stdout=_payload("PASS"), exit_code=0)
+    count, key, value = (
+        (tmp_path / "bin" / "git_env").read_text(encoding="utf-8").splitlines()
+    )
+    assert (count, key, value) == ("1", "safe.directory", str(tmp_path / "workspace"))

@@ -22,6 +22,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from shared.infrastructure.intent.audit_verdict import (
+    _KNOWN_PRECONDITIONS,
     _validate_policy,
     load_audit_verdict_policy,
 )
@@ -99,7 +100,8 @@ def test_load_audit_verdict_policy_accepts_real_policy_with_new_precondition():
         result = load_audit_verdict_policy()
 
     assert "_error" not in result
-    assert result["degraded_on"] == valid["degraded_on"]
+    # Project entries come first, in order; the floor may append (#952).
+    assert result["degraded_on"][: len(valid["degraded_on"])] == valid["degraded_on"]
 
 
 # --- #847/#856: any_blocking_unavailable_rules ------------------------------
@@ -142,5 +144,106 @@ def test_load_audit_verdict_policy_accepts_real_policy_with_unavailable_precondi
         result = load_audit_verdict_policy()
 
     assert "_error" not in result
-    assert result["degraded_on"] == valid["degraded_on"]
+    # Project entries come first, in order; the floor may append (#952).
+    assert result["degraded_on"][: len(valid["degraded_on"])] == valid["degraded_on"]
     assert "ENFORCEMENT_UNAVAILABLE" in result["ignored_finding_types"]
+
+
+# --- #952 / ADR-005 Amendment 2026-10-06: substrate minimum ----------------
+
+_SUBSTRATE_PRECONDITIONS = {
+    "any_crashed_rules",
+    "stats_error",
+    "any_unmapped_mapping_required_rules",
+    "any_blocking_unavailable_rules",
+    "law_drift",
+}
+_SUBSTRATE_IGNORED_TYPES = {
+    "ENFORCEMENT_FAILURE",
+    "ENFORCEMENT_UNAVAILABLE",
+    "LAW_DRIFT",
+}
+
+
+def _load_with_project_policy(project_policy: dict) -> dict:
+    mock_repo = Mock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = project_policy
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        return load_audit_verdict_policy()
+
+
+def test_floor_declares_every_verdict_precondition_and_carve_out():
+    """Governor ruling on #952 (option A): the bundled floor carries the whole
+    honesty set, so every project gets it."""
+    from shared.infrastructure.intent.audit_verdict import _load_floor_policy
+
+    floor = _load_floor_policy()
+    assert set(floor["degraded_on"]) == _SUBSTRATE_PRECONDITIONS
+    assert _SUBSTRATE_PRECONDITIONS == _KNOWN_PRECONDITIONS
+    assert set(floor["ignored_finding_types"]) == _SUBSTRATE_IGNORED_TYPES
+    assert floor["fail_severities"] == ["BLOCK"]
+
+
+def test_project_policy_cannot_remove_floor_entries():
+    """The #952 shape: an adopter policy listing only the two original
+    preconditions (and no BLOCK) still yields the full substrate minimum."""
+    result = _load_with_project_policy(
+        {
+            "fail_severities": ["HIGH"],
+            "ignored_finding_types": ["ENFORCEMENT_FAILURE"],
+            "degraded_on": ["any_crashed_rules", "stats_error"],
+        }
+    )
+    assert "_error" not in result
+    assert set(result["degraded_on"]) == _SUBSTRATE_PRECONDITIONS
+    assert set(result["ignored_finding_types"]) == _SUBSTRATE_IGNORED_TYPES
+    assert set(result["fail_severities"]) == {"HIGH", "BLOCK"}
+
+
+def test_project_policy_with_empty_lists_still_gets_the_floor():
+    result = _load_with_project_policy(
+        {"fail_severities": [], "ignored_finding_types": [], "degraded_on": []}
+    )
+    assert set(result["degraded_on"]) == _SUBSTRATE_PRECONDITIONS
+    assert result["fail_severities"] == ["BLOCK"]
+
+
+def test_floor_union_does_not_duplicate_entries():
+    result = _load_with_project_policy(
+        {
+            "fail_severities": ["BLOCK"],
+            "ignored_finding_types": sorted(_SUBSTRATE_IGNORED_TYPES),
+            "degraded_on": sorted(_SUBSTRATE_PRECONDITIONS),
+        }
+    )
+    assert sorted(result["degraded_on"]) == sorted(_SUBSTRATE_PRECONDITIONS)
+    assert len(result["ignored_finding_types"]) == len(_SUBSTRATE_IGNORED_TYPES)
+
+
+def test_floor_is_read_from_the_package_not_the_project():
+    """The project's IntentRepository serves only the project file; the
+    floor entries still appear, so they did not come through the repo."""
+    mock_repo = Mock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = dict(_VALID_BASE)
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        result = load_audit_verdict_policy()
+    assert mock_repo.load_document.call_count == 1
+    assert "law_drift" in result["degraded_on"]
+
+
+def test_missing_floor_is_an_instrument_failure():
+    with patch(
+        "shared.infrastructure.intent.audit_verdict.resolve_floor_path",
+        return_value=None,
+    ):
+        result = _load_with_project_policy(dict(_VALID_BASE))
+    assert result.get("_error") is True
+    assert "floor" in result["reason"]

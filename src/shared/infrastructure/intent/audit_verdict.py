@@ -23,6 +23,16 @@ one." The failure mode would be indistinguishable from success and
 would hide subsequent governance edits. Forcing DEGRADED on missing
 policy makes instrument failure loud, visible, and recoverable.
 
+SUBSTRATE MINIMUM (ADR-005 Amendment 2026-10-06, #952). What a verdict
+*means* is the same for every project; only *what is checked* is project
+law. The bundled machinery floor's audit_verdict.yaml
+(``shared/_machinery_floor/enforcement/config/audit_verdict.yaml``) is
+read from the installed package -- never from the project's ``.intent/``
+-- and its three lists are unioned into the project policy. A project may
+add entries (stricter); it can never remove a floor entry. An unreadable
+floor is an instrument failure and returns the error sentinel, like a
+missing project policy.
+
 LAYER: shared/infrastructure/intent — pure helper. Returns a dict;
 does not import AuditVerdict or the auditor. The governance layer
 decides how to consume the dict. No imports from will/, body/, or cli/.
@@ -32,6 +42,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import yaml
+
+from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.logger import getLogger
 from shared.models.audit_models import AuditSeverity
 
@@ -54,6 +67,8 @@ _REQUIRED_LIST_KEYS: tuple[str, ...] = (
     "ignored_finding_types",
     "degraded_on",
 )
+
+_POLICY_REL = ".intent/enforcement/config/audit_verdict.yaml"
 
 
 def _validate_policy(policy: dict[str, Any]) -> None:
@@ -96,14 +111,48 @@ def _validate_policy(policy: dict[str, Any]) -> None:
             )
 
 
+def _load_floor_policy() -> dict[str, Any]:
+    """Load and validate the substrate minimum from the installed package.
+
+    Raises on any failure; the outer loader converts that to the error
+    sentinel. Deliberately not routed through IntentRepository: the floor
+    must be the package's bytes, not whatever the project's .intent/ holds.
+    """
+    path = resolve_floor_path(_POLICY_REL)
+    if path is None:
+        raise FileNotFoundError(
+            "bundled machinery floor has no enforcement/config/audit_verdict.yaml"
+        )
+    floor = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(floor, dict):
+        raise ValueError(
+            f"floor audit_verdict.yaml did not parse as a dict "
+            f"(got {type(floor).__name__})"
+        )
+    _validate_policy(floor)
+    return floor
+
+
+def _apply_floor(policy: dict[str, Any], floor: dict[str, Any]) -> dict[str, Any]:
+    """Union the floor's entries into each policy list, project order first."""
+    effective = dict(policy)
+    for key in _REQUIRED_LIST_KEYS:
+        merged = list(policy[key])
+        merged.extend(entry for entry in floor[key] if entry not in merged)
+        effective[key] = merged
+    return effective
+
+
 # ID: a7d4f2e1-3c8b-4f9a-b2d6-5e1c7f9a3b4d
 def load_audit_verdict_policy() -> dict[str, Any]:
     """
     Load .intent/enforcement/config/audit_verdict.yaml via IntentRepository.
 
-    Returns the parsed-and-validated policy dict on success. On ANY
-    failure — missing file, parse error, unexpected top-level type,
-    schema validation failure — returns the error sentinel
+    Returns the parsed-and-validated policy dict on success, with the
+    bundled floor's entries unioned into each list (a project cannot
+    remove them; ADR-005 Amendment 2026-10-06). On ANY failure — missing
+    file, parse error, unexpected top-level type, schema validation
+    failure, unreadable floor — returns the error sentinel
 
         {"_error": True, "reason": "<human-readable reason>"}
 
@@ -127,13 +176,12 @@ def load_audit_verdict_policy() -> dict[str, Any]:
             return {"_error": True, "reason": reason}
 
         _validate_policy(config)
-        return config
+        return _apply_floor(config, _load_floor_policy())
 
     except Exception as exc:
         reason = f"{type(exc).__name__}: {exc}"
         logger.error(
-            "audit_verdict: could not load .intent/enforcement/config/"
-            "audit_verdict.yaml (%s)",
+            "audit_verdict: could not load the audit verdict policy (%s)",
             reason,
         )
         return {"_error": True, "reason": reason}

@@ -38,11 +38,15 @@ outputs:
   verdict:
     description: >-
       Derived from the audit's JSON result, never from the exit code alone (#907).
-      PASS: no findings at or above severity and every blocking rule evaluated (exit 0).
-      DEGRADED: no findings, but one or more blocking rules could not be evaluated in
-      stateless mode -- compliance for those is unknown, not passed (exit 1; the skipped
-      rule ids are emitted as workflow warnings). FAIL: findings present (exit 1).
-      ERROR: internal failure or no recognisable verdict (exit 2 or 64).
+      PASS: no findings at or above severity, every blocking rule evaluated, and the .intent/ evaluated
+      is the committed law (exit 0). DEGRADED: compliance is unknown, not passed -- a
+      blocking rule could not be evaluated in stateless mode or crashed, a rule that
+      requires an enforcement mapping has none, or the .intent/ evaluated differs from
+      the committed law (exit 1; skipped blocking rule ids are emitted as workflow
+      warnings). DEGRADED takes precedence over FAIL. FAIL: findings present
+      (exit 1). ERROR: internal failure or no recognisable verdict (exit 2 or 64).
+      These meanings are the same for every repository: they come from the CORE
+      package, and a repository's .intent/ can make them stricter but not weaker.
 
 runs:
   using: 'docker'

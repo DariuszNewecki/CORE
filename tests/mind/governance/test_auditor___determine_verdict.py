@@ -35,8 +35,9 @@ and pins:
 11. blocking_unavailable_rules > 0 together with a BLOCK-severity finding
     still yields DEGRADED, not FAIL — same precedence rule as unmapped
     (ADR-156 D1a), now proven for the new precondition too.
-12. The precondition is opt-in via governed vocabulary, mirroring
-    test_unmapped_precondition_absent_from_policy_is_inert.
+12. #952 (governor ruling, option A): neither precondition can be
+    switched off by a project policy that omits it — proven through the
+    real loader, which unions the bundled machinery floor in.
 13. An advisory rule's unavailable dependency (unavailable_rules > 0 but
     blocking_unavailable_rules == 0) does NOT degrade — governor ruling 6.
     Split from blocking_unavailable_rule_ids accounting at the stats layer
@@ -44,8 +45,10 @@ and pins:
     this file only tests _determine_verdict's own consumption of the
     already-split integer.
 
-load_audit_verdict_policy is patched directly; tests do not depend on
-the loader's allowlist or on .intent/ files being parseable.
+load_audit_verdict_policy is patched directly in most tests; they do not
+depend on the loader's allowlist or on .intent/ files being parseable. The
+#952 tests instead run the real loader against a mocked project policy, so
+they exercise the floor union the verdict actually receives.
 """
 
 from __future__ import annotations
@@ -95,6 +98,24 @@ _POLICY_WITH_UNAVAILABLE = {
     ],
 }
 assert "_error" not in _POLICY_WITH_UNAVAILABLE
+
+
+def _verdict_through_real_loader(
+    project_policy: dict, stats: dict, law_relationship: str | None = "MATCH"
+) -> AuditVerdict:
+    mock_repo = Mock()
+    mock_repo.resolve_rel.return_value = "enforcement/config/audit_verdict.yaml"
+    mock_repo.load_document.return_value = project_policy
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        return ConstitutionalAuditor._determine_verdict(
+            findings=[],
+            stats=stats,
+            crashed_rule_ids=set(),
+            law_relationship=law_relationship,
+        )
 
 
 class TestDetermineVerdict:
@@ -248,20 +269,14 @@ class TestDetermineVerdict:
             )
         assert verdict == AuditVerdict.DEGRADED
 
-    def test_unmapped_precondition_absent_from_policy_is_inert(self):
-        """If degraded_on does not carry the new word (e.g. an older
-        deployed policy), a nonzero unmapped_rules must not degrade —
-        the precondition is opt-in via governed vocabulary, not automatic."""
-        with patch(
-            "mind.governance.auditor.load_audit_verdict_policy",
-            return_value=dict(_BASE_POLICY),
-        ):
-            verdict = ConstitutionalAuditor._determine_verdict(
-                findings=[],
-                stats={"unmapped_rules": 5},
-                crashed_rule_ids=set(),
-            )
-        assert verdict == AuditVerdict.PASS
+    def test_unmapped_precondition_absent_from_project_policy_still_degrades(self):
+        """#952 (governor ruling, option A): a project policy that omits the
+        word (e.g. an adopter's older copy) cannot switch it off — the real
+        loader unions the bundled floor in, so unmapped rules still degrade."""
+        verdict = _verdict_through_real_loader(
+            dict(_BASE_POLICY), stats={"unmapped_rules": 5}
+        )
+        assert verdict == AuditVerdict.DEGRADED
 
     # --- #847/#856: any_blocking_unavailable_rules ------------------------
 
@@ -320,18 +335,20 @@ class TestDetermineVerdict:
             )
         assert verdict == AuditVerdict.DEGRADED
 
-    def test_blocking_unavailable_precondition_absent_from_policy_is_inert(self):
-        """Opt-in via governed vocabulary, not automatic — mirrors
-        test_unmapped_precondition_absent_from_policy_is_inert."""
-        with patch(
-            "mind.governance.auditor.load_audit_verdict_policy",
-            return_value=dict(_BASE_POLICY),
-        ):
-            verdict = ConstitutionalAuditor._determine_verdict(
-                findings=[],
-                stats={"blocking_unavailable_rules": 3},
-                crashed_rule_ids=set(),
-            )
+    def test_blocking_unavailable_absent_from_project_policy_still_degrades(self):
+        """#952: mirrors the unmapped case — not switchable per project."""
+        verdict = _verdict_through_real_loader(
+            dict(_BASE_POLICY), stats={"blocking_unavailable_rules": 3}
+        )
+        assert verdict == AuditVerdict.DEGRADED
+
+    def test_real_loader_with_floor_entries_clean_audit_passes(self):
+        """#952 negative control: the floor makes PASS honest, not
+        unreachable — a clean, fully evaluated audit of the law of record
+        still passes through the real loader."""
+        verdict = _verdict_through_real_loader(
+            dict(_BASE_POLICY), stats={}, law_relationship="MATCH"
+        )
         assert verdict == AuditVerdict.PASS
 
     def test_advisory_unavailable_does_not_degrade_even_with_general_count(self):

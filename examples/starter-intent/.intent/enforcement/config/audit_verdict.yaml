@@ -1,4 +1,4 @@
-# Audit verdict policy — severity-to-verdict mapping for ConstitutionalAuditor.
+# Audit verdict policy -- severity-to-verdict mapping for ConstitutionalAuditor.
 #
 # Authority:   policy
 # Phase:       audit
@@ -6,12 +6,16 @@
 # ADR:         ADR-005 (.specs/decisions/ADR-005-govern-audit-verdict-policy.md)
 # Loader:      src/shared/infrastructure/intent/audit_verdict.py
 #
-# This file is the governance authority over audit verdict semantics.
-# Changing verdict semantics is a .intent/ edit, not a src/ edit.
+# SUBSTRATE MINIMUM (ADR-005 Amendment 2026-10-06, #952). This copy, in
+# the bundled machinery floor, is read by the loader from the installed
+# package -- never from a project's .intent/ -- and every entry below is
+# unioned into the project's own audit_verdict.yaml. A project may add
+# entries (a stricter verdict); it can never remove one. What a verdict
+# MEANS is the same for every project; WHAT is checked is project law.
 #
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 # What each verdict guarantees
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 #
 # PASS      No ERROR-severity findings (after the ignored_finding_types
 #           carve-out), no crashed rules, policy loaded. The codebase
@@ -20,21 +24,26 @@
 #
 # FAIL      At least one finding with a severity in fail_severities,
 #           and not in ignored_finding_types. A new problem has been
-#           introduced — code is known non-compliant.
+#           introduced -- code is known non-compliant.
 #
 # DEGRADED  The audit instrument itself failed: the verdict policy is
 #           missing/corrupt, one or more rules crashed during
-#           evaluation, or execution statistics could not be computed.
-#           Compliance is unknown, not known-bad. DEGRADED must never
-#           be silently treated as PASS — see ADR-005 §3.
+#           evaluation, execution statistics could not be computed, or a
+#           BLOCKING rule's dependency/evidence was unavailable (a
+#           required tool missing, a DB session not injected, fewer than
+#           the minimum evidence samples -- #847, #856), or the law
+#           evaluated is not the law of record (uncommitted .intent/
+#           edits, or the relation cannot be established -- ADR-169 D2).
+#           Compliance is unknown, not known-bad. DEGRADED must never be silently
+#           treated as PASS -- see ADR-005 S3.
 #
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 # Why WARNINGs do not gate PASS
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 #
 # CORE is a feedback control system whose job is to clean itself up
 # while running. WARNING-severity findings are the work queue that
-# autonomous remediation consumes — accumulation during development is
+# autonomous remediation consumes -- accumulation during development is
 # expected, not pathological. ERRORs are reserved for newly-introduced
 # problems that block operation.
 #
@@ -42,20 +51,20 @@
 # creation) is a trajectory property measured across audits over time.
 # It is deliberately NOT encoded in the single-audit verdict, because
 # that would require CORE to already be converged in order to claim
-# it is operational — backwards for a system bootstrapping toward that
+# it is operational -- backwards for a system bootstrapping toward that
 # state. If a future operational posture requires a stricter verdict
 # (WARNING ceiling, trend gate, finding-class allowlist), that is a
 # new ADR, not a silent edit here.
 #
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 # Missing-or-corrupt handling
-# ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------
 #
 # The loader returns an error sentinel that callers must treat as
 # DEGRADED. The loader does NOT fall back to hardcoded defaults. A
-# missing verdict-policy file is itself an instrument failure —
+# missing verdict-policy file is itself an instrument failure --
 # compliance cannot be decided when the rule for deciding it is
-# absent. See ADR-005 §3.
+# absent. See ADR-005 S3.
 
 # Severities that trigger FAIL when any finding carries them (after the
 # ignored_finding_types carve-out). Vocabulary is the AuditSeverity enum
@@ -71,17 +80,71 @@ fail_severities:
 # They drive DEGRADED via crashed_rule_ids, not FAIL. This carve-out
 # preserves the invariant that "infrastructure broken" (unknown
 # compliance) is distinguishable from "code broken" (known non-compliance).
+#
+# ENFORCEMENT_UNAVAILABLE (#847/#856) is the same shape for a different
+# cause: a required tool, DB session, or evidence sample was unavailable,
+# rather than the engine crashing. For a blocking rule this drives DEGRADED
+# via stats["blocking_unavailable_rules"] (see any_blocking_unavailable_rules
+# below), not FAIL. For an advisory/reporting rule it carries no severity
+# that could reach fail_severities in the first place, but the carve-out is
+# listed here anyway, mirroring ENFORCEMENT_FAILURE's belt-and-suspenders
+# placement, so a future rule_executor change to how severity is assigned
+# cannot accidentally turn unavailable evidence into a false FAIL.
+#
+# LAW_DRIFT (ADR-169 D2) names .intent/ paths that differ from the law of
+# record. It drives DEGRADED via the law_drift precondition below, never
+# FAIL; it is listed here for the same belt-and-suspenders reason.
 ignored_finding_types:
   - ENFORCEMENT_FAILURE
+  - ENFORCEMENT_UNAVAILABLE
+  - LAW_DRIFT
 
 # Preconditions that force DEGRADED regardless of finding severities.
-# any_crashed_rules → crashed_rule_ids set is non-empty.
-# stats_error       → get_dynamic_execution_stats() threw internally;
-#                     execution coverage is unknown. A zeroed stats
-#                     panel does not mean zero rules ran — it means
-#                     the stats computation itself failed. Compliance
-#                     status cannot be asserted when coverage is
-#                     unquantifiable.
+# any_crashed_rules                   -> crashed_rule_ids set is non-empty.
+# stats_error                         -> get_dynamic_execution_stats() threw
+#                                        internally; execution coverage is
+#                                        unknown. A zeroed stats panel does
+#                                        not mean zero rules ran -- it means
+#                                        the stats computation itself failed.
+#                                        Compliance status cannot be
+#                                        asserted when coverage is
+#                                        unquantifiable.
+# any_unmapped_mapping_required_rules -> stats["unmapped_rules"] > 0. One or
+#                                        more rules that canonically require
+#                                        an enforcement mapping (per
+#                                        shared.infrastructure.intent.
+#                                        rule_registry.
+#                                        rule_requires_enforcement_mapping)
+#                                        have none. Compliance for those
+#                                        rules cannot be checked, so it is
+#                                        unknown, not known-bad -- DEGRADED,
+#                                        not FAIL. See ADR-156.
+# any_blocking_unavailable_rules      -> stats["blocking_unavailable_rules"] > 0.
+#                                        One or more BLOCKING rules reported
+#                                        an ENFORCEMENT_UNAVAILABLE finding
+#                                        (a required tool missing, a DB
+#                                        session not injected, fewer than
+#                                        the minimum evidence samples). An
+#                                        unavailable dependency is distinct
+#                                        from a crash (crashed_rule_ids) --
+#                                        both force DEGRADED, but are
+#                                        tracked and reported separately.
+#                                        An advisory/reporting rule's
+#                                        unavailable dependency does NOT
+#                                        set this precondition -- it stays
+#                                        visible in findings without
+#                                        forcing DEGRADED. See #847, #856.
+# law_drift                           -> the law evaluated (live .intent/) is
+#                                        not the law of record (.intent/ at
+#                                        HEAD): relationship DRIFT, or UNKNOWN
+#                                        when it cannot be established. The
+#                                        policy exists, but CORE cannot show
+#                                        it is the policy of record. Work
+#                                        continues (governor ruling
+#                                        2026-10-05). See ADR-169 D2.
 degraded_on:
   - any_crashed_rules
   - stats_error
+  - any_unmapped_mapping_required_rules
+  - any_blocking_unavailable_rules
+  - law_drift
