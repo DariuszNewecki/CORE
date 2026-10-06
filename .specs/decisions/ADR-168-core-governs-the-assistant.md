@@ -233,3 +233,18 @@ those fixes removed.
 gets a provenance-backed answer; submits a proposed change and gets a deterministic verdict fast
 enough to use interactively; and remains unable to exercise governor authority (acceptance
 check 3).
+
+## Amendment 2026-10-06: D2 transport (governor ruling, option B)
+
+The assistant surface runs **local first**: an MCP server started by the assistant, calling the
+same in-process functions as the offline audit, with no services required. CLI, MCP and later API
+routes are thin faces over **one shared implementation**, and a parity test asserts that they give
+identical answers. This replaces "delivered as an MCP server over the OEM API" as the *first*
+delivery; API routes for the same operations follow when a server deployment needs them.
+
+Unchanged: every assistant gets the same operations (ADR-084 D6); the surface exposes only an
+explicit allowlist of read and verdict operations; nothing it exposes can write governor authority
+(D3).
+
+Grounds: the recon in `var/reports/adr168-d43-design-20261006.md` found that the API requires
+PostgreSQL and Qdrant to start, while the newcomer path is `pip install` only.
