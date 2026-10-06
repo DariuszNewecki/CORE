@@ -14,6 +14,9 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from body.atomic.action_audit import ActionAuditRecorder
 from body.atomic.executor import ActionExecutor
 from body.atomic.registry import ActionCategory, ActionDefinition, ActionRegistry
 from shared.action_types import ActionResult
@@ -46,9 +49,13 @@ def _executor(registry: ActionRegistry) -> ActionExecutor:
     sandbox = MagicMock()
     sandbox.build_execution_context.return_value = (executor.core_context, None)
     executor._sandbox = sandbox
-    # the audit log writes ActionResult.data to the DB; not under test here
-    executor._audit_log = AsyncMock()  # type: ignore[method-assign]
     return executor
+
+
+@pytest.fixture(autouse=True)
+def _no_audit_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The audit step writes ActionResult.data to the DB; not under test here."""
+    monkeypatch.setattr(ActionAuditRecorder, "record", AsyncMock())
 
 
 async def test_governed_refusal_carries_rule_id_and_payload() -> None:

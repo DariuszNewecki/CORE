@@ -42,7 +42,7 @@ access — it performs the actual WorkflowOrchestrator execution.
 Correlation: one `run_id` is minted per execution via the existing
 `shared.activity_logging.activity_run` context manager, which also binds it
 into the `_current_run_id` contextvar for the duration of the run. This is
-the same contextvar `ActionExecutor._audit_log` reads (as a fallback behind
+the same contextvar `ActionAuditRecorder.record` reads (as a fallback behind
 the currently-always-absent `CoreContext.session_id`) when stamping
 `core.action_results.action_metadata` — so every action this run performs
 is correlated to this run's Blackboard evidence with no new column and no

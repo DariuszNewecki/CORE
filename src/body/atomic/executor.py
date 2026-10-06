@@ -18,15 +18,12 @@ CRITICAL: This enforces the "single execution contract" principle.
 
 from __future__ import annotations
 
-import asyncio
 import inspect
-import json
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import text
-
+from body.atomic.action_audit import ActionAuditRecorder
 from body.atomic.registry import ActionCategory, ActionDefinition, action_registry
 from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from shared.action_types import ActionImpact, ActionResult
@@ -38,7 +35,7 @@ from shared.infrastructure.intent.action_risk import (
     load_safe_auto_approval_envelope,
 )
 from shared.infrastructure.intent.intent_repository import get_intent_repository
-from shared.logger import _current_run_id, getLogger
+from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
@@ -481,8 +478,8 @@ class ActionExecutor:
         # 6. Post-execution hooks
         await self._post_execute_hooks(definition, result)
 
-        # 7. Audit logging
-        await self._audit_log(definition, result, write)
+        # 7. Audit logging (persistence lives in body.atomic.action_audit)
+        await ActionAuditRecorder(self.core_context).record(definition, result, write)
 
         return result
 
@@ -588,88 +585,6 @@ class ActionExecutor:
         Execute post-execution hooks.
         """
         logger.debug("Post-execution hooks for %s", definition.action_id)
-
-    _AUDIT_MAX_ATTEMPTS: int = 3
-    _AUDIT_BACKOFF_BASE_SEC: float = 0.1  # doubled each retry: 0.1s, 0.2s
-
-    # ID: 454c8ccb-ece8-4ef8-baf1-13c9c19f4300
-    async def _audit_log(
-        self, definition: ActionDefinition, result: ActionResult, write: bool
-    ) -> None:
-        """
-        Log action execution to database audit trail (SSOT).
-
-        Retries the INSERT up to _AUDIT_MAX_ATTEMPTS times with exponential
-        backoff before declaring an AUDIT_GAP. Each attempt opens a fresh
-        session so a rolled-back transaction from a prior attempt does not
-        poison the retry.
-
-        CONSTITUTIONAL FIX: session_id is read cleanly from _current_run_id
-        context var (imported at module level). Removed duplicate key and
-        broken __import__ hack from prior patch.
-        """
-        stmt = text(
-            """
-            INSERT INTO core.action_results
-            (action_type, ok, file_path, error_message, action_metadata, agent_id, duration_ms)
-            VALUES (:atype, :ok, :path, :err, :meta, :agent, :dur)
-            """
-        )
-        # Prefer session_id from core_context, fall back to context var
-        session_id = getattr(
-            self.core_context, "session_id", None
-        ) or _current_run_id.get(None)
-        params = {
-            "atype": definition.action_id,
-            "ok": result.ok,
-            "path": result.data.get("path") or result.data.get("file_path"),
-            "err": result.data.get("error") if not result.ok else None,
-            "meta": json.dumps(
-                {
-                    "write_mode": write,
-                    "impact": definition.impact_level,
-                    "session_id": session_id,
-                }
-            ),
-            "agent": "ActionExecutor",
-            "dur": int(result.duration_sec * 1000),
-        }
-
-        last_exc: Exception | None = None
-        for attempt in range(1, self._AUDIT_MAX_ATTEMPTS + 1):
-            try:
-                async with self.core_context.registry.session() as session:
-                    async with session.begin():
-                        await session.execute(stmt, params)
-                return  # persisted successfully
-            except Exception as e:
-                last_exc = e
-                if attempt < self._AUDIT_MAX_ATTEMPTS:
-                    await asyncio.sleep(
-                        self._AUDIT_BACKOFF_BASE_SEC * (2 ** (attempt - 1))
-                    )
-
-        # All attempts exhausted — #634/#752: surface LOUD for write actions.
-        # Audit persistence runs at step 7 after the mutation has already
-        # landed; there is no file+DB transaction to unwind. On DB
-        # unavailability/serialization failure only (schema has no per-row
-        # failure mode — action_type/ok are always supplied).
-        assert last_exc is not None
-        if write:
-            logger.error(
-                "AUDIT_GAP: write action %s executed but its "
-                "core.action_results row failed to persist after %d attempts "
-                "(%s) — mutation stands, audit trail incomplete (#634/#752)",
-                definition.action_id,
-                self._AUDIT_MAX_ATTEMPTS,
-                last_exc,
-            )
-        else:
-            logger.warning(
-                "Non-blocking audit log failure (read) after %d attempts: %s",
-                self._AUDIT_MAX_ATTEMPTS,
-                last_exc,
-            )
 
     # ID: eff3eded-b30d-49e0-b50c-3503a1b695af
     def _prepare_params(

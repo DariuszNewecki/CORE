@@ -48,7 +48,7 @@ def _ctx(repo_root) -> SimpleNamespace:
 
 class _FakeSession:
     """Minimal stand-in supporting `async with session.begin(): await
-    session.execute(...)` -- just enough for ActionExecutor._audit_log to
+    session.execute(...)` -- just enough for ActionAuditRecorder.record to
     complete on the success path, without a real database."""
 
     async def execute(self, *_args, **_kwargs) -> None:
