@@ -8,7 +8,7 @@ Enforces the constitutional boundary: runtime generates and transforms
 candidate artifacts but does not evaluate rules or commit changes.
 
 Routing:
-  refactor_modularity → CodeGenerationPhase (_execute_deterministic_split)
+  refactor_modularity → CodeGenerationPhase (DeterministicSplitPlanner.execute)
   code_modification   → CodeGenerationPhase (CoderAgent, general edits)
   coverage_remediation → CodeGenerationPhase (CoderAgent, test generation)
   full_feature_development → CodeGenerationPhase

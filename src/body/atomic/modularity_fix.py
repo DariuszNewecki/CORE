@@ -366,7 +366,7 @@ async def action_fix_modularity(
         )
         # Delete original monolith — the package __init__.py re-exports
         # all symbols so callers resolve without import-path changes.
-        # Mirrors _execute_deterministic_split in the workflow path.
+        # Mirrors DeterministicSplitPlanner.execute in the workflow path.
         if target.exists():
             core_context.file_handler.remove_file(rel_path)
             logger.info("fix.modularity: deleted original monolith %s", rel_path)

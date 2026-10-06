@@ -38,8 +38,8 @@ class PlanConversionRefused(CoreError):
 
 
 # `refactor_modularity` bypasses the planner's own action choice entirely:
-# `code_generation_phase.py`'s `execute()` routes to `_execute_deterministic_split`
-# unconditionally for this workflow_type (line 92-93), which always dispatches
+# `code_generation_phase.py`'s `execute()` routes to `DeterministicSplitPlanner.execute`
+# unconditionally for this workflow_type (line 95-96), which always dispatches
 # `refactor.apply_split` via `ModularitySplitter` regardless of what
 # `PlannerAgent.create_execution_plan()` proposed. Converting the *planned*
 # tasks into a Proposal for this workflow_type would describe actions that
