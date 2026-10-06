@@ -16,7 +16,7 @@ Proven here, with the REAL manifest and the REAL migration files:
   included (one schema authority) — the two reconciled rows, recorded
   legacy-shaped before that column existed, get their marker in the same
   pass, and afterwards every per-entry probe holds, the latest baseline's
-  fingerprint (v2.10.2) holds, the earlier ones do not, and nothing is pending;
+  fingerprint (v2.12.0) holds, the earlier ones do not, and nothing is pending;
 * baseline probes discriminate: v2.9.1 holds and v2.10.1 does not on a
   v2.9.1 database; after the upgrade only the latest baseline holds.
 """

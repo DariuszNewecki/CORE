@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -99,23 +100,24 @@ async def test_fresh_install_from_schema_sql_has_a_complete_ledger(
     report = await migrate_db(write=True, session_factory=db.session_factory)
     assert report.pending_before == [] and report.results == []
 
-    # Nothing can be "adopted" over a complete ledger: v2.9.1's and v2.10.1's
-    # absence discriminators fail on the current schema (the latter on the
-    # ledger column v2.10.2 introduced). v2.10.2 holds; when it is the current
-    # shape it has nothing to record, and when unreleased entries follow it the
-    # ledger already records beyond it and adoption is refused. None writes.
-    with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
-        await adopt_baseline("v2.9.1", write=True, session_factory=db.session_factory)
-    with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
-        await adopt_baseline("v2.10.1", write=True, session_factory=db.session_factory)
+    # Nothing can be "adopted" over a complete ledger: every earlier baseline's
+    # absence discriminator fails on the current schema (v2.10.1 on the ledger
+    # column v2.10.2 introduced, v2.10.2 on ADR-169's state_observations).
+    # The latest baseline holds; when it is the current shape it has nothing
+    # to record, and when unreleased entries follow it the ledger already
+    # records beyond it and adoption is refused. None writes.
+    *earlier, latest = [b.tag for b in manifest.baselines]
+    for tag in earlier:
+        with pytest.raises(MigrationServiceError, match=r"probe \d+/\d+ does not hold"):
+            await adopt_baseline(tag, write=True, session_factory=db.session_factory)
     if _unreleased():
-        with pytest.raises(MigrationServiceError, match=r"beyond baseline v2\.10\.2"):
-            await adopt_baseline(
-                "v2.10.2", write=True, session_factory=db.session_factory
-            )
+        with pytest.raises(
+            MigrationServiceError, match=rf"beyond baseline {re.escape(latest)}"
+        ):
+            await adopt_baseline(latest, write=True, session_factory=db.session_factory)
     else:
         noop = await adopt_baseline(
-            "v2.10.2", write=True, session_factory=db.session_factory
+            latest, write=True, session_factory=db.session_factory
         )
         assert noop.to_record == [] and noop.recorded == []
     assert list(await db.ledger_rows()) == list(manifest.order)

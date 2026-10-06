@@ -376,3 +376,35 @@ migrations:
                          where table_schema = 'core' and table_name = 'users'
                            and column_name = 'display_name')
         - select to_regclass('core.runtime_settings') is null
+        # discriminator: the v2.10.2..v2.12.0 span's first structural change
+        # (ADR-169 D1); v2.11.0 shipped no migration, so its database is
+        # v2.10.2-shaped and recognised here
+        - select to_regclass('core.state_observations') is null
+    # v2.12.0 (2026-10-06): ADR-169's state ledger. `through` is the last
+    # manifest entry, as for v2.10.2: a v2.12.0 database is fully ledgered by
+    # its own schema.sql seed, so adoption records nothing and the hop replay
+    # is empty. Probes carry v2.10.2's markers plus the three ADR-169 tables
+    # and the widened trigger CHECK.
+    v2.12.0:
+      through: 20261005c_adr169_changes_and_outside_writes.sql
+      probes:
+        - select to_regclass('core._migrations') is not null
+        - select to_regclass('core.blackboard_entries') is not null
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = '_migrations'
+                           and column_name = 'reconciled' and is_nullable = 'NO')
+        - >-
+          select exists (select 1 from information_schema.columns
+                         where table_schema = 'core' and table_name = 'autonomous_proposals'
+                           and column_name = 'consequence_recorded_at')
+        - select exists (select 1 from pg_namespace where nspname = 'core_archive')
+        - select to_regclass('core.runtime_settings') is null
+        - select to_regclass('core.state_observations') is not null
+        - >-
+          select exists (select 1 from pg_constraint
+                         where conrelid = to_regclass('core.state_observations')
+                           and conname = 'state_observations_trigger_check'
+                           and pg_get_constraintdef(oid) like '%cycle%')
+        - select to_regclass('core.state_changes') is not null
+        - select to_regclass('core.outside_writes') is not null
