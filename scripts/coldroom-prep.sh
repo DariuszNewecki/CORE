@@ -19,6 +19,16 @@
 #   - (optional) passwordless sudo for unattended prep:
 #       echo '<user> ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/99-<user>
 #   - remove cloud-init if present (slow boot): sudo apt-get purge -y cloud-init
+#     On 26.04 `cloud-init` is a transitional package; also purge
+#     `cloud-init-base`, or every cloud-* unit stays enabled (cold-room
+#     2026-10-06, D2). Purge only after cloud-init has created the user and
+#     installed the key, when the VM was built from a cloud image.
+#   - linked clones get a new MAC, so a netplan file matched to the template's
+#     MAC does not apply and the clone falls back to DHCP (D3); find its address
+#     with `qm guest exec <id> -- ip -br addr`.
+#
+# Verified on Ubuntu 24.04 (2026-06-14) and 26.04.1 LTS (2026-10-06, Python
+# 3.14, Docker publishes `resolute`): the script itself runs unchanged.
 #
 # Workflow:
 #   1. provision Ubuntu 24.04 VM  →  2. run this script  →  3. Proxmox "Convert
