@@ -98,6 +98,8 @@ def _workspace(tmp_path: Path, schema_sql: Path = SCHEMA_SQL) -> Path:
     ws.mkdir()
     shutil.copy(INSTALLER, ws / "install-core.sh")
     shutil.copy(REPO_ROOT / ".env.example", ws / ".env.example")
+    # the installer reads the declared core-cli release from it (ADR-167 D2)
+    shutil.copy(REPO_ROOT / "Makefile", ws / "Makefile")
     shutil.copy(schema_sql, ws / "schema.sql")
     return ws
 

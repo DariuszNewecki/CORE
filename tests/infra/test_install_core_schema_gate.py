@@ -118,6 +118,8 @@ def _workspace(tmp_path: Path) -> Path:
     ws.mkdir()
     shutil.copy(INSTALLER, ws / "install-core.sh")
     shutil.copy(ENV_EXAMPLE, ws / ".env.example")
+    # the installer reads the declared core-cli release from it (ADR-167 D2)
+    shutil.copy(REPO / "Makefile", ws / "Makefile")
     (ws / "schema.sql").write_text("-- schema for the installer test\n", "utf-8")
     return ws
 
@@ -384,6 +386,35 @@ def test_degraded_audit_verdict_is_reported_as_clean_not_findings(
     assert "tree clean (0 blocking findings)" in out
     assert "3 blocking rule(s) need running services" in out
     assert "reported findings" not in out
+
+
+@pytest.mark.parametrize("path", ["bare", "docker"])
+# ID: 149bdba7-d09f-4c55-b936-c49c378476bc
+def test_installs_the_declared_core_cli_release(tmp_path: Path, path: str) -> None:
+    """ADR-167 D2: the install-time audit runs the blocking
+    cli.reference_current rule, which needs the core-cli release CORE's docs
+    correspond to. The installer installs exactly the Makefile's declaration,
+    as `make install` and CI do (cold-room 2026-10-06, D6)."""
+    ws = _workspace(tmp_path)
+    declared = next(
+        line.split(":=", 1)[1].strip()
+        for line in (REPO / "Makefile").read_text("utf-8").splitlines()
+        if line.startswith("CORE_CLI_DOCS_VERSION :=")
+    )
+    code, out, calls = _bare(ws) if path == "bare" else _run(ws)
+    assert code == 0, out
+    assert f"run pip install --quiet --no-deps core-cli=={declared}" in calls
+    assert f"core-cli {declared} installed" in out
+
+
+# ID: 2187ac64-a471-464b-9c28-14f6d35020e2
+def test_missing_core_cli_declaration_refuses(tmp_path: Path) -> None:
+    ws = _workspace(tmp_path)
+    (ws / "Makefile").write_text("# no declaration\n", encoding="utf-8")
+    code, out, calls = _bare(ws)
+    assert code != 0
+    assert "Makefile declares no CORE_CLI_DOCS_VERSION" in out
+    assert not any("core-cli==" in c for c in calls)
 
 
 @pytest.mark.parametrize("path", ["bare", "docker"])

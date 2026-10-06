@@ -103,6 +103,8 @@ def _workspace(tmp_path: Path) -> tuple[Path, Path]:
     ws.mkdir()
     shutil.copy(INSTALLER, ws / "install-core.sh")
     shutil.copy(ENV_EXAMPLE, ws / ".env.example")
+    # the installer reads the declared core-cli release from it (ADR-167 D2)
+    shutil.copy(REPO / "Makefile", ws / "Makefile")
     (ws / "schema.sql").write_text(
         "-- empty schema for the installer test\n", encoding="utf-8"
     )

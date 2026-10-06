@@ -187,6 +187,17 @@ install_deps() {
   step "Installing Python dependencies"
   poetry install --no-interaction
   ok "dependencies installed"
+  # ADR-167 D2: the core-cli release CORE's docs correspond to, as `make
+  # install` and CI install it. The blocking cli.reference_current rule
+  # compares docs/reference/core.md against it; without it the install-time
+  # audit stops on a blocking finding. Read from the Makefile's single
+  # declaration (make itself is not an installer prerequisite).
+  # --no-deps keeps the checkout's own core-runtime.
+  local cli_version
+  cli_version="$(sed -n 's/^CORE_CLI_DOCS_VERSION := *//p' Makefile)"
+  [[ -n "$cli_version" ]] || die "Makefile declares no CORE_CLI_DOCS_VERSION"
+  poetry run pip install --quiet --no-deps "core-cli==${cli_version}"
+  ok "core-cli ${cli_version} installed (documentation correspondence)"
 }
 
 # ---- write .env ------------------------------------------------------------
