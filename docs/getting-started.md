@@ -185,8 +185,8 @@ blocking rule, so it refuses to call the result a PASS:
 
 - The offline audit reports 0 blocking findings and names the blocking rules it
   skipped because they need running services.
-- The full audit lists `runtime.worker_max_interval_within_observed` as needing a
-  human, with "insufficient evidence". That rule compares each worker's heartbeat
+- The full audit lists `runtime.worker_max_interval_within_observed` as
+  `NOT EVALUATED` / `unavailable`, with "insufficient evidence". That rule compares each worker's heartbeat
   timing over at least 24 hours of history, which a new install does not have yet.
   It is an *unavailable* check, not a violation. It resolves once the daemon has
   run long enough (`make daemon-start`).
