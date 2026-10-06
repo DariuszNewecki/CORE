@@ -8,6 +8,24 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Fixed
+
+- **`install-core.sh` on a fresh clone** stopped at its install-time audit on 2.12.0: the
+  blocking `cli.reference_current` rule needs the declared core-cli release, which the
+  installer did not install. It now installs it, as `make install` and CI do (cold-room run,
+  Ubuntu 26.04.1).
+- **The "Start a project" tutorial** reaches PASS again. It now commits the adopted law before
+  auditing; without a commit, 2.12.0's law-drift check correctly reports DEGRADED.
+- **The getting-started guide** states what a fresh install's first audit shows (DEGRADED, exit
+  1, one runtime rule unavailable until the daemon has about 24 hours of history) and the audit
+  exit codes.
+
+### Changed
+
+- **Faster git-clone install on Python 3.14** (Ubuntu 26.04 LTS): the lockfile moves uvloop
+  0.21.0 → 0.23.0, which ships ready-built wheels for Python 3.14 instead of compiling from
+  source (#959).
+
 ## [2.12.0] — 2026-10-06
 
 **CORE knows its own state, and a verdict means the same thing everywhere.** Every audit verdict
