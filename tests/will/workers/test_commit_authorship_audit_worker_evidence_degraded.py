@@ -1,7 +1,7 @@
 """Tests for CommitAuthorshipAuditWorker._audit_consequence_evidence_degraded
 (ADR-148 D7, #790).
 
-No real DB required — service_registry and ProposalSupervisionService are
+No real DB required — service_registry and ProposalConsequenceAuditService are
 mocked. Sibling to the finalization-integrity tests in
 test_commit_authorship_audit_worker_finalization_integrity.py.
 """
@@ -46,7 +46,7 @@ async def test_audit_evidence_degraded_flags_new_violation() -> None:
     )
 
     mock_registry = MagicMock()
-    mock_registry.get_proposal_supervision_service = AsyncMock(
+    mock_registry.get_proposal_consequence_audit_service = AsyncMock(
         return_value=proposal_svc
     )
 
@@ -80,7 +80,7 @@ async def test_audit_evidence_degraded_suppresses_already_open() -> None:
     )
 
     mock_registry = MagicMock()
-    mock_registry.get_proposal_supervision_service = AsyncMock(
+    mock_registry.get_proposal_consequence_audit_service = AsyncMock(
         return_value=proposal_svc
     )
 
@@ -107,7 +107,7 @@ async def test_audit_evidence_degraded_no_violations() -> None:
     proposal_svc.fetch_completed_with_degraded_consequence = AsyncMock(return_value=[])
 
     mock_registry = MagicMock()
-    mock_registry.get_proposal_supervision_service = AsyncMock(
+    mock_registry.get_proposal_consequence_audit_service = AsyncMock(
         return_value=proposal_svc
     )
 

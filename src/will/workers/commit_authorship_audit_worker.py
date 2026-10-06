@@ -80,7 +80,7 @@ class CommitAuthorshipAuditWorker(Worker):
     Finalization integrity (ADR-148 D5, added 2026-07-13): flags any
     status='completed' proposal missing consequence_recorded_at. Rows
     completed before the ADR-148 barrier existed are excluded via
-    ProposalSupervisionService._ADR_148_BARRIER_LIVE_AT — same
+    ProposalConsequenceAuditService._ADR_148_BARRIER_LIVE_AT — same
     unverifiable-history exclusion shape as the authorship audit above.
 
     Consequence evidence degraded (ADR-148 D7, added 2026-07-17, #790):
@@ -236,7 +236,7 @@ class CommitAuthorshipAuditWorker(Worker):
             "governance.proposal_finalization_integrity::%"
         )
 
-        proposal_svc = await service_registry.get_proposal_supervision_service()
+        proposal_svc = await service_registry.get_proposal_consequence_audit_service()
         rows = await proposal_svc.fetch_completed_without_consequence(limit=100)
 
         flagged = 0
@@ -294,7 +294,7 @@ class CommitAuthorshipAuditWorker(Worker):
             "governance.consequence_evidence_degraded::%"
         )
 
-        proposal_svc = await service_registry.get_proposal_supervision_service()
+        proposal_svc = await service_registry.get_proposal_consequence_audit_service()
         rows = await proposal_svc.fetch_completed_with_degraded_consequence(limit=100)
 
         flagged = 0

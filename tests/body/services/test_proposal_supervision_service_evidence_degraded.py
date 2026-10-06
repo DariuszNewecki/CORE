@@ -1,4 +1,4 @@
-"""Tests for ProposalSupervisionService.fetch_completed_with_degraded_consequence
+"""Tests for ProposalConsequenceAuditService.fetch_completed_with_degraded_consequence
 (ADR-148 D7, #790).
 
 No real DB required — ServiceRegistry.session is mocked; the SQL text
@@ -13,7 +13,9 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from body.services.proposal_supervision_service import ProposalSupervisionService
+from body.services.proposal_consequence_audit_service import (
+    ProposalConsequenceAuditService,
+)
 
 
 @asynccontextmanager
@@ -36,7 +38,7 @@ async def test_fetch_completed_with_degraded_consequence_maps_rows() -> None:
     updated_at = datetime(2026, 7, 17, 1, 0, 5, tzinfo=UTC)
     session = _mock_session([("pid-1", completed_at, updated_at)])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -60,7 +62,7 @@ async def test_fetch_completed_with_degraded_consequence_selects_on_source_colum
     already returns None fail-soft on the normal execution path."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -78,7 +80,7 @@ async def test_fetch_completed_with_degraded_consequence_passes_limit() -> None:
     """The limit param is bound through to the query."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -94,7 +96,7 @@ async def test_fetch_completed_with_degraded_consequence_empty_result() -> None:
     """No degraded rows returns an empty list."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),

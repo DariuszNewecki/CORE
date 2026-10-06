@@ -1,5 +1,5 @@
-"""Tests for ProposalSupervisionService.fetch_completed_without_consequence
-(ADR-148 D5, #763).
+"""Tests for ProposalConsequenceAuditService.fetch_completed_without_consequence
+(ADR-148 D5, #763) and ProposalSupervisionService pipeline-health reads.
 
 No real DB required — ServiceRegistry.session is mocked; the SQL text
 itself is exercised at the integration level by CommitAuthorshipAuditWorker
@@ -12,6 +12,9 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from body.services.proposal_consequence_audit_service import (
+    ProposalConsequenceAuditService,
+)
 from body.services.proposal_supervision_service import ProposalSupervisionService
 
 
@@ -35,7 +38,7 @@ async def test_fetch_completed_without_consequence_maps_rows() -> None:
     updated_at = datetime(2026, 7, 13, 1, 0, 5, tzinfo=UTC)
     session = _mock_session([("pid-1", completed_at, updated_at)])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -55,7 +58,7 @@ async def test_fetch_completed_without_consequence_passes_barrier_cutoff() -> No
     """The query binds the ADR-148 barrier-live-at cutoff, not an open-ended scan."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -78,7 +81,7 @@ async def test_fetch_completed_without_consequence_checks_row_existence_not_mark
     without writing the row, defeating the audit's purpose."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
@@ -95,7 +98,7 @@ async def test_fetch_completed_without_consequence_empty_result() -> None:
     """No violating rows returns an empty list."""
     session = _mock_session([])
 
-    svc = ProposalSupervisionService()
+    svc = ProposalConsequenceAuditService()
     with patch(
         "body.services.service_registry.ServiceRegistry.session",
         MagicMock(return_value=_session_ctx(session)),
