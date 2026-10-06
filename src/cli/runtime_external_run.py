@@ -57,10 +57,11 @@ here before its own heavy imports via :func:`matches_route`, an exact
 two-token match -- not a general router.
 
 Read-only git queries on the subject (``rev-parse HEAD``) run before any
-CORE bootstrap, when ``GitService`` cannot be imported without initializing
-the IntentRepository singleton against the wrong root; the one small
-``subprocess`` call here is justified by that ordering constraint exactly as
-``external_target_binding._git_toplevel`` documents, and mutates nothing.
+CORE bootstrap, when no CORE module can be imported without initializing
+the IntentRepository singleton against the wrong root. They go through
+``cli.pre_bootstrap_git.git_read`` (stdlib only, read-only). The execution
+copy's git history is created after the environment is bound, through
+``shared.utils.subprocess_utils.run_direct_command``.
 
 Unit 2 delivers binding, materialization, refusals and invocation. It does
 NOT claim the complete runner is operational: an isolated database seeded
@@ -76,7 +77,6 @@ import asyncio
 import functools
 import hashlib
 import os
-import subprocess
 import uuid
 from collections.abc import Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager
@@ -87,6 +87,7 @@ from typing import Any
 
 from rich.console import Console
 
+from cli.pre_bootstrap_git import git_read
 from cli.route_match import route_matcher
 
 
@@ -202,61 +203,50 @@ class _EnvironScope:
                 os.environ[k] = v
 
 
-def _git_read(path: Path, *args: str) -> str | None:
-    """Read-only ``git -C <path> <args>``; None on any failure. Never mutates."""
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(path), *args],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return None
-
-
 def _git_init_copy(target: Path) -> tuple[str, str]:
     """Give the execution copy its own fresh git history: one baseline commit
     of everything materialized (the subject's own ``.git`` was excluded).
     The bound runtime needs a repository (binding validator, pre/post SHAs
     for any proposal), and the baseline tree hash is Condition 2's "copy's
     tree hash". Writes only inside the copy, under the evidence root.
-    Returns (baseline_sha, baseline_tree_hash)."""
+    Returns (baseline_sha, baseline_tree_hash).
+
+    Runs after the environment is bound (CORE modules are already loaded by
+    then), so the git calls go through the sanctioned subprocess surface.
+    Raises ``SubprocessCommandError`` if any step fails."""
+    from shared.utils.subprocess_utils import run_direct_command
+
     ident = [
         "-c",
         "user.email=external-run@core.local",
         "-c",
         "user.name=CORE external-run",
     ]
-    subprocess.run(
-        ["git", "-C", str(target), "init", "-q"], check=True, capture_output=True
+    git_c = ["-C", str(target)]
+    run_direct_command("external-run: git init copy", "git", [*git_c, "init", "-q"])
+    run_direct_command(
+        "external-run: disable commit signing in copy",
+        "git",
+        [*git_c, *ident, "config", "commit.gpgsign", "false"],
     )
-    subprocess.run(
-        ["git", "-C", str(target), *ident, "config", "commit.gpgsign", "false"],
-        check=True,
-        capture_output=True,
+    run_direct_command(
+        "external-run: stage copy baseline", "git", [*git_c, *ident, "add", "-A"]
     )
-    subprocess.run(
-        ["git", "-C", str(target), *ident, "add", "-A"], check=True, capture_output=True
-    )
-    subprocess.run(
+    run_direct_command(
+        "external-run: commit copy baseline",
+        "git",
         [
-            "git",
-            "-C",
-            str(target),
+            *git_c,
             *ident,
             "commit",
             "-q",
             "-m",
             "external-run execution copy baseline",
         ],
-        check=True,
-        capture_output=True,
     )
     return (
-        _git_read(target, "rev-parse", "HEAD") or "<unavailable>",
-        _git_read(target, "write-tree") or "<unavailable>",
+        git_read(target, "rev-parse", "HEAD") or "<unavailable>",
+        git_read(target, "write-tree") or "<unavailable>",
     )
 
 
@@ -482,7 +472,7 @@ def _refuse_egress(rejected: list[Any], opts: ExternalRunOptions, stage: str) ->
 
 
 def _git_lines(path: Path, *args: str) -> list[str] | None:
-    out = _git_read(path, *args)
+    out = git_read(path, *args)
     return None if out is None else [line for line in out.splitlines() if line]
 
 
@@ -906,8 +896,8 @@ def execute(
             raise _Refused(f"no .git found at subject: {subject}")
         if _is_within(subject, core_repo_root) or _is_within(core_repo_root, subject):
             raise _Refused(f"subject overlaps CORE's own checkout: {subject}")
-        subject_sha = _git_read(subject, "rev-parse", "HEAD") or "<unavailable>"
-        subject_tree = _git_read(subject, "rev-parse", "HEAD^{tree}") or "<unavailable>"
+        subject_sha = git_read(subject, "rev-parse", "HEAD") or "<unavailable>"
+        subject_tree = git_read(subject, "rev-parse", "HEAD^{tree}") or "<unavailable>"
 
         # 2. evidence root and the run directory (still stdlib only)
         raw_evidence = opts.evidence_dir or (
@@ -970,6 +960,7 @@ def execute(
             materialize_execution_copy,
             subject_fingerprint,
         )
+        from shared.utils.subprocess_utils import SubprocessCommandError
 
         try:
             fingerprint_before = subject_fingerprint(subject)
@@ -996,7 +987,7 @@ def execute(
         evidence_root = copy.evidence_root
         try:
             copy_sha, copy_tree = _git_init_copy(copy.target_root)
-        except (OSError, subprocess.CalledProcessError) as exc:
+        except (OSError, SubprocessCommandError) as exc:
             raise _Refused(
                 f"could not initialize the execution copy's git history: {exc}",
                 EXIT_INTERNAL_FAILURE,

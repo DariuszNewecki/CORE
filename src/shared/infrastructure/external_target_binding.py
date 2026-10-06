@@ -25,9 +25,11 @@ module-level side effect. Importing GitService here — even lazily,
 inside a function body — would initialize the global IntentRepository
 singleton the moment this guard is *invoked*, defeating the guard's own
 purpose (the singleton must not exist yet when this check runs). This is
-the dependency-cycle case that justifies a small, independent git
-top-level lookup here rather than reuse of GitService's subprocess
-sanctuary. The lookup below is read-only (``git rev-parse
+the dependency-cycle case that justifies a small git top-level lookup
+here rather than reuse of GitService. The lookup runs through
+``shared.utils.subprocess_utils.run_direct_command`` (the sanctioned
+subprocess surface), which does not create the IntentRepository singleton
+on import; only GitService does. It is read-only (``git rev-parse
 --show-toplevel``) and does not construct anything Git-mutating.
 
 Deliberately NOT a target-context abstraction: there is no class here
@@ -40,11 +42,14 @@ environment.
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 from shared.exceptions import CoreError
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import (
+    SubprocessCommandError,
+    run_direct_command,
+)
 
 
 logger = getLogger(__name__)
@@ -60,6 +65,9 @@ class ExternalTargetBindingError(CoreError):
     """
 
 
+_GIT_NOT_A_REPOSITORY = 128
+
+
 def _git_toplevel(path: Path) -> str | None:
     """Return ``git rev-parse --show-toplevel`` for *path*, or None on failure.
 
@@ -71,14 +79,18 @@ def _git_toplevel(path: Path) -> str | None:
     resolve to None, which the caller treats as a refusal.
     """
     try:
-        result = subprocess.run(
-            ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
+        result = run_direct_command(
+            "external_target_binding: git rev-parse --show-toplevel",
+            "git",
+            ["-C", str(path), "rev-parse", "--show-toplevel"],
+            # 128 is git's "not a repository" exit: an expected refusal here,
+            # not a command error, so it is returned as None, not logged.
+            allowed_returncodes=(0, _GIT_NOT_A_REPOSITORY),
         )
+        if result.returncode != 0:
+            return None
         return result.stdout.strip()
-    except (subprocess.CalledProcessError, OSError):
+    except (SubprocessCommandError, OSError):
         return None
 
 
