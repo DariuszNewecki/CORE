@@ -106,19 +106,30 @@ def test_floor_and_intent_impact_levels_agree() -> None:
 
 # ID: 1edfd97b-5773-4ca9-9179-0d9a91d3eec7
 def test_no_orphan_actions_in_floor() -> None:
-    """Every entry in the floor action_risk.yaml has a corresponding registered action.
+    """Every entry in the floor action_risk.yaml has a corresponding registered
+    action or declared operational capability.
 
     Orphan entries accumulate when actions are removed without cleaning up the
     floor config. They are harmless at runtime but indicate stale configuration
     that can mislead future maintainers about which actions are active.
+
+    ADR-078 D3: every operational capability in the floor taxonomy needs an
+    action_risk entry, registered action or not, so such an entry is required,
+    not stale. (#957: c81085e5 removed seven of them as "orphans", and the floor
+    taxonomy then failed to load in every adopter project.)
     """
     doc = yaml.safe_load(_FLOOR_ACTION_RISK.read_text(encoding="utf-8"))
     floor_actions: set[str] = set(doc.get("actions", {}).keys())
     registered_ids = {a.action_id for a in action_registry.list_all()}
-    orphans = floor_actions - registered_ids
+    taxonomy_path = (
+        _FLOOR_ACTION_RISK.parents[2] / "taxonomies" / "operational_capabilities.yaml"
+    )
+    taxonomy = yaml.safe_load(taxonomy_path.read_text(encoding="utf-8"))
+    capability_ids = set((taxonomy.get("capabilities") or {}).keys())
+    orphans = floor_actions - registered_ids - capability_ids
 
     assert not orphans, (
-        f"Floor action_risk.yaml has {len(orphans)} orphan entry(s) with no "
-        f"registered action: {sorted(orphans)}. "
+        f"Floor action_risk.yaml has {len(orphans)} orphan entry(s) with neither a "
+        f"registered action nor a declared operational capability: {sorted(orphans)}. "
         "Remove them from src/shared/_machinery_floor/enforcement/config/action_risk.yaml."
     )
