@@ -39,6 +39,7 @@ supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonom
   - test_coverage_sensor
   - test_runner_sensor
 supported_actions:      # ADR-092-A (triggered by ADR-121 T5b)
+  - build.test_for_symbol
   - build.tests
   - check.imports
   - fix.atomic_actions
@@ -55,5 +56,7 @@ supported_actions:      # ADR-092-A (triggered by ADR-121 T5b)
   - fix.placeholders
   - fix.settings_access
   - fix.vulture_heal
+  - refactor.apply_split
+  - test.candidate_validate
   - test.execute
   - test.sandbox_validate
