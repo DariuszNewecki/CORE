@@ -49,8 +49,9 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
+from mind.governance.dispatch_integrity import declared_check_types
 from mind.governance.executable_rule import ExecutableRule
-from mind.governance.rule_executor import declared_check_types, execute_rule
+from mind.governance.rule_executor import execute_rule
 from mind.logic.engines.base import EngineResult
 from mind.logic.engines.registry import EngineRegistry
 from shared.models import AuditSeverity
