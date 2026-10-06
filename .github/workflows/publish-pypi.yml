@@ -12,6 +12,11 @@
 #   1. Bump version in pyproject.toml
 #   2. git tag vX.Y.Z && git push --tags
 #   3. This workflow fires automatically.
+#
+# #954: nothing is published unless the latest CORE CI run for the exact
+# tagged SHA concluded success, and the built wheel passes the adopter-path
+# smoke (project new -> adopt-pack -> code audit --offline, with the verdict
+# meanings of #952 asserted: PASS / DEGRADED / FAIL).
 
 name: Publish to PyPI
 
@@ -33,7 +38,28 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      actions: read
     steps:
+      - name: Require green CORE CI on the tagged SHA
+        # #954: a tag reaches PyPI only with proof that CORE CI (full suite +
+        # constitutional audit) passed on exactly this revision. The latest
+        # CORE CI run for the SHA must have concluded success -- a failed,
+        # cancelled, in-progress or missing run refuses the release (fail
+        # closed; re-run CI, then re-run this workflow).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CONCLUSION=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" \
+            --jq '[.workflow_runs[] | select(.name == "CORE CI")]
+                  | sort_by(.created_at) | last | .conclusion // "none"')
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::No green CORE CI for ${GITHUB_SHA} (latest run: ${CONCLUSION}). Refusing to publish."
+            exit 1
+          fi
+          echo "CORE CI green on ${GITHUB_SHA}"
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -89,6 +115,44 @@ jobs:
           print("Bundled floor OK — wheel BYOR path verified")
           PYEOF
           .smoke-venv/bin/python /tmp/smoke_floor.py
+
+      - name: Adopter-path smoke (new -> adopt-pack -> audit, verdict meanings)
+        # #954: the installed wheel, with no CORE database (a standalone
+        # adopter install, #953), walks the documented adopter path and must
+        # give the verdicts #952 guarantees on every repository:
+        #   committed law, clean code   -> PASS
+        #   uncommitted .intent/ edit   -> DEGRADED (law drift)
+        #   committed blocking violation -> FAIL
+        run: |
+          set -euo pipefail
+          BIN="$PWD/.smoke-venv/bin"
+          WORK="$RUNNER_TEMP/adopter-smoke"
+          mkdir -p "$WORK"
+          cd "$WORK"
+          git_c() { git -c user.name=smoke -c user.email=smoke@localhost "$@"; }
+          expect() {
+            "$BIN/core-admin" code audit --offline --format=json > "$WORK/$1.json" || true
+            python3 - "$WORK/$1.json" "$2" <<'PYEOF'
+          import json, sys
+          verdict = json.load(open(sys.argv[1], encoding="utf-8")).get("verdict")
+          print(f"{sys.argv[1]}: {verdict} (expected {sys.argv[2]})")
+          sys.exit(0 if verdict == sys.argv[2] else 1)
+          PYEOF
+          }
+          echo y | "$BIN/core-admin" project new demo --write
+          echo y | "$BIN/core-admin" project adopt-pack core/starter-python --target-dir demo --write
+          cd demo
+          git init -q
+          git_c add -A
+          git_c commit -qm "adopter smoke"
+          expect clean PASS
+          printf '\n' >> .intent/rules/packs/core_starter_python.json
+          expect drift DEGRADED
+          git checkout -q .intent
+          printf 'def f():\n    try:\n        return 1\n    except:\n        pass\n' > src/demo/bad.py
+          git_c add src/demo/bad.py
+          git_c commit -qm "blocking violation"
+          expect violation FAIL
 
       - name: Publish to PyPI (Trusted Publisher OIDC)
         uses: pypa/gh-action-pypi-publish@release/v1

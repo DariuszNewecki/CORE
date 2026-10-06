@@ -81,9 +81,12 @@ Before tagging a release that changes the database schema:
   testable from a shallow checkout.
 - **CHANGELOG** lists the release's schema migrations and whether writers must be quiesced.
 
-The `publish-pypi.yml` workflow fires on the tag push, verifies the tag
-version matches `pyproject.toml`, builds the wheel + sdist, and
-publishes via OIDC. The release appears at
+The `publish-pypi.yml` workflow fires on the tag push. It first refuses
+unless the latest CORE CI run for the exact tagged SHA concluded success
+(#954), then verifies the tag version matches `pyproject.toml`, builds the
+wheel + sdist, installs the wheel into a clean venv and walks the adopter
+path (`project new` → `adopt-pack` → `code audit --offline`, asserting
+PASS / DEGRADED / FAIL where each is due), and publishes via OIDC. The release appears at
 <https://pypi.org/project/core-runtime/> within a few minutes.
 
 ## Semver
@@ -97,10 +100,11 @@ a re-tagged release.
 
 ## Notes
 
-- The workflow does **not** run pytest. Pre-tag validation is the
-  responsibility of the existing CI workflow (`ci.yml`), which runs on
-  every PR and push to `main`. Only tag commits that have already
-  passed CI.
+- The workflow does **not** run pytest itself; it requires that CORE CI
+  (`core-ci.yml`, which runs on pushes to `develop` and on PRs) passed on
+  the tagged SHA. Tag a commit whose CI is green: a failed, cancelled,
+  in-progress or missing run refuses the release. Re-run CI, then re-run
+  the publish workflow.
 - The Docker image counterpart (`core-engine:X.Y.Z`) ships via F-48.3
   (#539). Per ADR-086 D7, PyPI and Docker versions are paired — see
   that issue for the matched-version invariant once it lands.
