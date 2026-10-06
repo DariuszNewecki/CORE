@@ -48,13 +48,14 @@ gates:
   - id: G2
     name: Constitutional enforcement is deterministic and regression-tested
     status: partial
-    gap: Per-rule known-violating + known-compliant fixtures not universally applied
-    evidence: []
+    gap: "Every blocking rule has a violating and a compliant fixture (registry, CI-enforced); the registry's verified labels are assigned by its authors and have not been independently audited for fixture depth"
+    evidence:
+      - ".specs/verification/g2_blocking_rule_registry.yaml — all 106 blocking rules, each with a violating and a compliant fixture reference, state verified (86 engine-mapped, 19 passive-gate, 1 advisory-mapped)"
+      - "tests/mind/governance/test_g2_blocking_rule_registry.py — enforces exact agreement between the registry and the live rule/mapping corpus on every CI run"
+      - "#842 closed — census and fixture coverage complete"
     attestation: null
-    blocking_issues: [842]               # corrected 2026-08-29 — was [773], but G2's
-                                          # gap never appeared in #773's text; #842 is
-                                          # the dedicated issue (blocker-link fix only,
-                                          # gap/status unchanged)
+    blocking_issues: []                  # 2026-10-06 (#955): #842 closed; no open issue
+                                          # yet tracks the independent-audit gap
     urs_ref: URS-production-readiness.md#g2
 
   - id: G3
@@ -156,9 +157,10 @@ gates:
   - id: G10
     name: Operator observability
     status: partial
-    gap: "Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access"
+    gap: "Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access; ADR-169's state records are written but no core-admin command reads them yet"
     evidence:
       - "core-admin runtime dashboard, proposals show, consequence-chain query exist"
+      - "ADR-169 (15059f27, 1319a55b, 2eed821c) — CORE records its own state in append-only tables: core.state_observations at daemon boot, every StateSensor cycle and every persisted audit run (HEAD, dirty paths, law relation, code identity); changes carry attribution; writes outside the repository are recorded in core.outside_writes; a daemon running stale code suspends itself (ADR-030)"
     attestation: null
     blocking_issues: [797]
     urs_ref: URS-production-readiness.md#g10
@@ -191,6 +193,7 @@ gates:
       - "SECURITY.md present — documents runtime/platform trust boundary (runtime API unauthenticated by design; auth extracted to core-platform)"
       - "#671 closed — exposure tiers on routes (ADR-110 D5)"
       - "ADR-132 governor auth (now a core-platform concern)"
+      - "Writes outside the bound repository are recorded (ADR-169 D5, 2eed821c) and refused when a configured ledger is unreachable (#953, 1f60cce6); verdict meaning is substrate-wide — an adopter's policy cannot weaken PASS (#952, 669e24ed)"
     attestation: null
     blocking_issues: [796]
     urs_ref: URS-production-readiness.md#g12

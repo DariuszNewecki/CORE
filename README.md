@@ -313,7 +313,7 @@ Progress: **2/15 met** · 12 partial · 1 not demonstrated.
 | Gate | Status | Primary gap |
 |------|--------|-------------|
 | G1 — Fresh-install proof | ⚠️ partial | CI-automated fresh-install absent; manual cold-room only |
-| G2 — Constitutional enforcement is deterministic and regression-tested | ⚠️ partial | Per-rule known-violating + known-compliant fixtures not universally applied |
+| G2 — Constitutional enforcement is deterministic and regression-tested | ⚠️ partial | Every blocking rule has a violating and a compliant fixture (registry, CI-enforced); the registry's verified labels are assigned by its authors and have not been independently audited for fixture depth |
 | G3 — Layer integrity is machine-enforced and blocking | ⚠️ partial | Several layer rules at reporting severity (no_body_to_will, will.no_direct_database_access); reporting-only set not formally documented |
 | G4 — Autonomous loop reliability demonstrated by soak | ❌ not demonstrated | A 72h soak ran (f7430b25, 2026-07-23 → 2026-07-26; NRestarts=0, ~35 workers, 68,495 blackboard entries) and proved loop continuity only: 0 of 16,445 findings posted in the window reached a proposal or a consequence record — the only actionable class was abandoned by the remediation circuit breaker before any proposal could be created. Not accepted as G4 evidence. A qualifying soak needs a pre-declared throughput condition (≥ 1 finding → proposal → consequence chain completed under soak) recorded before it starts. |
 | G5 — Mutation-lane equivalence and lifecycle safety | ⚠️ partial | claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified |
@@ -321,7 +321,7 @@ Progress: **2/15 met** · 12 partial · 1 not demonstrated.
 | G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
 | G8 — Integration tests for the governed mutation chain | ✅ met | None — no G8 acceptance criterion remains outstanding. |
 | G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
-| G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access |
+| G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access; ADR-169's state records are written but no core-admin command reads them yet |
 | G11 — Upgrade and migration safety | ✅ met | None — every URS acceptance criterion is proven executable on disposable PostgreSQL for both released baselines (v2.9.1, v2.10.1); the route ships with 2.10.2. Governor ruling 2026-09-19: the declared updated_at changes during a v2.9.1 upgrade (touch triggers fired by the 20260722 backfill; #885 draft->pending) are acceptable — G11 requires preservation of governance history, not byte-identical storage. |
 | G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |
 | G13 — Documentation for operators | ⚠️ partial | No operator runbook; CLAUDE.md is comprehensive for Claude Code but is not an operator document |
