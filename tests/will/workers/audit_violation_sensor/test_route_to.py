@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from will.workers.audit_violation_sensor import (
+from will.audit_violation.routing import (
     _ARCHITECTURAL_JUDGMENT_RULES,
     _route_to,
 )

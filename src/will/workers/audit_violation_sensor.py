@@ -56,48 +56,16 @@ from typing import Any
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.audit_violation.drain import drain_cleared_findings
 from will.audit_violation.filter import (
     filter_actionable_violations,
     non_remediable_violations,
 )
 from will.audit_violation.normalizer import normalize_audit_findings
+from will.audit_violation.routing import _route_to
 
 
 logger = getLogger(__name__)
-
-
-# ADR-095 D4: architectural-judgment rules carry a routing marker on
-# their findings so the autonomous remediator's filter is mechanical
-# (skip principal.governor findings) rather than YAML-only routing.
-# Per ADR-068 principal role taxonomy.
-#
-# The marker is ``route_to``, not ``resolution_authority`` (#943): that name
-# belongs only to payload.resolution.resolution_authority, the record of under
-# whose authority a finding was closed, which re-arms exhausted remediation
-# caps (ADR-104 D9 amended). A routing hint must never be mistakable for it.
-#
-# Extended 2026-06-06 to include architecture.mind.no_execution_semantics
-# (ADR-095 D6 sibling case): llm_gate rule, same yes/no-verdict-at-scale
-# pattern that motivated D6's deferral of modularity.unix_philosophy.
-_ARCHITECTURAL_JUDGMENT_RULES: frozenset[str] = frozenset(
-    {
-        "modularity.needs_split",
-        "modularity.class_too_large",
-        "modularity.needs_refactor",
-        "modularity.unix_philosophy",
-        "purity.no_ast_duplication",
-        "purity.no_semantic_duplication",
-        "purity.no_orphan_files",
-        "architecture.mind.no_execution_semantics",
-    }
-)
-
-
-def _route_to(rule_id: str) -> str | None:
-    """The principal a finding for *rule_id* is routed to, or None (ADR-095 D4)."""
-    if rule_id in _ARCHITECTURAL_JUDGMENT_RULES:
-        return "principal.governor"
-    return None
 
 
 # ID: 7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4
@@ -254,80 +222,29 @@ class AuditViolationSensor(Worker):
                 filtered_out,
             )
 
-        # ADR-045: drain the awaiting_reaudit queue for this namespace.
-        # Subjects of currently-detected violations are the authoritative
-        # set; quarantined findings whose subject is present are released
-        # to 'open', the rest are resolved with system.audit attribution.
-        # Runs after the audit produced this cycle's truth so we can
-        # adjudicate without a second evaluation pass.
-        #
-        # ADR-091 D2 canonical subject format applies: subjects emitted by
-        # this sensor are `<artifact_type>::<rule_id>::<file_path>` and the
-        # reaudit drain scopes by `<artifact_type>::<rule_namespace>`.
-        # Delegated violations still hold, so they count as current: otherwise
-        # the indeterminate drain below would resolve each delegated finding
-        # the cycle after it was escalated, and the sensor would re-post it.
-        current_subjects = {
-            f"{artifact_type_id}::{v.get('rule_id', self._rule_namespace)}::{v['file_path']}"
-            for v in violations + delegated
-        }
+        # ADR-045 / ADR-127 / ADR-127 D7: adjudicate the awaiting_reaudit,
+        # indeterminate and abandoned queues against this cycle's truth.
+        # Delegated violations still hold, so they count as current.
         bb_svc = await self._core_context.registry.get_blackboard_service()
-        reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
-            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
-            current_violation_subjects=current_subjects,
-            resolved_by="audit_violation_sensor",
+        drain_report = await drain_cleared_findings(
+            bb_svc,
+            artifact_type_id=artifact_type_id,
+            rule_namespace=self._rule_namespace,
+            current_violations=violations + delegated,
         )
-        reaudit_released = len(reaudit["released_subjects"])
-        reaudit_resolved = len(reaudit["resolved_subjects"])
-
-        # ADR-127: drain indeterminate findings whose violations have cleared.
-        # Symmetrical to the awaiting_reaudit drain above but targets
-        # 'indeterminate' status. Findings whose violation still holds are left
-        # untouched — the remediation-uncertainty judgment remains valid.
-        # Findings whose violation is gone are resolved (system.audit authority).
-        indet = await bb_svc.adjudicate_indeterminate_findings(
-            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
-            current_violation_subjects=current_subjects,
-            resolved_by="audit_violation_sensor",
-        )
-        indet_resolved = len(indet["resolved_subjects"])
-
-        # ADR-127 D7: drain Type-B 'abandoned' findings whose violations have
-        # cleared. Symmetrical to the indeterminate drain above. Reaches only
-        # Type-B (ViolationExecutorWorker's remediation-attempt-cap abandons,
-        # ADR-104 D9) — never Type-A telemetry (worker.silent, loop_hold.sample,
-        # ...), which never matches this subject_prefix by construction. See
-        # ADR-127 addendum D7.
-        aband = await bb_svc.adjudicate_abandoned_findings(
-            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
-            current_violation_subjects=current_subjects,
-            resolved_by="audit_violation_sensor",
-        )
-        aband_resolved = len(aband["resolved_subjects"])
-
-        if reaudit_released or reaudit_resolved or indet_resolved or aband_resolved:
+        if drain_report is not None:
             logger.info(
                 "AuditViolationSensor[%s]: reaudit drained %d released, %d resolved; "
                 "indeterminate clean-pass resolved %d; abandoned clean-pass resolved %d.",
                 self._rule_namespace,
-                reaudit_released,
-                reaudit_resolved,
-                indet_resolved,
-                aband_resolved,
+                drain_report["released_count"],
+                drain_report["resolved_count"],
+                drain_report["indeterminate_drained"],
+                drain_report["abandoned_drained"],
             )
             await self.post_report(
                 subject=f"audit.reaudit.complete::{self._rule_namespace}",
-                payload={
-                    "rule_namespace": self._rule_namespace,
-                    "released_count": reaudit_released,
-                    "resolved_count": reaudit_resolved,
-                    "released_subjects": reaudit["released_subjects"],
-                    "resolved_subjects": reaudit["resolved_subjects"],
-                    "indeterminate_drained": indet_resolved,
-                    "indeterminate_drain_subjects": indet["resolved_subjects"],
-                    "abandoned_drained": aband_resolved,
-                    "abandoned_drain_subjects": aband["resolved_subjects"],
-                },
+                payload=drain_report,
             )
 
         delegated_posted = await self._delegate_non_remediable(
