@@ -1,6 +1,6 @@
 {
-  "released_at": "v2.10.2",
-  "note": "ADR-162 D10: released migration bytes are immutable. Entries through 20260914_885 pinned from `git show v2.10.1:<file>`; the five 20260919 entries pinned at the v2.10.2 release commit; a mismatch means a released file was edited.",
+  "released_at": "v2.12.0",
+  "note": "ADR-162 D10: released migration bytes are immutable. Entries through 20260914_885 pinned from `git show v2.10.1:<file>`; the five 20260919 entries pinned at the v2.10.2 release commit; the three 20261005 entries (ADR-169) pinned at the v2.12.0 release commit; a mismatch means a released file was edited.",
   "sha256": {
     "20260426_drop_legacy_proposals.sql": "b73e2fbbd5b6eef21649f007538514ced8ecbe4ae907746ab5a389cf9edf4763",
     "20260427_add_approval_authority_to_autonomous_proposals.sql": "cb41decc9fc78065444a4d4b872dab97caa325af6ebae744aa503b934f2f2eaf",
@@ -45,6 +45,9 @@
     "20260919b_adr052_core_archive_schema.sql": "5d0cbd17da467d4c8532a787f59bc5f7596db0a40395ddff1112f499ed381ec4",
     "20260919c_adr054_audit_findings_run_id.sql": "bc2bf16cf12e3d028b03aeac6825a5f3455de78f674885b69bf68243cbabf254",
     "20260919d_users_display_name.sql": "02878bd21dbf260ff30c6ecf5c7c04f7894abada77137c5f794434b29d9f6b44",
-    "20260919e_adr052_phase4_drop_runtime_settings.sql": "e928e40f6e41798e5be585dfafe55ab0ca8dab1e911bbb1c1cc42bdb83e72d80"
+    "20260919e_adr052_phase4_drop_runtime_settings.sql": "e928e40f6e41798e5be585dfafe55ab0ca8dab1e911bbb1c1cc42bdb83e72d80",
+    "20261005_adr169_state_observations.sql": "9a7ed026b6d58749ec201040b7010ea690739e54b834467cd79138047997f046",
+    "20261005b_adr169_cycle_trigger.sql": "b60dc6c76a4362e1dc0cfba622706bd2bc2e36378c35114fa7a8b1ed015625a0",
+    "20261005c_adr169_changes_and_outside_writes.sql": "adb4afb1cbc7a3a3f23ad1d67a55bd6e8a34a53e7d90b37517b43a11836daad0"
   }
 }

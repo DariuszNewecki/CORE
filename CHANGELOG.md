@@ -8,13 +8,149 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.12.0] — 2026-10-06
+
+**CORE knows its own state, and a verdict means the same thing everywhere.** Every audit verdict
+now records the law it evaluated against the law of record. An uncommitted `.intent/` edit makes
+the verdict DEGRADED and names the file. An append-only state ledger records what CORE observed at
+boot, at each audit run and on every cycle where something changed. A daemon running code older
+than `src/` on disk stops acting until it is restarted (ADR-169, ADR-030). The substrate also sets
+the minimum meaning of PASS, so an adopter project can no longer configure itself a weaker PASS
+than CORE's own. Minor release. **Three database migrations**: a 2.10.2 or 2.11.0 database must
+be migrated before the services start (see *Operator note*).
+
+### Operator note — database upgrade
+
+- New, additive tables: `core.state_observations`, `core.state_changes`, `core.outside_writes`.
+  All three are append-only, enforced by triggers. Migrations `20261005_adr169_state_observations`,
+  `20261005b_adr169_cycle_trigger` and `20261005c_adr169_changes_and_outside_writes` are now
+  released bytes, pinned as immutable (ADR-162 D10).
+- The API, the daemon and `core-engine` refuse to start against a schema that is not current. Stop
+  CORE, take a backup, run `core-admin database migrate --write`, and restart only once
+  `core-admin database status` exits 0 ([docs/upgrading.md](docs/upgrading.md), "Pending
+  migrations on a ledgered database"). A fresh install loads the new `schema.sql` and needs
+  nothing more.
+- A standalone `pip install core-runtime` with no CORE database (the adopter path) has nothing
+  to migrate.
+
+### Changed — verdicts
+
+- **Verdict meaning is substrate-wide (#952, ADR-005 amended).** The machinery floor's
+  `audit_verdict.yaml` is read from the installed package and merged into the project's policy.
+  A project may add entries but cannot remove one. In practice, an adopter whose `.intent/` has
+  uncommitted changes, or whose blocking rules could not run, now gets **DEGRADED** where 2.11.0
+  reported PASS. An unreadable floor is DEGRADED.
+- **Every verdict states its law (ADR-169 D2).** A new `law_drift` precondition: if the
+  evaluated `.intent/` differs from `HEAD`, the verdict is DEGRADED and the differing paths are
+  named. If the relation cannot be established (no git work tree), it is reported as UNKNOWN,
+  never as a match.
+- **A filtered online audit decides its verdict.** `core-admin code audit --rule X`
+  (`POST /v1/audit/runs` with filters) used to answer PASS unconditionally. It now uses the
+  full audit's verdict logic: a blocking finding gives FAIL, and a rule that raised or could
+  not run gives DEGRADED.
+- **A persisted audit run stores DEGRADED as DEGRADED.** It was previously recorded as FAIL.
+- **Unknown is not a violation.** A mypy or import-check timeout, a pip-audit network failure,
+  and a canary import check that could not run are reported as `ENFORCEMENT_UNAVAILABLE`
+  (DEGRADED). They are no longer reported as violations (FAIL), and pip-audit no longer counts
+  its table header as two vulnerabilities (#876, #870, #904).
+
+### Added
+
+- **State ledger (ADR-169 D1, D4, D5).** `core.state_observations` holds HEAD, dirty paths, the
+  law relation and the loaded code identity, recorded at boot, per audit run, and per changed
+  cycle. `core.state_changes` records, for every changed path, its governance provenance,
+  its git-asserted producer and whether it is committed. `core.outside_writes` records each
+  sanctioned write outside the repository (`project new`, `adopt-pack`, `scout`, `onboard`) by
+  path and sha256, never by content.
+- **`StateSensor` worker.** It posts `governance::law_drift::<path>` while `.intent/` differs from
+  `HEAD`, and posts `governance::unattributed_change` for a committed `.intent/` change with no
+  known producer.
+- **Stale-daemon detection (ADR-030).** Acting workers skip their cycle when the daemon's loaded
+  code differs from `src/` on disk, or when that cannot be determined. The sensor escalates after
+  30 minutes, and restarting the daemon clears the condition.
+- **`core-admin docs generate [--write]`** renders the CLI reference (`docs/reference/`) from the
+  live command trees and writes the OpenAPI contract to `docs/reference/openapi.json`. Two rules,
+  now blocking, keep documentation in step with the CLIs (`cli.reference_current` and
+  `cli.docs_no_phantom_commands`, ADR-167).
+- **`core-admin secrets set/get/list/delete`** and **`core-admin vectors status`** are back on the
+  operator CLI, because core-cli 2.0 no longer carries them (ADR-146 amendment).
+- **The public GRC catalogs ship in the wheel** (`cfr_part_11`, `eu_annex_11`, `nist_800_171`;
+  ADR-116 D6). A repository's own corpus still takes precedence.
+- **`architecture.intent.references_resolve`** (blocking): references in `.intent/` must point at
+  something real. This covers flow actions, coverage files, entry points, worker classes,
+  manifest paths, and the remediation map's ACTIVE/DELEGATE targets.
+- **`code.imports.no_resolution_suppression`** (blocking): no `type: ignore` that hides an
+  unresolvable import in `src/`.
+- **Six governed-repository API routes are now public**, each with a declared response model:
+  `/v1/lint`, `/v1/quality/imports`, `/v1/quality/tests`, `/v1/integrity/baseline`,
+  `/v1/integrity/verify` and `/v1/integrate`.
+
 ### Changed
 
+- **No ledger, no outside write (#953, ADR-169 amended).** When a CORE database is configured,
+  `project new`, `adopt-pack`, `scout`, `onboard` and `onboard promote` refuse, writing nothing,
+  if the outside-write ledger is unreachable. If the ledger is lost after the writes, the command
+  fails and names the unrecorded paths; it no longer reports success. A standalone install with
+  no database proceeds as before and logs the paths as unrecorded.
+- **Autonomous commits carry CORE's identity** (`CORE daemon <core-daemon@core.invalid>`,
+  configurable in `operational_config`). They previously carried the identity of the operating
+  system account. Human-invoked commits keep the invoker's identity (ADR-101 D1). Existing
+  history is not rewritten.
+- **An exhausted remediation cap goes to the governor (ADR-104 amended).** A finding is delegated
+  once (`indeterminate` + human, with the last failure reason) instead of being abandoned and
+  re-posted every cycle. The time-based re-arm is withdrawn; only a governor resolution, a
+  clean-pass drain or rule retirement re-arms a lineage.
+- **Violations no remediator can act on are delegated to the governor, not dropped.** This
+  covers, for example, findings on `.intent/` YAML files.
+- **`project adopt-pack`** refuses a target that lacks the machinery floor, and refuses a pack
+  whose rule IDs are already declared. Each refusal names the conflict.
+- **A rules-only `.intent/`** (no `META/`) now exits 2 with a message naming the machinery floor
+  and the commands that deliver it, instead of a traceback (ADR-108 amendment).
 - **`core-admin cognitive-roles sync [--write]`** replaces `cognitive-roles diff` and
   `cognitive-roles project --apply`, matching CORE's standard verb and `--write` convention.
   Without `--write` it shows drift and exits 1 when out of sync (as `diff` did). The old names
   still work as hidden, deprecated aliases with their previous behaviour and print a notice;
   they will be removed in a later release.
+- **`core-admin daemon`** works when CORE's services run under a different OS account
+  (`CORE_SERVICE_USER`).
+- **API.** The OpenAPI contract is served at `/v1/openapi.json`, as ADR-087 states.
+  `/v1/quality/imports` no longer accepts `target_files`, which it had always silently ignored;
+  the check covers the whole repository. Deprecation headers follow RFC 9745 / RFC 8594.
+- **typer 0.16.1 → 0.27.2.** Positional-argument help appears in `--help` again.
+- **Documentation** is reorganised by user journey: start, tutorials, how-to, reference.
+
+### Deprecated
+
+- `POST /v1/project/docs`, `GET /v1/analysis/clusters` and `GET /v1/analysis/common-knowledge`
+  are deprecated (ADR-087 D4). Each keeps its response, now with `Deprecation` and `Sunset`
+  headers; removal comes only at `/v2/`.
+
+### Fixed
+
+- **Write guard:** a path that starts in scratch space (`var/tmp/../../.intent/x`) can no longer
+  reach `.intent/`. Paths are resolved before they are classified (#949).
+- **Rollback** restores the index and the worktree from the pre-execution baseline (it
+  previously restored from the index), leaves unrelated edits alone, and records "ROLLBACK
+  INCOMPLETE" on the proposal when it cannot verify the restore (#871).
+- **A safe-auto-approved proposal is not executed** once its approval envelope can no longer
+  load. Governor-approved execution is unaffected (#903).
+- `GET /v1/analysis/test-targets` returns real classifications. It had always answered
+  `available=false`.
+- `POST /v1/quality/imports` returned 500 on every call: it bypassed the action executor.
+- The daemon's LLM remediation route crashed when its context carried no action executor.
+- Test generation: the free-name gate now resolves names with the compiler (`symtable`) and
+  fails closed when it cannot check them. A re-mint loop that shadowed generated tests is fixed.
+- The published starter (`examples/starter-intent`) runs again, and CI runs its `verify.sh`.
+- The machinery floor's constitution stub describes a repository with no rules, not the
+  starter's rule set.
+
+### Removed
+
+- The `core-runtime[migration]` extra and its only user, an unused helper. Database migrations
+  are unaffected.
+- 152 dead files under `src/`: unregistered CLI command trees, stale re-export stubs, and
+  modules with no importer. No registered command or route is removed; every module's successor is
+  recorded in its commit.
 
 ## [2.11.0] — 2026-10-02
 
@@ -839,7 +975,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...HEAD
+[2.12.0]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...v2.11.0
 [2.10.2]: https://github.com/DariuszNewecki/CORE/compare/v2.10.1...v2.10.2
 [2.8.0]: https://github.com/DariuszNewecki/CORE/compare/v2.7.0...v2.8.0

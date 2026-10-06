@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DariuszNewecki/CORE@v2.11.0
+      - uses: DariuszNewecki/CORE@v2.12.0
         with:
           severity: block
 ```
@@ -86,7 +86,7 @@ The action emits one output:
 
 ## Ref stability
 
-Pin the Action to a release tag (`@v2.11.0` above) for reproducible CI. Each tag's `Dockerfile` installs the `core-runtime` release of the same version, so the tag fixes the audit engine too. `@main` follows unreleased changes and can change behaviour between runs. Tags before `v2.10.1` bundled an older engine (2.7.0) than their name suggests — do not pin to them.
+Pin the Action to a release tag (`@v2.12.0` above) for reproducible CI. Each tag's `Dockerfile` installs the `core-runtime` release of the same version, so the tag fixes the audit engine too. `@main` follows unreleased changes and can change behaviour between runs. Tags before `v2.10.1` bundled an older engine (2.7.0) than their name suggests — do not pin to them.
 
 ---
 

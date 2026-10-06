@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.11.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.12.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
@@ -391,7 +391,7 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.11.0 — a new governed project with no services: `project new`, packs shipped in the wheel, `adopt-pack` and `project new` fixed for pip installs, zero-rule audits fail closed
+**Current Release:** v2.12.0 — CORE knows its own state: every verdict names the law it evaluated, an append-only state ledger, a stale daemon stops acting; verdicts mean the same for every project; PyPI publishes only from a green-CI commit
 
 Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
 finds constitutional violations in its own codebase, proposes fixes, routes them through the
