@@ -25,6 +25,7 @@
 # VALUES: safe | moderate | dangerous
 
 actions:
+  action.execute: moderate
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
   author.llm_resource: moderate
@@ -32,7 +33,10 @@ actions:
   build.tests: safe
   check.imports: safe
   claim.proposal: safe
+  cleanup.action_results: moderate
+  cleanup.agent_memory: moderate
   crate.create: safe
+  crate.create_from_spec: moderate
   document.gap_analysis: safe
   file.create: moderate
   file.edit: moderate
@@ -54,6 +58,7 @@ actions:
   fix.vulture_heal: dangerous
   log.archive_partitions: moderate
   log.maintain_partitions: safe
+  logging.reconfigure: safe
   project.cognitive_roles: moderate
   refactor.apply_split: dangerous
   remediate.cognitive_role: moderate
@@ -63,8 +68,10 @@ actions:
   # safe-auto-approval envelope.
   seed.external_run_resources: moderate
   sync.db: moderate
+  sync.knowledge_graph: moderate
   sync.vectors_code: moderate
   sync.vectors_constitution: moderate
   test.candidate_validate: safe
   test.execute: moderate
   test.sandbox_validate: safe
+  test.system: safe

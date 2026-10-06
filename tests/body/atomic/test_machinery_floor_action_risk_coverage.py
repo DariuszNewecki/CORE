@@ -49,3 +49,27 @@ def test_floor_action_risk_yaml_is_parseable() -> None:
     assert isinstance(doc, dict), "floor action_risk.yaml did not parse to a dict"
     assert "actions" in doc, "floor action_risk.yaml missing top-level 'actions' key"
     assert len(doc["actions"]) > 0, "floor action_risk.yaml has an empty actions block"
+
+
+# ID: ecad44ff-1021-41b6-a06e-131c10f387f0
+def test_floor_capability_taxonomy_loads_against_floor_action_risk(
+    tmp_path: Path,
+) -> None:
+    """#957: every capability in the floor's operational_capabilities.yaml has
+    an action_risk.yaml entry with the same risk (ADR-078 D3). Seven were
+    missing, so in every adopter project the taxonomy failed to load and
+    IntentGuard's capability chokepoint tier disabled itself."""
+    import shutil
+
+    from shared.infrastructure.intent.operational_capabilities import (
+        load_operational_capabilities,
+    )
+
+    floor = _FLOOR_ACTION_RISK.parents[2]
+    shutil.copytree(
+        floor,
+        tmp_path / ".intent",
+        ignore=shutil.ignore_patterns("__pycache__", "__init__.py"),
+    )
+    capabilities = load_operational_capabilities(tmp_path)
+    assert len(capabilities) > 0
