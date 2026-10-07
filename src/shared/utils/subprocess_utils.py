@@ -26,6 +26,16 @@ class SubprocessCommandError(CoreError):
     """Raised when subprocess command execution fails."""
 
 
+# ID: 0b6b5c52-8a2e-4f5e-9d0e-6a3c1f7e2b94
+class SubprocessTimeoutError(SubprocessCommandError, TimeoutError):
+    """Raised by ``run_command`` when a command outlives its timeout.
+
+    The child has been killed. Also a ``TimeoutError``, so a caller's existing
+    ``except TimeoutError`` branch keeps catching it after the caller moves
+    onto this module.
+    """
+
+
 @dataclass
 # ID: 6f1059a4-bacb-429d-b205-01eeb3cb38e1
 class SubprocessResult:
@@ -38,11 +48,24 @@ class SubprocessResult:
 
 # ID: a83abb8d-b9c6-45f1-bf2c-e01b62420ebf
 async def run_command_async(
-    args: list[str], cwd: Path | str | None = None
+    args: list[str],
+    cwd: Path | str | None = None,
+    *,
+    env: dict[str, str] | None = None,
 ) -> SubprocessResult:
-    """
-    Executes a shell command asynchronously.
-    Required for non-blocking UI and Agent interactions.
+    """Run *args* (no shell) asynchronously, capturing both streams.
+
+    A non-zero exit is returned, not raised — the caller owns its tool's
+    exit-code semantics.
+
+    ``env``: the complete child environment, as for ``create_subprocess_exec``
+    (nothing is merged from ``os.environ``); ``None`` inherits the parent's.
+
+    Timeouts belong to the caller (``asyncio.wait_for`` / ``asyncio.timeout``):
+    when this coroutine is cancelled the child is killed and reaped before the
+    cancellation propagates, so a timed-out command never outlives its caller.
+
+    Output is decoded with ``errors="replace"`` and stripped.
     """
     logger.debug("Async Exec: %s", " ".join(args))
 
@@ -51,14 +74,73 @@ async def run_command_async(
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         cwd=str(cwd) if cwd else None,
+        env=env,
     )
 
-    stdout, stderr = await process.communicate()
+    try:
+        stdout, stderr = await process.communicate()
+    except asyncio.CancelledError:
+        await _kill_and_reap(process)
+        raise
 
     return SubprocessResult(
-        stdout=stdout.decode().strip(),
-        stderr=stderr.decode().strip(),
+        stdout=stdout.decode(errors="replace").strip(),
+        stderr=stderr.decode(errors="replace").strip(),
         returncode=process.returncode or 0,
+    )
+
+
+async def _kill_and_reap(process: asyncio.subprocess.Process) -> None:
+    """Kill *process* if still running and wait for it, so no orphan survives."""
+    if process.returncode is None:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            pass
+    await process.wait()
+
+
+# ID: 5d2f8e61-3c4a-4b7e-a1f9-8e6d2c0b7a35
+def run_command(
+    args: list[str],
+    cwd: Path | str | None = None,
+    *,
+    env: dict[str, str] | None = None,
+    timeout: float | None = None,
+) -> SubprocessResult:
+    """Run *args* (no shell) synchronously, capturing both streams, quietly.
+
+    The synchronous counterpart of ``run_command_async``, with the same
+    contract: a non-zero exit is returned, not raised; ``env`` is the complete
+    child environment. ``timeout`` kills the child and raises
+    ``SubprocessTimeoutError``. A missing executable propagates as
+    ``FileNotFoundError``.
+
+    Unlike ``run_direct_command`` it logs only the command line, at DEBUG —
+    for callers whose output is data (JSON, a SHA), not operator-facing text.
+    Output is stripped.
+    """
+    logger.debug("Sync Exec: %s", " ".join(args))
+    try:
+        result = subprocess.run(
+            args,
+            check=False,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            cwd=str(cwd) if cwd else None,
+            env=env,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        raise SubprocessTimeoutError(
+            f"{args[0]} timed out after {timeout}s.", exit_code=124
+        ) from None
+
+    return SubprocessResult(
+        stdout=(result.stdout or "").strip(),
+        stderr=(result.stderr or "").strip(),
+        returncode=result.returncode,
     )
 
 
