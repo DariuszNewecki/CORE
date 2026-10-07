@@ -19,7 +19,7 @@ and would fail if either action's scope drifted into the other's.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -66,7 +66,9 @@ async def test_fix_imports_never_selects_resolution_codes() -> None:
 async def test_check_imports_select_is_resolution_verification_only() -> None:
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_run:
         with authorize_execution("check.imports"):
             result = await action_check_imports(write=False)
@@ -82,7 +84,9 @@ async def test_check_imports_never_mutates_regardless_of_write_flag() -> None:
     introduce --fix or otherwise change the command's mutating shape."""
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_run:
         with authorize_execution("check.imports"):
             await action_check_imports(write=True)
@@ -101,7 +105,9 @@ async def test_fix_imports_and_check_imports_select_sets_are_disjoint() -> None:
 
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_check:
         with authorize_execution("check.imports"):
             await action_check_imports(write=False)
@@ -125,7 +131,9 @@ async def test_check_imports_targets_the_bound_repository_src(tmp_path: Path) ->
     (tmp_path / "src").mkdir()
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_run:
         with authorize_execution("check.imports"):
             result = await action_check_imports(
@@ -142,7 +150,9 @@ async def test_check_imports_targets_the_repository_root_without_src(
     (tmp_path / "package").mkdir()
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_run:
         with authorize_execution("check.imports"):
             await action_check_imports(core_context=_context_at(tmp_path), write=False)
@@ -159,7 +169,9 @@ async def test_check_imports_never_uses_the_process_cwd_when_bound(
     bound.mkdir()
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(
-        "body.atomic.check_actions.subprocess.run", return_value=fake_result
+        "body.atomic.check_actions.run_command_async",
+        new_callable=AsyncMock,
+        return_value=fake_result,
     ) as mock_run:
         with authorize_execution("check.imports"):
             await action_check_imports(core_context=_context_at(bound), write=False)

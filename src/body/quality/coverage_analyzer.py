@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import ast
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
 # REFACTORED: Removed direct settings import
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import SubprocessTimeoutError, run_command
 
 
 logger = getLogger(__name__)
@@ -43,10 +43,9 @@ class CoverageAnalyzer:
             Dict mapping file paths to coverage percentages
         """
         try:
-            subprocess.run(
+            run_command(
                 ["poetry", "run", "pytest", "--cov=src", "--cov-report=json", "-q"],
                 cwd=self.repo_path,
-                capture_output=True,
                 timeout=_CFG.collect_timeout_sec,
             )
             coverage_json = self.repo_path / "coverage.json"
@@ -117,7 +116,7 @@ class CoverageAnalyzer:
             Dict with coverage metrics or None if measurement fails
         """
         try:
-            result = subprocess.run(
+            result = run_command(
                 [
                     "poetry",
                     "run",
@@ -128,8 +127,6 @@ class CoverageAnalyzer:
                     "-q",
                 ],
                 cwd=self.repo_path,
-                capture_output=True,
-                text=True,
                 timeout=_CFG.full_run_timeout_sec,
             )
             coverage_json = self.repo_path / "coverage.json"
@@ -144,7 +141,7 @@ class CoverageAnalyzer:
                     "timestamp": data.get("meta", {}).get("timestamp"),
                 }
             return self._parse_term_output(result.stdout)
-        except subprocess.TimeoutExpired:
+        except SubprocessTimeoutError:
             logger.error("Coverage measurement timed out after 5 minutes")
             return None
         except Exception as e:

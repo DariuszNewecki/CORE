@@ -8,10 +8,10 @@ such as creating a default set of GitHub issues for a new repository.
 from __future__ import annotations
 
 import shutil
-import subprocess
 
 from shared.exceptions import CoreError
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command
 
 
 logger = getLogger(__name__)
@@ -87,12 +87,10 @@ def _run_gh_command(command: list[str], ignore_errors: bool = False):
         logger.info("Install GitHub CLI to use bootstrap features.")
         raise BootstrapError("'gh' (GitHub CLI) not found in PATH.", exit_code=1)
 
-    try:
-        subprocess.run(command, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as e:
-        if not ignore_errors:
-            logger.error("Error running gh command: %s", e.stderr)
-            raise BootstrapError("Error running gh command.", exit_code=1) from e
+    result = run_command(command)
+    if result.returncode != 0 and not ignore_errors:
+        logger.error("Error running gh command: %s", result.stderr)
+        raise BootstrapError("Error running gh command.", exit_code=1)
 
 
 # ID: 17f7cac0-4134-4885-93fb-0d432c634ed1

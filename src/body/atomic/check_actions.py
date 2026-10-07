@@ -17,9 +17,7 @@ Enforces:
 
 from __future__ import annotations
 
-import asyncio
 import json
-import subprocess
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -28,6 +26,7 @@ from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 if TYPE_CHECKING:
@@ -105,13 +104,7 @@ async def action_check_imports(
     ]
 
     try:
-        result = await asyncio.to_thread(
-            subprocess.run,
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        result = await run_command_async(cmd)
 
         violations: list[dict] = []
 

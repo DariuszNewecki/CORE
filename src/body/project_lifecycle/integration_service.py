@@ -7,12 +7,11 @@ MOVED: From features/project_lifecycle to body/project_lifecycle (Wave 1 Rebirth
 
 from __future__ import annotations
 
-import asyncio
-
 # REFACTORED: Removed direct settings import
 from shared.context import CoreContext
 from shared.exceptions import CoreError
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -92,20 +91,16 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
                 step["description"],
             )
             command_parts = step["command"].split()  # type: ignore[attr-defined]
-            process = await asyncio.create_subprocess_exec(
-                *command_parts,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=context.git_service.repo_path,
+            result = await run_command_async(
+                command_parts, cwd=context.git_service.repo_path
             )
-            stdout, stderr = await process.communicate()
 
-            if stdout:
-                logger.info(stdout.decode())
-            if stderr:
-                logger.warning(stderr.decode())
+            if result.stdout:
+                logger.info(result.stdout)
+            if result.stderr:
+                logger.warning(result.stderr)
 
-            if process.returncode != 0:
+            if result.returncode != 0:
                 if not step.get("continues_on_failure", False):
                     workflow_failed = True
                     break
