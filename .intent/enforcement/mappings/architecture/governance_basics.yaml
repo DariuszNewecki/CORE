@@ -204,71 +204,27 @@
         applies_to:
           - "src/**/*.py"
         excludes:
-          # --- STANDARD CONFIG LAYER ---
-          - "src/shared/logger.py"
-          - "src/shared/config.py" # Authoritative env-var read surface
-          # operational_mode.py is the ADR-079 D4 authoritative surface for
-          # CORE_OPERATIONAL_MODE resolution -- architectural peer to
-          # shared/config.py for the operational-mode taxonomy concern. Paper
-          # S6 fail-closed semantics live here; the chokepoint reads
-          # current_mode() once per check_transaction. Sanctuary by design
-          # rather than candidate for refactor.
-          - "src/shared/infrastructure/intent/operational_mode.py" # ADR-079 D4 authoritative surface
+          # Every entry below must still contain a forbidden call (an entry that
+          # exempts nothing is removed) and must say why its call cannot route
+          # through src/shared/utils/subprocess_utils.py. 2026-10-07: 21 entries
+          # that exempted nothing were removed after the shortcut callers were
+          # routed (var/reports/2026-10-06-dangerous-primitives-parallel-system.md).
 
-          # --- GIT INFRASTRUCTURE ---
+          # --- THE SANCTIONED SURFACE ---
+          - "src/shared/utils/subprocess_utils.py" # the subprocess sanctuary itself
           - "src/shared/infrastructure/git_service.py" # subprocess is the only git interface
+          - "src/body/atomic/tool_runner.py" # git/ruff tool invocation (ADR-109 D2)
+          # eval/compile here are SAFE: input validated via AST allowlist,
+          # builtins disabled, only .intent/ policy conditions evaluated.
+          - "src/body/services/policy_expression_evaluator.py"
 
-          # --- SUBPROCESS UTILITIES ---
-          - "src/shared/utils/subprocess_utils.py" # Dedicated subprocess sanctuary
-
-          # --- LINTING / QUALITY TOOLING ---
-          # These invoke external tools (ruff, pytest, coverage) by design
-          - "src/shared/infrastructure/validation/ruff_linter.py"
-          - "src/shared/infrastructure/validation/test_runner.py"         # shared test-execution substrate; subprocess is the only pytest interface
-          - "src/body/quality/coverage_analyzer.py"
-          - "src/will/governance/lint_runner.py" # 2026-07-02: async lint invocation -- same class as ruff_linter.py; closure ADR pending (#2 in review ToDo)
-          - "src/will/test_generation/sandbox.py" # 2026-07-02: sandboxed test execution via asyncio subprocess -- same class as coverage_analyzer.py; closure ADR pending (#2 in review ToDo)
-          # Workflow gate checks invoke external quality tools inline -- no Body delegation
-          # surface exists for synchronous gate execution; tool call is the fundamental operation
+          # --- PENDING: Mind workflow-gate checks run tools inline ---
+          # Layering question open (where tool execution belongs for Mind
+          # checks); dead_code.py already routes via subprocess_utils (#585).
           - "src/mind/logic/engines/workflow_gate/checks/ruff_format.py"
           - "src/mind/logic/engines/workflow_gate/checks/quality.py"
           - "src/mind/logic/engines/workflow_gate/checks/linter.py"
           - "src/mind/logic/engines/workflow_gate/checks/import_resolution.py"
-
-          # --- BOOTSTRAP & LIFECYCLE ---
-          - "src/body/atomic/check_actions.py"
-          - "src/body/atomic/tool_runner.py"                               # git/ruff subprocess sanctuary (ADR-109 D2); tool invocation is the fundamental operation
-          - "src/body/project_lifecycle/bootstrap_service.py"
-          - "src/body/project_lifecycle/integration_service.py"            # pg_dump subprocess for schema capture; no FileHandler path for DB introspection
-          - "src/body/maintenance/scripts/context_export.py"               # subprocess for context export pipeline
-          - "src/body/self_healing/handlers/import_sorting_handler.py"     # isort/ruff subprocess for import-sort remediation
-          - "src/cli/commands/daemon.py" # 2026-06-06: systemd control surface -- subprocess intrinsic to daemon command
-
-          # --- COHERENCE CHECKS (text-based forbidden_primitives matcher flags docstring references) ---
-          - "src/mind/coherence/**/*.py" # 2026-06-06: CCC checks reference forbidden primitives in docstrings as documentation; the matcher flags these as false positives. row4_naming.py:108 is a docstring; the actual code routes through GitService (the sanctioned sanctuary)
-
-          # --- DB INFRASTRUCTURE ---
-          - "src/shared/infrastructure/repositories/db/commo*" # DB migration tooling
-
-          # --- SANDBOXED POLICY EVALUATION ---
-          # eval/compile here are SAFE: input validated via AST allowlist,
-          # builtins disabled, only .intent/ policy conditions evaluated.
-          # Reviewed and approved as constitutional governance infrastructure.
-          - "src/body/services/policy_expression_evaluator.py"
-
-          # --- MINOR ENV READS IN BODY/CLI (os.environ/os.getenv) ---
-          # Body/CLI layer reading environment config is acceptable;
-          # env reads should route through config service where possible.
-          - "src/body/governance/runtime_validator.py"
-          - "src/body/infrastructure/lifespan.py"
-          - "src/cli/logic/interactive_test/steps/utils.py"
-          - "src/will/test_generation/sandbox.py" # os.environ for PYTHONPATH only
-
-          # --- AUTONOMOUS TEST EXECUTION (WILL) ---
-          # Self-healing and canary paths invoke pytest as subprocess; routing through
-          # Body's test.execute atomic action via ActionExecutor is the long-term target
-          # but requires non-trivial DI plumbing in the autonomous pipeline.
-          - "src/will/phases/canary/pytest_runner.py"
 
           - "tests/**"
 
