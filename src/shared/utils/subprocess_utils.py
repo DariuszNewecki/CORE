@@ -10,6 +10,7 @@ import asyncio
 import os
 import pwd
 import shutil
+import signal
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,11 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+# After killing a timed-out command's process group, how long to wait for its
+# pipes to close before giving up on reaping. A descendant that left the group
+# (setsid) can hold a pipe open indefinitely; the caller must not hang on it.
+_REAP_GRACE_SEC = 5.0
 
 
 # ID: cfb6141b-6fe5-44c9-9819-cf2cab84d06d
@@ -62,8 +68,10 @@ async def run_command_async(
     (nothing is merged from ``os.environ``); ``None`` inherits the parent's.
 
     Timeouts belong to the caller (``asyncio.wait_for`` / ``asyncio.timeout``):
-    when this coroutine is cancelled the child is killed and reaped before the
-    cancellation propagates, so a timed-out command never outlives its caller.
+    when this coroutine is cancelled the command's whole process group is
+    killed before the cancellation propagates, so neither the command nor any
+    worker it spawned (black, pytest-xdist) outlives its caller. The command
+    runs in its own session for exactly this reason.
 
     Output is decoded with ``errors="replace"`` and stripped.
     """
@@ -75,6 +83,7 @@ async def run_command_async(
         stderr=asyncio.subprocess.PIPE,
         cwd=str(cwd) if cwd else None,
         env=env,
+        start_new_session=True,
     )
 
     try:
@@ -90,14 +99,42 @@ async def run_command_async(
     )
 
 
+def _kill_group(pid: int) -> None:
+    """SIGKILL the process group led by *pid* (the command and its workers).
+
+    Killing only the leader is not enough: a worker that inherited the output
+    pipe keeps it open, and waiting for the pipe then never returns.
+
+    The child was started with ``start_new_session``, so its group id is its
+    pid. Anything else is refused: ``killpg(0)`` would kill the caller's own
+    group (the daemon, the terminal session), and a mocked process's pid
+    coerces to 1.
+    """
+    if type(pid) is not int or pid <= 1 or pid == os.getpgrp():
+        return
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
 async def _kill_and_reap(process: asyncio.subprocess.Process) -> None:
-    """Kill *process* if still running and wait for it, so no orphan survives."""
+    """Kill *process*'s group and wait for it, bounded so the caller never hangs."""
+    _kill_group(process.pid)
     if process.returncode is None:
         try:
             process.kill()
         except ProcessLookupError:
             pass
-    await process.wait()
+    try:
+        await asyncio.wait_for(process.wait(), timeout=_REAP_GRACE_SEC)
+    except TimeoutError:
+        logger.warning(
+            "Process %s killed but not reaped within %ss; a descendant outside "
+            "its group still holds a pipe.",
+            process.pid,
+            _REAP_GRACE_SEC,
+        )
 
 
 # ID: 5d2f8e61-3c4a-4b7e-a1f9-8e6d2c0b7a35
@@ -119,29 +156,52 @@ def run_command(
     Unlike ``run_direct_command`` it logs only the command line, at DEBUG —
     for callers whose output is data (JSON, a SHA), not operator-facing text.
     Output is stripped.
+
+    Like the async variant, the command runs in its own session and a timeout
+    (or an interrupt) kills its whole process group, so workers it spawned
+    cannot keep the pipes open and hang the caller.
     """
     logger.debug("Sync Exec: %s", " ".join(args))
-    try:
-        result = subprocess.run(
-            args,
-            check=False,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            cwd=str(cwd) if cwd else None,
-            env=env,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
-        raise SubprocessTimeoutError(
-            f"{args[0]} timed out after {timeout}s.", exit_code=124
-        ) from None
+    with subprocess.Popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        errors="replace",
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        start_new_session=True,
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_group(process.pid)
+            _drain(process)
+            raise SubprocessTimeoutError(
+                f"{args[0]} timed out after {timeout}s.", exit_code=124
+            ) from None
+        except BaseException:
+            _kill_group(process.pid)
+            _drain(process)
+            raise
 
     return SubprocessResult(
-        stdout=(result.stdout or "").strip(),
-        stderr=(result.stderr or "").strip(),
-        returncode=result.returncode,
+        stdout=(stdout or "").strip(),
+        stderr=(stderr or "").strip(),
+        returncode=process.returncode,
     )
+
+
+def _drain(process: subprocess.Popen[str]) -> None:
+    """Collect a killed process, bounded so the caller never hangs."""
+    if process.poll() is None:
+        process.kill()
+    try:
+        process.communicate(timeout=_REAP_GRACE_SEC)
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "Process %s killed but not reaped within %ss.", process.pid, _REAP_GRACE_SEC
+        )
 
 
 # ID: f555860f-aeb3-4a20-92ff-eee51b7f4501

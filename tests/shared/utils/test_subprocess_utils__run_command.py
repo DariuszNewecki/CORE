@@ -157,3 +157,86 @@ def test_sync_does_not_log_output_at_info(caplog: pytest.LogCaptureFixture) -> N
     caplog.set_level("INFO", logger="shared.utils.subprocess_utils")
     run_command(_py('print(\'{"json": "payload"}\')'))
     assert "payload" not in caplog.text
+
+
+# --- workers that inherit the pipe (CI hang, run 37670816047) ----------------
+#
+# black / pytest-xdist start workers that inherit the output pipe. Killing only
+# the command left the workers holding the pipe, and waiting for the pipe never
+# returned: the hermetic CI job hung until its 15-minute limit.
+
+
+def _spawn_worker_and_sleep(pid_file: Path) -> list[str]:
+    return _py(
+        "import pathlib, subprocess, sys, time;"
+        " w = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)']);"
+        f" pathlib.Path({str(pid_file)!r}).write_text(str(w.pid));"
+        " time.sleep(60)"
+    )
+
+
+async def test_async_timeout_kills_workers_holding_the_pipe(tmp_path: Path) -> None:
+    pid_file = tmp_path / "worker_pid"
+    started = time.monotonic()
+    with pytest.raises(TimeoutError):
+        # Outer bound: without the fix the inner cancellation never completes.
+        await asyncio.wait_for(
+            _inner_timeout(run_command_async(_spawn_worker_and_sleep(pid_file))),
+            timeout=15,
+        )
+    assert time.monotonic() - started < 10
+    assert not _pid_alive(int(pid_file.read_text()))
+
+
+async def _inner_timeout(coro) -> None:
+    await asyncio.wait_for(coro, timeout=1.0)
+
+
+def test_sync_timeout_kills_workers_holding_the_pipe(tmp_path: Path) -> None:
+    import threading
+
+    pid_file = tmp_path / "worker_pid"
+    outcome: list[BaseException] = []
+
+    def _run() -> None:
+        try:
+            run_command(_spawn_worker_and_sleep(pid_file), timeout=1.0)
+        except BaseException as exc:
+            outcome.append(exc)
+
+    worker = threading.Thread(target=_run, daemon=True)
+    worker.start()
+    worker.join(timeout=15)
+    assert not worker.is_alive(), "run_command hung on a worker holding the pipe"
+    assert isinstance(outcome[0], SubprocessTimeoutError)
+    assert not _pid_alive(int(pid_file.read_text()))
+
+
+# --- the group kill must never reach the caller's own group -------------------
+#
+# killpg(0) signals the caller's own process group, and a MagicMock process's
+# pid coerces to 1. Either would take down the test runner, the daemon, or the
+# terminal session. os.killpg is replaced by a recorder, so a regression here
+# fails the assertion instead of sending a signal.
+
+
+@pytest.mark.parametrize("pid_factory", ["zero", "one", "own_group", "mock"])
+def test_kill_group_refuses_pids_that_are_not_a_child_group(
+    monkeypatch: pytest.MonkeyPatch, pid_factory: str
+) -> None:
+    from unittest.mock import MagicMock
+
+    from shared.utils import subprocess_utils
+
+    pid = {
+        "zero": lambda: 0,
+        "one": lambda: 1,
+        "own_group": os.getpgrp,
+        "mock": lambda: MagicMock().pid,
+    }[pid_factory]()
+    signalled: list[object] = []
+    monkeypatch.setattr(subprocess_utils.os, "killpg", lambda *a: signalled.append(a))
+
+    subprocess_utils._kill_group(pid)
+
+    assert signalled == []
