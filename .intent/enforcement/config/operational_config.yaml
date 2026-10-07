@@ -324,7 +324,6 @@ testing:
   metrics_timeout_sec: 30
   simple_gen_timeout_sec: 20.0
   context_aware_gen_timeout_sec: 15.0
-  runtime_validator_timeout_sec: 60
   max_failures: 10
   snippet_max_lines: 20
 

@@ -65,8 +65,7 @@
           - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
           # Runtime cache for ContextPackets -- operates beneath the
           # FileHandler abstraction on var/cache/context/ ephemera; not a
-          # constitutional artifact surface. Same shape as runtime_validator
-          # and ruff_linter above.
+          # constitutional artifact surface. Same shape as ruff_linter above.
           - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
           # --- ADDED 2026-05-31 (#507 Phase 2 drain -- Tier 2 authority-scoped exclusions) ---
           # Each entry mirrored in mutation_surface.yaml's excludes set.
