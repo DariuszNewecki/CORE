@@ -178,7 +178,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n264 rules • 16 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n265 rules • 17 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -266,6 +266,8 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 | `taxonomy_gate`   | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
 | `contracts_gate`  | Cross-cutting data-contract coherence (context-level; ADR-102) |
 | `runtime_gate`    | Runtime telemetry checks over blackboard data, not source (ADR-081/082) |
+| `reference_gate`  | Concrete `.intent/` references resolve (context-level) |
+| `exclusion_gate`  | Every `scope.excludes` entry still exempts something (context-level) |
 | `attestation_gate`| The honest third outcome: requirements no automated method can settle need a dated human attestation (ADR-113) |
 | `llm_gate`        | LLM-assisted semantic checks                 |
 | `grc_judge`       | LLM-assisted compliance assessment of GRC documents |
@@ -275,7 +277,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-264 rules across 61 rule documents. 254 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
+265 rules across 61 rule documents. 255 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
 
 ---
 

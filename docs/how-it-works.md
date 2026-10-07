@@ -13,7 +13,7 @@ Every autonomous operation in CORE follows the same governed loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n264 rules • 16 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n265 rules • 17 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -77,7 +77,7 @@ flowchart TD
     CONST[".intent/constitution/<br/>founding rules<br/><i>what CORE will not do</i>"]
     RULES[".intent/rules/<br/>executable rule definitions"]
     MAP[".intent/enforcement/mappings/<br/>rule → engine + file scope"]
-    ENG["Engines<br/>ast_gate · regex_gate · glob_gate · cli_gate<br/>artifact_gate · workflow_gate · knowledge_gate · action_gate<br/>passive_gate · taxonomy_gate · contracts_gate · attestation_gate<br/>llm_gate · grc_judge · runtime_gate"]
+    ENG["Engines<br/>ast_gate · regex_gate · glob_gate · cli_gate<br/>artifact_gate · workflow_gate · knowledge_gate · action_gate<br/>passive_gate · taxonomy_gate · contracts_gate · attestation_gate<br/>reference_gate · exclusion_gate · llm_gate · grc_judge · runtime_gate"]
     CODE["src/"]
     BB["blackboard_entries<br/>audit.violation::&lt;rule&gt;"]
 
@@ -189,7 +189,7 @@ A Blocking rule that fails stops the change before it is applied. Reporting and 
 
 ## Enforcement Engines
 
-CORE evaluates rules through fifteen engines:
+CORE evaluates rules through seventeen engines:
 
 | Engine | Method |
 |--------|--------|
@@ -204,6 +204,8 @@ CORE evaluates rules through fifteen engines:
 | `passive_gate` | Substrate-enforced rules (DB/runtime marker) |
 | `taxonomy_gate` | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
 | `contracts_gate` | Cross-cutting data-contract coherence (context-level; ADR-102) |
+| `reference_gate` | Concrete `.intent/` references must resolve to something that exists (context-level) |
+| `exclusion_gate` | Every `scope.excludes` entry must still exempt something (context-level) |
 | `attestation_gate` | Human-attestation surface for requirements no automated engine can honestly decide (context-level; ADR-113) |
 | `llm_gate` | LLM-assisted semantic checks |
 | `grc_judge` | Semantic compliance assessment of documents against a requirements catalog (GRC gap analysis) |
