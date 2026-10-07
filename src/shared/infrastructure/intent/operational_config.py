@@ -383,7 +383,6 @@ class TestingConfig:
     metrics_timeout_sec: int = 30
     simple_gen_timeout_sec: float = 20.0
     context_aware_gen_timeout_sec: float = 15.0
-    runtime_validator_timeout_sec: int = 60
     max_failures: int = 10
     snippet_max_lines: int = 20
 
