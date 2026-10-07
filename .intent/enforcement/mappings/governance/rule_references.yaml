@@ -32,5 +32,3 @@ mappings:
     scope:
       applies_to:
         - "src/will/workers/**/*.py"
-      excludes:
-        - "tests/**/*.py"

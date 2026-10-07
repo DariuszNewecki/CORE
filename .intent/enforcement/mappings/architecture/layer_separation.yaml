@@ -23,7 +23,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
 
   # ==========================================================================
   # RULE 1: Mind Never Executes - Database Access
@@ -53,8 +52,6 @@ mappings:
     scope:
       applies_to:
         - "src/mind/**/*.py"
-      excludes:
-        - "src/mind/**/*_test.py"
 
   # ==========================================================================
   # RULE 3: Mind Never Invokes Body
@@ -158,8 +155,6 @@ mappings:
     scope:
       applies_to:
         - "src/will/**/*.py"
-      excludes:
-        - "src/will/**/*_test.py"
 
   # ==========================================================================
   # RULE 8: Will Delegates to Body -- mapping removed (#820 Group B).
@@ -299,10 +294,6 @@ mappings:
     scope:
       applies_to:
         - "src/shared/**/*.py"
-      excludes:
-        # Tests
-        - "src/shared/**/test_*.py"
-        - "tests/**"
 
   # ==========================================================================
   # RULE 16: Workers Never Import Other Workers

@@ -52,9 +52,6 @@ mappings:
         # --- ADDED 2026-10-02 (ADR-119 Amendment 2026-10-02, #892: Generate bootstrap stage) ---
         # Mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/project_scaffold.py" # project new: delivers machinery floor + neutral skeleton into a new external target outside CORE's repo root; FileHandler is repo-bound and refuses out-of-repo paths (repository_containment) -- same limitation byor.py records
-        - "var/**"
-        - "**/__pycache__/**"
-        - "tests/**" # Tests may use direct writes for fixtures
 
 
   # This mapping connects:

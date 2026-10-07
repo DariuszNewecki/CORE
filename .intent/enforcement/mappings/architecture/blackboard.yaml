@@ -28,11 +28,8 @@ mappings:
         # publisher after it was extracted from base.py for testability.
         # Both belong here -- the INSERT still originates exclusively within
         # the Worker attribution path.
-        - "src/shared/workers/base.py"
         - "src/shared/workers/blackboard_publisher.py" # Extracted Worker _post_entry implementation; INSERT is Worker-system-internal
         # Standard exclusions matching the conventions of other mapping files.
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: architecture.blackboard.reaudit_requires_reaudit_mechanism
   # Engine: ast_gate (per-file AST scan over sqlalchemy.text(...) string
@@ -58,9 +55,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: architecture.blackboard.indeterminate_requires_human_mechanism
   # Engine: ast_gate (per-file AST scan over sqlalchemy.text(...) string
@@ -87,6 +81,3 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "**/__init__.py"

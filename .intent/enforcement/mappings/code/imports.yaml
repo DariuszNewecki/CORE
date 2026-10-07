@@ -25,7 +25,6 @@ mappings:
           filter: "import-not-found"
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["tests/**"]
 
   # LAW: Following any module rename or relocation, all import statements
   # referencing the old path MUST be updated.
@@ -71,7 +70,6 @@ mappings:
           filter_all: ["import-not-found", "features."]
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["tests/**"]
 
   # LAW: Generated code MUST have every import resolve to an existing module
   # Enforcement: write-time, via PatternValidators.validate_test_file_pattern.

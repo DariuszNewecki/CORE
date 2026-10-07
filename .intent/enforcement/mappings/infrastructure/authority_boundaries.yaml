@@ -96,8 +96,6 @@ mappings:
     scope:
       applies_to:
         - "src/shared/infrastructure/**/*.py"
-      excludes:
-        - "tests/**"
 
 # ==============================================================================
 # Meta: This mapping enforces infrastructure authority boundaries

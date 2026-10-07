@@ -89,7 +89,6 @@ mappings:
       applies_to:
         - "src/body/atomic/**/*.py"
       excludes:
-        - "tests/**/*.py"
         - "src/body/atomic/registry.py"
         - "src/body/atomic/executor.py"
 

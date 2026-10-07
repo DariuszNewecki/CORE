@@ -19,10 +19,6 @@ mappings:
       # catalog sanctuary is now declared in-file via `CORE_ROLE = "<value>"`
       # module-level constant; the engine short-circuits on detection.
       # Only universal scope filters remain here.
-      excludes:
-        - "tests/**"
-        - "scripts/**"
-        - "**/__init__.py"
 
   # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
   # reviewed by a human. Mechanical redistribution cannot resolve these --
@@ -39,7 +35,8 @@ mappings:
       max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+
+
     # ADR-095 D3: per-file exemption register retired. Facade / algorithm /
     # catalog sanctuary is now declared in-file via `CORE_ROLE = "<value>"`
     # module-level constant; the engine short-circuits on detection. This
@@ -57,4 +54,5 @@ mappings:
       max_concerns: 3
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+
+

@@ -26,11 +26,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/atomic/**/*.py"
-      excludes:
-        # The executor itself is the legitimate dispatch site.
-        - "src/body/atomic/executor.py"
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: flow_must_not_post_to_blackboard
   # Flows have no Blackboard presence. post_finding / post_report /
@@ -46,9 +41,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/flows/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: flow_must_not_create_proposals
   # Proposal creation is a Will-layer operation owned by Workers.
@@ -63,9 +55,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/flows/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: flow_must_propagate_write_false
   # FlowExecutor must propagate write=False to every step.
@@ -98,12 +87,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        # FlowRegistry._load_file() builds FlowDefinition objects -- not register_flow calls.
-        # The registry itself is the legitimate loader.
-        - "src/body/flows/registry.py"
-        - "tests/**/*.py"
-        - "**/__init__.py"
 
   # Rule: worker_must_not_hardwire_sequence
   # ADVISORY -- Workers should delegate step sequences to declared Flows.

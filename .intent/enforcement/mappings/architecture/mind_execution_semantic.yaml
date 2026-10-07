@@ -18,9 +18,6 @@ mappings:
     scope:
       applies_to:
         - "src/mind/**/*.py"
-      excludes:
-        - "src/mind/**/__init__.py"
-        - "src/mind/**/*_test.py"
 
   architecture.mind.no_execution_semantics:
     engine: llm_gate
@@ -58,7 +55,6 @@ mappings:
         - "src/mind/**/*.py"
       excludes:
         - "src/mind/**/__init__.py"
-        - "src/mind/**/*_test.py"
         - "src/mind/logic/engines/**" # engines must execute
         - "src/mind/governance/audit_context.py"
         - "src/mind/governance/audit_postprocessor.py"

@@ -54,6 +54,3 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "src/shared/infrastructure/intent/filesystem_operations.py"
-        - "tests/**"

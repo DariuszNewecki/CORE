@@ -28,9 +28,6 @@ mappings:
           calls: ["self.tracer.record"]
       scope:
         applies_to: ["src/will/agents/**/*.py"]
-        excludes:
-          - "src/will/agents/**/__init__.py" # re-export modules, no class definitions
-          - "src/will/agents/**/factory.py" # factory functions, not agent classes
 
     # LAW: Planning MUST include a check against Quality Assurance policy
     autonomy.reasoning.policy_alignment:

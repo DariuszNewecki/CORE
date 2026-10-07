@@ -19,12 +19,9 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        - "src/shared/infrastructure/intent/**"
-        - "src/cli/logic/project_scaffold.py"             # project new (ADR-119 Amendment 2026-10-02): builds <new-target>/.intent/ paths for an external project, not CORE's governance namespace -- same exemption as byor.py
         - "src/body/services/intent_schema_validator.py"
         - "src/mind/governance/meta_validator.py"
         - "src/cli/commands/daemon.py"
-        - "src/will/workers/worker_shop_manager.py"
         # 2026-06-06 expansion: auditor / coherence-checker exemptions.
         # Same pattern as meta_validator and intent_schema_validator
         # already excluded above -- these files audit .intent/ structure
@@ -36,10 +33,8 @@ mappings:
         - "src/mind/logic/engines/artifact_gate.py"   # F-41 registry walker
         - "src/mind/logic/engines/runtime_gate.py"    # ADR-077 runtime access checker
         - "src/body/services/representation_coherence_service.py"  # coherence service body counterpart
-        - "tests/**/*.py"
         - "src/cli/logic/byor.py"                        # External repo delivery -- reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
         - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py and runtime_gate.py
-        - "src/mind/logic/engines/registry.py"            # EngineRegistry loads passive-alias taxonomy from .intent/taxonomies/ at registration time -- same pattern as artifact_gate.py and runtime_gate.py
 
   # ADVISORY DECLARATIONS -- architectural guidance, not engine-checkable.
   # These rules describe how .intent/ should be structured and accessed.
@@ -81,3 +76,16 @@ mappings:
     scope:
       applies_to:
         - ".intent/**/*.yaml"
+
+  # Context-level sweep (exclusion_gate engine): every scope.excludes entry
+  # of every mapping must still exempt something -- match a file inside its
+  # rule's applies_to and, for deterministic per-file engines, cover at least
+  # one file that would violate without it. applies_to anchors at the
+  # mappings so an edit to any exclude list re-evaluates the sweep.
+  architecture.intent.excludes_exempt_something:
+    engine: exclusion_gate
+    params:
+      check_type: excludes_exempt_something
+    scope:
+      applies_to:
+        - ".intent/enforcement/mappings/**/*.yaml"

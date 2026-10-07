@@ -24,8 +24,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        - "tests/**"
-        - "src/shared/infrastructure/intent/**"
         # Non-discovery carve-outs surfaced by #566 triage (#586):
         # The rule's own statement exempts "non-discovery file walks (test
         # runners, config loaders, build tooling)". The three entries below

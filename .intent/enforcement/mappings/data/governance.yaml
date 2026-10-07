@@ -9,9 +9,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "tests/**"
-        - "src/**/test_*.py"
 
   # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
   data.security.no_raw_secrets:

@@ -21,9 +21,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "**/__init__.py"
-        - "tests/**/*.py"
 
   # LAW: A new/replacement comment line must not exceed the configured length
   # ceiling. Split out from comment_insert/comment_replace (#842 truth
@@ -49,9 +46,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "**/__init__.py"
-        - "tests/**/*.py"
 
   # ===========================================================================
   # ADVISORY DECLARATIONS

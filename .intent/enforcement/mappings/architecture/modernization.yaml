@@ -17,8 +17,6 @@
           applies_to:
             - "src/**/*.py"
           excludes:
-            - "tests/**/*.py"
-            - "scripts/**/*.py"
             - "**/__init__.py"
 
       modernization.legacy_scars:

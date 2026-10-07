@@ -27,15 +27,6 @@ mappings:
       applies_to:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
-      excludes:
-        - "src/mind/**/test_*.py"
-        - "src/will/**/test_*.py"
-        - "tests/**"
-        # REMOVED: src/will/workers/*.py exemption -- this had no rationale and was
-        # silently hiding 14 production violations (external audit 2026-03-28, Finding 1.1).
-        # Will workers MUST use dependency injection like all other Will components.
-        # Tracking issue: Will->database violations require WillDatabasePort refactor
-        # before this rule can be promoted from reporting to blocking.
 
         # ==========================================================================
         # SETTINGS PRIMITIVE ACCESS
@@ -62,10 +53,6 @@ mappings:
         # General infrastructure patterns
         - "src/body/infrastructure/*.py"
         - "src/body/infrastructure/**/*.py"
-        - "src/body/**/test_*.py"
-        - "src/mind/**/test_*.py"
-        - "src/will/**/test_*.py"
-        - "tests/**"
 
   # ==========================================================================
   # FILE HANDLER ACCESS
@@ -84,11 +71,6 @@ mappings:
       applies_to:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
-      excludes:
-        - "src/will/agents/**/*.py" # Agents may coordinate Body file operations
-        - "src/mind/**/test_*.py"
-        - "src/will/**/test_*.py"
-        - "tests/**"
 
   # ==========================================================================
   # LLM CLIENT ACCESS
@@ -108,10 +90,6 @@ mappings:
       applies_to:
         - "src/body/**/*.py"
         - "src/mind/**/*.py"
-      excludes:
-        - "src/body/**/test_*.py"
-        - "src/mind/**/test_*.py"
-        - "tests/**"
 
   # ==========================================================================
   # EMBEDDING ACCESS
@@ -134,8 +112,6 @@ mappings:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
         - "src/cli/**/*.py"
-      excludes:
-        - "tests/**"
 
   # ==========================================================================
   # REMEDIATION WRITE ACCESS (ADR-154 D4)
@@ -159,9 +135,6 @@ mappings:
     scope:
       applies_to:
         - "src/will/remediation/**/*.py"
-      excludes:
-        - "src/will/remediation/**/test_*.py"
-        - "tests/**"
 
 # ==============================================================================
 # Meta: This mapping enforces constitutional boundaries by preventing

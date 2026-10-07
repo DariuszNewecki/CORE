@@ -63,6 +63,3 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "src/shared/infrastructure/intent/vocabulary_projection.py"
-        - "tests/**"

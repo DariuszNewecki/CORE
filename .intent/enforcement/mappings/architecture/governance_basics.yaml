@@ -122,8 +122,6 @@
       scope:
         applies_to:
           - "src/**/*.py"
-        excludes:
-          - "tests/**"
 
     # Widened 2026-04-18:
     # - "Popen" (bare) catches `from subprocess import Popen; Popen(...)` --
@@ -225,7 +223,6 @@
           # module holds nothing else (536bed82).
           - "src/cli/pre_bootstrap_git.py"
 
-          - "tests/**"
 
     governance.intent_meta.required:
       engine: glob_gate

@@ -28,14 +28,8 @@ mappings:
       excludes:
         # Canonical surfaces -- these ARE the abstraction
         - "src/shared/path_resolver.py"
-        - "src/body/infrastructure/storage/file_handler.py"
         # Tests construct paths against tmp_path directly
-        - "tests/**/*.py"
         # Glob/exclude pattern strings -- not path construction expressions
-        - "src/mind/governance/audit_context.py"
-        - "src/body/services/crawl_service/main_module.py"
-        - "src/body/services/crawl_service/orchestrator.py"
-        - "src/body/introspection/symbol_index_builder.py"
         # Display string in console.print() message -- not a path construction expression
         - "src/cli/logic/scout.py"
         # "mind" token navigates to src/mind/ source directory, not var/mind/ runtime dir

@@ -11,11 +11,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "src/cli/**"
-        - "src/api/**"
-        - "src/cli/utils/**"
-        - "tests/**"
 
   # Logic/runtime code must not use terminal-oriented rendering primitives.
   # enforcement: reporting -- see channels.json note for migration context.
@@ -70,10 +65,7 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/cli/**"
-        - "src/api/**"
         - "src/cli/utils/**"
-        - "src/will/workflows/**"
-        - "tests/**"
 
   # API modules must not use terminal-oriented rendering primitives.
   #
@@ -111,8 +103,6 @@ mappings:
     scope:
       applies_to:
         - "src/api/**/*.py"
-      excludes:
-        - "tests/**"
 
   # Logger must not be abused as a presentation renderer.
   #
@@ -130,9 +120,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "src/will/workflows/**"
-        - "tests/**"
 
   # ADVISORY DECLARATION -- permissive rule, no engine check needed.
   architecture.channels.cli_rendering_allowed:

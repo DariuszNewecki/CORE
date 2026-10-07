@@ -30,11 +30,9 @@ mappings:
       excludes:
         # CLI Entry Points - Bootstrap async runtime
         # CLI Helpers - Provide @async_command decorator
-        - "src/cli/utils/**"
         # Maintenance Scripts - Standalone entry points
         - "src/body/maintenance/scripts/**"
         # Tests
-        - "tests/**"
 
   # LAW: Operational logs MUST use standard getLogger
   logic.logging.standard_only:
@@ -43,4 +41,4 @@ mappings:
       check_type: no_print_statements
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["src/api/**", "tests/**"]
+

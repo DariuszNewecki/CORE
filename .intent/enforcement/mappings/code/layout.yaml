@@ -10,7 +10,3 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "**/__init__.py"
-        - "tests/**/*.py"
-        - "scripts/**/*.py"

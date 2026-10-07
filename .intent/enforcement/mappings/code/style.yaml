@@ -12,9 +12,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "scripts/**/*.py"
 
   style.formatter_required:
     engine: workflow_gate
@@ -24,5 +21,3 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-      excludes:
-        - "scripts/**"

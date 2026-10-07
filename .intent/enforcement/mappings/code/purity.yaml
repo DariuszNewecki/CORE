@@ -8,10 +8,6 @@
       scope:
         applies_to:
           - "src/**/*.py"
-        excludes:
-          - "**/__init__.py"
-          - "tests/**/*.py"
-          - "scripts/**/*.py"
 
     # 3. LAW: Metadata belongs in the DB, not the code (@capability, @owner)
     # Check type: ast_gate (Decorator inspection)
@@ -27,8 +23,6 @@
       scope:
         applies_to:
           - "src/**/*.py"
-        excludes:
-          - "tests/**/*.py"
 
     # LAW: Public symbols MUST have docstrings (not placeholders).
     # Narrowed scope (#310): the periodic audit checks only public-surface
@@ -49,9 +43,6 @@
           - "src/cli/commands/**/*.py"
           - "src/will/workers/**/*.py"
           - "src/body/atomic/**/*.py"
-        excludes:
-          - "**/__init__.py"
-          - "tests/**/*.py"
 
     # 5. LAW: Code MUST NOT contain exact AST duplicates
     purity.no_ast_duplication:
@@ -63,7 +54,6 @@
         applies_to:
           - "src/**/*.py"
         excludes:
-          - "tests/**/*.py"
           - "src/shared/infrastructure/intent/intent_repository.py"
           - "src/shared/infrastructure/specs/specs_repository.py"
 
@@ -76,8 +66,6 @@
       scope:
         applies_to:
           - "src/**/*.py"
-        excludes:
-          - "tests/**/*.py"
 
     # LAW: A refactor MUST preserve domain logic (no silent deletion of behavior).
     # This rule compares a proposed code DIFF to the original. The periodic
@@ -121,9 +109,6 @@
       scope:
         applies_to:
           - "src/**/*.py"
-        excludes:
-          - "tests/**/*.py"
-          - "scripts/**/*.py"
 
 
     # 7. LAW: Production source files MUST be reachable from a declared entry point.

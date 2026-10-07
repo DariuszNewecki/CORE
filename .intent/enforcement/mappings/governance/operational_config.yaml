@@ -36,5 +36,3 @@ mappings:
         - "src/will/strategists/**/*.py"
         - "src/will/self_healing/**/*.py"
         - "src/will/orchestration/**/*.py"
-      excludes:
-        - "tests/**/*.py"

@@ -21,6 +21,4 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        - "tests/**/*.py"
-        - "**/__init__.py"
         - "src/will/orchestration/cognitive_service.py"

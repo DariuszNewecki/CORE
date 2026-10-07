@@ -6,7 +6,7 @@
         check_type: id_anchor
       scope:
         applies_to: ["src/**/*.py"]
-        excludes: ["**/__init__.py", "tests/**"]
+
 
     # LAW: No ID collisions allowed.
     # Stateless corpus check in ast_gate (#820 Group C) -- the prior
