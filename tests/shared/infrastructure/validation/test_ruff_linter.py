@@ -8,8 +8,11 @@ Source: shared.infrastructure.validation.ruff_linter.fix_and_lint_code_with_ruff
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from shared.infrastructure.validation.ruff_linter import fix_and_lint_code_with_ruff
 from shared.utils.subprocess_utils import SubprocessResult
@@ -75,3 +78,16 @@ def test_empty_output_yields_no_violations(tmp_path: Path) -> None:
         _, violations = fix_and_lint_code_with_ruff("x = 1\n", _repo(tmp_path))
 
     assert violations == []
+
+
+# ID: ad7b7876-3df2-46c4-b9c8-a73f63c9d805
+@pytest.mark.skipif(shutil.which("ruff") is None, reason="ruff not on PATH")
+def test_real_ruff_reports_an_unfixable_violation(tmp_path: Path) -> None:
+    """Against the real binary, not a mock: the JSON pass once used a flag ruff
+    rejects (``--format``), exited 2 with empty stdout, and every snippet came
+    back clean. The mocked tests above could not see that."""
+    _code, violations = fix_and_lint_code_with_ruff(
+        "print(undefined_name)\n", _repo(tmp_path), display_filename="mod.py"
+    )
+    assert [v["rule"] for v in violations] == ["F821"]
+    assert violations[0]["file"] == "mod.py"

@@ -58,7 +58,14 @@ def fix_and_lint_code_with_ruff(
 
             # Collect structured violations (JSON output).
             result = run_command(
-                ["ruff", "check", str(tmp_path), "--format", "json", "--exit-zero"]
+                [
+                    "ruff",
+                    "check",
+                    str(tmp_path),
+                    "--output-format",
+                    "json",
+                    "--exit-zero",
+                ]
             )
 
             if result.stdout:
