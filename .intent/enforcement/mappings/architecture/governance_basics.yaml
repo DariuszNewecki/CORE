@@ -218,6 +218,13 @@
           # builtins disabled, only .intent/ policy conditions evaluated.
           - "src/body/services/policy_expression_evaluator.py"
 
+          # --- PRE-BOOTSTRAP ---
+          # Runs before CORE is bound: importing subprocess_utils loads
+          # shared.config and the IntentRepository module, which would resolve
+          # against the wrong root. One read-only git query, stdlib only; the
+          # module holds nothing else (536bed82).
+          - "src/cli/pre_bootstrap_git.py"
+
           - "tests/**"
 
     governance.intent_meta.required:
