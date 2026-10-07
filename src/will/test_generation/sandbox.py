@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 from body.services.file_service import FileService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 if TYPE_CHECKING:
@@ -130,30 +131,30 @@ class PytestSandboxRunner:
                 )
 
                 # 4. EXECUTE
-                # We run pytest pointed specifically at our test file
-                proc = await asyncio.create_subprocess_exec(
-                    "pytest",
-                    "-c",
-                    "/dev/null",  # Ignore local pytest.ini
-                    "-p",
-                    "no:cov",  # Disable coverage (too slow/complex for sandbox)
-                    "-p",
-                    "no:cacheprovider",
-                    "--tb=short",
-                    "-v",
-                    str(test_file_path),
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env,
-                    cwd=str(sandbox_root),  # CWD is the sandbox
-                )
-
+                # We run pytest pointed specifically at our test file, through
+                # the sanctioned subprocess surface. On timeout the cancelled
+                # helper kills and reaps the child before TimeoutError lands.
                 try:
-                    stdout, stderr = await asyncio.wait_for(
-                        proc.communicate(), timeout=timeout_seconds
+                    result = await asyncio.wait_for(
+                        run_command_async(
+                            [
+                                "pytest",
+                                "-c",
+                                "/dev/null",  # Ignore local pytest.ini
+                                "-p",
+                                "no:cov",  # Disable coverage (too slow for sandbox)
+                                "-p",
+                                "no:cacheprovider",
+                                "--tb=short",
+                                "-v",
+                                str(test_file_path),
+                            ],
+                            cwd=sandbox_root,  # CWD is the sandbox
+                            env=env,
+                        ),
+                        timeout=timeout_seconds,
                     )
                 except TimeoutError:
-                    proc.kill()
                     return SandboxResult(
                         passed=False,
                         error=f"Execution timeout ({timeout_seconds}s).",
@@ -162,10 +163,10 @@ class PytestSandboxRunner:
                         total_tests=0,
                     )
 
-                output = stdout.decode(errors="replace") + stderr.decode(
-                    errors="replace"
-                )
-                ok = proc.returncode == 0
+                # Streams arrive stripped; join on a newline so the last
+                # stdout line never fuses with the first stderr line.
+                output = "\n".join(s for s in (result.stdout, result.stderr) if s)
+                ok = result.returncode == 0
 
                 # 5. PARSE RESULTS
                 passed_tests, failed_tests = self._parse_test_results(output)

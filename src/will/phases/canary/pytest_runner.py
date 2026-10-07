@@ -2,6 +2,10 @@
 
 """
 Pytest execution with timeout handling.
+
+pytest runs through the sanctioned async subprocess surface
+(shared.utils.subprocess_utils.run_command_async) under asyncio.wait_for;
+on timeout the cancelled helper kills and reaps the child.
 """
 
 from __future__ import annotations
@@ -11,6 +15,7 @@ import asyncio
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -68,27 +73,18 @@ class PytestRunner:
         ]
 
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                cwd=str(self._paths.repo_root),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            result = await asyncio.wait_for(
+                run_command_async(cmd, cwd=self._paths.repo_root),
+                timeout=self.collection_timeout,
             )
 
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.collection_timeout
-            )
-
-            output = stdout.decode(errors="replace")
-            if "no tests ran" in output.lower():
+            if "no tests ran" in result.stdout.lower():
                 logger.info("No tests collected from specified paths")
                 return False
 
             return True
 
         except TimeoutError:
-            if proc.returncode is None:
-                proc.kill()
             logger.warning(
                 "Test collection timed out after %ds", self.collection_timeout
             )
@@ -110,20 +106,14 @@ class PytestRunner:
         ]
 
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                cwd=str(self._paths.repo_root),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            result = await asyncio.wait_for(
+                run_command_async(cmd, cwd=self._paths.repo_root),
+                timeout=self.execution_timeout,
             )
 
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=self.execution_timeout
-            )
-
-            output = stdout_bytes.decode(errors="replace") + stderr_bytes.decode(
-                errors="replace"
-            )
+            # Streams arrive stripped; join on a newline so the last
+            # stdout line never fuses with the first stderr line.
+            output = "\n".join(s for s in (result.stdout, result.stderr) if s)
 
             passed = output.count(" PASSED")
             failed = output.count(" FAILED")
@@ -131,13 +121,11 @@ class PytestRunner:
             return {
                 "passed": passed,
                 "failed": failed,
-                "exit_code": proc.returncode or 0,
+                "exit_code": result.returncode,
                 "output": output,
             }
 
         except TimeoutError:
-            if proc.returncode is None:
-                proc.kill()
             logger.error("Tests timed out after %ds", self.execution_timeout)
             return {
                 "passed": 0,

@@ -4,26 +4,22 @@
 Lint runner facade — Will-layer entry point for POST /v1/lint
 (ADR-054 Phase 1).
 
-Runs `black --check` and `ruff check` against src/ and tests/ using
-asyncio.create_subprocess_exec so the FastAPI event loop is not
-blocked. The body-layer equivalent (mind.enforcement.audit.lint) is
-synchronous and tailored for the daemon's internal use; we keep
-that surface intact and route the API path through this async
-variant instead.
-
-asyncio.create_subprocess_exec is the canonical async-process
-pattern in CORE (body/project_lifecycle/integration_service.py uses
-it for the same reason). It is not in
-governance.dangerous_execution_primitives' forbidden list.
+Runs `black --check` and `ruff check` against src/ and tests/ through
+the sanctioned async subprocess surface
+(shared.utils.subprocess_utils.run_command_async) so the FastAPI event
+loop is not blocked. The body-layer equivalent
+(mind.enforcement.audit.lint) is synchronous and tailored for the
+daemon's internal use; we keep that surface intact and route the API
+path through this async variant instead.
 """
 
 from __future__ import annotations
 
-import asyncio
 import sys
 from pathlib import Path
 
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 __all__ = ["run_lint"]
@@ -40,18 +36,15 @@ _VENV_BIN = Path(sys.executable).parent
 
 # ID: e623ad27-9ba1-4ce1-9c33-dd30c6547acf
 async def _run_tool(binary: Path, args: list[str]) -> dict:
-    """Run a single tool by absolute path and capture output."""
-    process = await asyncio.create_subprocess_exec(
-        str(binary),
-        *args,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout_b, stderr_b = await process.communicate()
+    """Run a single tool by absolute path and capture output.
+
+    A non-zero exit is reported in ``returncode``, not raised.
+    """
+    result = await run_command_async([str(binary), *args])
     return {
-        "returncode": process.returncode or 0,
-        "stdout": stdout_b.decode(errors="replace"),
-        "stderr": stderr_b.decode(errors="replace"),
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
     }
 
 
