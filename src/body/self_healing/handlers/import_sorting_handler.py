@@ -20,6 +20,7 @@ from body.infrastructure.storage.file_handler import FileHandler
 from body.self_healing.remediation_models import FixResult
 from shared.logger import getLogger
 from shared.models import AuditFinding
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -82,12 +83,7 @@ async def sort_imports_handler(
         cmd = ["ruff", "check", str(file_path), "--select", "I", "--exit-zero"]
         if write:
             cmd.append("--fix")
-        import asyncio
-
-        process = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        _stdout_bytes, _stderr_bytes = await process.communicate()
+        await run_command_async(cmd)
         if write:
             try:
                 new_content = file_path.read_text(encoding="utf-8")

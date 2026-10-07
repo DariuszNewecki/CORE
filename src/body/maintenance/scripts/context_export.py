@@ -20,12 +20,14 @@ import urllib.request
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from body.infrastructure.storage.file_handler import FileHandler
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.operational_config import load_operational_config
-from body.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.time import now_iso
+from shared.utils.subprocess_utils import run_command_async
+
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
@@ -93,7 +95,9 @@ class ContextExporter:
         _exports = PathResolver(self.repo_root).exports_dir
         self.output_base = output_base or _exports
         self.timestamp = now_iso().replace(":", "-").split(".")[0]
-        self.export_rel_dir = str(_exports.relative_to(self.repo_root)) + f"/core_export_{self.timestamp}"
+        self.export_rel_dir = (
+            str(_exports.relative_to(self.repo_root)) + f"/core_export_{self.timestamp}"
+        )
 
         # Mutation surface
         self.fh = FileHandler(str(self.repo_root))
@@ -191,24 +195,19 @@ class ContextExporter:
         )
 
     async def _export_db_schema(self):
-        """Capture DB schema using subprocess, persisted via FileHandler."""
+        """Capture DB schema via pg_dump (subprocess_utils), persisted via FileHandler."""
         logger.info("🗄️ Capturing Database Schema...")
         db_url = self._context.settings.DATABASE_URL
 
         try:
             # Note: requires pg_dump installed on host
-            proc = await asyncio.create_subprocess_exec(
-                "pg_dump",
-                "--schema-only",
-                "--no-owner",
-                db_url,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            result = await run_command_async(
+                ["pg_dump", "--schema-only", "--no-owner", db_url]
             )
-            stdout, _ = await proc.communicate()
-            if stdout:
+            if result.stdout:
+                # run_command_async strips output; restore the trailing newline.
                 self.fh.write_runtime_text(
-                    f"{self.export_rel_dir}/db_schema.sql", stdout.decode()
+                    f"{self.export_rel_dir}/db_schema.sql", result.stdout + "\n"
                 )
         except Exception as e:
             logger.warning("Could not export DB schema: %s", e)

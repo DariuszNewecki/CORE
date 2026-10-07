@@ -24,6 +24,7 @@ from body.services.file_service import FileService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -120,37 +121,33 @@ class RuntimeValidatorService:
                 logger.info("Running test suite in AIRLOCKED canary environment...")
 
                 # 5. Execute
-                proc = await asyncio.create_subprocess_exec(
-                    "poetry",
-                    "run",
-                    "pytest",
-                    cwd=canary_path,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=safe_env,
-                )
-
+                # run_command_async kills and reaps the child when wait_for
+                # cancels it on timeout.
                 try:
-                    stdout, stderr = await asyncio.wait_for(
-                        proc.communicate(), timeout=self.test_timeout
+                    result = await asyncio.wait_for(
+                        run_command_async(
+                            ["poetry", "run", "pytest"],
+                            cwd=canary_path,
+                            env=safe_env,
+                        ),
+                        timeout=self.test_timeout,
                     )
                 except TimeoutError:
-                    proc.kill()
                     logger.error("Canary tests timed out.")
                     return (
                         False,
                         f"Tests timed out after {self.test_timeout} seconds.",
                     )
 
-                if proc.returncode == 0:
+                if result.returncode == 0:
                     logger.info("✅ Canary tests PASSED.")
                     return (True, "All tests passed in the isolated environment.")
 
                 logger.warning("❌ Canary tests FAILED.")
                 error_details = (
-                    f"Pytest failed with exit code {proc.returncode}.\n\n"
-                    f"STDOUT:\n{stdout.decode(errors='replace')}\n\n"
-                    f"STDERR:\n{stderr.decode(errors='replace')}"
+                    f"Pytest failed with exit code {result.returncode}.\n\n"
+                    f"STDOUT:\n{result.stdout}\n\n"
+                    f"STDERR:\n{result.stderr}"
                 )
                 return (False, error_details)
 
