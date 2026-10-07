@@ -279,6 +279,15 @@ mappings:
       Tracked in #727.
     status: DELEGATE
 
+  architecture.intent.excludes_exempt_something:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A dead exclude entry is removed by editing its .intent/ mapping, which
+      is a governor-confirmed write. No automatable fixer. Human review
+      required.
+    status: DELEGATE
+
   architecture.intent.gateway_is_shared_infrastructure:
     action: fix.modularity
     confidence: 0.40

@@ -41,6 +41,14 @@
       "authority": "constitution",
       "phase": "audit",
       "rationale": "Retirements and renames left 16 such references dangling (2026-10-04 residue investigation): a flow step naming a renamed action, test generation capped against deleted files, an orphan check rooted at missing entry points; remediation-map DELEGATE entries twice left naming retired actions (9fd70022, 88f0fe43) while only ACTIVE entries were checked (#935). Each misdirects the runtime without failing loudly. Field-aware by design: globs, output locations, exclude lists and prose are out of scope because their existence is not part of their meaning."
+    },
+    {
+      "id": "architecture.intent.excludes_exempt_something",
+      "statement": "Every scope.excludes entry of an enforcement mapping MUST still exempt something: it MUST match at least one file inside its rule's applies_to, and, where the rule's engine is deterministic per-file (ast_gate, regex_gate, glob_gate), at least one file it matches MUST violate the rule when checked without the exemption.",
+      "enforcement": "reporting",
+      "authority": "constitution",
+      "phase": "audit",
+      "rationale": "An exemption that exempts nothing is not inert: it widens the rule's blind spot for whatever lands under it next. Measured 2026-10-07: 126 of 204 exclude entries were dead -- left behind after their files were routed onto the sanctioned surface, written for files outside the rule's scope, or matching nothing; src/**/test_*.py entries meant for test files were exempting production modules named test_* (var/reports/2026-10-07-self-policing-excludes.md). Complements architecture.intent.references_resolve, which leaves exclude lists out of scope. Coverage ceiling: rules on context-level or LLM engines are judged on the matching conditions only, not on whether the covered files would violate."
     }
   ]
 }

@@ -193,7 +193,7 @@ by CORE's own governance, so your report is the only record they leave. Write it
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 40 blocking + 27 reporting + 12 advisory = 79.
+the other two surface findings. At digest time: 40 blocking + 28 reporting + 12 advisory = 80.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -283,7 +283,7 @@ Marked `[r]` reporting / `[a]` advisory per the on-disk `enforcement` field.
 
 **Logging / governance** — `logic.logging.standard_only` [r — standard `getLogger`, no f-strings]; `governance.artifact_mutation.traceable` [r — artifacts/logs/reports SHOULD go via `FileHandler`]; `governance.dangerous_execution_primitives` [r — `eval`/`exec`/`compile`/`subprocess` require documented justification; Will MUST NOT use them; Body MAY in designated sanctuary modules].
 
-**Intent access** — `architecture.intent.no_legacy_root_assumptions` [r]; `architecture.namespace.no_direct_protected_access` [r — no direct filesystem crawling/parsing of `.intent`; route through shared intent infrastructure]; `architecture.intent.gateway_is_shared_infrastructure` [r — consume `.intent` through `src/shared/infrastructure/intent/`].
+**Intent access** — `architecture.intent.no_legacy_root_assumptions` [r]; `architecture.namespace.no_direct_protected_access` [r — no direct filesystem crawling/parsing of `.intent`; route through shared intent infrastructure]; `architecture.intent.gateway_is_shared_infrastructure` [r — consume `.intent` through `src/shared/infrastructure/intent/`]; `architecture.intent.excludes_exempt_something` [r — every `scope.excludes` entry MUST still exempt something: match a file inside its rule's `applies_to` and, for deterministic per-file engines, cover a file that would violate without it (`exclusion_gate` engine)].
 
 **Modernization** — `modernization.legacy_signal` [r — pre-selector, no verdict]; `modernization.legacy_scars` [a — SHOULD be free of obsolete shims, unused legacy parameters, wrappers bypassing the Universal Workflow Pattern]; `modernization.dead_shim` [r — a public symbol self-declaring deprecation with zero inbound call edges outside tests/ MUST be flagged; properties excluded, `__all__` contract + dispatch surfaces graced; resolution is verify-then-delete; ADR-151].
 
