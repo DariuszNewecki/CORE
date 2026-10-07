@@ -15,6 +15,7 @@ from typing import Any
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -51,19 +52,13 @@ class LinterComplianceCheck(WorkflowCheck):
 
         # Check 1: Ruff linter
         try:
-            process = await asyncio.create_subprocess_exec(
-                "ruff",
-                "check",
-                *targets,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=_CFG.linter_timeout_sec
+            result = await asyncio.wait_for(
+                run_command_async(["ruff", "check", *targets]),
+                timeout=_CFG.linter_timeout_sec,
             )
 
-            if process.returncode != 0:
-                output = stdout.decode().strip() or stderr.decode().strip()
+            if result.returncode != 0:
+                output = result.stdout or result.stderr
                 violations.append(f"Ruff check failed: {output}")
 
         except TimeoutError:
@@ -77,19 +72,13 @@ class LinterComplianceCheck(WorkflowCheck):
 
         # Check 2: Black formatter
         try:
-            process = await asyncio.create_subprocess_exec(
-                "black",
-                "--check",
-                *targets,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=_CFG.linter_timeout_sec
+            result = await asyncio.wait_for(
+                run_command_async(["black", "--check", *targets]),
+                timeout=_CFG.linter_timeout_sec,
             )
 
-            if process.returncode != 0:
-                output = stdout.decode().strip() or stderr.decode().strip()
+            if result.returncode != 0:
+                output = result.stdout or result.stderr
                 violations.append(f"Black format check failed: {output}")
 
         except TimeoutError:

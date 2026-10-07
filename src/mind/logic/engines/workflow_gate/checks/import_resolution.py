@@ -33,6 +33,7 @@ from mind.logic.engines.workflow_gate.base_check import (
 )
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -162,20 +163,12 @@ class ImportResolutionCheck(WorkflowCheck):
         args = [str(a) for a in spec.get("args", [])]
         cmd = [tool, *args, target]
 
-        process: asyncio.subprocess.Process | None = None
         try:
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=_CFG.import_timeout_sec
+            result = await asyncio.wait_for(
+                run_command_async(cmd), timeout=_CFG.import_timeout_sec
             )
         except TimeoutError:
-            if process is not None and process.returncode is None:
-                process.kill()
-                await process.wait()
+            # run_command_async kills and reaps the child on cancellation.
             return "timeout"
         except FileNotFoundError as exc:
             logger.debug(
@@ -188,12 +181,12 @@ class ImportResolutionCheck(WorkflowCheck):
         except Exception as e:
             return [f"{tool} import check error: {e}"]
 
-        if process.returncode == 0:
+        if result.returncode == 0:
             return []
 
-        output = stdout.decode().strip()
+        output = result.stdout
         if not output:
-            err = stderr.decode().strip()
+            err = result.stderr
             return [f"{tool} import check failed: {err}"] if err else []
 
         lines = [ln for ln in output.splitlines() if _matches_filter(ln, spec)]

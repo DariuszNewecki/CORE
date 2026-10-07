@@ -29,6 +29,7 @@ from mind.logic.engines.workflow_gate.base_check import (
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -65,34 +66,22 @@ class QualityGateCheck(WorkflowCheck):
     async def verify(
         self, file_path: Path | None, params: dict[str, Any]
     ) -> Sequence[str | StructuredViolation]:
-        process: asyncio.subprocess.Process | None = None
         try:
-            process = await asyncio.create_subprocess_exec(
-                *self.cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=str(self._paths.repo_root),
-            )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=_CFG.quality_timeout_sec
+            result = await asyncio.wait_for(
+                run_command_async(self.cmd, cwd=self._paths.repo_root),
+                timeout=_CFG.quality_timeout_sec,
             )
 
-            if process.returncode != 0:
+            if result.returncode != 0:
                 if self.check_type == "security_check":
-                    return self._parse_pip_audit(
-                        stdout.decode().strip(), stderr.decode().strip()
-                    )
-                output = stdout.decode().strip() or stderr.decode().strip()
+                    return self._parse_pip_audit(result.stdout, result.stderr)
+                output = result.stdout or result.stderr
                 return self._parse_output(output)
         except TimeoutError:
-            # asyncio.wait_for cancels the await on timeout, not the child
-            # process — without an explicit kill, the subprocess is orphaned
-            # and keeps running (and, for pytest_check, keeps writing to the
-            # shared .coverage/reports/htmlcov store) past the point this
-            # method has already given up and returned.
-            if process is not None and process.returncode is None:
-                process.kill()
-                await process.wait()
+            # run_command_async kills and reaps the child when wait_for
+            # cancels it, so a timed-out tool (e.g. pytest_check, which writes
+            # to the shared .coverage/reports/htmlcov store) does not keep
+            # running past the point this method has given up and returned.
             logger.warning(
                 "%s timed out after %ss; subprocess killed",
                 self.check_type,

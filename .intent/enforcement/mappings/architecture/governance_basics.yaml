@@ -218,14 +218,6 @@
           # builtins disabled, only .intent/ policy conditions evaluated.
           - "src/body/services/policy_expression_evaluator.py"
 
-          # --- PENDING: Mind workflow-gate checks run tools inline ---
-          # Layering question open (where tool execution belongs for Mind
-          # checks); dead_code.py already routes via subprocess_utils (#585).
-          - "src/mind/logic/engines/workflow_gate/checks/ruff_format.py"
-          - "src/mind/logic/engines/workflow_gate/checks/quality.py"
-          - "src/mind/logic/engines/workflow_gate/checks/linter.py"
-          - "src/mind/logic/engines/workflow_gate/checks/import_resolution.py"
-
           - "tests/**"
 
     governance.intent_meta.required:
