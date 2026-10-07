@@ -4,19 +4,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from shared.infrastructure.validation.test_runner import run_tests
+from shared.utils.subprocess_utils import SubprocessResult
 
 
 async def _argv(tmp_path: Path, **kwargs) -> tuple:
-    process = MagicMock()
-    process.communicate = AsyncMock(return_value=(b"1 passed", b""))
-    process.returncode = 0
-    spawn = AsyncMock(return_value=process)
+    spawn = AsyncMock(
+        return_value=SubprocessResult(stdout="1 passed", stderr="", returncode=0)
+    )
     with (
         patch(
-            "shared.infrastructure.validation.test_runner.asyncio.create_subprocess_exec",
+            "shared.infrastructure.validation.test_runner.run_command_async",
             new=spawn,
         ),
         patch(
@@ -25,7 +25,7 @@ async def _argv(tmp_path: Path, **kwargs) -> tuple:
         ),
     ):
         await run_tests(repo_root=tmp_path, **kwargs)
-    return spawn.call_args.args
+    return tuple(spawn.call_args.args[0])
 
 
 # ID: 2e987a1d-7c6d-436b-b0c9-1d2ce8e26eb0

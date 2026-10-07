@@ -22,6 +22,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 if TYPE_CHECKING:
@@ -87,26 +88,19 @@ async def run_tests(
         # .coverage in the repo root each cycle and, when a run is cut off by
         # the timeout below, leaving stray .coverage.<host>.<pid>.* shards as
         # untracked files. Same precedent as will/governance/fix_runner.py.
-        process = await asyncio.create_subprocess_exec(
-            "pytest",
-            *pytest_targets,
-            "--tb=short",
-            "-q",
-            "--no-cov",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=repo_root,
-        )
-
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
+            proc_result = await asyncio.wait_for(
+                run_command_async(
+                    ["pytest", *pytest_targets, "--tb=short", "-q", "--no-cov"],
+                    cwd=repo_root,
+                ),
+                timeout=timeout,
             )
-            stdout = stdout_bytes.decode().strip()
-            stderr = stderr_bytes.decode().strip()
-            exit_code = process.returncode
+            stdout = proc_result.stdout
+            stderr = proc_result.stderr
+            exit_code = proc_result.returncode
         except TimeoutError:
-            process.kill()
+            # run_command_async kills and reaps the child on cancellation.
             stdout = ""
             stderr = f"Test run timed out after {timeout}s."
             exit_code = -1

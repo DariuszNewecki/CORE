@@ -45,7 +45,6 @@ from __future__ import annotations
 
 import importlib.resources
 import pathlib
-import subprocess
 from dataclasses import dataclass
 from typing import Literal
 
@@ -53,6 +52,7 @@ import yaml
 
 from shared.config import settings
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command
 
 
 logger = getLogger(__name__)
@@ -137,12 +137,7 @@ def load_policy(assets: MigrationAssets | None = None) -> dict:
 def git_commit_sha() -> str:
     """Best-effort: get current commit SHA via CLI or Settings."""
     try:
-        res = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        res = run_command(["git", "rev-parse", "--verify", "HEAD"])
         if res.returncode == 0:
             return res.stdout.strip()[:40]
     except Exception as e:

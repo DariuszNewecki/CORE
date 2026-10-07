@@ -9,12 +9,12 @@ Returns a success flag and an optional linting message.
 from __future__ import annotations
 
 import json
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command
 
 
 logger = getLogger(__name__)
@@ -50,21 +50,15 @@ def fix_and_lint_code_with_ruff(
 
         try:
             # Apply fixes (do not fail build on lint errors).
-            subprocess.run(
-                ["ruff", "check", str(tmp_path), "--fix", "--exit-zero", "--quiet"],
-                capture_output=True,
-                text=True,
-                check=False,
+            run_command(
+                ["ruff", "check", str(tmp_path), "--fix", "--exit-zero", "--quiet"]
             )
 
             fixed_code = tmp_path.read_text(encoding="utf-8")
 
             # Collect structured violations (JSON output).
-            result = subprocess.run(
-                ["ruff", "check", str(tmp_path), "--format", "json", "--exit-zero"],
-                capture_output=True,
-                text=True,
-                check=False,
+            result = run_command(
+                ["ruff", "check", str(tmp_path), "--format", "json", "--exit-zero"]
             )
 
             if result.stdout:
