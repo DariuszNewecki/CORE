@@ -22,6 +22,7 @@ from mind.governance.fast_verdict import (
     BLOCKED,
     CLEAR_IN_SCOPE,
     NO_CHANGES,
+    NOT_EVALUATED,
     run_fast_verdict,
 )
 from shared.infrastructure.intent.intent_repository import IntentRepository
@@ -109,6 +110,30 @@ async def test_never_says_pass(tmp_path: Path) -> None:
         out["verdict"] != "PASS"
         and "PASS is given only by the full audit" in out["note"]
     )
+
+
+@pytest.mark.asyncio
+async def test_an_audit_that_judged_nothing_is_not_evaluated(tmp_path: Path) -> None:
+    """A project with no rules: the audit refuses (ERROR), so nothing was
+    judged and "clear" would be false."""
+    refused = {
+        "verdict": "ERROR",
+        "findings": [],
+        "stats": {},
+        "skipped_rules": [],
+        "error": "no project law declared",
+        "law_state": {"relationship": "MATCH", "drift_paths": []},
+    }
+    out = await _judge(tmp_path, refused)
+    assert out["verdict"] == NOT_EVALUATED
+    assert out["error"] == "no project law declared"
+
+
+@pytest.mark.asyncio
+async def test_a_violation_found_stays_blocked_despite_an_error(tmp_path: Path) -> None:
+    result = _audit_result([_block("r.one")]) | {"error": "a later rule crashed"}
+    out = await _judge(tmp_path, result)
+    assert out["verdict"] == BLOCKED
 
 
 @pytest.mark.asyncio

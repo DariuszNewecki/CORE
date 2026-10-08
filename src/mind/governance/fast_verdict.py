@@ -19,7 +19,9 @@ What it does:
 
 Vocabulary: ``BLOCKED`` (at least one blocking violation in scope),
 ``CLEAR_IN_SCOPE`` (none among the rules evaluated, with the not-evaluated
-list alongside), ``NO_CHANGES`` (nothing in scope). It never says PASS: PASS is
+list alongside), ``NO_CHANGES`` (nothing in scope), ``NOT_EVALUATED`` (the
+audit could not judge the change at all, for example a project that declares
+no rules; the reason is in ``error``). It never says PASS: PASS is
 reserved for the authoritative full audit, so partial feedback cannot be
 mistaken for it (#952, #956).
 
@@ -44,6 +46,7 @@ logger = getLogger(__name__)
 BLOCKED = "BLOCKED"
 CLEAR_IN_SCOPE = "CLEAR_IN_SCOPE"
 NO_CHANGES = "NO_CHANGES"
+NOT_EVALUATED = "NOT_EVALUATED"
 
 _BLOCKING = {"block", "blocking"}
 _AUTHORITY_NOTE = (
@@ -105,9 +108,17 @@ async def run_fast_verdict(
         "unavailable": unavailable,
     }
     law = result.get("law_state") or {}
+    # A violation found is real whatever else happened; but an audit that
+    # refused or crashed judged nothing, so "clear" would be false.
+    if blocking:
+        verdict = BLOCKED
+    elif result.get("verdict") == "ERROR" or result.get("error"):
+        verdict = NOT_EVALUATED
+    else:
+        verdict = CLEAR_IN_SCOPE
 
     return {
-        "verdict": BLOCKED if blocking else CLEAR_IN_SCOPE,
+        "verdict": verdict,
         "authoritative": False,
         "note": _AUTHORITY_NOTE,
         "scope": {"files": in_scope, "removed": removed},
