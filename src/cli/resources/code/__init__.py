@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import audit, clarity, complexity, refactor
+from . import audit, clarity, complexity, refactor, verify
 from .hub import app
 
 

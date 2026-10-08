@@ -57,11 +57,13 @@ from cli.resources.coherence import app as coherence_app
 from cli.resources.constitution import app as constitution_app
 from cli.resources.context import app as context_app
 from cli.resources.database import app as database_app
+from cli.resources.decisions import app as decisions_app
 from cli.resources.demo import app as demo_app
 from cli.resources.dev import app as dev_app
 from cli.resources.docs import app as docs_app
 from cli.resources.grc import app as grc_app
 from cli.resources.intent import app as intent_app
+from cli.resources.law import app as law_app
 from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.project import app as project_app
 from cli.resources.runtime import app as runtime_app
@@ -93,6 +95,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(cognitive_roles_app, name="cognitive-roles")
     app_instance.add_typer(context_app, name="context")
     app_instance.add_typer(database_app, name="database")
+    app_instance.add_typer(decisions_app, name="decisions")
     app_instance.add_typer(runtime_app, name="runtime")
     app_instance.add_typer(symbols_app, name="symbols")
     app_instance.add_typer(vectors_app, name="vectors")
@@ -106,6 +109,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(demo_app, name="demo")
     app_instance.add_typer(docs_app, name="docs")
     app_instance.add_typer(intent_app, name="intent")
+    app_instance.add_typer(law_app, name="law")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(llm_resources_app, name="llm-resources")
     app_instance.add_typer(refactor_app, name="refactor")

@@ -4,13 +4,13 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-93 commands.
+98 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
 | [`admin`](#admin) | 12 | System forensics: decision traces, refusals, and pattern analytics. |
 | [`capabilities`](#capabilities) | 1 | Inspect and search CORE capabilities. |
-| [`code`](#code) | 4 | Codebase quality, style, and verification operations. |
+| [`code`](#code) | 5 | Codebase quality, style, and verification operations. |
 | [`cognitive-roles`](#cognitive-roles) | 1 | Cognitive-role capability projection (#821 Unit 2). |
 | [`coherence`](#coherence) | 8 | Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift. Governing ADR: ADR-067. |
 | [`commands`](#commands) | 1 | Search and inspect registered CLI commands. |
@@ -18,12 +18,14 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`context`](#context) | 3 | Build and explore context packages for LLM assistance. |
 | [`daemon`](#daemon) | 5 | Background worker daemon management. |
 | [`database`](#database) | 6 | PostgreSQL state and operational data management. |
+| [`decisions`](#decisions) | 2 | Decision history: the repository's ADRs, with their files (ADR-168). |
 | [`demo`](#demo) | 2 | Isolated, opt-in demonstrations that CORE governs its own changes. |
 | [`dev`](#dev) | 11 | High-level developer workflows: synchronization, refactor, and stability tools. |
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
+| [`law`](#law) | 2 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
@@ -302,6 +304,24 @@ Moves layers toward using CoreContext instead of global settings.
 |---|---|---|
 | `--write` | off | Apply DI refactoring. |
 | `--layers` | `mind,will` | Comma-separated layers to process. |
+
+### `core-admin code verify` {#code-verify}
+
+```
+core-admin code verify [FILES...]
+```
+
+Judge the current change against the per-file rules and name every rule
+this run did not evaluate. Exits 1 when the verdict is BLOCKED, 2 when
+nothing could be judged (NOT_EVALUATED).
+
+Not the authoritative verdict: PASS is given only by `code audit`.
+
+Example: core-admin code verify
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `FILES` |  | Files to judge. Default: every path that differs from HEAD. |
 
 ---
 
@@ -825,6 +845,41 @@ This makes the DB the Single Source of Truth for available system neurons.
 
 ---
 
+## `core-admin decisions` {#decisions}
+
+Decision history: the repository's ADRs, with their files (ADR-168).
+
+### `core-admin decisions list` {#decisions-list}
+
+```
+core-admin decisions list [OPTIONS]
+```
+
+List every ADR's id, title and status.
+
+Example: core-admin decisions list --status accepted
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--status` |  | Only ADRs whose status begins with this, e.g. accepted. |
+
+### `core-admin decisions show` {#decisions-show}
+
+```
+core-admin decisions show ADR_ID
+```
+
+Show one architecture decision record: id, title, status and its decision
+headings, with the file it lives in.
+
+Example: core-admin decisions show ADR-168
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `ADR_ID` | required | ADR id: ADR-168 or 168. |
+
+---
+
 ## `core-admin demo` {#demo}
 
 Isolated, opt-in demonstrations that CORE governs its own changes.
@@ -1181,6 +1236,43 @@ core-admin interactive-test info
 ```
 
 Show information about interactive test generation.
+
+---
+
+## `core-admin law` {#law}
+
+Grounded answers about this repository's law, with sources (ADR-168).
+
+### `core-admin law check` {#law-check}
+
+```
+core-admin law check PATH
+```
+
+Check whether a producer may write PATH. The answer has two parts that are
+never collapsed: what the law says, and what actually enforces it (CORE's
+own write path, and an external assistant editing files directly).
+
+Example: core-admin law check .intent/rules/architecture/governance_basics.json
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PATH` | required | Path to ask about, repo-relative or absolute. |
+
+### `core-admin law show` {#law-show}
+
+```
+core-admin law show RULE_ID
+```
+
+Show what a rule says: statement, enforcement, authority, and the mechanism
+that enforces it, with source files. An undeclared rule is answered as unknown.
+
+Example: core-admin law show governance.constitution.read_only
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `RULE_ID` | required | Rule id, e.g. governance.constitution.read_only. |
 
 ---
 
