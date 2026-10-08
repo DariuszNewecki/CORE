@@ -98,6 +98,16 @@ writing a throwaway script.
 
 ### `.intent/` and `.specs/` — the confirmation gate
 
+**ADR-170 rehearsal in force (since 2026-10-08) — it overrides Paths A, B and C below.**
+Governed text is `.intent/`, `.specs/`, `CLAUDE.md`, `.claude/settings.json` and `.claude/hooks/`.
+Never write governed text directly. Instead:
+1. collect the session's changes as one batch of complete files under `var/law-proposals/<id>/`, with a `proposal.md`;
+2. check the batch in a scratch worktree with `core-admin constitution validate` and `core-admin code audit --offline`;
+3. ask the governor once per batch. The approval comes in chat, as the stand-in for the sudo password;
+4. on approval, copy exactly those bytes into place, check their sha256, append a line to `var/law-custody/rehearsal-ledger.jsonl`, and commit naming the id.
+
+Full procedure: ADR-170 D0. Paths A–C below remain as history until ADR-170 Stage 1 replaces this section.
+
 Both are human-authored by default. Default posture: **draft-in-response** — produce the
 complete corrected file in the response; the governor applies it. Direct writes are permitted
 only under one of two paths, both governor-initiated:
