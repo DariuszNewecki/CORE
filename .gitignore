@@ -24,6 +24,9 @@ build/
 .env.*
 !.env.example
 !.env.test
+# Secrets file (CORE_MASTER_KEY): read into Settings only, never committed
+.secrets/
+.creds
 
 # -----------------------------------------------------------------------------
 # Testing

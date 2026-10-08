@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -117,3 +118,86 @@ def test_preset_core_env_survives_for_every_named_environment(
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == core_env_value
+
+
+# --- #962: the secrets file reaches Settings, never the process environment ---
+
+_SENTINEL_KEY = "sentinel-master-key-not-a-real-fernet-key"
+
+
+@pytest.fixture
+def secrets_dir() -> Iterator[Path]:
+    import shutil
+    import tempfile
+
+    base = REPO_ROOT / "var" / "tmp"
+    base.mkdir(parents=True, exist_ok=True)
+    path = Path(tempfile.mkdtemp(prefix="secrets-test-", dir=base))
+    yield path
+    for p in path.iterdir():
+        p.chmod(0o600)
+    shutil.rmtree(path)
+
+
+def test_secrets_file_reaches_settings_but_not_child_processes(
+    secrets_dir: Path,
+) -> None:
+    """A value from the secrets file is visible on settings, absent from
+    os.environ, and so absent from any process the caller starts. Uses a
+    probe key that only the secrets file defines, so the check holds even
+    while .env still carries CORE_MASTER_KEY."""
+    secrets_file = secrets_dir / "core.env"
+    secrets_file.write_text(f"CORE_SECRETS_PROBE={_SENTINEL_KEY}\n")
+    result = _run(
+        {"CORE_SECRETS_FILE": str(secrets_file)},
+        "import os, subprocess, sys\n"
+        "from shared.config import settings\n"
+        "print(getattr(settings, 'CORE_SECRETS_PROBE', None) == "
+        f"{_SENTINEL_KEY!r})\n"
+        "print('CORE_SECRETS_PROBE' in os.environ)\n"
+        "child = subprocess.run([sys.executable, '-c',"
+        " \"import os; print('CORE_SECRETS_PROBE' in os.environ)\"],"
+        " capture_output=True, text=True)\n"
+        "print(child.stdout.strip())\n",
+    )
+    assert result.returncode == 0, result.stderr
+    on_settings, in_environ, in_child = result.stdout.strip().splitlines()
+    assert on_settings == "True"
+    assert in_environ == "False"
+    assert in_child == "False"
+
+
+def test_secrets_file_wins_over_environment(secrets_dir: Path) -> None:
+    secrets_file = secrets_dir / "core.env"
+    secrets_file.write_text(f"CORE_MASTER_KEY={_SENTINEL_KEY}\n")
+    result = _run(
+        {"CORE_SECRETS_FILE": str(secrets_file), "CORE_MASTER_KEY": "from-env"},
+        "from shared.config import settings; print(settings.CORE_MASTER_KEY)",
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == _SENTINEL_KEY
+
+
+def test_unreadable_secrets_file_is_skipped_not_fatal(secrets_dir: Path) -> None:
+    """An account the file is not shared with starts normally, without it."""
+    if os.geteuid() == 0:
+        pytest.skip("root reads files regardless of mode")
+    secrets_file = secrets_dir / "core.env"
+    secrets_file.write_text(f"CORE_MASTER_KEY={_SENTINEL_KEY}\n")
+    secrets_file.chmod(0o000)
+    result = _run(
+        {"CORE_SECRETS_FILE": str(secrets_file), "CORE_MASTER_KEY": "from-env"},
+        "from shared.config import settings; print(settings.CORE_MASTER_KEY)",
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "from-env"
+
+
+def test_secrets_locations_are_gitignored() -> None:
+    result = subprocess.run(
+        ["git", "check-ignore", ".secrets/core.env", ".creds"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.split() == [".secrets/core.env", ".creds"]

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import yaml
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 from pydantic import Field, PrivateAttr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,6 +30,28 @@ logger = getLogger(__name__)
 
 # Calculation: src/shared/config.py -> shared -> src -> root
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# Secrets that cannot live in the DB (CORE_MASTER_KEY decrypts it) live in
+# their own file, owner-only. CORE_SECRETS_FILE overrides the location.
+DEFAULT_SECRETS_FILE = REPO_ROOT / ".secrets" / "core.env"
+
+
+def _read_secrets_file() -> dict[str, str]:
+    """Read the secrets file into a dict without touching os.environ.
+
+    Unlike load_dotenv, nothing is exported to the process environment, so
+    child processes (pytest, generated tests, tools) never inherit these
+    values (#962). A missing or unreadable file yields {}: an account the
+    file is not shared with simply runs without the secrets, and whatever
+    needs them fails loudly at the point of use.
+    """
+    path = Path(os.environ.get("CORE_SECRETS_FILE") or DEFAULT_SECRETS_FILE)
+    try:
+        raw = dotenv_values(path) if path.is_file() else {}
+    except OSError as exc:
+        logger.debug("Secrets file %s not readable: %s", path, exc)
+        return {}
+    return {k: v for k, v in raw.items() if v is not None}
 
 
 # ID: e2f3a5b1-7c4d-4f8a-9d2e-1b6c8a3e4f9d
@@ -234,28 +256,28 @@ class Settings(BaseSettings):
         # instead of the intended .env.test (#845). Snapshotting here and
         # restoring after every override=True load makes dotenv files
         # defaults-only for anything the process already set, while leaving
-        # the existing file-vs-file cascade (.env -> .creds override .env ->
-        # env-specific file overrides both) and default-development behavior
+        # the existing file-vs-file cascade (.env -> env-specific file
+        # overrides it; the secrets file is not in the environment at all,
+        # see _read_secrets_file) and default-development behavior
         # (nothing preset) unchanged.
         preset_env = dict(os.environ)
 
         if is_testing:
             os.environ["CORE_ENV"] = "TEST"
 
-        # Skip .env/.creds under pytest: load_dotenv(override=True) would
+        # Skip .env and the secrets file under pytest: load_dotenv(override=True) would
         # otherwise overwrite the CORE_ENV=TEST signal set above and route
         # the environment-specific load below back to .env (the dev file),
         # leaving the suite pointed at the production DB. See #592.
         #
-        # Load order (non-test): .env first (config), then .creds (secrets).
-        # .creds overrides .env so that secrets (CORE_MASTER_KEY, LLM API keys)
-        # can be managed separately with chmod 600 without touching .env.
+        # Load order (non-test): .env (config) goes into the environment; the
+        # secrets file goes into Settings only, as init values, so it wins
+        # over the environment and never reaches os.environ (#962). Explicit
+        # constructor arguments still win over both.
         if not is_testing:
             load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
-            creds_path = REPO_ROOT / ".creds"
-            if creds_path.exists():
-                load_dotenv(dotenv_path=creds_path, override=True)
             os.environ.update(preset_env)
+            values = {**_read_secrets_file(), **values}
 
         super().__init__(**values)
 
