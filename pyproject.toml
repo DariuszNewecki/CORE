@@ -74,6 +74,8 @@ dependencies = [
     "pathspec>=1.1.0,<2.0.0",
     # Dependency Injection
     "dependency-injector>=4.49.1,<5.0.0",
+    # Assistant surface: the MCP server (ADR-168 D4.3)
+    "mcp>=2.3.0,<2.4.0",
     # Rate limiting (optional Redis backend)
     "redis>=5.0,<6.0",
     # Security floors for transitive deps (pip-audit; not directly imported):
@@ -81,15 +83,6 @@ dependencies = [
     # setuptools via greenlet/uvloop — PYSEC-2026-3447 (MANIFEST NFD/NFC bypass, fixed 83.0.0)
     "click>=8.5.0",
     "setuptools>=84.0.0",
-]
-
-[project.optional-dependencies]
-# Observability (Optional) — install via `pip install core-runtime[telemetry]`
-telemetry = [
-    "opentelemetry-api>=1.21.0,<2.0.0",
-    "opentelemetry-sdk>=1.21.0,<2.0.0",
-    "opentelemetry-instrumentation-fastapi>=0.42b0,<0.43",
-    "opentelemetry-instrumentation-sqlalchemy>=0.42b0,<0.43",
 ]
 
 [project.urls]
