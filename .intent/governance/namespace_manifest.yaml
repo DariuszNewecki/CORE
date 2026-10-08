@@ -1824,6 +1824,8 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-169-core-knows-its-own-state.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-170-law-custodian.md
+    governance_namespace: project::core
   - path: .specs/attestations/proof-index.yaml
     governance_namespace: project::core
   - path: .specs/attestations/production-readiness.yaml
