@@ -40,7 +40,9 @@ async def test_delete_secret():
     ):
         result = await delete_secret("my_key", session=mock_session, svc=mock_svc)
 
-    mock_svc.delete_secret.assert_awaited_once_with(mock_session, "my_key")
+    mock_svc.delete_secret.assert_awaited_once_with(
+        mock_session, "my_key", audit_context="api:delete"
+    )
     assert result == {"key": "my_key", "deleted": True}
 
 
