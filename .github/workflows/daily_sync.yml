@@ -43,6 +43,12 @@ jobs:
       - name: "Install Dependencies"
         run: poetry install
 
+      # ADR-167 D2: the core-cli release CORE declares (Makefile
+      # CORE_CLI_DOCS_VERSION), so the audit's cli.reference_current compares
+      # docs/reference/core.md against a fixed version. Same step as core-ci.yml.
+      - name: "Install the declared core-cli release"
+        run: poetry run pip install --no-deps "core-cli==$(make -s core-cli-docs-version)"
+
       # #907: machine-readable run gated on the JSON verdict (PASS or
       # DEGRADED continue; DEGRADED is warned + summarised, never PASS;
       # FAIL/ERROR/unknown/malformed fail closed). Same gate as core-ci.yml.
