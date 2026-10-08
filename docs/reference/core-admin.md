@@ -1315,14 +1315,18 @@ The assistant surface over MCP: law, decisions and verdict for any AI assistant 
 ### `core-admin mcp run` {#mcp-run}
 
 ```
-core-admin mcp run
+core-admin mcp run [OPTIONS]
 ```
 
-Serve the assistant surface over stdio for the repository around the
-working directory. Every tool only reads; none can act as the governor.
-The assistant starts this itself; see docs for the one-line config.
+Serve the assistant surface over stdio for one project. Every tool only
+reads; none can act as the governor. The assistant starts this itself;
+see docs/connect-an-assistant.md for the configuration.
 
-Example: claude mcp add core -- core-admin mcp run
+Example: claude mcp add --scope project core -- core-admin mcp run
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--repo` |  | The project to serve (it, or a parent, must hold .intent/). Default: the working directory. Assistants that do not promise a working directory pass the project root here. |
 
 ---
 

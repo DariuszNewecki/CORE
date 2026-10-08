@@ -31,6 +31,7 @@ nav:
               - Audit in CI (GitHub): cold-reviewer.md
       - How-to guides:
               - Add a rule pack: adopt-a-pack.md
+              - Connect your AI assistant: connect-an-assistant.md
               - Audit with pre-commit or GitLab: other-ci.md
               - Govern your own repository: byor-quickstart.md
               - Run the full runtime: getting-started.md

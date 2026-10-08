@@ -67,10 +67,11 @@ async def test_unknown_tool_and_bad_arguments_are_tool_errors(repo: Path) -> Non
 
 @pytest.mark.asyncio
 async def test_core_admin_mcp_run_serves_over_stdio(repo: Path) -> None:
+    """Started outside the project, as an assistant may: --repo names it."""
     params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "cli.admin_cli", "mcp", "run"],
-        cwd=repo,
+        args=["-m", "cli.admin_cli", "mcp", "run", "--repo", str(repo)],
+        cwd=repo.parent,
     )
     arguments = _CALLS["law_can_write"]
 

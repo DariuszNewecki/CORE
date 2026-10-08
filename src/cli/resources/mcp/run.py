@@ -8,6 +8,8 @@ repository it works on. Local first: no database, no API, no other service.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 
 from cli.logic.mcp_server import serve_stdio
@@ -34,16 +36,27 @@ from .hub import app
 )
 @core_command(dangerous=False, requires_context=False, requires_brain_services=False)
 # ID: c14c7920-0eac-4342-8fe7-d70e48aa6e36
-async def mcp_run(ctx: typer.Context) -> None:
+async def mcp_run(
+    ctx: typer.Context,
+    repo: Path | None = typer.Option(
+        None,
+        "--repo",
+        help=(
+            "The project to serve (it, or a parent, must hold .intent/). "
+            "Default: the working directory. Assistants that do not promise a "
+            "working directory pass the project root here."
+        ),
+    ),
+) -> None:
     """
-    Serve the assistant surface over stdio for the repository around the
-    working directory. Every tool only reads; none can act as the governor.
-    The assistant starts this itself; see docs for the one-line config.
+    Serve the assistant surface over stdio for one project. Every tool only
+    reads; none can act as the governor. The assistant starts this itself;
+    see docs/connect-an-assistant.md for the configuration.
 
-    Example: claude mcp add core -- core-admin mcp run
+    Example: claude mcp add --scope project core -- core-admin mcp run
     """
     try:
-        repo_root = get_repo_root()
+        repo_root = get_repo_root(start_dir=repo.resolve() if repo else None)
     except FileNotFoundError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(EXIT_CONFIG_ERROR) from exc
