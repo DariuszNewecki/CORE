@@ -65,6 +65,7 @@ from cli.resources.grc import app as grc_app
 from cli.resources.intent import app as intent_app
 from cli.resources.law import app as law_app
 from cli.resources.llm_resources import app as llm_resources_app
+from cli.resources.mcp import app as mcp_app
 from cli.resources.project import app as project_app
 from cli.resources.runtime import app as runtime_app
 from cli.resources.secrets import app as secrets_app
@@ -112,6 +113,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(law_app, name="law")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(llm_resources_app, name="llm-resources")
+    app_instance.add_typer(mcp_app, name="mcp")
     app_instance.add_typer(refactor_app, name="refactor")
     app_instance.add_typer(tools_app, name="tools")
     app_instance.add_typer(daemon_app, name="daemon")

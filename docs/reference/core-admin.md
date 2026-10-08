@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-98 commands.
+99 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -27,6 +27,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
 | [`law`](#law) | 2 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
+| [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 2 | Runtime state and health of the running CORE system. |
@@ -1304,6 +1305,24 @@ Validate an llm_resources definition without persisting it.
 | Argument / option | Default | Description |
 |---|---|---|
 | `DEFINITION_FILE` | required | Path to a JSON file describing the llm_resources row. |
+
+---
+
+## `core-admin mcp` {#mcp}
+
+The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168).
+
+### `core-admin mcp run` {#mcp-run}
+
+```
+core-admin mcp run
+```
+
+Serve the assistant surface over stdio for the repository around the
+working directory. Every tool only reads; none can act as the governor.
+The assistant starts this itself; see docs for the one-line config.
+
+Example: claude mcp add core -- core-admin mcp run
 
 ---
 
