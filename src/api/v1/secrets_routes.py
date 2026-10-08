@@ -153,7 +153,7 @@ async def delete_secret(
 ) -> dict:
     """Permanently delete an encrypted secret."""
     try:
-        await svc.delete_secret(session, key)
+        await svc.delete_secret(session, key, audit_context="api:delete")
     except SecretNotFoundError:
         raise HTTPException(status_code=404, detail=f"Secret '{key}' not found.")
     return {"key": key, "deleted": True}

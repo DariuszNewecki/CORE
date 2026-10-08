@@ -201,7 +201,9 @@ async def _delete_internal(key: str) -> ActionResult:
     async with get_session() as db:
         secrets_service = await get_secrets_service(db)
         try:
-            await secrets_service.delete_secret(db, key)
+            await secrets_service.delete_secret(
+                db, key, audit_context=AUDIT_CONTEXT_DELETE
+            )
             display_success(f"Secret '{key}' deleted")
             return ActionResult(
                 action_id="secrets.delete",

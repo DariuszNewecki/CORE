@@ -106,6 +106,9 @@ class SecretsService:
         )
         await db.execute(query, {"key": key, "value": encrypted_value})
         await db.commit()
+        await self._audit_secret_access(
+            db, key, cognitive_role=audit_context, action="Stored"
+        )
         logger.info("Secret '%s' stored successfully (encrypted)", key)
 
     # ID: 57544a15-6f61-4058-b5ea-280618781666
@@ -123,11 +126,11 @@ class SecretsService:
         Args:
             db: Database session
             key: Secret identifier
-            audit_context: Optional cognitive_role context for audit log
-                (must be a value in cognitive_roles.role; otherwise the
-                audit insert fires a FK violation and is silently lost —
-                see #434). Prefer the explicit `resource_name` keyword
-                for resource-context callers (e.g. LLM resource access).
+            audit_context: Optional context for the audit log: a
+                cognitive_roles.role, or any other label (e.g. "cli:get"),
+                which is then recorded as resource_name. Prefer the explicit
+                `resource_name` keyword for resource-context callers (e.g.
+                LLM resource access).
             resource_name: Optional free-text identifier of the access
                 source for resource-context events (e.g. llm_resources.name
                 like 'deepseek_chat'). FK-free; survives schema vocabulary
@@ -161,13 +164,16 @@ class SecretsService:
             return row[0]
 
     # ID: 91ab22d7-7020-45ec-9258-0c46a37ff9d0
-    async def delete_secret(self, db: AsyncSession, key: str) -> None:
+    async def delete_secret(
+        self, db: AsyncSession, key: str, audit_context: str | None = None
+    ) -> None:
         """
         Delete a secret from the database.
 
         Args:
             db: Database session
             key: Secret identifier
+            audit_context: Optional context for the audit log
 
         Raises:
             SecretNotFoundError: If secret not found
@@ -177,6 +183,9 @@ class SecretsService:
         await db.commit()
         if getattr(result, "rowcount", 0) == 0:
             raise SecretNotFoundError(key)
+        await self._audit_secret_access(
+            db, key, cognitive_role=audit_context, action="Deleted"
+        )
         logger.info("Secret '%s' deleted", key)
 
     # ID: 90950eb7-628f-4ec1-8e22-3c697a4b6642
@@ -228,34 +237,59 @@ class SecretsService:
         key: str,
         cognitive_role: str | None = None,
         resource_name: str | None = None,
+        action: str = "Accessed",
     ) -> None:
         """
-        Log secret access for audit trail.
+        Record a secret access in agent_memory.
 
-        Writes a row to agent_memory carrying whichever identifier the caller
-        supplied:
-        - cognitive_role: FK to cognitive_roles.role; for role-context callers
-        - resource_name: free text; for resource-context callers (#434)
+        The row is written in its own session and committed there, so it
+        persists whatever the caller does with its transaction (read paths
+        never commit, which used to discard every audit row), and a failed
+        audit can never abort the caller's transaction.
 
-        If neither is provided, defaults to resource_name='system' (FK-free,
-        so the audit insert cannot fail on vocabulary mismatch).
+        cognitive_role is FK-bound to cognitive_roles.role. A context that is
+        not a known role (e.g. "cli:get", "api:set", "rotation") is recorded
+        as resource_name instead of failing the insert on the FK, which used
+        to lose every human-path audit row silently.
         """
+        query = text(
+            """
+            INSERT INTO core.agent_memory (
+                cognitive_role, resource_name, memory_type, content,
+                relevance_score, created_at
+            )
+            SELECT
+                r.role,
+                COALESCE(
+                    CAST(:resource_name AS text),
+                    CASE WHEN r.role IS NULL THEN CAST(:context AS text) END,
+                    'system'
+                ),
+                'fact',
+                :content,
+                1.0,
+                NOW()
+            FROM (
+                SELECT (
+                    SELECT role FROM core.cognitive_roles
+                    WHERE role = CAST(:context AS text)
+                ) AS role
+            ) AS r
+            """
+        )
         try:
-            if cognitive_role is None and resource_name is None:
-                resource_name = "system"
-            query = text(
-                "\n                INSERT INTO core.agent_memory (\n                    cognitive_role,\n                    resource_name,\n                    memory_type,\n                    content,\n                    relevance_score,\n                    created_at\n                ) VALUES (\n                    :cognitive_role,\n                    :resource_name,\n                    'fact',\n                    :content,\n                    1.0,\n                    NOW()\n                )\n            "
-            )
-            await db.execute(
-                query,
-                {
-                    "cognitive_role": cognitive_role,
-                    "resource_name": resource_name,
-                    "content": f"Accessed secret: {key}",
-                },
-            )
+            async with AsyncSession(bind=db.bind) as audit_db:
+                await audit_db.execute(
+                    query,
+                    {
+                        "context": cognitive_role,
+                        "resource_name": resource_name,
+                        "content": f"{action} secret: {key}",
+                    },
+                )
+                await audit_db.commit()
         except Exception as e:
-            logger.error("Failed to audit secret access: %s", e)
+            logger.error("Failed to audit secret access for '%s': %s", key, e)
 
     @staticmethod
     # ID: a5c634df-816c-4843-a94a-1e2ffc92b998
