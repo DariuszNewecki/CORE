@@ -9,7 +9,6 @@ from .census_service import CensusService
 from .diff import DiffEngine
 from .history import CensusHistory
 from .models import RepoCensus
-from .policy import PolicyEvaluator
 
 
 __all__ = [
@@ -17,6 +16,5 @@ __all__ = [
     "CensusHistory",
     "CensusService",
     "DiffEngine",
-    "PolicyEvaluator",
     "RepoCensus",
 ]
