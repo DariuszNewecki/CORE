@@ -116,6 +116,22 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
 
         has_action = entry.get("action") is not None
         has_flow = entry.get("flow") is not None
+        # A DELEGATE entry routes findings to the governor and never builds a
+        # proposal, so it needs no action. Dropping it here would make its
+        # findings "unmapped": released back to open by the remediator and
+        # claimed by ViolationExecutorWorker's LLM ceremony (proposal 0006
+        # left purity.no_dead_code with no action).
+        if not has_action and not has_flow and entry.get("status") == "DELEGATE":
+            validated[check_id] = {
+                "action": None,
+                "flow": None,
+                "ref_id": None,
+                "ref_kind": None,
+                "confidence": float(entry.get("confidence", 0.0)),
+                "description": entry.get("description", ""),
+                "status": "DELEGATE",
+            }
+            continue
         if has_action and has_flow:
             logger.warning(
                 "Remediation map: entry '%s' declares both 'action' and 'flow' — "
