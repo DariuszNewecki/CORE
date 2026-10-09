@@ -322,17 +322,6 @@ capabilities:
         - {path_pattern: "src/body/**/*.py", modes: [dev, live]}
       delete: []
 
-  fix.vulture_heal:
-    description: Vulture-driven dead-code remover; reads vulture report at runtime (parameterized).
-    risk: dangerous
-    artifact_type: [python]
-    fs_profile:
-      read: []
-      create: []
-      modify:
-        - {path_pattern: "src/**/*.py", modes: [dev, live]}
-      delete: []
-
   log.archive_partitions:
     description: DB-only -- detaches expired llm_exchange_log monthly partitions and attaches them to the core_archive schema (ADR-052).
     risk: moderate

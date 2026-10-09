@@ -55,7 +55,6 @@ supported_actions:      # ADR-092-A (triggered by ADR-121 T5b)
   - fix.path_resolver
   - fix.placeholders
   - fix.settings_access
-  - fix.vulture_heal
   - refactor.apply_split
   - test.candidate_validate
   - test.execute

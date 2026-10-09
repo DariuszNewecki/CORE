@@ -125,9 +125,6 @@ actions:
   fix.settings_access:
     impact_level: dangerous
     artifact_types: [python]
-  fix.vulture_heal:
-    impact_level: dangerous
-    artifact_types: [python]
   refactor.apply_split:
     impact_level: dangerous
     artifact_types: [python]

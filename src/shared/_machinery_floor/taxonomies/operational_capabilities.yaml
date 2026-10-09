@@ -269,17 +269,6 @@ capabilities:
         - {path_pattern: "src/body/**/*.py", modes: [dev, live]}
       delete: []
 
-  fix.vulture_heal:
-    description: Vulture-driven dead-code remover; reads vulture report at runtime (parameterized).
-    risk: dangerous
-    artifact_type: [python]
-    fs_profile:
-      read: []
-      create: []
-      modify:
-        - {path_pattern: "src/**/*.py", modes: [dev, live]}
-      delete: []
-
   logging.reconfigure:
     description: Runtime logging-config reload; in-process state change, no FS or DB writes.
     risk: safe

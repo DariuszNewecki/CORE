@@ -3,12 +3,12 @@ kind: adr
 id: ADR-025
 title: 'ADR-025: ArchitecturalContextBuilder construction site — CoreContext factory
   over agent-internal construction'
-status: accepted
+status: retired
 ---
 
 # ADR-025: ArchitecturalContextBuilder construction site — CoreContext factory over agent-internal construction
 
-**Status:** Accepted
+**Status:** Retired 2026-10-09 — the anchor map Priority 1 depends on was never built; see §Retirement (2026-10-09) at the end. Accepted 2026-05-05.
 **Date:** 2026-05-05
 **Governing paper:** `.specs/papers/CORE-Context-Packet-Doctrine.md`
 **Authors:** Darek (Dariusz Newecki)
@@ -67,3 +67,25 @@ This was surfaced 2026-05-05 during #228 root-cause investigation. Five `build.t
 - Related: #238 (DecisionTracer persistence broken — separate observability gap).
 - Pattern source: `CoreContext.context_service` / `context_service_factory` / `_context_service` triple in `src/shared/context.py`.
 - userMemories carry-forward: "ContextBuilder needs to be wired before CoderAgent for build.tests."
+
+## Retirement (2026-10-09)
+
+**Retired by:** the governor, 2026-10-09 ("remove the feature"), during the dead-code sweep
+(`var/reports/2026-10-09-dead-code-sweep-plan.md`). The text above is kept as the record.
+
+**Why.** Priority 1 ("Semantic Architectural Context") asks `ModuleAnchorGenerator.find_best_placement` for
+the best placement in the Qdrant collection `core_module_anchors`. That collection was never built: its
+builder (`generate_all_anchors`) had no caller, and the collection does not exist. So
+`ArchitecturalContextBuilder.build_context` raised on every call, and `build.tests` — the only consumer this
+ADR wired — failed on that path instead of falling back.
+
+**Evidence.** `core.action_results`: `build.tests` last ran 2026-06-28; the other CoderAgent users
+(`code_generation_phase`, `interactive_test`) never received a builder; the live test-generation loop
+(`build.test_for_symbol`) does not use CoderAgent. The open question in Consequences (whether Priority 1
+beats Priority 2) was never testable, because Priority 1 never ran successfully.
+
+**What was removed** (3cfee49d): `ArchitecturalContextBuilder`, the anchor subsystem
+(`ModuleAnchorGenerator`, `anchor_builder`, `anchor_search`, `anchors/`, `layers`, `module_descriptor`),
+`shared/tools/context/`, `CodeGenerator`'s Priority-1 branch, `CoreContext.context_builder` /
+`context_builder_factory`, and `build.tests`' JIT block. CodeGenerator now has two modes: context-enriched
+(`ContextService`) and standard.

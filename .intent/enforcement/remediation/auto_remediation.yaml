@@ -600,14 +600,13 @@ mappings:
     status: DELEGATE
 
   purity.no_dead_code:
-    action: fix.vulture_heal
     confidence: 0.40
     description: >
-      fix.vulture_heal exists but filters by
-      check_id='workflow.dead_code_check' (a non-existent rule), not
-      purity.no_dead_code. Wiring would be a no-op. Separate hygiene
-      issue: fix the action's remediates= declaration. Until then,
-      DELEGATE.
+      No remover. fix.vulture_heal could not work (wrong evidence source,
+      nonexistent check id and API, whole-file LLM rewrite in Body) and was
+      removed in proposal 0006 (#963). A dead-code finding is a deletion
+      decision: it goes to the governor. Only code not in the ratchet
+      baseline is reported.
     status: DELEGATE
 
   purity.no_orphan_files:

@@ -92,7 +92,44 @@
       params:
         check_type: dead_code_check
         tool: "vulture"
-        confidence: 80
+        # 60 is the confidence vulture gives unused functions, methods and
+        # classes; at 80 the rule could see none of them (2026-10-04
+        # investigation). Proposal 0006, 2026-10-09.
+        confidence: 60
+        report_kinds: [class, function, method, property]
+        # Registrations call these by decorator; vulture cannot see the call.
+        ignore_decorators:
+          - "@*.command"
+          - "@*.get"
+          - "@*.post"
+          - "@*.put"
+          - "@*.delete"
+          - "@*.patch"
+          - "@core_command"
+          - "@command_meta"
+          - "@atomic_action"
+          - "@register_action"
+          - "@field_validator"
+          - "@model_validator"
+          - "@async_command"
+          - "@*.on_event"
+          - "@*.exception_handler"
+          - "@*.middleware"
+        # Live but invisible to vulture: engines found by EngineRegistry's
+        # package scan, test hooks, and a logging.Formatter override. Worker,
+        # phase and check_method names are read from .intent/ by the check.
+        ignore_names:
+          - "*GateEngine"
+          - "GRCJudgeEngine"
+          - "reset_*"
+          - "*_for_test"
+          - "clear_eval_cache"
+          - "dispose_all_engines_for_current_loop_only"
+          - "formatTime"
+        # Ratchet (governor 2026-10-09): candidates known on 2026-10-09 are
+        # recorded there and not reported; new dead code is. Work the list
+        # down by deleting entries together with the code they name.
+        baseline: "enforcement/config/dead_code_baseline.yaml"
       scope:
         applies_to:
           - "src/**/*.py"
@@ -134,6 +171,7 @@
           - "src/**/conftest.py"
           - "src/shared/infrastructure/repositories/db/schema_dump.py" # migration-test tooling (ADR-162 release-candidate and hop-equivalence tests)
           - "src/will/orchestration/process_orchestrator.py" # parked V2.3 adaptive-workflow scaffold (#590 closure 2); kept by governor 2026-10-09
+          - "src/api/rate_limiter.py" # imported by core-platform (platform_api/v1/auth_routes.py: check_rate), an external consumer outside this repo
       scope:
         applies_to:
           - "src/**/*.py"

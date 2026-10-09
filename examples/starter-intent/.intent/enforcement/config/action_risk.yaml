@@ -55,7 +55,6 @@ actions:
   fix.path_resolver: moderate
   fix.placeholders: safe
   fix.settings_access: dangerous
-  fix.vulture_heal: dangerous
   log.archive_partitions: moderate
   log.maintain_partitions: safe
   logging.reconfigure: safe
