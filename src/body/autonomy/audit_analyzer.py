@@ -22,6 +22,7 @@ V2.7 FIX:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -204,3 +205,144 @@ class AuditAnalyzer:
         if self._remediation_map is None:
             self._remediation_map = _load_remediation_map(self._path_resolver)
         return self._remediation_map
+
+    # ID: 44f474bf-9bb0-43a8-a990-4686afaf279e
+    def analyze_findings(self, findings_path: Path | None = None) -> dict[str, Any]:
+        """
+        Analyze audit findings to identify auto-fixable violations.
+
+        Loads the remediation map from .intent/, reads audit findings,
+        matches each finding's check_id against the map, and groups
+        fixable findings by action. Only entries with confidence >=
+        min_confidence (from governance_paths.yaml) are included.
+
+        Args:
+            findings_path: Override path to audit findings JSON.
+
+        Returns:
+            Dict with keys: status, total_findings, auto_fixable_count,
+            fixable_by_action, not_fixable, summary_by_action.
+        """
+        remediation_map = self._get_remediation_map()
+
+        if not remediation_map:
+            return {
+                "status": "no_remediation_map",
+                "message": (
+                    "No remediation mappings found. "
+                    "Populate .intent/enforcement/mappings/remediation/auto_remediation.yaml."
+                ),
+                "auto_fixable_count": 0,
+                "fixable_by_action": {},
+                "summary_by_action": [],
+            }
+
+        path = findings_path or self.findings_path
+
+        if not path.exists():
+            logger.warning("Audit findings not found: %s", path)
+            return {
+                "status": "no_findings",
+                "message": f"No audit findings found at {path}",
+                "auto_fixable_count": 0,
+                "fixable_by_action": {},
+                "summary_by_action": [],
+            }
+
+        try:
+            with open(path, encoding="utf-8") as f:
+                findings = json.load(f)
+        except json.JSONDecodeError as e:
+            logger.error("Failed to parse audit findings: %s", e)
+            return {
+                "status": "parse_error",
+                "message": f"Failed to parse JSON: {e}",
+                "auto_fixable_count": 0,
+                "fixable_by_action": {},
+                "summary_by_action": [],
+            }
+
+        if not isinstance(findings, list):
+            logger.error(
+                "Unexpected findings format: expected list, got %s",
+                type(findings),
+            )
+            return {
+                "status": "format_error",
+                "message": "Audit findings not in expected format",
+                "auto_fixable_count": 0,
+                "fixable_by_action": {},
+                "summary_by_action": [],
+            }
+
+        logger.info(
+            "Analyzing %d audit findings against %d remediation mappings "
+            "(min_confidence=%.2f)",
+            len(findings),
+            len(remediation_map),
+            self._min_confidence,
+        )
+
+        fixable_by_action: dict[str, list[dict[str, Any]]] = {}
+        not_fixable: list[dict[str, Any]] = []
+
+        for finding in findings:
+            check_id = finding.get("check_id", "") or finding.get("rule_id", "")
+            if not check_id:
+                continue
+
+            entry = remediation_map.get(check_id)
+
+            if entry and entry["confidence"] >= self._min_confidence:
+                action = entry["action"]
+                fixable_by_action.setdefault(action, [])
+                fixable_by_action[action].append(
+                    {
+                        **finding,
+                        "fix_action": action,
+                        "fix_confidence": entry["confidence"],
+                        "fix_description": entry["description"],
+                    }
+                )
+            else:
+                not_fixable.append(finding)
+
+        total_fixable = sum(len(v) for v in fixable_by_action.values())
+
+        logger.info(
+            "Analysis complete: %d auto-fixable (%.1f%%), %d not auto-fixable",
+            total_fixable,
+            (total_fixable / len(findings) * 100) if findings else 0,
+            len(not_fixable),
+        )
+
+        return {
+            "status": "success",
+            "total_findings": len(findings),
+            "auto_fixable_count": total_fixable,
+            "not_fixable_count": len(not_fixable),
+            "fixable_by_action": fixable_by_action,
+            "not_fixable": not_fixable[:20],
+            "summary_by_action": self._summarize_by_action(fixable_by_action),
+        }
+
+    # ID: 41e65db5-42e4-4117-a2b5-a67642a56c34
+    def _summarize_by_action(
+        self, fixable_by_action: dict[str, list[dict[str, Any]]]
+    ) -> list[dict[str, Any]]:
+        """Summarise fixable findings grouped by action."""
+        return [
+            {
+                "action": action,
+                "count": len(findings),
+                "files": list({f.get("file_path", "unknown") for f in findings})[:10],
+                "avg_confidence": (
+                    sum(f["fix_confidence"] for f in findings) / len(findings)
+                    if findings
+                    else 0.0
+                ),
+            }
+            for action, findings in sorted(
+                fixable_by_action.items(), key=lambda kv: len(kv[1]), reverse=True
+            )
+        ]
