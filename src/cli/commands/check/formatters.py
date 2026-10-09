@@ -90,6 +90,40 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
             escape(location),
         )
     console.print(table)
+    _print_sample_issues(findings)
+
+
+# ADR-098 D3: an aggregate quality-gate finding stores up to this many of its
+# underlying issues in context.sample_issues (the emitters' _SAMPLE_CAP).
+_SAMPLE_DISPLAY_CAP = 10
+
+
+def _print_sample_issues(findings: list[AuditFinding]) -> None:
+    """ADR-098 D3 detail: list the sample issues under each aggregate finding.
+
+    A quality-gate finding stands for many tool issues in one file
+    (context.issue_count). The row shows "(xN)"; this lists the stored
+    samples so a reader sees which N, with a footer when truncated.
+    """
+    for finding in findings:
+        samples = finding.context.get("sample_issues")
+        if not isinstance(samples, list) or not samples:
+            continue
+        shown = [str(s) for s in samples[:_SAMPLE_DISPLAY_CAP]]
+        issue_count = finding.context.get("issue_count")
+        total = issue_count if isinstance(issue_count, int) else len(samples)
+        console.print(
+            f"\n[magenta]{escape(finding.check_id)}[/magenta] "
+            f"[yellow]{escape(str(finding.file_path or ''))}[/yellow]"
+        )
+        for sample in shown:
+            console.print(f"  • {escape(sample)}")
+        if total > len(shown):
+            tool = finding.context.get("tool") or "the tool"
+            console.print(
+                f"  [dim](showing {len(shown)} of {total}; "
+                f"re-run {escape(str(tool))} for full output)[/dim]"
+            )
 
 
 # ID: cac19f77-d41c-4493-aeaa-7eb5af07cd90

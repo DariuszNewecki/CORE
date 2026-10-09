@@ -166,6 +166,7 @@ async def audit_command(
             min_severity_str=severity,
             output_format=output_format,
             target=target,
+            verbose=verbose,
         )
         return
 
@@ -246,6 +247,7 @@ async def _run_offline_audit(
     min_severity_str: str,
     output_format: str,
     target: str | None = None,
+    verbose: bool = False,
 ) -> None:
     """F-10.1b / F-10.2 — execute the stateless audit + render per format.
 
@@ -346,7 +348,7 @@ async def _run_offline_audit(
     elif output_format == "codeclimate":
         sys.stdout.write(format_codeclimate_payload(result))
     else:
-        _render_text_summary(result, min_severity)
+        _render_text_summary(result, min_severity, verbose=verbose)
 
     # #907 / ADR-005 S3: DEGRADED must never be silently treated as PASS.
     # A skipped BLOCKING rule is "not evaluated", which is never "passed",
@@ -391,7 +393,9 @@ def _emit_error(output_format: str, kind: str, exc: Exception) -> None:
 
 
 # ID: c70adf31-b238-466d-9e78-f1461e437f67
-def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
+def _render_text_summary(
+    result: dict, min_severity: AuditSeverity, *, verbose: bool = False
+) -> None:
     """Human-readable Rich rendering for the offline path."""
     all_findings = [to_audit_finding(f) for f in result["findings"]]
     stats = result.get("stats", {})
@@ -441,7 +445,11 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
         )
     filtered = [f for f in all_findings if f.severity >= min_severity]
     if filtered:
-        print_summary_findings(filtered)
+        # --verbose was accepted but ignored on the offline path (2026-10-09).
+        if verbose:
+            print_verbose_findings(filtered)
+        else:
+            print_summary_findings(filtered)
     print_hidden_findings_hint(all_findings, filtered, min_severity)
 
 
