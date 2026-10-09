@@ -88,6 +88,7 @@ _GOVERNANCE_CHECK_TYPES = frozenset(
     {
         "all_rules_mapped",
         "active_routing_claimed_by_action",
+        "remediation_confidence_floor",
         "namespace_has_drainer",
         "namespace_manifest_completeness",
         "fs_operations_completeness",
@@ -95,6 +96,8 @@ _GOVERNANCE_CHECK_TYPES = frozenset(
 )
 
 _AUTO_REMEDIATION_REL = ".intent/enforcement/remediation/auto_remediation.yaml"
+_GOVERNANCE_PATHS_REL = ".intent/enforcement/config/governance_paths.yaml"
+_REMEDIATION_STATUSES = frozenset({"ACTIVE", "DELEGATE", "PENDING"})
 _RULES_DIR_REL = ".intent/rules"
 _BODY_ATOMIC_REL = "src/body/atomic"
 _DRAINER_REGISTRY_REL = ".intent/enforcement/quarantine/drainer_registry.yaml"
@@ -647,6 +650,76 @@ def _check_active_routing_claimed_by_action(
     return _vocab_result(check, sorted(violations))
 
 
+# ID: f5735a8e-79db-46f2-b600-0f13a360ed50
+def _check_remediation_confidence_floor(repo_root: Path, check: str) -> EngineResult:
+    """No auto_remediation.yaml entry can dispatch below the governed floor (#964).
+
+    ``autonomy.remediation.min_confidence_floor``: an entry that produces
+    proposals (``status: ACTIVE``) MUST declare a ``confidence`` at or above
+    ``remediation.min_confidence`` in governance_paths.yaml. Every entry MUST
+    declare ``status`` as one of ACTIVE / DELEGATE / PENDING, because the
+    runtime loader would otherwise have to guess. Checked here, where the
+    decision is written, so a low-confidence ACTIVE entry cannot be
+    committed; ``_load_remediation_map`` drops one at runtime as a backstop.
+    """
+    map_file = repo_root / _AUTO_REMEDIATION_REL
+    gov_file = repo_root / _GOVERNANCE_PATHS_REL
+    try:
+        doc = yaml.safe_load(map_file.read_text(encoding="utf-8"))
+        gov = yaml.safe_load(gov_file.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: cannot load the remediation map or governance paths: {exc}",
+            violations=[f"Configuration error: {exc}"],
+            engine_id=_ENGINE_ID,
+        )
+    floor = ((gov or {}).get("remediation") or {}).get("min_confidence")
+    if not isinstance(floor, (int, float)) or isinstance(floor, bool):
+        # Fail closed: without a declared floor nothing can be shown to pass.
+        return _vocab_result(
+            check,
+            [
+                f"Configuration error: remediation.min_confidence is not a number "
+                f"in {_GOVERNANCE_PATHS_REL} (got {floor!r})"
+            ],
+        )
+    mappings = (doc or {}).get("mappings") if isinstance(doc, dict) else None
+    if not isinstance(mappings, dict):
+        return _vocab_result(
+            check,
+            ["Structural error: top-level 'mappings:' is missing or not a mapping"],
+        )
+
+    violations: list[str] = []
+    for rule_id, entry in mappings.items():
+        if not isinstance(entry, dict):
+            continue
+        status = entry.get("status")
+        if status not in _REMEDIATION_STATUSES:
+            violations.append(
+                f"Entry '{rule_id}' has status {status!r}; it must be one of "
+                f"{', '.join(sorted(_REMEDIATION_STATUSES))}."
+            )
+            continue
+        if status != "ACTIVE":
+            continue
+        confidence = entry.get("confidence")
+        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
+            violations.append(
+                f"ACTIVE entry '{rule_id}' declares no numeric confidence; the "
+                f"floor is {floor}."
+            )
+        elif confidence < floor:
+            violations.append(
+                f"ACTIVE entry '{rule_id}' has confidence {confidence}, below the "
+                f"governed floor {floor}. Raise it with evidence, or set the entry "
+                f"to DELEGATE / PENDING."
+            )
+
+    return _vocab_result(check, sorted(violations))
+
+
 # ID: 5b8c2d1e-7a4f-4609-bc3a-d8e9f0a1b234
 async def _check_namespace_has_drainer(
     repo_root: Path,
@@ -974,6 +1047,7 @@ _VOCAB_DISPATCH: dict[str, Any] = {
 _GOVERNANCE_SYNC_DISPATCH: dict[str, Any] = {
     "all_rules_mapped": _check_all_rules_mapped,
     "active_routing_claimed_by_action": _check_active_routing_claimed_by_action,
+    "remediation_confidence_floor": _check_remediation_confidence_floor,
     "namespace_manifest_completeness": _check_namespace_manifest_completeness,
     "fs_operations_completeness": _check_fs_operations_completeness,
 }

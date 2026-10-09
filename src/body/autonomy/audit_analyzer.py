@@ -37,6 +37,7 @@ logger = getLogger(__name__)
 # Fallback used only when governance_paths.yaml cannot be loaded.
 # This constant must NOT be used in logic — it is a last-resort default only.
 _FALLBACK_MIN_CONFIDENCE: float = 0.80
+_ROUTING_STATUSES = frozenset({"ACTIVE", "DELEGATE", "PENDING"})
 
 
 # ID: 67cbf053-dc90-430d-9963-2fc312084417
@@ -55,7 +56,18 @@ def _load_governance_config(path_resolver: PathResolver) -> dict[str, Any]:
         )
         return {}
     try:
-        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        text = config_path.read_text(encoding="utf-8")
+        if not isinstance(text, str):
+            # yaml.safe_load treats a non-str as a stream and reads until EOF;
+            # an object that never signals EOF loops without bound (this hung
+            # the test suite until the host ran out of memory).
+            logger.error(
+                "Governance config at %s did not read as text (%s) -- using fallback defaults.",
+                config_path,
+                type(text).__name__,
+            )
+            return {}
+        raw = yaml.safe_load(text)
         return raw if isinstance(raw, dict) else {}
     except Exception as e:
         logger.error("Failed to load governance config from %s: %s", config_path, e)
@@ -106,11 +118,42 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
         )
         return {}
 
+    # autonomy.remediation.min_confidence_floor (#964): runtime backstop for
+    # the static check over auto_remediation.yaml. An entry that can produce
+    # a proposal (ACTIVE) below the governed floor is never dispatched.
+    floor = float(
+        (_load_governance_config(path_resolver).get("remediation") or {}).get(
+            "min_confidence", _FALLBACK_MIN_CONFIDENCE
+        )
+    )
+
     validated: dict[str, dict[str, Any]] = {}
     for check_id, entry in mappings.items():
         if not isinstance(entry, dict):
             logger.warning(
                 "Remediation map: skipping malformed entry for '%s'", check_id
+            )
+            continue
+
+        status = entry.get("status")
+        if status not in _ROUTING_STATUSES:
+            # No implicit ACTIVE: a missing or misspelled status must not
+            # turn an entry into a proposal source.
+            logger.warning(
+                "Remediation map: skipping '%s' -- status %r is not one of %s",
+                check_id,
+                status,
+                sorted(_ROUTING_STATUSES),
+            )
+            continue
+        confidence = float(entry.get("confidence", 0.0))
+        if status == "ACTIVE" and confidence < floor:
+            logger.warning(
+                "Remediation map: skipping ACTIVE '%s' -- confidence %.2f is below "
+                "the governed floor %.2f (autonomy.remediation.min_confidence_floor)",
+                check_id,
+                confidence,
+                floor,
             )
             continue
 
@@ -121,13 +164,13 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
         # findings "unmapped": released back to open by the remediator and
         # claimed by ViolationExecutorWorker's LLM ceremony (proposal 0006
         # left purity.no_dead_code with no action).
-        if not has_action and not has_flow and entry.get("status") == "DELEGATE":
+        if not has_action and not has_flow and status == "DELEGATE":
             validated[check_id] = {
                 "action": None,
                 "flow": None,
                 "ref_id": None,
                 "ref_kind": None,
-                "confidence": float(entry.get("confidence", 0.0)),
+                "confidence": confidence,
                 "description": entry.get("description", ""),
                 "status": "DELEGATE",
             }
@@ -147,7 +190,7 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
             )
             continue
         # Skip PENDING entries explicitly (status field in auto_remediation.yaml)
-        if entry.get("status") == "PENDING":
+        if status == "PENDING":
             logger.debug("Remediation map: skipping PENDING entry '%s'", check_id)
             continue
 
@@ -159,9 +202,9 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
             "flow": entry.get("flow"),
             "ref_id": ref_id,
             "ref_kind": ref_kind,
-            "confidence": float(entry.get("confidence", 0.0)),
+            "confidence": confidence,
             "description": entry.get("description", ""),
-            "status": entry.get("status", "ACTIVE"),
+            "status": status,
         }
 
     logger.debug(

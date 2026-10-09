@@ -17,8 +17,12 @@ from body.autonomy.audit_analyzer import _load_remediation_map
 def _resolver(tmp_path: Path, body: str) -> MagicMock:
     path = tmp_path / "auto_remediation.yaml"
     path.write_text(body)
+    (tmp_path / "governance_paths.yaml").write_text(
+        "remediation:\n  min_confidence: 0.80\n"
+    )
     resolver = MagicMock()
     resolver.remediation_map_path = path
+    resolver.governance_config_path = tmp_path / "governance_paths.yaml"
     return resolver
 
 

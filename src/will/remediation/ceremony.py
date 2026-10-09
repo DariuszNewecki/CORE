@@ -296,8 +296,10 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
         """Check if all finding rules map to an ACTIVE atomic action.
 
         Returns the action_id if every rule in *findings* maps to the same
-        ACTIVE action with confidence >= 0.80. Returns None otherwise
-        (mixed actions, unmapped rules, or low confidence).
+        ACTIVE action. Returns None otherwise (mixed actions or unmapped
+        rules). The confidence floor is applied by _load_remediation_map from
+        governance_paths.yaml (autonomy.remediation.min_confidence_floor,
+        #964): a below-floor ACTIVE entry is never in the map.
         """
         from body.autonomy.audit_analyzer import _load_remediation_map
         from shared.path_resolver import PathResolver
@@ -316,11 +318,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
             payload = finding.get("payload") or {}
             rule = payload.get("rule") or payload.get("check_id") or ""
             entry = remediation_map.get(rule)
-            if (
-                entry
-                and entry.get("status") == "ACTIVE"
-                and (entry.get("confidence") or 0) >= 0.80
-            ):
+            if entry and entry.get("status") == "ACTIVE":
                 mapped_actions.add(entry["action"])
             else:
                 return None

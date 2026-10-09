@@ -61,17 +61,18 @@ mappings:
           - "src/body/validators/logic_conservation_validator.py"
 
     # LAW: RemediationMap MUST NOT dispatch entries below confidence 0.80
-    # ENFORCEMENT: Runtime check in RemediatorWorker -- not statically checkable.
-    # Threshold is read from governance_paths.yaml at runtime.
+    # ENFORCEMENT (#964): checked where the decision is written. Every
+    # auto_remediation.yaml entry declares status ACTIVE / DELEGATE / PENDING,
+    # and every ACTIVE entry (the only status that produces Proposals)
+    # declares a confidence at or above remediation.min_confidence in
+    # governance_paths.yaml. Runtime backstop: _load_remediation_map (the
+    # loader the live remediator and RemediationCeremony read) drops any
+    # below-floor ACTIVE entry and any entry without a valid status.
     autonomy.remediation.min_confidence_floor:
-      engine: passive_gate
+      engine: artifact_gate
       params:
-        attestation_class: "A"
-        enforced_by: "body.autonomy.audit_analyzer.AuditAnalyzer"
-        enforcement_note: >
-          Runtime check -- AuditAnalyzer filters remediation map entries below
-          min_confidence (0.80, declared in governance_paths.yaml). Cannot be
-          checked statically; enforced on every RemediatorWorker run.
+        check_type: remediation_confidence_floor
       scope:
         applies_to:
-          - "src/body/autonomy/audit_analyzer.py"
+          - ".intent/enforcement/remediation/auto_remediation.yaml"
+          - ".intent/enforcement/config/governance_paths.yaml"
