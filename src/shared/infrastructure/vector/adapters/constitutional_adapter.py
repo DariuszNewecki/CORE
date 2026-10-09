@@ -186,62 +186,6 @@ class ConstitutionalAdapter:
         )
         return items
 
-    def _process_constitution_dir(self) -> list[VectorizableItem]:
-        """
-        Process constitution directory files.
-
-        Constitution files are not indexed by IntentRepository's policy index,
-        so we use direct directory resolution through IntentRepository.root.
-
-        Returns:
-            List of VectorizableItem objects
-        """
-        constitution_dir = self.intent_repo.root / "constitution"
-
-        if not constitution_dir.exists():
-            logger.warning("Constitution directory not found: %s", constitution_dir)
-            return []
-
-        files = self._collect_files(constitution_dir, recursive=True)
-        if not files:
-            logger.info("No constitution files found")
-            return []
-
-        logger.info("Processing %s constitution file(s)", len(files))
-
-        items: list[VectorizableItem] = []
-        for file_path in files:
-            try:
-                # Load through IntentRepository for consistency
-                data = self.intent_repo.load_document(file_path)
-
-                if not isinstance(data, dict):
-                    logger.warning(
-                        "Skipping non-dict document: %s (type=%s)",
-                        file_path,
-                        type(data).__name__,
-                    )
-                    continue
-
-                # Transform to VectorizableItems (delegates to item_builder)
-                file_items = data_to_items(
-                    data,
-                    file_path,
-                    doc_type="constitution",
-                    key_root="constitution",
-                    intent_root=self.intent_repo.root,
-                )
-                items.extend(file_items)
-
-            except Exception as exc:
-                logger.exception(
-                    "Failed to process constitution file %s: %s", file_path, exc
-                )
-                continue
-
-        logger.info("Generated %s item(s) from %s file(s)", len(items), len(files))
-        return items
-
     def _collect_files(self, directory: Path, recursive: bool) -> list[Path]:
         """
         Collect JSON/YAML files from directory.

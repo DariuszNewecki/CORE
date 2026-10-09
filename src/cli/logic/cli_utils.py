@@ -10,7 +10,6 @@ and execution of all `core-admin` commands.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -35,11 +34,6 @@ _DEFAULT_EXCLUDE_DIRS = {
     "venv",
     ".tox",
 }
-
-
-def _is_excluded_dir(path: str) -> bool:
-    parts = {p for p in Path(path).parts if p}
-    return bool(parts & _DEFAULT_EXCLUDE_DIRS)
 
 
 # ID: 0babc74d-bd4e-4cbd-8cd6-bc955b32967e

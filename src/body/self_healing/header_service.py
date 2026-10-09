@@ -82,11 +82,6 @@ class HeaderService:
                 )
         return issues
 
-    # ID: 900e1f3e-e89c-4ffc-8814-b6cba069509c
-    def analyze_all(self) -> list[dict[str, Any]]:
-        """Scans the entire src directory for header violations."""
-        return self.analyze([str(p) for p in self.repo_root.rglob("src/**/*.py")])
-
     # ID: fbb21920-5457-4aa2-9ae7-23da72fff8fd
     async def fix(
         self, context: CoreContext, paths: list[str], write: bool = False

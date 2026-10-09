@@ -13,10 +13,8 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 import tempfile
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
@@ -175,50 +173,3 @@ def test_to_repo_rel_with_outside_path(service):
     test_path = Path("/completely/different/path")
     result = service._to_repo_rel(test_path)
     assert result == "/completely/different/path"
-
-
-def test_purge_stale_inbox_crates_removes_old_crate(service):
-    """Crates whose manifest.yaml mtime exceeds ttl_days are purged."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        inbox = Path(tmpdir)
-        service.inbox_path = inbox
-        mock_fh = Mock()
-        service._fh = mock_fh
-        service._to_repo_rel = lambda p: str(p)
-
-        old_crate = inbox / "old_crate_001"
-        old_crate.mkdir()
-        manifest = old_crate / "manifest.yaml"
-        manifest.write_text("crate_id: old_crate_001\n", encoding="utf-8")
-        old_mtime = time.time() - (8 * 86400)
-        os.utime(manifest, (old_mtime, old_mtime))
-
-        purged = service.purge_stale_inbox_crates(ttl_days=7)
-        assert purged == ["old_crate_001"]
-        mock_fh.remove_tree.assert_called_once()
-
-
-def test_purge_stale_inbox_crates_keeps_fresh_crate(service):
-    """Crates younger than ttl_days are not purged."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        inbox = Path(tmpdir)
-        service.inbox_path = inbox
-        mock_fh = Mock()
-        service._fh = mock_fh
-        service._to_repo_rel = lambda p: str(p)
-
-        fresh_crate = inbox / "fresh_crate_001"
-        fresh_crate.mkdir()
-        manifest = fresh_crate / "manifest.yaml"
-        manifest.write_text("crate_id: fresh_crate_001\n", encoding="utf-8")
-
-        purged = service.purge_stale_inbox_crates(ttl_days=7)
-        assert purged == []
-        mock_fh.remove_tree.assert_not_called()
-
-
-def test_purge_stale_inbox_crates_nonexistent_inbox(service):
-    """Returns empty list when inbox directory does not exist."""
-    service.inbox_path = Path("/nonexistent/inbox/path/that/does/not/exist")
-    purged = service.purge_stale_inbox_crates()
-    assert purged == []

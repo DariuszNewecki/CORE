@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import ast
-import copy
 from pathlib import Path
 
 from shared.logger import getLogger
@@ -53,63 +52,3 @@ class ASTProvider:
         except (OSError, UnicodeDecodeError) as e:
             logger.debug("Failed reading source for %s: %s", file_path, e)
             return None
-
-    # ID: c9ff988f-180e-48db-87d3-2350c0fb9f32
-    def get_ast_tree(self, file_path: str | Path) -> ast.Module | None:
-        """Read and parse a file into an AST."""
-        try:
-            source = self.read_source(file_path)
-            if source is None:
-                return None
-            return ast.parse(source, filename=str(file_path))
-        except SyntaxError as e:
-            logger.debug("Failed parsing AST for %s: %s", file_path, e)
-            return None
-
-    # ID: 8743a91b-456c-407e-b613-5bdb850c9e84
-    def get_signature_from_tree(
-        self,
-        tree: ast.Module,
-        symbol_name: str,
-    ) -> str | None:
-        """Extract a function/class signature from a parsed AST tree."""
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if node.name == symbol_name:
-                    node_copy = copy.copy(node)
-                    node_copy.body = []
-                    try:
-                        return ast.unparse(node_copy)
-                    except Exception as e:
-                        logger.debug(
-                            "Failed unparsing signature for %s: %s",
-                            symbol_name,
-                            e,
-                        )
-                        return None
-        return None
-
-    # ID: afbb2bdb-049a-45ea-b889-55a9428144f1
-    def get_dependencies_from_tree(self, tree: ast.Module) -> list[str]:
-        """Extract import dependencies from a parsed AST tree."""
-        deps: set[str] = set()
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    deps.add(alias.name)
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                deps.add(node.module)
-
-        return sorted(deps)
-
-    # ID: 525a3cc7-724d-4c31-b9a1-92cbca3c8c8e
-    def get_parent_scope_from_tree(
-        self,
-        tree: ast.Module,
-        line_number: int,
-    ) -> str | None:
-        """Find the parent class/function at a given line in a parsed AST tree."""
-        finder = ParentScopeFinder(line_number)
-        finder.visit(tree)
-        return finder.parent.name if finder.parent else None

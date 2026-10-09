@@ -1022,65 +1022,6 @@ class BlackboardService:
 
         return {"resolved_subjects": resolved_subjects}
 
-    # ID: 0c2f1a8d-3e6b-4c9f-a7d4-5b8e2f1c4a7d
-    async def sweep_terminal_telemetry(
-        self,
-        subject_prefixes: tuple[str, ...],
-        ttl_days: int,
-        batch_max: int,
-    ) -> int:
-        """
-        ADR-082 Mechanism 1 — hard DELETE for terminal telemetry past TTL.
-
-        Removes ``core.blackboard_entries`` rows whose subject starts with any
-        prefix in *subject_prefixes*, whose status is already terminal
-        ('resolved' or 'abandoned'), and whose created_at is older than
-        *ttl_days*. Mirrors ADR-044's ``llm_gate_verdicts`` cache sweep shape.
-
-        The row cap (*batch_max*) is a constitutional rail per
-        ``feedback_destructive_autonomous_needs_rails_first``: even with the
-        TTL filter, a misconfigured prefix list could otherwise scan and
-        delete millions of rows in one transaction. DELETEs select via a
-        bounded subquery so PostgreSQL's lack of DELETE…LIMIT is sidestepped
-        cleanly.
-
-        Returns the count of rows actually deleted. Empty *subject_prefixes*
-        is a no-op (returns 0) — the empty allowlist is fail-closed, not
-        fail-open.
-        """
-        if not subject_prefixes:
-            return 0
-
-        from body.services.service_registry import ServiceRegistry
-
-        async with ServiceRegistry.session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        DELETE FROM core.blackboard_entries
-                        WHERE id IN (
-                            SELECT id FROM core.blackboard_entries
-                            WHERE status IN ('resolved', 'abandoned')
-                              AND subject LIKE ANY(
-                                  ARRAY(
-                                      SELECT p || '%%'
-                                      FROM unnest(cast(:prefixes as text[])) AS p
-                                  )
-                              )
-                              AND created_at < now() - make_interval(days => :days)
-                            LIMIT :batch_max
-                        )
-                        """
-                    ),
-                    {
-                        "prefixes": list(subject_prefixes),
-                        "days": int(ttl_days),
-                        "batch_max": int(batch_max),
-                    },
-                )
-                return result.rowcount or 0
-
     # ID: 6ca715c7-53db-47bd-ba68-8986fce5fc83
     async def sweep_telemetry_keep_last_n_per_subject(
         self,

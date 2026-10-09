@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import shutil
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -263,35 +262,6 @@ class CrateProcessingService:
 
         self._fh.remove_tree(self._to_repo_rel(crate_path))
         action_logger.log_event("crate.accepted", {"crate_id": crate_id})
-
-    # ID: b2c2ffe3-5df4-406e-9003-435f10abb134
-    def purge_stale_inbox_crates(self, ttl_days: int = 7) -> list[str]:
-        """Delete inbox crate directories older than ttl_days.
-
-        Age is measured against manifest.yaml mtime; falls back to the
-        directory mtime when the manifest is absent. Returns the list of
-        purged crate ids.
-        """
-        if not self.inbox_path.exists():
-            return []
-
-        now = datetime.now(UTC).timestamp()
-        purged: list[str] = []
-        for crate_dir in self.inbox_path.iterdir():
-            if not crate_dir.is_dir():
-                continue
-            manifest = crate_dir / "manifest.yaml"
-            ref = manifest if manifest.exists() else crate_dir
-            age_days = (now - ref.stat().st_mtime) / 86400
-            if age_days >= ttl_days:
-                self._fh.remove_tree(self._to_repo_rel(crate_dir))
-                purged.append(crate_dir.name)
-                logger.info(
-                    "Purged stale inbox crate %s (age %.1f days)",
-                    crate_dir.name,
-                    age_days,
-                )
-        return purged
 
     def _to_repo_rel(self, p: Path) -> str:
         """Helper to ensure paths are FileHandler compatible."""

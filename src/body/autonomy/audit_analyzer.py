@@ -204,24 +204,3 @@ class AuditAnalyzer:
         if self._remediation_map is None:
             self._remediation_map = _load_remediation_map(self._path_resolver)
         return self._remediation_map
-
-    # ID: 41e65db5-42e4-4117-a2b5-a67642a56c34
-    def _summarize_by_action(
-        self, fixable_by_action: dict[str, list[dict[str, Any]]]
-    ) -> list[dict[str, Any]]:
-        """Summarise fixable findings grouped by action."""
-        return [
-            {
-                "action": action,
-                "count": len(findings),
-                "files": list({f.get("file_path", "unknown") for f in findings})[:10],
-                "avg_confidence": (
-                    sum(f["fix_confidence"] for f in findings) / len(findings)
-                    if findings
-                    else 0.0
-                ),
-            }
-            for action, findings in sorted(
-                fixable_by_action.items(), key=lambda kv: len(kv[1]), reverse=True
-            )
-        ]

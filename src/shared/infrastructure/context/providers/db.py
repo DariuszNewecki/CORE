@@ -128,22 +128,3 @@ class DBProvider:
                 "kind": getattr(row, "kind", "function"),
             },
         }
-
-    def _format_mapping_row(self, row: Any) -> dict[str, Any]:
-        module = row.get("module", "") or ""
-        qualname = row.get("qualname", "") or ""
-
-        return {
-            "name": qualname,
-            "path": f"src/{module.replace('.', '/')}.py" if module else "",
-            "item_type": "symbol",
-            "content": None,
-            "signature": row.get("ast_signature", "") or "",
-            "summary": row.get("intent", "") or "",
-            "source": "database",
-            "symbol_path": qualname,
-            "metadata": {
-                "symbol_id": str(row.get("id", "")),
-                "kind": row.get("kind", "function"),
-            },
-        }

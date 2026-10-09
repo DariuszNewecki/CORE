@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 # REFACTORED: Removed direct settings import
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -59,28 +58,3 @@ class CoverageAnalyzer:
         except Exception as e:
             logger.debug("Could not get module coverage: %s", e)
         return {}
-
-    def _parse_term_output(self, output: str) -> dict[str, Any] | None:
-        """
-        Fallback parser for terminal coverage output.
-
-        Args:
-            output: Terminal output from pytest --cov
-
-        Returns:
-            Dict with coverage metrics or None
-        """
-        try:
-            for line in output.splitlines():
-                if line.startswith("TOTAL"):
-                    parts = line.split()
-                    if len(parts) >= 4:
-                        percent_str = parts[-1].rstrip("%")
-                        return {
-                            "overall_percent": float(percent_str),
-                            "lines_total": int(parts[1]),
-                            "lines_covered": int(parts[1]) - int(parts[2]),
-                        }
-        except Exception as e:
-            logger.debug("Failed to parse coverage output: %s", e)
-        return None
