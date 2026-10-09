@@ -19,11 +19,10 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        - "src/body/services/intent_schema_validator.py"
         - "src/mind/governance/meta_validator.py"
         - "src/cli/commands/daemon.py"
         # 2026-06-06 expansion: auditor / coherence-checker exemptions.
-        # Same pattern as meta_validator and intent_schema_validator
+        # Same pattern as meta_validator
         # already excluded above -- these files audit .intent/ structure
         # for coherence, which requires seeing raw paths/contents the
         # gateway normalizes away. Adding via flat list rather than

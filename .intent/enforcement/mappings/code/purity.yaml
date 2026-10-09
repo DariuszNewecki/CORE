@@ -116,43 +116,24 @@
       engine: knowledge_gate
       params:
         check_type: orphan_file_check
+        # Real entry points only (2026-10-09, proposal 0005). A directory is listed
+        # only when CORE loads its modules by scanning, not by import: engines
+        # (registry iter_modules) and the component packages (discover_components).
+        # Workers and phases are seeded from .intent/ by the check itself.
         entry_points:
-          - "src/cli/"
-          - "src/body/atomic/"
-          - "src/api/main.py"
-          - "src/mind/logic/engines/"
-          - "src/will/workers/"
-          - "src/will/phases/"
-          - "src/body/services/"
-          - "src/will/self_healing/"
-          - "src/will/test_generation/"
-          - "src/will/strategists/"
-          - "src/will/tools/"
-          - "src/will/agents/"
-          - "src/will/workflows/"
-          - "src/will/autonomy/"
-          - "src/will/orchestration/"
-          - "src/body/self_healing/"
-          - "src/body/project_lifecycle/"
-          - "src/body/maintenance/scripts/"
-          - "src/body/invokers/"
-          - "src/shared/infrastructure/"
+          - "src/cli/admin_cli.py"                # the core-admin console script
+          - "src/api/main.py"                     # uvicorn api.main:app
+          - "src/mind/logic/engines/"             # EngineRegistry scans the package
+          - "src/body/analyzers/"                 # discover_components
+          - "src/body/evaluators/"                # discover_components
+          - "src/will/strategists/"               # discover_components
+          - "infra/scripts/render_ledger_seed.py" # test-DB reset (infra/scripts/reset_test_db.sh)
         excludes:
           - "src/**/__init__.py"
           - "src/**/__main__.py"
           - "src/**/conftest.py"
-          - "scripts/**/*.py"
-          - "src/api/**"
-          - "src/body/analyzers/**"
-          - "src/body/autonomy/**"
-          - "src/body/evaluators/**"
-          - "src/body/governance/**"
-          - "src/body/introspection/**"
-          - "src/shared/cli_types.py"
-          - "src/shared/models/pattern_graph.py"
-          - "src/shared/utils/header_tools.py"
-          - "src/shared/utils/path_utils.py"
-          - "src/mind/governance/micro_proposal_validator.py"
+          - "src/shared/infrastructure/repositories/db/schema_dump.py" # migration-test tooling (ADR-162 release-candidate and hop-equivalence tests)
+          - "src/will/orchestration/process_orchestrator.py" # parked V2.3 adaptive-workflow scaffold (#590 closure 2); kept by governor 2026-10-09
       scope:
         applies_to:
           - "src/**/*.py"

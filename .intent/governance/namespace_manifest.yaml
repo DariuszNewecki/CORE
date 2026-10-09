@@ -998,8 +998,6 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/GovernanceDecision.json
     governance_namespace: project::core
-  - path: .intent/enforcement/contracts/PatternViolation.json
-    governance_namespace: project::core
   - path: .intent/enforcement/contracts/PhaseWorkflowResult.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/PolicyEvaluation.json

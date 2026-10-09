@@ -384,15 +384,6 @@ mappings:
       applies_to:
         - "src/shared/models/remediation.py"
 
-  data.contracts.pattern_violation_conforms:
-    engine: ast_gate
-    params:
-      check_type: schema_conformance
-      schema_ref: PatternViolation
-    scope:
-      applies_to:
-        - "src/shared/models/pattern_graph.py"
-
   data.contracts.validation_result_conforms:
     engine: ast_gate
     params:

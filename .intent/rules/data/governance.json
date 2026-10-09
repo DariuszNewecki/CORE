@@ -277,13 +277,6 @@
             "enforcement": "reporting"
         },
         {
-            "id": "data.contracts.pattern_violation_conforms",
-            "statement": "The dataclass `PatternViolation` MUST declare fields that conform to `.intent/enforcement/contracts/PatternViolation.json`. Authority: ADR-056 Wave 2 Session 2.",
-            "authority": "policy",
-            "phase": "audit",
-            "enforcement": "reporting"
-        },
-        {
             "id": "data.contracts.validation_result_conforms",
             "statement": "The dataclass `ValidationResult` MUST declare fields that conform to `.intent/enforcement/contracts/ValidationResult.json`. Authority: ADR-056 Wave 2 Session 2.",
             "authority": "policy",

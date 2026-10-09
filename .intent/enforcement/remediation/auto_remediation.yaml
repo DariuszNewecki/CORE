@@ -1129,14 +1129,6 @@ mappings:
       to be built.
     status: PENDING
 
-  data.contracts.pattern_violation_conforms:
-    action: fix.contract_conformance
-    confidence: 0.40
-    description: >
-      Pydantic model conformance check under ADR-056 wave work. Fixer
-      to be built.
-    status: PENDING
-
   data.contracts.phase_workflow_result_conforms:
     action: fix.contract_conformance
     confidence: 0.40
