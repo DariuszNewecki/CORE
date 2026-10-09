@@ -16,12 +16,13 @@ from rich.text import Text
 from cli.renderers.audit_detail import render_details as _render_details_groups
 from cli.renderers.audit_overview import render_overview as _render_overview_groups
 from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
+from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 from shared.models.audit_rendering import SeverityGroup
 from shared.utils.audit_grouping import SEVERITY_ORDER, get_max_severity, group_findings
 
 
 _SEVERITY_MAP = {str(s): s for s in AuditSeverity}
+_EVIDENCE_MAP = {str(e): e for e in EvidenceClass}
 
 
 # ID: ae8e7546-39a6-4b9b-a7ab-7f41162116f1
@@ -36,6 +37,11 @@ def to_audit_finding(raw: dict) -> AuditFinding:
     severity = _SEVERITY_MAP.get(
         str(raw.get("severity", "info")).lower(), AuditSeverity.INFO
     )
+    # ADR-113: carry the engine's evidence class through; a missing or
+    # unknown value stays ATTESTED (fail-closed), never a false PROVEN.
+    evidence_class = _EVIDENCE_MAP.get(
+        str(raw.get("evidence_class", "")).lower(), EvidenceClass.ATTESTED
+    )
     return AuditFinding(
         check_id=raw.get("check_id") or raw.get("rule_id") or "unknown",
         severity=severity,
@@ -43,6 +49,7 @@ def to_audit_finding(raw: dict) -> AuditFinding:
         file_path=raw.get("file_path"),
         line_number=raw.get("line_number"),
         context=raw.get("context", {}),
+        evidence_class=evidence_class,
     )
 
 
@@ -53,18 +60,28 @@ console = Console()
 @dataclass
 # ID: a010d8e0-b1db-4b16-acfe-733c996c7248
 class AuditStats:
-    """Execution statistics for a constitutional audit run."""
+    """Execution statistics for a constitutional audit run.
+
+    ``None`` means the run did not measure that figure (the offline path has
+    no mapping-coverage or dispatch breakdown); it renders as "n/a", never
+    as a false 0.
+    """
 
     total_rules: int = 0
     executed_rules: int = 0
-    coverage_percent: float = 0
+    coverage_percent: float | None = 0
     total_declared_rules: int = 0
-    crashed_rules: int = 0
-    unmapped_rules: int = 0
-    effective_coverage_percent: float = 0
+    crashed_rules: int | None = 0
+    unmapped_rules: int | None = 0
+    effective_coverage_percent: float | None = 0
     # ADR-076 D4: effective per-rule dispatch mode counts
-    context_level_rules: int = 0
-    per_file_rules: int = 0
+    context_level_rules: int | None = 0
+    per_file_rules: int | None = 0
+
+
+def _stat(value: float | None, fmt: str = "{}") -> str:
+    """Format a stat value; an unmeasured one (None) reads "n/a"."""
+    return "n/a" if value is None else fmt.format(value)
 
 
 # ID: 0b88103e-949f-4a1d-9daf-c2042c6346b9
@@ -81,18 +98,18 @@ def render_overview(
     stats_table.add_row(
         f"Rules declared: [cyan]{stats.total_declared_rules}[/cyan]",
         f"Rules executed: [cyan]{stats.executed_rules}[/cyan]",
-        f"Coverage: [cyan]{stats.coverage_percent:.1f}%[/cyan]",
+        f"Coverage: [cyan]{_stat(stats.coverage_percent, '{:.1f}%')}[/cyan]",
     )
     stats_table.add_row(
-        f"Effective coverage: [cyan]{stats.effective_coverage_percent:.1f}%[/cyan]",
-        f"Crashed: [red]{stats.crashed_rules}[/red]",
-        f"Unmapped: [yellow]{stats.unmapped_rules}[/yellow]",
+        f"Effective coverage: [cyan]{_stat(stats.effective_coverage_percent, '{:.1f}%')}[/cyan]",
+        f"Crashed: [red]{_stat(stats.crashed_rules)}[/red]",
+        f"Unmapped: [yellow]{_stat(stats.unmapped_rules)}[/yellow]",
     )
     stats_table.add_row(
         f"Duration: [dim]{duration:.2f}s[/dim]",
         f"Total findings: [cyan]{len(findings)}[/cyan]",
-        f"Dispatch: [cyan]{stats.context_level_rules}[/cyan] context-level · "
-        f"[cyan]{stats.per_file_rules}[/cyan] per-file",
+        f"Dispatch: [cyan]{_stat(stats.context_level_rules)}[/cyan] context-level · "
+        f"[cyan]{_stat(stats.per_file_rules)}[/cyan] per-file",
     )
     console.print(
         Panel(stats_table, title="[bold]Audit Execution Stats[/bold]", expand=False)

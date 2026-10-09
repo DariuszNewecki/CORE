@@ -63,8 +63,8 @@ def test_tables_label_not_evaluated_rows(captured: io.StringIO, printer) -> None
     unavailable = next(line for line in lines if "runtime.worker_max" in line)
     violation = next(line for line in lines if "starter.no_bare_except" in line)
     assert "NOT EVALUATED" in unavailable and "unavailable" in unavailable
-    assert "ERROR" not in unavailable and "needs human" not in unavailable
-    assert "ERROR" in violation and "proven" in violation
+    assert "BLOCK" not in unavailable and "needs human" not in unavailable
+    assert "BLOCK" in violation and "proven" in violation
 
 
 # ID: decf90d0-f4a5-4254-b4b0-f20441f64f6e

@@ -69,8 +69,8 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("File:Line", style="yellow")
     severity_styles = {
-        AuditSeverity.BLOCK: "[bold red]ERROR[/bold red]",
-        AuditSeverity.HIGH: "[bold yellow]WARNING[/bold yellow]",
+        AuditSeverity.BLOCK: "[bold red]BLOCK[/bold red]",
+        AuditSeverity.HIGH: "[bold yellow]HIGH[/bold yellow]",
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
     for finding in findings:
@@ -112,8 +112,8 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("Occurrences", style="yellow", justify="right")
     severity_styles = {
-        AuditSeverity.BLOCK: "[bold red]ERROR[/bold red]",
-        AuditSeverity.HIGH: "[bold yellow]WARNING[/bold yellow]",
+        AuditSeverity.BLOCK: "[bold red]BLOCK[/bold red]",
+        AuditSeverity.HIGH: "[bold yellow]HIGH[/bold yellow]",
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
     sorted_items = sorted(
@@ -358,8 +358,8 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
         )
     )
     severity_icon = {
-        AuditSeverity.BLOCK: "[bold red]❌ ERROR[/bold red]",
-        AuditSeverity.HIGH: "[bold yellow]⚠️  WARN [/bold yellow]",
+        AuditSeverity.BLOCK: "[bold red]❌ BLOCK[/bold red]",
+        AuditSeverity.HIGH: "[bold yellow]⚠️  HIGH [/bold yellow]",
     }
     for finding, symbol in hints:
         file_path = str(finding.file_path)

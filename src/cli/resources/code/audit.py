@@ -395,16 +395,19 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
     """Human-readable Rich rendering for the offline path."""
     all_findings = [to_audit_finding(f) for f in result["findings"]]
     stats = result.get("stats", {})
+    # The stateless audit measures rules declared/executed/failed only; the
+    # mapping-coverage and dispatch figures are online-only, so they are
+    # None ("n/a"), not a false 0 (cold room 2026-10-09).
     audit_stats = AuditStats(
         total_rules=stats.get("total_rules", 0),
-        executed_rules=stats.get("runnable_rules", 0),
-        coverage_percent=0,
+        executed_rules=stats.get("executed_rules", stats.get("runnable_rules", 0)),
+        coverage_percent=None,
         total_declared_rules=stats.get("total_rules", 0),
-        crashed_rules=0,
-        unmapped_rules=0,
-        effective_coverage_percent=0,
-        context_level_rules=0,
-        per_file_rules=0,
+        crashed_rules=stats.get("failed_rules"),
+        unmapped_rules=None,
+        effective_coverage_percent=None,
+        context_level_rules=None,
+        per_file_rules=None,
     )
     render_overview(
         console,
