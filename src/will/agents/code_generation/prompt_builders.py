@@ -3,8 +3,7 @@
 """
 Prompt building utilities for code generation.
 
-Three modes:
-- Semantic mode: Full architectural context
+Two modes:
 - Enriched mode: ContextPackage with dependencies
 - Standard mode: Basic string context
 """
@@ -12,8 +11,6 @@ Three modes:
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-
-from will.tools.context.formatter import format_context_to_markdown
 
 from .context_formatters import (
     format_dependencies,
@@ -24,56 +21,6 @@ from .context_formatters import (
 
 if TYPE_CHECKING:
     from shared.models import ExecutionTask
-
-
-# ID: 9f59227a-7966-47ca-8902-16689d29179e
-def build_semantic_prompt(
-    arch_context: Any,
-    task: ExecutionTask,
-    manual_context: str,
-    pattern_requirements: str,
-) -> str:
-    """
-    Build prompt using semantic architectural context.
-
-    Args:
-        arch_context: Architectural context from ArchitecturalContextBuilder
-        task: Execution task
-        manual_context: Additional manual context
-        pattern_requirements: Pattern requirements text
-
-    Returns:
-        Formatted prompt string
-    """
-    context_text = format_context_to_markdown(arch_context)
-
-    parts = [
-        context_text,
-        "",
-        pattern_requirements,
-        "",
-        "## Implementation Task",
-        f"Step: {task.step}",
-    ]
-
-    if task.params.symbol_name:
-        parts.append(f"Symbol: {task.params.symbol_name}")
-
-    parts.extend(
-        [
-            "",
-            "## Additional Context",
-            manual_context,
-            "",
-            "## Output Requirements",
-            "1. Return ONLY valid Python code.",
-            "2. Include all necessary imports.",
-            "3. Include docstrings and type hints.",
-            "4. Follow constitutional patterns.",
-        ]
-    )
-
-    return "\n".join(parts)
 
 
 # ID: 8d27950e-1bbf-46d8-8640-0b3cc5145d80

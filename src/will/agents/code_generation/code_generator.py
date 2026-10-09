@@ -23,7 +23,6 @@ from shared.models.refusal_result import RefusalResult
 from .extraction import extract_code_constitutionally, repair_basic_syntax
 from .prompt_builders import (
     build_enriched_prompt,
-    build_semantic_prompt,
     build_standard_prompt,
 )
 
@@ -35,7 +34,6 @@ if TYPE_CHECKING:
     from shared.protocols.cognitive import CognitiveProtocol
     from will.orchestration.decision_tracer import DecisionTracer
     from will.orchestration.prompt_pipeline import PromptPipeline
-    from will.tools.architectural_context_builder import ArchitecturalContextBuilder
 
 logger = getLogger(__name__)
 
@@ -50,7 +48,6 @@ class CodeGenerator:
         path_resolver: PathResolver,  # ADDED: Boundary alignment
         prompt_pipeline: PromptPipeline,
         tracer: DecisionTracer,
-        context_builder: ArchitecturalContextBuilder | None = None,
         context_service: ContextService | None = None,
     ):
         """
@@ -60,9 +57,7 @@ class CodeGenerator:
         self.path_resolver = path_resolver
         self.prompt_pipeline = prompt_pipeline
         self.tracer = tracer
-        self.context_builder = context_builder
         self.context_service = context_service
-        self.semantic_enabled = context_builder is not None
         self.context_enrichment_enabled = context_service is not None
         self._code_gen_model = PromptModel.load("code_generation_task_step_prompt")
         self._test_gen_model = PromptModel.load("test_gen_prompt")
@@ -90,34 +85,8 @@ class CodeGenerator:
             pass
         symbol_name = task.params.symbol_name or ""
 
-        # Priority 1: Semantic mode (full architectural context)
-        if self.semantic_enabled and self.context_builder:
-            logger.info("  -> Using Semantic Architectural Context")
-            arch_context = await self.context_builder.build_context(
-                goal=f"{goal} (Step: {task.step})", target_file=target_file
-            )
-
-            # DECISION TRACING: Record architectural decision
-            if hasattr(arch_context, "chosen_module"):
-                self.tracer.record(
-                    agent="CodeGenerator",
-                    decision_type="module_placement",
-                    rationale=f"Semantic match for {target_file}",
-                    chosen_action=f"Using module: {arch_context.chosen_module}",
-                    alternatives=getattr(arch_context, "alternative_modules", []),
-                    context={"symbol": symbol_name, "goal": goal},
-                    confidence=getattr(arch_context, "confidence", 0.8),
-                )
-
-            prompt = build_semantic_prompt(
-                arch_context=arch_context,
-                task=task,
-                manual_context=context_str,
-                pattern_requirements=pattern_requirements,
-            )
-
-        # Priority 2: Context-enriched mode (ContextPackage)
-        elif self.context_enrichment_enabled and self.context_service:
+        # Priority 1: Context-enriched mode (ContextPackage)
+        if self.context_enrichment_enabled and self.context_service:
             logger.info("  -> Using Context-Enriched Mode (ContextPackage)")
 
             context_package = await self._build_context_package(
@@ -132,7 +101,7 @@ class CodeGenerator:
                 pattern_requirements=pattern_requirements,
             )
 
-        # Priority 3: Basic mode (string context only)
+        # Priority 2: Basic mode (string context only)
         else:
             logger.info("  -> Using Standard Template (Basic Context)")
             prompt = build_standard_prompt(

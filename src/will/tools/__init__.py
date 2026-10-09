@@ -7,8 +7,6 @@ They are distinct from 'features' which implement business capabilities.
 
 Components:
 - PolicyVectorizer: RAG for constitutional rules
-
-ModuleAnchorGenerator and the anchor/context helpers live in shared.tools (ADR-063).
 """
 
 from __future__ import annotations
