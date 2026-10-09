@@ -47,7 +47,9 @@ claude mcp add --scope project core -- core-admin mcp run
 ```
 
 This writes a `.mcp.json` file at the project root; commit it, so everyone
-who works on the repository gets the same setup:
+who works on the repository gets the same setup. Its content is equivalent
+to this (your Claude Code version may lay it out differently, for example
+with `"env": {}` added):
 
 ```json
 {
@@ -65,6 +67,15 @@ The next time you start `claude` in the project, it asks once whether to
 trust the `core` server. That approval is yours to give; `claude mcp list`
 shows the server as pending until you do. To use it only yourself, leave out
 `--scope project`: Claude Code then keeps the entry in your own settings.
+
+Non-interactive runs (`claude -p`, scripts, CI) cannot answer a permission
+prompt, so each `core` tool is refused until you allow it. Put the prompt
+directly after `-p` and the list after it:
+
+```bash
+claude -p "Run change_verdict on my current change before I commit." \
+  --allowedTools "mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict"
+```
 
 ## Other assistants
 
