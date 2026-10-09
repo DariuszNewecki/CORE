@@ -119,16 +119,19 @@ async def run_and_persist_audit(
         results = await run_audit_workflow(context)
     except Exception:
         logger.exception("audit_runner: run_audit_workflow raised for %s", run_id)
+        # #947: a run that crashed decided nothing -- its verdict is
+        # DEGRADED (ADR-005 S3), never the in-flight 'pending' placeholder.
         await session.execute(
             text(
                 """
                 UPDATE core.audit_runs
                    SET status = 'failed',
+                       verdict = :verdict,
                        finished_at = now()
                  WHERE run_id = :rid
                 """
             ),
-            {"rid": run_id},
+            {"verdict": AuditVerdict.DEGRADED.value, "rid": run_id},
         )
         await session.commit()
         raise
