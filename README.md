@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.12.1-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.13.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
@@ -393,7 +393,7 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.12.1 — both install paths verified on a clean Ubuntu 26.04 LTS machine; adopter projects load their capability taxonomy again; a clean first audit with no warnings
+**Current Release:** v2.13.0 — your AI assistant can ask CORE instead of guessing: law, decisions and a change verdict over MCP, verified end to end on a clean Ubuntu 26.04 LTS machine
 
 Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
 finds constitutional violations in its own codebase, proposes fixes, routes them through the

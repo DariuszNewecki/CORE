@@ -8,6 +8,70 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.13.0] — 2026-10-09
+
+**Your AI assistant can ask CORE instead of guessing.** Claude Code, or any assistant that speaks
+MCP, can now ask what the project's law says, whether it may write a file, what was decided and
+why, and whether its own change breaks a rule — before it commits. Every answer carries its
+sources and names what it did not check (ADR-168). Verified end to end in a cold room: a fresh
+Ubuntu 26.04 machine with only public artifacts started a governed project, connected Claude
+Code, and got a BLOCKED verdict naming the rule and the line. Minor release. No database
+migrations: a 2.12.x database needs no upgrade.
+
+### Added — the assistant surface (ADR-168 D4.3)
+
+- **`core-admin mcp run`** serves five read-only tools over MCP stdio: `law_rule`,
+  `law_can_write`, `decision_adr`, `decision_adrs` and `change_verdict`. The assistant starts it
+  itself; it needs no database, no API and no other service. `--repo` points it at a project.
+- **The same answers from the shell:** `core-admin law show <rule>`, `core-admin law check
+  <path>`, `core-admin decisions list|show`, and `core-admin code verify`.
+- **The fast verdict** (`change_verdict` / `code verify`) checks only what your change touches
+  and answers `BLOCKED`, `CLEAR_IN_SCOPE`, `NO_CHANGES` or `NOT_EVALUATED`. It never says PASS:
+  it names the rules it did not evaluate, and the full audit stays authoritative.
+- **Answers about the law are honest about authority.** `law_can_write` says separately whether
+  the law forbids a write and whether anything prevents it; an edit made outside CORE is not
+  prevented, but it is detected as law drift.
+- **[Connect your AI assistant](docs/connect-an-assistant.md)**: setup for Claude Code (a
+  project-level `.mcp.json`) and for any other MCP client, including non-interactive `claude -p`
+  runs, which need `--allowedTools`.
+- New dependency: `mcp` 2.3 (the official MCP SDK). The unused `telemetry` extra is removed.
+
+### Fixed
+
+- **The offline audit display tells the truth (cold room, 2026-10-09).** A deterministic finding
+  showed as `needs human` because its evidence class was dropped; it now shows `proven`.
+  Coverage and dispatch figures the offline audit does not measure show `n/a` instead of
+  `0.0%`. The findings tables say `BLOCK`, as the overview does, instead of `ERROR`. Verdicts,
+  exit codes and JSON output are unchanged.
+- **A file-scoped audit can no longer say PASS while blocking whole-repository rules went
+  unevaluated (#961).** `--files` skips context-level rules; a skipped blocking one now makes
+  the verdict DEGRADED and is named.
+- **An audit that judged nothing is `NOT_EVALUATED`, never `CLEAR_IN_SCOPE`.**
+- **An async audit run that crashes is stored as DEGRADED**, not left `pending` forever (#947).
+- **`taxonomy_gate` reads `action_risk.yaml` entries under `actions:`**; the check had been
+  blind since June.
+- **The ruff check in code validation** used a flag ruff rejects, so every snippet came back
+  clean. It now reports real findings.
+- **A subprocess timeout kills the command's whole process group**, never the caller's.
+- **Every secret access leaves an audit row**, including CLI and API access, and a failed audit
+  write no longer breaks the caller's transaction (overwrite and rotate failed before).
+- **`workers show`** prints the entry ID and no longer swallows `[brackets]` as markup.
+- **`workers resolve`** can close an `open` finding delegated to a human (#926).
+
+### Changed
+
+- **Secrets are never exported to the process environment (#962).** `CORE_MASTER_KEY` and other
+  secrets that cannot live in the database can live in an owner-only file, `.secrets/core.env`
+  (`CORE_SECRETS_FILE` overrides the location), read into settings only. Child processes such as
+  test runs no longer inherit them.
+- **Every `exclude` entry must still exempt something** (`architecture.intent.excludes_exempt_something`,
+  reporting, new `exclusion_gate` engine). 126 dead entries were removed from CORE's own law, and
+  the `dangerous_execution_primitives` exclusions went from 30 to 5 by routing those call sites
+  through `subprocess_utils`.
+- **The var/tmp janitor reaps** stale temporary files (ADR-117 Phase 2), through FileService.
+- Internal: several large modules split along their responsibilities (ADR-095), and the unused
+  `RuntimeValidatorService` was removed.
+
 ## [2.12.1] — 2026-10-06
 
 **Both documented install paths work from public artifacts on a clean Ubuntu 26.04 LTS machine,
@@ -1015,7 +1079,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...HEAD
+[2.13.0]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...v2.13.0
 [2.12.1]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/DariuszNewecki/CORE/compare/v2.10.2...v2.11.0
