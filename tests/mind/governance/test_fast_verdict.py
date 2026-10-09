@@ -211,3 +211,21 @@ async def test_real_project_change_scope_and_verdicts(adopter: Path) -> None:
     assert fixed["verdict"] == CLEAR_IN_SCOPE
     assert fixed["blocking"] == []
     assert fixed["law"]["relationship"] == "MATCH"
+
+
+@pytest.mark.asyncio
+async def test_context_level_skip_is_listed_once(tmp_path: Path) -> None:
+    """#961: the stateless audit now also carries context-level skips in
+    skipped_rules; the fast verdict names each rule once, under its cause."""
+    result = _audit_result(
+        [],
+        context=["ctx.rule"],
+        services=[
+            {"rule_id": "ctx.rule", "enforcement": "blocking"},
+            {"rule_id": "db.rule", "enforcement": "blocking"},
+        ],
+    )
+    out = await _judge(tmp_path, result)
+    ne = out["not_evaluated"]
+    assert ne["context_level"] == [{"rule_id": "ctx.rule", "enforcement": "blocking"}]
+    assert ne["needs_services"] == [{"rule_id": "db.rule", "enforcement": "blocking"}]

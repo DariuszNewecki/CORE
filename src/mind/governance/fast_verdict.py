@@ -95,14 +95,17 @@ async def run_fast_verdict(
             if _not_evaluated(f) and f.get("check_id")
         }
     )
+    context_level_ids = list(stats.get("skipped_context_level_ids") or [])
     not_evaluated = {
         "context_level": [
-            _with_enforcement(intent_repo, rule_id)
-            for rule_id in stats.get("skipped_context_level_ids") or []
+            _with_enforcement(intent_repo, rule_id) for rule_id in context_level_ids
         ],
+        # #961: skipped_rules now also carries the context-level skips; they
+        # are listed once, under context_level.
         "needs_services": [
             {"rule_id": s.get("rule_id"), "enforcement": s.get("enforcement")}
             for s in result.get("skipped_rules") or []
+            if s.get("rule_id") not in context_level_ids
         ],
         "failed": list(stats.get("failed_rule_ids") or []),
         "unavailable": unavailable,

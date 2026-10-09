@@ -122,6 +122,13 @@ _SKIP_REASONS_BY_RULE_ID: dict[str, str] = {
 }
 
 
+# #961: the reason given for a context-level rule skipped under --files.
+_CONTEXT_LEVEL_SKIP_REASON = (
+    "context-level (whole-repository) rule; cannot be scoped to --files, "
+    "so it was not evaluated -- run the audit without --files to evaluate it"
+)
+
+
 # ID: 99361806-768b-45c2-ac9e-4e7cef1098cd
 async def run_stateless_audit(
     intent_repo: IntentRepository,
@@ -144,7 +151,8 @@ async def run_stateless_audit(
         files: Optional list of file paths (repo-relative, ./-prefixed,
             or absolute) scoping per-file rules. Context-level rules
             skip gracefully when this is set — same semantics as
-            run_filtered_audit's existing file filter.
+            run_filtered_audit's existing file filter — and are listed in
+            `skipped_rules` as not evaluated (#961).
 
     Returns:
         A dict mirroring the shape `run_sync_audit` returns for filtered
@@ -292,6 +300,28 @@ async def run_stateless_audit(
         files=files,
     )
     duration = time.perf_counter() - start_time
+
+    # #961: under a file scope every context-level rule is skipped by
+    # run_filtered_audit (it cannot be narrowed to a file list). It was
+    # not evaluated, exactly like a service-dependent skip: it joins
+    # skipped_rules with its enforcement level, and a blocking one joins
+    # skipped_blocking_rule_ids, so the verdict below cannot be PASS.
+    rules_by_id = {rule.rule_id: rule for rule in all_rules}
+    for rule_id in stats_dict.get("skipped_context_level_ids") or []:
+        skipped_rule = rules_by_id.get(rule_id)
+        skipped_rules.append(
+            _skipped_entry(
+                rule_id,
+                skipped_rule.engine if skipped_rule else "unknown",
+                skipped_rule.enforcement if skipped_rule else "blocking",
+                _CONTEXT_LEVEL_SKIP_REASON,
+            )
+        )
+    skipped_blocking_rule_ids = sorted(
+        entry["rule_id"]
+        for entry in skipped_rules
+        if entry["enforcement"] == "blocking"
+    )
 
     raw_findings = [*raw_findings, *law_drift_findings(law_state)]
     findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in raw_findings]

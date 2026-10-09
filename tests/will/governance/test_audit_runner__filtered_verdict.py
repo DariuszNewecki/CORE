@@ -97,3 +97,14 @@ async def test_crashed_rule_degrades_a_filtered_audit() -> None:
 async def test_unevaluated_rule_degrades_never_fails(finding_type: str) -> None:
     result = await _filtered([_finding("block", finding_type)])
     assert result["verdict"] == "DEGRADED"
+
+
+async def test_skipped_blocking_context_level_rule_degrades() -> None:
+    """#961: a file-scoped run that skipped a blocking context-level rule
+    did not evaluate it -- DEGRADED, never PASS."""
+    result = await _filtered(
+        [],
+        stats={"failed_rules": 0, "skipped_context_level_blocking_ids": ["x.ctx"]},
+    )
+    assert result["verdict"] == "DEGRADED"
+    assert result["passed"] is False

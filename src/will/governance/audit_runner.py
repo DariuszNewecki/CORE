@@ -408,7 +408,8 @@ def _decide_filtered_verdict(
     finding_type ENFORCEMENT_FAILURE -- both are crashed rules (DEGRADED). An
     ENFORCEMENT_UNAVAILABLE finding is treated as a blocking rule's missing
     evidence (DEGRADED): the dicts do not carry the rule's enforcement level,
-    so this fails closed rather than let unknown compliance pass.
+    so this fails closed rather than let unknown compliance pass. A blocking
+    context-level rule skipped under a file scope counts the same (#961).
     """
     as_objects: list[Any] = []
     crashed: set[str] = set()
@@ -434,6 +435,9 @@ def _decide_filtered_verdict(
         )
     if stats.get("failed_rules", 0):
         crashed.add("filtered_audit.rule_evaluation_failed")
+    # #961: a blocking context-level rule skipped under a file scope was not
+    # evaluated -- the same missing evidence as an unavailable one.
+    unavailable += len(stats.get("skipped_context_level_blocking_ids") or [])
     return ConstitutionalAuditor._determine_verdict(
         as_objects,
         stats={"blocking_unavailable_rules": unavailable},

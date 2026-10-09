@@ -422,7 +422,7 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
     if skipped_blocking:
         console.print(
             f"[bold yellow]{len(skipped_blocking)} blocking rule(s) NOT "
-            f"evaluated in stateless mode (verdict DEGRADED, not PASS):[/bold yellow]"
+            f"evaluated (verdict DEGRADED, not PASS):[/bold yellow]"
         )
         for entry in skipped_blocking:
             console.print(
@@ -431,7 +431,7 @@ def _render_text_summary(result: dict, min_severity: AuditSeverity) -> None:
             )
     if skipped:
         console.print(
-            f"[dim]Skipped {len(skipped)} rule(s) in stateless mode "
+            f"[dim]Skipped {len(skipped)} rule(s) "
             f"({len(skipped_blocking)} blocking, "
             f"{len(skipped) - len(skipped_blocking)} reporting/advisory); pass "
             f"--format=json to see structured reasons.[/dim]"

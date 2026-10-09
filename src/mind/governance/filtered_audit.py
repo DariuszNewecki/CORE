@@ -182,6 +182,8 @@ async def run_filtered_audit(
                 "executed_rules": 0,
                 "total_findings": 0,
                 "skipped_context_level": 0,
+                "skipped_context_level_ids": [],
+                "skipped_context_level_blocking_ids": [],
             },
         )
 
@@ -205,6 +207,7 @@ async def run_filtered_audit(
     all_findings: list[AuditFinding] = []
     failed_rules = []
     skipped_context_level: list[str] = []
+    skipped_context_level_blocking: list[str] = []
 
     for rule in filtered_rules:
         # ADR-081 Step 2b — cooperative yield at the per-rule boundary so
@@ -218,8 +221,13 @@ async def run_filtered_audit(
 
         # Track skipped-context-level explicitly for stats / operator
         # transparency. execute_rule logs the skip; we count it here.
-        if file_filter is not None and rule.is_context_level:
+        # #961: such a rule is NOT evaluated, so it is never added to
+        # executed_rule_ids below -- "not evaluated" is never "executed".
+        skipped = file_filter is not None and rule.is_context_level
+        if skipped:
             skipped_context_level.append(rule.rule_id)
+            if rule.enforcement == "blocking":
+                skipped_context_level_blocking.append(rule.rule_id)
 
         try:
             findings = await execute_rule(
@@ -229,7 +237,8 @@ async def run_filtered_audit(
                 prior_findings=all_findings,
             )
             all_findings.extend(findings)
-            executed_rule_ids.add(rule.rule_id)
+            if not skipped:
+                executed_rule_ids.add(rule.rule_id)
 
             logger.debug(
                 "Rule %s: %d findings",
@@ -272,6 +281,9 @@ async def run_filtered_audit(
         # ADR-168 D4.3: the ids, so a scoped caller can name what it did not
         # evaluate instead of reporting a bare count (#961).
         "skipped_context_level_ids": sorted(skipped_context_level),
+        # #961: the blocking subset -- a caller's verdict must not be PASS
+        # while one of these went unevaluated.
+        "skipped_context_level_blocking_ids": sorted(skipped_context_level_blocking),
         "failed_rule_ids": sorted(failed_rules),
     }
 
