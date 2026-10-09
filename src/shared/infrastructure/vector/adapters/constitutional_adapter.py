@@ -123,50 +123,6 @@ class ConstitutionalAdapter:
             key_root="policies",  # Patterns are policies
         )
 
-    # ID: a048dee6-165e-4f74-bd20-8dcacf87125f
-    def constitution_to_items(self) -> list[VectorizableItem]:
-        """
-        Convert constitution documents into vector items.
-
-        Processes files from .intent/constitution/ directory.
-
-        Returns:
-            List of VectorizableItem objects for constitution
-        """
-        return self._process_constitution_dir()
-
-    # ID: 6d5a1ee7-ebc0-44cd-bcaf-b30045d73547
-    def standards_to_items(self) -> list[VectorizableItem]:
-        """
-        Convert standards documents into vector items.
-
-        NOTE: Standards are already included in policies_to_items()
-        since IntentRepository searches ["policies", "standards", "rules"].
-        This method exists for backward compatibility and explicit standards querying.
-
-        Returns:
-            List of VectorizableItem objects for standards
-        """
-        all_refs = self.intent_repo.list_policies()
-
-        # Filter for standards only (path starts with standards/)
-        standards_refs = [
-            ref for ref in all_refs if str(ref.policy_id).startswith("standards/")
-        ]
-
-        if not standards_refs:
-            logger.info("No standards files found")
-            return []
-
-        return self._process_policy_refs(
-            standards_refs, doc_type="standard", key_root="standards"
-        )
-
-    # ID: bb43de2b-45e4-4889-aa23-c0bcd965d73d
-    def enforcement_policies_to_items(self) -> list[VectorizableItem]:
-        """Backward compatibility alias for policies_to_items()."""
-        return self.policies_to_items()
-
     # -------------------------------------------------------------------------
     # Processing - Uses IntentRepository data
     # -------------------------------------------------------------------------

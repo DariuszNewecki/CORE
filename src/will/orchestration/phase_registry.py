@@ -82,11 +82,3 @@ class PhaseRegistry:
     # ID: 542111f2-a0fa-450e-91f8-47b8878e9907
     def get(self, phase_name: str) -> Phase:
         return self._phases[phase_name]
-
-    # ID: d7276913-4bb9-42c2-af14-26245926ba4d
-    def list_available(self) -> list[str]:
-        return list(self._phases.keys())
-
-    # ID: 6aeb89fb-c926-4e36-b7e7-81185a3f5695
-    def get_definition(self, phase_name: str) -> dict:
-        return self._phase_definitions[phase_name]

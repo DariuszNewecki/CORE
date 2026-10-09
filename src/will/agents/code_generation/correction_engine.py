@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
-from will.orchestration.self_correction_engine import attempt_correction
 
 
 if TYPE_CHECKING:
@@ -106,52 +105,3 @@ class CorrectionEngine:
             return {"status": "success", "code": corrected_code}
         else:
             return {"status": "failure", "message": "Could not extract corrected code"}
-
-    # ID: 282f2c42-42c1-44d6-a2df-9eb668d483df
-    async def attempt_constitutional_correction(
-        self,
-        task: ExecutionTask,
-        current_code: str,
-        validation_result: dict,
-        goal: str,
-        runtime_error: str = "",
-    ) -> dict:
-        """
-        Attempt to fix constitutional violations in generated code.
-
-        Args:
-            task: The execution task
-            current_code: Code with violations
-            validation_result: Validation result with violations
-            goal: High-level goal for context
-            runtime_error: Optional runtime error details
-
-        Returns:
-            Dict with 'status' and either 'code' or 'message'
-        """
-        self.tracer.record(
-            agent="CorrectionEngine",
-            decision_type="constitutional_correction",
-            rationale=f"Detected {len(validation_result.get('violations', []))} constitutional violations",
-            chosen_action="Invoking self-correction engine",
-            alternatives=["Fail fast", "Manual review"],
-            context={
-                "violations": len(validation_result.get("violations", [])),
-                "has_runtime_error": bool(runtime_error),
-            },
-            confidence=0.6,
-        )
-
-        correction_context = {
-            "file_path": task.params.file_path,
-            "code": current_code,
-            "violations": validation_result["violations"],
-            "original_prompt": goal,
-            "runtime_error": runtime_error,
-        }
-        logger.info("  -> Invoking self-correction engine...")
-        return await attempt_correction(  # type: ignore[call-arg]
-            correction_context,
-            self.cognitive_service,
-            self.auditor_context,
-        )

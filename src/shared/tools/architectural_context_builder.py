@@ -77,9 +77,3 @@ class ArchitecturalContextBuilder:
             target_file_content=file_content,
             target_file_path=file_path,
         )
-
-    # ID: 2cfa04d7-7b21-4f4b-8cf0-77cbc4f7415f
-    def format_for_prompt(self, context: ArchitecturalContext) -> str:
-        from shared.tools.context.formatter import format_context_to_markdown
-
-        return format_context_to_markdown(context)

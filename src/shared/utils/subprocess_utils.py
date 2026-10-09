@@ -491,36 +491,6 @@ def compose_down_command(project_name: str, compose_file: Path) -> list[str]:
     ]
 
 
-# ID: 432d3064-e22f-4381-8df4-f82a9d756a1d
-def compose_ps_command(project_name: str, compose_file: Path) -> list[str]:
-    """Build a `docker compose ps --format json` command for health polling."""
-    return [
-        "docker",
-        "compose",
-        "-p",
-        project_name,
-        "-f",
-        str(compose_file),
-        "ps",
-        "--format",
-        "json",
-    ]
-
-
-# ID: 0d099164-bdbe-45a0-82aa-ff23b1794ff4
-def compose_logs_command(project_name: str, compose_file: Path) -> list[str]:
-    """Build a `docker compose logs` command for post-failure diagnostics."""
-    return [
-        "docker",
-        "compose",
-        "-p",
-        project_name,
-        "-f",
-        str(compose_file),
-        "logs",
-    ]
-
-
 # ID: c9627c6e-a3e7-449c-9e28-ee9f4b95d848
 async def run_compose_command(
     args: list[str], *, cwd: Path, env: dict[str, str]

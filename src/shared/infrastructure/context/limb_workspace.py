@@ -115,19 +115,6 @@ class LimbWorkspace:
     # WORK-IN-PROGRESS UPDATES
     # ------------------------------------------------------------------
 
-    # ID: d697eadb-3d76-4ca0-88e0-468a8158675c
-    def update_crate(self, new_files: dict[str, str]) -> None:
-        """
-        Update the virtual "Future Truth".
-
-        Called by the reflex loop when a self-correction occurs.
-        """
-        for path, content in new_files.items():
-            self._crate[str(path).removeprefix("./")] = content
-        logger.debug(
-            "LimbWorkspace updated with %d new proposed files.", len(new_files)
-        )
-
     # ID: 5a8ff2c6-12af-4c4a-8fb5-5da9b0c7a4d0
     def get_crate_content(self) -> dict[str, str]:
         """Return the current proposed state."""

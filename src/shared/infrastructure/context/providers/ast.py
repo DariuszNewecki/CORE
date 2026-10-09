@@ -90,13 +90,6 @@ class ASTProvider:
                         return None
         return None
 
-    # ID: 9f12bc2e-119f-4aab-bd8a-1ba87a750e87
-    def get_signature(self, file_path: str | Path, symbol_name: str) -> str | None:
-        """Extract function/class signature from a file."""
-        logger.debug("Extracting signature for %s in %s", symbol_name, file_path)
-        tree = self.get_ast_tree(file_path)
-        return self.get_signature_from_tree(tree, symbol_name) if tree else None
-
     # ID: afbb2bdb-049a-45ea-b889-55a9428144f1
     def get_dependencies_from_tree(self, tree: ast.Module) -> list[str]:
         """Extract import dependencies from a parsed AST tree."""
@@ -111,13 +104,6 @@ class ASTProvider:
 
         return sorted(deps)
 
-    # ID: bccecfdc-1a5f-4246-83ee-687c0c86c2db
-    def get_dependencies(self, file_path: str | Path) -> list[str]:
-        """Extract import dependencies from a file."""
-        logger.debug("Extracting dependencies from %s", file_path)
-        tree = self.get_ast_tree(file_path)
-        return self.get_dependencies_from_tree(tree) if tree else []
-
     # ID: 525a3cc7-724d-4c31-b9a1-92cbca3c8c8e
     def get_parent_scope_from_tree(
         self,
@@ -128,13 +114,6 @@ class ASTProvider:
         finder = ParentScopeFinder(line_number)
         finder.visit(tree)
         return finder.parent.name if finder.parent else None
-
-    # ID: c0f6be43-24c5-4aa4-9d7d-49e311703507
-    def get_parent_scope(self, file_path: str | Path, line_number: int) -> str | None:
-        """Find parent class/function at a given line in a file."""
-        logger.debug("Finding parent scope at %s:%s", file_path, line_number)
-        tree = self.get_ast_tree(file_path)
-        return self.get_parent_scope_from_tree(tree, line_number) if tree else None
 
     # ID: 1fb33ca3-f623-4601-922c-5882f8e3b48f
     def extract_symbols(self, file_path: str | Path) -> list[dict[str, Any]]:

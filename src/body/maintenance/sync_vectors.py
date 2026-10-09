@@ -271,41 +271,6 @@ async def _async_sync_vectors(
     return (orphans_pruned, dangling_pruned)
 
 
-# ID: 2ba0085c-70d8-4a2f-b3f5-a41479fba562
-async def main_sync(
-    session: AsyncSession,
-    write: bool = False,
-    dry_run: bool = False,
-    qdrant_url: str | None = None,
-    collection_name: str | None = None,
-) -> None:
-    """
-    Synchronize vector database between PostgreSQL and Qdrant.
-
-    This performs atomic bidirectional synchronization:
-    1. Removes orphaned vectors from Qdrant (no DB link)
-    2. Removes dangling links from PostgreSQL (no Qdrant vector)
-
-    Args:
-        session: Injected database session
-        write: If True, apply changes (default: False)
-        dry_run: If True, only report what would change (default: False)
-        qdrant_url: Qdrant server URL
-        collection_name: Qdrant collection name
-
-    Example:
-        poetry run core-admin fix vector-sync --dry-run
-        poetry run core-admin fix vector-sync --write
-    """
-    effective_dry_run = dry_run or not write
-    await _async_sync_vectors(
-        session,
-        dry_run=effective_dry_run,
-        qdrant_url=qdrant_url,
-        collection_name=collection_name,
-    )
-
-
 # ID: 45b243cb-5331-464d-a50d-13a1310e672a
 async def main_async(
     session: AsyncSession,

@@ -206,19 +206,6 @@ class EnforcementMappingLoader:
             # Empty applies_to (#158).
             return {"name": preset_name, "applies_to": []}
 
-    # ID: 681251eb-0ab4-4fc4-bc90-376a98e54e6f
-    def list_all_mapped_rules(self) -> list[str]:
-        """
-        Get list of all rule IDs that have enforcement mappings.
-
-        Returns:
-            Sorted list of rule IDs
-        """
-        if not self._mappings_cache:
-            self.load_all_mappings()
-
-        return sorted(self._mappings_cache.keys())
-
     # ID: d52e4519-8c6e-4fd4-bf59-ecd996364c70
     def get_stats(self) -> dict[str, int]:
         """

@@ -114,16 +114,3 @@ class MindStateService(SessionAttachedService):
 
         config_service = await ConfigService.create(session)
         return config_service
-
-    # ID: 666a5ccb-3958-47ab-b3de-f1aabab1c9d2
-    async def load_mind_state(
-        self,
-    ) -> tuple[list[LlmResource], list[CognitiveRole], ConfigService]:
-        """
-        Load complete Mind state in one call.
-        """
-        resources = await self.get_llm_resources()
-        roles = await self.get_cognitive_roles()
-        config = await self.get_config_service()
-
-        return resources, roles, config

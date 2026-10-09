@@ -13,7 +13,6 @@ Refactored for:
 
 from __future__ import annotations
 
-import uuid
 from collections.abc import Sequence
 from typing import Any
 
@@ -31,11 +30,6 @@ logger = getLogger(__name__)
 
 # Track configurations we've already logged
 _SEEN_QDRANT_CONFIGS: set[tuple[str, str, int]] = set()
-
-
-def _uuid5_from_text(text: str) -> str:
-    """Deterministic UUID from text using URL namespace for collision avoidance."""
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
 # ID: 107da1cd-630c-4dec-8409-19d03c61fb42
@@ -250,49 +244,6 @@ class QdrantService:
     # HIGH-LEVEL OPERATIONS (Must call Primitives)
     # ========================================================================
 
-    # ID: d8089d3c-9110-4759-9a18-8df2fb827e92
-    async def upsert_symbol_vector(
-        self,
-        point_id_str: str,
-        vector: list[float],
-        payload_data: dict[str, Any],
-    ) -> str:
-        """
-        Validate payload against EmbeddingPayload schema and upsert a symbol vector.
-        """
-        if len(vector) != self.vector_size:
-            raise ValueError(
-                f"Vector dim {len(vector)} != expected {self.vector_size}",
-            )
-
-        try:
-            # Enforce provenance metadata
-            payload_data["model"] = settings.LOCAL_EMBEDDING_MODEL_NAME
-            payload_data["model_rev"] = settings.EMBED_MODEL_REVISION
-            payload_data["dim"] = self.vector_size
-            payload_data["created_at"] = now_iso()
-            payload = EmbeddingPayload(**payload_data)
-        except Exception as e:
-            logger.error("Invalid embedding payload: %s", e)
-            raise InvalidPayloadError(f"Invalid embedding payload: {e}") from e
-
-        points = [
-            qm.PointStruct(
-                id=point_id_str,
-                vector=vector,
-                payload=payload.model_dump(mode="json"),
-            )
-        ]
-
-        await self.upsert_points(self.collection_name, points, wait=True)
-
-        logger.debug(
-            "Upserted vector for chunk %s with ID: %s",
-            payload.chunk_id,
-            point_id_str,
-        )
-        return point_id_str
-
     # ID: 2c51f9b6-1db4-4f74-9f6c-89f70d1a2f1f
     async def upsert_symbol_vectors_bulk(
         self,
@@ -348,13 +299,6 @@ class QdrantService:
             "Bulk upserted %d validated vectors into %s", len(points), target_collection
         )
         return point_ids
-
-    # ID: 4a4561cb-79aa-4aa2-bc77-d259999e3e18
-    async def get_all_vectors(self) -> list[qm.Record]:
-        """Fetch all points with vectors and payloads from the collection."""
-        return await self.scroll_all_points(
-            with_payload=True, with_vectors=True, collection_name=self.collection_name
-        )
 
     # ID: 7f84df15-9515-4631-93c6-9700b2e578f6
     async def get_vector_by_id(self, point_id: str) -> list[float]:
@@ -414,31 +358,6 @@ class QdrantService:
                 e,
             )
             return []
-
-    # ID: 51ea2c61-7b6f-4f6a-94d3-ea7ac08e130f
-    async def delete_points(
-        self,
-        point_ids: list[str],
-        wait: bool = True,
-        collection_name: str | None = None,
-    ) -> int:
-        """Delete multiple points by ID."""
-        target_collection = collection_name or self.collection_name
-
-        if not point_ids:
-            return 0
-
-        try:
-            logger.info("Deleting %d points from %s", len(point_ids), target_collection)
-            await self.client.delete(
-                collection_name=target_collection,
-                points_selector=qm.PointIdsList(points=point_ids),
-                wait=wait,
-            )
-            return len(point_ids)
-        except Exception as e:
-            logger.error("Failed to delete points from {target_collection}: %s", e)
-            raise
 
     # ID: 86b61a51-a4af-40f4-af4b-a788019d1eb1
     async def get_stored_hashes(

@@ -634,10 +634,3 @@ class ActionExecutor:
         if category:
             return self.registry.get_by_category(category)
         return self.registry.list_all()
-
-    # ID: 46e53493-d92c-402d-83c8-b9516d394f81
-    def get_action(self, action_id: str) -> ActionDefinition | None:
-        """
-        Get action definition by ID.
-        """
-        return self.registry.get(action_id)

@@ -19,12 +19,6 @@ LAYERS = {
 }
 
 
-# ID: ee821e06-e7b9-4ab7-8529-c7a1ad58adb2
-def get_layer_purpose(layer_name: str) -> str:
-    """Get the purpose description for a layer."""
-    return LAYERS.get(layer_name, "Unknown layer")
-
-
 # ID: 9d3f6ef5-1983-4d3a-8a24-fdab3023e72c
 def get_all_layers() -> dict[str, str]:
     """Get all layer definitions."""

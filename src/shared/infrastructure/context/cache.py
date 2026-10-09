@@ -79,20 +79,6 @@ class ContextCache:
             cache_file.unlink()
             logger.debug("Invalidated cache: %s", cache_key[:8])
 
-    # ID: 1c41c3f4-a188-4544-af77-12dc0c593f74
-    def clear_expired(self) -> int:
-        removed = 0
-        for cache_file in self.cache_dir.glob("*.yaml"):
-            age_hours = self._get_age_hours(cache_file)
-            if age_hours > self.ttl_hours:
-                cache_file.unlink()
-                removed += 1
-                logger.debug("Removed expired cache: %s", cache_file.stem)
-
-        if removed > 0:
-            logger.info("Cleared %s expired cache entries", removed)
-        return removed
-
     # ID: f5553609-0d49-41fd-aec4-eb3175b0b08e
     def clear_all(self) -> int:
         removed = 0

@@ -90,13 +90,3 @@ class BaselineManager:
         return sorted(
             self.registry.baselines.values(), key=lambda b: b.created_at, reverse=True
         )
-
-    # ID: 7ebee765-dc76-4c00-b776-969fd0b86ade
-    def delete_baseline(self, name: str) -> bool:
-        """Delete a baseline by name."""
-        if name in self.registry.baselines:
-            del self.registry.baselines[name]
-            self._save()
-            logger.info("Deleted baseline '%s'", name)
-            return True
-        return False

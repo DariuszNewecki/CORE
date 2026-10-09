@@ -15,7 +15,7 @@ from shared.tools.anchor_builder import (
     get_module_description_for_embedding,
 )
 from shared.tools.anchors.discovery import discover_modules_for_layers
-from shared.tools.anchors.storage import ANCHOR_COLLECTION, ensure_anchor_collection
+from shared.tools.anchors.storage import ANCHOR_COLLECTION
 from shared.tools.layers import get_all_layers
 
 
@@ -52,31 +52,6 @@ class ModuleAnchorGenerator:
             qdrant_service=self.qdrant,
             limit=limit,
         )
-
-    # ID: ef29c8df-12fc-45cc-b26e-a7697c1f1abe
-    async def generate_all_anchors(self) -> dict[str, Any]:
-        """Generate all layer and module anchors."""
-        logger.info("=" * 60)
-        logger.info("PHASE 1: MODULE ANCHOR GENERATION")
-        logger.info("=" * 60)
-
-        if not self.src_dir.exists():
-            return {"success": False, "error": "Source directory not found"}
-
-        await ensure_anchor_collection(self.qdrant)
-        results: dict[str, Any] = {"success": True, "anchors_created": 0, "errors": []}
-
-        logger.info("\n📍 Generating layer-level anchors...")
-        await self._generate_layer_anchors(results)
-
-        logger.info("\n📍 Generating module-level anchors...")
-        await self._generate_module_anchors(results)
-
-        logger.info("\n" + "=" * 60)
-        logger.info(
-            "✅ ANCHOR GENERATION COMPLETE (Anchors: %s)", results["anchors_created"]
-        )
-        return results
 
     async def _generate_layer_anchors(self, results: dict[str, Any]) -> None:
         layers = get_all_layers()

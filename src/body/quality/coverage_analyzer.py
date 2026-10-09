@@ -9,7 +9,6 @@ to support intelligent test prioritization.
 
 from __future__ import annotations
 
-import ast
 import json
 from pathlib import Path
 from typing import Any
@@ -60,52 +59,6 @@ class CoverageAnalyzer:
         except Exception as e:
             logger.debug("Could not get module coverage: %s", e)
         return {}
-
-    # ID: 12e50464-4e37-48a6-a738-5def4ee46de1
-    def analyze_codebase(self) -> dict[str, Any]:
-        """
-        Analyzes codebase structure to identify testing priorities.
-
-        Returns:
-            Dict with module metadata (imports, complexity, etc.)
-        """
-        module_info = {}
-        src_dir = self.repo_path / "src"
-        for py_file in src_dir.rglob("*.py"):
-            if py_file.name == "__init__.py":
-                continue
-            try:
-                code = py_file.read_text()
-                tree = ast.parse(code)
-                imports = sum(
-                    1
-                    for node in ast.walk(tree)
-                    if isinstance(node, (ast.Import, ast.ImportFrom))
-                )
-                classes = sum(
-                    1 for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
-                )
-                functions = sum(
-                    1 for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
-                )
-                loc = len(
-                    [
-                        line
-                        for line in code.splitlines()
-                        if line.strip() and (not line.strip().startswith("#"))
-                    ]
-                )
-                rel_path = str(py_file.relative_to(self.repo_path))
-                module_info[rel_path] = {
-                    "imports": imports,
-                    "classes": classes,
-                    "functions": functions,
-                    "loc": loc,
-                    "complexity_score": imports + classes + functions,
-                }
-            except Exception as e:
-                logger.debug("Could not analyze {py_file}: %s", e)
-        return module_info
 
     # ID: 09b41c82-55e9-494b-8387-bd92eeff3509
     def measure_coverage(self) -> dict[str, Any] | None:

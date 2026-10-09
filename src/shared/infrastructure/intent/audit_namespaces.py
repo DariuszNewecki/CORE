@@ -127,14 +127,3 @@ def audit_violation_like_patterns() -> list[str]:
     return [f"{_CANONICAL_PREFIX}{ns}.%" for ns in namespaces] + [
         f"{_CANONICAL_PREFIX}{ns}::%" for ns in namespaces
     ]
-
-
-# ID: 9fc2d5b7-47a0-4100-8161-ce7f52e5bc2d
-def audit_violation_subject_for(rule_id: str, file_path: str) -> str:
-    """Construct the canonical Phase-3 subject string for a single violation.
-
-    Convenience helper for sites that need to compute the exact subject a
-    sensor would post (e.g. dedup-fetch keys). Equivalent to the framework's
-    `post_artifact_finding` subject construction for `artifact_type=python`.
-    """
-    return f"{_CANONICAL_PREFIX}{rule_id}::{file_path}"

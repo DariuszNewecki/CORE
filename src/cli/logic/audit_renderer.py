@@ -13,7 +13,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from cli.renderers.audit_detail import render_details as _render_details_groups
 from cli.renderers.audit_overview import render_overview as _render_overview_groups
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
@@ -119,13 +118,6 @@ def render_overview(
     _render_overview_groups(console, groups)
     console.print()
     _render_verdict(console, groups, verdict_str=verdict_str, passed=passed)
-
-
-# ID: 74348bb7-e619-4392-84e6-2d90203f709f
-def render_detail(console: Console, findings: list[AuditFinding]) -> None:
-    """Render detailed findings tables grouped by severity."""
-    groups: list[SeverityGroup] = group_findings(findings)
-    _render_details_groups(console, groups)
 
 
 def _render_verdict(

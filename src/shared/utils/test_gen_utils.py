@@ -261,14 +261,3 @@ def strip_leading_future_imports(code: str) -> str:
             past_header = True
         result.append(line)
     return "\n".join(result).lstrip("\n")
-
-
-# ID: c3f027f0-a435-4054-8a6c-7c95472828fe
-def format_violations(violations: list[dict]) -> str:
-    """Format IntentGuard violations into a concise summary for a repair prompt."""
-    lines = []
-    for v in violations:
-        rule = v.get("rule_name", "unknown")
-        msg = v.get("message", "")
-        lines.append(f"- [{rule}] {msg}" if msg else f"- [{rule}]")
-    return "\n".join(lines) if lines else "Unknown violations"

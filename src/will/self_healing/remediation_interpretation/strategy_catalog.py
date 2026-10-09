@@ -242,11 +242,3 @@ class StrategyCatalog:
                 ),
             ),
         ]
-
-    # ID: b6ce4269-b4c2-48be-bd5b-2ea2bc56f2dc
-    def get_template(self, strategy_id: str) -> StrategyTemplate | None:
-        """Return one strategy template by ID."""
-        for template in self.list_templates():
-            if template.strategy_id == strategy_id:
-                return template
-        return None

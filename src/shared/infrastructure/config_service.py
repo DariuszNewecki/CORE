@@ -208,22 +208,6 @@ class ConfigService:
             self.db, key, audit_context=audit_context, resource_name=resource_name
         )
 
-    # ID: f4493c4d-4248-4f21-8b16-a440b9433606
-    async def get_int(self, key: str, default: int | None = None) -> int | None:
-        """Get config value as integer."""
-        value = await self.get(
-            key, default=str(default) if default is not None else None
-        )
-        return int(value) if value is not None else None
-
-    # ID: aa36f26e-1381-4eb7-8870-da9cee67b054
-    async def get_float(self, key: str, default: float | None = None) -> float | None:
-        """Get config value as float."""
-        value = await self.get(
-            key, default=str(default) if default is not None else None
-        )
-        return float(value) if value is not None else None
-
     # ID: be84f22d-7a51-491c-965a-ef5d4306a895
     async def get_bool(self, key: str, default: bool = False) -> bool:
         """Get config value as boolean."""
@@ -309,16 +293,6 @@ class LLMResourceConfig:
         if not value:
             value = await self.config.get(default_key, default="2.0")
         return float(value or "2.0")
-
-    # ID: aaeb75b1-3017-44f8-818f-80575ed1461b
-    async def get_timeout(self) -> int:
-        """Get request timeout for this resource."""
-        key = f"{self._prefix}.timeout"
-        default_key = "llm.default_timeout"
-        value = await self.config.get(key)
-        if not value:
-            value = await self.config.get(default_key, default="300")
-        return int(value or "300")
 
 
 # ID: 9d684627-5b6e-49c0-be02-cbab851e6067

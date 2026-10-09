@@ -84,63 +84,6 @@ class VectorProvider:
             )
             return []
 
-    # ID: da668982-3dbe-49da-953b-9a532cb11617
-    async def get_symbol_embedding(self, symbol_id: str) -> list[float] | None:
-        """Get stored embedding for a symbol by vector id."""
-        if not self.qdrant:
-            return None
-
-        try:
-            return await self.qdrant.get_vector_by_id(symbol_id)
-        except Exception as e:
-            logger.debug("Failed to fetch symbol embedding for %s: %s", symbol_id, e)
-            return None
-
-    # ID: aa556d35-f222-4e79-9204-b8725feafe50
-    async def get_neighbors(
-        self,
-        symbol_name: str,
-        max_distance: float = 0.5,
-        top_k: int = _CFG.vector_top_k,
-    ) -> list[dict[str, Any]]:
-        """Get semantic neighbors of a symbol."""
-        if not self.cognitive_service or not self.qdrant:
-            return []
-
-        try:
-            anchor_vec = await self.cognitive_service.get_embedding_for_code(
-                symbol_name
-            )
-            if not anchor_vec:
-                return []
-        except Exception as e:
-            logger.error("Failed to get anchor embedding: %s", e)
-            return []
-
-        min_score = 1.0 - max_distance
-
-        try:
-            results = await self.qdrant.search_similar(
-                query_vector=anchor_vec,
-                limit=top_k,
-                with_payload=True,
-            )
-
-            items: list[dict[str, Any]] = []
-            for hit in results:
-                score = float(hit.get("score", 0.0))
-                if score < min_score:
-                    continue
-
-                item = self._format_hit(hit)
-                item["distance"] = 1.0 - score
-                items.append(item)
-
-            return items
-        except Exception as e:
-            logger.error("Neighbor search failed: %s", e, exc_info=True)
-            return []
-
     def _format_hit(self, hit: dict[str, Any]) -> dict[str, Any]:
         """Normalize a Qdrant hit into an evidence item.
 

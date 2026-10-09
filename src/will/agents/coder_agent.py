@@ -28,7 +28,6 @@ from will.agents.code_generation import (
 )
 from will.agents.coder_agent_refusal_handler import handle_code_generation_result
 from will.orchestration.decision_tracer import DecisionTracer
-from will.orchestration.validation_pipeline import validate_code_async
 
 
 if TYPE_CHECKING:
@@ -231,12 +230,3 @@ class CoderAgent:
             return sum(a * b for a, b in zip(v_code, v_goal))
         except Exception:
             return 0.5
-
-    # ID: 1801d0a5-ded5-4f76-b85b-f6b2ce547b11
-    async def validate_output(self, code: str, file_path: str) -> dict[str, Any]:
-        """Perform checks on output."""
-        return await validate_code_async(
-            file_path,
-            code,
-            auditor_context=self.auditor_context,
-        )

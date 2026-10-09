@@ -168,30 +168,6 @@ class PatternValidator:
 
         return "unknown"
 
-    # ID: 412ade61-2b7e-48de-8327-eaea101affbb
-    def infer_component_type(self, task: ExecutionTask) -> str:
-        """
-        Infer the component type from task metadata.
-        """
-        file_path = task.params.file_path or ""
-
-        if "test_" in file_path or "/tests/" in file_path:
-            return "utility"
-
-        if "shared/utils" in file_path or "shared/universal" in file_path:
-            return "utility"
-
-        if "cli/commands" in file_path:
-            return "command"
-        elif "services" in file_path:
-            return "service"
-        elif "agents" in file_path:
-            return "agent"
-        elif "body/atomic" in file_path:
-            return "action"
-        else:
-            return "utility"
-
     # ID: 4d65d262-2cc0-4228-b12f-e45d1a341c14
     def get_pattern_requirements(self, pattern_id: str) -> str:
         """

@@ -150,28 +150,3 @@ async def sort_imports_handler(
         return FixResult(
             ok=False, error_message=f"Ruff failed: {e!s}", changes_made=None
         )
-
-
-# ID: 673eec52-3119-407d-b4ef-fbe0fdde22ef
-async def test_handler(repo_root: Path):
-    """
-    Quick test function to verify the handler works.
-    """
-    from shared.models import AuditSeverity
-
-    test_finding = AuditFinding(
-        check_id="style.import_order",
-        severity=AuditSeverity.HIGH,
-        message="Imports not sorted",
-        file_path="src/body/cli/admin_cli.py",
-        line_number=None,
-    )
-    file_handler = FileHandler(str(repo_root))
-    result = await sort_imports_handler(
-        finding=test_finding,
-        file_handler=file_handler,
-        repo_root=repo_root,
-        write=False,
-    )
-    logger.info("Test result: %s", result)
-    return result

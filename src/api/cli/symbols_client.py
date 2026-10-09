@@ -26,13 +26,3 @@ class SymbolsClient:
 
     def __init__(self, facade: CoreApiClient) -> None:
         self._facade = facade
-
-    # ID: 47732c8c-03f9-4553-9e28-490a2bbc37f1
-    async def get_unassigned(self) -> dict:
-        """GET /v1/symbols/unassigned — symbols with no capability assignment."""
-        return await self._facade._request("GET", "/v1/symbols/unassigned")
-
-    # ID: 01a59d9c-3fac-42b2-b9e0-5082f26c694e
-    async def get_drift(self) -> dict:
-        """GET /v1/symbols/drift — pipeline-sourced drift summary."""
-        return await self._facade._request("GET", "/v1/symbols/drift")

@@ -108,26 +108,6 @@ def show_step_header(step_num: int, total_steps: int, title: str) -> None:
     console.print(f"[bold cyan]{title} STEP {step_num}/{total_steps}[/bold cyan]")
 
 
-# ID: 6699412d-b837-4213-8426-7ea1ecbd1f61
-def show_code_preview(code: str, message: str = "Preview (first 20 lines):") -> None:
-    """
-    Display code preview with syntax highlighting.
-
-    Args:
-        code: Code to display
-        message: Optional message before preview
-    """
-    console.print(f"[dim]{message}[/dim]")
-    console.print("─" * 60)
-    lines = code.splitlines()[:20]
-    syntax = Syntax("\n".join(lines), "python", theme="monokai", line_numbers=True)
-    console.print(syntax)
-    if len(code.splitlines()) > 20:
-        console.print(f"[dim]... ({len(code.splitlines()) - 20} more lines)[/dim]")
-    console.print("─" * 60)
-    console.print()
-
-
 # ID: 71efbee8-d95e-4fd3-9fe6-d9f172d22ef7
 def show_full_code(code: str) -> None:
     """

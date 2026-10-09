@@ -273,22 +273,3 @@ class RefusalResult(ComponentResult):
             lines.append(f"Original request: {self.original_request}")
 
         return "\n".join(lines)
-
-    # ID: 239d9dc0-f7bc-482f-937b-ee95ecaa29f7
-    def to_trace_entry(self) -> dict[str, Any]:
-        """
-        Format refusal for decision trace.
-
-        Returns:
-            Dict suitable for DecisionTracer.record()
-        """
-        return {
-            "decision_type": "refusal",
-            "refusal_type": self.refusal_type,
-            "reason": self.reason,
-            "suggested_action": self.suggested_action,
-            "original_request": self.original_request,
-            "component_id": self.component_id,
-            "phase": self.phase.value if self.phase else "unknown",
-            "confidence": self.confidence,
-        }

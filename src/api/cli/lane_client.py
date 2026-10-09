@@ -27,28 +27,6 @@ class LaneClient:
     def __init__(self, facade: CoreApiClient) -> None:
         self._facade = facade
 
-    # ID: edcf8cfb-a897-4699-bd3b-5d4e2b0eafce
-    async def list_delegated(self, limit: int = 50) -> dict:
-        """GET /v1/lane — list delegated findings (the assisted-lane queue)."""
-        return await self._facade._request(
-            "GET",
-            "/v1/lane",
-            params={"limit": limit},
-        )
-
-    # ID: bbfbfc6b-1ad5-40cc-b396-db7e93a9ec20
-    async def get_delegated(self, finding_id: str) -> dict:
-        """GET /v1/lane/{finding_id} — one delegated finding (404 if not live)."""
-        return await self._facade._request(
-            "GET",
-            f"/v1/lane/{finding_id}",
-        )
-
-    # ID: ecd39346-ba69-4d36-b086-9a9032604f47
-    async def next_delegated(self) -> dict:
-        """GET /v1/lane/next — the oldest delegated finding (404 if empty)."""
-        return await self._facade._request("GET", "/v1/lane/next")
-
     # ID: fb8b18eb-6c8f-4e83-b93e-40c3fd375410
     async def claim(self, finding_id: str, agent: str) -> dict:
         """POST /v1/lane/{finding_id}/claim — mark a finding as being worked."""

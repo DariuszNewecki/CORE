@@ -55,29 +55,3 @@ class VectorLinkRepository:
 
         logger.info("Deleted %d dangling links (not yet committed)", count)
         return count
-
-    # ID: beb0192f-3b36-41f4-9418-3e8e95d3736b
-    async def get_all_links(self) -> list[tuple[str, str]]:
-        """Get all symbol-vector links as (symbol_id, vector_id) tuples."""
-        result = await self.session.execute(
-            text(
-                """
-                SELECT symbol_id, vector_id::text
-                FROM core.symbol_vector_links
-            """
-            )
-        )
-        return [(row.symbol_id, row.vector_id) for row in result]
-
-    # ID: 9d73006e-a319-43c9-b3c3-82f923f7a44e
-    async def get_all_vector_ids(self) -> set[str]:
-        """Get all unique vector IDs referenced in links."""
-        result = await self.session.execute(
-            text(
-                """
-                SELECT DISTINCT vector_id::text
-                FROM core.symbol_vector_links
-            """
-            )
-        )
-        return {row.vector_id for row in result}

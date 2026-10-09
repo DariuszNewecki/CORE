@@ -14,7 +14,6 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import desc, or_, select
@@ -187,28 +186,6 @@ class DecisionTraceRepository:
             next_cursor = encode_cursor(last.created_at, str(last.id))
         return page, has_more, next_cursor
 
-    # ID: 3d680f10-ce36-4533-80bc-a589002c8e12
-    async def get_by_date_range(
-        self,
-        start_date: datetime,
-        end_date: datetime,
-        agent_name: str | None = None,
-    ) -> list[DecisionTrace]:
-        stmt = (
-            select(DecisionTrace)
-            .where(
-                DecisionTrace.created_at >= start_date,
-                DecisionTrace.created_at <= end_date,
-            )
-            .order_by(desc(DecisionTrace.created_at))
-        )
-
-        if agent_name:
-            stmt = stmt.where(DecisionTrace.agent_name == agent_name)
-
-        result = await self._session.execute(stmt)
-        return list(result.scalars().all())
-
     # ID: 06a534cf-e651-4166-9de4-e5ca2063e76f
     async def get_pattern_stats(
         self,
@@ -223,43 +200,3 @@ class DecisionTraceRepository:
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
-
-    # ID: 1f913131-8382-4711-adf5-ec7d1fb39125
-    async def count_by_agent(self, days: int = 7) -> dict[str, int]:
-        from datetime import timedelta
-
-        from sqlalchemy import func
-
-        cutoff = datetime.now() - timedelta(days=days)
-
-        stmt = (
-            select(
-                DecisionTrace.agent_name, func.count(DecisionTrace.id).label("count")
-            )
-            .where(DecisionTrace.created_at >= cutoff)
-            .group_by(DecisionTrace.agent_name)
-        )
-
-        result = await self._session.execute(stmt)
-        return {row.agent_name: row.count for row in result}
-
-    # ID: 6e5f9fd8-5b7f-4632-8956-e5303c253088
-    async def delete_old_traces(
-        self, days: int = _CFG_REPO.decision_trace_retention_days
-    ) -> int:
-        from datetime import timedelta
-
-        from sqlalchemy import delete
-
-        cutoff = datetime.now() - timedelta(days=days)
-
-        stmt = delete(DecisionTrace).where(DecisionTrace.created_at < cutoff)
-        result = await self._session.execute(stmt)
-        deleted_count = result.rowcount or 0
-
-        await self._session.commit()
-
-        logger.info(
-            "Deleted %d decision traces older than %d days", deleted_count, days
-        )
-        return deleted_count

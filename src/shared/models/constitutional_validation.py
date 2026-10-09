@@ -174,11 +174,6 @@ class ConstitutionalBatchValidationResult:
         """Total warning-level violations across all results."""
         return sum(r.warning_count() for r in self.results)
 
-    # ID: b009e19e-8c5e-4ae0-8d4f-17a5f0dcb85f
-    def add_result(self, result: ConstitutionalValidationResult) -> None:
-        """Add a validation result to the batch."""
-        self.results.append(result)
-
     # ID: 3f100fc5-c403-4f88-ae37-3b8b07d609ae
     def has_errors(self) -> bool:
         """Check if any results contain error-level violations."""

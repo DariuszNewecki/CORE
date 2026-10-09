@@ -232,19 +232,6 @@ class ProposalService:
     # Convenience Methods
     # -------------------------
 
-    # ID: bdd4ca3b-32e5-46ae-bf1b-c3b1cbb96776
-    async def get_or_fail(self, proposal_id: str) -> Proposal:
-        """
-        Get proposal or raise error if not found.
-
-        Raises:
-            ValueError: If proposal doesn't exist
-        """
-        proposal = await self.get(proposal_id)
-        if not proposal:
-            raise ValueError(f"Proposal not found: {proposal_id}")
-        return proposal
-
     # -------------------------
     # Blast Radius / Scope
     # -------------------------

@@ -27,7 +27,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from body.infrastructure.storage.file_handler import FileHandler
@@ -151,32 +150,6 @@ def find_duplicates(
 # ---------------------------------------------------------------------------
 # DB-backed tiebreaker (optional: determines which occurrence to preserve)
 # ---------------------------------------------------------------------------
-
-
-# ID: 8727df72-cc4e-4e8e-b350-8641c2a8b8c2
-async def _get_symbol_creation_dates(session: AsyncSession) -> dict[str, str]:
-    """
-    Queries the database to get the creation timestamp for each symbol UUID.
-
-    Used as a tiebreaker: the oldest DB entry is the "original" and gets
-    preserved; newer collisions get fresh UUIDs.
-
-    Args:
-        session: Active database session.
-
-    Returns:
-        Mapping of UUID string -> ISO timestamp string.
-    """
-    try:
-        result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
-        return {str(row[0]): row[1].isoformat() for row in result}
-    except Exception as e:
-        logger.warning(
-            "Could not fetch symbol creation dates from DB (%s). "
-            "Falling back to first-occurrence-wins.",
-            e,
-        )
-        return {}
 
 
 # ---------------------------------------------------------------------------

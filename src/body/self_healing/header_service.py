@@ -98,14 +98,6 @@ class HeaderService:
                 context, Path(issue["file"]), issue["expected_header"], write
             )
 
-    async def _fix_all(self, context: CoreContext, write: bool = False) -> None:
-        """Fixes all header violations in the project via the Action Gateway."""
-        issues = self.analyze_all()
-        for issue in issues:
-            await self._apply_fix(
-                context, Path(issue["file"]), issue["expected_header"], write
-            )
-
     async def _apply_fix(
         self, context: CoreContext, file_path: Path, expected_header: str, write: bool
     ) -> None:

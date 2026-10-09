@@ -269,22 +269,6 @@ class IntentRepository(RootedRepository):
         policy_id = policy_id.strip().lstrip("/")
         return any(p.exists() for p in self._candidate_paths_for_id(policy_id))
 
-    # ID: 375428ca-11be-4c31-b12b-9e0f7c11b766
-    def list_workflows(self) -> list[str]:
-        base = self.resolve_rel("workflows/definitions")
-        if not base.exists():
-            return []
-
-        out: list[str] = []
-        for path in self._iter_policy_files(base):
-            try:
-                rel = path.relative_to(self._root)
-                out.append(str(rel.with_suffix("")).replace("\\", "/"))
-            except ValueError:
-                continue
-
-        return sorted(out)
-
     # ID: 06c6ab43-78ba-4ab0-8bf1-fb21c68a86e4
     def load_workflow(self, workflow_id: str) -> dict[str, Any]:
         workflow_id = workflow_id.strip().lstrip("/")
@@ -582,12 +566,6 @@ class IntentRepository(RootedRepository):
         assert self._policy_index is not None
         return sorted(self._policy_index.values(), key=lambda r: r.policy_id)
 
-    # ID: 67cb646c-80dc-417e-a0b7-efcc7b626a92
-    def list_governance_map(self) -> dict[str, list[str]]:
-        self._ensure_index()
-        assert self._hierarchy is not None
-        return {k: list(v) for k, v in self._hierarchy.items()}
-
     # ID: 3a1b4d07-980d-4869-b512-3c57fbb85297
     def list_artifact_types(self) -> list[ArtifactTypeRef]:
         """Return all loaded artifact-type declarations, sorted by id.
@@ -615,21 +593,6 @@ class IntentRepository(RootedRepository):
                 f"Registered: {sorted(self._artifact_type_index.keys())}"
             )
         return ref
-
-    # ID: c8b1701b-7849-453f-b15c-3eeddde6becf
-    def list_packs(self) -> list[str]:
-        """Return all pack IDs available in the pack registry.
-
-        Packs are adoptable governance products, not CORE's own law (ADR-149):
-        they live in the repo-root `packs/` directory, a sibling of `.intent/`,
-        resolved as the law-root's parent. A repository without `packs/` (a
-        pip-installed adopter) reads the registry bundled with core-runtime.
-        """
-        from shared.infrastructure.bundled_packs import pack_registry_dir
-        from shared.infrastructure.intent.pack_loader import PackLoader
-
-        with pack_registry_dir(self._root.parent) as packs_dir:
-            return PackLoader(packs_dir).list_pack_ids()
 
     # ID: 61c28228-0704-45f7-addd-b81a378d6a42
     def load_pack(self, pack_id: str) -> object | None:

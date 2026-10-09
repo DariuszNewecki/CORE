@@ -189,19 +189,6 @@ def load_action_risk_raw() -> dict[str, Any]:
     return dict(_FALLBACK_MAPPING)
 
 
-# ID: 6da0f4ae-3b1c-4f8d-ae5b-7c9b1d4f6a8e
-def get_impact_level(action_id: str) -> str:
-    """
-    Return the impact level for a given action_id.
-
-    Raises KeyError if the action_id is not present in the mapping —
-    callers must register every action in
-    .intent/enforcement/config/action_risk.yaml.
-    """
-    mapping = load_action_risk()
-    return mapping[action_id]
-
-
 _SAFE_AUTO_APPROVAL_ENVELOPE_KEYS: frozenset[str] = frozenset(
     {"authorized_actions", "authorized_path_prefixes", "authorized_extensions"}
 )

@@ -40,22 +40,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-def _resolve_prompt_template_path(
-    path_resolver: PathResolver, prompt_name: str
-) -> Path | None:
-    """
-    Resolve a prompt template path via the provided PathResolver.
-    """
-    try:
-        path = path_resolver.prompt(prompt_name)
-        if path.exists():
-            return path
-        return None
-    except Exception as e:
-        logger.warning("Failed to resolve prompt template '%s': %s", prompt_name, e)
-        return None
-
-
 # ID: ac97401b-a517-4bf2-ac0b-e86e57b799bb
 class CodeGenerator:
     """Handles prompt construction and code generation via LLM."""

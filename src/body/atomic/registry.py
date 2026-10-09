@@ -160,21 +160,6 @@ class ActionRegistry:
         """Get action definition by ID."""
         return self._actions.get(action_id)
 
-    # ID: 581f471f-e54e-480a-a899-ef045d17766b
-    def get_by_check_id(self, check_id: str) -> ActionDefinition | None:
-        """
-        Look up the action that remediates the given audit check_id.
-
-        Used by ViolationRemediatorWorker to map Blackboard findings
-        directly to executable actions — no static YAML required.
-
-        Returns None if no registered action claims this check_id.
-        """
-        action_id = self._remediates_index.get(check_id)
-        if not action_id:
-            return None
-        return self._actions.get(action_id)
-
     # ID: ca528fc8-59d1-4109-a70a-2c5d643efbd8
     def get_by_category(self, category: ActionCategory) -> list[ActionDefinition]:
         """Get all actions in a category."""

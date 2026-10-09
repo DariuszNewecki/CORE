@@ -110,22 +110,6 @@ class DBProvider:
 
         return evidence
 
-    # ID: 3560f987-718b-409d-bd20-e98cc4c5f7c9
-    async def get_related_symbols(
-        self,
-        symbol_id: str,
-        depth: int,
-    ) -> list[dict[str, Any]]:
-        if depth <= 0 or not self._session_factory:
-            return []
-
-        async with self._session_factory() as db:
-            result = await db.execute(
-                _SQLRegistry.GRAPH_TRAVERSAL,
-                {"symbol_id": symbol_id, "depth": depth},
-            )
-            return [self._format_mapping_row(row) for row in result.mappings().all()]
-
     def _format_symbol_row(self, row: Any) -> dict[str, Any]:
         module = getattr(row, "module", "") or ""
         qualname = getattr(row, "qualname", "") or ""

@@ -79,13 +79,6 @@ class SpecsRepository(RootedRepository):
 
         return sorted(p for p in base.rglob(f"*{suffix}") if p.is_file())
 
-    # ID: 0a86e141-87e9-487f-9854-ac4d9067c070
-    def list_subdirs(self) -> list[str]:
-        """List immediate subdirectories of the specs root, sorted by name."""
-        if not self._root.exists() or not self._root.is_dir():
-            return []
-        return sorted(p.name for p in self._root.iterdir() if p.is_dir())
-
 
 _specs_repo_instance: SpecsRepository | None = None
 _SPECS_REPO_LOCK = Lock()
