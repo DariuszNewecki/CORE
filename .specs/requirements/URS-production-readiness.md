@@ -8,7 +8,7 @@ status: accepted
 
 # URS — Production Readiness
 
-**Status:** Active — governor-ratified definition (2026-07-05; revised 2026-07-22).
+**Status:** Active — governor-ratified definition (2026-07-05; revised 2026-07-22; G4 revised 2026-10-09).
 **Authority:** Requirements
 **Scope:** `core-runtime`. Defines the conditions under which `core-runtime` may be
 described as production-ready. Platform concerns extracted to `core-platform` (authentication,
@@ -116,19 +116,52 @@ governance bypass — are blocking, not reporting.
 
 ---
 
-### G4 — Autonomous loop reliability demonstrated by soak
+### G4 — Autonomous loop reliability demonstrated in continuous operation
 
-**Requirement:** Workers run against a non-trivial repository for ≥ 72 hours without
-silent stalls, duplicate proposals, stuck drafts, zombie leases, or unclaimed failures.
+**Requirement:** CORE's loop runs continuously against a repository under real, ongoing
+development, and CORE's own record shows, over a sustained window, that it **catches**
+problems in the work being done, **fixes** the ones it is permitted to fix without human
+help, and stays **healthy** while doing so. The repository is never frozen for the
+measurement: development, pushes, restarts and law changes continue and are recorded as
+events in the window, not treated as disqualifiers.
+
+*Revised 2026-10-09 (proposal 0008).* The earlier definition — a ≥ 72-hour soak on a frozen
+`main` — is retired. Two runs (2026-07-23, 2026-09-22) showed what it measures: with no
+work happening there is nothing to catch or fix, so a frozen soak cannot tell "broken" from
+"idle", and it halts development for days to learn nothing. A test that requires CORE to
+sit idle is the wrong test.
 
 **Acceptance criteria:**
-- A soak run of ≥ 72 hours completes with workers and autonomous proposals enabled.
-- All workers post blackboard entries within their declared `max_interval` throughout
-  the run (no silent stalls).
-- No runaway duplicate proposals: the same finding does not generate unbounded proposals.
-- No unauthorized writes during the run.
-- All failures during the run are classified; no proposal ends the run in an ambiguous
-  state.
+- **Continuous, generated record.** A Soak NG report is produced by CORE at least daily
+  from its own records (blackboard, proposals, consequences, git history, service journal)
+  — never assembled by hand. Each criterion below is computed per day and over the window.
+- **Window.** The gate is evaluated over 30 consecutive days of normal operation, ending at
+  the report the governor signs. Pushes, daemon restarts and `.intent/` changes inside the
+  window are listed as events with their time and author.
+- **Fixes (autonomous).** At least one chain in the window runs finding → proposal → real
+  commit → consequence record that names the finding it resolved, with no human action
+  between the finding and the consequence other than an approval the law requires. No-op
+  completions count zero. Test-generation chains and rule-violation chains are reported
+  separately. Every finding of a rule with an ACTIVE fixer reaches a terminal or
+  explicitly delegated state.
+- **Catches.** Every objection CORE raises against a producer's change — a blocking audit
+  or pre-commit finding, a `change_verdict` of BLOCKED, a refused proposal, a CI block from
+  a CORE rule — is recorded with what happened next (change revised, rule changed, or
+  overridden by the governor). Overrides are listed by name.
+- **Attribution.** Every commit in the window is attributed to its producer — CORE
+  (a proposal consequence), an assistant, or the governor. A fix is credited to CORE only
+  through a consequence record; a problem fixed by hand before CORE acted is reported as
+  such, not as an autonomous fix.
+- **Health, throughout the window:**
+  - no silent stalls — every declared worker posts within its `max_interval` plus glide-off;
+  - no runaway duplicates — the same finding does not generate unbounded proposals, and
+    proposals on one target do not overlap;
+  - no stuck pending — no envelope-eligible proposal waits longer than one remediator cycle;
+  - no zombie claims — no finding stays claimed by a worker that is no longer alive;
+  - no unauthorized writes — every commit is a proposal consequence or has a named human or
+    assistant author;
+  - every failure classified — no proposal ends the window in an ambiguous state.
+- **Signature.** The governor signs the window's report; Claude never signs it.
 
 ---
 

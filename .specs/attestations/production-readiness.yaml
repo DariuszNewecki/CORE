@@ -69,19 +69,22 @@ gates:
     urs_ref: URS-production-readiness.md#g3
 
   - id: G4
-    name: Autonomous loop reliability demonstrated by soak
+    name: Autonomous loop reliability demonstrated in continuous operation
     status: not_demonstrated
     gap: >-
-      A 72h soak ran (f7430b25, 2026-07-23 → 2026-07-26; NRestarts=0, ~35 workers,
-      68,495 blackboard entries) and proved loop continuity only: 0 of 16,445 findings
-      posted in the window reached a proposal or a consequence record — the only
-      actionable class was abandoned by the remediation circuit breaker before any
-      proposal could be created. Not accepted as G4 evidence. A qualifying soak needs a
-      pre-declared throughput condition (≥ 1 finding → proposal → consequence chain
-      completed under soak) recorded before it starts.
+      Redefined 2026-10-09 (proposal 0008): measured continuously during normal
+      development — catches, autonomous fixes, attribution and health over 30 consecutive
+      days, from a daily report CORE generates itself — not by a frozen soak. Not yet
+      instrumented: the daily Soak NG report does not exist, consequences rarely record
+      which finding they resolved (findings_resolved, ~3% on 2026-10-03), and catches
+      (pre-commit / change_verdict / CI blocks) are not recorded. History: two frozen
+      72h soaks (2026-07-23, 2026-09-22) proved continuity only, 0 completed chains each —
+      no work, no fuel. The loop does close in normal operation (254 completed with
+      consequence, 2026-09-26 → 10-03), unsigned.
     evidence:
       - ".specs/attestations/soak-closure-f7430b25-20260726.md (continuity; Note 2026-09-14)"
       - ".specs/attestations/soak-f7430b25-findings-to-outcome-20260914.md (0/16,445; reproduced 2026-09-14)"
+      - ".specs/attestations/soak-g4-predeclaration-2026Q4.md (2026-09-22 run: continuity pass, T-A = 0; superseded by proposal 0008)"
     attestation: null
     blocking_issues: [799]
     urs_ref: URS-production-readiness.md#g4

@@ -317,7 +317,7 @@ Progress: **2/15 met** · 12 partial · 1 not demonstrated.
 | G1 — Fresh-install proof | ⚠️ partial | CI-automated fresh-install absent; manual cold-room only |
 | G2 — Constitutional enforcement is deterministic and regression-tested | ⚠️ partial | Every blocking rule has a violating and a compliant fixture (registry, CI-enforced); the registry's verified labels are assigned by its authors and have not been independently audited for fixture depth |
 | G3 — Layer integrity is machine-enforced and blocking | ⚠️ partial | Several layer rules at reporting severity (no_body_to_will, will.no_direct_database_access); reporting-only set not formally documented |
-| G4 — Autonomous loop reliability demonstrated by soak | ❌ not demonstrated | A 72h soak ran (f7430b25, 2026-07-23 → 2026-07-26; NRestarts=0, ~35 workers, 68,495 blackboard entries) and proved loop continuity only: 0 of 16,445 findings posted in the window reached a proposal or a consequence record — the only actionable class was abandoned by the remediation circuit breaker before any proposal could be created. Not accepted as G4 evidence. A qualifying soak needs a pre-declared throughput condition (≥ 1 finding → proposal → consequence chain completed under soak) recorded before it starts. |
+| G4 — Autonomous loop reliability demonstrated in continuous operation | ❌ not demonstrated | Redefined 2026-10-09 (proposal 0008): measured continuously during normal development — catches, autonomous fixes, attribution and health over 30 consecutive days, from a daily report CORE generates itself — not by a frozen soak. Not yet instrumented: the daily Soak NG report does not exist, consequences rarely record which finding they resolved (findings_resolved, ~3% on 2026-10-03), and catches (pre-commit / change_verdict / CI blocks) are not recorded. History: two frozen 72h soaks (2026-07-23, 2026-09-22) proved continuity only, 0 completed chains each — no work, no fuel. The loop does close in normal operation (254 completed with consequence, 2026-09-26 → 10-03), unsigned. |
 | G5 — Mutation-lane equivalence and lifecycle safety | ⚠️ partial | claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified |
 | G6 — Risk model is governed, correct, and regression-tested | ⚠️ partial | else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited |
 | G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
@@ -402,16 +402,18 @@ steps is demonstrable on demand: `core-admin demo consequence-chain` exercises t
 finding → proposal → approval → execution → consequence → re-audit path in an isolated run,
 and both chains in the Live Audit Trail above came out of the real database.
 
-What is *not* yet demonstrated is that the same loop closes unattended over a long window.
-That is gate G4, and the standing bar for it is a soak whose throughput condition — at least
-one completed finding → proposal → consequence chain — is declared *before* the run starts.
+What is *not* yet demonstrated is that the same loop holds up in continuous operation. That
+is gate G4. Since 2026-10-09 it is measured during normal development, not by a frozen soak:
+over 30 consecutive days, a report CORE generates itself must show what CORE caught in the
+work being done, what it fixed on its own — finding → proposal → commit → a consequence
+record naming the finding — who produced every commit, and that the loop stayed healthy.
 
-**Last completed attempt:** the 72-hour soak of 2026-07-23 → 2026-07-26 (baseline `f7430b25`)
-ran clean at the process level — no restarts, ~35 workers, 68,495 blackboard entries — and
-produced **zero** completed chains out of 16,445 findings. The one actionable class inherited
-a remediation attempt count at the file-level cap, so the circuit breaker abandoned it before
-a proposal could be created. The breaker did its job; the governed loop did not close. That
-run is retained as evidence of continuity and was explicitly not accepted as G4 evidence.
+**Why not a soak:** two frozen 72-hour soaks (2026-07-23, baseline `f7430b25`; 2026-09-22)
+ran clean at the process level — no restarts, all workers live — and each produced **zero**
+completed chains. With development frozen there was little to catch or fix, and what fuel
+existed had inherited a remediation attempt count at the circuit-breaker cap (fixed since).
+A test that needs CORE to sit idle cannot tell a broken loop from an idle one. Both runs are
+retained as evidence of continuity, not of G4.
 
 "Demonstrable on demand" and "reliable unattended" are different claims, and CORE only makes
 the first one today.

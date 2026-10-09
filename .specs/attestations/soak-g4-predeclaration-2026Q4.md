@@ -2,6 +2,13 @@
 
 **Status:** committed 2026-09-21 on the governor's Path A instruction, before T0; §0's SHA and T0 are filled by the governor at the moment the clock starts, from `origin/main` at that moment. Signature is the governor's, at §0.
 
+> **Superseded 2026-10-09 (proposal 0008).** G4 is no longer measured by a frozen soak; see
+> `.specs/requirements/URS-production-readiness.md#g4` (continuous measurement during normal
+> development). The run this document declared started at T0 2026-09-22T15:41:39+02:00:
+> continuity C1–C9 held, T-A = 0 — G4 not met (`var/reports/g4-t1-reading-20260930.md`).
+> Kept unchanged below as the record of that run; its health conditions (C1–C7) carry into
+> the new definition, its freeze and disqualifiers (§4) do not.
+
 Gate: `.specs/requirements/URS-production-readiness.md#g4` — "Workers run against a
 non-trivial repository for ≥ 72 hours without silent stalls, duplicate proposals, stuck
 drafts, zombie leases, or unclaimed failures." Manifest gap (2026-09-14): the f7430b25 soak
