@@ -41,6 +41,7 @@ logger = getLogger(__name__)
 # "src/x.py:12: unused function 'bar' (60% confidence)"
 _VULTURE_LINE = re.compile(r"^(?P<file>[^:]+):(?P<line>\d+): (?P<msg>.+)$")
 _KIND = re.compile(r"^unused (?P<kind>\w+)|^(?P<code>unreachable) code")
+_NAME = re.compile(r"'(?P<name>[^']+)'")
 _SAMPLE_CAP = 10
 
 
@@ -62,6 +63,16 @@ class DeadCodeCheck(WorkflowCheck):
         # If a specific file is provided, check only that, otherwise check src/
         target = str(file_path) if file_path else "src/"
         kinds = set(params.get("report_kinds") or [])
+        baseline: set[str] = set()
+        if params.get("baseline"):
+            try:
+                baseline = _load_baseline(
+                    Path(self._paths.repo_root), str(params["baseline"])
+                )
+            except Exception as e:
+                # Fail loud: an unreadable baseline must not silently turn
+                # into "report everything" or "report nothing".
+                return [f"Dead code baseline unreadable: {e}"]
         try:
             result = await run_vulture(
                 target=target,
@@ -85,6 +96,8 @@ class DeadCodeCheck(WorkflowCheck):
             kind = (k["kind"] or k["code"]) if k else "other"
             if kinds and kind not in kinds:
                 continue
+            if baseline and _baseline_key(m["file"], m["msg"]) in baseline:
+                continue
             files.setdefault(m["file"], []).append((int(m["line"]), m["msg"]))
 
         return [
@@ -104,8 +117,33 @@ class DeadCodeCheck(WorkflowCheck):
         ]
 
 
+def _baseline_key(file: str, msg: str) -> str:
+    """Key a vulture item by file and symbol name, not line (lines shift)."""
+    n = _NAME.search(msg)
+    return f"{file}::{n['name'] if n else msg}"
+
+
+def _load_baseline(repo_root: Path, rel: str) -> set[str]:
+    """Known dead-code candidates recorded in the law (ratchet baseline).
+
+    The check reports only items not listed here, so new dead code surfaces
+    while the recorded debt stays visible in .intent/ instead of in the
+    governor's inbox. Entries are "src/path.py::symbol_name".
+    """
+    intent = IntentRepository(root=repo_root / ".intent", strict=False)
+    doc = intent.load_document(repo_root / ".intent" / rel)
+    entries = doc.get("baseline") or []
+    if not isinstance(entries, list):
+        raise ValueError(f"{rel}: 'baseline' must be a list")
+    return {str(e) for e in entries}
+
+
 def _intent_declared_class_names(repo_root: Path) -> set[str]:
-    """Class names .intent/ declares for import_module loading."""
+    """Names .intent/ declares for dynamic loading, invisible to vulture.
+
+    Worker classes and phase implementations (import_module), and the
+    ``check_method`` names mappings dispatch by getattr.
+    """
     names: set[str] = set()
     try:
         intent = IntentRepository(root=repo_root / ".intent", strict=False)
@@ -117,6 +155,11 @@ def _intent_declared_class_names(repo_root: Path) -> set[str]:
             impl = doc.get("implementation")
             if isinstance(impl, str) and "." in impl:
                 names.add(impl.rsplit(".", 1)[1])
+        for _, doc in intent.iter_documents(under="enforcement/mappings"):
+            for mapping in (doc.get("mappings") or {}).values():
+                method = ((mapping or {}).get("params") or {}).get("check_method")
+                if isinstance(method, str):
+                    names.add(method)
     except Exception as e:
         logger.warning("dead_code_check: cannot read .intent declarations: %s", e)
     return names

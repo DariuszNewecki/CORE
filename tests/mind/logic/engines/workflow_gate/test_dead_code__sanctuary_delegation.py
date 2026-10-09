@@ -165,5 +165,96 @@ async def test_verify_recovers_from_sanctuary_failure(tmp_path: Path) -> None:
     assert "vulture not found" in violations[0]
 
 
+_TWO_ITEMS = (
+    "src/a.py:3: unused function 'old_debt' (60% confidence)\n"
+    "src/a.py:9: unused function 'new_dead' (60% confidence)\n"
+)
+
+
+def _write_baseline(tmp_path: Path, entries: list[str]) -> str:
+    rel = "enforcement/config/dead_code_baseline.yaml"
+    path = tmp_path / ".intent" / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("baseline:\n" + "".join(f'  - "{e}"\n' for e in entries))
+    return rel
+
+
+# ID: 5b5c297e-dac9-4717-8c3c-f04d5e1f6786
+async def test_baseline_suppresses_recorded_items_only(tmp_path: Path) -> None:
+    """Ratchet: an item recorded in the baseline (file::name) is not reported;
+    a new one in the same file is. Keyed by name, so line shifts don't matter."""
+    rel = _write_baseline(tmp_path, ["src/a.py::old_debt"])
+    check = _make_check(tmp_path)
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+        new=AsyncMock(return_value=SubprocessResult(_TWO_ITEMS, "", 3)),
+    ):
+        violations = await check.verify(file_path=None, params={"baseline": rel})
+
+    assert len(violations) == 1
+    v = violations[0]
+    assert isinstance(v, StructuredViolation)
+    assert v.context["issue_count"] == 1
+    assert "new_dead" in v.context["sample_issues"][0]
+
+
+# ID: 76c572e8-f152-414d-9004-76e11d9698a0
+async def test_fully_baselined_file_reports_nothing(tmp_path: Path) -> None:
+    rel = _write_baseline(tmp_path, ["src/a.py::old_debt", "src/a.py::new_dead"])
+    check = _make_check(tmp_path)
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+        new=AsyncMock(return_value=SubprocessResult(_TWO_ITEMS, "", 3)),
+    ):
+        violations = await check.verify(file_path=None, params={"baseline": rel})
+
+    assert violations == []
+
+
+# ID: d757ef39-32f4-4609-8940-a8385e34fbd2
+async def test_unreadable_baseline_fails_loud(tmp_path: Path) -> None:
+    """A declared baseline that cannot be read is a finding, never a silent
+    'report everything' or 'report nothing'."""
+    check = _make_check(tmp_path)
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+        new=AsyncMock(return_value=SubprocessResult(_TWO_ITEMS, "", 3)),
+    ) as mock_vulture:
+        violations = await check.verify(
+            file_path=None, params={"baseline": "enforcement/config/missing.yaml"}
+        )
+
+    assert len(violations) == 1
+    assert violations[0].startswith("Dead code baseline unreadable: ")
+    mock_vulture.assert_not_awaited()
+
+
+# ID: 3a093cc4-7283-433f-944c-05bbfff4bbac
+async def test_mapping_check_methods_are_ignored_names(tmp_path: Path) -> None:
+    """Methods a mapping dispatches by getattr (params.check_method) are
+    declared in .intent/, so vulture is told to ignore them."""
+    mappings = tmp_path / ".intent" / "enforcement" / "mappings" / "code"
+    mappings.mkdir(parents=True)
+    (mappings / "modularity.yaml").write_text(
+        "mappings:\n"
+        "  modularity.x:\n"
+        "    engine: ast_gate\n"
+        "    params:\n"
+        "      check_method: check_needs_split\n"
+    )
+    check = _make_check(tmp_path)
+
+    with patch(
+        "mind.logic.engines.workflow_gate.checks.dead_code.run_vulture",
+        new=AsyncMock(return_value=SubprocessResult("", "", 0)),
+    ) as mock_vulture:
+        await check.verify(file_path=None, params={})
+
+    assert "check_needs_split" in mock_vulture.await_args.kwargs["ignore_names"]
+
+
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])
