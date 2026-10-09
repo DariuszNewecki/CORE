@@ -681,8 +681,11 @@ class BlackboardService:
         Mirrors the operator-attribution shape of reject_proposal: reason,
         resolved_by, and resolution_authority are stamped into payload under
         a 'resolution' key so the audit trail survives. Only acts on rows
-        currently in 'indeterminate' status — returns 1 on success, 0 if the
-        row has already transitioned or does not exist.
+        delegated to a human: status 'indeterminate', or status 'open' with
+        resolution_mechanism 'human' (e.g. a writer's tripped safety guard,
+        ADR-070 D8, which waits for governor inspection and had no closing
+        path; #926). Returns 1 on success, 0 if the row has already
+        transitioned, is not delegated to a human, or does not exist.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -708,7 +711,10 @@ class BlackboardService:
                                 true
                             )
                         WHERE id = cast(:entry_id as uuid)
-                          AND status = 'indeterminate'
+                          AND (
+                            status = 'indeterminate'
+                            OR (status = 'open' AND resolution_mechanism = 'human')
+                          )
                         """
                     ),
                     {

@@ -1761,9 +1761,10 @@ Examples:
 core-admin workers resolve ENTRY_ID [OPTIONS]
 ```
 
-Close an indeterminate blackboard finding with an operator-provided reason.
+Close a finding delegated to the governor, with an operator-provided reason.
 
-Symmetric counterpart to 'proposals reject' for findings the audit sensor
+Acts on 'indeterminate' findings and on 'open' findings whose
+resolution_mechanism is 'human'. Symmetric counterpart to 'proposals reject' for findings the audit sensor
 delegated to the governor. Flips status to 'resolved', stamps the
 operator attribution into payload, and stops counting against the
 Governor Inbox.

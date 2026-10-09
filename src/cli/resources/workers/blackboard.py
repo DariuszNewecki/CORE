@@ -251,9 +251,10 @@ async def workers_blackboard_resolve_cmd(
     ),
 ) -> None:
     """
-    Close an indeterminate blackboard finding with an operator-provided reason.
+    Close a finding delegated to the governor, with an operator-provided reason.
 
-    Symmetric counterpart to 'proposals reject' for findings the audit sensor
+    Acts on 'indeterminate' findings and on 'open' findings whose
+    resolution_mechanism is 'human'. Symmetric counterpart to 'proposals reject' for findings the audit sensor
     delegated to the governor. Flips status to 'resolved', stamps the
     operator attribution into payload, and stops counting against the
     Governor Inbox.
@@ -268,8 +269,9 @@ async def workers_blackboard_resolve_cmd(
     )
     if updated == 0:
         console.print(
-            f"[yellow]No change: entry {entry_id} is not in 'indeterminate' "
-            "status or does not exist.[/yellow]"
+            f"[yellow]No change: entry {entry_id} is not delegated to a human "
+            "('indeterminate', or 'open' with resolution_mechanism 'human') "
+            "or does not exist.[/yellow]"
         )
         raise typer.Exit(1)
     console.print(
