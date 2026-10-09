@@ -21,7 +21,7 @@ identity_key: path
 schema_ref: ".specs/META/northstar.header.schema.json"
 change_record: text_diff
 vector_collection: core_specs   # #784 -- matches spec_markdown
-crawler_indexed: false   # #784 -- semantic search served by ADR-022's SpecsAdapter pipeline; still registers in repo_artifacts for CCC/governance
+crawler_indexed: false   # #784 -- semantic search served by ADR-022's SpecsAdapter pipeline; repo_crawler skips this type entirely, so it is not registered in repo_artifacts
 
 supported_sensors:
   - repo_crawler

@@ -23,7 +23,7 @@ identity_key: path
 schema_ref: ".specs/META/paper.header.schema.json"   # ADR-105 D6 hook 1 -- repo-root-relative; consumer lands with the migration
 change_record: text_diff
 vector_collection: core_specs   # matches spec_markdown -- keeps the discovery overlap benign (#784)
-crawler_indexed: false   # #784 -- semantic search served by ADR-022's SpecsAdapter pipeline; still registers in repo_artifacts for CCC/governance
+crawler_indexed: false   # #784 -- semantic search served by ADR-022's SpecsAdapter pipeline; repo_crawler skips this type entirely, so it is not registered in repo_artifacts
 
 supported_sensors:        # ADR-091 D4 -- authored set; introspected via taxonomy_gate
   - repo_crawler
