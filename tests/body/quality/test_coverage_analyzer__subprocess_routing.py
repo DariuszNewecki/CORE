@@ -41,27 +41,3 @@ def test_get_module_coverage_reads_coverage_json(tmp_path: Path) -> None:
 def test_get_module_coverage_timeout_returns_empty(tmp_path: Path) -> None:
     with patch(_RUN, side_effect=SubprocessTimeoutError("t", exit_code=124)):
         assert CoverageAnalyzer(tmp_path).get_module_coverage() == {}
-
-
-def test_measure_coverage_timeout_returns_none(tmp_path: Path) -> None:
-    with (
-        patch(_RUN, side_effect=SubprocessTimeoutError("t", exit_code=124)),
-        patch.object(coverage_analyzer.logger, "error") as err,
-    ):
-        assert CoverageAnalyzer(tmp_path).measure_coverage() is None
-    assert "timed out" in err.call_args[0][0]
-
-
-def test_measure_coverage_falls_back_to_term_output(tmp_path: Path) -> None:
-    term = "Name    Stmts   Miss  Cover\nTOTAL     100     25    75%"
-    with patch(_RUN, return_value=_ok(term)) as run:
-        result = CoverageAnalyzer(tmp_path).measure_coverage()
-    assert result == {"overall_percent": 75.0, "lines_total": 100, "lines_covered": 75}
-    assert (
-        run.call_args.kwargs["timeout"] == coverage_analyzer._CFG.full_run_timeout_sec
-    )
-
-
-def test_measure_coverage_missing_executable_returns_none(tmp_path: Path) -> None:
-    with patch(_RUN, side_effect=FileNotFoundError("poetry")):
-        assert CoverageAnalyzer(tmp_path).measure_coverage() is None

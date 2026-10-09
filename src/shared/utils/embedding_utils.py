@@ -18,14 +18,9 @@ CORE contract:
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
 from typing import Protocol
 
-import numpy as np
-
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.utils.common_knowledge import normalize_text
 
 
 _CFG_EMB = load_operational_config().embedding
@@ -50,37 +45,3 @@ def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
         chunks.append(text[start:end])
         start += max(1, chunk_size - chunk_overlap)
     return chunks
-
-
-# ID: 76aee7d7-fe49-4271-87b8-01fc9b074028
-def sha256_hex(text: str) -> str:
-    """Computes the SHA256 hex digest for a string."""
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-# ID: 31b34c50-e03b-4839-b588-d2a0c76a9004
-async def chunk_and_embed(
-    embedder: Embeddable,
-    text: str,
-    chunk_size: int = _CFG_EMB.chunk_size,
-    chunk_overlap: int = _CFG_EMB.chunk_overlap,
-) -> np.ndarray:
-    """
-    Chunks text, gets embeddings for each chunk in parallel, and returns the
-    averaged embedding vector for the entire text.
-    """
-    text = normalize_text(text)
-    chunks = _chunk_text(text, chunk_size, chunk_overlap)
-    if not chunks:
-        raise ValueError("Cannot generate embedding for empty text.")
-
-    chunk_vectors = await asyncio.gather(*(embedder.get_embedding(c) for c in chunks))
-
-    vector_array = np.array(chunk_vectors, dtype=np.float32)
-    mean_vector = np.mean(vector_array, axis=0)
-
-    norm = np.linalg.norm(mean_vector)
-    if norm == 0:
-        return mean_vector
-
-    return mean_vector / norm

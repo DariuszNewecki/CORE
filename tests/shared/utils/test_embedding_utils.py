@@ -11,11 +11,8 @@ against the dead path being reintroduced.
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
-
 from shared.utils import embedding_utils
-from shared.utils.embedding_utils import _chunk_text, chunk_and_embed, sha256_hex
+from shared.utils.embedding_utils import _chunk_text
 
 
 class _StubEmbedder:
@@ -37,22 +34,3 @@ def test_chunk_text_overlaps() -> None:
     chunks = _chunk_text("abcdefghij", chunk_size=4, chunk_overlap=1)
     assert chunks == ["abcd", "defg", "ghij", "j"]
     assert _chunk_text("", 4, 1) == []
-
-
-def test_sha256_hex_is_stable() -> None:
-    assert sha256_hex("core") == sha256_hex("core")
-    assert len(sha256_hex("core")) == 64
-
-
-async def test_chunk_and_embed_averages_and_normalizes() -> None:
-    embedder = _StubEmbedder()
-    vec = await chunk_and_embed(embedder, "hello world", chunk_size=5, chunk_overlap=0)
-
-    assert len(embedder.calls) >= 2
-    assert vec.dtype == np.float32
-    assert np.isclose(np.linalg.norm(vec), 1.0)
-
-
-async def test_chunk_and_embed_rejects_empty_text() -> None:
-    with pytest.raises(ValueError, match="empty text"):
-        await chunk_and_embed(_StubEmbedder(), "   ")

@@ -439,20 +439,3 @@ class ModularityChecker:
             return []
 
     # Compatibility methods to ensure 'check audit' doesn't break
-    # ID: c964d35a-6041-42e2-80fa-ade2cf3c103e
-    def check_single_responsibility(
-        self, file_path: Path, params: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        return self.check_refactor_score(file_path, params)
-
-    # ID: e3847502-6d16-4f47-88f3-fdc6c0353e62
-    def check_semantic_cohesion(
-        self, file_path: Path, params: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        return self.check_refactor_score(file_path, params)
-
-    # ID: 13dfc006-8cb9-4c3f-949c-7a508b560b77
-    def check_import_coupling(
-        self, file_path: Path, params: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        return self.check_refactor_score(file_path, params)

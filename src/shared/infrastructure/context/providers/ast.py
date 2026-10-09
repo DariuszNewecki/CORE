@@ -7,7 +7,6 @@ from __future__ import annotations
 import ast
 import copy
 from pathlib import Path
-from typing import Any
 
 from shared.logger import getLogger
 
@@ -114,77 +113,3 @@ class ASTProvider:
         finder = ParentScopeFinder(line_number)
         finder.visit(tree)
         return finder.parent.name if finder.parent else None
-
-    # ID: 1fb33ca3-f623-4601-922c-5882f8e3b48f
-    def extract_symbols(self, file_path: str | Path) -> list[dict[str, Any]]:
-        """Extract top-level and nested class/function symbols from a file."""
-        source = self.read_source(file_path)
-        if source is None:
-            return []
-
-        try:
-            tree = ast.parse(source, filename=str(file_path))
-        except SyntaxError as e:
-            logger.debug(
-                "Failed parsing AST for symbol extraction in %s: %s", file_path, e
-            )
-            return []
-
-        lines = source.splitlines()
-        symbols: list[dict[str, Any]] = []
-        stack: list[str] = []
-
-        # ID: 99b3f5ec-e209-47f3-874d-a6760b617bfb
-        class Visitor(ast.NodeVisitor):
-            # ID: 060d0386-a997-446b-b18f-43d1c0cc63c8
-            def visit_ClassDef(self, node: ast.ClassDef) -> None:
-                qualname = ".".join([*stack, node.name]) if stack else node.name
-                end = getattr(node, "end_lineno", node.lineno) or node.lineno
-                code = "\n".join(lines[node.lineno - 1 : end])
-                symbols.append(
-                    {
-                        "name": node.name,
-                        "qualname": qualname,
-                        "signature": code.split("\n")[0],
-                        "code": code,
-                        "docstring": ast.get_docstring(node) or "",
-                    }
-                )
-                stack.append(node.name)
-                self.generic_visit(node)
-                stack.pop()
-
-            # ID: adefde0b-4de5-4040-bc6a-757dfd4b96c0
-            def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-                qualname = ".".join([*stack, node.name]) if stack else node.name
-                end = getattr(node, "end_lineno", node.lineno) or node.lineno
-                code = "\n".join(lines[node.lineno - 1 : end])
-                symbols.append(
-                    {
-                        "name": node.name,
-                        "qualname": qualname,
-                        "signature": code.split("\n")[0],
-                        "code": code,
-                        "docstring": ast.get_docstring(node) or "",
-                    }
-                )
-                self.generic_visit(node)
-
-            # ID: e01bf02d-d6db-41af-a54f-36d529bc6961
-            def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-                qualname = ".".join([*stack, node.name]) if stack else node.name
-                end = getattr(node, "end_lineno", node.lineno) or node.lineno
-                code = "\n".join(lines[node.lineno - 1 : end])
-                symbols.append(
-                    {
-                        "name": node.name,
-                        "qualname": qualname,
-                        "signature": code.split("\n")[0],
-                        "code": code,
-                        "docstring": ast.get_docstring(node) or "",
-                    }
-                )
-                self.generic_visit(node)
-
-        Visitor().visit(tree)
-        return symbols

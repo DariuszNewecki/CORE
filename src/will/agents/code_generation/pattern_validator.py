@@ -12,7 +12,6 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
-import ast
 from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
@@ -213,32 +212,3 @@ class PatternValidator:
 """,
         }
         return requirements.get(pattern_id, requirements["stateless_utility"])
-
-    # ID: c4f9561f-2d24-409a-99b7-a9cb5a487ddf
-    async def validate_code(
-        self, code: str, pattern_id: str, component_type: str, target_path: str
-    ) -> tuple[bool, list]:
-        """
-        Validate generated code against pattern requirements.
-        """
-        # Purity check: pure_function and stateless_utility have no per-pattern
-        # validator on the body side and only need syntax validation here. Note:
-        # test_file USED to short-circuit too, but post-#574 (7404ace5) the body
-        # side has a real validator (PatternValidators.validate_test_file_pattern
-        # — import resolution + absolute-import discipline). Short-circuiting
-        # test_file from this code path bypassed that gate (issue #583); the
-        # delegation below is now the canonical path for test_file.
-        if pattern_id in ("pure_function", "stateless_utility"):
-            try:
-                ast.parse(code)
-                return (True, [])
-            except SyntaxError as e:
-                return (False, [{"message": f"Syntax error: {e}", "severity": "error"}])
-
-        # Complex patterns are delegated to the IntentGuard (The Law)
-        return await self.intent_guard.validate_generated_code(  # type: ignore[misc]
-            code=code,
-            pattern_id=pattern_id,
-            component_type=component_type,
-            target_path=target_path,
-        )

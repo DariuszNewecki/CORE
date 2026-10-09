@@ -314,23 +314,6 @@ class BlackboardShopManager(ScheduledWorker):
             known_rule_ids, known_namespaces
         )
 
-    async def _sweep_telemetry_ttl(self) -> int:
-        """ADR-082 Mechanism 1 — hard-DELETE terminal telemetry past TTL.
-
-        Retained but no longer invoked by run() — #568 replaced it with
-        count-based retention (_sweep_telemetry_keep_last_n). Kept in
-        place so consumers that may still reference it (tests, future
-        telemetry families with TTL semantics) don't break.
-        """
-        from body.services.service_registry import service_registry
-
-        svc = await service_registry.get_blackboard_service()
-        return await svc.sweep_terminal_telemetry(
-            subject_prefixes=_CFG.telemetry_subject_prefixes,
-            ttl_days=_CFG.telemetry_ttl_days,
-            batch_max=_CFG.sweep_batch_max,
-        )
-
     async def _sweep_telemetry_keep_last_n(self) -> int:
         """#568 — keep last N samples per subject for slow-callback telemetry."""
         from body.services.service_registry import service_registry

@@ -16,7 +16,7 @@ from typing import Any
 # REFACTORED: Removed direct settings import
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.utils.subprocess_utils import SubprocessTimeoutError, run_command
+from shared.utils.subprocess_utils import run_command
 
 
 logger = getLogger(__name__)
@@ -59,47 +59,6 @@ class CoverageAnalyzer:
         except Exception as e:
             logger.debug("Could not get module coverage: %s", e)
         return {}
-
-    # ID: 09b41c82-55e9-494b-8387-bd92eeff3509
-    def measure_coverage(self) -> dict[str, Any] | None:
-        """
-        Runs pytest with coverage and returns parsed results.
-
-        Returns:
-            Dict with coverage metrics or None if measurement fails
-        """
-        try:
-            result = run_command(
-                [
-                    "poetry",
-                    "run",
-                    "pytest",
-                    "--cov=src",
-                    "--cov-report=json",
-                    "--cov-report=term",
-                    "-q",
-                ],
-                cwd=self.repo_path,
-                timeout=_CFG.full_run_timeout_sec,
-            )
-            coverage_json = self.repo_path / "coverage.json"
-            if coverage_json.exists():
-                data = json.loads(coverage_json.read_text())
-                totals = data.get("totals", {})
-                return {
-                    "overall_percent": totals.get("percent_covered", 0),
-                    "lines_covered": totals.get("covered_lines", 0),
-                    "lines_total": totals.get("num_statements", 0),
-                    "files": data.get("files", {}),
-                    "timestamp": data.get("meta", {}).get("timestamp"),
-                }
-            return self._parse_term_output(result.stdout)
-        except SubprocessTimeoutError:
-            logger.error("Coverage measurement timed out after 5 minutes")
-            return None
-        except Exception as e:
-            logger.error("Failed to measure coverage: %s", e, exc_info=True)
-            return None
 
     def _parse_term_output(self, output: str) -> dict[str, Any] | None:
         """
