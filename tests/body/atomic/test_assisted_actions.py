@@ -21,8 +21,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from body.atomic.assisted_actions import (
+    _apply_to_index,
     _EngineTouchResult,
     _rule_cleared,
+    _touched_paths,
     _touches_audit_engine,
     action_assisted_apply_diff,
     action_assisted_validate_diff,
@@ -336,7 +338,7 @@ async def test_validate_diff_records_validated_base_sha_for_passing_run() -> Non
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             # A non-Python touched file keeps ruff/engine-touch/test routing
             # trivial (all short-circuit to True with no further subprocess
             # or DB-backed calls) so this stays a focused unit test.
@@ -377,7 +379,7 @@ async def test_validate_diff_creates_worktree_at_explicit_base_sha() -> None:
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             return MagicMock(stdout="README.md\n")
         raise AssertionError(f"unexpected git invocation: {args}")
 
@@ -411,7 +413,7 @@ async def test_validate_diff_defaults_worktree_to_head_without_base_sha() -> Non
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             return MagicMock(stdout="README.md\n")
         raise AssertionError(f"unexpected git invocation: {args}")
 
@@ -447,7 +449,7 @@ async def test_validate_diff_all_rules_clear_passes() -> None:
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             return MagicMock(stdout="README.md\n")
         raise AssertionError(f"unexpected git invocation: {args}")
 
@@ -476,7 +478,7 @@ async def test_validate_diff_one_of_n_rules_still_flagged_fails() -> None:
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             return MagicMock(stdout="src/pkg/mod.py\n")
         if args[:1] == ("diff",):
             return MagicMock(stdout="")
@@ -548,7 +550,7 @@ async def test_validate_diff_subprocess_path_emits_per_rule_evidence() -> None:
     def _run_git(_wt_path, *args, **kwargs):
         if args[:1] == ("apply",):
             return MagicMock(returncode=0, stderr="")
-        if args[:2] == ("diff", "--name-only"):
+        if args[:3] == ("diff", "--cached", "--name-only"):
             return MagicMock(stdout=f"{engine_file}\n")
         raise AssertionError(f"unexpected git invocation: {args}")
 
@@ -599,3 +601,45 @@ def test_findings_by_rule_duplicate_rule_ids_normalize() -> None:
     )
     assert list(by_rule.keys()) == ["rule.a"]
     assert len(by_rule["rule.a"]) == 1
+
+
+# --- validate_diff sees the files a patch creates (real git) ---
+
+
+def _git(cwd: Path, *args: str) -> None:
+    import subprocess
+
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+
+
+def test_touched_paths_lists_a_file_the_patch_creates(tmp_path: Path) -> None:
+    """A plain ``git apply`` leaves a new file untracked and ``git diff
+    --name-only`` omitted it, so it skipped ruff, the audit subject set,
+    its mapped test and the production set. Both changes must be listed."""
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.email", "t@t.invalid")
+    _git(tmp_path, "config", "user.name", "t")
+    _git(tmp_path, "config", "commit.gpgsign", "false")
+    (tmp_path / "old.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "old.py")
+    _git(tmp_path, "commit", "-q", "-m", "base")
+
+    patch_text = (
+        "diff --git a/old.py b/old.py\n"
+        "--- a/old.py\n"
+        "+++ b/old.py\n"
+        "@@ -1 +1 @@\n"
+        "-x = 1\n"
+        "+x = 2\n"
+        "diff --git a/pkg/new.py b/pkg/new.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/pkg/new.py\n"
+        "@@ -0,0 +1 @@\n"
+        "+y = 1\n"
+    )
+
+    applied = _apply_to_index(tmp_path, patch_text)
+
+    assert applied.returncode == 0, applied.stderr
+    assert sorted(_touched_paths(tmp_path)) == ["old.py", "pkg/new.py"]

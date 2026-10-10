@@ -266,9 +266,7 @@ async def action_assisted_validate_diff(
     subprocess_error: str | None = None
     try:
         # 1. Patch must apply cleanly in the hermetic worktree.
-        applied = ToolRunner.run_git(
-            wt_path, "apply", "--whitespace=nowarn", stdin=patch
-        )
+        applied = _apply_to_index(wt_path, patch)
         checks["patch_applies"] = applied.returncode == 0
         if applied.returncode != 0:
             return ActionResult(
@@ -283,13 +281,7 @@ async def action_assisted_validate_diff(
                 duration_sec=time.perf_counter() - started,
             )
 
-        touched = [
-            p
-            for p in ToolRunner.run_git(
-                wt_path, "diff", "--name-only"
-            ).stdout.splitlines()
-            if p
-        ]
+        touched = _touched_paths(wt_path)
         touched_py = [p for p in touched if p.endswith(".py")]
 
         # 1b. Engine-touch routing (ADR-141 D1/D2/D6).
@@ -455,6 +447,27 @@ async def action_assisted_validate_diff(
         )
     finally:
         worktree.cleanup()
+
+
+def _apply_to_index(wt_path: Path, patch: str) -> Any:
+    """Apply *patch* to the hermetic worktree's files AND its index.
+
+    Staging is what makes a file the patch creates visible to
+    ``_touched_paths``: a plain ``git apply`` leaves it untracked, and
+    ``git diff --name-only`` never lists untracked files — so a new file
+    used to skip ruff, the audit subject set, its mapped test, and the
+    production set. The worktree is disposable; its index is never used
+    for a commit.
+    """
+    return ToolRunner.run_git(
+        wt_path, "apply", "--index", "--whitespace=nowarn", stdin=patch
+    )
+
+
+def _touched_paths(wt_path: Path) -> list[str]:
+    """Every path the applied patch changed: modified, added and deleted."""
+    listed = ToolRunner.run_git(wt_path, "diff", "--cached", "--name-only").stdout
+    return [p for p in listed.splitlines() if p]
 
 
 @register_action(
