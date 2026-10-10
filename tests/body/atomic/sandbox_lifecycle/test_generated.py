@@ -58,3 +58,23 @@ def test_SandboxLifecycle_restore_paths_removes_missing(tmp_path: Path) -> None:
 
     scoped_context.file_handler.remove_file.assert_called_once_with("present.txt")
     scoped_context.file_handler.write.assert_not_called()
+
+
+
+
+
+# ID: f9195cbe-fa22-4c42-9e4b-a9cf9cc3f116
+def test_SandboxLifecycle_checkpoint_paths(tmp_path: Path) -> None:
+    core_context = MagicMock()
+    lifecycle = SandboxLifecycle(core_context)
+
+    worktree_root = tmp_path / "worktree"
+    worktree_root.mkdir()
+    (worktree_root / "present.txt").write_text("hello", encoding="utf-8")
+
+    scoped_context = MagicMock()
+    scoped_context.git_service.repo_path = worktree_root
+
+    result = lifecycle.checkpoint_paths(scoped_context, ["present.txt", "missing.txt"])
+
+    assert result == {"present.txt": "hello", "missing.txt": None}
