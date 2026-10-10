@@ -157,3 +157,7 @@ mechanically.
 - `.specs/papers/CORE-Features.md` — feature registry; D4 placement confirmed
 - `.specs/papers/CORE-Product-Tiers.md` — tier definitions; D4 placement confirmed
 - `docs/` directory — exists in repo; previously ungoverned; now governed by this ADR
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): requirements (URS) live in `.specs/requirements/`; `.specs/urs/` was never created.

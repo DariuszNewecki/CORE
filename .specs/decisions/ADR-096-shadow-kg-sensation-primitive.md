@@ -208,3 +208,7 @@ D6's deferral is explicit, not silent. When v2's reflex loop or v3's full autono
 - Memory `feedback_grep_before_declaring_design_needed` — informed the recon-first posture that revealed 5 of 6 Shadow KG primitives already existed.
 - Memory `feedback_universal_sink_beats_per_site` — informed materializer's single-guard approach (one `_guard_no_symlink_ancestor` at the overlay site instead of per-engine workarounds).
 - Memory `reference_v2_limbs_workers_relationship` — V2 Limb / Workers / Neurons distinction grounding D5's reflex-loop-deferred posture and D6's Limb-as-process open question.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the V2 Adaptive Workflow Pattern paper is `.specs/papers/CORE-Adaptive-Workflow-Pattern.md`.

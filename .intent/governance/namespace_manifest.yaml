@@ -924,21 +924,21 @@ classifications:
   # .intent/enforcement/config/** -- CORE's runtime configuration values.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/config/action_risk.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/safe_auto_approval_envelope.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/audit_verdict.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/circuit_breaker.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/dead_code_baseline.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/governance_paths.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/normative_markers.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/operational_config.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/phase_responsibility.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/rule_targets.yaml
@@ -946,9 +946,9 @@ classifications:
   - path: .intent/enforcement/config/audit_ingest.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/task_type_phases.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
   - path: .intent/enforcement/config/test_coverage.yaml
-    governance_namespace: project::core
+    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .intent/enforcement/contracts/** -- CORE's runtime type contracts

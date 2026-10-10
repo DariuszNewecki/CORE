@@ -158,3 +158,8 @@ This paper may be amended only by explicit constitutional replacement, in accord
 CORE is a governed system.
 
 Its strength lies not in adaptability, but in obedience.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+> Reference correction (append-only; the text above is unchanged): `governance.constitution.read_only` is declared in `.intent/rules/architecture/governance_basics.json`;
+> `.intent/rules/governance/constitution.json` does not exist.

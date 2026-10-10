@@ -399,3 +399,22 @@ For ADRs that genuinely have no grounding paper (some early-phase decisions pred
 - `.specs/papers/CORE-Constitutional-Foundations.md` — establishes the constitution-tier authority that §2.2 derives from
 - 2026-05-26 CCC backlog review session — empirical surfacing of the definition gap; closed run `db48491b` (133 candidates triaged, ~98% dismissal rate, 3 ADR fixes shipped)
 - 2026-05-26 r1 review (5 issues raised) — input to r2 revision: row 2 direction fix, escape-hatch removal, §2.5 normative definition, §2.4 enforcement-surfaces restructure, §6.3 aspirational scoping, §11.3 row 2 migration, §7.2 sharpened addendum rule, §10.3 R1 distinction
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+**Rows 2 and 4 are amended** (governor decision 2026-10-10).
+
+- **Row 2 — ADR grounding.** An ADR is grounded when it cites a paper (by path or by file name), the northstar or the
+  charter, or another accepted ADR. An ADR named only on a `Supersedes` line remains an inherited bind: the
+  predecessor must itself be grounded.
+- **Row 4 — naming of `.intent/` artifacts.** An artifact is named when an accepted ADR names its path, or when the
+  commit that introduced it cites an accepted ADR (its governing decision — e.g. ADR-056's "one contract per model",
+  ADR-167's docs/CLI correspondence rules, which name rules by id rather than files by path). The grandfather date
+  (first appearance before 2026-05-26) follows renames.
+
+Why: since the 2026-07-05 `.specs/papers` prune, decisions are grounded in the northstar and in earlier ADRs, and
+families of law files are named by folder. The strict reading flagged 25 ADRs and ~100 law files without adding
+information (CCC run 6558a043). A file introduced under an issue only, or under no decision, is still flagged.
+
+Reference correction (append-only; the text above is unchanged): `.intent/policies/` (under *Operational law*) was removed on 2026-01-07; rules live in `.intent/rules/` and their
+enforcement in `.intent/enforcement/mappings/`.

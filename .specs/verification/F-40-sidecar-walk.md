@@ -155,3 +155,8 @@ These are **not gaps** for F-40 shipping but are real engineering work the broad
 - **Constitutional anchors:** ADR-084 D3 + D6 + D8; ADR-085 §Context 5+3 row
 - **Authoritative artifacts referenced:** `papers/CORE-OEM-API.md`, `.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md`, `.specs/contracts/oem_api_v1.openapi.json`
 - **Sidecar anchors walked:** `CORE-Features.md` §3 F-20 / F-34 / F-45 / F-47
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): `.specs/contracts/oem_api_v1.openapi.json` was removed in the 2026-07-05 `.specs` prune; the published API contract is
+`docs/reference/openapi.json`.

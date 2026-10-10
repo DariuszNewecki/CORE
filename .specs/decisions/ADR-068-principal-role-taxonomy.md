@@ -342,3 +342,7 @@ Deferred to implementation. At implementation, verification is:
   (current: `human.cli_operator`, `risk_classification.safe_auto_approval`).
 - `src/body/services/proposal/state_manager.py` — `ProposalStateManager.approve()`
   call site carrying the retired string.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the taxonomy is `.intent/taxonomies/principal_roles.yaml`; `.intent/governance/principal_roles.yaml` never existed.

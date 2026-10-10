@@ -331,3 +331,8 @@ Boredom at phase boundaries is a sign of correctness.
 ---
 
 **End of Paper.**
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+> Reference correction (append-only; the text above is unchanged): the blocking boundary rules are declared in `.intent/rules/architecture/privileged_boundaries.json`;
+> `.intent/rules/architecture/boundary.json` does not exist.

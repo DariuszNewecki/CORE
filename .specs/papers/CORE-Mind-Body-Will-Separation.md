@@ -435,3 +435,9 @@ It is the constitutional structure that makes CORE governable.
 Without it, CORE becomes just another system claiming to have "good architecture."
 
 With it, CORE is a system whose architecture is law.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+> Reference correction (append-only; the text above is unchanged): `architecture.body.no_rule_evaluation` is declared in `.intent/rules/architecture/layer_separation.json`
+> (not `body.json`); `architecture.boundary.database_session_access` in
+> `.intent/rules/architecture/privileged_boundaries.json` (not `boundary.json`).

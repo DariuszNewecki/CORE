@@ -253,3 +253,8 @@ D1's closing sentence "'Dangerous' MUST NOT be reintroduced" is **scoped to prop
 (`RiskAssessment.overall_risk`, the `proposal_risk` enum), which is what D1 decides. The action-level impact
 vocabulary (`safe | moderate | dangerous`, `.intent/enforcement/config/action_risk.yaml`, ADR-008) is a separate
 vocabulary; ADR-160 maps `dangerous` to `high` where the two meet (`compute_risk`).
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the contracts are `.intent/enforcement/contracts/RiskAssessment.json` and `.intent/enforcement/contracts/AuditFinding.json`
+(not `*.schema.json`); both carry the `$ref`s D1 and D2 require.

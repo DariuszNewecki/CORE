@@ -247,3 +247,7 @@ from this ratification.
 D6 left open whether the `public/` tier is packaged into the published
 `core-runtime` wheel. Ruled: the public GRC catalogs are part of the open product
 and ship in the `core-runtime` wheel. Licensed and internal catalogs do not.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): CORE-Disposition-Governance moved to `.specs/essays/CORE-Disposition-Governance.md` in the 2026-07-05 prune.

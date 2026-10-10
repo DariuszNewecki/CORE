@@ -217,3 +217,9 @@ Per paper §12.1 and §12.2, the CCC paper §8 and `URS-mechanism-coherence.md` 
 - Memory `user_prefers_visibility_over_polish` — informed D6's active-at-ship posture.
 - Memory `feedback_phase_goal_absorbs_design` — interrogated each deferral as "what does the engineer need?" rather than "what does the paper allow?"
 - Memory `feedback_conviction_signal` — the eight deferrals were closed without hedge; each decision carries its rejected alternative explicitly.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+**Accepted, not built** (governor decision 2026-10-10). Neither the `urs` artifact type (`.intent/artifact_types/urs.yaml`)
+nor the `urs_satisfaction_sensor` worker exists in `.intent/` or `src/`; only documents describe it. Nothing in CORE
+verifies URS satisfaction today. The decision stands; to be revisited.

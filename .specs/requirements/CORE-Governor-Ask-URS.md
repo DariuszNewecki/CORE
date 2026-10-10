@@ -248,3 +248,7 @@ The command is correct when the governor can:
   failed.
 - If a session cannot be reconstructed from the consequence log — the
   command has failed.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the northstar essay is `.specs/essays/core_northstar.md`.

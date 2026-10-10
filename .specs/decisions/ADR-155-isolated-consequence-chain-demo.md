@@ -221,3 +221,7 @@ The child-process re-root (D5) is the subtlest surface and gets first-class Phas
 - The demo command mutates a *disposable clone*, not the invoking repo — but it is still a
   mutating operator command and is classified `dangerous=True` accordingly, with the D9
   confirmation gate.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the governing spec is archived at `.specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md`.

@@ -2,14 +2,14 @@
 kind: adr
 id: ADR-117
 title: 'ADR-117 — var/tmp is ephemeral scratch with no janitor: a bounded, age-gated reaper worker'
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-117-var-tmp-janitor-worker.md -->
 
 # ADR-117 — var/tmp has no janitor: a bounded, age-gated reaper, ramped report-first
 
-**Status:** Proposed — 2026-06-19
+**Status:** Accepted 2026-10-10 by the governor (proposed 2026-06-19; worker live before acceptance — see the 2026-10-10 note)
 **Date:** 2026-06-19
 **Relates:** ADR-070 D8 (destructive autonomous loops need row/quantity caps in the same
 change — the rails precedent this applies); ADR-071/ADR-106 (per-execution action
@@ -124,3 +124,8 @@ D2, D3, D5 rails, and D6 are unchanged, and D3 is tightened: a symlink entry is 
 followed or removed, and a target whose resolved path is not a direct child of
 `var/tmp/` is refused. The blackboard subject becomes `var_tmp_janitor.reap` (report
 fields: `reaped`, `failed`, `skipped_over_cap`, `reclaimed_bytes`).
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+**Status:** accepted by the governor 2026-10-10. The `var_tmp_janitor` worker has run since before acceptance
+(`.intent/workers/var_tmp_janitor.yaml`); acceptance records the decision the system already carried.

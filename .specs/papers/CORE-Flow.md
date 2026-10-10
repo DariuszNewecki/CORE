@@ -290,3 +290,7 @@ The separation is not bureaucracy. It is the condition under which
 autonomous execution remains governable.
 
 **End of Paper.**
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+> Reference correction (append-only; the text above is unchanged): no paper `.specs/papers/CORE-Workers.md` exists or ever existed.

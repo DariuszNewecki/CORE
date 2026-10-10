@@ -213,3 +213,8 @@ CORE is not being refactored.
 CORE is being founded on constitutional principles.
 
 This Charter exists to make that structure unambiguous.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): papers moved from `.intent/papers/` to `.specs/papers/` on 2026-04-15 (ed37a3bd); CORE-Infrastructure-Definition is
+`.specs/papers/CORE-Infrastructure-Definition.md`.

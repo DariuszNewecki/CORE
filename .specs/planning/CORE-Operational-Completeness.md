@@ -291,3 +291,8 @@ When all eight items show satisfied state:
 - `planning/CORE-Feature-Dependency-Graph.md` — picture-form of the sequencing constraints
 - `planning/SESSION-PROTOCOL.md` — should reference this doc as canonical "what to pick next" filter while constraint is active
 - Memory `feedback_hardening_over_coverage` — the project preference that maps onto this ADR's discipline
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): `.specs/contracts/oem_api_v1.openapi.json` was removed in the 2026-07-05 `.specs` prune; the published API contract is
+`docs/reference/openapi.json`.

@@ -360,3 +360,13 @@ and owned by a dedicated session.
 - Related: `.specs/papers/CORE-Constitution-Read-Only-Contract.md`
 - Related: ADR-027 (CoherenceSensor — runtime loop coherence, distinct scope)
 - Issue: #374
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+**Triage carries forward between runs** (governor decision 2026-10-10). A later run does not raise a candidate identical
+to one the governor dismissed — same check, same documents, same claim — unless one of its documents has been committed
+since the dismissal. Confirmed and deferred candidates re-surface until resolved. Before this, every run re-raised every
+dismissed candidate, so triage repeated without end.
+
+Reference correction (append-only; the text above is unchanged): the cognitive role is declared as `ConstitutionalCoherenceAnalyst` in `.intent/taxonomies/cognitive_roles.yaml`, with
+its prompt at `var/prompts/constitutional_coherence_analyst/`; `.intent/cognitive_roles/` was never created.

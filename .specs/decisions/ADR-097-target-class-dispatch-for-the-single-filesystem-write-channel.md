@@ -229,3 +229,8 @@ Carry-on items (not landed in step 6, surfaced for follow-up):
 
 - ADR-079 D8 ("Keep `write_validated_bytes` as the sanctioned bypass") and the planned audit rule `governance.chokepoint.write_validated_bytes_sole_caller` are superseded by this retirement. ADR-079's D8 text and audit-rule references need either an append-only supersession Note or, if D8 is the only block on a fuller ADR-079 closure, a closure marker. Filed for the next session's `.specs/` sweep.
 - The latency cost of the second IntentGuard pass on sandbox propagation has not been measured. Action propagation runs are typically O(1–10) files; the pass is path/content-based with no LLM hop. The cost is expected to be sub-second; no benchmark filed.
+
+## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
+
+Reference correction (append-only; the text above is unchanged): the taxonomy lives at `.intent/taxonomies/target_class_boundaries.yaml`; no separate
+`.intent/META/target_class_boundaries.schema.json` exists.
