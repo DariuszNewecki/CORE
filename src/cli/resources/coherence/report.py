@@ -12,10 +12,12 @@ from collections import Counter
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
 from body.services.coherence_service import CoherenceService
+from cli.logic.coherence_coverage import check_class_coverage, coverage_lines
 from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
@@ -69,6 +71,7 @@ async def report_command(
 
     _render_metadata(run)
     _render_manifest(run.get("input_manifest") or [])
+    _render_check_classes(run.get("input_manifest") or [])
     _render_candidates(candidates)
     _render_triage_summary(candidates)
 
@@ -87,6 +90,13 @@ def _render_metadata(run: dict) -> None:
     console.print(Panel(grid, title="Coherence Run", expand=False))
 
 
+def _render_check_classes(manifest: list[dict]) -> None:
+    coverage = check_class_coverage(manifest)
+    style = "yellow" if coverage.partial else "green"
+    for line in coverage_lines(coverage):
+        console.print(f"[{style}]{escape(line)}[/{style}]")
+
+
 def _render_manifest(manifest: list[dict]) -> None:
     if not manifest:
         console.print("[dim]Manifest is empty.[/dim]")
@@ -97,6 +107,8 @@ def _render_manifest(manifest: list[dict]) -> None:
     table.add_column("status", justify="center")
     table.add_column("skipped_reason", style="dim")
     for entry in manifest:
+        if entry.get("domain") == "_meta":
+            continue  # shown by _render_check_classes
         status = entry.get("status", "unknown")
         status_color = "green" if status == "checked" else "yellow"
         table.add_row(

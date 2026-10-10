@@ -11,9 +11,11 @@ import logging
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 from body.services.coherence_service import CoherenceService
 from body.services.governance_claims_service import GovernanceClaimsService
+from cli.logic.coherence_coverage import check_class_coverage, coverage_lines
 from cli.utils import core_command
 from mind.coherence.checker import CoherenceChecker
 from shared.config import settings
@@ -98,9 +100,14 @@ async def check_command(
     candidates = int(run.get("candidate_count") or 0)
 
     console.print(
-        f"[green]Coverage:[/green] {checked} checked, {skipped} skipped "
+        f"[green]Inputs:[/green] {checked} checked, {skipped} skipped "
         f"· [bold]Candidates:[/bold] {candidates} produced"
     )
+
+    coverage = check_class_coverage(manifest)
+    style = "yellow" if coverage.partial else "green"
+    for line in coverage_lines(coverage):
+        console.print(f"[{style}]{escape(line)}[/{style}]")
 
     total = checked + skipped
     if total > 0 and skipped / total > 0.20:
