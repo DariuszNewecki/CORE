@@ -132,9 +132,6 @@ def test_build_flow_execution_context() -> None:
     mock_make_scoped.assert_called_once_with("abc123", "flow-123")
 
 
-
-
-
 # ID: 39271fca-92c0-4b2a-82a9-202e4f0d4f65
 def test_SandboxLifecycle_build_execution_context():
     core_context = MagicMock()
@@ -171,3 +168,24 @@ def test_SandboxLifecycle_build_execution_context():
     assert context is scoped_context
     assert result_git is scoped_git
     mock_make_scoped.assert_called_once_with("abc123sha", "action-123")
+
+
+
+
+
+# ID: 5ae7e52a-928b-4c7f-b99d-04f165375acc
+def test_SandboxLifecycle() -> None:
+    core_context = MagicMock()
+    lifecycle = SandboxLifecycle(core_context)
+
+    definition = MagicMock()
+    definition.action_id = "action-1"
+    definition.executor = MagicMock()
+    definition.executor._atomic_action_metadata = None
+
+    context, scoped_git = lifecycle.build_execution_context(
+        definition, write=True, pre_execution_sha="a" * 40
+    )
+
+    assert context is core_context
+    assert scoped_git is None
