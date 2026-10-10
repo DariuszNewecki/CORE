@@ -62,8 +62,11 @@ async def create_and_score_proposal(
     proposal is constructed and scored in-memory but not written; with
     write=True it is persisted via ProposalService and committed.
 
+    A proposal that fails ``Proposal.check_submission`` is never persisted:
+    the result is ``ok=False`` with its ``errors``.
+
     Returns the API-shaped dict the route surfaces verbatim:
-    {"ok", "persisted", "proposal"}.
+    {"ok", "persisted", "proposal"} (+ "errors" when refused).
     """
     from will.autonomy.proposal import Proposal, ProposalAction, ProposalScope
     from will.autonomy.proposal_service import ProposalService
@@ -84,6 +87,17 @@ async def create_and_score_proposal(
         created_by=created_by,
     )
     proposal.compute_risk()
+
+    # A malformed proposal is refused before it is persisted or scored as
+    # anything: no action, an unknown action, or no declared file.
+    errors = proposal.check_submission()
+    if errors:
+        return {
+            "ok": False,
+            "persisted": False,
+            "errors": errors,
+            "proposal": proposal.to_dict(),
+        }
 
     if write:
         service = ProposalService(session)

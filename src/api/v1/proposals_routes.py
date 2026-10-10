@@ -111,7 +111,9 @@ class CreateProposalRequest(BaseModel):
         "and (when `write=true`) persist it via ProposalService. With "
         "`write=false` (default) the proposal is constructed and "
         "risk-scored in-memory but NOT written to the database — useful for "
-        "dry-run validation. Returns the proposal's `to_dict()` shape either way."
+        "dry-run validation. Returns the proposal's `to_dict()` shape either way. "
+        "A malformed proposal (no action, an unknown action, no declared file) "
+        "is refused with 422 and never persisted."
     ),
 )
 # ID: 9704145a-25f5-460c-81a9-fe1fa0b47d68
@@ -127,7 +129,7 @@ async def create_proposal(
     is not flushed to the database. Domain construction + scoring lives
     in the will.governance.proposal_runner facade (#771).
     """
-    return await create_and_score_proposal(
+    result = await create_and_score_proposal(
         session,
         goal=payload.goal,
         actions=payload.actions,
@@ -135,6 +137,9 @@ async def create_proposal(
         created_by=payload.created_by,
         write=payload.write,
     )
+    if not result["ok"]:
+        raise HTTPException(status_code=422, detail=result["errors"])
+    return result
 
 
 @router.get(

@@ -313,10 +313,36 @@ class Proposal:
         """
         Validate proposal is well-formed and executable.
 
+        The submission checks (``check_submission``) plus the execution-side
+        ones: a risk assessment exists, and a high-risk proposal is approved.
+
         Returns:
             (is_valid, list of error messages)
         """
-        errors = []
+        errors = self.check_submission()
+
+        # 4. Must have risk assessment
+        if self.risk is None:
+            errors.append("Proposal must have risk assessment")
+
+        # 5. High-risk proposals must have approval
+        if self.risk and self.risk.overall_risk == "high":
+            if not self.approved_by:
+                errors.append("High-risk proposals require approval")
+
+        return (len(errors) == 0, errors)
+
+    # ID: 52d7daff-a340-43d7-ba30-53a5eaed822a
+    def check_submission(self) -> list[str]:
+        """Return why this proposal may not be submitted ([] when it may).
+
+        A proposal awaiting approval is a valid submission, so this is
+        ``validate()`` without its execution-side checks (risk assessed,
+        high risk approved). Every submit path calls it before persisting:
+        a proposal with no action, an action no registry knows, or no
+        declared file never enters the queue.
+        """
+        errors: list[str] = []
 
         # 1. Must have goal
         if not self.goal:
@@ -332,15 +358,6 @@ class Proposal:
                 errors.append(
                     f"{action.ref_kind.capitalize()} not found in registry: {action.ref_id}"
                 )
-
-        # 4. Must have risk assessment
-        if self.risk is None:
-            errors.append("Proposal must have risk assessment")
-
-        # 5. High-risk proposals must have approval
-        if self.risk and self.risk.overall_risk == "high":
-            if not self.approved_by:
-                errors.append("High-risk proposals require approval")
 
         # 6. Must declare at least one file in scope (issue #191).
         # ADR-021 D5 punted execution-time enforcement; commit_paths raises
@@ -365,7 +382,7 @@ class Proposal:
                 f"Larger scopes require an ADR amending the contract."
             )
 
-        return (len(errors) == 0, errors)
+        return errors
 
     # ID: bd436e51-c283-46cf-bbfe-4d9ae578296c
     def compute_risk(self) -> RiskAssessment:
@@ -398,6 +415,10 @@ class Proposal:
                     action_risks[action.action_id] = _resolve_impact(
                         action.action_id, risk_mapping
                     )
+                else:
+                    # An action no registry knows is never safe: skipping it
+                    # let a proposal of only unknown actions score "safe".
+                    action_risks[action.action_id] = "moderate"
             elif action.flow_id is not None:
                 action_risks[action.flow_id] = _compute_flow_risk(
                     action.flow_id, risk_mapping

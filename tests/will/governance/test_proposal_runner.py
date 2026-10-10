@@ -80,13 +80,53 @@ async def test_create_preserves_action_order_and_flow_ids() -> None:
                 {"action_id": "fix.format"},
                 {"flow_id": "flow.fix_code", "order": 5},
             ],
-            files=[],
+            files=["src/widget.py"],
             created_by="cli_operator",
             write=False,
         )
 
     actions = result["proposal"]["actions"]
     assert len(actions) == 2
+
+
+async def test_create_refuses_unknown_action_and_never_persists() -> None:
+    """An action no registry knows is refused before persistence, even with
+    write=True — it used to score "safe" and be saved."""
+    session = AsyncMock()
+
+    with patch("will.autonomy.proposal_service.ProposalService") as service_cls:
+        result = await create_and_score_proposal(
+            session,
+            goal="smuggle",
+            actions=[{"action_id": "no.such.action", "parameters": {}}],
+            files=["src/widget.py"],
+            created_by="cli_operator",
+            write=True,
+        )
+
+    assert result["ok"] is False
+    assert result["persisted"] is False
+    assert any("not found in registry" in e for e in result["errors"])
+    service_cls.assert_not_called()
+    session.commit.assert_not_awaited()
+
+
+async def test_create_refuses_empty_action_list() -> None:
+    session = AsyncMock()
+
+    with patch("will.autonomy.proposal_service.ProposalService") as service_cls:
+        result = await create_and_score_proposal(
+            session,
+            goal="nothing",
+            actions=[],
+            files=["src/widget.py"],
+            created_by="cli_operator",
+            write=True,
+        )
+
+    assert result["ok"] is False
+    assert "Proposal must have at least one action" in result["errors"]
+    service_cls.assert_not_called()
 
 
 async def test_execute_delegates_to_proposal_executor() -> None:

@@ -54,12 +54,38 @@ def _stub_proposal(proposal_id: str | None = None) -> MagicMock:
 
 # ── create_proposal ───────────────────────────────────────────────────────────
 
+_VALID_ACTIONS = [{"action_id": "fix.imports", "parameters": {}, "order": 0}]
+_FILES = ["src/widget.py"]
+
+
+async def test_create_proposal_malformed_is_refused_with_422():
+    """No action, an unknown action, or no file: 422, nothing persisted."""
+    session = _mock_session()
+    with patch("will.autonomy.proposal_service.ProposalService") as mock_svc_cls:
+        with pytest.raises(HTTPException) as exc_info:
+            await create_proposal(
+                payload=CreateProposalRequest(
+                    goal="smuggle",
+                    actions=[{"action_id": "no.such.action", "parameters": {}}],
+                    files=_FILES,
+                    write=True,
+                ),
+                session=session,
+            )
+
+    assert exc_info.value.status_code == 422
+    assert any("not found in registry" in e for e in exc_info.value.detail)
+    mock_svc_cls.assert_not_called()
+    session.commit.assert_not_awaited()
+
 
 async def test_create_proposal_dry_run_does_not_persist():
     """write=False builds and risk-scores the proposal without calling service.create."""
     session = _mock_session()
     out = await create_proposal(
-        payload=CreateProposalRequest(goal="fix imports", write=False),
+        payload=CreateProposalRequest(
+            goal="fix imports", actions=_VALID_ACTIONS, files=_FILES, write=False
+        ),
         session=session,
     )
     assert out["ok"] is True
@@ -82,7 +108,9 @@ async def test_create_proposal_write_true_persists_and_commits():
         mock_svc_cls.return_value = mock_svc
 
         out = await create_proposal(
-            payload=CreateProposalRequest(goal="fix imports", write=True),
+            payload=CreateProposalRequest(
+                goal="fix imports", actions=_VALID_ACTIONS, files=_FILES, write=True
+            ),
             session=session,
         )
 
@@ -104,6 +132,7 @@ async def test_create_proposal_actions_are_mapped():
             payload=CreateProposalRequest(
                 goal="add tests",
                 actions=[{"action_id": "build.tests", "parameters": {}, "order": 0}],
+                files=_FILES,
                 write=False,
             ),
             session=session,
