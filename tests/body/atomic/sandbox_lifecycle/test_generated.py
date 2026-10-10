@@ -60,9 +60,6 @@ def test_SandboxLifecycle_restore_paths_removes_missing(tmp_path: Path) -> None:
     scoped_context.file_handler.write.assert_not_called()
 
 
-
-
-
 # ID: f9195cbe-fa22-4c42-9e4b-a9cf9cc3f116
 def test_SandboxLifecycle_checkpoint_paths(tmp_path: Path) -> None:
     core_context = MagicMock()
@@ -78,3 +75,28 @@ def test_SandboxLifecycle_checkpoint_paths(tmp_path: Path) -> None:
     result = lifecycle.checkpoint_paths(scoped_context, ["present.txt", "missing.txt"])
 
     assert result == {"present.txt": "hello", "missing.txt": None}
+
+
+
+
+
+# ID: 5fb1e344-ffc0-4c00-8aaa-0183488f41bb
+def test_SandboxLifecycle_propagate_changes(tmp_path: Path) -> None:
+    core_context = MagicMock()
+    core_context.git_service.status_porcelain.return_value = ""
+
+    lifecycle = SandboxLifecycle(core_context)
+
+    scoped_git = MagicMock()
+    scoped_git.repo_path = tmp_path
+    scoped_git.status_porcelain.return_value = "M modified.txt"
+
+    (tmp_path / "modified.txt").write_bytes(b"new content")
+
+    file_handler = MagicMock()
+    core_context.file_handler = file_handler
+
+    result = lifecycle.propagate_changes(scoped_git)
+
+    assert result == {"modified.txt"}
+    file_handler.write.assert_called_once_with("modified.txt", b"new content")
