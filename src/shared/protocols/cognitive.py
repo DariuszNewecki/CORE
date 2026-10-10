@@ -33,3 +33,16 @@ class CognitiveProtocol(Protocol):
         Generate a semantic embedding vector for a piece of text.
         """
         ...
+
+    # ID: 162d21e3-f4fc-4220-88a8-182f5df3d5dc
+    async def get_embeddings_for_code_batch(
+        self, source_texts: list[str]
+    ) -> list[list[float]]:
+        """
+        Generate embedding vectors for several texts, aligned to input order.
+
+        Declared here so the batch call type-checks. Its absence led a
+        type-error clean-up (409f9d4e) to swap the batch call for the
+        single-text one, which broke every batch embedding.
+        """
+        ...
