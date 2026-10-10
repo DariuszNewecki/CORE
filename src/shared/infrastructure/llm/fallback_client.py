@@ -52,7 +52,7 @@ class FallbackAwareLLMClient:
     Duck-compatible wrapper around an ordered chain of LLM resources.
     Exposes the same public surface as ``LLMClient``
     (``make_request_async``, ``make_request_with_system_async``,
-    ``get_embedding``) so existing callers of
+    ``get_embedding``, ``get_embeddings_batch``) so existing callers of
     ``CognitiveService.aget_client_for_role`` need no change.
     """
 
@@ -89,6 +89,14 @@ class FallbackAwareLLMClient:
     # ID: 5f8a2c4d-9e3b-4751-8c2d-6a4b9e3f1c7d
     async def get_embedding(self, *args: Any, **kwargs: Any) -> list[float]:
         return await self._call_with_fallback("get_embedding", *args, **kwargs)
+
+    # ID: bba4cdee-b6c8-4837-977b-7e47868cf7ce
+    async def get_embeddings_batch(
+        self, *args: Any, **kwargs: Any
+    ) -> list[list[float]]:
+        # Batch embedding (#461) arrived after this wrapper; without this
+        # pass-through every batch call through a role client failed.
+        return await self._call_with_fallback("get_embeddings_batch", *args, **kwargs)
 
     async def _ensure_client(self, idx: int) -> LLMClient:
         if idx not in self._clients:

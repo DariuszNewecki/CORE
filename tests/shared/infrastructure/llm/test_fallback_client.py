@@ -297,3 +297,36 @@ async def test_provisioning_error_remembered_across_calls() -> None:
 
     assert len(factory_calls) == 1
     assert healthy.make_request_async.await_count == 2
+
+
+async def test_batch_embedding_passes_through_with_fallback() -> None:
+    """#461 batch embedding arrived after this wrapper and was never passed
+    through: every batch call through a role client raised AttributeError."""
+    primary = _mock_client()
+    primary.get_embeddings_batch = AsyncMock(side_effect=_make_status_error(429))
+    secondary = _mock_client()
+    secondary.get_embeddings_batch = AsyncMock(return_value=[[1.0], [2.0]])
+
+    wrapper = FallbackAwareLLMClient(
+        client_factories=[_factory_for(primary), _factory_for(secondary)],
+        resource_names=["primary_resource", "secondary_resource"],
+    )
+
+    assert await wrapper.get_embeddings_batch(["a", "b"]) == [[1.0], [2.0]]
+    secondary.get_embeddings_batch.assert_awaited_once_with(["a", "b"])
+
+
+def test_wrapper_exposes_every_public_llmclient_call() -> None:
+    """The wrapper claims LLMClient's public surface. A call added to
+    LLMClient and not passed through fails here, not in production."""
+    import inspect
+
+    from shared.infrastructure.llm.client import LLMClient
+
+    calls = {
+        name
+        for name, fn in inspect.getmembers(LLMClient, inspect.iscoroutinefunction)
+        if not name.startswith("_") and name != "create"  # classmethod factory
+    }
+    missing = sorted(n for n in calls if not hasattr(FallbackAwareLLMClient, n))
+    assert missing == []
