@@ -130,3 +130,44 @@ def test_build_flow_execution_context() -> None:
     assert result_context is scoped_context
     assert result_git is scoped_git
     mock_make_scoped.assert_called_once_with("abc123", "flow-123")
+
+
+
+
+
+# ID: 39271fca-92c0-4b2a-82a9-202e4f0d4f65
+def test_SandboxLifecycle_build_execution_context():
+    core_context = MagicMock()
+    core_context.git_service = MagicMock()
+
+    lifecycle = SandboxLifecycle(core_context)
+
+    definition = MagicMock()
+    definition.action_id = "action-123"
+    definition.executor = MagicMock()
+
+    metadata = MagicMock()
+    metadata.impact = "WRITE_CODE"
+    definition.executor._atomic_action_metadata = metadata
+
+    scoped_git = MagicMock()
+    scoped_context = MagicMock()
+
+    with patch.object(
+        SandboxLifecycle,
+        "_make_scoped_context",
+        return_value=(scoped_context, scoped_git),
+    ) as mock_make_scoped:
+        with patch(
+            "body.atomic.sandbox_lifecycle._SANDBOXED_IMPACTS",
+            frozenset({"WRITE_CODE", "WRITE_METADATA"}),
+        ):
+            context, result_git = lifecycle.build_execution_context(
+                definition=definition,
+                write=True,
+                pre_execution_sha="abc123sha",
+            )
+
+    assert context is scoped_context
+    assert result_git is scoped_git
+    mock_make_scoped.assert_called_once_with("abc123sha", "action-123")
