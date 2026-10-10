@@ -40,6 +40,7 @@ async def run_tests(
     repo_root: Path | None = None,
     file_handler: FileHandler | None = None,
     extra_targets: Sequence[str] = (),
+    markers: str | None = None,
 ) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
@@ -65,6 +66,10 @@ async def run_tests(
             test.candidate_validate to run a candidate ahead of the existing
             tests for the same module, so class-level state it leaks breaks
             them here instead of in the full suite. Ignored without ``target``.
+        markers: Optional pytest ``-m`` expression. Used by the general
+            validation path to keep tests that reach shared live state (the
+            ``integration`` and ``trio`` markers) out of a producer's
+            validation run.
     """
     start_time = time.perf_counter()
 
@@ -91,7 +96,14 @@ async def run_tests(
         try:
             proc_result = await asyncio.wait_for(
                 run_command_async(
-                    ["pytest", *pytest_targets, "--tb=short", "-q", "--no-cov"],
+                    [
+                        "pytest",
+                        *pytest_targets,
+                        *(["-m", markers] if markers else []),
+                        "--tb=short",
+                        "-q",
+                        "--no-cov",
+                    ],
                     cwd=repo_root,
                 ),
                 timeout=timeout,
@@ -111,7 +123,9 @@ async def run_tests(
         exit_code = -1
 
     duration = time.perf_counter() - start_time
-    ok = exit_code == 0
+    # Under a marker filter, pytest exit 5 ("no tests collected") means every
+    # test was deselected by the filter -- nothing failed.
+    ok = exit_code == 0 or (markers is not None and exit_code == 5)
     # pytest writes its failure report (and the final summary line) to stdout,
     # not stderr — stderr is empty for an ordinary test failure and only
     # populated by a genuine subprocess-level crash. Deriving the failure

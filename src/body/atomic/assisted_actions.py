@@ -20,6 +20,14 @@ and runs the offending rule under a stateless AuditorContext. Graph-dependent
 engine touches (knowledge_gate.py) continue to refuse — the DB graph is stale
 relative to the worktree patch.
 
+ADR-168 Amendment 2026-10-10 A3 adds a *general* mode for a change not born
+from a finding: CORE chooses the checks. It refuses a patch touching governed
+text (A5, declared in governance_paths.yaml), then runs ruff, the full
+stateless audit over the patched worktree — the same audit the commit gate and
+CI run, accepted on the same terms (PASS or DEGRADED, no blocking finding) —
+and the tests of every touched source and test file. Every rule the audit
+could not evaluate is named in the result.
+
 Constitutional note (governance.dangerous_execution_primitives): subprocess calls
 for ``git apply``, ``ruff``, and the stateless audit runner are concentrated in
 ``ToolRunner`` (``body.atomic.tool_runner``) — the designated Body validation
@@ -38,7 +46,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from body.atomic.registry import ActionCategory, register_action
-from body.atomic.tool_runner import AUDIT_SUBPROCESS_BOOTSTRAP, ToolRunner
+from body.atomic.tool_runner import (
+    AUDIT_SUBPROCESS_BOOTSTRAP,
+    FULL_AUDIT_SUBPROCESS_BOOTSTRAP,
+    ToolRunner,
+)
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
@@ -183,6 +195,7 @@ async def action_assisted_validate_diff(
     finding_rules: list[str] | None = None,
     subject_files: list[str] | None = None,
     base_sha: str | None = None,
+    general: bool = False,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
@@ -209,6 +222,9 @@ async def action_assisted_validate_diff(
             path, which has none until it dispatches this action) may omit it
             — the worktree then floats to current HEAD, unchanged from prior
             behavior.
+        general: validate a change not born from a finding (ADR-168
+            Amendment 2026-10-10 A3). *finding_rules* and *subject_files* are
+            not used; CORE chooses the checks — see ``_validate_general``.
         core_context: injected by ActionExecutor; supplies ``git_service``
             for worktree creation and ``file_handler`` for var/tmp writes.
 
@@ -233,12 +249,15 @@ async def action_assisted_validate_diff(
     aid = "assisted.validate_diff"
 
     rule_ids = sorted(set(finding_rules or []))
-    if not patch or not rule_ids:
+    if not patch or not (rule_ids or general):
         return ActionResult(
             action_id=aid,
             ok=False,
             data={
-                "error": "assisted.validate_diff requires 'patch' and 'finding_rules'"
+                "error": (
+                    "assisted.validate_diff requires 'patch' and either "
+                    "'finding_rules' or general=True"
+                )
             },
             impact=ActionImpact.WRITE_DATA,
             duration_sec=time.perf_counter() - started,
@@ -284,6 +303,18 @@ async def action_assisted_validate_diff(
         touched = _touched_paths(wt_path)
         touched_py = [p for p in touched if p.endswith(".py")]
 
+        if general:
+            return await _validate_general(
+                aid=aid,
+                patch=patch,
+                wt_path=wt_path,
+                touched=touched,
+                checks=checks,
+                validated_base_sha=validated_base_sha,
+                core_context=core_context,
+                started=started,
+            )
+
         # 1b. Engine-touch routing (ADR-141 D1/D2/D6).
         #     Derive the engine-file sets from the registry (no hardcoded path
         #     literals; discovery tracks what is actually registered).
@@ -321,9 +352,8 @@ async def action_assisted_validate_diff(
             )
 
         # 2. ruff must pass on the touched Python files.
-        checks["ruff"] = (
-            ToolRunner.run_ruff(wt_path, touched_py) if touched_py else True
-        )
+        # (deleted files are touched but gone; run_ruff_paths skips them)
+        checks["ruff"] = ToolRunner.run_ruff_paths(wt_path, touched_py)
 
         # 3a. Graph-independent engine touch → subprocess audit (ADR-141 D3/D4).
         #     Write bootstrap + input JSON to var/tmp via file_handler, spawn a
@@ -447,6 +477,186 @@ async def action_assisted_validate_diff(
         )
     finally:
         worktree.cleanup()
+
+
+# The commit gate's acceptance terms (.claude/hooks/core-verdict.sh, #907):
+# verdict PASS or DEGRADED, and no finding of blocking severity.
+_GATE_VERDICTS = frozenset({"PASS", "DEGRADED"})
+_BLOCK_SEVERITIES = frozenset({"block", "blocking"})
+# Tests that reach shared live state (the core_test database, a live daemon)
+# are not run on a producer's behalf; the result says so.
+_GENERAL_TEST_MARKERS = "not trio and not integration"
+
+
+async def _validate_general(
+    *,
+    aid: str,
+    patch: str,
+    wt_path: Path,
+    touched: list[str],
+    checks: dict[str, bool],
+    validated_base_sha: str,
+    core_context: CoreContext,
+    started: float,
+) -> ActionResult:
+    """CORE chooses the checks for a change not born from a finding (A3)."""
+    from shared.infrastructure.intent.governed_text import (
+        governed_paths_touched,
+        load_governed_text_paths,
+    )
+
+    # A5: governed text enters only under ADR-170, never as a code proposal.
+    governed_hits = governed_paths_touched(touched, load_governed_text_paths())
+    checks["governed_text_untouched"] = not governed_hits
+    if governed_hits:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "validation_mode": "general",
+                "validation_results": checks,
+                "production_set": touched,
+                "governed_paths": governed_hits,
+                "error": (
+                    "Patch touches governed text ("
+                    + ", ".join(governed_hits)
+                    + "); governed text enters only as a law proposal (ADR-170)."
+                ),
+            },
+            impact=ActionImpact.WRITE_DATA,
+            duration_sec=time.perf_counter() - started,
+        )
+
+    touched_py = [p for p in touched if p.endswith(".py")]
+    checks["ruff"] = ToolRunner.run_ruff_paths(wt_path, touched_py)
+
+    # The full audit over the patched tree, in a subprocess so a patched
+    # engine judges the patch (ADR-141 D3, extended to every rule).
+    audit, audit_error = _run_full_audit(wt_path, core_context)
+    blocking: list[dict[str, Any]] = []
+    not_evaluated: list[dict[str, Any]] = []
+    audit_verdict: str | None = None
+    if audit is None:
+        checks["full_audit"] = False
+    else:
+        audit_verdict = audit.get("verdict")
+        blocking = [
+            f
+            for f in audit.get("findings") or []
+            if str(f.get("severity", "")).lower() in _BLOCK_SEVERITIES
+        ]
+        not_evaluated = [
+            {"rule_id": r.get("rule_id"), "enforcement": r.get("enforcement")}
+            for r in audit.get("skipped_rules") or []
+        ]
+        checks["full_audit"] = audit_verdict in _GATE_VERDICTS and not blocking
+
+    tests_run = _general_test_targets(wt_path, touched_py)
+    checks["tests"] = await _run_test_files(aid, wt_path, tests_run)
+
+    data: dict[str, Any] = {
+        "validation_mode": "general",
+        "validation_results": checks,
+        "production_set": touched,
+        "finding_rules": [],
+        "subject_files": [],
+        "audit_verdict": audit_verdict,
+        "blocking_findings": [
+            {
+                "rule_id": f.get("check_id") or f.get("rule_id"),
+                "file_path": f.get("file_path"),
+                "line_number": f.get("line_number"),
+                "message": str(f.get("message"))[:300],
+            }
+            for f in blocking[:20]
+        ],
+        "blocking_findings_count": len(blocking),
+        "not_evaluated": not_evaluated,
+        "tests_run": tests_run,
+        "tests_not_run_markers": _GENERAL_TEST_MARKERS,
+        "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest(),
+        "validated_base_sha": validated_base_sha,
+    }
+    if audit_error is not None:
+        data["audit_error"] = audit_error
+    return ActionResult(
+        action_id=aid,
+        ok=all(checks.values()),
+        data=data,
+        impact=ActionImpact.WRITE_DATA,
+        duration_sec=time.perf_counter() - started,
+    )
+
+
+def _run_full_audit(
+    wt_path: Path, core_context: CoreContext
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Run the full stateless audit over *wt_path*; (result, None) or (None, error)."""
+    file_handler = core_context.file_handler
+    run_id = uuid.uuid4().hex[:8]
+    tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
+        file_handler.repo_path
+    )
+    input_rel = str(tmp / f"core-fullaudit-input-{run_id}.json")
+    bootstrap_rel = str(tmp / f"core-fullaudit-runner-{run_id}.py")
+    file_handler.write_runtime_text(
+        input_rel, json.dumps({"worktree_path": str(wt_path)})
+    )
+    file_handler.write_runtime_text(bootstrap_rel, FULL_AUDIT_SUBPROCESS_BOOTSTRAP)
+    try:
+        sub = ToolRunner.run_full_audit_subprocess(
+            file_handler.repo_path / bootstrap_rel,
+            file_handler.repo_path / input_rel,
+        )
+    finally:
+        file_handler.remove_file(bootstrap_rel)
+        file_handler.remove_file(input_rel)
+    result = sub.get("result")
+    if sub.get("ok") and isinstance(result, dict):
+        return result, None
+    return None, str(sub.get("error") or "full audit returned no result")
+
+
+def _general_test_targets(wt_path: Path, touched_py: list[str]) -> list[str]:
+    """Existing test files for a general change: the governed and sibling
+    tests of every touched source file, and every touched test file itself."""
+    from shared.infrastructure.intent.test_coverage_paths import (
+        load_test_coverage_config,
+        sibling_test_paths,
+        source_to_test_path,
+    )
+
+    config = load_test_coverage_config()
+    test_prefix = f"{config.get('test_root', 'tests')}/"
+    targets: set[str] = set()
+    for path in touched_py:
+        if path.startswith(test_prefix):
+            if Path(path).name.startswith("test_"):
+                targets.add(path)
+            continue
+        try:
+            targets.add(source_to_test_path(path, config))
+        except ValueError:
+            continue
+        targets.update(sibling_test_paths(wt_path, path, config))
+    return sorted(t for t in targets if (wt_path / t).is_file())
+
+
+async def _run_test_files(aid: str, wt_path: Path, targets: list[str]) -> bool:
+    """True when every test file in *targets* passes in *wt_path*."""
+    from shared.infrastructure.validation.test_runner import run_tests
+
+    passed = True
+    for target in targets:
+        result = await run_tests(
+            target=target,
+            action_id=aid,
+            repo_root=wt_path,
+            markers=_GENERAL_TEST_MARKERS,
+        )
+        if not result.ok:
+            passed = False
+    return passed
 
 
 def _apply_to_index(wt_path: Path, patch: str) -> Any:

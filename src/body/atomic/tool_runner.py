@@ -54,6 +54,39 @@ print(json.dumps({"findings": _findings, "ok": True, "error": None}))
 """
 
 
+# Bootstrap for the general validation path (ADR-168 Amendment 2026-10-10 A3):
+# the full stateless audit — the same one the commit gate and CI run — over a
+# patched worktree, with the worktree's own src/ first on sys.path so a patch
+# that changes an engine is judged by the patched engine. Emits the audit's
+# result dict (verdict, findings, skipped_rules) as JSON on stdout.
+FULL_AUDIT_SUBPROCESS_BOOTSTRAP = """\
+import sys
+import json
+import asyncio
+from pathlib import Path
+
+_data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+_wt = Path(_data["worktree_path"])
+sys.path.insert(0, str(_wt / "src"))
+
+from shared.infrastructure.intent.intent_repository import IntentRepository  # noqa: E402
+from mind.governance.stateless_audit import run_stateless_audit  # noqa: E402
+
+
+async def _main():
+    repo = IntentRepository(strict=True, root=_wt / ".intent")
+    repo.initialize()
+    return await run_stateless_audit(intent_repo=repo, repo_path=_wt)
+
+
+_result = asyncio.run(_main())
+print(json.dumps({"ok": True, "error": None, "result": _result}, default=str))
+"""
+
+# The commit gate's own ceiling for the same audit (.claude/hooks/core-verdict.sh).
+_FULL_AUDIT_TIMEOUT_SEC = 540
+
+
 # ID: f8d1f6c2-4218-45eb-aa05-be4869d59da1
 class ToolRunner:
     """Subprocess sanctuary for git, ruff, and stateless-audit invocations."""
@@ -137,3 +170,60 @@ class ToolRunner:
                 "ok": False,
                 "error": f"Subprocess stdout parse error: {exc}",
             }
+
+    @staticmethod
+    # ID: 2e12e1db-cba4-437d-9924-830d7484f64c
+    def run_full_audit_subprocess(
+        bootstrap_path: Path, input_path: Path
+    ) -> dict[str, Any]:
+        """Run the full stateless audit over a worktree in a subprocess.
+
+        Invokes ``FULL_AUDIT_SUBPROCESS_BOOTSTRAP`` with the input JSON as
+        argv[1]. Returns ``{"ok": True, "error": None, "result": {...}}``
+        where ``result`` is ``run_stateless_audit``'s dict; on timeout,
+        non-zero exit or unparseable output, ``{"ok": False, "error": ...,
+        "result": None}`` — the caller fails closed.
+        """
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(bootstrap_path), str(input_path)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_FULL_AUDIT_TIMEOUT_SEC,
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "ok": False,
+                "error": f"Full audit timed out ({_FULL_AUDIT_TIMEOUT_SEC} s).",
+                "result": None,
+            }
+
+        if proc.returncode != 0:
+            return {
+                "ok": False,
+                "error": (proc.stderr or proc.stdout or "non-zero exit").strip()[-400:],
+                "result": None,
+            }
+
+        # Log lines may precede the JSON; the result is the last stdout line.
+        lines = [ln for ln in proc.stdout.splitlines() if ln.strip()]
+        try:
+            return json.loads(lines[-1])
+        except Exception as exc:
+            return {
+                "ok": False,
+                "error": f"Full audit stdout parse error: {exc}",
+                "result": None,
+            }
+
+    @staticmethod
+    # ID: 2da620be-9bda-496a-904b-34463fbaf6ac
+    def run_ruff_paths(worktree: Path, files: list[str]) -> bool:
+        """``run_ruff`` limited to *files* that exist in *worktree*.
+
+        A patch's deleted files are in its touched set but no longer on disk;
+        ruff would report them as unreadable (E902) and fail the check.
+        """
+        present = [f for f in files if (worktree / f).is_file()]
+        return ToolRunner.run_ruff(worktree, present) if present else True
