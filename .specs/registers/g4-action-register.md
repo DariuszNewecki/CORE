@@ -44,7 +44,7 @@ Times are UTC unless marked. Lessons drawn from these rows: `lessons-register.md
 | C-09 | assistant | Every batch embedding failed (two layers) | A-05, A-06 | seed log (var/, not DB) |
 | C-10 | assistant | 930/930 LLM-judge failures reported as "0 contradictions" | A-07 | CCC run ce1a1190 (DB) |
 | C-11 | **CORE** — CI hermetic tests | OpenAPI copy stale after A-02 | A-08 | CI run 38032487803 (a test, not a CORE rule) |
-| C-12 | **CORE** — CCC, once repaired | 24 contradiction candidates → 7 conflicts between law text and reality, 1 open question of law (ADR-138), 2 missing cross-refs, 15 *proposed* dismissals — **unverified** (AI grading AI, C-04), being re-checked; side findings H-05, H-06 | Triage held until the dismissals are verified (`var/reports/ccc-triage-20261010.md`) | CCC run 6558a043 (DB) |
+| C-12 | **CORE** — CCC, once repaired | 24 contradiction candidates → 7 conflicts between law text and reality, 1 open question of law (ADR-138), 2 missing cross-refs, 15 *proposed* dismissals — **unverified** (AI grading AI, C-04), being re-checked; side findings H-05, H-06 | Re-verified (C-14); triage recorded 9 confirmed / 15 dismissed; law 0011 (`var/reports/ccc-triage-20261010.md`) | CCC run 6558a043 (DB) |
 | C-13 | **CORE** — pre-commit gate | 10 commits checked, 10 allowed, 0 blocked | — | `var/experiments/adr168/verdicts.jsonl` (var/, not DB) |
 
 ### Health — CORE problems found
@@ -89,3 +89,62 @@ Times are UTC unless marked. Lessons drawn from these rows: `lessons-register.md
 - Health problems found: 6 (4 fixed, 2 open).
 - CORE-recordable today: git, CI, CCC runs (DB). **Not recordable:** chat catches, reviewer catches, commit-gate
   verdicts (file in `var/`, not in CORE's records), seed logs.
+
+### 2026-10-10, afternoon
+
+**Fixes and law (assistant as producer; none by CORE's loop)**
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-09 | 751f2a64 | Law 0010: these registers | governor (idea) | git; law ledger |
+| A-10 | c3621395 | Law 0011: 12 files — stale law text corrected; ADR-138 narrowed to ADR-142 classes; ADR-120/158 accepted | CCC + C-14 | git; law ledger |
+| A-11 | 17d0d688 | CCC harvester skips superseded/retired documents | CCC triage (H-05) | git; verdict |
+| A-12 | bd4a684b | Onboard docstrings + OpenAPI: floor from `shared._machinery_floor` | CCC triage | git; verdict; CI green |
+| A-13 | 7013daed | Law 0012: topology rows 2/4 relaxed; triage carry-forward; 8 floor configs → framework; 20 references; ADR-094 not built; ADR-117 accepted | CCC structural triage | git; law ledger |
+| A-14 | 376f9580 | CCC checks: PATH_REF parser, ROW3 drafts, ROW2/ROW4 amended rules, git `--follow`, triage carry-forward | CCC structural triage | git; verdict; CI **red** (C-19) |
+| A-15 | 8d2af032 | ROW3 draft check as a status set (guard test) | CORE CI (C-19) | git; CI green |
+
+**Catches**
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-14 | assistant (after C-04) | Re-reading all 17 proposed dismissals: 15 hold, 2 are real text gaps (ADR-076, ADR-059) | Decided by governor; law 0011 | **none** (report in `var/`) |
+| C-15 | assistant | CCC forgets triage between runs — every run re-raises everything | Carry-forward (A-13, A-14) | **none** |
+| C-16 | assistant (CCC PATH_REF) | ADR-094 accepted but never built; ADR-117/120/158 "Proposed" yet applied | Governor decisions; laws 0011/0012 | CCC run 6558a043 (indirect) |
+| C-17 | assistant (CCC ROW4) | 4 law files with no recorded decision; 17 introduced under an issue only | Deferred — to trace | CCC run 6558a043 |
+| C-18 | **CORE** — pre-commit gate | Refused law 0012's commit: my code had orphaned a symbol ID (`linkage.no_orphan_ids`) | Fixed, recommitted | `var/experiments/adr168/verdicts.jsonl` (var/, not DB) |
+| C-19 | **CORE** — CI guard test | `'draft'` literal in production code (retired Proposal status) — CI 38038361862 | A-15 | CI run |
+| C-20 | governor | Row 4 rule as I first worded it ("folder") — approved, then shown too narrow by my own dry run | Folder condition dropped before law | **none** |
+
+**Health**
+
+| ID | Problem | Since | Status |
+|---|---|---|---|
+| H-07 | CCC triage not carried across runs | CCC birth | fixed (A-13, A-14) |
+| H-08 | Six CCC check defects (PATH_REF parser, ROW4 rename date, ROW3 drafts, ROW2 name-match, manifest misclassification, retired docs) | various | fixed (A-11, A-13, A-14) |
+| H-09 | Three ADRs applied as law while still "Proposed" (117, 120, 158) | 2026-06/08 | accepted by governor |
+| H-10 | An accepted ADR never built (ADR-094, URS sensor); SPECGAP cannot see ADR deliverables | 2026-06-06 | recorded; open |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-08 | 07:20 / 07:35 / 08:25 | Laws 0010, 0011, 0012 approved | governor |
+| E-09 | ~07:45 | CCC contradiction triage recorded (9 confirmed / 15 dismissed) | governor |
+| E-10 | 07:47 / 08:31 / 08:44 / 08:56 | Pushes; CI green, green, **red**, green | assistant |
+| E-11 | 09:2x–10:16 | CCC structural triage recorded; run 6558a043 **closed**: 469 candidates — 49 confirmed / 280 dismissed / 140 deferred / 0 unreviewed (verified from the run) | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-08 | A `-k` sweep pulled 5 `core_test` integration tests into a scoped run (second time, after M-01) | assistant | none; scoped runs now use `-m "not trio and not integration"` |
+| M-09 | Inserted a function between another function and its symbol ID | CORE gate (C-18) | commit refused once |
+| M-10 | Compared a paper status with the literal `"draft"` | CORE CI (C-19) | CI red once |
+| M-11 | First structural triage script over-confirmed 3 items (matched documents, not document + path) | assistant | fixed before handover |
+| M-12 | Predicted ROW4 at ~23; the rule as worded left 41 | assistant (dry run) | C-20 |
+| M-13 | Two counting errors in the structural report (130 ≠ 134; 17 vs 14) | assistant (re-adding) | fixed before handover |
+
+**Day total (by hand)** — fixes and law: 15 entries, all by the assistant; catches: 20 — governor 5, reviewer 1, assistant 9,
+**CORE 5** (C-11, C-12 once repaired, C-13, C-18, C-19); assistant misses: 13.
+
