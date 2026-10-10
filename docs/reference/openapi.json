@@ -37,7 +37,7 @@
           "Proposals"
         ],
         "summary": "Create a proposal",
-        "description": "Build a proposal from a goal + action sequence, compute its risk, and (when `write=true`) persist it via ProposalService. With `write=false` (default) the proposal is constructed and risk-scored in-memory but NOT written to the database — useful for dry-run validation. Returns the proposal's `to_dict()` shape either way.",
+        "description": "Build a proposal from a goal + action sequence, compute its risk, and (when `write=true`) persist it via ProposalService. With `write=false` (default) the proposal is constructed and risk-scored in-memory but NOT written to the database — useful for dry-run validation. Returns the proposal's `to_dict()` shape either way. A malformed proposal (no action, an unknown action, no declared file) is refused with 422 and never persisted.",
         "operationId": "create_proposal_v1_proposals_post",
         "requestBody": {
           "required": true,
