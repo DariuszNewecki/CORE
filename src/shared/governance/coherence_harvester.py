@@ -54,6 +54,13 @@ _STRUCTURED_FIELDS = frozenset(
 
 _NORMATIVE_MARKERS_REL = "enforcement/config/normative_markers.yaml"
 
+# Terminal states of the governed document lifecycle (.intent/META/enums.json
+# `document_status`; ADR-105 D5): a superseded or retired document is no longer
+# in force, so its text is not judged against live law. Judging it made CCC
+# report withdrawn ADR-112 as conflicting with ADR-159 (run 6558a043).
+_NOT_IN_FORCE_STATUSES = frozenset({"superseded", "retired"})
+_FRONTMATTER_STATUS = re.compile(r"\Astatus:\s*['\"]?([A-Za-z_-]+)", re.MULTILINE)
+
 
 @dataclass(frozen=True)
 # ID: 86c5a6f4-eb32-415b-9830-b88db0dfe8e5
@@ -172,6 +179,8 @@ class GovernanceClaimHarvester:
     # ID: b3e40f83-334f-427f-8fab-85ad189875cf
     def _extract_markdown(self, path: Path, category: str) -> Iterator[Claim]:
         content = path.read_text(encoding="utf-8")
+        if _document_status(content) in _NOT_IN_FORCE_STATUSES:
+            return
         rel = str(path.relative_to(self._repo_root))
         lines = content.split("\n")
         para: list[str] = []
@@ -243,6 +252,20 @@ class GovernanceClaimHarvester:
     @staticmethod
     def _sha(text: str) -> str:
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _document_status(content: str) -> str | None:
+    """The frontmatter ``status:`` of a markdown document, lowercased, or None."""
+    if not content.startswith("---"):
+        return None
+    end = content.find("\n---", 3)
+    if end == -1:
+        return None
+    for line in content[3:end].splitlines():
+        match = _FRONTMATTER_STATUS.match(line.strip())
+        if match:
+            return match.group(1).lower()
+    return None
 
 
 def _walk_strings(node: object) -> Iterator[str]:
