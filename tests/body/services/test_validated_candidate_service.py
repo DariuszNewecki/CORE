@@ -333,3 +333,53 @@ def test_no_production_code_constructs_candidate_outside_trusted_service():
     ]
 
     assert offenders == [], f"unauthorized construction site(s): {offenders}"
+
+
+# --- general mode (ADR-168 Amendment 2026-10-10 A3) ---
+
+
+def _general_row() -> dict:
+    row = _row(finding_rules=[])
+    row["result"]["data"]["validation_mode"] = "general"
+    return row
+
+
+# ID: c5d86c4f-e97f-466f-8de9-a5683168d0f2
+async def test_general_candidate_from_a_general_run() -> None:
+    with _patch_session(_general_row()):
+        candidate = await build_validated_candidate(
+            finding_ids=[],
+            rule_ids=[],
+            patch=_PATCH,
+            validation_run_id="00000000-0000-0000-0000-000000000001",
+            general=True,
+        )
+    assert candidate.finding_ids == []
+    assert candidate.validated_base_sha == "base-sha-123"
+
+
+# ID: 0af1ecfe-acd7-44ca-a294-6c31f5bf41cb
+async def test_general_candidate_refuses_a_finding_scoped_run() -> None:
+    """A finding-scoped run checked only that finding's rules; it never
+    qualifies a change CORE must check in full."""
+    with _patch_session(_row(finding_rules=[])):
+        with pytest.raises(CandidateConstructionError, match="finding-scoped"):
+            await build_validated_candidate(
+                finding_ids=[],
+                rule_ids=[],
+                patch=_PATCH,
+                validation_run_id="00000000-0000-0000-0000-000000000001",
+                general=True,
+            )
+
+
+# ID: 8b062729-b048-4971-ae8e-e0c01c0dcc7a
+async def test_finding_candidate_refuses_a_general_run() -> None:
+    with _patch_session(_general_row()):
+        with pytest.raises(CandidateConstructionError, match="general validation"):
+            await build_validated_candidate(
+                finding_ids=["f1"],
+                rule_ids=[],
+                patch=_PATCH,
+                validation_run_id="00000000-0000-0000-0000-000000000001",
+            )

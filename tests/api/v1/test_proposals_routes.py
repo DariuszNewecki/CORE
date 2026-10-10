@@ -471,3 +471,43 @@ async def test_execute_proposal_passes_write_true_when_requested():
         else call_args.args[2]
     )
     assert write_passed is True
+
+
+# ── submit (ADR-168 Amendment 2026-10-10) ────────────────────────────────────
+
+
+def _submit_request():
+    from api.v1.proposals_routes import SubmitChangeRequest
+
+    return SubmitChangeRequest(
+        patch="diff",
+        validation_run_id="00000000-0000-0000-0000-000000000001",
+        goal="g",
+        anchor_kind="issue",
+        anchor_refs=["#1"],
+        producer="p",
+    )
+
+
+# ID: a79ea4b8-fedc-4188-a9e7-ff5e502a7c89
+async def test_submit_routes_to_the_will_submission_service():
+    from api.v1.proposals_routes import submit_change
+
+    service = AsyncMock(return_value={"proposal_id": "p1"})
+    with patch("will.autonomy.producer_submission.submit_producer_change", service):
+        out = await submit_change(payload=_submit_request())
+
+    assert out == {"proposal_id": "p1"}
+    assert service.await_args.kwargs["created_by"] == "api.proposals_submit"
+
+
+# ID: 3fceb8a5-ecfb-4737-b804-aa3006bb479e
+async def test_submit_refusal_is_422():
+    from api.v1.proposals_routes import submit_change
+    from will.autonomy.producer_submission import ProducerSubmissionError
+
+    service = AsyncMock(side_effect=ProducerSubmissionError("no"))
+    with patch("will.autonomy.producer_submission.submit_producer_change", service):
+        with pytest.raises(HTTPException) as exc_info:
+            await submit_change(payload=_submit_request())
+    assert exc_info.value.status_code == 422

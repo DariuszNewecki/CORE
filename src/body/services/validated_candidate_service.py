@@ -47,6 +47,7 @@ async def build_validated_candidate(
     patch: str,
     validation_run_id: str,
     subject_files: list[str] | None = None,
+    general: bool = False,
 ) -> ValidatedRemediationCandidate:
     """Construct a ``ValidatedRemediationCandidate`` from a passed validation run.
 
@@ -69,6 +70,12 @@ async def build_validated_candidate(
     supplied, is checked the same way against the run's persisted
     ``data['subject_files']`` — which original finding subjects the run
     treated as guarded.
+
+    *general* (ADR-168 Amendment 2026-10-10 A3): the candidate is for a
+    change not born from a finding. The run must be a general-mode run
+    (``data['validation_mode'] == 'general'`` — CORE chose the checks: full
+    blocking audit, Class B rules, tests); a finding-scoped run checks less
+    and never qualifies. *finding_ids* and *rule_ids* are then empty.
 
     Raises:
         CandidateConstructionError: the named run does not exist, is not an
@@ -124,6 +131,19 @@ async def build_validated_candidate(
         raise CandidateConstructionError(
             f"Validation run {validation_run_id} recorded no "
             "validated_base_sha; cannot bind approval to a base commit."
+        )
+
+    run_is_general = data.get("validation_mode") == "general"
+    if general and not run_is_general:
+        raise CandidateConstructionError(
+            f"Run {validation_run_id} was a finding-scoped validation; a change "
+            "not born from a finding needs a general validation run "
+            "(assisted.validate_diff general=True), where CORE chooses the checks."
+        )
+    if run_is_general and not general:
+        raise CandidateConstructionError(
+            f"Run {validation_run_id} was a general validation; a finding "
+            "candidate needs the run that checked the finding's rules."
         )
 
     persisted_rule_ids = set(data.get("finding_rules") or [])

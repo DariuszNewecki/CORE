@@ -35,7 +35,11 @@ from api.dependencies import (
     get_api_session,
     require_governor,
 )
-from api.v1.schemas import GovernanceChainResponse, ProposalResponse
+from api.v1.schemas import (
+    GovernanceChainResponse,
+    ProposalResponse,
+    SubmitChangeResponse,
+)
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
@@ -85,6 +89,24 @@ class ExecuteRequest(BaseModel):
     write: bool = False
 
 
+# ID: d4145757-53bd-44ac-adb1-ca6eef989902
+class SubmitChangeRequest(BaseModel):
+    """Body for POST /proposals/submit (ADR-168 Amendment 2026-10-10).
+
+    A producer's change not born from a finding: the patch, the id of the
+    general-mode ``assisted.validate_diff`` run that cleared it (CORE re-reads
+    that run; the caller's word is never the verdict), and who and why.
+    """
+
+    patch: str
+    validation_run_id: str
+    goal: str
+    anchor_kind: str
+    anchor_refs: list[str]
+    producer: str
+    retires: list[str] = []
+
+
 # ID: 71caa34a-1661-4178-b982-626bff254539
 class CreateProposalRequest(BaseModel):
     """Body for POST /proposals.
@@ -106,6 +128,49 @@ class CreateProposalRequest(BaseModel):
     anchor_refs: list[str] = []
     producer: str | None = None
     retires: list[str] = []
+
+
+@router.post(
+    "/submit",
+    status_code=201,
+    response_model=SubmitChangeResponse,
+    summary="Submit a producer's validated change as a pending proposal",
+    dependencies=[require_governor],
+    description=(
+        "One way in for a change not born from a finding (ADR-168 Amendment "
+        "2026-10-10). The patch must have cleared a general-mode "
+        "`assisted.validate_diff` run (dispatched via `POST /fix/run/{fix_id}`), "
+        "which CORE re-reads. CORE answers step 0 (what it retires, related "
+        "decisions, similar existing code) and creates a PENDING proposal "
+        "carrying the anchor, problem owner (the governor) and producer. "
+        "Approval is always required; this route never approves. 422 when the "
+        "run does not bind the patch or the submission is malformed."
+    ),
+)
+# ID: 1ea37180-f337-40c5-aa43-2283da29e563
+async def submit_change(payload: SubmitChangeRequest) -> dict:
+    """Route a producer's validated change to the Will-layer submission service."""
+    from shared.models.validated_remediation_candidate import (
+        CandidateConstructionError,
+    )
+    from will.autonomy.producer_submission import (
+        ProducerSubmissionError,
+        submit_producer_change,
+    )
+
+    try:
+        return await submit_producer_change(
+            patch=payload.patch,
+            validation_run_id=payload.validation_run_id,
+            goal=payload.goal,
+            anchor_kind=payload.anchor_kind,
+            anchor_refs=payload.anchor_refs,
+            producer=payload.producer,
+            retires=payload.retires,
+            created_by="api.proposals_submit",
+        )
+    except (ProducerSubmissionError, CandidateConstructionError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(

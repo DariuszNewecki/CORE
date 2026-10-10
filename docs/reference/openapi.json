@@ -31,6 +31,48 @@
         }
       }
     },
+    "/v1/proposals/submit": {
+      "post": {
+        "tags": [
+          "Proposals"
+        ],
+        "summary": "Submit a producer's validated change as a pending proposal",
+        "description": "One way in for a change not born from a finding (ADR-168 Amendment 2026-10-10). The patch must have cleared a general-mode `assisted.validate_diff` run (dispatched via `POST /fix/run/{fix_id}`), which CORE re-reads. CORE answers step 0 (what it retires, related decisions, similar existing code) and creates a PENDING proposal carrying the anchor, problem owner (the governor) and producer. Approval is always required; this route never approves. 422 when the run does not bind the patch or the submission is malformed.",
+        "operationId": "submit_change_v1_proposals_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitChangeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/proposals": {
       "post": {
         "tags": [
@@ -5528,6 +5570,94 @@
         ],
         "title": "SecretSetRequest",
         "description": "Internal contract for storing a secret via the secret-management API.\n\nEncapsulates the full set of parameters required to create or update a\nsecret, with optional metadata and an override flag for existing entries.\n\nArgs:\n    key: The unique identifier of the secret to store.\n    value: The secret's content to be persisted securely.\n    description: Human-readable metadata describing the secret's purpose.\n    force: When True, overwrites an existing secret with the same key\n        instead of raising a conflict."
+      },
+      "SubmitChangeRequest": {
+        "properties": {
+          "patch": {
+            "type": "string",
+            "title": "Patch"
+          },
+          "validation_run_id": {
+            "type": "string",
+            "title": "Validation Run Id"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "anchor_kind": {
+            "type": "string",
+            "title": "Anchor Kind"
+          },
+          "anchor_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Anchor Refs"
+          },
+          "producer": {
+            "type": "string",
+            "title": "Producer"
+          },
+          "retires": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retires",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "patch",
+          "validation_run_id",
+          "goal",
+          "anchor_kind",
+          "anchor_refs",
+          "producer"
+        ],
+        "title": "SubmitChangeRequest",
+        "description": "Body for POST /proposals/submit (ADR-168 Amendment 2026-10-10).\n\nA producer's change not born from a finding: the patch, the id of the\ngeneral-mode ``assisted.validate_diff`` run that cleared it (CORE re-reads\nthat run; the caller's word is never the verdict), and who and why."
+      },
+      "SubmitChangeResponse": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "approval_required": {
+            "type": "boolean",
+            "title": "Approval Required"
+          },
+          "scope_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope Files"
+          },
+          "step_zero": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Step Zero"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "status",
+          "approval_required",
+          "scope_files",
+          "step_zero"
+        ],
+        "title": "SubmitChangeResponse",
+        "description": "POST /v1/proposals/submit response (201): the pending proposal and the\nstep-0 report shown to the approver (ADR-168 Amendment 2026-10-10)."
       },
       "ValidationError": {
         "properties": {

@@ -100,3 +100,56 @@ def build_assisted_lane_proposal(
         constitutional_constraints=constraints,
         provenance=provenance,
     )
+
+
+# ID: e0da2f2f-6a53-47a7-96ac-ceae2ee8806c
+def build_general_proposal(
+    candidate: ValidatedRemediationCandidate,
+    *,
+    goal: str,
+    created_by: str,
+    provenance: ProposalProvenance,
+    step_zero: dict[str, Any],
+) -> Proposal:
+    """The human-gated proposal for a change not born from a finding.
+
+    ADR-168 Amendment 2026-10-10 A2/A3: same governed shape as the finding
+    lanes — ``assisted.apply_diff`` with the exact validated patch, its
+    digest and base SHA, approval always required (A7: never auto-approved)
+    — anchored by *provenance* instead of finding ids, carrying the step-0
+    report (R4) for the approver.
+    """
+    if candidate.finding_ids:
+        raise ValueError("A general proposal carries no finding ids.")
+    problems = provenance.problems()
+    if problems:
+        raise ValueError("; ".join(problems))
+    return Proposal(
+        goal=goal,
+        actions=[
+            ProposalAction(
+                action_id="assisted.apply_diff",
+                parameters={
+                    "patch": candidate.patch,
+                    "patch_digest": candidate.patch_digest,
+                    "validated_base_sha": candidate.validated_base_sha,
+                    "write": True,
+                },
+                order=0,
+            )
+        ],
+        scope=ProposalScope(files=list(candidate.production_set)),
+        status=ProposalStatus.PENDING,
+        created_by=created_by,
+        validation_checks=candidate.validation_checks,
+        validation_results=candidate.validation_results,
+        approval_required=True,
+        constitutional_constraints={
+            "candidate_id": candidate.candidate_id,
+            "patch_digest": candidate.patch_digest,
+            "validated_base_sha": candidate.validated_base_sha,
+            "candidate_created_at": candidate.created_at.isoformat(),
+            "step_zero": step_zero,
+        },
+        provenance=provenance,
+    )

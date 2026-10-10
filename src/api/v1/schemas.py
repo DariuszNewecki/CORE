@@ -316,6 +316,18 @@ class LaneProposeResponse(BaseModel):
     scope_files: list[str]
 
 
+# ID: 8f81f778-03fb-4de0-8ec2-908636564bbf
+class SubmitChangeResponse(BaseModel):
+    """POST /v1/proposals/submit response (201): the pending proposal and the
+    step-0 report shown to the approver (ADR-168 Amendment 2026-10-10)."""
+
+    proposal_id: str
+    status: str
+    approval_required: bool
+    scope_files: list[str]
+    step_zero: dict[str, Any]
+
+
 # ── Census ────────────────────────────────────────────────────────────────────
 
 
