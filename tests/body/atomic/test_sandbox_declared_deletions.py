@@ -139,3 +139,31 @@ async def test_deletion_refused_when_main_has_an_edit_on_that_file(repo: Path) -
     finally:
         scoped_git.cleanup()
     assert (repo / "gone.py").read_text() == "y = 99  # governor edit\n"
+
+
+# ID: a987a372-c1f4-4f21-a5f6-52841c45e434
+async def test_apply_in_a_vanished_sandbox_fails_instead_of_reporting_success(
+    repo: Path,
+) -> None:
+    """The da93593b race: the sandbox was swept mid-action; git found the
+    enclosing repository, `git apply` ignored the patch and exited 0."""
+    ctx = _context(repo)
+    scoped_git = ctx.git_service.create_worktree(ctx.git_service.get_current_commit())
+    scoped_ctx = _context(Path(scoped_git.repo_path))
+    sha = scoped_ctx.git_service.get_current_commit()
+    (Path(scoped_git.repo_path) / ".git").unlink()
+    try:
+        result = await action_assisted_apply_diff.__wrapped__(
+            patch=_PATCH,
+            patch_digest=hashlib.sha256(_PATCH.encode()).hexdigest(),
+            validated_base_sha=sha,
+            core_context=scoped_ctx,
+        )
+    finally:
+        import shutil
+
+        shutil.rmtree(scoped_git.repo_path, ignore_errors=True)
+        _run(["git", "worktree", "prune"], repo)
+
+    assert result.ok is False
+    assert (repo / "keep.py").read_text() == "x = 1\n"

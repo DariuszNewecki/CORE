@@ -847,12 +847,37 @@ async def action_assisted_apply_diff(
         stdin=patch,
     )
     ok = result.returncode == 0
+    error = result.stderr.strip()[:400] if not ok else None
+    if ok:
+        # The patch must actually have changed what it names. `git apply`
+        # outside its repository root ignores paths and still exits 0 — an
+        # "applied" patch that changed nothing (proposal da93593b).
+        facts = read_patch(patch)
+        named = set(facts.added) | set(facts.modified) | set(facts.deleted)
+        status = ToolRunner.run_git(
+            Path(core_context.git_service.repo_path),
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+        )
+        changed = {
+            line[3:].strip().strip('"')
+            for line in status.stdout.splitlines()
+            if len(line) > 3
+        }
+        missing = sorted(named - changed)
+        if status.returncode != 0 or missing:
+            ok = False
+            error = (
+                "Patch reported applied but the tree does not show its changes "
+                f"({', '.join(missing) or status.stderr.strip()[:200]}); refusing."
+            )
     return ActionResult(
         action_id=aid,
         ok=ok,
         data={
             "applied": ok,
-            "error": result.stderr.strip()[:400] if not ok else None,
+            "error": error,
             # ADR-168 Amendment 2026-10-10 A3: the files this approved patch
             # deletes; the executor carries exactly these deletions to the
             # main tree and into the commit.

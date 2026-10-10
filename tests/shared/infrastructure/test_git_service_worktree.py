@@ -123,11 +123,31 @@ def test_can_recreate_worktree_at_same_sha_after_cleanup(
         b.cleanup()
 
 
+def _orphan(repo: GitService, path: Path) -> None:
+    """Simulate a crash: the sandbox's owning process is gone (a sandbox owned
+    by a live process is never swept)."""
+    proc = subprocess.Popen(["true"])
+    proc.wait()
+    _run(["git", "worktree", "unlock", str(path)], repo.repo_path)
+    _run(
+        [
+            "git",
+            "worktree",
+            "lock",
+            "--reason",
+            f"core-sandbox pid={proc.pid}",
+            str(path),
+        ],
+        repo.repo_path,
+    )
+
+
 def test_sweep_removes_orphan_sandbox_worktree(repo: GitService) -> None:
     sha = repo.get_current_commit()
     abandoned = repo.create_worktree(sha)
     abandoned_path = abandoned.repo_path
-    # Simulate crash: skip cleanup entirely.
+    # Simulate crash: skip cleanup entirely; the owner is gone.
+    _orphan(repo, abandoned_path)
     assert abandoned_path.exists()
 
     removed = repo.sweep_orphan_worktrees()
@@ -145,6 +165,7 @@ def test_sweep_skips_non_sandbox_worktrees(repo: GitService, tmp_path: Path) -> 
     )
     sandbox = repo.create_worktree(sha)
     sandbox_path = sandbox.repo_path
+    _orphan(repo, sandbox_path)
 
     try:
         removed = repo.sweep_orphan_worktrees()

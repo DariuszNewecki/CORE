@@ -316,7 +316,8 @@ async def test_apply_diff_applies_when_base_sha_and_digest_both_match() -> None:
 
     assert result.ok is True
     assert result.data["applied"] is True
-    run_git.assert_called_once()
+    # The apply, then the check that the tree shows the patch's changes.
+    assert [c.args[1] for c in run_git.call_args_list] == ["apply", "status"]
 
 
 # --- action_assisted_validate_diff records validated_base_sha (ADR-154 D2) ---

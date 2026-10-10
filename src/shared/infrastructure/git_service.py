@@ -18,6 +18,7 @@ Will workers in particular must not spawn git subprocesses directly
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import shutil
 import subprocess
@@ -78,6 +79,9 @@ class StagingContaminationError(RuntimeError):
 # and reclaim them without touching unrelated worktrees.
 # /tmp is prohibited per CLAUDE.md; all temp writes use var/tmp/.
 SANDBOX_PREFIX = "core-action-sandbox-"
+# A sandbox worktree is created locked, its lock reason naming the owning
+# process; the boot sweep removes only sandboxes whose owner is gone.
+_SANDBOX_LOCK_PREFIX = "core-sandbox pid="
 
 # ADR-155 D3: filename of the run-identity marker written inside a disposable
 # demo run directory. marker_checked_remove() refuses to delete a directory
@@ -748,7 +752,22 @@ class GitService:
         sandbox_parent = PathResolver(self.repo_path).tmp_dir
         sandbox_parent.mkdir(parents=True, exist_ok=True)
         worktree_path = sandbox_parent / f"{SANDBOX_PREFIX}{uuid.uuid4().hex}"
-        self._run_command(["worktree", "add", "--detach", str(worktree_path), sha])
+        # Locked with its owner's pid: another process's boot sweep must never
+        # remove a sandbox in use (a live sandbox swept mid-action made git
+        # fall through to the main repository and an approved patch apply to
+        # nothing — proposal da93593b, 2026-10-10).
+        self._run_command(
+            [
+                "worktree",
+                "add",
+                "--detach",
+                "--lock",
+                "--reason",
+                f"{_SANDBOX_LOCK_PREFIX}{os.getpid()}",
+                str(worktree_path),
+                sha,
+            ]
+        )
         logger.info(
             "GitService: created worktree %s at sha %s",
             worktree_path,
@@ -869,8 +888,13 @@ class GitService:
         Remove any sandbox worktrees left behind by crashed actions.
 
         Lists worktrees registered against this repo, removes those whose
-        path lives directly under SANDBOX_PARENT with the SANDBOX_PREFIX,
-        and prunes the administrative entries. Returns the count removed.
+        path lives directly under SANDBOX_PARENT with the SANDBOX_PREFIX
+        **and whose owning process is gone** (lock reason ``core-sandbox
+        pid=N`` with no live process N; an unlocked sandbox predates owner
+        locks), and prunes the administrative entries. A sandbox still being
+        created (git's own lock) or owned by a live process is left alone:
+        every worker boots this sweep, and a live sandbox removed mid-action
+        made its git commands fall through to the main repository. Returns the count removed.
         Safe to call on daemon boot; failures are logged and swallowed so
         ignition is never blocked.
 
@@ -884,17 +908,24 @@ class GitService:
 
         sandbox_parent = PathResolver(self.repo_path).tmp_dir
         removed = 0
-        for line in output.splitlines():
-            if not line.startswith("worktree "):
-                continue
-            path_str = line[len("worktree ") :].strip()
+        for path_str, lock_reason in _worktree_entries(output):
             path = Path(path_str)
             if path.parent != sandbox_parent or not path.name.startswith(
                 SANDBOX_PREFIX
             ):
                 continue
+            if not _sandbox_owner_gone(lock_reason):
+                logger.debug(
+                    "GitService: sandbox %s is in use (%s); not swept",
+                    path_str,
+                    lock_reason,
+                )
+                continue
             try:
-                self._run_command(["worktree", "remove", "--force", path_str])
+                # Double force removes a locked worktree (its owner is gone).
+                self._run_command(
+                    ["worktree", "remove", "--force", "--force", path_str]
+                )
                 removed += 1
                 logger.info("GitService: removed orphan worktree %s", path_str)
             except RuntimeError as exc:
@@ -1043,6 +1074,16 @@ class ScopedGitService(GitService):
         self._parent = parent
         self._cleaned_up = False
 
+    def _run_command(self, command: list[str], cwd: Path | None = None) -> str:
+        """Refuse when the sandbox has vanished, instead of letting git
+        discover the enclosing main repository and act on it."""
+        if not (self.repo_path / ".git").exists():
+            raise RuntimeError(
+                f"Sandbox worktree {self.repo_path} has vanished (no .git); "
+                "refusing to run git, which would act on the enclosing repository."
+            )
+        return super()._run_command(command, cwd=cwd)
+
     # ID: 375faa32-d545-47ee-9fdb-3894b425de5a
     def cleanup(self) -> None:
         """
@@ -1055,7 +1096,7 @@ class ScopedGitService(GitService):
             return
         try:
             self._parent._run_command(
-                ["worktree", "remove", "--force", str(self.repo_path)]
+                ["worktree", "remove", "--force", "--force", str(self.repo_path)]
             )
         except RuntimeError as exc:
             logger.warning(
@@ -1075,3 +1116,42 @@ class ScopedGitService(GitService):
 
     def __exit__(self, *exc_info: object) -> None:
         self.cleanup()
+
+
+def _worktree_entries(porcelain: str) -> list[tuple[str, str | None]]:
+    """(path, lock reason or None) for each entry of ``git worktree list --porcelain``.
+
+    A locked entry carries a ``locked`` line, with the reason when one was given.
+    """
+    entries: list[tuple[str, str | None]] = []
+    for block in porcelain.strip().split("\n\n"):
+        path: str | None = None
+        reason: str | None = None
+        for line in block.splitlines():
+            if line.startswith("worktree "):
+                path = line[len("worktree ") :].strip()
+            elif line == "locked" or line.startswith("locked "):
+                reason = line[len("locked") :].strip() or "locked"
+        if path is not None:
+            entries.append((path, reason))
+    return entries
+
+
+def _sandbox_owner_gone(lock_reason: str | None) -> bool:
+    """Whether a sandbox may be swept: unlocked (pre-lock leftover), or locked
+    by a ``core-sandbox pid=N`` whose process no longer exists."""
+    if lock_reason is None:
+        return True
+    if not lock_reason.startswith(_SANDBOX_LOCK_PREFIX):
+        return False  # git's own lock (being created) or a lock we do not own
+    try:
+        pid = int(lock_reason[len(_SANDBOX_LOCK_PREFIX) :])
+    except ValueError:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False  # exists, owned by another account
+    return False

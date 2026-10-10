@@ -14,6 +14,7 @@ never the main working tree.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -129,13 +130,22 @@ class ToolRunner:
     def run_git(
         worktree: Path, *args: str, stdin: str | None = None
     ) -> subprocess.CompletedProcess[str]:
-        """Run a git command scoped to *worktree*."""
+        """Run a git command scoped to *worktree*.
+
+        Git may not look above *worktree* for a repository
+        (``GIT_CEILING_DIRECTORIES``): if the worktree has vanished, the
+        command fails instead of acting on an enclosing repository — where
+        ``git apply`` silently ignores every path outside the current
+        directory and reports success.
+        """
+        env = {**os.environ, "GIT_CEILING_DIRECTORIES": str(Path(worktree).parent)}
         return subprocess.run(
             ["git", "-C", str(worktree), *args],
             input=stdin,
             text=True,
             capture_output=True,
             check=False,
+            env=env,
         )
 
     @staticmethod
