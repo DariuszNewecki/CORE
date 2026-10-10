@@ -82,7 +82,8 @@ async def onboard_project(body: OnboardRequest, request: Request) -> dict:
     """Deliver the CORE machinery floor into an external repository (BYOR Phase A).
 
     Copies META schemas, taxonomies, constitution stub, and enforcement/config
-    from examples/starter-intent/.intent/ into <path>/.intent/. Dry-run by default.
+    from the bundled machinery floor (shared._machinery_floor, ADR-119 D9) into
+    <path>/.intent/. Dry-run by default.
     Pass write=true to apply; pass stage=true with write=true to stage for inspection.
 
     Requires the caller and the CORE API to be co-located on the same host/

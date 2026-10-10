@@ -237,7 +237,8 @@ async def initialize_repository(
     """Deliver the machinery floor into an external repo (BYOR Phase A).
 
     Copies META schemas, taxonomies, constitution stub, and enforcement/config
-    from ``examples/starter-intent/.intent/`` into ``<target>/.intent/``. Rules
+    from the bundled machinery floor (``shared._machinery_floor``, ADR-119 D9)
+    into ``<target>/.intent/``. Rules
     and mappings are excluded — those are Phase B (``project scout``). Refuses if
     the target already has an ``.intent/`` (ADR-111 D3). Dry-run by default;
     ``dry_run=False`` applies the writes via the ``file.create`` atomic action.
