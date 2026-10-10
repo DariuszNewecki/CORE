@@ -22,6 +22,7 @@ from body.services.service_registry import service_registry
 from shared.infrastructure.git_service import (
     StagingContaminationError,
     autonomous_identity,
+    producer_identity,
 )
 from shared.logger import getLogger
 
@@ -357,8 +358,13 @@ def commit_proposal_changes(
     proposal_id: str,
     proposal_goal: str,
     action_results: dict[str, Any],
+    producer: str | None = None,
 ) -> CommitOutcome:
     """Commit the proposal's actual production to git.
+
+    ADR-168 Amendment 2026-10-10 A6: the proposal's *producer* is the git
+    author and CORE the committer. A proposal created before provenance
+    existed (no producer) is committed as CORE for both, as before.
 
     Per ADR-101 D2, the commit set is derived from the action's actual
     production — the union of ``data['_sandbox_target_paths']`` (paths
@@ -414,8 +420,9 @@ def commit_proposal_changes(
         git_service.commit_paths(
             paths_to_commit,
             f"fix({proposal_id[:16]}): {proposal_goal}",
-            # #951 / ADR-101 D1: CORE produced these bytes; commit as CORE.
+            # #951 / ADR-101 D1: CORE commits; A6: the producer is the author.
             identity=autonomous_identity(),
+            author=producer_identity(producer) if producer else None,
         )
         logger.info("Git commit created for proposal %s", proposal_id)
         return CommitOutcome.COMMITTED

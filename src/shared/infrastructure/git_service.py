@@ -49,6 +49,21 @@ def autonomous_identity() -> tuple[str, str]:
     return (_CFG_GIT.autonomous_author_name, _CFG_GIT.autonomous_author_email)
 
 
+# ID: d959cb2b-361c-4982-a602-9eaa0b7cad66
+def producer_identity(producer: str) -> tuple[str, str]:
+    """(name, email) naming a proposal's producer as a commit's author.
+
+    ADR-168 Amendment 2026-10-10 A6: the producer — the model or agent that
+    wrote the bytes — is the git author; CORE, which applied them, is the
+    committer (``autonomous_identity``). The name is the producer as
+    recorded on the proposal; the address uses the domain of CORE's own
+    configured address (``.invalid``, RFC 2606: never receives mail).
+    """
+    domain = _CFG_GIT.autonomous_author_email.rpartition("@")[2] or "core.invalid"
+    local = re.sub(r"[^a-z0-9.-]+", "-", producer.lower()).strip("-.") or "producer"
+    return (producer, f"{local}@{domain}")
+
+
 # ID: b483a756-582b-4b64-b96c-f5936639f7ae
 class StagingContaminationError(RuntimeError):
     """Raised by commit_paths when the staging area contains paths outside
@@ -504,6 +519,7 @@ class GitService:
         message: str,
         *,
         identity: tuple[str, str] | None = None,
+        author: tuple[str, str] | None = None,
     ) -> None:
         """
         Stages and commits exactly the given paths.
@@ -512,6 +528,9 @@ class GitService:
         commit only (``git -c user.name -c user.email``). Callers committing
         bytes CORE produced autonomously pass ``autonomous_identity()``
         (#951 / ADR-101 D1); without it the process's git identity applies.
+        ``author`` (name, email) overrides the author alone (``--author``):
+        a proposal's producer wrote the bytes, CORE committed them
+        (ADR-168 Amendment 2026-10-10 A6).
 
         Used by ProposalExecutor's success branches per ADR-021 D3. Mirrors
         the two-pass retry pattern in `commit` for pre-commit hook
@@ -561,9 +580,10 @@ class GitService:
             if identity is not None
             else []
         )
+        by = [f"--author={author[0]} <{author[1]}>"] if author is not None else []
         self._run_command(["add", "--", *paths])
         try:
-            self._run_command([*who, "commit", "-m", message, "--", *paths])
+            self._run_command([*who, "commit", *by, "-m", message, "--", *paths])
         except RuntimeError as first_err:
             logger.info(
                 "GitService.commit_paths: first commit attempt failed — "
@@ -571,7 +591,7 @@ class GitService:
                 first_err,
             )
             self._run_command(["add", "--", *paths])
-            self._run_command([*who, "commit", "-m", message, "--", *paths])
+            self._run_command([*who, "commit", *by, "-m", message, "--", *paths])
 
     # ID: c4b41786-639d-40e3-bba2-858baffa7802
     def get_recent_commits(self, n: int = _CFG_GIT.recent_commits_n) -> list[str]:

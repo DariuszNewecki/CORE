@@ -355,3 +355,56 @@ async def test_actions_execute_under_the_proposals_approval_authority() -> None:
 
     assert seen == ["risk_classification.safe_auto_approval"]
     assert current_approval_authority() is None
+
+
+async def _commit_kwargs(proposal: MagicMock) -> dict:
+    executor, session, repo_instance = _make_executor(proposal)
+    commit = MagicMock(return_value=CommitOutcome.COMMITTED)
+    with (
+        patch(
+            "will.autonomy.proposal_executor.service_registry.session",
+            MagicMock(return_value=_session_ctx(session)),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalRepository",
+            MagicMock(return_value=repo_instance),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.ProposalStateManager",
+            MagicMock(return_value=AsyncMock()),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.capture_git_sha",
+            MagicMock(return_value="deadbeef"),
+        ),
+        patch("will.autonomy.proposal_executor.commit_proposal_changes", commit),
+        patch(
+            "will.autonomy.proposal_executor.compute_changed_files",
+            AsyncMock(return_value=["a.py"]),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.record_consequence",
+            AsyncMock(return_value=True),
+        ),
+        patch(
+            "will.autonomy.proposal_executor.resolve_deferred_findings",
+            AsyncMock(return_value=True),
+        ),
+    ):
+        await executor.execute("pid-exec-1", claimed_by=MagicMock(), write=True)
+    return commit.call_args.kwargs
+
+
+# ID: d19b53b6-3fa4-4195-a682-628698bc8883
+async def test_commit_receives_the_proposals_producer() -> None:
+    """ADR-168 Amendment 2026-10-10 A6: the producer recorded on the proposal
+    becomes the commit's author; a pre-provenance proposal passes None."""
+    from types import SimpleNamespace
+
+    with_producer = _make_proposal(
+        provenance=SimpleNamespace(producer="claude-session:core-darek")
+    )
+    assert (await _commit_kwargs(with_producer))["producer"] == (
+        "claude-session:core-darek"
+    )
+    assert (await _commit_kwargs(_make_proposal(provenance=None)))["producer"] is None

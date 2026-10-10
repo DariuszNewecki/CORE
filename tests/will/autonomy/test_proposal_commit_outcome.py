@@ -127,3 +127,27 @@ def test_commit_outcome_refused_on_staging_contamination() -> None:
         action_results=_PRODUCED,
     )
     assert outcome is CommitOutcome.REFUSED_CONTAMINATION
+
+
+# ID: dd8875b2-24e0-4887-8e6d-f72133e061fa
+def test_commit_names_the_proposal_producer_as_author(repo: Path) -> None:
+    """ADR-168 Amendment 2026-10-10 A6, through commit_proposal_changes."""
+    (repo / "target.py").write_text("# produced\n", encoding="utf-8")
+
+    outcome = commit_proposal_changes(
+        GitService(repo),
+        proposal_id="p-1234567890abcdef",
+        proposal_goal="producer test",
+        action_results=_PRODUCED,
+        producer="claude-session:core-darek",
+    )
+
+    assert outcome == CommitOutcome.COMMITTED
+    who = subprocess.run(
+        ["git", "log", "-1", "--format=%an|%cn"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert who == "claude-session:core-darek|CORE daemon"

@@ -346,6 +346,11 @@ class ProposalExecutor:
                         proposal_id=proposal.proposal_id,
                         proposal_goal=proposal.goal,
                         action_results=action_results,
+                        producer=(
+                            proposal.provenance.producer
+                            if proposal.provenance is not None
+                            else None
+                        ),
                     )
 
                     if commit_outcome in (
