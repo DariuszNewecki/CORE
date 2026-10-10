@@ -119,7 +119,7 @@ class CoherenceChecker:
         from shared.governance.coherence_harvester import NormativeMarkerRegister
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
-        from .checks.base import CheckIncomplete, CheckSkipped
+        from .checks.base import CheckIncomplete, CheckSkipped, CoherenceCandidate
         from .checks.cross_ns_direction import CrossNsDirectionCheck
         from .checks.dispatch_parity import DispatchParityCheck
         from .checks.intent_binding import IntentBindingCheck
@@ -211,7 +211,21 @@ class CoherenceChecker:
                     "emitted": 0,
                 }
                 continue
+            carried = 0
+            raised: list[CoherenceCandidate] = []
             for candidate in candidates:
+                # Triage carries forward (ADR-067 note 2026-10-10): an identical
+                # candidate the governor dismissed, on unchanged documents, is
+                # not raised again — but it is counted, never silently dropped.
+                if await self._coherence_service.dismissed_and_unchanged(
+                    relation=candidate.relation,
+                    documents=candidate.documents,
+                    claim=candidate.claim,
+                    repo_root=self._repo_root,
+                ):
+                    carried += 1
+                    continue
+                raised.append(candidate)
                 await self._coherence_service.add_candidate(
                     run_id=run_id,
                     relation=candidate.relation,
@@ -219,16 +233,22 @@ class CoherenceChecker:
                     claim=candidate.claim,
                     rationale=candidate.rationale,
                 )
+            candidates = raised
             if incomplete is not None:
                 status[check.relation] = {
                     "status": "partial",
                     "error": str(incomplete),
                     "emitted": len(candidates),
+                    "carried_forward": carried,
                     "judged": incomplete.judged,
                     "unjudged": incomplete.unjudged,
                 }
                 continue
-            status[check.relation] = {"status": "ok", "emitted": len(candidates)}
+            status[check.relation] = {
+                "status": "ok",
+                "emitted": len(candidates),
+                "carried_forward": carried,
+            }
             logger.info(
                 "CCC: %s emitted %d candidates", check.relation, len(candidates)
             )

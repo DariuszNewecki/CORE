@@ -125,3 +125,43 @@ class TestPathRefCheck:
             candidates = _run(check)
         assert len(candidates) == 1
         assert ".specs/papers/Nonexistent.md" in candidates[0].claim
+
+    def test_locators_wraps_and_prose_are_not_missing_paths(
+        self, tmp_path: Path
+    ) -> None:
+        """Run 6558a043: 41 PATH_REF candidates were parser artefacts —
+        `#anchor`, `§section`, `:line-range`, Markdown line-wraps, prose and
+        bare ADR ids. Every reference below names an existing file or no path."""
+        (tmp_path / ".specs" / "papers").mkdir(parents=True)
+        (tmp_path / ".specs" / "papers" / "P.md").write_text("x")
+        (tmp_path / ".specs" / "decisions").mkdir(parents=True)
+        (tmp_path / ".specs" / "decisions" / "ADR-083-thing.md").write_text("x")
+        (tmp_path / ".intent" / "enforcement" / "mappings" / "governance").mkdir(
+            parents=True
+        )
+        (tmp_path / ".intent/enforcement/mappings/governance/a.yaml").write_text("x")
+        doc = tmp_path / "test.md"
+        doc.write_text(
+            "`.specs/papers/P.md#g4` `.specs/papers/P.md §4a` "
+            "`.specs/papers/P.md:§5.4` `.specs/papers/P.md:26\u201349` "
+            "`.specs/papers/P.md:L12` `.intent/enforcement/mappings/\n"
+            "   governance/a.yaml` `.intent/ ↔ IntentRepository` `.specs/…` "
+            "`.specs/decisions/ADR-083`"
+        )
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(PathRefCheck, "_governance_docs", return_value=[doc]):
+            candidates = _run(check)
+        assert candidates == []
+
+    def test_superseded_or_retired_documents_are_skipped(self, tmp_path: Path) -> None:
+        """A document no longer in force is history; its paths are not checked."""
+        retired = tmp_path / "old.md"
+        retired.write_text("---\nstatus: retired\n---\nsee `.specs/papers/Gone.md`")
+        live = tmp_path / "live.md"
+        live.write_text("---\nstatus: accepted\n---\nsee `.specs/papers/Gone.md`")
+        check = PathRefCheck(repo_root=tmp_path)
+        with patch.object(
+            PathRefCheck, "_governance_docs", return_value=[retired, live]
+        ):
+            candidates = _run(check)
+        assert [c.documents for c in candidates] == [["live.md"]]

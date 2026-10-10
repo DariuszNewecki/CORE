@@ -69,6 +69,33 @@ def _find_adr_file(adr_id: str, decisions_dir: Path) -> Path | None:
     return None
 
 
+_NORTHSTAR_OR_CHARTER = re.compile(
+    r"\.specs/northstar/|CORE-CHARTER\.md|\bnorthstar\b|\bcharter\b", re.IGNORECASE
+)
+
+
+def _grounded_otherwise(
+    content: str, own_name: str, paper_names: set[str], accepted_ids: set[str]
+) -> bool:
+    """Topology row 2 as amended 2026-10-10 (proposal 0012): an ADR is
+    grounded by a paper (cited by path or by file name), the northstar or
+    charter, or another accepted ADR. The July 2026 paper prune left later
+    decisions grounded in the northstar and in earlier ADRs."""
+    if any(name in content for name in paper_names):
+        return True
+    if _NORTHSTAR_OR_CHARTER.search(content):
+        return True
+    own = _SUPERSEDES_ADR_ID.search(own_name)
+    own_id = own.group(1).lstrip("0") if own else None
+    # An ADR named only on a Supersedes line is an inherited bind, verified
+    # separately (the predecessor must itself be grounded) — not grounding.
+    without_supersedes = "\n".join(
+        line for line in content.splitlines() if not _SUPERSEDES_LINE.match(line)
+    )
+    cited = {n.lstrip("0") for n in _SUPERSEDES_ADR_ID.findall(without_supersedes)}
+    return bool((cited - {own_id}) & accepted_ids)
+
+
 # ID: 3f8d1b7e-6c4a-4e2d-a9f5-b7c3d2e1f0a8
 def adr_has_grounding_or_supersedes(content: str) -> bool:
     """True if the ADR text has a grounding paper citation OR a Supersedes declaration.
@@ -111,12 +138,23 @@ class Row2GroundingCheck:
             for p in universe
             if p.is_relative_to(decisions) and p.name.startswith("ADR-")
         )
+        accepted_ids = {
+            m.group(1).lstrip("0")
+            for p in adr_paths
+            if (m := _SUPERSEDES_ADR_ID.search(p.name))
+            and _STATUS_ACCEPTED.search(p.read_text(encoding="utf-8", errors="replace"))
+        }
+        paper_names = {
+            p.name for p in (self._repo_root / ".specs" / "papers").glob("*.md")
+        }
         candidates: list[CoherenceCandidate] = []
         for adr_path in adr_paths:
             content = adr_path.read_text(encoding="utf-8", errors="replace")
             if not _STATUS_ACCEPTED.search(content):
                 continue
             if _PAPERS_CITE.search(content):
+                continue
+            if _grounded_otherwise(content, adr_path.name, paper_names, accepted_ids):
                 continue
 
             rel = str(adr_path.relative_to(self._repo_root))

@@ -21,7 +21,7 @@ import asyncio
 import shutil
 import subprocess
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -617,7 +617,7 @@ class GitService:
     def first_seen_date(self, rel_path: str) -> date | None:
         """Return the date the file at *rel_path* was first added to git, or None.
 
-        Runs ``git log --diff-filter=A --format=%aI -- <rel_path>`` and parses
+        Runs ``git log --follow --diff-filter=A --format=%aI -- <rel_path>`` and parses
         the OLDEST author-date returned. git log outputs in reverse chrono
         order; the last line is the oldest matching commit, which for the
         --diff-filter=A filter is the original add (re-adds after deletion
@@ -630,10 +630,14 @@ class GitService:
         Fail-soft: returns None on git error, missing file, unparseable date,
         or any other failure. The caller (ROW4_NAMING) treats "unknown
         first-seen" as ungrandfathered.
+
+        ``--follow`` traces renames: without it a file renamed after the
+        cut-off looked newly created (``workers/audit_sensor_cli.yaml``:
+        renamed 2026-05-29, first added 2026-03-13; CCC run 6558a043).
         """
         try:
             output = self._run_command(
-                ["log", "--diff-filter=A", "--format=%aI", "--", rel_path]
+                ["log", "--follow", "--diff-filter=A", "--format=%aI", "--", rel_path]
             )
         except RuntimeError:
             return None
@@ -645,6 +649,46 @@ class GitService:
             return date.fromisoformat(oldest[:10])
         except ValueError:
             return None
+
+    # ID: 30b6584a-2282-4d15-b9c3-704363d13c5b
+    def introducing_commit_subject(self, rel_path: str) -> str | None:
+        """The subject line of the commit that first added *rel_path*, or None.
+
+        Follows renames, like ``first_seen_date``. Used by ROW4_NAMING to read
+        which decision a law file was introduced under. Fail-soft: None on any
+        git failure.
+        """
+        try:
+            output = self._run_command(
+                ["log", "--follow", "--diff-filter=A", "--format=%s", "--", rel_path]
+            )
+        except RuntimeError:
+            return None
+        lines = output.splitlines() if output else []
+        return lines[-1] if lines else None
+
+    # ID: 30850674-c7bb-4042-b2e8-1acb2a5c48ad
+    def changed_since(self, rel_path: str, since: datetime) -> bool:
+        """True when *rel_path* was committed after *since* or has uncommitted
+        changes. Fail-closed: any git failure counts as changed.
+
+        Used by CCC triage carry-forward (ADR-067 note 2026-10-10): a
+        dismissal holds only while its documents are unchanged.
+        """
+        try:
+            last = self._run_command(["log", "-1", "--format=%cI", "--", rel_path])
+            dirty = self._run_command(["status", "--porcelain", "--", rel_path])
+        except RuntimeError:
+            return True
+        if dirty:
+            return True
+        if not last:
+            return True
+        try:
+            committed = datetime.fromisoformat(last.strip())
+        except ValueError:
+            return True
+        return committed > since
 
     # ID: 2204a851-0f11-495b-be3d-c0af82bb13ee
     def create_worktree(self, sha: str) -> ScopedGitService:

@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from shared.governance.coherence_harvester import (
-    _NOT_IN_FORCE_STATUSES,
+    NOT_IN_FORCE_STATUSES,
     GovernanceClaimHarvester,
     NormativeMarkerRegister,
 )
@@ -50,6 +50,6 @@ def test_not_in_force_statuses_are_the_governed_terminal_states() -> None:
     enums = json.loads((repo_root / ".intent" / "META" / "enums.json").read_text())
     defs = enums.get("enums", enums.get("definitions", enums))
 
-    assert _NOT_IN_FORCE_STATUSES <= set(defs["document_status"]["enum"])
-    assert _NOT_IN_FORCE_STATUSES <= set(defs["adr_status"]["enum"])
-    assert _NOT_IN_FORCE_STATUSES <= set(defs["paper_status"]["enum"])
+    assert NOT_IN_FORCE_STATUSES <= set(defs["document_status"]["enum"])
+    assert NOT_IN_FORCE_STATUSES <= set(defs["adr_status"]["enum"])
+    assert NOT_IN_FORCE_STATUSES <= set(defs["paper_status"]["enum"])

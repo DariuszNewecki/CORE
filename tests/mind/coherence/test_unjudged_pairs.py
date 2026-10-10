@@ -104,6 +104,9 @@ async def test_checker_records_partial_and_keeps_candidates() -> None:
     from mind.coherence.checker import CoherenceChecker
 
     coherence_service = AsyncMock()
+    # Nothing was dismissed before (triage carry-forward, proposal 0012); a bare
+    # AsyncMock would answer with a truthy mock and carry the candidate forward.
+    coherence_service.dismissed_and_unchanged = AsyncMock(return_value=False)
     checker = CoherenceChecker(
         cognitive_service=MagicMock(),
         coherence_service=coherence_service,

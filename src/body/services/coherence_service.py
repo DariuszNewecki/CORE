@@ -109,6 +109,36 @@ class CoherenceService(SessionAttachedService):
         )
         return candidate_id
 
+    # ID: 1ca64303-c926-44fe-ad25-c27479a3d465
+    async def dismissed_and_unchanged(
+        self,
+        relation: str,
+        documents: list[str],
+        claim: str,
+        repo_root: Any,
+    ) -> bool:
+        """True when the governor dismissed an identical candidate and none of
+        its documents changed since (ADR-067 note 2026-10-10: triage carries
+        forward). Identical = same relation, same documents, same claim."""
+        from datetime import datetime
+
+        from shared.infrastructure.git_service import GitService
+
+        session = self._require_session()
+        result = await session.execute(
+            text(
+                "SELECT max(triaged_at) FROM core.coherence_candidates "
+                "WHERE triage_decision = 'dismissed' AND relation = :relation "
+                "AND documents = cast(:documents as jsonb) AND claim = :claim"
+            ),
+            {"relation": relation, "documents": json.dumps(documents), "claim": claim},
+        )
+        dismissed_at = result.scalar_one_or_none()
+        if not isinstance(dismissed_at, datetime):
+            return False
+        git = GitService(repo_root)
+        return not any(git.changed_since(doc, dismissed_at) for doc in documents)
+
     # ID: b278e656-2ec2-4403-b246-02c9915da37a
     async def triage_candidate(
         self,

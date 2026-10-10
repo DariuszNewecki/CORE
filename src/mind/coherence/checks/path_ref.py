@@ -15,6 +15,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from shared.governance.coherence_harvester import (
+    NOT_IN_FORCE_STATUSES,
+    document_status,
+)
+
 from .base import CoherenceCandidate
 
 
@@ -26,6 +31,28 @@ _BACKTICK_PATH = re.compile(r"`(\.(?:specs|intent|src)/[^`]+)`")
 # "exist on the filesystem" by definition, so it can never be a real
 # PATH_REF finding (#832).
 _GLOB_OR_PLACEHOLDER_CHARS = frozenset("*<>{}")
+
+# Locators that follow a path but are not part of it: `#anchor`, `:195-204`
+# (hyphen or en dash), `:L12`, `:§5`, ` §4a`. Run 6558a043 reported 41 existing paths as missing
+# because these were kept in the path.
+_LOCATOR_SUFFIX = re.compile(
+    r"(?:#.*|\s*:?\s*§.*|:L?\d+(?:\s*[\u2013-]\s*\d+)?(?:\s*,.*)?)$"
+)
+_BARE_ADR_ID = re.compile(r"^\.specs/decisions/ADR-\d+$")
+
+
+def _normalize_ref(raw: str) -> str | None:
+    """The path a backtick reference names, or None when it names no path.
+
+    Markdown line-wrapping is joined; locator suffixes are dropped; an
+    ellipsis or remaining whitespace means prose ("`.intent/ <-> Qdrant`"),
+    not a path.
+    """
+    ref = re.sub(r"\s*\n\s*", "", raw)
+    ref = _LOCATOR_SUFFIX.sub("", ref).rstrip("/.,;:)")
+    if "…" in ref or "..." in ref or re.search(r"\s", ref):
+        return None
+    return ref or None
 
 
 # ID: 2a23bd4c-81be-4af3-9391-aadfcad40a0d
@@ -46,16 +73,20 @@ class PathRefCheck:
                 content = doc_path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
+            # A superseded or retired document is history: its paths are the
+            # paths of its time (ADR-105 D5 terminal states).
+            if document_status(content) in NOT_IN_FORCE_STATUSES:
+                continue
             rel_doc = str(doc_path.relative_to(self._repo_root))
             seen: set[str] = set()
             for match in _BACKTICK_PATH.finditer(content):
-                ref = match.group(1).rstrip("/.,;:)")
-                if ref in seen:
+                ref = _normalize_ref(match.group(1))
+                if ref is None or ref in seen:
                     continue
                 seen.add(ref)
                 if _GLOB_OR_PLACEHOLDER_CHARS.intersection(ref):
                     continue
-                if (self._repo_root / ref).exists():
+                if self._resolves(ref):
                     continue
                 candidates.append(
                     CoherenceCandidate(
@@ -76,6 +107,15 @@ class PathRefCheck:
                     )
                 )
         return candidates
+
+    def _resolves(self, ref: str) -> bool:
+        """True when *ref* exists; a bare ``ADR-NNN`` resolves to its file."""
+        if (self._repo_root / ref).exists():
+            return True
+        if _BARE_ADR_ID.match(ref):
+            parent = (self._repo_root / ref).parent
+            return any(parent.glob(Path(ref).name + "-*.md"))
+        return False
 
     def _governance_docs(self) -> list[Path]:
         """All .specs/**/*.md and .intent/**/*.yaml governance documents."""

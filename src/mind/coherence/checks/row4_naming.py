@@ -28,6 +28,7 @@ _STATUS_ACCEPTED = re.compile(
     r"^\*\*Status:\*\*\s*Accepted", re.IGNORECASE | re.MULTILINE
 )
 _META_PARTS = {"META"}
+_ADR_ID = re.compile(r"ADR-0*(\d+)")
 
 
 # ID: a7968f92-b6b9-4d0d-bb5d-6e6a7a6a4d43
@@ -45,7 +46,8 @@ class Row4NamingCheck:
         intent = self._repo_root / ".intent"
         if not intent.is_dir():
             return []
-        accepted_adr_texts = self._collect_accepted_adr_text()
+        accepted = self._collect_accepted_adr_text()
+        accepted_adr_texts = list(accepted.values())
         candidates: list[CoherenceCandidate] = []
         for path in _iter_intent_artifacts(self._repo_root):
             rel = str(path.relative_to(self._repo_root))
@@ -53,6 +55,8 @@ class Row4NamingCheck:
                 continue
             first_seen = self._git_first_seen(rel)
             if first_seen is not None and first_seen < _TOPOLOGY_ACCEPTANCE:
+                continue
+            if self._named_by_introducing_decision(rel, accepted):
                 continue
             candidates.append(
                 CoherenceCandidate(
@@ -76,7 +80,18 @@ class Row4NamingCheck:
             )
         return candidates
 
-    def _collect_accepted_adr_text(self) -> list[str]:
+    def _named_by_introducing_decision(
+        self, rel: str, accepted: dict[str, str]
+    ) -> bool:
+        """Topology row 4 as amended 2026-10-10 (proposal 0012): a law file is
+        named when the commit that introduced it cites an accepted ADR — its
+        governing decision (ADRs name families of files and rules by id, not
+        each path). Files introduced under an issue only, or no decision,
+        stay flagged."""
+        subject = GitService(self._repo_root).introducing_commit_subject(rel) or ""
+        return any(n.lstrip("0") in accepted for n in _ADR_ID.findall(subject))
+
+    def _collect_accepted_adr_text(self) -> dict[str, str]:
         # F-42 ADR-091 D5 Phase 4: ADR discovery routes through the
         # spec_markdown artifact-type universe filtered to .specs/decisions/
         # with the ADR-N name pattern.
@@ -88,7 +103,7 @@ class Row4NamingCheck:
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         decisions = self._repo_root / ".specs" / "decisions"
         if not decisions.is_dir():
-            return []
+            return {}
         universe: set[Path] = set()
         for glob in spec_md_globs:
             universe.update(self._repo_root.glob(glob))
@@ -97,11 +112,12 @@ class Row4NamingCheck:
             for p in universe
             if p.is_relative_to(decisions) and p.name.startswith("ADR-")
         )
-        texts: list[str] = []
+        texts: dict[str, str] = {}
         for adr in adr_paths:
             content = adr.read_text(encoding="utf-8", errors="replace")
             if _STATUS_ACCEPTED.search(content):
-                texts.append(content)
+                match = _ADR_ID.match(adr.name)
+                texts[match.group(1).lstrip("0") if match else adr.name] = content
         return texts
 
     def _git_first_seen(self, rel_path: str) -> date | None:

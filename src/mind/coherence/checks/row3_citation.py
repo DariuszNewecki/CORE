@@ -16,7 +16,11 @@ import re
 from datetime import date
 from pathlib import Path
 
-from shared.governance.coherence_harvester import NormativeMarkerRegister
+from shared.governance.coherence_harvester import (
+    NOT_IN_FORCE_STATUSES,
+    NormativeMarkerRegister,
+    document_status,
+)
 from shared.infrastructure.git_service import GitService
 
 from .base import CoherenceCandidate
@@ -95,6 +99,13 @@ class Row3CitationCheck:
         candidates: list[CoherenceCandidate] = []
         for path in paper_paths:
             content = path.read_text(encoding="utf-8", errors="replace")
+            # Only an in-force paper states doctrine: a draft's MUSTs are
+            # proposals (aspirational by status), a superseded or retired
+            # paper is history (paper_status, ADR-105 D5). Run 6558a043 flagged
+            # 34 sections of draft papers.
+            status = document_status(content)
+            if status == "draft" or status in NOT_IN_FORCE_STATUSES:
+                continue
             rel = str(path.relative_to(self._repo_root))
             first_seen = git.first_seen_date(rel)
             if first_seen is not None and first_seen < _ROW3_OPERATIONALIZED:

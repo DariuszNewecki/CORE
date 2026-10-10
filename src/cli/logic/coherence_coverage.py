@@ -30,6 +30,9 @@ class CheckClassCoverage:
     failed: list[tuple[str, str]] = field(default_factory=list)
     recorded: bool = True
     """False when the manifest carries no check-class record (pre-#624 runs)."""
+    carried_forward: int = 0
+    """Candidates not raised again: identical to a dismissed one, documents
+    unchanged since triage (ADR-067 note 2026-10-10)."""
 
     @property
     # ID: 985fbfec-303e-4fb4-9a08-a078b0b8f663
@@ -55,8 +58,10 @@ def check_class_coverage(manifest: list[dict[str, Any]]) -> CheckClassCoverage:
     ran: list[str] = []
     skipped: list[tuple[str, str]] = []
     failed: list[tuple[str, str]] = []
+    carried = 0
     for name, outcome in sorted((record.get("check_status") or {}).items()):
         status = (outcome or {}).get("status")
+        carried += int((outcome or {}).get("carried_forward") or 0)
         if status == "ok":
             ran.append(name)
         elif status == "skipped":
@@ -65,7 +70,9 @@ def check_class_coverage(manifest: list[dict[str, Any]]) -> CheckClassCoverage:
             failed.append((name, f"incomplete — {outcome.get('error') or ''}"))
         else:
             failed.append((name, str(outcome.get("error") or status or "unknown")))
-    return CheckClassCoverage(ran=ran, skipped=skipped, failed=failed)
+    return CheckClassCoverage(
+        ran=ran, skipped=skipped, failed=failed, carried_forward=carried
+    )
 
 
 # ID: f96202f7-d009-4c3a-9e9a-c97b4dc264ec
@@ -80,6 +87,11 @@ def coverage_lines(coverage: CheckClassCoverage) -> list[str]:
         f"Check classes: {len(coverage.ran)} ran, {len(coverage.skipped)} "
         f"skipped, {len(coverage.failed)} failed"
     ]
+    if coverage.carried_forward:
+        lines.append(
+            f"  {coverage.carried_forward} candidate(s) carried forward as dismissed "
+            "(identical, documents unchanged since triage)"
+        )
     for name, reason in coverage.skipped:
         lines.append(f"  SKIPPED {name}: {reason}")
     for name, error in coverage.failed:
